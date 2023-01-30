@@ -3,6 +3,8 @@ name = "qsc_wasm"
 version = "0.0.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+qsc_ast = { path = "../qsc_ast" }
+qsc_frontend = { path = "../qsc_frontend" }
+qsc_eval = { path = "../qsc_eval" }
+wasm-bindgen = "0.2.63"
