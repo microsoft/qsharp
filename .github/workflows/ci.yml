@@ -43,7 +43,7 @@ jobs:
       with:
         name: ${{matrix.os}}
         path: |
-        target/release/qsc*
-        !target/release/qsc.d
-        target/release/qsi*
-        !target/release/qsi.d
+          target/release/qsc*
+          !target/release/qsc.d
+          target/release/qsi*
+          !target/release/qsi.d
