@@ -1,0 +1,49 @@
+name: CI Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - name: Check Formatting
+      run: cargo fmt -v --all -- --check
+
+  build:
+    name: CI Build and Test
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - name: Clippy Lints
+      run: cargo clippy -vv --all-targets --all-features -- -D warnings
+    - name: Build
+      run: cargo build -vv --release
+    - name: Test
+      run: cargo test -vv --release -- --nocapture
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.os}}
+        path: |
+        target/release/qsc*
+        !target/release/qsc.d
+        target/release/qsi*
+        !target/release/qsi.d
