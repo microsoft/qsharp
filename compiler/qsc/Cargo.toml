@@ -8,3 +8,4 @@ qsc_ast = { path = "../qsc_ast" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_passes = { path = "../qsc_passes" }
 qsc_codegen = { path = "../qsc_codegen" }
+qsc_eval = { path = "../qsc_eval" }
