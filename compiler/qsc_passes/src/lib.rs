@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![deny(clippy::all, clippy::pedantic)]
+#![warn(clippy::pedantic)]
 
 #[must_use]
 pub fn add(left: usize, right: usize) -> usize {
