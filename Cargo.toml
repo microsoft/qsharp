@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "compiler/qsc",
+    "compiler/qsc_ast",
+    "compiler/qsc_codegen",
+    "compiler/qsc_eval",
+    "compiler/qsc_frontend",
+    "compiler/qsc_passes",
+]
+
+[profile.release]
+debug = 1

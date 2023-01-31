@@ -1,0 +1,8 @@
+[package]
+name = "qsc_passes"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+qsc_ast = { path = "../qsc_ast" }
+qsc_frontend = { path = "../qsc_frontend" }
