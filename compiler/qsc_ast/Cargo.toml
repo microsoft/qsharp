@@ -4,3 +4,6 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+derivative = "2.2.0"
+num-bigint = "0.4.3"
+void = "1.0.2"
