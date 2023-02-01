@@ -3,6 +3,8 @@
 
 #![warn(clippy::pedantic)]
 
+pub mod visitor;
+
 use derivative::Derivative;
 use num_bigint::BigInt;
 use std::fmt::Debug;
@@ -60,7 +62,6 @@ pub trait Stage {
     type ItemType: Staged;
     type ItemX: Staged;
     type Namespace: Staged;
-    type Node: Staged;
     type PatBind: Staged;
     type PatDiscard: Staged;
     type Path: Staged;
@@ -76,7 +77,6 @@ pub trait Stage {
     type SpecBodyImpl: Staged;
     type SpecBodyX: Staged;
     type SpecDecl: Staged;
-    type Sym: Staged;
     type TyApp: Staged;
     type TyArrow: Staged;
     type TyHole: Staged;
@@ -141,7 +141,6 @@ impl Stage for UD {
     type ItemType = ();
     type ItemX = Void;
     type Namespace = ();
-    type Node = ();
     type PatBind = ();
     type PatDiscard = ();
     type Path = ();
@@ -157,7 +156,6 @@ impl Stage for UD {
     type SpecBodyImpl = ();
     type SpecBodyX = Void;
     type SpecDecl = ();
-    type Sym = ();
     type TyApp = ();
     type TyArrow = ();
     type TyHole = ();
@@ -173,11 +171,18 @@ impl Stage for UD {
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct Project<S: Stage>(pub S::Project, pub Vec<Namespace<S>>);
+pub struct Project<S: Stage> {
+    pub stage: S::Project,
+    pub namespaces: Vec<Namespace<S>>,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct Namespace<S: Stage>(pub S::Namespace, pub Path<S>, pub Vec<Item<S>>);
+pub struct Namespace<S: Stage> {
+    pub stage: S::Namespace,
+    pub name: Path<S>,
+    pub items: Vec<Item<S>>,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
@@ -190,11 +195,19 @@ pub enum Item<S: Stage> {
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct DeclInfo<S: Stage>(pub S::DeclInfo, pub Vec<Attribute<S>>, pub Visibility);
+pub struct DeclInfo<S: Stage> {
+    pub stage: S::DeclInfo,
+    pub attributes: Vec<Attribute<S>>,
+    pub visibility: Visibility,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct Attribute<S: Stage>(pub S::Attribute, pub Path<S>, pub Expr<S>);
+pub struct Attribute<S: Stage> {
+    pub stage: S::Attribute,
+    pub name: Path<S>,
+    pub arg: Expr<S>,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
@@ -226,7 +239,11 @@ pub enum CallBody<S: Stage> {
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct SpecDecl<S: Stage>(pub S::SpecDecl, pub Spec, pub SpecBody<S>);
+pub struct SpecDecl<S: Stage> {
+    pub stage: S::SpecDecl,
+    pub spec: Spec,
+    pub body: SpecBody<S>,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
@@ -265,7 +282,10 @@ pub enum Ty<S: Stage> {
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct Expr<S: Stage>(pub S::Expr, pub ExprKind<S>);
+pub struct Expr<S: Stage> {
+    pub stage: S::Expr,
+    pub kind: ExprKind<S>,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
@@ -320,15 +340,24 @@ pub enum ExprKind<S: Stage> {
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct Block<S: Stage>(pub S::Block, pub S::Node, pub Vec<Expr<S>>);
+pub struct Block<S: Stage> {
+    pub stage: S::Block,
+    pub exprs: Vec<Expr<S>>,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct Ident<S: Stage>(pub S::Ident, pub S::Sym, pub String);
+pub struct Ident<S: Stage> {
+    pub stage: S::Ident,
+    pub name: String,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
-pub struct Path<S: Stage>(pub S::Path, pub S::Sym, pub Vec<String>);
+pub struct Path<S: Stage> {
+    pub stage: S::Path,
+    pub parts: Vec<String>,
+}
 
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""))]
