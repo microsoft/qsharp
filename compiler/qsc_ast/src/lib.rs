@@ -11,6 +11,15 @@ use num_bigint::BigInt;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct NodeId(u32);
 
+impl NodeId {
+    pub const ROOT: Self = Self(0);
+
+    #[must_use]
+    pub fn next(&self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Package {
     pub id: NodeId,
