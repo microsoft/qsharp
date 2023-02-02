@@ -11,55 +11,56 @@ use num_bigint::BigInt;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct NodeId(u32);
 
-#[derive(Clone, Debug)]
-pub struct Project {
+#[derive(Clone, Debug, PartialEq)]
+pub struct Package {
     pub id: NodeId,
     pub namespaces: Vec<Namespace>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Namespace {
     pub id: NodeId,
     pub name: Path,
     pub items: Vec<Item>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     pub id: NodeId,
     pub kind: ItemKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
     Open(Path, Ident),
-    Type(DeclInfo, Ident, TyDef),
-    Callable(DeclInfo, CallHeader, CallBody),
+    Type(DeclMeta, Ident, TyDef),
+    Callable(DeclMeta, CallableHead, CallableBody),
 }
 
-#[derive(Clone, Debug)]
-pub struct DeclInfo {
+#[derive(Clone, Debug, PartialEq)]
+pub struct DeclMeta {
     pub id: NodeId,
     pub attributes: Vec<Attribute>,
     pub visibility: Visibility,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Attribute {
     pub id: NodeId,
     pub name: Path,
     pub arg: Expr,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TyDef {
     Field(Option<Ident>, Ty),
     Tuple(Vec<TyDef>),
 }
 
-#[derive(Clone, Debug)]
-pub struct CallHeader {
-    pub kind: CallKind,
+#[derive(Clone, Debug, PartialEq)]
+pub struct CallableHead {
+    pub id: NodeId,
+    pub kind: CallableKind,
     pub name: Ident,
     pub ty_params: Vec<Ident>,
     pub input: Pat,
@@ -67,42 +68,42 @@ pub struct CallHeader {
     pub functors: FunctorExpr,
 }
 
-#[derive(Clone, Debug)]
-pub enum CallBody {
+#[derive(Clone, Debug, PartialEq)]
+pub enum CallableBody {
     Single(SpecBody),
     Full(Vec<SpecDecl>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SpecDecl {
     pub id: NodeId,
     pub spec: Spec,
     pub body: SpecBody,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SpecBody {
     Gen(SpecGen),
     Impl(Pat, Block),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum FunctorExpr {
     BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
     Lit(Functor),
     Null,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ty {
     pub id: NodeId,
     pub kind: TyKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TyKind {
     App(Box<Ty>, Vec<Ty>),
-    Arrow(CallKind, Box<Ty>, Box<Ty>, FunctorExpr),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, FunctorExpr),
     Hole,
     Path(Path),
     Prim(TyPrim),
@@ -110,13 +111,13 @@ pub enum TyKind {
     Var(TyVar),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
     pub id: NodeId,
     pub kind: ExprKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ExprKind {
     Array(Vec<Expr>),
     ArrayRepeat(Box<Expr>, Box<Expr>),
@@ -134,7 +135,7 @@ pub enum ExprKind {
     If(Vec<(Expr, Block)>, Option<Block>),
     Index(Box<Expr>, Box<Expr>),
     Interp(String, Vec<Expr>),
-    Lambda(CallKind, Pat, Box<Expr>),
+    Lambda(CallableKind, Pat, Box<Expr>),
     Let(Pat, Box<Expr>),
     Lit(Lit),
     Path(Path),
@@ -148,31 +149,19 @@ pub enum ExprKind {
     While(Box<Expr>, Block),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Block {
     pub id: NodeId,
     pub exprs: Vec<Expr>,
 }
 
-#[derive(Clone, Debug)]
-pub struct Ident {
-    pub id: NodeId,
-    pub name: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct Path {
-    pub id: NodeId,
-    pub parts: Vec<String>,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Pat {
     pub id: NodeId,
     pub kind: PatKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum PatKind {
     Bind(Mut, Ident, Ty),
     Discard(Ty),
@@ -180,17 +169,29 @@ pub enum PatKind {
     Tuple(Vec<Pat>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct QubitInit {
     pub id: NodeId,
     pub kind: QubitInitKind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum QubitInitKind {
     Single,
     Tuple(Vec<QubitInit>),
     Array(Box<Expr>),
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Path {
+    pub id: NodeId,
+    pub parts: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Ident {
+    pub id: NodeId,
+    pub name: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -200,7 +201,7 @@ pub enum Visibility {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum CallKind {
+pub enum CallableKind {
     Function,
     Operation,
 }
