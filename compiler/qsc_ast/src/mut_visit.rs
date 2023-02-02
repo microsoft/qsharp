@@ -252,6 +252,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_pat(pat);
             vis.visit_expr(value);
         }
+        ExprKind::Paren(expr) => vis.visit_expr(expr),
         ExprKind::Path(path) => vis.visit_path(path),
         ExprKind::Qubit(_, pat, init, block) => {
             vis.visit_pat(pat);

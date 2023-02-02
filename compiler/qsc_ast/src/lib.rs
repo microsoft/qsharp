@@ -147,6 +147,7 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     Let(Pat, Box<Expr>),
     Lit(Lit),
+    Paren(Box<Expr>),
     Path(Path),
     Qubit(QubitKind, Pat, QubitInit, Option<Block>),
     Range(Box<Expr>, Box<Expr>, Box<Expr>),
