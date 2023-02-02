@@ -7,7 +7,6 @@ pub mod mut_visit;
 pub mod visit;
 
 use num_bigint::BigInt;
-use std::fmt::Debug;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct NodeId(u32);
