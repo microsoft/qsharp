@@ -69,7 +69,7 @@ pub struct Item {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
     /// An `open` statement for another namespace with an optional alias.
-    Open(Path, Option<Ident>),
+    Open(Ident, Option<Ident>),
     /// A `newtype` declaration.
     Type(DeclMeta, Ident, TyDef),
     /// A `function` or `operation` declaration.
@@ -266,7 +266,7 @@ pub enum ExprKind {
     Lit(Lit),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
-    /// A path: `a` or `a.b.c`.
+    /// A path: `a` or `a.b`.
     Path(Path),
     /// A qubit binding with an optional block scope: `use a = b { ... }` or `borrow a = b { ... }`.
     Qubit(QubitKind, Pat, QubitInit, Option<Block>),
@@ -350,8 +350,10 @@ pub struct Path {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// The parts in a qualified path.
-    pub parts: Vec<String>,
+    /// The namespace.
+    pub namespace: Option<Ident>,
+    /// The declaration name.
+    pub name: Ident,
 }
 
 /// An identifier.

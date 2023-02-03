@@ -91,9 +91,9 @@ pub fn walk_namespace(vis: &mut impl Visitor, namespace: &Namespace) {
 
 pub fn walk_item(vis: &mut impl Visitor, item: &Item) {
     match &item.kind {
-        ItemKind::Open(path, ident) => {
-            vis.visit_path(path);
-            ident.iter().for_each(|i| vis.visit_ident(i));
+        ItemKind::Open(ns, alias) => {
+            vis.visit_ident(ns);
+            alias.iter().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Type(meta, ident, def) => {
             vis.visit_decl_meta(meta);
