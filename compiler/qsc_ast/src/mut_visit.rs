@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    Attribute, Block, CallableBody, CallableHead, DeclMeta, Expr, ExprKind, FunctorExpr, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Ty, TyDef, TyKind,
+    Attr, Block, CallableBody, CallableHead, DeclMeta, Expr, ExprKind, FunctorExpr, Ident, Item,
+    ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl,
+    Ty, TyDef, TyKind,
 };
 
 pub trait MutVisitor: Sized {
@@ -24,8 +24,8 @@ pub trait MutVisitor: Sized {
         walk_decl_meta(self, meta);
     }
 
-    fn visit_attribute(&mut self, attr: &mut Attribute) {
-        walk_attribute(self, attr);
+    fn visit_attr(&mut self, attr: &mut Attr) {
+        walk_attr(self, attr);
     }
 
     fn visit_ty_def(&mut self, def: &mut TyDef) {
@@ -109,12 +109,10 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 }
 
 pub fn walk_decl_meta(vis: &mut impl MutVisitor, meta: &mut DeclMeta) {
-    meta.attributes
-        .iter_mut()
-        .for_each(|a| vis.visit_attribute(a));
+    meta.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
 }
 
-pub fn walk_attribute(vis: &mut impl MutVisitor, attr: &mut Attribute) {
+pub fn walk_attr(vis: &mut impl MutVisitor, attr: &mut Attr) {
     vis.visit_path(&mut attr.name);
     vis.visit_expr(&mut attr.arg);
 }

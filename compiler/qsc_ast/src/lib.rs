@@ -20,6 +20,12 @@ impl NodeId {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Span {
+    pub lo: u32,
+    pub hi: u32,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Package {
     pub id: NodeId,
@@ -29,6 +35,7 @@ pub struct Package {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Namespace {
     pub id: NodeId,
+    pub span: Span,
     pub name: Path,
     pub items: Vec<Item>,
 }
@@ -36,6 +43,7 @@ pub struct Namespace {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     pub id: NodeId,
+    pub span: Span,
     pub kind: ItemKind,
 }
 
@@ -48,14 +56,21 @@ pub enum ItemKind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DeclMeta {
-    pub id: NodeId,
-    pub attributes: Vec<Attribute>,
+    pub attrs: Vec<Attr>,
     pub visibility: Visibility,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Attribute {
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Visibility {
     pub id: NodeId,
+    pub span: Span,
+    pub kind: VisibilityKind,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Attr {
+    pub id: NodeId,
+    pub span: Span,
     pub name: Path,
     pub arg: Expr,
 }
@@ -69,6 +84,7 @@ pub enum TyDef {
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallableHead {
     pub id: NodeId,
+    pub span: Span,
     pub kind: CallableKind,
     pub name: Ident,
     pub ty_params: Vec<Ident>,
@@ -86,6 +102,7 @@ pub enum CallableBody {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpecDecl {
     pub id: NodeId,
+    pub span: Span,
     pub spec: Spec,
     pub body: SpecBody,
 }
@@ -106,6 +123,7 @@ pub enum FunctorExpr {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ty {
     pub id: NodeId,
+    pub span: Span,
     pub kind: TyKind,
 }
 
@@ -123,6 +141,7 @@ pub enum TyKind {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
     pub id: NodeId,
+    pub span: Span,
     pub kind: ExprKind,
 }
 
@@ -162,12 +181,14 @@ pub enum ExprKind {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block {
     pub id: NodeId,
+    pub span: Span,
     pub exprs: Vec<Expr>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Pat {
     pub id: NodeId,
+    pub span: Span,
     pub kind: PatKind,
 }
 
@@ -182,6 +203,7 @@ pub enum PatKind {
 #[derive(Clone, Debug, PartialEq)]
 pub struct QubitInit {
     pub id: NodeId,
+    pub span: Span,
     pub kind: QubitInitKind,
 }
 
@@ -195,17 +217,19 @@ pub enum QubitInitKind {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Path {
     pub id: NodeId,
+    pub span: Span,
     pub parts: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
     pub id: NodeId,
+    pub span: Span,
     pub name: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Visibility {
+pub enum VisibilityKind {
     Public,
     Internal,
 }
