@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableHead, DeclMeta, Expr, ExprKind, FunctorExpr, Ident, Item,
-    ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl,
-    Stmt, StmtKind, Ty, TyDef, TyKind,
+    Attr, Block, CallableBody, CallableHead, Expr, ExprKind, FunctorExpr, Ident, Item, ItemKind,
+    Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
+    StmtKind, Ty, TyDef, TyKind,
 };
 
 pub trait Visitor: Sized {
@@ -18,10 +18,6 @@ pub trait Visitor: Sized {
 
     fn visit_item(&mut self, item: &Item) {
         walk_item(self, item);
-    }
-
-    fn visit_decl_meta(&mut self, meta: &DeclMeta) {
-        walk_decl_meta(self, meta);
     }
 
     fn visit_attr(&mut self, attr: &Attr) {
@@ -100,20 +96,16 @@ pub fn walk_item(vis: &mut impl Visitor, item: &Item) {
             alias.iter().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Type(meta, ident, def) => {
-            vis.visit_decl_meta(meta);
+            meta.attrs.iter().for_each(|a| vis.visit_attr(a));
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
         ItemKind::Callable(meta, head, body) => {
-            vis.visit_decl_meta(meta);
+            meta.attrs.iter().for_each(|a| vis.visit_attr(a));
             vis.visit_callable_head(head);
             vis.visit_callable_body(body);
         }
     }
-}
-
-pub fn walk_decl_meta(vis: &mut impl Visitor, meta: &DeclMeta) {
-    meta.attrs.iter().for_each(|a| vis.visit_attr(a));
 }
 
 pub fn walk_attr(vis: &mut impl Visitor, attr: &Attr) {
