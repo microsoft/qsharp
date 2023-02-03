@@ -123,9 +123,7 @@ pub fn walk_ty_def(vis: &mut impl Visitor, def: &TyDef) {
             name.iter().for_each(|n| vis.visit_ident(n));
             vis.visit_ty(ty);
         }
-        TyDef::Tuple(defs) => {
-            defs.iter().for_each(|d| vis.visit_ty_def(d));
-        }
+        TyDef::Tuple(defs) => defs.iter().for_each(|d| vis.visit_ty_def(d)),
     }
 }
 
@@ -180,18 +178,14 @@ pub fn walk_ty(vis: &mut impl Visitor, ty: &Ty) {
             vis.visit_functor_expr(functors);
         }
         TyKind::Path(path) => vis.visit_path(path),
-        TyKind::Tuple(tys) => {
-            tys.iter().for_each(|t| vis.visit_ty(t));
-        }
+        TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
         TyKind::Hole | TyKind::Prim(_) | TyKind::Var(_) => {}
     }
 }
 
 pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
     match &expr.kind {
-        ExprKind::Array(exprs) => {
-            exprs.iter().for_each(|e| vis.visit_expr(e));
-        }
+        ExprKind::Array(exprs) => exprs.iter().for_each(|e| vis.visit_expr(e)),
         ExprKind::ArrayRepeat(item, size) => {
             vis.visit_expr(item);
             vis.visit_expr(size);
@@ -216,9 +210,7 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_block(within);
             vis.visit_block(apply);
         }
-        ExprKind::Fail(msg) => {
-            vis.visit_expr(msg);
-        }
+        ExprKind::Fail(msg) => vis.visit_expr(msg),
         ExprKind::Field(record, name) => {
             vis.visit_expr(record);
             vis.visit_ident(name);
@@ -239,14 +231,12 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_expr(array);
             vis.visit_expr(index);
         }
-        ExprKind::Interp(_, exprs) => {
-            exprs.iter().for_each(|e| vis.visit_expr(e));
-        }
+        ExprKind::Interp(_, exprs) => exprs.iter().for_each(|e| vis.visit_expr(e)),
         ExprKind::Lambda(_, pat, expr) => {
             vis.visit_pat(pat);
             vis.visit_expr(expr);
         }
-        ExprKind::Let(pat, value) => {
+        ExprKind::Let(pat, value) | ExprKind::Mutable(pat, value) => {
             vis.visit_pat(pat);
             vis.visit_expr(value);
         }
@@ -267,17 +257,13 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
-        ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
-            vis.visit_expr(expr);
-        }
+        ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => vis.visit_expr(expr),
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);
             vis.visit_expr(e2);
             vis.visit_expr(e3);
         }
-        ExprKind::Tuple(exprs) => {
-            exprs.iter().for_each(|e| vis.visit_expr(e));
-        }
+        ExprKind::Tuple(exprs) => exprs.iter().for_each(|e| vis.visit_expr(e)),
         ExprKind::While(cond, block) => {
             vis.visit_expr(cond);
             vis.visit_block(block);
@@ -292,16 +278,12 @@ pub fn walk_block(vis: &mut impl Visitor, block: &Block) {
 
 pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
     match &pat.kind {
-        PatKind::Bind(_, name, ty) => {
+        PatKind::Bind(name, ty) => {
             vis.visit_ident(name);
-            vis.visit_ty(ty);
+            ty.iter().for_each(|t| vis.visit_ty(t));
         }
-        PatKind::Discard(ty) => {
-            vis.visit_ty(ty);
-        }
-        PatKind::Tuple(pats) => {
-            pats.iter().for_each(|p| vis.visit_pat(p));
-        }
+        PatKind::Discard(ty) => ty.iter().for_each(|t| vis.visit_ty(t)),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
         PatKind::Elided => {}
     }
 }
@@ -309,11 +291,7 @@ pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
 pub fn walk_qubit_init(vis: &mut impl Visitor, init: &QubitInit) {
     match &init.kind {
         QubitInitKind::Single => {}
-        QubitInitKind::Tuple(inits) => {
-            inits.iter().for_each(|i| vis.visit_qubit_init(i));
-        }
-        QubitInitKind::Array(len) => {
-            vis.visit_expr(len);
-        }
+        QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
+        QubitInitKind::Array(len) => vis.visit_expr(len),
     }
 }

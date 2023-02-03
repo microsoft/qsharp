@@ -264,6 +264,8 @@ pub enum ExprKind {
     Let(Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
+    /// A mutable binding: `mutable a = b`.
+    Mutable(Pat, Box<Expr>),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
@@ -311,10 +313,10 @@ pub struct Pat {
 /// A pattern kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum PatKind {
-    /// A binding.
-    Bind(Mut, Ident, Ty),
-    /// A discarded binding, `_`.
-    Discard(Ty),
+    /// A binding with an optional type annotation.
+    Bind(Ident, Option<Ty>),
+    /// A discarded binding, `_`, with an optional type annotation.
+    Discard(Option<Ty>),
     /// An elided pattern, `...`, used by specializations.
     Elided,
     /// A tuple: `(a, b, c)`.
@@ -383,15 +385,6 @@ pub enum CallableKind {
     Function,
     /// An operation.
     Operation,
-}
-
-/// A mutability flag for a binding.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Mut {
-    /// The binding is immutable.
-    Immutable,
-    /// The binding is mutable.
-    Mutable,
 }
 
 /// A primitive type.
@@ -536,7 +529,7 @@ pub enum UnOp {
 /// A binary operator.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum BinOp {
-    /// Addition: `+~.
+    /// Addition: `+`.
     Add,
     /// Bitwise AND: `&&&`.
     AndB,
