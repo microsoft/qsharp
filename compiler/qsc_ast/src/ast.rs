@@ -1,0 +1,593 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+//! The abstract syntax tree (AST) for Q#. The AST directly corresponds to the surface syntax of Q#.
+
+#![warn(missing_docs)]
+
+use num_bigint::BigInt;
+
+/// The unique identifier for an AST node.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct NodeId(u32);
+
+impl NodeId {
+    /// The ID for the root node in an AST.
+    pub const ROOT: Self = Self(0);
+
+    /// The next ID in the sequence.
+    #[must_use]
+    pub fn next(&self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+/// A region between two source code positions. The offsets are absolute within an AST given that
+/// each file has its own offset.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Span {
+    /// The first byte offset.
+    pub lo: u32,
+    /// The last byte offset.
+    pub hi: u32,
+}
+
+/// The package currently being compiled and the root node of an AST.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Package {
+    /// The node ID.
+    pub id: NodeId,
+    /// The namespaces in the package.
+    pub namespaces: Vec<Namespace>,
+}
+
+/// A namespace.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Namespace {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The namespace name.
+    pub name: Path,
+    /// The items in the namespace.
+    pub items: Vec<Item>,
+}
+
+/// A namespace item.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Item {
+    /// The ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The item kind.
+    pub kind: ItemKind,
+}
+
+/// A namespace item kind.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ItemKind {
+    /// An `open` statement for another namespace with an optional alias.
+    Open(Path, Option<Ident>),
+    /// A `newtype` declaration.
+    Type(DeclMeta, Ident, TyDef),
+    /// A `function` or `operation` declaration.
+    Callable(DeclMeta, CallableHead, CallableBody),
+}
+
+/// Metadata for a top-level declaration.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DeclMeta {
+    /// The declaration attributes.
+    pub attrs: Vec<Attr>,
+    /// The declaration visibility.
+    pub visibility: Visibility,
+}
+
+/// A visibility modifier.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Visibility {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The visibility kind.
+    pub kind: VisibilityKind,
+}
+
+/// An attribute.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Attr {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the attribute.
+    pub name: Path,
+    /// The argument to the attribute.
+    pub arg: Expr,
+}
+
+/// A type definition.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TyDef {
+    /// A field definition with an optional name but required type.
+    Field(Option<Ident>, Ty),
+    /// A tuple.
+    Tuple(Vec<TyDef>),
+}
+
+/// A callable declaration header.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CallableHead {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The callable kind.
+    pub kind: CallableKind,
+    /// The name of the callable.
+    pub name: Ident,
+    /// The type parameters to the callable.
+    pub ty_params: Vec<Ident>,
+    /// The input to the callable.
+    pub input: Pat,
+    /// The return type of the callable.
+    pub output: Ty,
+    /// The functors supported by the callable.
+    pub functors: FunctorExpr,
+}
+
+/// The body of a callable.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CallableBody {
+    /// A callable with a single specialization implementation.
+    Single(SpecBody),
+    /// A callable with one or more explicit specializations.
+    Full(Vec<SpecDecl>),
+}
+
+/// A specialization declaration.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpecDecl {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// Which specialization is being declared.
+    pub spec: Spec,
+    /// The body of the specialization.
+    pub body: SpecBody,
+}
+
+/// The body of a specialization.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SpecBody {
+    /// The strategy to use to automatically generate the specialization.
+    Gen(SpecGen),
+    /// A manual implementation of the specialization.
+    Impl(Pat, Block),
+}
+
+/// An expression that describes a set of functors.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum FunctorExpr {
+    /// A binary operation.
+    BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
+    /// A literal for a specific functor.
+    Lit(Functor),
+    /// The empty set.
+    Null,
+}
+
+/// A type.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Ty {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The type kind.
+    pub kind: TyKind,
+}
+
+/// A type kind.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum TyKind {
+    /// One or more type arguments applied to a type constructor.
+    App(Box<Ty>, Vec<Ty>),
+    /// An arrow type: `->` for a function or `=>` for an operation.
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, FunctorExpr),
+    /// An unspecified type, `_`, which may be inferred.
+    Hole,
+    /// A named type.
+    Path(Path),
+    /// A primitive type.
+    Prim(TyPrim),
+    /// A tuple type.
+    Tuple(Vec<Ty>),
+    /// A type variable.
+    Var(TyVar),
+}
+
+/// An expression.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Expr {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The expression kind.
+    pub kind: ExprKind,
+}
+
+/// An expression kind.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ExprKind {
+    /// An array: `[a, b, c]`.
+    Array(Vec<Expr>),
+    /// An array constructed by repeating a value: `[a, size = b]`.
+    ArrayRepeat(Box<Expr>, Box<Expr>),
+    /// An assignment: `set a = b`.
+    Assign(Box<Expr>, Box<Expr>),
+    /// An assignment with a compound operator. For example: `set a += b`.
+    AssignOp(BinOp, Box<Expr>, Box<Expr>),
+    /// An assignment with a compound update operator: `set a w/= b <- c`.
+    AssignUpdate(Box<Expr>, Box<Expr>, Box<Expr>),
+    /// A binary operator.
+    BinOp(BinOp, Box<Expr>, Box<Expr>),
+    /// A block: `{ ... }`.
+    Block(Block),
+    /// A call: `a(b)`.
+    Call(Box<Expr>, Box<Expr>),
+    /// A conjugation: `within { ... } apply { ... }`.
+    Conjugate(Block, Block),
+    /// A failure: `fail "message"`.
+    Fail(Box<Expr>),
+    /// A field accessor: `a::F`.
+    Field(Box<Expr>, Ident),
+    /// A for loop: `for a in b { ... }`.
+    For(Pat, Box<Expr>, Block),
+    /// An unspecified expression, _, which may indicate partial application or a typed hole.
+    Hole,
+    /// An if expression, with an arbitrary number of elifs and an optional else:
+    /// `if a { ... } elif b { ... } else { ... }`.
+    If(Vec<(Expr, Block)>, Option<Block>),
+    /// An index accessor: `a[b]`.
+    Index(Box<Expr>, Box<Expr>),
+    /// An interpolated string: `$"{a} {b} {c}"`.
+    Interp(String, Vec<Expr>),
+    /// A lambda: `a -> b` for a function and `a => b` for an operation.
+    Lambda(CallableKind, Pat, Box<Expr>),
+    /// A let binding: `let a = b`.
+    Let(Pat, Box<Expr>),
+    /// A literal.
+    Lit(Lit),
+    /// Parentheses: `(a)`.
+    Paren(Box<Expr>),
+    /// A path: `a` or `a.b.c`.
+    Path(Path),
+    /// A qubit binding with an optional block scope: `use a = b { ... }` or `borrow a = b { ... }`.
+    Qubit(QubitKind, Pat, QubitInit, Option<Block>),
+    /// A range: `a..b..c`.
+    Range(Box<Expr>, Box<Expr>, Box<Expr>),
+    /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
+    Repeat(Block, Box<Expr>, Option<Block>),
+    /// A return: `return a`.
+    Return(Box<Expr>),
+    /// A ternary operator.
+    TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
+    /// A tuple: `(a, b, c)`.
+    Tuple(Vec<Expr>),
+    /// A unary operator.
+    UnOp(UnOp, Box<Expr>),
+    /// A while loop: `while a { ... }`.
+    While(Box<Expr>, Block),
+}
+
+/// A sequenced block of expressions.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Block {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The expressions in the block.
+    pub exprs: Vec<Expr>,
+}
+
+/// A pattern.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Pat {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The pattern kind.
+    pub kind: PatKind,
+}
+
+/// A pattern kind.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum PatKind {
+    /// A binding.
+    Bind(Mut, Ident, Ty),
+    /// A discarded binding, `_`.
+    Discard(Ty),
+    /// An elided pattern, `...`, used by specializations.
+    Elided,
+    /// A tuple: `(a, b, c)`.
+    Tuple(Vec<Pat>),
+}
+
+/// A qubit initializer.
+#[derive(Clone, Debug, PartialEq)]
+pub struct QubitInit {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The qubit initializer kind.
+    pub kind: QubitInitKind,
+}
+
+/// A qubit initializer kind.
+#[derive(Clone, Debug, PartialEq)]
+pub enum QubitInitKind {
+    /// A single qubit: `Qubit()`.
+    Single,
+    /// A tuple: `(a, b, c)`.
+    Tuple(Vec<QubitInit>),
+    /// An array of qubits: `Qubit[a]`.
+    Array(Box<Expr>),
+}
+
+/// A path to a declaration.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Path {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The parts in a qualified path.
+    pub parts: Vec<String>,
+}
+
+/// An identifier.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Ident {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The identifier name.
+    pub name: String,
+}
+
+/// A declaration visibility kind.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum VisibilityKind {
+    /// Visible everywhere.
+    Public,
+    /// Visible within a package.
+    Internal,
+}
+
+/// A callable kind.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum CallableKind {
+    /// A function.
+    Function,
+    /// An operation.
+    Operation,
+}
+
+/// A mutability flag for a binding.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Mut {
+    /// The binding is immutable.
+    Immutable,
+    /// The binding is mutable.
+    Mutable,
+}
+
+/// A primitive type.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum TyPrim {
+    /// The array type.
+    Array,
+    /// The big integer type.
+    BigInt,
+    /// The boolean type.
+    Bool,
+    /// The floating-point type.
+    Double,
+    /// The integer type.
+    Int,
+    /// The Pauli operator type.
+    Pauli,
+    /// The qubit type.
+    Qubit,
+    /// The range type.
+    Range,
+    /// The measurement result type.
+    Result,
+    /// The string type.
+    String,
+}
+
+/// A type variable.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum TyVar {
+    /// A named variable.
+    Name(String),
+    /// A numeric variable.
+    Id(u32),
+}
+
+/// A literal.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Lit {
+    /// A big integer literal.
+    BigInt(BigInt),
+    /// A boolean literal.
+    Bool(bool),
+    /// A floating-point literal.
+    Double(f64),
+    /// An integer literal.
+    Int(u64),
+    /// A Pauli operator literal.
+    Pauli(Pauli),
+    /// A measurement result literal.
+    Result(Result),
+    /// A string literal.
+    String(String),
+}
+
+/// A measurement result.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Result {
+    /// The zero eigenvalue.
+    Zero,
+    /// The one eigenvalue.
+    One,
+}
+
+/// A Pauli operator.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Pauli {
+    /// The Pauli I operator.
+    I,
+    /// The Pauli X operator.
+    X,
+    /// The Pauli Y operator.
+    Y,
+    /// The Pauli Z operator.
+    Z,
+}
+
+/// A qubit kind.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum QubitKind {
+    /// A fresh qubit in the zero state.
+    Fresh,
+    /// A dirty qubit that may be in any state.
+    Dirty,
+}
+
+/// A functor that may be applied to an operation.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Functor {
+    /// The adjoint functor.
+    Adj,
+    /// The controlled functor.
+    Ctl,
+}
+
+/// A specialization that may be implemented for an operation.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Spec {
+    /// The default specialization.
+    Body,
+    /// The adjoint specialization.
+    Adj,
+    /// The controlled specialization.
+    Ctl,
+    /// The controlled adjoint specialization.
+    CtlAdj,
+}
+
+/// A strategy for generating a specialization.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum SpecGen {
+    /// Choose a strategy automatically.
+    Auto,
+    /// Distributes controlled qubits.
+    Distribute,
+    /// A specialization implementation is not generated, but is instead left as an opaque
+    /// declaration.
+    Intrinsic,
+    /// Inverts the order of operations.
+    Invert,
+    /// Uses the body specialization without modification.
+    Slf,
+}
+
+/// A unary operator.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum UnOp {
+    /// A functor application.
+    Functor(Functor),
+    /// Negation: `-`.
+    Neg,
+    /// Bitwise NOT: `~~~`.
+    NotB,
+    /// Logical NOT: `not`.
+    NotL,
+    /// A leading `+`.
+    Pos,
+    /// Unwrap a user-defined type: `!`.
+    Unwrap,
+}
+
+/// A binary operator.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum BinOp {
+    /// Addition: `+~.
+    Add,
+    /// Bitwise AND: `&&&`.
+    AndB,
+    /// Logical AND: `and`.
+    AndL,
+    /// Division: `/`.
+    Div,
+    /// Equality: `==`.
+    Eq,
+    /// Exponentiation: `^`.
+    Exp,
+    /// Greater than: `>`.
+    Gt,
+    /// Greater than or equal: `>=`.
+    Gte,
+    /// Less than: `<`.
+    Lt,
+    /// Less than or equal: `<=`.
+    Lte,
+    /// Modulus: `%`.
+    Mod,
+    /// Multiplication: `*`.
+    Mul,
+    /// Inequality: `!=`.
+    Neq,
+    /// Bitwise OR: `|||`.
+    OrB,
+    /// Logical OR: `or`.
+    OrL,
+    /// Shift left: `<<<`.
+    Shl,
+    /// Shift right: `>>>`.
+    Shr,
+    /// Subtraction: `-`.
+    Sub,
+    /// Bitwise XOR: `^^^`.
+    XorB,
+}
+
+/// A ternary operator.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum TernOp {
+    /// Conditional: `a ? b | c`.
+    Cond,
+    /// Aggregate update: `a w/ b <- c`.
+    Update,
+}
+
+/// A set operator.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum SetOp {
+    /// The set union.
+    Union,
+    /// The set intersection.
+    Intersect,
+}

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
+use crate::ast::{
     Attr, Block, CallableBody, CallableHead, DeclMeta, Expr, ExprKind, FunctorExpr, Ident, Item,
     ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl,
     Ty, TyDef, TyKind,
@@ -93,7 +93,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
     match &mut item.kind {
         ItemKind::Open(path, ident) => {
             vis.visit_path(path);
-            vis.visit_ident(ident);
+            ident.iter_mut().for_each(|i| vis.visit_ident(i));
         }
         ItemKind::Type(meta, ident, def) => {
             vis.visit_decl_meta(meta);
@@ -302,7 +302,7 @@ pub fn walk_pat(vis: &mut impl MutVisitor, pat: &mut Pat) {
         PatKind::Tuple(pats) => {
             pats.iter_mut().for_each(|p| vis.visit_pat(p));
         }
-        PatKind::Omit => {}
+        PatKind::Elided => {}
     }
 }
 
