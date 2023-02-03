@@ -211,6 +211,41 @@ pub enum TyKind {
     Var(TyVar),
 }
 
+/// A sequenced block of statements.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Block {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The statements in the block.
+    pub stmts: Vec<Stmt>,
+}
+
+/// A statement.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Stmt {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The statement kind.
+    pub kind: StmtKind,
+}
+
+/// A statement kind.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StmtKind {
+    /// An expression without a trailing semicolon.
+    Expr(Expr),
+    /// A let binding: `let a = b;`.
+    Let(Pat, Expr),
+    /// A mutable binding: `mutable a = b;`.
+    Mutable(Pat, Expr),
+    /// An expression with a trailing semicolon.
+    Semi(Expr),
+}
+
 /// An expression.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
@@ -260,12 +295,8 @@ pub enum ExprKind {
     Interp(String, Vec<Expr>),
     /// A lambda: `a -> b` for a function and `a => b` for an operation.
     Lambda(CallableKind, Pat, Box<Expr>),
-    /// A let binding: `let a = b`.
-    Let(Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
-    /// A mutable binding: `mutable a = b`.
-    Mutable(Pat, Box<Expr>),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
@@ -286,17 +317,6 @@ pub enum ExprKind {
     UnOp(UnOp, Box<Expr>),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
-}
-
-/// A sequenced block of expressions.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Block {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The expressions in the block.
-    pub exprs: Vec<Expr>,
 }
 
 /// A pattern.

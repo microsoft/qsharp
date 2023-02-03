@@ -4,7 +4,7 @@
 use crate::ast::{
     Attr, Block, CallableBody, CallableHead, DeclMeta, Expr, ExprKind, FunctorExpr, Ident, Item,
     ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl,
-    Ty, TyDef, TyKind,
+    Stmt, StmtKind, Ty, TyDef, TyKind,
 };
 
 pub trait Visitor: Sized {
@@ -56,12 +56,16 @@ pub trait Visitor: Sized {
         walk_ty(self, ty);
     }
 
-    fn visit_expr(&mut self, expr: &Expr) {
-        walk_expr(self, expr);
-    }
-
     fn visit_block(&mut self, block: &Block) {
         walk_block(self, block);
+    }
+
+    fn visit_stmt(&mut self, stmt: &Stmt) {
+        walk_stmt(self, stmt);
+    }
+
+    fn visit_expr(&mut self, expr: &Expr) {
+        walk_expr(self, expr);
     }
 
     fn visit_pat(&mut self, pat: &Pat) {
@@ -183,6 +187,20 @@ pub fn walk_ty(vis: &mut impl Visitor, ty: &Ty) {
     }
 }
 
+pub fn walk_block(vis: &mut impl Visitor, block: &Block) {
+    block.stmts.iter().for_each(|s| vis.visit_stmt(s));
+}
+
+pub fn walk_stmt(vis: &mut impl Visitor, stmt: &Stmt) {
+    match &stmt.kind {
+        StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
+        StmtKind::Let(pat, value) | StmtKind::Mutable(pat, value) => {
+            vis.visit_pat(pat);
+            vis.visit_expr(value);
+        }
+    }
+}
+
 pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
     match &expr.kind {
         ExprKind::Array(exprs) => exprs.iter().for_each(|e| vis.visit_expr(e)),
@@ -236,11 +254,9 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_pat(pat);
             vis.visit_expr(expr);
         }
-        ExprKind::Let(pat, value) | ExprKind::Mutable(pat, value) => {
-            vis.visit_pat(pat);
-            vis.visit_expr(value);
+        ExprKind::Paren(expr) | ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
+            vis.visit_expr(expr);
         }
-        ExprKind::Paren(expr) => vis.visit_expr(expr),
         ExprKind::Path(path) => vis.visit_path(path),
         ExprKind::Qubit(_, pat, init, block) => {
             vis.visit_pat(pat);
@@ -257,7 +273,6 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
-        ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => vis.visit_expr(expr),
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);
             vis.visit_expr(e2);
@@ -270,10 +285,6 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
         }
         ExprKind::Hole | ExprKind::Lit(_) => {}
     }
-}
-
-pub fn walk_block(vis: &mut impl Visitor, block: &Block) {
-    block.exprs.iter().for_each(|e| vis.visit_expr(e));
 }
 
 pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
