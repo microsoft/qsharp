@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableHead, Expr, ExprKind, FunctorExpr, Ident, Item, ItemKind,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, Ident, Item, ItemKind,
     Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
     StmtKind, Ty, TyDef, TyKind,
 };
@@ -28,20 +28,12 @@ pub trait Visitor: Sized {
         walk_ty_def(self, def);
     }
 
-    fn visit_callable_head(&mut self, head: &CallableHead) {
-        walk_callable_head(self, head);
-    }
-
-    fn visit_callable_body(&mut self, body: &CallableBody) {
-        walk_callable_body(self, body);
+    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+        walk_callable_decl(self, decl);
     }
 
     fn visit_spec_decl(&mut self, decl: &SpecDecl) {
         walk_spec_decl(self, decl);
-    }
-
-    fn visit_spec_body(&mut self, body: &SpecBody) {
-        walk_spec_body(self, body);
     }
 
     fn visit_functor_expr(&mut self, expr: &FunctorExpr) {
@@ -100,10 +92,9 @@ pub fn walk_item(vis: &mut impl Visitor, item: &Item) {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
-        ItemKind::Callable(meta, head, body) => {
+        ItemKind::Callable(meta, decl) => {
             meta.attrs.iter().for_each(|a| vis.visit_attr(a));
-            vis.visit_callable_head(head);
-            vis.visit_callable_body(body);
+            vis.visit_callable_decl(decl);
         }
     }
 }
@@ -123,32 +114,25 @@ pub fn walk_ty_def(vis: &mut impl Visitor, def: &TyDef) {
     }
 }
 
-pub fn walk_callable_head(vis: &mut impl Visitor, head: &CallableHead) {
-    vis.visit_ident(&head.name);
-    head.ty_params.iter().for_each(|i| vis.visit_ident(i));
-    vis.visit_pat(&head.input);
-    vis.visit_ty(&head.output);
-    vis.visit_functor_expr(&head.functors);
-}
-
-pub fn walk_callable_body(vis: &mut impl Visitor, body: &CallableBody) {
-    match body {
-        CallableBody::Single(body) => vis.visit_spec_body(body),
-        CallableBody::Full(decls) => decls.iter().for_each(|d| vis.visit_spec_decl(d)),
+pub fn walk_callable_decl(vis: &mut impl Visitor, decl: &CallableDecl) {
+    vis.visit_ident(&decl.name);
+    decl.ty_params.iter().for_each(|p| vis.visit_ident(p));
+    vis.visit_pat(&decl.input);
+    vis.visit_ty(&decl.output);
+    vis.visit_functor_expr(&decl.functors);
+    match &decl.body {
+        CallableBody::Block(block) => vis.visit_block(block),
+        CallableBody::Specs(specs) => specs.iter().for_each(|s| vis.visit_spec_decl(s)),
     }
 }
 
 pub fn walk_spec_decl(vis: &mut impl Visitor, decl: &SpecDecl) {
-    vis.visit_spec_body(&decl.body);
-}
-
-pub fn walk_spec_body(vis: &mut impl Visitor, body: &SpecBody) {
-    match body {
+    match &decl.body {
+        SpecBody::Gen(_) => {}
         SpecBody::Impl(pat, block) => {
             vis.visit_pat(pat);
             vis.visit_block(block);
         }
-        SpecBody::Gen(_) => {}
     }
 }
 

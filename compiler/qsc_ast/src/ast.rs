@@ -73,7 +73,7 @@ pub enum ItemKind {
     /// A `newtype` declaration.
     Type(DeclMeta, Ident, TyDef),
     /// A `function` or `operation` declaration.
-    Callable(DeclMeta, CallableHead, CallableBody),
+    Callable(DeclMeta, CallableDecl),
 }
 
 /// Metadata for a top-level declaration.
@@ -120,7 +120,7 @@ pub enum TyDef {
 
 /// A callable declaration header.
 #[derive(Clone, Debug, PartialEq)]
-pub struct CallableHead {
+pub struct CallableDecl {
     /// The node ID.
     pub id: NodeId,
     /// The span.
@@ -137,15 +137,17 @@ pub struct CallableHead {
     pub output: Ty,
     /// The functors supported by the callable.
     pub functors: FunctorExpr,
+    /// The body of the callable.
+    pub body: CallableBody,
 }
 
 /// The body of a callable.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CallableBody {
-    /// A callable with a single specialization implementation.
-    Single(SpecBody),
-    /// A callable with one or more explicit specializations.
-    Full(Vec<SpecDecl>),
+    /// A block for the callable's body specialization.
+    Block(Block),
+    /// One or more explicit specializations.
+    Specs(Vec<SpecDecl>),
 }
 
 /// A specialization declaration.
