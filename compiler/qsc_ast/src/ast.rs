@@ -238,6 +238,8 @@ pub struct Stmt {
 /// A statement kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
+    /// A borrowed qubit binding: `borrow a = b;`.
+    Borrow(Pat, QubitInit, Option<Block>),
     /// An expression without a trailing semicolon.
     Expr(Expr),
     /// A let binding: `let a = b;`.
@@ -246,6 +248,8 @@ pub enum StmtKind {
     Mutable(Pat, Expr),
     /// An expression with a trailing semicolon.
     Semi(Expr),
+    /// A fresh qubit binding: `use a = b;`.
+    Use(Pat, QubitInit, Option<Block>),
 }
 
 /// An expression.
@@ -303,8 +307,6 @@ pub enum ExprKind {
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
     Path(Path),
-    /// A qubit binding with an optional block scope: `use a = b { ... }` or `borrow a = b { ... }`.
-    Qubit(QubitKind, Pat, QubitInit, Option<Block>),
     /// A range: `a..b..c`.
     Range(Box<Expr>, Box<Expr>, Box<Expr>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
@@ -482,15 +484,6 @@ pub enum Pauli {
     Y,
     /// The Pauli Z operator.
     Z,
-}
-
-/// A qubit kind.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum QubitKind {
-    /// A fresh qubit in the zero state.
-    Fresh,
-    /// A dirty qubit that may be in any state.
-    Dirty,
 }
 
 /// A functor that may be applied to an operation.

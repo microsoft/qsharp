@@ -169,6 +169,11 @@ pub fn walk_block(vis: &mut impl Visitor, block: &Block) {
 
 pub fn walk_stmt(vis: &mut impl Visitor, stmt: &Stmt) {
     match &stmt.kind {
+        StmtKind::Borrow(pat, init, block) | StmtKind::Use(pat, init, block) => {
+            vis.visit_pat(pat);
+            vis.visit_qubit_init(init);
+            block.iter().for_each(|b| vis.visit_block(b));
+        }
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Let(pat, value) | StmtKind::Mutable(pat, value) => {
             vis.visit_pat(pat);
@@ -234,11 +239,6 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_expr(expr);
         }
         ExprKind::Path(path) => vis.visit_path(path),
-        ExprKind::Qubit(_, pat, init, block) => {
-            vis.visit_pat(pat);
-            vis.visit_qubit_init(init);
-            block.iter().for_each(|b| vis.visit_block(b));
-        }
         ExprKind::Range(start, step, end) => {
             vis.visit_expr(start);
             vis.visit_expr(step);
