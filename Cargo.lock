@@ -161,6 +161,9 @@ dependencies = [
 [[package]]
 name = "qsc_ast"
 version = "0.0.0"
+dependencies = [
+ "num-bigint",
+]
 
 [[package]]
 name = "qsc_codegen"
