@@ -93,7 +93,7 @@ pub(crate) enum ClosedBinOp {
     BarBarBar,
     /// `^`
     Caret,
-    /// `^`
+    /// `^^^`
     CaretCaretCaret,
     /// `>>>`
     GtGtGt,
@@ -144,6 +144,10 @@ impl<'a> Lexer<'a> {
         self.chars.next_if(|item| item.1 == c).is_some()
     }
 
+    fn followed_by(&mut self, c: char) -> bool {
+        self.chars.peek().iter().any(|i| i.1 == c)
+    }
+
     fn tokenize(&mut self, c: char) -> TokenKind {
         match c {
             EOF => TokenKind::Eof,
@@ -156,7 +160,7 @@ impl<'a> Lexer<'a> {
             '@' => TokenKind::At,
             '!' if self.attempt('=') => TokenKind::Ne,
             '!' => TokenKind::Bang,
-            '|' => TokenKind::Bar,
+            '|' if !self.followed_by('|') => TokenKind::Bar,
             ':' if self.attempt(':') => TokenKind::ColonColon,
             ':' => TokenKind::Colon,
             ',' => TokenKind::Comma,
@@ -168,10 +172,10 @@ impl<'a> Lexer<'a> {
             '=' if self.attempt('>') => TokenKind::FatArrow,
             '=' => TokenKind::Eq,
             '>' if self.attempt('=') => TokenKind::Gte,
-            '>' => TokenKind::Gt,
+            '>' if !self.followed_by('>') => TokenKind::Gt,
             '<' if self.attempt('-') => TokenKind::LArrow,
             '<' if self.attempt('=') => TokenKind::Lte,
-            '<' => TokenKind::Lt,
+            '<' if !self.followed_by('<') => TokenKind::Lt,
             '?' => TokenKind::Question,
             '-' if self.attempt('>') => TokenKind::RArrow,
             ';' => TokenKind::Semi,
@@ -188,7 +192,50 @@ impl<'a> Lexer<'a> {
                     TokenKind::WSlash
                 }
             }
-            _ => panic!("Unexpected character: '{c}'"),
+            _ => match self.closed_bin_op(c) {
+                Some(op) if self.attempt('=') => TokenKind::BinOpEq(op),
+                Some(op) => TokenKind::ClosedBinOp(op),
+                None => panic!("Unexpected character: '{c}'"),
+            },
+        }
+    }
+
+    fn closed_bin_op(&mut self, c: char) -> Option<ClosedBinOp> {
+        match c {
+            '&' => {
+                self.require('&');
+                self.require('&');
+                Some(ClosedBinOp::AmpAmpAmp)
+            }
+            '|' => {
+                self.require('|');
+                self.require('|');
+                Some(ClosedBinOp::BarBarBar)
+            }
+            '^' => {
+                if self.attempt('^') {
+                    self.require('^');
+                    Some(ClosedBinOp::CaretCaretCaret)
+                } else {
+                    Some(ClosedBinOp::Caret)
+                }
+            }
+            '>' => {
+                self.require('>');
+                self.require('>');
+                Some(ClosedBinOp::GtGtGt)
+            }
+            '<' => {
+                self.require('<');
+                self.require('<');
+                Some(ClosedBinOp::LtLtLt)
+            }
+            '-' => Some(ClosedBinOp::Minus),
+            '%' => Some(ClosedBinOp::Percent),
+            '+' => Some(ClosedBinOp::Plus),
+            '/' => Some(ClosedBinOp::Slash),
+            '*' => Some(ClosedBinOp::Star),
+            _ => None,
         }
     }
 }
