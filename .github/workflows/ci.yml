@@ -11,8 +11,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  code-style:
-    name: Code Style
+  format:
+    name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -20,6 +20,14 @@ jobs:
           submodules: "true"
       - name: Check Formatting
         run: cargo fmt -v --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
       - name: Clippy Lints
         run: cargo clippy -vv --all-targets --all-features -- -D warnings
 
