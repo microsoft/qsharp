@@ -30,6 +30,8 @@ pub(crate) enum TokenKind {
     Comma,
     /// `$"`
     DollarQuote,
+    /// `.`
+    Dot,
     /// `..`
     DotDot,
     /// `...`
@@ -153,12 +155,14 @@ impl<'a> Lexer<'a> {
         self.chars.peek().iter().any(|(_, next_c)| *next_c == c)
     }
 
-    fn take_while(&mut self, mut f: impl FnMut(char) -> bool) -> String {
-        let mut s = String::new();
-        while let Some((_, c)) = self.chars.next_if(|(_, c)| f(*c)) {
-            s.push(c);
-        }
-        s
+    fn take_while(&mut self, mut f: impl FnMut(char) -> bool) {
+        while self.chars.next_if(|(_, c)| f(*c)).is_some() {}
+    }
+
+    fn offset(&mut self) -> usize {
+        self.chars
+            .peek()
+            .map_or_else(|| self.input.len(), |(offset, _)| *offset)
     }
 
     fn tokenize(&mut self, c: char) -> TokenKind {
@@ -213,10 +217,7 @@ impl<'a> Lexer<'a> {
                         TokenKind::ClosedBinOp(op)
                     }
                 })
-                .or_else(|| {
-                    self.ident(c)
-                        .map(|s| self.and_or(&s).unwrap_or(TokenKind::Ident))
-                })
+                .or_else(|| self.ident(c).then_some(TokenKind::Ident))
                 .unwrap_or_else(|| panic!("Unexpected character: '{c}'")),
         }
     }
@@ -260,24 +261,36 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn ident(&mut self, c: char) -> Option<String> {
+    fn ident(&mut self, c: char) -> bool {
         if c == '_' || c.is_alphabetic() {
-            let mut tail = self.take_while(|c| c == '_' || c.is_alphanumeric());
-            tail.insert(0, c);
-            Some(tail)
+            self.take_while(|c| c == '_' || c.is_alphanumeric());
+            true
         } else {
-            None
+            false
         }
     }
 
-    fn and_or(&mut self, s: &str) -> Option<TokenKind> {
-        match s {
-            "and" if self.attempt('=') => Some(TokenKind::BinOpEq(ClosedBinOp::And)),
-            "and" => Some(TokenKind::ClosedBinOp(ClosedBinOp::And)),
-            "or" if self.attempt('=') => Some(TokenKind::BinOpEq(ClosedBinOp::Or)),
-            "or" => Some(TokenKind::ClosedBinOp(ClosedBinOp::Or)),
-            _ => None,
+    fn and_or_hack(&mut self, mut token: Token) -> Token {
+        if let TokenKind::Ident = token.kind {
+            let lo = token.span.lo.try_into().unwrap();
+            let hi = token.span.hi.try_into().unwrap();
+            let sym = &self.input[lo..hi];
+            match sym {
+                "and" if self.attempt('=') => {
+                    token.kind = TokenKind::BinOpEq(ClosedBinOp::And);
+                    token.span.hi += 1;
+                }
+                "and" => token.kind = TokenKind::ClosedBinOp(ClosedBinOp::And),
+                "or" if self.attempt('=') => {
+                    token.kind = TokenKind::BinOpEq(ClosedBinOp::Or);
+                    token.span.hi += 1;
+                }
+                "or" => token.kind = TokenKind::ClosedBinOp(ClosedBinOp::Or),
+                _ => {}
+            }
         }
+
+        token
     }
 }
 
@@ -289,14 +302,9 @@ impl Iterator for Lexer<'_> {
             Some((lo, c)) => {
                 let kind = self.tokenize(c);
                 let lo = lo.try_into().unwrap();
-                let hi = self
-                    .chars
-                    .peek()
-                    .map_or_else(|| self.input.len(), |(offset, _)| *offset)
-                    .try_into()
-                    .unwrap();
+                let hi = self.offset().try_into().unwrap();
                 let span = Span { lo, hi };
-                Some(Token { kind, span })
+                Some(self.and_or_hack(Token { kind, span }))
             }
             None if self.eof => None,
             None => {
