@@ -141,11 +141,19 @@ impl<'a> Lexer<'a> {
     }
 
     fn attempt(&mut self, c: char) -> bool {
-        self.chars.next_if(|item| item.1 == c).is_some()
+        self.chars.next_if(|(_, next_c)| *next_c == c).is_some()
     }
 
     fn followed_by(&mut self, c: char) -> bool {
-        self.chars.peek().iter().any(|i| i.1 == c)
+        self.chars.peek().iter().any(|(_, next_c)| *next_c == c)
+    }
+
+    fn take_while(&mut self, mut f: impl FnMut(char) -> bool) -> String {
+        let mut s = String::new();
+        while let Some((_, c)) = self.chars.next_if(|(_, c)| f(*c)) {
+            s.push(c);
+        }
+        s
     }
 
     fn tokenize(&mut self, c: char) -> TokenKind {
@@ -192,11 +200,20 @@ impl<'a> Lexer<'a> {
                     TokenKind::WSlash
                 }
             }
-            _ => match self.closed_bin_op(c) {
-                Some(op) if self.attempt('=') => TokenKind::BinOpEq(op),
-                Some(op) => TokenKind::ClosedBinOp(op),
-                None => panic!("Unexpected character: '{c}'"),
-            },
+            _ => self
+                .closed_bin_op(c)
+                .map(|op| {
+                    if self.attempt('=') {
+                        TokenKind::BinOpEq(op)
+                    } else {
+                        TokenKind::ClosedBinOp(op)
+                    }
+                })
+                .or_else(|| {
+                    self.ident(c)
+                        .map(|s| self.and_or(&s).unwrap_or(TokenKind::Ident(s)))
+                })
+                .unwrap_or_else(|| panic!("Unexpected character: '{c}'")),
         }
     }
 
@@ -235,6 +252,26 @@ impl<'a> Lexer<'a> {
             '+' => Some(ClosedBinOp::Plus),
             '/' => Some(ClosedBinOp::Slash),
             '*' => Some(ClosedBinOp::Star),
+            _ => None,
+        }
+    }
+
+    fn ident(&mut self, c: char) -> Option<String> {
+        if c == '_' || c.is_alphabetic() {
+            let mut tail = self.take_while(|c| c == '_' || c.is_alphanumeric());
+            tail.insert(0, c);
+            Some(tail)
+        } else {
+            None
+        }
+    }
+
+    fn and_or(&mut self, s: &str) -> Option<TokenKind> {
+        match s {
+            "and" if self.attempt('=') => Some(TokenKind::BinOpEq(ClosedBinOp::And)),
+            "and" => Some(TokenKind::ClosedBinOp(ClosedBinOp::And)),
+            "or" if self.attempt('=') => Some(TokenKind::BinOpEq(ClosedBinOp::Or)),
+            "or" => Some(TokenKind::ClosedBinOp(ClosedBinOp::Or)),
             _ => None,
         }
     }
