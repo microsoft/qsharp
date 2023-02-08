@@ -155,6 +155,14 @@ impl<'a> Lexer<'a> {
         self.chars.peek().iter().any(|(_, next_c)| *next_c == c)
     }
 
+    fn followed_by_match(&mut self, f: impl FnOnce(char) -> bool) -> bool {
+        if let Some(&(_, c)) = self.chars.peek() {
+            f(c)
+        } else {
+            false
+        }
+    }
+
     fn take_while(&mut self, mut f: impl FnMut(char) -> bool) {
         while self.chars.next_if(|(_, c)| f(*c)).is_some() {}
     }
@@ -184,6 +192,17 @@ impl<'a> Lexer<'a> {
                 self.require('"');
                 TokenKind::DollarQuote
             }
+            '.' if !self.followed_by_match(|c| c.is_ascii_digit()) => {
+                if self.attempt('.') {
+                    if self.attempt('.') {
+                        TokenKind::DotDotDot
+                    } else {
+                        TokenKind::DotDot
+                    }
+                } else {
+                    TokenKind::Dot
+                }
+            }
             '=' if self.attempt('=') => TokenKind::EqEq,
             '=' if self.attempt('>') => TokenKind::FatArrow,
             '=' => TokenKind::Eq,
@@ -209,21 +228,16 @@ impl<'a> Lexer<'a> {
                 }
             }
             _ => self
-                .closed_bin_op(c)
-                .map(|op| {
-                    if self.attempt('=') {
-                        TokenKind::BinOpEq(op)
-                    } else {
-                        TokenKind::ClosedBinOp(op)
-                    }
-                })
+                .number(c)
+                .map(TokenKind::Lit)
+                .or_else(|| self.closed_bin_op(c))
                 .or_else(|| self.ident(c).then_some(TokenKind::Ident))
                 .unwrap_or_else(|| panic!("Unexpected character: '{c}'")),
         }
     }
 
-    fn closed_bin_op(&mut self, c: char) -> Option<ClosedBinOp> {
-        match c {
+    fn closed_bin_op(&mut self, c: char) -> Option<TokenKind> {
+        let op = match c {
             '&' => {
                 self.require('&');
                 self.require('&');
@@ -258,6 +272,12 @@ impl<'a> Lexer<'a> {
             '/' => Some(ClosedBinOp::Slash),
             '*' => Some(ClosedBinOp::Star),
             _ => None,
+        }?;
+
+        if self.attempt('=') {
+            Some(TokenKind::BinOpEq(op))
+        } else {
+            Some(TokenKind::ClosedBinOp(op))
         }
     }
 
@@ -267,6 +287,76 @@ impl<'a> Lexer<'a> {
             true
         } else {
             false
+        }
+    }
+
+    fn digits(&mut self, c: char) -> bool {
+        if c.is_ascii_digit() {
+            self.take_while(|c| c == '_' || c.is_ascii_digit());
+            true
+        } else {
+            false
+        }
+    }
+
+    fn number(&mut self, c: char) -> Option<Lit> {
+        let c = if c == '+' || c == '-' && self.followed_by_match(|c| c.is_ascii_digit()) {
+            self.chars.next().unwrap().1
+        } else {
+            c
+        };
+
+        match c {
+            '0' if self.followed_by('b') => {
+                self.take_while(|c| c == '_' || c.is_digit(2));
+                Some(self.try_int_suffix())
+            }
+            '0' if self.followed_by('o') => {
+                self.take_while(|c| c == '_' || c.is_digit(8));
+                Some(self.try_int_suffix())
+            }
+            '0' if self.followed_by('x') => {
+                self.take_while(|c| c == '_' || c.is_ascii_hexdigit());
+                Some(self.try_int_suffix())
+            }
+            '.' => {
+                let (_, c) = self.chars.next().unwrap();
+                assert!(self.digits(c), "Expected digit.");
+                self.try_float_exp();
+                Some(Lit::Float)
+            }
+            _ if self.digits(c) => {
+                if self.attempt('.') {
+                    let (_, c) = self.chars.next().unwrap();
+                    assert!(self.digits(c), "Expected digit.");
+                    self.try_float_exp();
+                    Some(Lit::Float)
+                } else if self.try_float_exp() {
+                    Some(Lit::Float)
+                } else {
+                    Some(self.try_int_suffix())
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn try_float_exp(&mut self) -> bool {
+        if self.attempt('e') {
+            self.chars.next_if(|&(_, c)| c == '+' || c == '-');
+            let (_, c) = self.chars.next().unwrap();
+            assert!(self.digits(c), "Expected digit.");
+            true
+        } else {
+            false
+        }
+    }
+
+    fn try_int_suffix(&mut self) -> Lit {
+        if self.attempt('L') {
+            Lit::BigInt
+        } else {
+            Lit::Int
         }
     }
 
