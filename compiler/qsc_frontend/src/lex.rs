@@ -1,14 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::ast::{Lit, Span};
-use std::{
-    array,
-    iter::{Chain, Enumerate, Peekable},
-    str::Chars,
-};
-
-const EOF: char = '\0';
+use qsc_ast::ast::Span;
+use std::{iter::Peekable, str::CharIndices};
 
 pub(crate) struct Token {
     kind: TokenKind,
@@ -53,7 +47,7 @@ pub(crate) enum TokenKind {
     /// `>=`
     Gte,
     /// An identifier.
-    Ident(String),
+    Ident,
     /// `<-`
     LArrow,
     /// A literal.
@@ -122,14 +116,25 @@ pub(crate) enum Delim {
     Paren,
 }
 
+pub(crate) enum Lit {
+    BigInt,
+    Float,
+    Int,
+    String,
+}
+
 pub(crate) struct Lexer<'a> {
-    chars: Peekable<Enumerate<Chain<Chars<'a>, array::IntoIter<char, 1>>>>,
+    input: &'a str,
+    chars: Peekable<CharIndices<'a>>,
+    eof: bool,
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(s: &'a str) -> Self {
+    pub(crate) fn new(input: &'a str) -> Self {
         Self {
-            chars: s.chars().chain([EOF]).enumerate().peekable(),
+            input,
+            chars: input.char_indices().peekable(),
+            eof: false,
         }
     }
 
@@ -158,7 +163,6 @@ impl<'a> Lexer<'a> {
 
     fn tokenize(&mut self, c: char) -> TokenKind {
         match c {
-            EOF => TokenKind::Eof,
             '{' => TokenKind::OpenDelim(Delim::Brace),
             '}' => TokenKind::CloseDelim(Delim::Brace),
             '[' => TokenKind::OpenDelim(Delim::Bracket),
@@ -211,7 +215,7 @@ impl<'a> Lexer<'a> {
                 })
                 .or_else(|| {
                     self.ident(c)
-                        .map(|s| self.and_or(&s).unwrap_or(TokenKind::Ident(s)))
+                        .map(|s| self.and_or(&s).unwrap_or(TokenKind::Ident))
                 })
                 .unwrap_or_else(|| panic!("Unexpected character: '{c}'")),
         }
@@ -281,20 +285,28 @@ impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (lo, c) = self.chars.next()?;
-        let kind = self.tokenize(c);
-        let lo = lo.try_into().unwrap();
-        let hi = match kind {
-            TokenKind::Eof => lo,
-            _ => self
-                .chars
-                .peek()
-                .expect("Non-EOF token has no following character.")
-                .0
-                .try_into()
-                .unwrap(),
-        };
-        let span = Span { lo, hi };
-        Some(Token { kind, span })
+        match self.chars.next() {
+            Some((lo, c)) => {
+                let kind = self.tokenize(c);
+                let lo = lo.try_into().unwrap();
+                let hi = self
+                    .chars
+                    .peek()
+                    .map_or_else(|| self.input.len(), |(offset, _)| *offset)
+                    .try_into()
+                    .unwrap();
+                let span = Span { lo, hi };
+                Some(Token { kind, span })
+            }
+            None if self.eof => None,
+            None => {
+                self.eof = true;
+                let len = self.input.len().try_into().unwrap();
+                Some(Token {
+                    kind: TokenKind::Eof,
+                    span: Span { lo: len, hi: len },
+                })
+            }
+        }
     }
 }
