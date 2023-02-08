@@ -9,6 +9,18 @@ pub(crate) struct Token {
     span: Span,
 }
 
+pub(crate) struct RawToken {
+    kind: RawTokenKind,
+    offset: usize,
+}
+
+pub(crate) enum RawTokenKind {
+    Comment,
+    Cooked(TokenKind),
+    Unknown,
+    Whitespace,
+}
+
 pub(crate) enum TokenKind {
     /// `@`
     At,
@@ -173,66 +185,74 @@ impl<'a> Lexer<'a> {
             .map_or_else(|| self.input.len(), |(offset, _)| *offset)
     }
 
-    fn tokenize(&mut self, c: char) -> TokenKind {
+    fn tokenize(&mut self, c: char) -> RawTokenKind {
         match c {
-            '{' => TokenKind::OpenDelim(Delim::Brace),
-            '}' => TokenKind::CloseDelim(Delim::Brace),
-            '[' => TokenKind::OpenDelim(Delim::Bracket),
-            ']' => TokenKind::CloseDelim(Delim::Bracket),
-            '(' => TokenKind::OpenDelim(Delim::Paren),
-            ')' => TokenKind::CloseDelim(Delim::Paren),
-            '@' => TokenKind::At,
-            '!' if self.attempt('=') => TokenKind::Ne,
-            '!' => TokenKind::Bang,
-            '|' if !self.followed_by('|') => TokenKind::Bar,
-            ':' if self.attempt(':') => TokenKind::ColonColon,
-            ':' => TokenKind::Colon,
-            ',' => TokenKind::Comma,
+            '/' if self.attempt('/') => {
+                self.take_while(|c| c != '\n');
+                RawTokenKind::Comment
+            }
+            '{' => RawTokenKind::Cooked(TokenKind::OpenDelim(Delim::Brace)),
+            '}' => RawTokenKind::Cooked(TokenKind::CloseDelim(Delim::Brace)),
+            '[' => RawTokenKind::Cooked(TokenKind::OpenDelim(Delim::Bracket)),
+            ']' => RawTokenKind::Cooked(TokenKind::CloseDelim(Delim::Bracket)),
+            '(' => RawTokenKind::Cooked(TokenKind::OpenDelim(Delim::Paren)),
+            ')' => RawTokenKind::Cooked(TokenKind::CloseDelim(Delim::Paren)),
+            '@' => RawTokenKind::Cooked(TokenKind::At),
+            '!' if self.attempt('=') => RawTokenKind::Cooked(TokenKind::Ne),
+            '!' => RawTokenKind::Cooked(TokenKind::Bang),
+            '|' if !self.followed_by('|') => RawTokenKind::Cooked(TokenKind::Bar),
+            ':' if self.attempt(':') => RawTokenKind::Cooked(TokenKind::ColonColon),
+            ':' => RawTokenKind::Cooked(TokenKind::Colon),
+            ',' => RawTokenKind::Cooked(TokenKind::Comma),
             '$' => {
                 self.require('"');
-                TokenKind::DollarQuote
+                RawTokenKind::Cooked(TokenKind::DollarQuote)
             }
             '.' if !self.followed_by_match(|c| c.is_ascii_digit()) => {
                 if self.attempt('.') {
                     if self.attempt('.') {
-                        TokenKind::DotDotDot
+                        RawTokenKind::Cooked(TokenKind::DotDotDot)
                     } else {
-                        TokenKind::DotDot
+                        RawTokenKind::Cooked(TokenKind::DotDot)
                     }
                 } else {
-                    TokenKind::Dot
+                    RawTokenKind::Cooked(TokenKind::Dot)
                 }
             }
-            '=' if self.attempt('=') => TokenKind::EqEq,
-            '=' if self.attempt('>') => TokenKind::FatArrow,
-            '=' => TokenKind::Eq,
-            '>' if self.attempt('=') => TokenKind::Gte,
-            '>' if !self.followed_by('>') => TokenKind::Gt,
-            '<' if self.attempt('-') => TokenKind::LArrow,
-            '<' if self.attempt('=') => TokenKind::Lte,
-            '<' if !self.followed_by('<') => TokenKind::Lt,
-            '?' => TokenKind::Question,
-            '-' if self.attempt('>') => TokenKind::RArrow,
-            ';' => TokenKind::Semi,
-            '\'' => TokenKind::SingleQuote,
+            '=' if self.attempt('=') => RawTokenKind::Cooked(TokenKind::EqEq),
+            '=' if self.attempt('>') => RawTokenKind::Cooked(TokenKind::FatArrow),
+            '=' => RawTokenKind::Cooked(TokenKind::Eq),
+            '>' if self.attempt('=') => RawTokenKind::Cooked(TokenKind::Gte),
+            '>' if !self.followed_by('>') => RawTokenKind::Cooked(TokenKind::Gt),
+            '<' if self.attempt('-') => RawTokenKind::Cooked(TokenKind::LArrow),
+            '<' if self.attempt('=') => RawTokenKind::Cooked(TokenKind::Lte),
+            '<' if !self.followed_by('<') => RawTokenKind::Cooked(TokenKind::Lt),
+            '?' => RawTokenKind::Cooked(TokenKind::Question),
+            '-' if self.attempt('>') => RawTokenKind::Cooked(TokenKind::RArrow),
+            ';' => RawTokenKind::Cooked(TokenKind::Semi),
+            '\'' => RawTokenKind::Cooked(TokenKind::SingleQuote),
             '~' => {
                 self.require('~');
                 self.require('~');
-                TokenKind::TildeTildeTilde
+                RawTokenKind::Cooked(TokenKind::TildeTildeTilde)
             }
             'w' if self.attempt('/') => {
                 if self.attempt('=') {
-                    TokenKind::WSlashEq
+                    RawTokenKind::Cooked(TokenKind::WSlashEq)
                 } else {
-                    TokenKind::WSlash
+                    RawTokenKind::Cooked(TokenKind::WSlash)
                 }
+            }
+            _ if c.is_whitespace() => {
+                self.take_while(char::is_whitespace);
+                RawTokenKind::Whitespace
             }
             _ => self
                 .number(c)
                 .map(TokenKind::Lit)
                 .or_else(|| self.closed_bin_op(c))
                 .or_else(|| self.ident(c).then_some(TokenKind::Ident))
-                .unwrap_or_else(|| panic!("Unexpected character: '{c}'")),
+                .map_or(RawTokenKind::Unknown, RawTokenKind::Cooked),
         }
     }
 
@@ -360,22 +380,20 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn and_or_hack(&mut self, mut token: Token) -> Token {
-        if let TokenKind::Ident = token.kind {
-            let lo = token.span.lo.try_into().unwrap();
-            let hi = token.span.hi.try_into().unwrap();
-            let sym = &self.input[lo..hi];
+    fn and_or_hack(&mut self, mut token: RawToken) -> RawToken {
+        if let RawTokenKind::Cooked(TokenKind::Ident) = token.kind {
+            let sym = &self.input[token.offset..self.offset()];
             match sym {
                 "and" if self.attempt('=') => {
-                    token.kind = TokenKind::BinOpEq(ClosedBinOp::And);
-                    token.span.hi += 1;
+                    token.kind = RawTokenKind::Cooked(TokenKind::BinOpEq(ClosedBinOp::And));
                 }
-                "and" => token.kind = TokenKind::ClosedBinOp(ClosedBinOp::And),
+                "and" => {
+                    token.kind = RawTokenKind::Cooked(TokenKind::ClosedBinOp(ClosedBinOp::And));
+                }
                 "or" if self.attempt('=') => {
-                    token.kind = TokenKind::BinOpEq(ClosedBinOp::Or);
-                    token.span.hi += 1;
+                    token.kind = RawTokenKind::Cooked(TokenKind::BinOpEq(ClosedBinOp::Or));
                 }
-                "or" => token.kind = TokenKind::ClosedBinOp(ClosedBinOp::Or),
+                "or" => token.kind = RawTokenKind::Cooked(TokenKind::ClosedBinOp(ClosedBinOp::Or)),
                 _ => {}
             }
         }
@@ -385,24 +403,20 @@ impl<'a> Lexer<'a> {
 }
 
 impl Iterator for Lexer<'_> {
-    type Item = Token;
+    type Item = RawToken;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.chars.next() {
-            Some((lo, c)) => {
+            Some((offset, c)) => {
                 let kind = self.tokenize(c);
-                let lo = lo.try_into().unwrap();
-                let hi = self.offset().try_into().unwrap();
-                let span = Span { lo, hi };
-                Some(self.and_or_hack(Token { kind, span }))
+                Some(self.and_or_hack(RawToken { kind, offset }))
             }
             None if self.eof => None,
             None => {
                 self.eof = true;
-                let len = self.input.len().try_into().unwrap();
-                Some(Token {
-                    kind: TokenKind::Eof,
-                    span: Span { lo: len, hi: len },
+                Some(RawToken {
+                    kind: RawTokenKind::Cooked(TokenKind::Eof),
+                    offset: self.input.len(),
                 })
             }
         }
