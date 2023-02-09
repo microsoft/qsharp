@@ -88,6 +88,15 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn ident(&mut self, c: char) -> bool {
+        if c == '_' || c.is_alphabetic() {
+            self.eat_while(|c| c == '_' || c.is_alphanumeric());
+            true
+        } else {
+            false
+        }
+    }
+
     fn number(&mut self, c: char) -> Option<Number> {
         if let Some(n) = self.leading_zero(c) {
             Some(n)
@@ -172,6 +181,8 @@ impl Iterator for Lexer<'_> {
             TokenKind::Comment
         } else if self.eat_while(char::is_whitespace) {
             TokenKind::Whitespace
+        } else if self.ident(c) {
+            TokenKind::Ident
         } else {
             self.number(c)
                 .map(TokenKind::Number)
