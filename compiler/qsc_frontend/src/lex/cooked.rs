@@ -5,12 +5,16 @@ use super::raw::{self, Delim, Single};
 use qsc_ast::ast::Span;
 use std::iter::Peekable;
 
+// TODO: This will be used via the parser.
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct Token {
     kind: TokenKind,
     span: Span,
 }
 
+// TODO: This will be used via the parser.
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct Error {
     message: &'static str,
@@ -81,6 +85,8 @@ pub(crate) struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    // TODO: This will be used via the parser.
+    #[allow(dead_code)]
     fn new(input: &'a str) -> Self {
         Self {
             tokens: raw::Lexer::new(input).peekable(),
@@ -366,7 +372,9 @@ mod tests {
 
     #[test]
     fn amp() {
-        check("&", &expect![[r#"
+        check(
+            "&",
+            &expect![[r#"
             [
                 Err(
                     Error {
@@ -387,12 +395,15 @@ mod tests {
                     },
                 ),
             ]
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]
     fn amp_amp() {
-        check("&&", &expect![[r#"
+        check(
+            "&&",
+            &expect![[r#"
             [
                 Err(
                     Error {
@@ -413,12 +424,15 @@ mod tests {
                     },
                 ),
             ]
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]
     fn amp_amp_amp() {
-        check("&&&", &expect![[r#"
+        check(
+            "&&&",
+            &expect![[r#"
             [
                 Ok(
                     Token {
@@ -441,12 +455,15 @@ mod tests {
                     },
                 ),
             ]
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]
     fn caret() {
-        check("^", &expect![[r#"
+        check(
+            "^",
+            &expect![[r#"
             [
                 Ok(
                     Token {
@@ -469,12 +486,15 @@ mod tests {
                     },
                 ),
             ]
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]
     fn caret_caret() {
-        check("^^", &expect![[r#"
+        check(
+            "^^",
+            &expect![[r#"
             [
                 Err(
                     Error {
@@ -495,12 +515,15 @@ mod tests {
                     },
                 ),
             ]
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]
     fn caret_caret_caret() {
-        check("^^^", &expect![[r#"
+        check(
+            "^^^",
+            &expect![[r#"
             [
                 Ok(
                     Token {
@@ -523,7 +546,8 @@ mod tests {
                     },
                 ),
             ]
-        "#]]);
+        "#]],
+        );
     }
 
     #[test]
