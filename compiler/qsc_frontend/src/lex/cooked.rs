@@ -5,16 +5,19 @@ use super::raw::{self, Delim, Single};
 use qsc_ast::ast::Span;
 use std::iter::Peekable;
 
+#[derive(Debug)]
 pub(crate) struct Token {
     kind: TokenKind,
     span: Span,
 }
 
+#[derive(Debug)]
 pub(crate) struct Error {
     message: &'static str,
     span: Span,
 }
 
+#[derive(Debug)]
 pub(crate) enum TokenKind {
     Apos,
     At,
@@ -54,6 +57,7 @@ pub(crate) enum TokenKind {
     WSlashEq,
 }
 
+#[derive(Debug)]
 pub(crate) enum ClosedBinOp {
     AmpAmpAmp,
     And,
@@ -289,5 +293,463 @@ impl Iterator for Lexer<'_> {
                 },
             }))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Lexer;
+    use expect_test::{expect, Expect};
+
+    fn check(input: &str, expect: &Expect) {
+        let actual: Vec<_> = Lexer::new(input).collect();
+        expect.assert_debug_eq(&actual);
+    }
+
+    #[test]
+    fn colon() {
+        check(
+            ":",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: Colon,
+                            span: Span {
+                                lo: 0,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Eof,
+                            span: Span {
+                                lo: 1,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn colon_colon() {
+        check(
+            "::",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ColonColon,
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 2,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn amp() {
+        check("&", &expect![[r#"
+            [
+                Err(
+                    Error {
+                        message: "Expecting `&&&`.",
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 1,
+                            hi: 1,
+                        },
+                    },
+                ),
+            ]
+        "#]]);
+    }
+
+    #[test]
+    fn amp_amp() {
+        check("&&", &expect![[r#"
+            [
+                Err(
+                    Error {
+                        message: "Expecting `&&&`.",
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 2,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]]);
+    }
+
+    #[test]
+    fn amp_amp_amp() {
+        check("&&&", &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            AmpAmpAmp,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 3,
+                            hi: 3,
+                        },
+                    },
+                ),
+            ]
+        "#]]);
+    }
+
+    #[test]
+    fn caret() {
+        check("^", &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Caret,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 1,
+                            hi: 1,
+                        },
+                    },
+                ),
+            ]
+        "#]]);
+    }
+
+    #[test]
+    fn caret_caret() {
+        check("^^", &expect![[r#"
+            [
+                Err(
+                    Error {
+                        message: "Expecting `^^^`.",
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 2,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]]);
+    }
+
+    #[test]
+    fn caret_caret_caret() {
+        check("^^^", &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            CaretCaretCaret,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 3,
+                            hi: 3,
+                        },
+                    },
+                ),
+            ]
+        "#]]);
+    }
+
+    #[test]
+    fn and() {
+        check(
+            "and",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            And,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 3,
+                            hi: 3,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn and_eq() {
+        check(
+            "and=",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: BinOpEq(
+                            And,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 4,
+                            hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn and_ws_eq() {
+        check(
+            "and =",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            And,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eq,
+                        span: Span {
+                            lo: 4,
+                            hi: 5,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 5,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn w() {
+        check(
+            "w",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 1,
+                            hi: 1,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn w_slash() {
+        check(
+            "w/",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: WSlash,
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 2,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn w_slash_eq() {
+        check(
+            "w/=",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: WSlashEq,
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 3,
+                            hi: 3,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn w_slash_eq_ident() {
+        check(
+            "w/=foo",
+            &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: WSlashEq,
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 3,
+                            hi: 6,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Eof,
+                        span: Span {
+                            lo: 6,
+                            hi: 6,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+        );
     }
 }
