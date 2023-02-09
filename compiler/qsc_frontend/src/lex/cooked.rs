@@ -70,6 +70,7 @@ pub(crate) enum ClosedBinOp {
 pub(crate) struct Lexer<'a> {
     tokens: Peekable<raw::Lexer<'a>>,
     input: &'a str,
+    eof: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -77,6 +78,7 @@ impl<'a> Lexer<'a> {
         Self {
             tokens: raw::Lexer::new(input).peekable(),
             input,
+            eof: false,
         }
     }
 
@@ -254,6 +256,18 @@ impl Iterator for Lexer<'_> {
             }
         }
 
-        None
+        if self.eof {
+            None
+        } else {
+            self.eof = true;
+            let offset = self.offset().try_into().unwrap();
+            Some(Ok(Token {
+                kind: TokenKind::Eof,
+                span: Span {
+                    lo: offset,
+                    hi: offset,
+                },
+            }))
+        }
     }
 }
