@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use super::raw::{self, Delim, Single};
 use qsc_ast::ast::Span;
 use std::iter::Peekable;
