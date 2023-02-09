@@ -3,12 +3,13 @@
 
 use std::{iter::Peekable, str::CharIndices};
 
+#[derive(Debug)]
 pub(crate) struct Token {
     pub(crate) kind: TokenKind,
     pub(crate) offset: usize,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) enum TokenKind {
     Comment,
     Ident,
@@ -19,7 +20,7 @@ pub(crate) enum TokenKind {
     Whitespace,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Single {
     Amp,
     Apos,
@@ -46,14 +47,14 @@ pub(crate) enum Single {
     Tilde,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Delim {
     Brace,
     Bracket,
     Paren,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) enum Number {
     BigInt,
     Float,
@@ -75,10 +76,17 @@ impl<'a> Lexer<'a> {
         self.chars.next_if(|i| i.1 == c).is_some()
     }
 
-    fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) -> bool {
-        let any = self.chars.next_if(|i| f(i.1)).is_some();
+    fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) {
         while self.chars.next_if(|i| f(i.1)).is_some() {}
-        any
+    }
+
+    fn whitespace(&mut self, c: char) -> bool {
+        if c.is_whitespace() {
+            self.eat_while(char::is_whitespace);
+            true
+        } else {
+            false
+        }
     }
 
     fn comment(&mut self, c: char) -> bool {
@@ -148,9 +156,7 @@ impl<'a> Lexer<'a> {
         }
 
         self.eat_while(|c| c == '_' || c.is_ascii_digit());
-        let Some((_, c)) = self.chars.next() else { return Some(Number::Int) };
-
-        if c == '.' {
+        if self.next_if_eq('.') {
             self.eat_while(|c| c == '_' || c.is_ascii_digit());
             self.exp();
             Some(Number::Float)
@@ -196,7 +202,7 @@ impl Iterator for Lexer<'_> {
         let (offset, c) = self.chars.next()?;
         let kind = if self.comment(c) {
             TokenKind::Comment
-        } else if self.eat_while(char::is_whitespace) {
+        } else if self.whitespace(c) {
             TokenKind::Whitespace
         } else if self.ident(c) {
             TokenKind::Ident
@@ -242,5 +248,330 @@ fn single(c: char) -> Option<Single> {
         '~' => Some(Single::Tilde),
         '$' => Some(Single::Dollar),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Lexer;
+    use expect_test::{expect, Expect};
+
+    fn check(input: &str, expect: &Expect) {
+        let actual: Vec<_> = Lexer::new(input).collect();
+        expect.assert_debug_eq(&actual);
+    }
+
+    #[test]
+    fn amp() {
+        check(
+            "&",
+            &expect![[r#"
+            [
+                Token {
+                    kind: Single(
+                        Amp,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn braces() {
+        check(
+            "{}",
+            &expect![[r#"
+            [
+                Token {
+                    kind: Single(
+                        Open(
+                            Brace,
+                        ),
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Single(
+                        Close(
+                            Brace,
+                        ),
+                    ),
+                    offset: 1,
+                },
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn negate() {
+        check(
+            "-x",
+            &expect![[r#"
+            [
+                Token {
+                    kind: Single(
+                        Minus,
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 1,
+                },
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn whitespace() {
+        check(
+            "-   x",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Minus,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Whitespace,
+                        offset: 1,
+                    },
+                    Token {
+                        kind: Ident,
+                        offset: 4,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn comment() {
+        check(
+            "//comment\nx",
+            &expect![[r#"
+            [
+                Token {
+                    kind: Comment,
+                    offset: 0,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 9,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 10,
+                },
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn string() {
+        check(
+            r#""string";"#,
+            &expect![[r#"
+                [
+                    Token {
+                        kind: String,
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Semi,
+                        ),
+                        offset: 8,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn string_escape_quote() {
+        check(
+            r#""str\"ing";"#,
+            &expect![[r#"
+            [
+                Token {
+                    kind: String,
+                    offset: 0,
+                },
+                Token {
+                    kind: Single(
+                        Semi,
+                    ),
+                    offset: 10,
+                },
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn decimal() {
+        check(
+            "123;",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Semi,
+                        ),
+                        offset: 3,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn hexadecimal() {
+        check(
+            "0x123abc;",
+            &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Int,
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Single(
+                        Semi,
+                    ),
+                    offset: 8,
+                },
+            ]
+        "#]],
+        );
+    }
+
+    #[test]
+    fn float() {
+        check(
+            "1.23;",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Float,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Semi,
+                        ),
+                        offset: 4,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn leading_zero() {
+        check(
+            "0123;",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Semi,
+                        ),
+                        offset: 4,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn leading_point() {
+        check(
+            ".123;",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Float,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Semi,
+                        ),
+                        offset: 4,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn exp() {
+        check(
+            "1e23;",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Float,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Semi,
+                        ),
+                        offset: 4,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn unknown() {
+        check(
+            "#;",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Unknown,
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Semi,
+                        ),
+                        offset: 1,
+                    },
+                ]
+            "#]],
+        );
     }
 }
