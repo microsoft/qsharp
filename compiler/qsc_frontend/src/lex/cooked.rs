@@ -108,9 +108,7 @@ impl<'a> Lexer<'a> {
     fn cook(&mut self, token: &raw::Token) -> Result<Option<Token>, Error> {
         let lo = token.offset.try_into().unwrap();
         let kind = match token.kind {
-            raw::TokenKind::Comment | raw::TokenKind::Unknown | raw::TokenKind::Whitespace => {
-                Ok(None)
-            }
+            raw::TokenKind::Comment | raw::TokenKind::Whitespace => Ok(None),
             raw::TokenKind::Ident => {
                 let ident = &self.input[token.offset..self.offset()];
                 Ok(Some(self.ident(ident)))
@@ -120,6 +118,7 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Number(raw::Number::Int) => Ok(Some(TokenKind::Int)),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String => Ok(Some(TokenKind::String)),
+            raw::TokenKind::Unknown => Err("Unknown token."),
         };
 
         let span = Span {
