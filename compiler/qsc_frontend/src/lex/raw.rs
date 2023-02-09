@@ -170,6 +170,21 @@ impl<'a> Lexer<'a> {
             false
         }
     }
+
+    fn string(&mut self, c: char) -> bool {
+        if c != '"' {
+            return false;
+        }
+
+        while !self.next_if_eq('"') {
+            self.eat_while(|c| c != '\\' && c != '"');
+            if self.next_if_eq('\\') {
+                self.next_if_eq('"');
+            }
+        }
+
+        true
+    }
 }
 
 impl Iterator for Lexer<'_> {
@@ -183,6 +198,8 @@ impl Iterator for Lexer<'_> {
             TokenKind::Whitespace
         } else if self.ident(c) {
             TokenKind::Ident
+        } else if self.string(c) {
+            TokenKind::String
         } else {
             self.number(c)
                 .map(TokenKind::Number)
