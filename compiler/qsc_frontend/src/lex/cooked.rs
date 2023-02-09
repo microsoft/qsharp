@@ -108,7 +108,10 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Comment | raw::TokenKind::Unknown | raw::TokenKind::Whitespace => {
                 Ok(None)
             }
-            raw::TokenKind::Ident => Ok(Some(TokenKind::Ident)),
+            raw::TokenKind::Ident => {
+                let ident = &self.input[token.offset..self.offset()];
+                Ok(Some(self.ident(ident)))
+            }
             raw::TokenKind::Number(raw::Number::BigInt) => Ok(Some(TokenKind::BigInt)),
             raw::TokenKind::Number(raw::Number::Float) => Ok(Some(TokenKind::Float)),
             raw::TokenKind::Number(raw::Number::Int) => Ok(Some(TokenKind::Int)),
@@ -240,6 +243,21 @@ impl<'a> Lexer<'a> {
             TokenKind::BinOpEq(op)
         } else {
             TokenKind::ClosedBinOp(op)
+        }
+    }
+
+    fn ident(&mut self, ident: &str) -> TokenKind {
+        match ident {
+            "and" => self.closed_bin_op(ClosedBinOp::And),
+            "or" => self.closed_bin_op(ClosedBinOp::Or),
+            "w" if self.next_if_eq(Single::Slash) => {
+                if self.next_if_eq(Single::Eq) {
+                    TokenKind::WSlashEq
+                } else {
+                    TokenKind::WSlash
+                }
+            }
+            _ => TokenKind::Ident,
         }
     }
 }
