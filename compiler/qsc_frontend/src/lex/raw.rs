@@ -4,10 +4,11 @@
 use std::{iter::Peekable, str::CharIndices};
 
 pub(crate) struct Token {
-    kind: TokenKind,
-    offset: usize,
+    pub(crate) kind: TokenKind,
+    pub(crate) offset: usize,
 }
 
+#[derive(Eq, PartialEq)]
 pub(crate) enum TokenKind {
     Comment,
     Ident,
@@ -52,6 +53,7 @@ pub(crate) enum Delim {
     Paren,
 }
 
+#[derive(Eq, PartialEq)]
 pub(crate) enum Number {
     BigInt,
     Float,
