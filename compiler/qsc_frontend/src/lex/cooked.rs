@@ -152,7 +152,7 @@ impl<'a> Lexer<'a> {
             }
             Single::Bar => {
                 if self.next_if_eq(Single::Bar) {
-                    self.expect(Single::Bar, "Expecting `|||`")?;
+                    self.expect(Single::Bar, "Expecting `|||`.")?;
                     Ok(self.closed_bin_op(ClosedBinOp::BarBarBar))
                 } else {
                     Ok(TokenKind::Bar)
