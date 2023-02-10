@@ -1,6 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! The second lexing phase "cooks" a raw token stream, transforming them into tokens that directly
+//! correspond to components in the Q# grammar. Keywords are treated as identifiers, except `and`
+//! and `or`, which are cooked into [`ClosedBinOp`] so that `and=` and `or=` are lexed correctly.
+//!
+//! Whitespace and comment tokens are discarded; this means that cooked tokens are not necessarily
+//! contiguous, so they include both a starting and ending byte offset.
+//!
+//! Tokens never contain substrings from the original input, but are simply labels that refer back
+//! to regions in the input. Lexing never fails, but may produce error tokens.
+
 use super::{
     raw::{self, Single},
     Delim,
@@ -8,76 +18,125 @@ use super::{
 use qsc_ast::ast::Span;
 use std::iter::Peekable;
 
-// TODO: This will be used via the parser.
-#[allow(dead_code)]
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Token {
     kind: TokenKind,
     span: Span,
 }
 
-// TODO: This will be used via the parser.
-#[allow(dead_code)]
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Error {
     message: &'static str,
     span: Span,
 }
 
+/// A token kind.
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum TokenKind {
+    /// `'`
     Apos,
+    /// `@`
     At,
+    /// `!`
     Bang,
+    /// `|`
     Bar,
+    /// A big integer literal.
     BigInt,
+    /// A closed binary operator followed by an equals token.
     BinOpEq(ClosedBinOp),
+    /// A closing delimiter.
     Close(Delim),
+    /// A closed binary operator not followed by an equals token.
     ClosedBinOp(ClosedBinOp),
+    /// `:`
     Colon,
+    /// `::`
     ColonColon,
+    /// `,`
     Comma,
+    /// `$`
     Dollar,
+    /// `.`
     Dot,
+    /// `..`
     DotDot,
+    /// `...`
     DotDotDot,
+    /// End of file.
     Eof,
+    /// `=`
     Eq,
+    /// `==`
     EqEq,
+    /// `=>`
     FatArrow,
+    /// A floating-point literal.
     Float,
+    /// `>`
     Gt,
+    /// `>=`
     Gte,
+    /// An identifier.
     Ident,
+    /// An integer literal.
     Int,
+    /// `<-`
     LArrow,
+    /// `<`
     Lt,
+    /// `<=`
     Lte,
+    /// `!=`
     Ne,
+    /// An opening delimiter.
     Open(Delim),
+    /// `?`
     Question,
+    /// `->`
     RArrow,
+    /// `;`
     Semi,
+    /// A string literal.
     String,
+    /// `~~~`
     TildeTildeTilde,
+    /// `w/`
     WSlash,
+    /// `w/=`
     WSlashEq,
 }
 
+/// A binary operator that returns the same type as the type of its first operand; in other words,
+/// the domain of the first operand is closed under this operation. These are candidates for
+/// compound assignment operators, like `+=`.
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum ClosedBinOp {
+    /// `&&&`
     AmpAmpAmp,
+    /// `and`
     And,
+    /// `|||`
     BarBarBar,
+    /// `^`
     Caret,
+    /// `^^^`
     CaretCaretCaret,
+    /// `>>>`
     GtGtGt,
+    /// `<<<`
     LtLtLt,
+    /// `-`
     Minus,
+    /// `or`
     Or,
+    /// `%`
     Percent,
+    /// `+`
     Plus,
+    /// `/`
     Slash,
+    /// `*`
     Star,
 }
 
@@ -90,7 +149,7 @@ pub(crate) struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     // TODO: This will be used via the parser.
     #[allow(dead_code)]
-    fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'a str) -> Self {
         Self {
             tokens: raw::Lexer::new(input).peekable(),
             input,
