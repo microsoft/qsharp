@@ -480,28 +480,34 @@ mod tests {
 
     #[test]
     fn number_seps() {
-        check("123_456", &expect![[r#"
-            [
-                Token {
-                    kind: Number(
-                        Int,
-                    ),
-                    offset: 0,
-                },
-            ]
-        "#]]);
+        check(
+            "123_456",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                ]
+            "#]],
+        );
     }
 
     #[test]
     fn number_underscore_prefix() {
-        check("_123_456", &expect![[r#"
-            [
-                Token {
-                    kind: Ident,
-                    offset: 0,
-                },
-            ]
-        "#]]);
+        check(
+            "_123_456",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Ident,
+                        offset: 0,
+                    },
+                ]
+            "#]],
+        );
     }
 
     #[test]
