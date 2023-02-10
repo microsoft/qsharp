@@ -689,7 +689,7 @@ mod tests {
     #[test]
     fn unknown() {
         check(
-            "#;",
+            "##",
             &expect![[r#"
                 [
                     Token {
@@ -697,9 +697,7 @@ mod tests {
                         offset: 0,
                     },
                     Token {
-                        kind: Single(
-                            Semi,
-                        ),
+                        kind: Unknown,
                         offset: 1,
                     },
                 ]

@@ -796,4 +796,42 @@ mod tests {
             "#]],
         );
     }
+
+    #[test]
+    fn unknown() {
+        check(
+            "##",
+            &expect![[r#"
+                [
+                    Err(
+                        Error {
+                            message: "Unknown token.",
+                            span: Span {
+                                lo: 0,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                    Err(
+                        Error {
+                            message: "Unknown token.",
+                            span: Span {
+                                lo: 1,
+                                hi: 2,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Eof,
+                            span: Span {
+                                lo: 2,
+                                hi: 2,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
 }
