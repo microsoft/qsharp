@@ -3,7 +3,7 @@
 
 use std::{iter::Peekable, str::CharIndices};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Token {
     pub(crate) kind: TokenKind,
     pub(crate) offset: usize,
@@ -253,7 +253,8 @@ fn single(c: char) -> Option<Single> {
 
 #[cfg(test)]
 mod tests {
-    use super::Lexer;
+    use super::{Delim, Lexer};
+    use crate::lex::raw::{Single, Token, TokenKind};
     use expect_test::{expect, Expect};
 
     fn check(input: &str, expect: &Expect) {
@@ -262,20 +263,42 @@ mod tests {
     }
 
     #[test]
-    fn amp() {
-        check(
-            "&",
-            &expect![[r#"
-            [
-                Token {
-                    kind: Single(
-                        Amp,
-                    ),
-                    offset: 0,
-                },
-            ]
-        "#]],
-        );
+    fn singles() {
+        let cases = [
+            ('&', Single::Amp),
+            ('\'', Single::Apos),
+            ('@', Single::At),
+            ('!', Single::Bang),
+            ('|', Single::Bar),
+            ('^', Single::Caret),
+            ('}', Single::Close(Delim::Brace)),
+            (']', Single::Close(Delim::Bracket)),
+            (')', Single::Close(Delim::Paren)),
+            (':', Single::Colon),
+            (',', Single::Comma),
+            ('$', Single::Dollar),
+            ('.', Single::Dot),
+            ('=', Single::Eq),
+            ('>', Single::Gt),
+            ('<', Single::Lt),
+            ('-', Single::Minus),
+            ('{', Single::Open(Delim::Brace)),
+            ('[', Single::Open(Delim::Bracket)),
+            ('(', Single::Open(Delim::Paren)),
+            ('%', Single::Percent),
+            ('+', Single::Plus),
+            ('?', Single::Question),
+            (';', Single::Semi),
+            ('/', Single::Slash),
+            ('*', Single::Star),
+            ('~', Single::Tilde),
+        ];
+
+        for (c, single) in cases {
+            let actual: Vec<_> = Lexer::new(&c.to_string()).collect();
+            let kind = TokenKind::Single(single);
+            assert_eq!(actual, vec![Token { kind, offset: 0 }]);
+        }
     }
 
     #[test]
@@ -283,25 +306,25 @@ mod tests {
         check(
             "{}",
             &expect![[r#"
-            [
-                Token {
-                    kind: Single(
-                        Open(
-                            Brace,
+                [
+                    Token {
+                        kind: Single(
+                            Open(
+                                Brace,
+                            ),
                         ),
-                    ),
-                    offset: 0,
-                },
-                Token {
-                    kind: Single(
-                        Close(
-                            Brace,
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Close(
+                                Brace,
+                            ),
                         ),
-                    ),
-                    offset: 1,
-                },
-            ]
-        "#]],
+                        offset: 1,
+                    },
+                ]
+            "#]],
         );
     }
 
@@ -310,19 +333,19 @@ mod tests {
         check(
             "-x",
             &expect![[r#"
-            [
-                Token {
-                    kind: Single(
-                        Minus,
-                    ),
-                    offset: 0,
-                },
-                Token {
-                    kind: Ident,
-                    offset: 1,
-                },
-            ]
-        "#]],
+                [
+                    Token {
+                        kind: Single(
+                            Minus,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Ident,
+                        offset: 1,
+                    },
+                ]
+            "#]],
         );
     }
 
@@ -356,39 +379,33 @@ mod tests {
         check(
             "//comment\nx",
             &expect![[r#"
-            [
-                Token {
-                    kind: Comment,
-                    offset: 0,
-                },
-                Token {
-                    kind: Whitespace,
-                    offset: 9,
-                },
-                Token {
-                    kind: Ident,
-                    offset: 10,
-                },
-            ]
-        "#]],
+                [
+                    Token {
+                        kind: Comment,
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Whitespace,
+                        offset: 9,
+                    },
+                    Token {
+                        kind: Ident,
+                        offset: 10,
+                    },
+                ]
+            "#]],
         );
     }
 
     #[test]
     fn string() {
         check(
-            r#""string";"#,
+            r#""string""#,
             &expect![[r#"
                 [
                     Token {
                         kind: String,
                         offset: 0,
-                    },
-                    Token {
-                        kind: Single(
-                            Semi,
-                        ),
-                        offset: 8,
                     },
                 ]
             "#]],
@@ -398,28 +415,22 @@ mod tests {
     #[test]
     fn string_escape_quote() {
         check(
-            r#""str\"ing";"#,
+            r#""str\"ing""#,
             &expect![[r#"
-            [
-                Token {
-                    kind: String,
-                    offset: 0,
-                },
-                Token {
-                    kind: Single(
-                        Semi,
-                    ),
-                    offset: 10,
-                },
-            ]
-        "#]],
+                [
+                    Token {
+                        kind: String,
+                        offset: 0,
+                    },
+                ]
+            "#]],
         );
     }
 
     #[test]
-    fn decimal() {
+    fn binary() {
         check(
-            "123;",
+            "0b10110",
             &expect![[r#"
                 [
                     Token {
@@ -428,11 +439,22 @@ mod tests {
                         ),
                         offset: 0,
                     },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn octal() {
+        check(
+            "0o70351",
+            &expect![[r#"
+                [
                     Token {
-                        kind: Single(
-                            Semi,
+                        kind: Number(
+                            Int,
                         ),
-                        offset: 3,
+                        offset: 0,
                     },
                 ]
             "#]],
@@ -440,10 +462,25 @@ mod tests {
     }
 
     #[test]
-    fn hexadecimal() {
+    fn decimal() {
         check(
-            "0x123abc;",
+            "123",
             &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn number_seps() {
+        check("123_456", &expect![[r#"
             [
                 Token {
                     kind: Number(
@@ -451,21 +488,100 @@ mod tests {
                     ),
                     offset: 0,
                 },
+            ]
+        "#]]);
+    }
+
+    #[test]
+    fn number_underscore_prefix() {
+        check("_123_456", &expect![[r#"
+            [
                 Token {
-                    kind: Single(
-                        Semi,
-                    ),
-                    offset: 8,
+                    kind: Ident,
+                    offset: 0,
                 },
             ]
-        "#]],
+        "#]]);
+    }
+
+    #[test]
+    fn hexadecimal() {
+        check(
+            "0x123abc",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn bigint() {
+        check(
+            "123L",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            BigInt,
+                        ),
+                        offset: 0,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn negative() {
+        check(
+            "-4",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Minus,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 1,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn bigint_hexadecimal() {
+        check(
+            "0x123abcL",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            BigInt,
+                        ),
+                        offset: 0,
+                    },
+                ]
+            "#]],
         );
     }
 
     #[test]
     fn float() {
         check(
-            "1.23;",
+            "1.23",
             &expect![[r#"
                 [
                     Token {
@@ -473,12 +589,6 @@ mod tests {
                             Float,
                         ),
                         offset: 0,
-                    },
-                    Token {
-                        kind: Single(
-                            Semi,
-                        ),
-                        offset: 4,
                     },
                 ]
             "#]],
@@ -488,7 +598,7 @@ mod tests {
     #[test]
     fn leading_zero() {
         check(
-            "0123;",
+            "0123",
             &expect![[r#"
                 [
                     Token {
@@ -496,12 +606,6 @@ mod tests {
                             Int,
                         ),
                         offset: 0,
-                    },
-                    Token {
-                        kind: Single(
-                            Semi,
-                        ),
-                        offset: 4,
                     },
                 ]
             "#]],
@@ -511,7 +615,7 @@ mod tests {
     #[test]
     fn leading_point() {
         check(
-            ".123;",
+            ".123",
             &expect![[r#"
                 [
                     Token {
@@ -519,12 +623,6 @@ mod tests {
                             Float,
                         ),
                         offset: 0,
-                    },
-                    Token {
-                        kind: Single(
-                            Semi,
-                        ),
-                        offset: 4,
                     },
                 ]
             "#]],
@@ -534,7 +632,7 @@ mod tests {
     #[test]
     fn exp() {
         check(
-            "1e23;",
+            "1e23",
             &expect![[r#"
                 [
                     Token {
@@ -543,11 +641,39 @@ mod tests {
                         ),
                         offset: 0,
                     },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn exp_plus() {
+        check(
+            "1e+23",
+            &expect![[r#"
+                [
                     Token {
-                        kind: Single(
-                            Semi,
+                        kind: Number(
+                            Float,
                         ),
-                        offset: 4,
+                        offset: 0,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn exp_minus() {
+        check(
+            "1e-23",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Float,
+                        ),
+                        offset: 0,
                     },
                 ]
             "#]],
@@ -569,6 +695,29 @@ mod tests {
                             Semi,
                         ),
                         offset: 1,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn float_hexadecimal() {
+        check(
+            "0x123.45",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Number(
+                            Float,
+                        ),
+                        offset: 5,
                     },
                 ]
             "#]],
