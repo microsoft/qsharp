@@ -6,8 +6,8 @@
 //! contiguous: there are no gaps between tokens.
 //!
 //! These are "raw" tokens because single-character operators don't always correspond to Q#
-//! operators, and whitespace and comments will be discarded. Raw tokens are the ingredients that
-//! are "cooked" into compound tokens before they can be consumed by the parser.
+//! operators, and whitespace and comments will later be discarded. Raw tokens are the ingredients
+//! that are "cooked" into compound tokens before they can be consumed by the parser.
 //!
 //! Tokens never contain substrings from the original input, but are simply labels that refer back
 //! to offsets in the input. Lexing never fails, but may produce unknown tokens.
