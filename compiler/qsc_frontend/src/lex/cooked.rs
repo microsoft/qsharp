@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::raw::{self, Delim, Single};
+use super::{
+    raw::{self, Single},
+    Delim,
+};
 use qsc_ast::ast::Span;
 use std::iter::Peekable;
 
@@ -305,7 +308,7 @@ impl Iterator for Lexer<'_> {
 #[cfg(test)]
 mod tests {
     use super::{ClosedBinOp, Lexer, Token, TokenKind};
-    use crate::lex::raw::Delim;
+    use crate::lex::Delim;
     use expect_test::{expect, Expect};
     use qsc_ast::ast::Span;
 

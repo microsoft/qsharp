@@ -1,16 +1,27 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! The first lexing phase transforms an input string into literals, single-character operators,
+//! whitespace, and comments. The raw token stream is contiguous: there are no gaps between tokens.
+//!
+//! These are "raw" tokens because single-character operators don't always correspond to Q#
+//! operators, and whitespace and comments will be discarded. Raw tokens are the ingredients that
+//! are "cooked" into compound tokens before they can be consumed by the parser.
+
+use super::Delim;
 use std::{iter::Peekable, str::CharIndices};
 
+/// A raw token.
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) struct Token {
-    pub(crate) kind: TokenKind,
-    pub(crate) offset: usize,
+pub(super) struct Token {
+    /// The token kind.
+    pub(super) kind: TokenKind,
+    /// The byte offset of the token starting character.
+    pub(super) offset: usize,
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) enum TokenKind {
+pub(super) enum TokenKind {
     Comment,
     Ident,
     Number(Number),
@@ -20,53 +31,70 @@ pub(crate) enum TokenKind {
     Whitespace,
 }
 
+/// A single-character operator token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum Single {
+pub(super) enum Single {
+    /// `&`
     Amp,
+    /// `'`
     Apos,
+    /// `@`
     At,
+    /// `!`
     Bang,
+    /// `|`
     Bar,
+    /// `^`
     Caret,
+    /// A closing delimiter.
     Close(Delim),
+    /// `:`
     Colon,
+    /// `,`
     Comma,
+    /// `$`
     Dollar,
+    /// `.`
     Dot,
+    /// `=`
     Eq,
+    /// `>`
     Gt,
+    /// `<`
     Lt,
+    /// `-`
     Minus,
+    /// An opening delimiter.
     Open(Delim),
+    /// `%`
     Percent,
+    /// `+`
     Plus,
+    /// `?`
     Question,
+    /// `;`
     Semi,
+    /// `/`
     Slash,
+    /// `*`
     Star,
+    /// `~`
     Tilde,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum Delim {
-    Brace,
-    Bracket,
-    Paren,
-}
-
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) enum Number {
+pub(super) enum Number {
     BigInt,
     Float,
     Int,
 }
 
-pub(crate) struct Lexer<'a> {
+pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(input: &'a str) -> Self {
+    pub(super) fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
         }
