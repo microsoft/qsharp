@@ -15,8 +15,12 @@ use super::{
     raw::{self, Single},
     Delim,
 };
+use enum_iterator::Sequence;
 use qsc_ast::ast::Span;
-use std::iter::Peekable;
+use std::{
+    fmt::{self, Display, Formatter},
+    iter::Peekable,
+};
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Token {
@@ -31,7 +35,7 @@ pub(crate) struct Error {
 }
 
 /// A token kind.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(crate) enum TokenKind {
     /// `'`
     Apos,
@@ -110,7 +114,7 @@ pub(crate) enum TokenKind {
 /// A binary operator that returns the same type as the type of its first operand; in other words,
 /// the domain of the first operand is closed under this operation. These are candidates for
 /// compound assignment operators, like `+=`.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(crate) enum ClosedBinOp {
     /// `&&&`
     AmpAmpAmp,
@@ -138,6 +142,26 @@ pub(crate) enum ClosedBinOp {
     Slash,
     /// `*`
     Star,
+}
+
+impl Display for ClosedBinOp {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str(match self {
+            ClosedBinOp::AmpAmpAmp => "&&&",
+            ClosedBinOp::And => "and",
+            ClosedBinOp::BarBarBar => "|||",
+            ClosedBinOp::Caret => "^",
+            ClosedBinOp::CaretCaretCaret => "^^^",
+            ClosedBinOp::GtGtGt => ">>>",
+            ClosedBinOp::LtLtLt => "<<<",
+            ClosedBinOp::Minus => "-",
+            ClosedBinOp::Or => "or",
+            ClosedBinOp::Percent => "%",
+            ClosedBinOp::Plus => "+",
+            ClosedBinOp::Slash => "/",
+            ClosedBinOp::Star => "*",
+        })
+    }
 }
 
 pub(crate) struct Lexer<'a> {
@@ -365,7 +389,7 @@ impl Iterator for Lexer<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClosedBinOp, Lexer, Token, TokenKind};
+    use super::{Lexer, Token, TokenKind};
     use crate::lex::Delim;
     use expect_test::{expect, Expect};
     use qsc_ast::ast::Span;
@@ -375,71 +399,56 @@ mod tests {
         expect.assert_debug_eq(&actual);
     }
 
-    #[test]
-    fn basic() {
-        let cases = [
-            ("'", TokenKind::Apos),
-            ("@", TokenKind::At),
-            ("!", TokenKind::Bang),
-            ("|", TokenKind::Bar),
-            (":", TokenKind::Colon),
-            ("::", TokenKind::ColonColon),
-            (",", TokenKind::Comma),
-            ("$", TokenKind::Dollar),
-            (".", TokenKind::Dot),
-            ("..", TokenKind::DotDot),
-            ("...", TokenKind::DotDotDot),
-            ("=", TokenKind::Eq),
-            ("==", TokenKind::EqEq),
-            ("=>", TokenKind::FatArrow),
-            (">", TokenKind::Gt),
-            (">=", TokenKind::Gte),
-            ("<-", TokenKind::LArrow),
-            ("<", TokenKind::Lt),
-            ("<=", TokenKind::Lte),
-            ("!=", TokenKind::Ne),
-            ("?", TokenKind::Question),
-            ("->", TokenKind::RArrow),
-            (";", TokenKind::Semi),
-            ("~~~", TokenKind::TildeTildeTilde),
-            ("w/", TokenKind::WSlash),
-            ("w/=", TokenKind::WSlashEq),
-            ("{", TokenKind::Open(Delim::Brace)),
-            ("}", TokenKind::Close(Delim::Brace)),
-            ("[", TokenKind::Open(Delim::Bracket)),
-            ("]", TokenKind::Close(Delim::Bracket)),
-            ("(", TokenKind::Open(Delim::Paren)),
-            (")", TokenKind::Close(Delim::Paren)),
-            ("&&&", TokenKind::ClosedBinOp(ClosedBinOp::AmpAmpAmp)),
-            ("&&&=", TokenKind::BinOpEq(ClosedBinOp::AmpAmpAmp)),
-            ("|||", TokenKind::ClosedBinOp(ClosedBinOp::BarBarBar)),
-            ("|||=", TokenKind::BinOpEq(ClosedBinOp::BarBarBar)),
-            ("^", TokenKind::ClosedBinOp(ClosedBinOp::Caret)),
-            ("^=", TokenKind::BinOpEq(ClosedBinOp::Caret)),
-            ("^^^", TokenKind::ClosedBinOp(ClosedBinOp::CaretCaretCaret)),
-            ("^^^=", TokenKind::BinOpEq(ClosedBinOp::CaretCaretCaret)),
-            (">>>", TokenKind::ClosedBinOp(ClosedBinOp::GtGtGt)),
-            (">>>=", TokenKind::BinOpEq(ClosedBinOp::GtGtGt)),
-            ("<<<", TokenKind::ClosedBinOp(ClosedBinOp::LtLtLt)),
-            ("<<<=", TokenKind::BinOpEq(ClosedBinOp::LtLtLt)),
-            ("-", TokenKind::ClosedBinOp(ClosedBinOp::Minus)),
-            ("-=", TokenKind::BinOpEq(ClosedBinOp::Minus)),
-            ("%", TokenKind::ClosedBinOp(ClosedBinOp::Percent)),
-            ("%=", TokenKind::BinOpEq(ClosedBinOp::Percent)),
-            ("+", TokenKind::ClosedBinOp(ClosedBinOp::Plus)),
-            ("+=", TokenKind::BinOpEq(ClosedBinOp::Plus)),
-            ("/", TokenKind::ClosedBinOp(ClosedBinOp::Slash)),
-            ("/=", TokenKind::BinOpEq(ClosedBinOp::Slash)),
-            ("*", TokenKind::ClosedBinOp(ClosedBinOp::Star)),
-            ("*=", TokenKind::BinOpEq(ClosedBinOp::Star)),
-            ("and", TokenKind::ClosedBinOp(ClosedBinOp::And)),
-            ("and=", TokenKind::BinOpEq(ClosedBinOp::And)),
-            ("or", TokenKind::ClosedBinOp(ClosedBinOp::Or)),
-            ("or=", TokenKind::BinOpEq(ClosedBinOp::Or)),
-        ];
+    fn op_string(kind: TokenKind) -> Option<String> {
+        match kind {
+            TokenKind::Apos => Some("'".to_string()),
+            TokenKind::At => Some("@".to_string()),
+            TokenKind::Bang => Some("!".to_string()),
+            TokenKind::Bar => Some("|".to_string()),
+            TokenKind::BinOpEq(op) => Some(format!("{op}=")),
+            TokenKind::Close(Delim::Brace) => Some("}".to_string()),
+            TokenKind::Close(Delim::Bracket) => Some("]".to_string()),
+            TokenKind::Close(Delim::Paren) => Some(")".to_string()),
+            TokenKind::ClosedBinOp(op) => Some(op.to_string()),
+            TokenKind::Colon => Some(":".to_string()),
+            TokenKind::ColonColon => Some("::".to_string()),
+            TokenKind::Comma => Some(",".to_string()),
+            TokenKind::Dollar => Some("$".to_string()),
+            TokenKind::Dot => Some(".".to_string()),
+            TokenKind::DotDot => Some("..".to_string()),
+            TokenKind::DotDotDot => Some("...".to_string()),
+            TokenKind::Eq => Some("=".to_string()),
+            TokenKind::EqEq => Some("==".to_string()),
+            TokenKind::FatArrow => Some("=>".to_string()),
+            TokenKind::Gt => Some(">".to_string()),
+            TokenKind::Gte => Some(">=".to_string()),
+            TokenKind::LArrow => Some("<-".to_string()),
+            TokenKind::Lt => Some("<".to_string()),
+            TokenKind::Lte => Some("<=".to_string()),
+            TokenKind::Ne => Some("!=".to_string()),
+            TokenKind::Open(Delim::Brace) => Some("{".to_string()),
+            TokenKind::Open(Delim::Bracket) => Some("[".to_string()),
+            TokenKind::Open(Delim::Paren) => Some("(".to_string()),
+            TokenKind::Question => Some("?".to_string()),
+            TokenKind::RArrow => Some("->".to_string()),
+            TokenKind::Semi => Some(";".to_string()),
+            TokenKind::TildeTildeTilde => Some("~~~".to_string()),
+            TokenKind::WSlash => Some("w/".to_string()),
+            TokenKind::WSlashEq => Some("w/=".to_string()),
+            TokenKind::BigInt
+            | TokenKind::Eof
+            | TokenKind::Float
+            | TokenKind::Ident
+            | TokenKind::Int
+            | TokenKind::String => None,
+        }
+    }
 
-        for (input, kind) in cases {
-            let actual: Vec<_> = Lexer::new(input).collect();
+    #[test]
+    fn basic_ops() {
+        for kind in enum_iterator::all() {
+            let Some(input) = op_string(kind) else { continue };
+            let actual: Vec<_> = Lexer::new(&input).collect();
             let len = input.len();
             assert_eq!(
                 actual,

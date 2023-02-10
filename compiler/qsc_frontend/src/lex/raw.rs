@@ -13,7 +13,12 @@
 //! to offsets in the input. Lexing never fails, but may produce unknown tokens.
 
 use super::Delim;
-use std::{iter::Peekable, str::CharIndices};
+use enum_iterator::Sequence;
+use std::{
+    fmt::{self, Display, Formatter, Write},
+    iter::Peekable,
+    str::CharIndices,
+};
 
 /// A raw token.
 #[derive(Debug, Eq, PartialEq)]
@@ -24,7 +29,7 @@ pub(super) struct Token {
     pub(super) offset: usize,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Sequence)]
 pub(super) enum TokenKind {
     Comment,
     Ident,
@@ -36,7 +41,7 @@ pub(super) enum TokenKind {
 }
 
 /// A single-character operator token.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(super) enum Single {
     /// `&`
     Amp,
@@ -86,7 +91,41 @@ pub(super) enum Single {
     Tilde,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+impl Display for Single {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_char(match self {
+            Single::Amp => '&',
+            Single::Apos => '\'',
+            Single::At => '@',
+            Single::Bang => '!',
+            Single::Bar => '|',
+            Single::Caret => '^',
+            Single::Close(Delim::Brace) => '}',
+            Single::Close(Delim::Bracket) => ']',
+            Single::Close(Delim::Paren) => ')',
+            Single::Colon => ':',
+            Single::Comma => ',',
+            Single::Dollar => '$',
+            Single::Dot => '.',
+            Single::Eq => '=',
+            Single::Gt => '>',
+            Single::Lt => '<',
+            Single::Minus => '-',
+            Single::Open(Delim::Brace) => '{',
+            Single::Open(Delim::Bracket) => '[',
+            Single::Open(Delim::Paren) => '(',
+            Single::Percent => '%',
+            Single::Plus => '+',
+            Single::Question => '?',
+            Single::Semi => ';',
+            Single::Slash => '/',
+            Single::Star => '*',
+            Single::Tilde => '~',
+        })
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Sequence)]
 pub(super) enum Number {
     BigInt,
     Float,
@@ -285,7 +324,7 @@ fn single(c: char) -> Option<Single> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Delim, Lexer};
+    use super::Lexer;
     use crate::lex::raw::{Single, Token, TokenKind};
     use expect_test::{expect, Expect};
 
@@ -296,38 +335,8 @@ mod tests {
 
     #[test]
     fn singles() {
-        let cases = [
-            ('&', Single::Amp),
-            ('\'', Single::Apos),
-            ('@', Single::At),
-            ('!', Single::Bang),
-            ('|', Single::Bar),
-            ('^', Single::Caret),
-            ('}', Single::Close(Delim::Brace)),
-            (']', Single::Close(Delim::Bracket)),
-            (')', Single::Close(Delim::Paren)),
-            (':', Single::Colon),
-            (',', Single::Comma),
-            ('$', Single::Dollar),
-            ('.', Single::Dot),
-            ('=', Single::Eq),
-            ('>', Single::Gt),
-            ('<', Single::Lt),
-            ('-', Single::Minus),
-            ('{', Single::Open(Delim::Brace)),
-            ('[', Single::Open(Delim::Bracket)),
-            ('(', Single::Open(Delim::Paren)),
-            ('%', Single::Percent),
-            ('+', Single::Plus),
-            ('?', Single::Question),
-            (';', Single::Semi),
-            ('/', Single::Slash),
-            ('*', Single::Star),
-            ('~', Single::Tilde),
-        ];
-
-        for (c, single) in cases {
-            let actual: Vec<_> = Lexer::new(&c.to_string()).collect();
+        for single in enum_iterator::all::<Single>() {
+            let actual: Vec<_> = Lexer::new(&single.to_string()).collect();
             let kind = TokenKind::Single(single);
             assert_eq!(actual, vec![Token { kind, offset: 0 }]);
         }
