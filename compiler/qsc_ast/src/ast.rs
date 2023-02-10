@@ -22,14 +22,14 @@ impl NodeId {
     }
 }
 
-/// A region between two source code positions. The offsets are absolute within an AST given that
-/// each file has its own offset.
+/// A region between two source code positions. Spans are the half-open interval `[lo, hi)`. The
+/// offsets are absolute within an AST, assuming that each file has its own offset.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Span {
-    /// The first byte offset.
-    pub lo: u32,
-    /// The last byte offset.
-    pub hi: u32,
+    /// The offset of the first byte.
+    pub lo: usize,
+    /// The offset immediately following the last byte.
+    pub hi: usize,
 }
 
 /// The package currently being compiled and the root node of an AST.

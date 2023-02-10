@@ -178,7 +178,6 @@ impl<'a> Lexer<'a> {
     }
 
     fn cook(&mut self, token: &raw::Token) -> Result<Option<Token>, Error> {
-        let lo = token.offset.try_into().unwrap();
         let kind = match token.kind {
             raw::TokenKind::Comment | raw::TokenKind::Whitespace => Ok(None),
             raw::TokenKind::Ident => {
@@ -194,8 +193,8 @@ impl<'a> Lexer<'a> {
         };
 
         let span = Span {
-            lo,
-            hi: self.offset().try_into().unwrap(),
+            lo: token.offset,
+            hi: self.offset(),
         };
 
         match kind {
@@ -352,7 +351,7 @@ impl Iterator for Lexer<'_> {
             None
         } else {
             self.eof = true;
-            let offset = self.offset().try_into().unwrap();
+            let offset = self.offset();
             Some(Ok(Token {
                 kind: TokenKind::Eof,
                 span: Span {
@@ -441,7 +440,7 @@ mod tests {
 
         for (input, kind) in cases {
             let actual: Vec<_> = Lexer::new(input).collect();
-            let len = input.len().try_into().unwrap();
+            let len = input.len();
             assert_eq!(
                 actual,
                 vec![
