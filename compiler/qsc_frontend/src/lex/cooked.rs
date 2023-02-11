@@ -165,17 +165,15 @@ impl Display for ClosedBinOp {
 }
 
 pub(crate) struct Lexer<'a> {
-    tokens: Peekable<raw::Lexer<'a>>,
     input: &'a str,
-    eof: bool,
+    tokens: Peekable<raw::Lexer<'a>>,
 }
 
 impl<'a> Lexer<'a> {
     pub(crate) fn new(input: &'a str) -> Self {
         Self {
-            tokens: raw::Lexer::new(input).peekable(),
             input,
-            eof: false,
+            tokens: raw::Lexer::new(input).peekable(),
         }
     }
 
@@ -369,19 +367,7 @@ impl Iterator for Lexer<'_> {
             }
         }
 
-        if self.eof {
-            None
-        } else {
-            self.eof = true;
-            let offset = self.offset();
-            Some(Ok(Token {
-                kind: TokenKind::Eof,
-                span: Span {
-                    lo: offset,
-                    hi: offset,
-                },
-            }))
-        }
+        None
     }
 }
 
@@ -450,16 +436,10 @@ mod tests {
             let len = input.len();
             assert_eq!(
                 actual,
-                vec![
-                    Ok(Token {
-                        kind,
-                        span: Span { lo: 0, hi: len }
-                    }),
-                    Ok(Token {
-                        kind: TokenKind::Eof,
-                        span: Span { lo: len, hi: len }
-                    })
-                ]
+                vec![Ok(Token {
+                    kind,
+                    span: Span { lo: 0, hi: len }
+                }),]
             );
         }
     }
@@ -469,17 +449,7 @@ mod tests {
         check(
             "",
             &expect![[r#"
-                [
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 0,
-                                hi: 0,
-                            },
-                        },
-                    ),
-                ]
+                []
             "#]],
         );
     }
@@ -495,15 +465,6 @@ mod tests {
                             message: "Expecting `&&&`.",
                             span: Span {
                                 lo: 0,
-                                hi: 1,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 1,
                                 hi: 1,
                             },
                         },
@@ -524,15 +485,6 @@ mod tests {
                             message: "Expecting `&&&`.",
                             span: Span {
                                 lo: 0,
-                                hi: 2,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 2,
                                 hi: 2,
                             },
                         },
@@ -570,15 +522,6 @@ mod tests {
                             },
                         },
                     ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 6,
-                                hi: 6,
-                            },
-                        },
-                    ),
                 ]
             "#]],
         );
@@ -595,15 +538,6 @@ mod tests {
                             message: "Expecting `^^^`.",
                             span: Span {
                                 lo: 0,
-                                hi: 2,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 2,
                                 hi: 2,
                             },
                         },
@@ -639,15 +573,6 @@ mod tests {
                             },
                         },
                     ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 5,
-                                hi: 5,
-                            },
-                        },
-                    ),
                 ]
             "#]],
         );
@@ -664,15 +589,6 @@ mod tests {
                             kind: Ident,
                             span: Span {
                                 lo: 0,
-                                hi: 1,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 1,
                                 hi: 1,
                             },
                         },
@@ -706,15 +622,6 @@ mod tests {
                             },
                         },
                     ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 6,
-                                hi: 6,
-                            },
-                        },
-                    ),
                 ]
             "#]],
         );
@@ -731,15 +638,6 @@ mod tests {
                             kind: Int,
                             span: Span {
                                 lo: 0,
-                                hi: 3,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 3,
                                 hi: 3,
                             },
                         },
@@ -764,15 +662,6 @@ mod tests {
                             },
                         },
                     ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 4,
-                                hi: 4,
-                            },
-                        },
-                    ),
                 ]
             "#]],
         );
@@ -789,15 +678,6 @@ mod tests {
                             kind: Float,
                             span: Span {
                                 lo: 0,
-                                hi: 4,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 4,
                                 hi: 4,
                             },
                         },
@@ -822,15 +702,6 @@ mod tests {
                             },
                         },
                     ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 3,
-                                hi: 3,
-                            },
-                        },
-                    ),
                 ]
             "#]],
         );
@@ -847,15 +718,6 @@ mod tests {
                             kind: String,
                             span: Span {
                                 lo: 0,
-                                hi: 8,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 8,
                                 hi: 8,
                             },
                         },
@@ -885,15 +747,6 @@ mod tests {
                             message: "Unknown token.",
                             span: Span {
                                 lo: 1,
-                                hi: 2,
-                            },
-                        },
-                    ),
-                    Ok(
-                        Token {
-                            kind: Eof,
-                            span: Span {
-                                lo: 2,
                                 hi: 2,
                             },
                         },
