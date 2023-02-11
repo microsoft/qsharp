@@ -22,16 +22,16 @@ use std::{
     iter::Peekable,
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Token {
-    kind: TokenKind,
-    span: Span,
+    pub(crate) kind: TokenKind,
+    pub(crate) span: Span,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Error {
-    message: &'static str,
-    span: Span,
+    pub(crate) message: &'static str,
+    pub(crate) span: Span,
 }
 
 /// A token kind.
@@ -171,8 +171,6 @@ pub(crate) struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    // TODO: This will be used via the parser.
-    #[allow(dead_code)]
     pub(crate) fn new(input: &'a str) -> Self {
         Self {
             tokens: raw::Lexer::new(input).peekable(),

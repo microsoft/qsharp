@@ -1,0 +1,121 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+use super::{kw, Error, Result};
+use crate::lex::{self, Lexer, Token, TokenKind};
+use qsc_ast::ast::Span;
+use std::result;
+
+pub(super) struct Scanner<'a> {
+    input: &'a str,
+    tokens: Lexer<'a>,
+    errors: Vec<Error>,
+    peek: Token,
+    span: Span,
+}
+
+impl<'a> Scanner<'a> {
+    pub(super) fn new(input: &'a str) -> Self {
+        let mut tokens = Lexer::new(input);
+        let (peek, errors) = next_ok(&mut tokens);
+        Self {
+            input,
+            tokens,
+            errors: errors.iter().map(lex_error).collect(),
+            peek: peek.unwrap_or_else(|| eof(input.len())),
+            span: Span { lo: 0, hi: 0 },
+        }
+    }
+
+    pub(super) fn errors(self) -> Vec<Error> {
+        self.errors
+    }
+
+    pub(super) fn span(&self) -> Span {
+        self.span
+    }
+
+    pub(super) fn eat(&mut self, kind: TokenKind) -> bool {
+        if self.peek.kind == kind {
+            self.advance();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(super) fn expect(&mut self, kind: TokenKind, err: &'static str) -> Result<()> {
+        if self.eat(kind) {
+            Ok(())
+        } else {
+            Err(self.error(err))
+        }
+    }
+
+    pub(super) fn keyword(&mut self, kw: &str) -> bool {
+        if kw::is_keyword(kw)
+            && self.peek.kind == TokenKind::Ident
+            && &self.input[self.peek.span] == kw
+        {
+            self.advance();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub(super) fn ident(&mut self, err: &'static str) -> Result<&str> {
+        if self.peek.kind == TokenKind::Ident && !kw::is_keyword(&self.input[self.peek.span]) {
+            let name = &self.input[self.peek.span];
+            self.advance();
+            Ok(name)
+        } else {
+            Err(self.error(err))
+        }
+    }
+
+    fn advance(&mut self) {
+        if self.peek.kind != TokenKind::Eof {
+            self.span = self.peek.span;
+            let (peek, errors) = next_ok(&mut self.tokens);
+            self.errors.extend(errors.iter().map(lex_error));
+            self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
+        }
+    }
+
+    fn error(&self, message: &'static str) -> Error {
+        Error {
+            message,
+            span: self.peek.span,
+        }
+    }
+}
+
+fn eof(offset: usize) -> Token {
+    Token {
+        kind: TokenKind::Eof,
+        span: Span {
+            lo: offset,
+            hi: offset,
+        },
+    }
+}
+
+fn next_ok<T, E>(iter: impl Iterator<Item = result::Result<T, E>>) -> (Option<T>, Vec<E>) {
+    let mut errors = Vec::new();
+    for result in iter {
+        match result {
+            Ok(v) => return (Some(v), errors),
+            Err(e) => errors.push(e),
+        }
+    }
+
+    (None, errors)
+}
+
+fn lex_error(error: &lex::Error) -> Error {
+    Error {
+        message: error.message,
+        span: error.span,
+    }
+}

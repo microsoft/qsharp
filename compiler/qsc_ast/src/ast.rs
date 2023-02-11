@@ -6,6 +6,7 @@
 #![warn(missing_docs)]
 
 use num_bigint::BigInt;
+use std::ops::Index;
 
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -14,6 +15,9 @@ pub struct NodeId(u32);
 impl NodeId {
     /// The ID for the root node in an AST.
     pub const ROOT: Self = Self(0);
+
+    /// The ID used before unique IDs have been assigned.
+    pub const PLACEHOLDER: Self = Self(u32::MAX);
 
     /// The next ID in the sequence.
     #[must_use]
@@ -30,6 +34,14 @@ pub struct Span {
     pub lo: usize,
     /// The offset immediately following the last byte.
     pub hi: usize,
+}
+
+impl Index<Span> for str {
+    type Output = str;
+
+    fn index(&self, index: Span) -> &Self::Output {
+        &self[index.lo..index.hi]
+    }
 }
 
 /// The package currently being compiled and the root node of an AST.

@@ -4,3 +4,4 @@
 #![warn(clippy::pedantic)]
 
 mod lex;
+pub mod parse;
