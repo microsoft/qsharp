@@ -11,7 +11,7 @@ use std::result;
 
 #[derive(Debug)]
 pub struct Error {
-    pub message: &'static str,
+    pub message: String,
     pub span: Span,
 }
 

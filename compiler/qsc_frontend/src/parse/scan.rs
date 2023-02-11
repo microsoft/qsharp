@@ -35,42 +35,34 @@ impl<'a> Scanner<'a> {
         self.span
     }
 
-    pub(super) fn eat(&mut self, kind: TokenKind) -> bool {
+    pub(super) fn expect(&mut self, kind: TokenKind) -> Result<()> {
         if self.peek.kind == kind {
             self.advance();
-            true
-        } else {
-            false
-        }
-    }
-
-    pub(super) fn expect(&mut self, kind: TokenKind, err: &'static str) -> Result<()> {
-        if self.eat(kind) {
             Ok(())
         } else {
-            Err(self.error(err))
+            Err(self.error(format!("Expecting {kind:?}.")))
         }
     }
 
-    pub(super) fn keyword(&mut self, kw: &str) -> bool {
+    pub(super) fn keyword(&mut self, kw: &str) -> Result<()> {
         if kw::is_keyword(kw)
             && self.peek.kind == TokenKind::Ident
             && &self.input[self.peek.span] == kw
         {
             self.advance();
-            true
+            Ok(())
         } else {
-            false
+            Err(self.error(format!("Expecting keyword `{kw}`.")))
         }
     }
 
-    pub(super) fn ident(&mut self, err: &'static str) -> Result<&str> {
+    pub(super) fn ident(&mut self) -> Result<&str> {
         if self.peek.kind == TokenKind::Ident && !kw::is_keyword(&self.input[self.peek.span]) {
             let name = &self.input[self.peek.span];
             self.advance();
             Ok(name)
         } else {
-            Err(self.error(err))
+            Err(self.error("Expecting identifier.".to_string()))
         }
     }
 
@@ -83,7 +75,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn error(&self, message: &'static str) -> Error {
+    fn error(&self, message: String) -> Error {
         Error {
             message,
             span: self.peek.span,
@@ -115,7 +107,7 @@ fn next_ok<T, E>(iter: impl Iterator<Item = result::Result<T, E>>) -> (Option<T>
 
 fn lex_error(error: &lex::Error) -> Error {
     Error {
-        message: error.message,
+        message: error.message.to_string(),
         span: error.span,
     }
 }
