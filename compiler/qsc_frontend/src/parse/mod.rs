@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod core;
 mod kw;
 mod scan;
-mod top;
 
 use self::scan::Scanner;
 use qsc_ast::ast::{Package, Span};
@@ -19,6 +19,6 @@ pub type Result<T> = result::Result<T, Error>;
 
 pub fn package(input: &str) -> (Result<Package>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    let p = top::package(&mut scanner);
+    let p = core::package(&mut scanner);
     (p, scanner.errors())
 }

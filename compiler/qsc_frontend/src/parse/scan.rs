@@ -27,6 +27,13 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    pub(super) fn error(&self, message: String) -> Error {
+        Error {
+            message,
+            span: self.peek.span,
+        }
+    }
+
     pub(super) fn errors(self) -> Vec<Error> {
         self.errors
     }
@@ -72,13 +79,6 @@ impl<'a> Scanner<'a> {
             let (peek, errors) = next_ok(&mut self.tokens);
             self.errors.extend(errors.iter().map(lex_error));
             self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
-        }
-    }
-
-    fn error(&self, message: String) -> Error {
-        Error {
-            message,
-            span: self.peek.span,
         }
     }
 }

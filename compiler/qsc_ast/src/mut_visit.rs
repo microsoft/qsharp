@@ -119,7 +119,9 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     decl.ty_params.iter_mut().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&mut decl.input);
     vis.visit_ty(&mut decl.output);
-    vis.visit_functor_expr(&mut decl.functors);
+    decl.functors
+        .iter_mut()
+        .for_each(|f| vis.visit_functor_expr(f));
     match &mut decl.body {
         CallableBody::Block(block) => vis.visit_block(block),
         CallableBody::Specs(specs) => specs.iter_mut().for_each(|s| vis.visit_spec_decl(s)),
@@ -142,7 +144,7 @@ pub fn walk_functor_expr(vis: &mut impl MutVisitor, expr: &mut FunctorExpr) {
             vis.visit_functor_expr(lhs);
             vis.visit_functor_expr(rhs);
         }
-        FunctorExpr::Lit(_) | FunctorExpr::Null => {}
+        FunctorExpr::Lit(_) => {}
     }
 }
 

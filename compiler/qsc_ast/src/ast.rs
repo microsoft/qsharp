@@ -94,7 +94,7 @@ pub struct DeclMeta {
     /// The declaration attributes.
     pub attrs: Vec<Attr>,
     /// The declaration visibility.
-    pub visibility: Visibility,
+    pub visibility: Option<Visibility>,
 }
 
 /// A visibility modifier.
@@ -148,7 +148,7 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: FunctorExpr,
+    pub functors: Option<FunctorExpr>,
     /// The body of the callable.
     pub body: CallableBody,
 }
@@ -191,8 +191,6 @@ pub enum FunctorExpr {
     BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
     /// A literal for a specific functor.
     Lit(Functor),
-    /// The empty set.
-    Null,
 }
 
 /// A type.
