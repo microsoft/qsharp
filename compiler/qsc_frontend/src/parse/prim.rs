@@ -60,7 +60,7 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     } else if s.expect(TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
     } else if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
-        let pats = comma_sep(s, pat);
+        let pats = comma_sep(s, pat)?;
         s.expect(TokenKind::Close(Delim::Paren))?;
         Ok(PatKind::Tuple(pats))
     } else {
@@ -84,16 +84,16 @@ pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>
     }
 }
 
-pub(super) fn comma_sep<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Vec<T> {
+pub(super) fn comma_sep<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
     let mut items = Vec::new();
-    while let Ok(item) = p(s) {
+    while let Some(item) = opt(s, &mut p)? {
         items.push(item);
         if s.expect(TokenKind::Comma).is_err() {
             break;
         }
     }
 
-    items
+    Ok(items)
 }
 
 #[cfg(test)]
@@ -732,7 +732,7 @@ mod tests {
     #[test]
     fn comma_sep_empty() {
         check(
-            |s| Ok(comma_sep(s, ident)),
+            |s| comma_sep(s, ident),
             "",
             &expect![[r#"
                 Ok(
@@ -745,7 +745,7 @@ mod tests {
     #[test]
     fn comma_sep_single() {
         check(
-            |s| Ok(comma_sep(s, ident)),
+            |s| comma_sep(s, ident),
             "foo",
             &expect![[r#"
                 Ok(
@@ -769,7 +769,7 @@ mod tests {
     #[test]
     fn comma_sep_double() {
         check(
-            |s| Ok(comma_sep(s, ident)),
+            |s| comma_sep(s, ident),
             "foo, bar",
             &expect![[r#"
                 Ok(
@@ -803,7 +803,7 @@ mod tests {
     #[test]
     fn comma_sep_trailing() {
         check(
-            |s| Ok(comma_sep(s, ident)),
+            |s| comma_sep(s, ident),
             "foo, bar,",
             &expect![[r#"
                 Ok(
@@ -835,9 +835,9 @@ mod tests {
     }
 
     #[test]
-    fn comma_sep_item_fail() {
+    fn comma_sep_fail_no_consume() {
         check(
-            |s| Ok(comma_sep(s, ident)),
+            |s| comma_sep(s, ident),
             "foo, 2",
             &expect![[r#"
                 Ok(
@@ -853,6 +853,25 @@ mod tests {
                             name: "foo",
                         },
                     ],
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn comma_sep_fail_consume() {
+        check(
+            |s| comma_sep(s, path),
+            "foo, bar.",
+            &expect![[r#"
+                Err(
+                    Error {
+                        message: "Expecting identifier.",
+                        span: Span {
+                            lo: 9,
+                            hi: 9,
+                        },
+                    },
                 )
             "#]],
         );

@@ -77,7 +77,7 @@ fn callable_decl(s: &mut Scanner, kind: CallableKind) -> Result<CallableDecl> {
     let name = ident(s)?;
 
     let ty_params = if s.expect(TokenKind::Lt).is_ok() {
-        let ty_params = comma_sep(s, ty::var);
+        let ty_params = comma_sep(s, ty::var)?;
         s.expect(TokenKind::Gt)?;
         ty_params
     } else {
