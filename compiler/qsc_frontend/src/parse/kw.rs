@@ -107,6 +107,8 @@ pub(super) const STRING: &str = "String";
 
 pub(super) const TRUE: &str = "true";
 
+pub(super) const UNDERSCORE: &str = "_";
+
 pub(super) const UNIT: &str = "Unit";
 
 pub(super) const UNTIL: &str = "until";
@@ -176,6 +178,7 @@ pub(super) fn is_keyword(s: &str) -> bool {
             | SET
             | STRING
             | TRUE
+            | UNDERSCORE
             | UNIT
             | UNTIL
             | USE

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{scan::Scanner, ty::ty, Parser, Result};
+use super::{kw, scan::Scanner, ty::ty, Parser, Result};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 
@@ -46,23 +46,26 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     let lo = s.span().lo;
-    let kind = if let Some(name) = opt(s, ident)? {
+    let kind = if s.keyword(kw::UNDERSCORE).is_ok() {
         let ty = if s.expect(TokenKind::Colon).is_ok() {
             Some(ty(s)?)
         } else {
             None
         };
-        if name.name == "_" {
-            Ok(PatKind::Discard(ty))
-        } else {
-            Ok(PatKind::Bind(name, ty))
-        }
+        Ok(PatKind::Discard(ty))
     } else if s.expect(TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
     } else if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
         let pats = comma_sep(s, pat)?;
         s.expect(TokenKind::Close(Delim::Paren))?;
         Ok(PatKind::Tuple(pats))
+    } else if let Some(name) = opt(s, ident)? {
+        let ty = if s.expect(TokenKind::Colon).is_ok() {
+            Some(ty(s)?)
+        } else {
+            None
+        };
+        Ok(PatKind::Bind(name, ty))
     } else {
         Err(s.error("Expecting pattern.".to_string()))
     }?;

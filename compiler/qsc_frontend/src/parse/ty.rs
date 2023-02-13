@@ -64,6 +64,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         let tys = comma_sep(s, ty)?;
         s.expect(TokenKind::Close(Delim::Paren))?;
         Ok(TyKind::Tuple(tys))
+    } else if s.keyword(kw::UNDERSCORE).is_ok() {
+        Ok(TyKind::Hole)
     } else if s.keyword(kw::BIG_INT).is_ok() {
         Ok(TyKind::Prim(TyPrim::BigInt))
     } else if s.keyword(kw::BOOL).is_ok() {
@@ -87,11 +89,7 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     } else if let Some(var) = opt(s, var)? {
         Ok(TyKind::Var(TyVar::Name(var.name)))
     } else if let Some(path) = opt(s, path)? {
-        if path.namespace.is_none() && path.name.name == "_" {
-            Ok(TyKind::Hole)
-        } else {
-            Ok(TyKind::Path(path))
-        }
+        Ok(TyKind::Path(path))
     } else {
         Err(s.error("Expecting type.".to_string()))
     }?;
