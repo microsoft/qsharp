@@ -59,7 +59,7 @@ pub(super) const INTERNAL: &str = "internal";
 
 pub(super) const INTRINSIC: &str = "intrinsic";
 
-pub(super) const INVERT: &str = "INVERT";
+pub(super) const INVERT: &str = "invert";
 
 pub(super) const IS: &str = "is";
 
@@ -119,7 +119,7 @@ pub(super) const WHILE: &str = "while";
 
 pub(super) const WITHIN: &str = "within";
 
-pub(super) const ZERO: &str = "ZERO";
+pub(super) const ZERO: &str = "Zero";
 
 pub(super) fn is_keyword(s: &str) -> bool {
     matches!(
