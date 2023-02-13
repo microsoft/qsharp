@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{scan::Scanner, Parser, Result};
-use crate::lex::TokenKind;
-use qsc_ast::ast::{Ident, NodeId, Path, Span};
+use super::{scan::Scanner, ty::ty, Parser, Result};
+use crate::lex::{Delim, TokenKind};
+use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 
 pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
     let name = s.ident()?.to_string();
@@ -44,6 +44,37 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
     })
 }
 
+pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
+    let lo = s.span().lo;
+    let kind = if let Some(name) = opt(s, ident)? {
+        let ty = if s.expect(TokenKind::Colon).is_ok() {
+            Some(ty(s)?)
+        } else {
+            None
+        };
+        if name.name == "_" {
+            Ok(PatKind::Discard(ty))
+        } else {
+            Ok(PatKind::Bind(name, ty))
+        }
+    } else if s.expect(TokenKind::DotDotDot).is_ok() {
+        Ok(PatKind::Elided)
+    } else if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
+        let pats = comma_sep(s, pat);
+        s.expect(TokenKind::Close(Delim::Paren))?;
+        Ok(PatKind::Tuple(pats))
+    } else {
+        Err(s.error("Expecting pattern.".to_string()))
+    }?;
+
+    let hi = s.span().hi;
+    Ok(Pat {
+        id: NodeId::PLACEHOLDER,
+        span: Span { lo, hi },
+        kind,
+    })
+}
+
 pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>> {
     let span = s.span();
     match p(s) {
@@ -67,7 +98,7 @@ pub(super) fn comma_sep<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Vec<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::{comma_sep, ident, opt, path};
+    use super::{comma_sep, ident, opt, pat, path};
     use crate::parse::{scan::Scanner, Parser};
     use expect_test::{expect, Expect};
     use std::fmt::Debug;
@@ -293,6 +324,327 @@ mod tests {
                         span: Span {
                             lo: 8,
                             hi: 8,
+                        },
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_bind() {
+        check(
+            pat,
+            "foo",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                        kind: Bind(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                name: "foo",
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_bind_ty() {
+        check(
+            pat,
+            "foo : Int",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 9,
+                        },
+                        kind: Bind(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                name: "foo",
+                            },
+                            Some(
+                                Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 6,
+                                        hi: 9,
+                                    },
+                                    kind: Prim(
+                                        Int,
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_bind_discard() {
+        check(
+            pat,
+            "_",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                        kind: Discard(
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_discard_ty() {
+        check(
+            pat,
+            "_ : Int",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 7,
+                        },
+                        kind: Discard(
+                            Some(
+                                Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 4,
+                                        hi: 7,
+                                    },
+                                    kind: Prim(
+                                        Int,
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_tuple() {
+        check(
+            pat,
+            "(foo, bar)",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                        kind: Tuple(
+                            [
+                                Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 0,
+                                        hi: 4,
+                                    },
+                                    kind: Bind(
+                                        Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 1,
+                                                hi: 4,
+                                            },
+                                            name: "foo",
+                                        },
+                                        None,
+                                    ),
+                                },
+                                Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 4,
+                                        hi: 9,
+                                    },
+                                    kind: Bind(
+                                        Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 6,
+                                                hi: 9,
+                                            },
+                                            name: "bar",
+                                        },
+                                        None,
+                                    ),
+                                },
+                            ],
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_tuple_ty_discard() {
+        check(
+            pat,
+            "(foo : Int, _)",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 14,
+                        },
+                        kind: Tuple(
+                            [
+                                Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 0,
+                                        hi: 10,
+                                    },
+                                    kind: Bind(
+                                        Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 1,
+                                                hi: 4,
+                                            },
+                                            name: "foo",
+                                        },
+                                        Some(
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 7,
+                                                    hi: 10,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    ),
+                                },
+                                Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 10,
+                                        hi: 13,
+                                    },
+                                    kind: Discard(
+                                        None,
+                                    ),
+                                },
+                            ],
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_invalid() {
+        check(
+            pat,
+            "@",
+            &expect![[r#"
+                Err(
+                    Error {
+                        message: "Expecting pattern.",
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_missing_ty() {
+        check(
+            pat,
+            "foo :",
+            &expect![[r#"
+                Err(
+                    Error {
+                        message: "Expecting type.",
+                        span: Span {
+                            lo: 5,
+                            hi: 5,
                         },
                     },
                 )

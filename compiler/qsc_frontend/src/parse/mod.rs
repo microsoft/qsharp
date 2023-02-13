@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod core;
 mod kw;
 mod prim;
 mod scan;
+mod top;
 mod ty;
 
 use self::scan::Scanner;
@@ -25,6 +25,6 @@ impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
 pub fn package(input: &str) -> (Result<Package>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    let p = core::package(&mut scanner);
+    let p = top::package(&mut scanner);
     (p, scanner.errors())
 }

@@ -3,7 +3,7 @@
 
 use super::{
     kw,
-    prim::{comma_sep, ident, opt, path},
+    prim::{comma_sep, ident, opt, pat, path},
     scan::Scanner,
     ty::{self, ty},
     Result,
@@ -11,7 +11,7 @@ use super::{
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
     CallableBody, CallableDecl, CallableKind, DeclMeta, Item, ItemKind, Namespace, NodeId, Package,
-    Pat, PatKind, Span, Spec, SpecBody, SpecDecl, SpecGen,
+    Span, Spec, SpecBody, SpecDecl, SpecGen,
 };
 
 pub(super) fn package(s: &mut Scanner) -> Result<Package> {
@@ -150,36 +150,5 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         span: Span { lo, hi },
         spec,
         body: SpecBody::Gen(gen),
-    })
-}
-
-fn pat(s: &mut Scanner) -> Result<Pat> {
-    let lo = s.span().lo;
-    let kind = if let Some(name) = opt(s, ident)? {
-        let ty = if s.expect(TokenKind::Colon).is_ok() {
-            Some(ty(s)?)
-        } else {
-            None
-        };
-        if name.name == "_" {
-            Ok(PatKind::Discard(ty))
-        } else {
-            Ok(PatKind::Bind(name, ty))
-        }
-    } else if s.expect(TokenKind::DotDotDot).is_ok() {
-        Ok(PatKind::Elided)
-    } else if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
-        let pats = comma_sep(s, pat);
-        s.expect(TokenKind::Close(Delim::Paren))?;
-        Ok(PatKind::Tuple(pats))
-    } else {
-        Err(s.error("Expecting pattern.".to_string()))
-    }?;
-
-    let hi = s.span().hi;
-    Ok(Pat {
-        id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
-        kind,
     })
 }
