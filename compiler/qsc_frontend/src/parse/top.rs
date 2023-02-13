@@ -3,7 +3,7 @@
 
 use super::{
     kw,
-    prim::{comma_sep, ident, opt, pat, path},
+    prim::{ident, many, pat, path, seq},
     scan::Scanner,
     ty::{self, ty},
     Result,
@@ -15,11 +15,7 @@ use qsc_ast::ast::{
 };
 
 pub(super) fn package(s: &mut Scanner) -> Result<Package> {
-    let mut namespaces = Vec::new();
-    while s.keyword(kw::NAMESPACE).is_ok() {
-        namespaces.push(namespace(s)?);
-    }
-
+    let namespaces = many(s, namespace)?;
     s.expect(TokenKind::Eof)?;
     Ok(Package {
         id: NodeId::PLACEHOLDER,
@@ -28,15 +24,11 @@ pub(super) fn package(s: &mut Scanner) -> Result<Package> {
 }
 
 fn namespace(s: &mut Scanner) -> Result<Namespace> {
+    s.keyword(kw::NAMESPACE)?;
     let lo = s.span().lo;
     let name = path(s)?;
     s.expect(TokenKind::Open(Delim::Brace))?;
-
-    let mut items = Vec::new();
-    while let Some(item) = opt(s, item)? {
-        items.push(item);
-    }
-
+    let items = many(s, item)?;
     s.expect(TokenKind::Close(Delim::Brace))?;
     let hi = s.span().hi;
     Ok(Namespace {
@@ -77,7 +69,7 @@ fn callable_decl(s: &mut Scanner, kind: CallableKind) -> Result<CallableDecl> {
     let name = ident(s)?;
 
     let ty_params = if s.expect(TokenKind::Lt).is_ok() {
-        let ty_params = comma_sep(s, ty::var)?;
+        let ty_params = seq(s, ty::var)?;
         s.expect(TokenKind::Gt)?;
         ty_params
     } else {
@@ -104,11 +96,7 @@ fn callable_decl(s: &mut Scanner, kind: CallableKind) -> Result<CallableDecl> {
 
 fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
     s.expect(TokenKind::Open(Delim::Brace))?;
-    let mut specs = Vec::new();
-    while let Some(spec) = opt(s, spec_decl)? {
-        specs.push(spec);
-    }
-
+    let specs = many(s, spec_decl)?;
     s.expect(TokenKind::Close(Delim::Brace))?;
     Ok(CallableBody::Specs(specs))
 }

@@ -56,7 +56,7 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     } else if s.expect(TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
     } else if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
-        let pats = comma_sep(s, pat)?;
+        let pats = seq(s, pat)?;
         s.expect(TokenKind::Close(Delim::Paren))?;
         Ok(PatKind::Tuple(pats))
     } else if let Some(name) = opt(s, ident)? {
@@ -79,29 +79,36 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
 }
 
 pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>> {
-    let span = s.span();
+    let offset = s.peek().span.lo;
     match p(s) {
         Ok(x) => Ok(Some(x)),
-        Err(_) if span == s.span() => Ok(None),
+        Err(_) if offset == s.peek().span.lo => Ok(None),
         Err(err) => Err(err),
     }
 }
 
-pub(super) fn comma_sep<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
-    let mut items = Vec::new();
-    while let Some(item) = opt(s, &mut p)? {
-        items.push(item);
+pub(super) fn many<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
+    let mut xs = Vec::new();
+    while let Some(x) = opt(s, &mut p)? {
+        xs.push(x);
+    }
+    Ok(xs)
+}
+
+pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
+    let mut xs = Vec::new();
+    while let Some(x) = opt(s, &mut p)? {
+        xs.push(x);
         if s.expect(TokenKind::Comma).is_err() {
             break;
         }
     }
-
-    Ok(items)
+    Ok(xs)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{comma_sep, ident, opt, pat, path};
+    use super::{ident, opt, pat, path, seq};
     use crate::parse::{scan::Scanner, Parser};
     use expect_test::{expect, Expect};
     use std::fmt::Debug;
@@ -733,9 +740,9 @@ mod tests {
     }
 
     #[test]
-    fn comma_sep_empty() {
+    fn seq_empty() {
         check(
-            |s| comma_sep(s, ident),
+            |s| seq(s, ident),
             "",
             &expect![[r#"
                 Ok(
@@ -746,9 +753,9 @@ mod tests {
     }
 
     #[test]
-    fn comma_sep_single() {
+    fn seq_single() {
         check(
-            |s| comma_sep(s, ident),
+            |s| seq(s, ident),
             "foo",
             &expect![[r#"
                 Ok(
@@ -770,9 +777,9 @@ mod tests {
     }
 
     #[test]
-    fn comma_sep_double() {
+    fn seq_double() {
         check(
-            |s| comma_sep(s, ident),
+            |s| seq(s, ident),
             "foo, bar",
             &expect![[r#"
                 Ok(
@@ -804,9 +811,9 @@ mod tests {
     }
 
     #[test]
-    fn comma_sep_trailing() {
+    fn seq_trailing() {
         check(
-            |s| comma_sep(s, ident),
+            |s| seq(s, ident),
             "foo, bar,",
             &expect![[r#"
                 Ok(
@@ -838,9 +845,9 @@ mod tests {
     }
 
     #[test]
-    fn comma_sep_fail_no_consume() {
+    fn seq_fail_no_consume() {
         check(
-            |s| comma_sep(s, ident),
+            |s| seq(s, ident),
             "foo, 2",
             &expect![[r#"
                 Ok(
@@ -862,9 +869,9 @@ mod tests {
     }
 
     #[test]
-    fn comma_sep_fail_consume() {
+    fn seq_fail_consume() {
         check(
-            |s| comma_sep(s, path),
+            |s| seq(s, path),
             "foo, bar.",
             &expect![[r#"
                 Err(

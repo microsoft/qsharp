@@ -3,7 +3,7 @@
 
 use super::{
     kw,
-    prim::{comma_sep, ident, opt, path},
+    prim::{ident, opt, path, seq},
     scan::Scanner,
     Result,
 };
@@ -61,7 +61,7 @@ pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
 fn base(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
     let kind = if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
-        let tys = comma_sep(s, ty)?;
+        let tys = seq(s, ty)?;
         s.expect(TokenKind::Close(Delim::Paren))?;
         Ok(TyKind::Tuple(tys))
     } else if s.keyword(kw::UNDERSCORE).is_ok() {
