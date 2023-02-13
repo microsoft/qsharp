@@ -11,7 +11,7 @@ pub(super) struct Scanner<'a> {
     tokens: Lexer<'a>,
     errors: Vec<Error>,
     peek: Token,
-    span: Span,
+    offset: usize,
 }
 
 impl<'a> Scanner<'a> {
@@ -23,27 +23,12 @@ impl<'a> Scanner<'a> {
             tokens,
             errors: errors.iter().map(lex_error).collect(),
             peek: peek.unwrap_or_else(|| eof(input.len())),
-            span: Span { lo: 0, hi: 0 },
+            offset: 0,
         }
-    }
-
-    pub(super) fn error(&self, message: String) -> Error {
-        Error {
-            message,
-            span: self.peek.span,
-        }
-    }
-
-    pub(super) fn errors(self) -> Vec<Error> {
-        self.errors
     }
 
     pub(super) fn peek(&self) -> Token {
         self.peek
-    }
-
-    pub(super) fn span(&self) -> Span {
-        self.span
     }
 
     pub(super) fn expect(&mut self, kind: TokenKind) -> Result<()> {
@@ -77,9 +62,27 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    pub(super) fn span(&self, from: usize) -> Span {
+        Span {
+            lo: from,
+            hi: self.offset,
+        }
+    }
+
+    pub(super) fn error(&self, message: String) -> Error {
+        Error {
+            message,
+            span: self.peek.span,
+        }
+    }
+
+    pub(super) fn errors(self) -> Vec<Error> {
+        self.errors
+    }
+
     fn advance(&mut self) {
         if self.peek.kind != TokenKind::Eof {
-            self.span = self.peek.span;
+            self.offset = self.peek.span.hi;
             let (peek, errors) = next_ok(&mut self.tokens);
             self.errors.extend(errors.iter().map(lex_error));
             self.peek = peek.unwrap_or_else(|| eof(self.input.len()));

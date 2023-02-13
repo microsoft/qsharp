@@ -3,7 +3,7 @@
 
 use super::{
     kw,
-    prim::{ident, many, pat, path, seq},
+    prim::{ident, many, opt, pat, path, seq},
     scan::Scanner,
     ty::{self, ty},
     Result,
@@ -11,7 +11,7 @@ use super::{
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
     CallableBody, CallableDecl, CallableKind, DeclMeta, Item, ItemKind, Namespace, NodeId, Package,
-    Span, Spec, SpecBody, SpecDecl, SpecGen,
+    Spec, SpecBody, SpecDecl, SpecGen,
 };
 
 pub(super) fn package(s: &mut Scanner) -> Result<Package> {
@@ -24,48 +24,50 @@ pub(super) fn package(s: &mut Scanner) -> Result<Package> {
 }
 
 fn namespace(s: &mut Scanner) -> Result<Namespace> {
+    let lo = s.peek().span.lo;
     s.keyword(kw::NAMESPACE)?;
-    let lo = s.span().lo;
     let name = path(s)?;
     s.expect(TokenKind::Open(Delim::Brace))?;
     let items = many(s, item)?;
     s.expect(TokenKind::Close(Delim::Brace))?;
-    let hi = s.span().hi;
     Ok(Namespace {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         name,
         items,
     })
 }
 
 fn item(s: &mut Scanner) -> Result<Item> {
-    let lo = s.span().lo;
+    let lo = s.peek().span.lo;
     let meta = DeclMeta {
         attrs: Vec::new(),
         visibility: None,
     };
 
-    let kind = if s.keyword(kw::FUNCTION).is_ok() {
-        let decl = callable_decl(s, CallableKind::Function)?;
-        Ok(ItemKind::Callable(meta, decl))
-    } else if s.keyword(kw::OPERATION).is_ok() {
-        let decl = callable_decl(s, CallableKind::Operation)?;
-        Ok(ItemKind::Callable(meta, decl))
+    let kind = if let Some(decl) = opt(s, callable_decl)? {
+        ItemKind::Callable(meta, decl)
     } else {
-        Err(s.error("Expecting namespace item.".to_string()))
-    }?;
+        return Err(s.error("Expecting namespace item.".to_string()));
+    };
 
-    let hi = s.span().hi;
     Ok(Item {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         kind,
     })
 }
 
-fn callable_decl(s: &mut Scanner, kind: CallableKind) -> Result<CallableDecl> {
-    let lo = s.span().lo;
+fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
+    let lo = s.peek().span.lo;
+    let kind = if s.keyword(kw::FUNCTION).is_ok() {
+        CallableKind::Function
+    } else if s.keyword(kw::OPERATION).is_ok() {
+        CallableKind::Operation
+    } else {
+        return Err(s.error("Expecting callable declaration.".to_string()));
+    };
+
     let name = ident(s)?;
 
     let ty_params = if s.expect(TokenKind::Lt).is_ok() {
@@ -80,10 +82,10 @@ fn callable_decl(s: &mut Scanner, kind: CallableKind) -> Result<CallableDecl> {
     s.expect(TokenKind::Colon)?;
     let output = ty(s)?;
     let body = callable_body(s)?;
-    let hi = s.span().hi;
+
     Ok(CallableDecl {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         kind,
         name,
         ty_params,
@@ -102,6 +104,7 @@ fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
 }
 
 fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
+    let lo = s.peek().span.lo;
     let spec = if s.keyword(kw::BODY).is_ok() {
         Spec::Body
     } else if s.keyword(kw::ADJOINT).is_ok() {
@@ -116,7 +119,6 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         return Err(s.error("Expecting specialization.".to_string()));
     };
 
-    let lo = s.span().lo;
     let gen = if s.keyword(kw::AUTO).is_ok() {
         SpecGen::Auto
     } else if s.keyword(kw::DISTRIBUTE).is_ok() {
@@ -132,10 +134,9 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
     };
 
     s.expect(TokenKind::Semi)?;
-    let hi = s.span().hi;
     Ok(SpecDecl {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         spec,
         body: SpecBody::Gen(gen),
     })
@@ -268,7 +269,7 @@ mod tests {
                             4294967295,
                         ),
                         span: Span {
-                            lo: 11,
+                            lo: 0,
                             hi: 24,
                         },
                         spec: CtlAdj,
@@ -364,7 +365,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 9,
+                                        lo: 12,
                                         hi: 14,
                                     },
                                     kind: Tuple(
@@ -454,7 +455,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 10,
+                                        lo: 13,
                                         hi: 15,
                                     },
                                     kind: Tuple(
@@ -544,7 +545,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 9,
+                                        lo: 12,
                                         hi: 21,
                                     },
                                     kind: Tuple(
@@ -554,7 +555,7 @@ mod tests {
                                                     4294967295,
                                                 ),
                                                 span: Span {
-                                                    lo: 12,
+                                                    lo: 13,
                                                     hi: 20,
                                                 },
                                                 kind: Bind(
@@ -670,7 +671,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 9,
+                                        lo: 12,
                                         hi: 30,
                                     },
                                     kind: Tuple(
@@ -680,7 +681,7 @@ mod tests {
                                                     4294967295,
                                                 ),
                                                 span: Span {
-                                                    lo: 12,
+                                                    lo: 13,
                                                     hi: 20,
                                                 },
                                                 kind: Bind(
@@ -715,7 +716,7 @@ mod tests {
                                                     4294967295,
                                                 ),
                                                 span: Span {
-                                                    lo: 20,
+                                                    lo: 22,
                                                     hi: 29,
                                                 },
                                                 kind: Bind(
@@ -842,7 +843,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 15,
+                                        lo: 16,
                                         hi: 18,
                                     },
                                     kind: Tuple(
@@ -953,7 +954,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 19,
+                                        lo: 20,
                                         hi: 22,
                                     },
                                     kind: Tuple(
@@ -1042,7 +1043,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 0,
+                                        lo: 10,
                                         hi: 11,
                                     },
                                     namespace: None,
@@ -1063,7 +1064,7 @@ mod tests {
                                             4294967295,
                                         ),
                                         span: Span {
-                                            lo: 12,
+                                            lo: 14,
                                             hi: 55,
                                         },
                                         kind: Callable(
@@ -1096,7 +1097,7 @@ mod tests {
                                                         4294967295,
                                                     ),
                                                     span: Span {
-                                                        lo: 23,
+                                                        lo: 26,
                                                         hi: 28,
                                                     },
                                                     kind: Tuple(
@@ -1170,7 +1171,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 0,
+                                        lo: 10,
                                         hi: 11,
                                     },
                                     namespace: None,
@@ -1200,7 +1201,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 15,
+                                        lo: 25,
                                         hi: 26,
                                     },
                                     namespace: None,

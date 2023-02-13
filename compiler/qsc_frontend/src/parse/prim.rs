@@ -6,16 +6,17 @@ use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 
 pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
+    let span = s.peek().span;
     let name = s.ident()?.to_string();
     Ok(Ident {
         id: NodeId::PLACEHOLDER,
-        span: s.span(),
+        span,
         name,
     })
 }
 
 pub(super) fn path(s: &mut Scanner) -> Result<Path> {
-    let lo = s.span().lo;
+    let lo = s.peek().span.lo;
     let mut parts = vec![ident(s)?];
     while s.expect(TokenKind::Dot).is_ok() {
         parts.push(ident(s)?);
@@ -35,17 +36,16 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
         })
     };
 
-    let hi = s.span().hi;
     Ok(Path {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         namespace,
         name,
     })
 }
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
-    let lo = s.span().lo;
+    let lo = s.peek().span.lo;
     let kind = if s.keyword(kw::UNDERSCORE).is_ok() {
         let ty = if s.expect(TokenKind::Colon).is_ok() {
             Some(ty(s)?)
@@ -70,10 +70,9 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
         Err(s.error("Expecting pattern.".to_string()))
     }?;
 
-    let hi = s.span().hi;
     Ok(Pat {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         kind,
     })
 }
@@ -505,7 +504,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 0,
+                                        lo: 1,
                                         hi: 4,
                                     },
                                     kind: Bind(
@@ -527,7 +526,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 4,
+                                        lo: 6,
                                         hi: 9,
                                     },
                                     kind: Bind(
@@ -574,7 +573,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 0,
+                                        lo: 1,
                                         hi: 10,
                                     },
                                     kind: Bind(
@@ -609,7 +608,7 @@ mod tests {
                                         4294967295,
                                     ),
                                     span: Span {
-                                        lo: 10,
+                                        lo: 12,
                                         hi: 13,
                                     },
                                     kind: Discard(

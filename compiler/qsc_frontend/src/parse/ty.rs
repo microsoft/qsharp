@@ -8,25 +8,23 @@ use super::{
     Result,
 };
 use crate::lex::{Delim, TokenKind};
-use qsc_ast::ast::{CallableKind, Ident, NodeId, Span, Ty, TyKind, TyPrim, TyVar};
+use qsc_ast::ast::{CallableKind, Ident, NodeId, Ty, TyKind, TyPrim, TyVar};
 
 pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
-    let lo = s.span().lo;
+    let lo = s.peek().span.lo;
     let mut acc = base(s)?;
     loop {
         if let Some(array) = opt(s, array)? {
-            let hi = s.span().hi;
             acc = Ty {
                 id: NodeId::PLACEHOLDER,
-                span: Span { lo, hi },
+                span: s.span(lo),
                 kind: TyKind::App(Box::new(array), vec![acc]),
             }
         } else if s.expect(TokenKind::RArrow).is_ok() {
             let output = ty(s)?;
-            let hi = s.span().hi;
             acc = Ty {
                 id: NodeId::PLACEHOLDER,
-                span: Span { lo, hi },
+                span: s.span(lo),
                 kind: TyKind::Arrow(
                     CallableKind::Function,
                     Box::new(acc),
@@ -36,10 +34,9 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
             }
         } else if s.expect(TokenKind::FatArrow).is_ok() {
             let output = ty(s)?;
-            let hi = s.span().hi;
             acc = Ty {
                 id: NodeId::PLACEHOLDER,
-                span: Span { lo, hi },
+                span: s.span(lo),
                 kind: TyKind::Arrow(
                     CallableKind::Operation,
                     Box::new(acc),
@@ -94,22 +91,20 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         Err(s.error("Expecting type.".to_string()))
     }?;
 
-    let hi = s.span().hi;
     Ok(Ty {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         kind,
     })
 }
 
 fn array(s: &mut Scanner) -> Result<Ty> {
+    let lo = s.peek().span.lo;
     s.expect(TokenKind::Open(Delim::Bracket))?;
-    let lo = s.span().lo;
     s.expect(TokenKind::Close(Delim::Bracket))?;
-    let hi = s.span().hi;
     Ok(Ty {
         id: NodeId::PLACEHOLDER,
-        span: Span { lo, hi },
+        span: s.span(lo),
         kind: TyKind::Prim(TyPrim::Array),
     })
 }
