@@ -210,7 +210,7 @@ pub enum TyKind {
     /// One or more type arguments applied to a type constructor.
     App(Box<Ty>, Vec<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, FunctorExpr),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     /// An unspecified type, `_`, which may be inferred.
     Hole,
     /// A named type.

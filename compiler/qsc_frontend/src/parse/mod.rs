@@ -17,6 +17,10 @@ pub struct Error {
 
 pub type Result<T> = result::Result<T, Error>;
 
+trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
+
+impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
+
 pub fn package(input: &str) -> (Result<Package>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     let p = core::package(&mut scanner);
