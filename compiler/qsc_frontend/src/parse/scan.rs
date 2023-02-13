@@ -38,6 +38,10 @@ impl<'a> Scanner<'a> {
         self.errors
     }
 
+    pub(super) fn peek(&self) -> Token {
+        self.peek
+    }
+
     pub(super) fn span(&self) -> Span {
         self.span
     }

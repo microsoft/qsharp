@@ -3,7 +3,9 @@
 
 mod core;
 mod kw;
+mod prim;
 mod scan;
+mod ty;
 
 use self::scan::Scanner;
 use qsc_ast::ast::{Package, Span};
