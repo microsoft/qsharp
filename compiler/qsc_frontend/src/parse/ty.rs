@@ -91,7 +91,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         let (mut tys, final_sep) = seq(s, ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         if final_sep == FinalSep::Missing && tys.len() == 1 {
-            Ok(TyKind::Paren(Box::new(tys.pop().unwrap())))
+            let ty = tys.pop().expect("Sequence has exactly one type.");
+            Ok(TyKind::Paren(Box::new(ty)))
         } else {
             Ok(TyKind::Tuple(tys))
         }

@@ -57,7 +57,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
         parts.push(ident(s)?);
     }
 
-    let name = parts.pop().unwrap();
+    let name = parts.pop().expect("Path has at least one part.");
     let namespace = match (parts.first(), parts.last()) {
         (Some(first), Some(last)) => {
             let lo = first.span.lo;
@@ -94,7 +94,8 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
         let (mut pats, final_sep) = seq(s, pat)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         if final_sep == FinalSep::Missing && pats.len() == 1 {
-            Ok(PatKind::Paren(Box::new(pats.pop().unwrap())))
+            let pat = pats.pop().expect("Sequence has exactly one pattern.");
+            Ok(PatKind::Paren(Box::new(pat)))
         } else {
             Ok(PatKind::Tuple(pats))
         }
