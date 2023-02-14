@@ -143,15 +143,8 @@ fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String
 #[cfg(test)]
 mod tests {
     use super::{ident, opt, pat, path, seq};
-    use crate::parse::{scan::Scanner, Parser};
-    use expect_test::{expect, Expect};
-    use std::fmt::Debug;
-
-    fn check<T: Debug>(mut parser: impl Parser<T>, input: &str, expect: &Expect) {
-        let mut scanner = Scanner::new(input);
-        let actual = parser(&mut scanner);
-        expect.assert_debug_eq(&actual);
-    }
+    use crate::parse::tests::check;
+    use expect_test::expect;
 
     #[test]
     fn ident_basic() {

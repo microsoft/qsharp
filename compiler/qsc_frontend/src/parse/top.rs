@@ -145,15 +145,8 @@ mod tests {
     #![allow(clippy::too_many_lines)]
 
     use super::{item, package, spec_decl};
-    use crate::parse::{scan::Scanner, Parser};
-    use expect_test::{expect, Expect};
-    use std::fmt::Debug;
-
-    fn check<T: Debug>(mut parser: impl Parser<T>, input: &str, expect: &Expect) {
-        let mut scanner = Scanner::new(input);
-        let actual = parser(&mut scanner);
-        expect.assert_debug_eq(&actual);
-    }
+    use crate::parse::tests::check;
+    use expect_test::expect;
 
     #[test]
     fn body_intrinsic() {

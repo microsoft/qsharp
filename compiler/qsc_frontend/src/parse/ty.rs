@@ -107,15 +107,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
 #[cfg(test)]
 mod tests {
     use super::ty;
-    use crate::parse::{scan::Scanner, Parser};
-    use expect_test::{expect, Expect};
-    use qsc_ast::ast::Ty;
-
-    fn check(mut parser: impl Parser<Ty>, input: &str, expect: &Expect) {
-        let mut scanner = Scanner::new(input);
-        let actual = parser(&mut scanner);
-        expect.assert_debug_eq(&actual);
-    }
+    use crate::parse::tests::check;
+    use expect_test::expect;
 
     #[test]
     fn ty_big_int() {
