@@ -157,6 +157,7 @@ pub fn walk_ty(vis: &mut impl Visitor, ty: &Ty) {
             vis.visit_ty(rhs);
             functors.iter().for_each(|f| vis.visit_functor_expr(f));
         }
+        TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path(path),
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
         TyKind::Hole | TyKind::Prim(_) | TyKind::Var(_) => {}
@@ -270,8 +271,9 @@ pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
             ty.iter().for_each(|t| vis.visit_ty(t));
         }
         PatKind::Discard(ty) => ty.iter().for_each(|t| vis.visit_ty(t)),
-        PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
         PatKind::Elided => {}
+        PatKind::Paren(pat) => vis.visit_pat(pat),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
     }
 }
 

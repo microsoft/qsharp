@@ -3,7 +3,7 @@
 
 use super::{
     kw,
-    prim::{ident, keyword, opt, path, seq, token},
+    prim::{ident, keyword, opt, path, seq, token, FinalSep},
     scan::Scanner,
     ErrorKind, Result,
 };
@@ -28,11 +28,9 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
                 kind: TyKind::Arrow(kind, Box::new(acc), Box::new(output), None),
             }
         } else {
-            break;
+            break Ok(acc);
         }
     }
-
-    Ok(acc)
 }
 
 pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
@@ -90,9 +88,13 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let tys = seq(s, ty)?;
+        let (mut tys, final_sep) = seq(s, ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(TyKind::Tuple(tys))
+        if final_sep == FinalSep::Missing && tys.len() == 1 {
+            Ok(TyKind::Paren(Box::new(tys.pop().unwrap())))
+        } else {
+            Ok(TyKind::Tuple(tys))
+        }
     } else {
         Err(s.error(ErrorKind::Rule("type")))
     }?;
@@ -1012,46 +1014,44 @@ mod tests {
                                     lo: 0,
                                     hi: 12,
                                 },
-                                kind: Tuple(
-                                    [
-                                        Ty {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 1,
-                                                hi: 11,
-                                            },
-                                            kind: Arrow(
-                                                Function,
-                                                Ty {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 1,
-                                                        hi: 4,
-                                                    },
-                                                    kind: Prim(
-                                                        Int,
-                                                    ),
-                                                },
-                                                Ty {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 8,
-                                                        hi: 11,
-                                                    },
-                                                    kind: Prim(
-                                                        Int,
-                                                    ),
-                                                },
-                                                None,
-                                            ),
+                                kind: Paren(
+                                    Ty {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 1,
+                                            hi: 11,
                                         },
-                                    ],
+                                        kind: Arrow(
+                                            Function,
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 1,
+                                                    hi: 4,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 8,
+                                                    hi: 11,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                            None,
+                                        ),
+                                    },
                                 ),
                             },
                             Ty {

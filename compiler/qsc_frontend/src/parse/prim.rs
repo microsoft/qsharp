@@ -5,6 +5,12 @@ use super::{kw, scan::Scanner, ty::ty, ErrorKind, Parser, Result};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 
+#[derive(Debug, Eq, PartialEq)]
+pub(super) enum FinalSep {
+    Present,
+    Missing,
+}
+
 pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
     if s.peek().kind == kind {
         s.advance();
@@ -79,9 +85,13 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let pats = seq(s, pat)?;
+        let (mut pats, final_sep) = seq(s, pat)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(PatKind::Tuple(pats))
+        if final_sep == FinalSep::Missing && pats.len() == 1 {
+            Ok(PatKind::Paren(Box::new(pats.pop().unwrap())))
+        } else {
+            Ok(PatKind::Tuple(pats))
+        }
     } else if let Some(name) = opt(s, ident)? {
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(ty(s)?)
@@ -117,15 +127,19 @@ pub(super) fn many<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> 
     Ok(xs)
 }
 
-pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
+pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)> {
     let mut xs = Vec::new();
+    let mut final_sep = FinalSep::Missing;
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
-        if token(s, TokenKind::Comma).is_err() {
+        if token(s, TokenKind::Comma).is_ok() {
+            final_sep = FinalSep::Present;
+        } else {
+            final_sep = FinalSep::Missing;
             break;
         }
     }
-    Ok(xs)
+    Ok((xs, final_sep))
 }
 
 fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
@@ -783,7 +797,10 @@ mod tests {
             "",
             &expect![[r#"
                 Ok(
-                    [],
+                    (
+                        [],
+                        Missing,
+                    ),
                 )
             "#]],
         );
@@ -796,18 +813,21 @@ mod tests {
             "foo",
             &expect![[r#"
                 Ok(
-                    [
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 3,
+                    (
+                        [
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                name: "foo",
                             },
-                            name: "foo",
-                        },
-                    ],
+                        ],
+                        Missing,
+                    ),
                 )
             "#]],
         );
@@ -820,28 +840,31 @@ mod tests {
             "foo, bar",
             &expect![[r#"
                 Ok(
-                    [
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 3,
+                    (
+                        [
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                name: "foo",
                             },
-                            name: "foo",
-                        },
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 5,
-                                hi: 8,
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 8,
+                                },
+                                name: "bar",
                             },
-                            name: "bar",
-                        },
-                    ],
+                        ],
+                        Missing,
+                    ),
                 )
             "#]],
         );
@@ -854,28 +877,31 @@ mod tests {
             "foo, bar,",
             &expect![[r#"
                 Ok(
-                    [
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 3,
+                    (
+                        [
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                name: "foo",
                             },
-                            name: "foo",
-                        },
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 5,
-                                hi: 8,
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 8,
+                                },
+                                name: "bar",
                             },
-                            name: "bar",
-                        },
-                    ],
+                        ],
+                        Present,
+                    ),
                 )
             "#]],
         );
@@ -888,18 +914,21 @@ mod tests {
             "foo, 2",
             &expect![[r#"
                 Ok(
-                    [
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 3,
+                    (
+                        [
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                name: "foo",
                             },
-                            name: "foo",
-                        },
-                    ],
+                        ],
+                        Present,
+                    ),
                 )
             "#]],
         );

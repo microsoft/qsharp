@@ -69,7 +69,7 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
 
     let name = ident(s)?;
     let ty_params = if token(s, TokenKind::Lt).is_ok() {
-        let vars = seq(s, ty::var)?;
+        let vars = seq(s, ty::var)?.0;
         token(s, TokenKind::Gt)?;
         vars
     } else {
@@ -543,44 +543,42 @@ mod tests {
                                         lo: 12,
                                         hi: 21,
                                     },
-                                    kind: Tuple(
-                                        [
-                                            Pat {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 13,
-                                                    hi: 20,
+                                    kind: Paren(
+                                        Pat {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 13,
+                                                hi: 20,
+                                            },
+                                            kind: Bind(
+                                                Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 13,
+                                                        hi: 14,
+                                                    },
+                                                    name: "x",
                                                 },
-                                                kind: Bind(
-                                                    Ident {
+                                                Some(
+                                                    Ty {
                                                         id: NodeId(
                                                             4294967295,
                                                         ),
                                                         span: Span {
-                                                            lo: 13,
-                                                            hi: 14,
+                                                            lo: 17,
+                                                            hi: 20,
                                                         },
-                                                        name: "x",
+                                                        kind: Prim(
+                                                            Int,
+                                                        ),
                                                     },
-                                                    Some(
-                                                        Ty {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 17,
-                                                                hi: 20,
-                                                            },
-                                                            kind: Prim(
-                                                                Int,
-                                                            ),
-                                                        },
-                                                    ),
                                                 ),
-                                            },
-                                        ],
+                                            ),
+                                        },
                                     ),
                                 },
                                 output: Ty {

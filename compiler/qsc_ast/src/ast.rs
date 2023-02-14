@@ -213,6 +213,8 @@ pub enum TyKind {
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     /// An unspecified type, `_`, which may be inferred.
     Hole,
+    /// A type wrapped in parentheses.
+    Paren(Box<Ty>),
     /// A named type.
     Path(Path),
     /// A primitive type.
@@ -353,6 +355,8 @@ pub enum PatKind {
     Discard(Option<Ty>),
     /// An elided pattern, `...`, used by specializations.
     Elided,
+    /// Parentheses: `(a)`.
+    Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }
