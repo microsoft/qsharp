@@ -72,6 +72,9 @@ fn eof(offset: usize) -> Token {
     }
 }
 
+/// Advances the iterator by skipping [`Err`] values until the first [`Ok`] value is found. Returns
+/// the found value or [`None`] if the iterator is exhausted. All skipped errors are also
+/// accumulated into a vector and returned.
 fn next_ok<T, E>(iter: impl Iterator<Item = Result<T, E>>) -> (Option<T>, Vec<E>) {
     let mut errors = Vec::new();
     for result in iter {
