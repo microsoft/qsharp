@@ -814,4 +814,263 @@ mod tests {
             "#]],
         );
     }
+
+    #[test]
+    fn ty_function() {
+        check(
+            ty,
+            "Int -> Int",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                        kind: Arrow(
+                            Function,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                kind: Prim(
+                                    Int,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 7,
+                                    hi: 10,
+                                },
+                                kind: Prim(
+                                    Int,
+                                ),
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn ty_operation() {
+        check(
+            ty,
+            "Int => Int",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                kind: Prim(
+                                    Int,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 7,
+                                    hi: 10,
+                                },
+                                kind: Prim(
+                                    Int,
+                                ),
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn ty_curried_function() {
+        check(
+            ty,
+            "Int -> Int -> Int",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 17,
+                        },
+                        kind: Arrow(
+                            Function,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 3,
+                                },
+                                kind: Prim(
+                                    Int,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 7,
+                                    hi: 17,
+                                },
+                                kind: Arrow(
+                                    Function,
+                                    Ty {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 7,
+                                            hi: 10,
+                                        },
+                                        kind: Prim(
+                                            Int,
+                                        ),
+                                    },
+                                    Ty {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 14,
+                                            hi: 17,
+                                        },
+                                        kind: Prim(
+                                            Int,
+                                        ),
+                                    },
+                                    None,
+                                ),
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn ty_higher_order_function() {
+        check(
+            ty,
+            "(Int -> Int) -> Int",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 19,
+                        },
+                        kind: Arrow(
+                            Function,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 12,
+                                },
+                                kind: Tuple(
+                                    [
+                                        Ty {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 1,
+                                                hi: 11,
+                                            },
+                                            kind: Arrow(
+                                                Function,
+                                                Ty {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 1,
+                                                        hi: 4,
+                                                    },
+                                                    kind: Prim(
+                                                        Int,
+                                                    ),
+                                                },
+                                                Ty {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 8,
+                                                        hi: 11,
+                                                    },
+                                                    kind: Prim(
+                                                        Int,
+                                                    ),
+                                                },
+                                                None,
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 16,
+                                    hi: 19,
+                                },
+                                kind: Prim(
+                                    Int,
+                                ),
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
 }
