@@ -1,9 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{kw, scan::Scanner, ty::ty, ErrorKind, Parser, Result};
+use super::{
+    kw::{self, Keyword},
+    scan::Scanner,
+    ty::ty,
+    ErrorKind, Parser, Result,
+};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
+use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq)]
 pub(super) enum FinalSep {
@@ -20,8 +26,8 @@ pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
     }
 }
 
-pub(super) fn keyword(s: &mut Scanner, kw: &'static str) -> Result<()> {
-    if kw::is_keyword(kw) && s.peek().kind == TokenKind::Ident && s.read() == kw {
+pub(super) fn keyword(s: &mut Scanner, kw: Keyword) -> Result<()> {
+    if s.peek().kind == TokenKind::Ident && s.read() == kw.as_str() {
         s.advance();
         Ok(())
     } else {
@@ -30,7 +36,7 @@ pub(super) fn keyword(s: &mut Scanner, kw: &'static str) -> Result<()> {
 }
 
 pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
-    if s.peek().kind != TokenKind::Ident || kw::is_keyword(s.read()) {
+    if s.peek().kind != TokenKind::Ident || Keyword::from_str(s.read()).is_ok() {
         return Err(s.error(ErrorKind::Rule("identifier")));
     }
 
@@ -75,7 +81,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, kw::UNDERSCORE).is_ok() {
+    let kind = if keyword(s, kw::Underscore).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(ty(s)?)
         } else {

@@ -25,7 +25,7 @@ pub(super) fn package(s: &mut Scanner) -> Result<Package> {
 
 fn namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
-    keyword(s, kw::NAMESPACE)?;
+    keyword(s, kw::Namespace)?;
     let name = path(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = many(s, item)?;
@@ -59,9 +59,9 @@ fn item(s: &mut Scanner) -> Result<Item> {
 
 fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, kw::FUNCTION).is_ok() {
+    let kind = if keyword(s, kw::Function).is_ok() {
         Ok(CallableKind::Function)
-    } else if keyword(s, kw::OPERATION).is_ok() {
+    } else if keyword(s, kw::Operation).is_ok() {
         Ok(CallableKind::Operation)
     } else {
         Err(s.error(ErrorKind::Rule("callable declaration")))
@@ -103,12 +103,12 @@ fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
 
 fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
     let lo = s.peek().span.lo;
-    let spec = if keyword(s, kw::BODY).is_ok() {
+    let spec = if keyword(s, kw::Body).is_ok() {
         Ok(Spec::Body)
-    } else if keyword(s, kw::ADJOINT).is_ok() {
+    } else if keyword(s, kw::Adjoint).is_ok() {
         Ok(Spec::Adj)
-    } else if keyword(s, kw::CONTROLLED).is_ok() {
-        if keyword(s, kw::ADJOINT).is_ok() {
+    } else if keyword(s, kw::Controlled).is_ok() {
+        if keyword(s, kw::Adjoint).is_ok() {
             Ok(Spec::CtlAdj)
         } else {
             Ok(Spec::Ctl)
@@ -117,15 +117,15 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         Err(s.error(ErrorKind::Rule("specialization")))
     }?;
 
-    let gen = if keyword(s, kw::AUTO).is_ok() {
+    let gen = if keyword(s, kw::Auto).is_ok() {
         Ok(SpecGen::Auto)
-    } else if keyword(s, kw::DISTRIBUTE).is_ok() {
+    } else if keyword(s, kw::Distribute).is_ok() {
         Ok(SpecGen::Distribute)
-    } else if keyword(s, kw::INTRINSIC).is_ok() {
+    } else if keyword(s, kw::Intrinsic).is_ok() {
         Ok(SpecGen::Intrinsic)
-    } else if keyword(s, kw::INVERT).is_ok() {
+    } else if keyword(s, kw::Invert).is_ok() {
         Ok(SpecGen::Invert)
-    } else if keyword(s, kw::SELF).is_ok() {
+    } else if keyword(s, kw::Slf).is_ok() {
         Ok(SpecGen::Slf)
     } else {
         Err(s.error(ErrorKind::Rule("specialization generator")))

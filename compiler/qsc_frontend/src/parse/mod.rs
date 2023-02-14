@@ -7,7 +7,7 @@ mod scan;
 mod top;
 mod ty;
 
-use self::scan::Scanner;
+use self::{kw::Keyword, scan::Scanner};
 use crate::lex::TokenKind;
 use qsc_ast::ast::{Package, Span};
 use std::result;
@@ -22,7 +22,7 @@ pub struct Error {
 
 #[derive(Debug)]
 enum ErrorKind {
-    Keyword(&'static str),
+    Keyword(Keyword),
     Lexical(&'static str),
     Rule(&'static str),
     Token(TokenKind),

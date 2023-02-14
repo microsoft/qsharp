@@ -1,190 +1,148 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub(super) const ADJ: &str = "Adj";
+use enum_iterator::Sequence;
+use std::{result, str::FromStr};
 
-pub(super) const ADJOINT: &str = "adjoint";
+pub(super) use Keyword::*;
 
-pub(super) const ADJOINT_UPPER: &str = "Adjoint";
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
+pub(super) enum Keyword {
+    Adj,
+    Adjoint,
+    AdjointUpper,
+    And,
+    Apply,
+    As,
+    Auto,
+    BigInt,
+    Body,
+    Bool,
+    Borrow,
+    Controlled,
+    ControlledUpper,
+    Ctl,
+    Distribute,
+    Double,
+    Elif,
+    Else,
+    Fail,
+    False,
+    Fixup,
+    For,
+    Function,
+    If,
+    In,
+    Int,
+    Internal,
+    Intrinsic,
+    Invert,
+    Is,
+    Let,
+    Mutable,
+    Namespace,
+    Newtype,
+    Not,
+    One,
+    Open,
+    Operation,
+    Or,
+    Pauli,
+    PauliI,
+    PauliX,
+    PauliY,
+    PauliZ,
+    Qubit,
+    Range,
+    Repeat,
+    Result,
+    Return,
+    Slf,
+    Set,
+    String,
+    True,
+    Underscore,
+    Unit,
+    Until,
+    Use,
+    While,
+    Within,
+    Zero,
+}
 
-pub(super) const AND: &str = "and";
+impl Keyword {
+    pub(super) fn as_str(self) -> &'static str {
+        match self {
+            Adj => "Adj",
+            Adjoint => "adjoint",
+            AdjointUpper => "Adjoint",
+            And => "and",
+            Apply => "apply",
+            As => "as",
+            Auto => "auto",
+            BigInt => "BigInt",
+            Body => "body",
+            Bool => "Bool",
+            Borrow => "borrow",
+            Controlled => "controlled",
+            ControlledUpper => "Controlled",
+            Ctl => "Ctl",
+            Distribute => "distribute",
+            Double => "Double",
+            Elif => "elif",
+            Else => "else",
+            Fail => "fail",
+            False => "false",
+            Fixup => "fixup",
+            For => "for",
+            Function => "function",
+            If => "if",
+            In => "in",
+            Int => "Int",
+            Internal => "internal",
+            Intrinsic => "intrinsic",
+            Invert => "invert",
+            Is => "is",
+            Let => "let",
+            Mutable => "mutable",
+            Namespace => "namespace",
+            Newtype => "newtype",
+            Not => "not",
+            One => "One",
+            Open => "open",
+            Operation => "operation",
+            Or => "or",
+            Pauli => "Pauli",
+            PauliI => "PauliI",
+            PauliX => "PauliX",
+            PauliY => "PauliY",
+            PauliZ => "PauliZ",
+            Qubit => "Qubit",
+            Range => "Range",
+            Repeat => "repeat",
+            Result => "Result",
+            Return => "return",
+            Slf => "self",
+            Set => "set",
+            String => "String",
+            True => "true",
+            Underscore => "_",
+            Unit => "Unit",
+            Until => "until",
+            Use => "use",
+            While => "while",
+            Within => "within",
+            Zero => "Zero",
+        }
+    }
+}
 
-pub(super) const APPLY: &str = "apply";
+impl FromStr for Keyword {
+    type Err = ();
 
-pub(super) const AS: &str = "as";
-
-pub(super) const AUTO: &str = "auto";
-
-pub(super) const BIG_INT: &str = "BigInt";
-
-pub(super) const BODY: &str = "body";
-
-pub(super) const BOOL: &str = "Bool";
-
-pub(super) const BORROW: &str = "borrow";
-
-pub(super) const BORROWING: &str = "borrowing";
-
-pub(super) const CONTROLLED: &str = "controlled";
-
-pub(super) const CONTROLLED_UPPER: &str = "Controlled";
-
-pub(super) const CTL: &str = "Ctl";
-
-pub(super) const DISTRIBUTE: &str = "distribute";
-
-pub(super) const DOUBLE: &str = "Double";
-
-pub(super) const ELIF: &str = "elif";
-
-pub(super) const ELSE: &str = "else";
-
-pub(super) const FAIL: &str = "fail";
-
-pub(super) const FALSE: &str = "false";
-
-pub(super) const FIXUP: &str = "fixup";
-
-pub(super) const FOR: &str = "for";
-
-pub(super) const FUNCTION: &str = "function";
-
-pub(super) const IF: &str = "if";
-
-pub(super) const IN: &str = "in";
-
-pub(super) const INT: &str = "Int";
-
-pub(super) const INTERNAL: &str = "internal";
-
-pub(super) const INTRINSIC: &str = "intrinsic";
-
-pub(super) const INVERT: &str = "invert";
-
-pub(super) const IS: &str = "is";
-
-pub(super) const LET: &str = "let";
-
-pub(super) const MUTABLE: &str = "mutable";
-
-pub(super) const NAMESPACE: &str = "namespace";
-
-pub(super) const NEWTYPE: &str = "newtype";
-
-pub(super) const NOT: &str = "not";
-
-pub(super) const ONE: &str = "One";
-
-pub(super) const OPEN: &str = "open";
-
-pub(super) const OPERATION: &str = "operation";
-
-pub(super) const OR: &str = "or";
-
-pub(super) const PAULI: &str = "Pauli";
-
-pub(super) const PAULI_I: &str = "PauliI";
-
-pub(super) const PAULI_X: &str = "PauliX";
-
-pub(super) const PAULI_Z: &str = "PauliZ";
-
-pub(super) const QUBIT: &str = "Qubit";
-
-pub(super) const RANGE: &str = "Range";
-
-pub(super) const REPEAT: &str = "repeat";
-
-pub(super) const RESULT: &str = "Result";
-
-pub(super) const RETURN: &str = "return";
-
-pub(super) const SELF: &str = "self";
-
-pub(super) const SET: &str = "set";
-
-pub(super) const STRING: &str = "String";
-
-pub(super) const TRUE: &str = "true";
-
-pub(super) const UNDERSCORE: &str = "_";
-
-pub(super) const UNIT: &str = "Unit";
-
-pub(super) const UNTIL: &str = "until";
-
-pub(super) const USE: &str = "use";
-
-pub(super) const USING: &str = "using";
-
-pub(super) const WHILE: &str = "while";
-
-pub(super) const WITHIN: &str = "within";
-
-pub(super) const ZERO: &str = "Zero";
-
-pub(super) fn is_keyword(s: &str) -> bool {
-    matches!(
-        s,
-        ADJ | ADJOINT
-            | ADJOINT_UPPER
-            | AND
-            | APPLY
-            | AS
-            | AUTO
-            | BIG_INT
-            | BODY
-            | BOOL
-            | BORROW
-            | BORROWING
-            | CONTROLLED
-            | CONTROLLED_UPPER
-            | CTL
-            | DISTRIBUTE
-            | DOUBLE
-            | ELIF
-            | ELSE
-            | FAIL
-            | FALSE
-            | FIXUP
-            | FOR
-            | FUNCTION
-            | IF
-            | IN
-            | INT
-            | INTERNAL
-            | INTRINSIC
-            | INVERT
-            | IS
-            | LET
-            | MUTABLE
-            | NAMESPACE
-            | NEWTYPE
-            | NOT
-            | ONE
-            | OPEN
-            | OPERATION
-            | OR
-            | PAULI
-            | PAULI_I
-            | PAULI_X
-            | PAULI_Z
-            | QUBIT
-            | RANGE
-            | REPEAT
-            | RESULT
-            | RETURN
-            | SELF
-            | SET
-            | STRING
-            | TRUE
-            | UNDERSCORE
-            | UNIT
-            | UNTIL
-            | USE
-            | USING
-            | WHILE
-            | WITHIN
-            | ZERO
-    )
+    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
+        enum_iterator::all::<Self>()
+            .find(|kw| kw.as_str() == s)
+            .ok_or(())
+    }
 }
