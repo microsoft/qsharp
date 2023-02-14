@@ -4,7 +4,6 @@
 use super::{Error, ErrorKind};
 use crate::lex::{self, Lexer, Token, TokenKind};
 use qsc_ast::ast::Span;
-use std::result;
 
 pub(super) struct Scanner<'a> {
     input: &'a str,
@@ -73,7 +72,7 @@ fn eof(offset: usize) -> Token {
     }
 }
 
-fn next_ok<T, E>(iter: impl Iterator<Item = result::Result<T, E>>) -> (Option<T>, Vec<E>) {
+fn next_ok<T, E>(iter: impl Iterator<Item = Result<T, E>>) -> (Option<T>, Vec<E>) {
     let mut errors = Vec::new();
     for result in iter {
         match result {
