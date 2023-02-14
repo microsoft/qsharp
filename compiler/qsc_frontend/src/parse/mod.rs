@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod kw;
+mod keyword;
 mod prim;
 mod scan;
 mod top;
 mod ty;
 
-use self::{kw::Keyword, scan::Scanner};
+use self::{keyword::Keyword, scan::Scanner};
 use crate::lex::TokenKind;
 use qsc_ast::ast::{Package, Span};
 use std::result;

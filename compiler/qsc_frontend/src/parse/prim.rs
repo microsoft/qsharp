@@ -1,12 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{
-    kw::{self, Keyword},
-    scan::Scanner,
-    ty::ty,
-    ErrorKind, Parser, Result,
-};
+use super::{keyword::Keyword, scan::Scanner, ty::ty, ErrorKind, Parser, Result};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 use std::str::FromStr;
@@ -81,7 +76,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, kw::Underscore).is_ok() {
+    let kind = if keyword(s, Keyword::Underscore).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(ty(s)?)
         } else {

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{
-    kw,
+    keyword::Keyword,
     prim::{ident, keyword, opt, path, seq, token, FinalSep},
     scan::Scanner,
     ErrorKind, Result,
@@ -61,27 +61,27 @@ fn arrow(s: &mut Scanner) -> Result<CallableKind> {
 
 fn base(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, kw::Underscore).is_ok() {
+    let kind = if keyword(s, Keyword::Underscore).is_ok() {
         Ok(TyKind::Hole)
-    } else if keyword(s, kw::BigInt).is_ok() {
+    } else if keyword(s, Keyword::BigInt).is_ok() {
         Ok(TyKind::Prim(TyPrim::BigInt))
-    } else if keyword(s, kw::Bool).is_ok() {
+    } else if keyword(s, Keyword::Bool).is_ok() {
         Ok(TyKind::Prim(TyPrim::Bool))
-    } else if keyword(s, kw::Double).is_ok() {
+    } else if keyword(s, Keyword::Double).is_ok() {
         Ok(TyKind::Prim(TyPrim::Double))
-    } else if keyword(s, kw::Int).is_ok() {
+    } else if keyword(s, Keyword::Int).is_ok() {
         Ok(TyKind::Prim(TyPrim::Int))
-    } else if keyword(s, kw::Pauli).is_ok() {
+    } else if keyword(s, Keyword::Pauli).is_ok() {
         Ok(TyKind::Prim(TyPrim::Pauli))
-    } else if keyword(s, kw::Qubit).is_ok() {
+    } else if keyword(s, Keyword::Qubit).is_ok() {
         Ok(TyKind::Prim(TyPrim::Qubit))
-    } else if keyword(s, kw::Range).is_ok() {
+    } else if keyword(s, Keyword::Range).is_ok() {
         Ok(TyKind::Prim(TyPrim::Range))
-    } else if keyword(s, kw::Result).is_ok() {
+    } else if keyword(s, Keyword::Result).is_ok() {
         Ok(TyKind::Prim(TyPrim::Result))
-    } else if keyword(s, kw::String).is_ok() {
+    } else if keyword(s, Keyword::String).is_ok() {
         Ok(TyKind::Prim(TyPrim::String))
-    } else if keyword(s, kw::Unit).is_ok() {
+    } else if keyword(s, Keyword::Unit).is_ok() {
         Ok(TyKind::Tuple(Vec::new()))
     } else if let Some(var) = opt(s, var)? {
         Ok(TyKind::Var(TyVar::Name(var.name)))
