@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{kw, scan::Scanner, ty::ty, Parser, Result};
+use super::{kw, scan::Scanner, ty::ty, ErrorKind, Parser, Result};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 
@@ -10,22 +10,22 @@ pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
         s.advance();
         Ok(())
     } else {
-        Err(s.error(format!("Expecting {kind:?}.")))
+        Err(s.error(ErrorKind::Token(kind)))
     }
 }
 
-pub(super) fn keyword(s: &mut Scanner, kw: &str) -> Result<()> {
+pub(super) fn keyword(s: &mut Scanner, kw: &'static str) -> Result<()> {
     if kw::is_keyword(kw) && s.peek().kind == TokenKind::Ident && s.read() == kw {
         s.advance();
         Ok(())
     } else {
-        Err(s.error(format!("Expecting keyword `{kw}`.")))
+        Err(s.error(ErrorKind::Keyword(kw)))
     }
 }
 
 pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
     if s.peek().kind != TokenKind::Ident || kw::is_keyword(s.read()) {
-        return Err(s.error("Expecting identifier.".to_string()));
+        return Err(s.error(ErrorKind::Rule("identifier")));
     }
 
     let span = s.peek().span;
@@ -90,7 +90,7 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
         };
         Ok(PatKind::Bind(name, ty))
     } else {
-        Err(s.error("Expecting pattern.".to_string()))
+        Err(s.error(ErrorKind::Rule("pattern")))
     }?;
 
     Ok(Pat {
@@ -215,7 +215,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting identifier.",
+                        kind: Rule(
+                            "identifier",
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 1,
@@ -352,7 +354,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting identifier.",
+                        kind: Rule(
+                            "identifier",
+                        ),
                         span: Span {
                             lo: 8,
                             hi: 8,
@@ -654,7 +658,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting pattern.",
+                        kind: Rule(
+                            "pattern",
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 1,
@@ -673,7 +679,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting type.",
+                        kind: Rule(
+                            "type",
+                        ),
                         span: Span {
                             lo: 5,
                             hi: 5,
@@ -750,7 +758,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting identifier.",
+                        kind: Rule(
+                            "identifier",
+                        ),
                         span: Span {
                             lo: 5,
                             hi: 5,
@@ -898,7 +908,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting identifier.",
+                        kind: Rule(
+                            "identifier",
+                        ),
                         span: Span {
                             lo: 9,
                             hi: 9,

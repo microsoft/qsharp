@@ -6,7 +6,7 @@ use super::{
     prim::{ident, keyword, many, opt, pat, path, seq, token},
     scan::Scanner,
     ty::{self, ty},
-    Result,
+    ErrorKind, Result,
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
@@ -48,7 +48,7 @@ fn item(s: &mut Scanner) -> Result<Item> {
     let kind = if let Some(decl) = opt(s, callable_decl)? {
         ItemKind::Callable(meta, decl)
     } else {
-        return Err(s.error("Expecting namespace item.".to_string()));
+        return Err(s.error(ErrorKind::Rule("namespace item")));
     };
 
     Ok(Item {
@@ -65,7 +65,7 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     } else if keyword(s, kw::OPERATION).is_ok() {
         CallableKind::Operation
     } else {
-        return Err(s.error("Expecting callable declaration.".to_string()));
+        return Err(s.error(ErrorKind::Rule("callable declaration")));
     };
 
     let name = ident(s)?;
@@ -116,7 +116,7 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
             Spec::Ctl
         }
     } else {
-        return Err(s.error("Expecting specialization.".to_string()));
+        return Err(s.error(ErrorKind::Rule("specialization")));
     };
 
     let gen = if keyword(s, kw::AUTO).is_ok() {
@@ -130,7 +130,7 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
     } else if keyword(s, kw::SELF).is_ok() {
         SpecGen::Slf
     } else {
-        return Err(s.error("Expecting specialization generator.".to_string()));
+        return Err(s.error(ErrorKind::Rule("specialization generator")));
     };
 
     token(s, TokenKind::Semi)?;
@@ -290,7 +290,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting Semi.",
+                        kind: Token(
+                            Semi,
+                        ),
                         span: Span {
                             lo: 14,
                             hi: 14,
@@ -309,7 +311,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting specialization generator.",
+                        kind: Rule(
+                            "specialization generator",
+                        ),
                         span: Span {
                             lo: 8,
                             hi: 11,
@@ -1007,7 +1011,9 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        message: "Expecting Colon.",
+                        kind: Token(
+                            Colon,
+                        ),
                         span: Span {
                             lo: 15,
                             hi: 16,

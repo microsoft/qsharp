@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::Error;
+use super::{Error, ErrorKind};
 use crate::lex::{self, Lexer, Token, TokenKind};
 use qsc_ast::ast::Span;
 use std::result;
@@ -51,9 +51,9 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(super) fn error(&self, message: String) -> Error {
+    pub(super) fn error(&self, kind: ErrorKind) -> Error {
         Error {
-            message,
+            kind,
             span: self.peek.span,
         }
     }
@@ -87,7 +87,7 @@ fn next_ok<T, E>(iter: impl Iterator<Item = result::Result<T, E>>) -> (Option<T>
 
 fn lex_error(error: &lex::Error) -> Error {
     Error {
-        message: error.message.to_string(),
+        kind: ErrorKind::Lexical(error.message),
         span: error.span,
     }
 }

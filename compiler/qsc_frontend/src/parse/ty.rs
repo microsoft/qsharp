@@ -5,7 +5,7 @@ use super::{
     kw,
     prim::{ident, keyword, opt, path, seq, token},
     scan::Scanner,
-    Result,
+    ErrorKind, Result,
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{CallableKind, Ident, NodeId, Ty, TyKind, TyPrim, TyVar};
@@ -88,7 +88,7 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else {
-        Err(s.error("Expecting type.".to_string()))
+        Err(s.error(ErrorKind::Rule("type")))
     }?;
 
     Ok(Ty {

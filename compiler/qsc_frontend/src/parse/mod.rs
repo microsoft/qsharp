@@ -8,13 +8,24 @@ mod top;
 mod ty;
 
 use self::scan::Scanner;
+use crate::lex::TokenKind;
 use qsc_ast::ast::{Package, Span};
 use std::result;
 
+// TODO: Format errors so they can be displayed to the user.
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Error {
-    pub message: String,
-    pub span: Span,
+    kind: ErrorKind,
+    span: Span,
+}
+
+#[derive(Debug)]
+enum ErrorKind {
+    Keyword(&'static str),
+    Lexical(&'static str),
+    Rule(&'static str),
+    Token(TokenKind),
 }
 
 pub type Result<T> = result::Result<T, Error>;
