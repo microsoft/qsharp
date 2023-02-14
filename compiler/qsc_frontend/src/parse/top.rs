@@ -3,7 +3,7 @@
 
 use super::{
     kw,
-    prim::{ident, many, opt, pat, path, seq},
+    prim::{ident, keyword, many, opt, pat, path, seq, token},
     scan::Scanner,
     ty::{self, ty},
     Result,
@@ -16,7 +16,7 @@ use qsc_ast::ast::{
 
 pub(super) fn package(s: &mut Scanner) -> Result<Package> {
     let namespaces = many(s, namespace)?;
-    s.expect(TokenKind::Eof)?;
+    token(s, TokenKind::Eof)?;
     Ok(Package {
         id: NodeId::PLACEHOLDER,
         namespaces,
@@ -25,11 +25,11 @@ pub(super) fn package(s: &mut Scanner) -> Result<Package> {
 
 fn namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
-    s.keyword(kw::NAMESPACE)?;
+    keyword(s, kw::NAMESPACE)?;
     let name = path(s)?;
-    s.expect(TokenKind::Open(Delim::Brace))?;
+    token(s, TokenKind::Open(Delim::Brace))?;
     let items = many(s, item)?;
-    s.expect(TokenKind::Close(Delim::Brace))?;
+    token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),
@@ -60,9 +60,9 @@ fn item(s: &mut Scanner) -> Result<Item> {
 
 fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     let lo = s.peek().span.lo;
-    let kind = if s.keyword(kw::FUNCTION).is_ok() {
+    let kind = if keyword(s, kw::FUNCTION).is_ok() {
         CallableKind::Function
-    } else if s.keyword(kw::OPERATION).is_ok() {
+    } else if keyword(s, kw::OPERATION).is_ok() {
         CallableKind::Operation
     } else {
         return Err(s.error("Expecting callable declaration.".to_string()));
@@ -70,16 +70,16 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
 
     let name = ident(s)?;
 
-    let ty_params = if s.expect(TokenKind::Lt).is_ok() {
+    let ty_params = if token(s, TokenKind::Lt).is_ok() {
         let ty_params = seq(s, ty::var)?;
-        s.expect(TokenKind::Gt)?;
+        token(s, TokenKind::Gt)?;
         ty_params
     } else {
         Vec::new()
     };
 
     let input = pat(s)?;
-    s.expect(TokenKind::Colon)?;
+    token(s, TokenKind::Colon)?;
     let output = ty(s)?;
     let body = callable_body(s)?;
 
@@ -97,20 +97,20 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
 }
 
 fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
-    s.expect(TokenKind::Open(Delim::Brace))?;
+    token(s, TokenKind::Open(Delim::Brace))?;
     let specs = many(s, spec_decl)?;
-    s.expect(TokenKind::Close(Delim::Brace))?;
+    token(s, TokenKind::Close(Delim::Brace))?;
     Ok(CallableBody::Specs(specs))
 }
 
 fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
     let lo = s.peek().span.lo;
-    let spec = if s.keyword(kw::BODY).is_ok() {
+    let spec = if keyword(s, kw::BODY).is_ok() {
         Spec::Body
-    } else if s.keyword(kw::ADJOINT).is_ok() {
+    } else if keyword(s, kw::ADJOINT).is_ok() {
         Spec::Adj
-    } else if s.keyword(kw::CONTROLLED).is_ok() {
-        if s.keyword(kw::ADJOINT).is_ok() {
+    } else if keyword(s, kw::CONTROLLED).is_ok() {
+        if keyword(s, kw::ADJOINT).is_ok() {
             Spec::CtlAdj
         } else {
             Spec::Ctl
@@ -119,21 +119,21 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         return Err(s.error("Expecting specialization.".to_string()));
     };
 
-    let gen = if s.keyword(kw::AUTO).is_ok() {
+    let gen = if keyword(s, kw::AUTO).is_ok() {
         SpecGen::Auto
-    } else if s.keyword(kw::DISTRIBUTE).is_ok() {
+    } else if keyword(s, kw::DISTRIBUTE).is_ok() {
         SpecGen::Distribute
-    } else if s.keyword(kw::INTRINSIC).is_ok() {
+    } else if keyword(s, kw::INTRINSIC).is_ok() {
         SpecGen::Intrinsic
-    } else if s.keyword(kw::INVERT).is_ok() {
+    } else if keyword(s, kw::INVERT).is_ok() {
         SpecGen::Invert
-    } else if s.keyword(kw::SELF).is_ok() {
+    } else if keyword(s, kw::SELF).is_ok() {
         SpecGen::Slf
     } else {
         return Err(s.error("Expecting specialization generator.".to_string()));
     };
 
-    s.expect(TokenKind::Semi)?;
+    token(s, TokenKind::Semi)?;
     Ok(SpecDecl {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),

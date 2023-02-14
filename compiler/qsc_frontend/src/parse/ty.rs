@@ -3,7 +3,7 @@
 
 use super::{
     kw,
-    prim::{ident, opt, path, seq},
+    prim::{ident, keyword, opt, path, seq, token},
     scan::Scanner,
     Result,
 };
@@ -20,7 +20,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
                 span: s.span(lo),
                 kind: TyKind::App(Box::new(array), vec![acc]),
             }
-        } else if s.expect(TokenKind::RArrow).is_ok() {
+        } else if token(s, TokenKind::RArrow).is_ok() {
             let output = ty(s)?;
             acc = Ty {
                 id: NodeId::PLACEHOLDER,
@@ -32,7 +32,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
                     None,
                 ),
             }
-        } else if s.expect(TokenKind::FatArrow).is_ok() {
+        } else if token(s, TokenKind::FatArrow).is_ok() {
             let output = ty(s)?;
             acc = Ty {
                 id: NodeId::PLACEHOLDER,
@@ -51,37 +51,37 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
 }
 
 pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
-    s.expect(TokenKind::Apos)?;
+    token(s, TokenKind::Apos)?;
     ident(s)
 }
 
 fn base(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
-    let kind = if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
+    let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let tys = seq(s, ty)?;
-        s.expect(TokenKind::Close(Delim::Paren))?;
+        token(s, TokenKind::Close(Delim::Paren))?;
         Ok(TyKind::Tuple(tys))
-    } else if s.keyword(kw::UNDERSCORE).is_ok() {
+    } else if keyword(s, kw::UNDERSCORE).is_ok() {
         Ok(TyKind::Hole)
-    } else if s.keyword(kw::BIG_INT).is_ok() {
+    } else if keyword(s, kw::BIG_INT).is_ok() {
         Ok(TyKind::Prim(TyPrim::BigInt))
-    } else if s.keyword(kw::BOOL).is_ok() {
+    } else if keyword(s, kw::BOOL).is_ok() {
         Ok(TyKind::Prim(TyPrim::Bool))
-    } else if s.keyword(kw::DOUBLE).is_ok() {
+    } else if keyword(s, kw::DOUBLE).is_ok() {
         Ok(TyKind::Prim(TyPrim::Double))
-    } else if s.keyword(kw::INT).is_ok() {
+    } else if keyword(s, kw::INT).is_ok() {
         Ok(TyKind::Prim(TyPrim::Int))
-    } else if s.keyword(kw::PAULI).is_ok() {
+    } else if keyword(s, kw::PAULI).is_ok() {
         Ok(TyKind::Prim(TyPrim::Pauli))
-    } else if s.keyword(kw::QUBIT).is_ok() {
+    } else if keyword(s, kw::QUBIT).is_ok() {
         Ok(TyKind::Prim(TyPrim::Qubit))
-    } else if s.keyword(kw::RANGE).is_ok() {
+    } else if keyword(s, kw::RANGE).is_ok() {
         Ok(TyKind::Prim(TyPrim::Range))
-    } else if s.keyword(kw::RESULT).is_ok() {
+    } else if keyword(s, kw::RESULT).is_ok() {
         Ok(TyKind::Prim(TyPrim::Result))
-    } else if s.keyword(kw::STRING).is_ok() {
+    } else if keyword(s, kw::STRING).is_ok() {
         Ok(TyKind::Prim(TyPrim::String))
-    } else if s.keyword(kw::UNIT).is_ok() {
+    } else if keyword(s, kw::UNIT).is_ok() {
         Ok(TyKind::Tuple(Vec::new()))
     } else if let Some(var) = opt(s, var)? {
         Ok(TyKind::Var(TyVar::Name(var.name)))
@@ -100,8 +100,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
 
 fn array(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
-    s.expect(TokenKind::Open(Delim::Bracket))?;
-    s.expect(TokenKind::Close(Delim::Bracket))?;
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(Ty {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),

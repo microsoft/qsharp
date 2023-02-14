@@ -5,9 +5,32 @@ use super::{kw, scan::Scanner, ty::ty, Parser, Result};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 
+pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
+    if s.peek().kind == kind {
+        s.advance();
+        Ok(())
+    } else {
+        Err(s.error(format!("Expecting {kind:?}.")))
+    }
+}
+
+pub(super) fn keyword(s: &mut Scanner, kw: &str) -> Result<()> {
+    if kw::is_keyword(kw) && s.peek().kind == TokenKind::Ident && s.read() == kw {
+        s.advance();
+        Ok(())
+    } else {
+        Err(s.error(format!("Expecting keyword `{kw}`.")))
+    }
+}
+
 pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
+    if s.peek().kind != TokenKind::Ident || kw::is_keyword(s.read()) {
+        return Err(s.error("Expecting identifier.".to_string()));
+    }
+
     let span = s.peek().span;
-    let name = s.ident()?.to_string();
+    let name = s.read().to_string();
+    s.advance();
     Ok(Ident {
         id: NodeId::PLACEHOLDER,
         span,
@@ -18,7 +41,7 @@ pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
 pub(super) fn path(s: &mut Scanner) -> Result<Path> {
     let lo = s.peek().span.lo;
     let mut parts = vec![ident(s)?];
-    while s.expect(TokenKind::Dot).is_ok() {
+    while token(s, TokenKind::Dot).is_ok() {
         parts.push(ident(s)?);
     }
 
@@ -46,21 +69,21 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     let lo = s.peek().span.lo;
-    let kind = if s.keyword(kw::UNDERSCORE).is_ok() {
-        let ty = if s.expect(TokenKind::Colon).is_ok() {
+    let kind = if keyword(s, kw::UNDERSCORE).is_ok() {
+        let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(ty(s)?)
         } else {
             None
         };
         Ok(PatKind::Discard(ty))
-    } else if s.expect(TokenKind::DotDotDot).is_ok() {
+    } else if token(s, TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
-    } else if s.expect(TokenKind::Open(Delim::Paren)).is_ok() {
+    } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let pats = seq(s, pat)?;
-        s.expect(TokenKind::Close(Delim::Paren))?;
+        token(s, TokenKind::Close(Delim::Paren))?;
         Ok(PatKind::Tuple(pats))
     } else if let Some(name) = opt(s, ident)? {
-        let ty = if s.expect(TokenKind::Colon).is_ok() {
+        let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(ty(s)?)
         } else {
             None
@@ -98,7 +121,7 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
     let mut xs = Vec::new();
     while let Some(x) = opt(s, &mut p)? {
         xs.push(x);
-        if s.expect(TokenKind::Comma).is_err() {
+        if token(s, TokenKind::Comma).is_err() {
             break;
         }
     }

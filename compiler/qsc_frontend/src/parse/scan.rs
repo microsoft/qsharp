@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{kw, Error, Result};
+use super::Error;
 use crate::lex::{self, Lexer, Token, TokenKind};
 use qsc_ast::ast::Span;
 use std::result;
@@ -31,34 +31,16 @@ impl<'a> Scanner<'a> {
         self.peek
     }
 
-    pub(super) fn expect(&mut self, kind: TokenKind) -> Result<()> {
-        if self.peek.kind == kind {
-            self.advance();
-            Ok(())
-        } else {
-            Err(self.error(format!("Expecting {kind:?}.")))
-        }
+    pub(super) fn read(&self) -> &str {
+        &self.input[self.peek.span]
     }
 
-    pub(super) fn keyword(&mut self, kw: &str) -> Result<()> {
-        if kw::is_keyword(kw)
-            && self.peek.kind == TokenKind::Ident
-            && &self.input[self.peek.span] == kw
-        {
-            self.advance();
-            Ok(())
-        } else {
-            Err(self.error(format!("Expecting keyword `{kw}`.")))
-        }
-    }
-
-    pub(super) fn ident(&mut self) -> Result<&str> {
-        if self.peek.kind == TokenKind::Ident && !kw::is_keyword(&self.input[self.peek.span]) {
-            let name = &self.input[self.peek.span];
-            self.advance();
-            Ok(name)
-        } else {
-            Err(self.error("Expecting identifier.".to_string()))
+    pub(super) fn advance(&mut self) {
+        if self.peek.kind != TokenKind::Eof {
+            self.offset = self.peek.span.hi;
+            let (peek, errors) = next_ok(&mut self.tokens);
+            self.errors.extend(errors.iter().map(lex_error));
+            self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
         }
     }
 
@@ -78,15 +60,6 @@ impl<'a> Scanner<'a> {
 
     pub(super) fn errors(self) -> Vec<Error> {
         self.errors
-    }
-
-    fn advance(&mut self) {
-        if self.peek.kind != TokenKind::Eof {
-            self.offset = self.peek.span.hi;
-            let (peek, errors) = next_ok(&mut self.tokens);
-            self.errors.extend(errors.iter().map(lex_error));
-            self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
-        }
     }
 }
 
