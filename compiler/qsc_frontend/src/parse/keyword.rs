@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use enum_iterator::Sequence;
-use std::{result, str::FromStr};
+use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
 pub(super) enum Keyword {
@@ -138,7 +138,7 @@ impl Keyword {
 impl FromStr for Keyword {
     type Err = ();
 
-    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         enum_iterator::all::<Self>()
             .find(|kw| kw.as_str() == s)
             .ok_or(())
