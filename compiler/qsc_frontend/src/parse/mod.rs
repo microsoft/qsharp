@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod expr;
 mod keyword;
 mod prim;
 mod scan;
+mod stmt;
 mod top;
 mod ty;
 

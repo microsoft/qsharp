@@ -30,7 +30,7 @@ impl<'a> Scanner<'a> {
         self.peek
     }
 
-    pub(super) fn read(&self) -> &str {
+    pub(super) fn read(&self) -> &'a str {
         &self.input[self.peek.span]
     }
 

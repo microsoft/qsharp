@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 enum-iterator = "1.2.0"
+num-bigint = "0.4.3"
 qsc_ast = { path = "../qsc_ast" }
 
 [dev-dependencies]

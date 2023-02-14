@@ -5,13 +5,14 @@ use super::{
     keyword::Keyword,
     prim::{ident, keyword, many, opt, pat, path, seq, token},
     scan::Scanner,
+    stmt::{self, stmt},
     ty::{self, ty},
     ErrorKind, Result,
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
-    CallableBody, CallableDecl, CallableKind, DeclMeta, Item, ItemKind, Namespace, NodeId, Package,
-    Spec, SpecBody, SpecDecl, SpecGen,
+    Block, CallableBody, CallableDecl, CallableKind, DeclMeta, Item, ItemKind, Namespace, NodeId,
+    Package, Spec, SpecBody, SpecDecl, SpecGen,
 };
 
 pub(super) fn package(s: &mut Scanner) -> Result<Package> {
@@ -95,10 +96,21 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
 }
 
 fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
+    let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let specs = many(s, spec_decl)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
-    Ok(CallableBody::Specs(specs))
+    if specs.is_empty() {
+        let stmts = many(s, stmt)?;
+        token(s, TokenKind::Close(Delim::Brace))?;
+        Ok(CallableBody::Block(Block {
+            id: NodeId::PLACEHOLDER,
+            span: s.span(lo),
+            stmts,
+        }))
+    } else {
+        token(s, TokenKind::Close(Delim::Brace))?;
+        Ok(CallableBody::Specs(specs))
+    }
 }
 
 fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
@@ -117,7 +129,23 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         Err(s.error(ErrorKind::Rule("specialization")))
     }?;
 
-    let gen = if keyword(s, Keyword::Auto).is_ok() {
+    let body = if let Some(gen) = opt(s, spec_gen)? {
+        token(s, TokenKind::Semi)?;
+        SpecBody::Gen(gen)
+    } else {
+        SpecBody::Impl(pat(s)?, stmt::block(s)?)
+    };
+
+    Ok(SpecDecl {
+        id: NodeId::PLACEHOLDER,
+        span: s.span(lo),
+        spec,
+        body,
+    })
+}
+
+fn spec_gen(s: &mut Scanner) -> Result<SpecGen> {
+    if keyword(s, Keyword::Auto).is_ok() {
         Ok(SpecGen::Auto)
     } else if keyword(s, Keyword::Distribute).is_ok() {
         Ok(SpecGen::Distribute)
@@ -129,15 +157,7 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         Ok(SpecGen::Slf)
     } else {
         Err(s.error(ErrorKind::Rule("specialization generator")))
-    }?;
-
-    token(s, TokenKind::Semi)?;
-    Ok(SpecDecl {
-        id: NodeId::PLACEHOLDER,
-        span: s.span(lo),
-        spec,
-        body: SpecBody::Gen(gen),
-    })
+    }
 }
 
 #[cfg(test)]
@@ -302,12 +322,14 @@ mod tests {
             &expect![[r#"
                 Err(
                     Error {
-                        kind: Rule(
-                            "specialization generator",
+                        kind: Token(
+                            Open(
+                                Brace,
+                            ),
                         ),
                         span: Span {
-                            lo: 8,
-                            hi: 11,
+                            lo: 11,
+                            hi: 12,
                         },
                     },
                 )
