@@ -46,17 +46,17 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
     }
 
     let name = parts.pop().unwrap();
-    let namespace = if parts.is_empty() {
-        None
-    } else {
-        let lo = parts.first().unwrap().span.lo;
-        let hi = parts.last().unwrap().span.hi;
-        let names: Vec<_> = parts.into_iter().map(|i| i.name).collect();
-        Some(Ident {
-            id: NodeId::PLACEHOLDER,
-            span: Span { lo, hi },
-            name: names.join("."),
-        })
+    let namespace = match (parts.first(), parts.last()) {
+        (Some(first), Some(last)) => {
+            let lo = first.span.lo;
+            let hi = last.span.hi;
+            Some(Ident {
+                id: NodeId::PLACEHOLDER,
+                span: Span { lo, hi },
+                name: join(parts.iter().map(|i| &i.name), "."),
+            })
+        }
+        _ => None,
     };
 
     Ok(Path {
@@ -126,6 +126,18 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
         }
     }
     Ok(xs)
+}
+
+fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
+    let mut string = String::new();
+    if let Some(s) = strings.next() {
+        string.push_str(s.as_ref());
+    }
+    for s in strings {
+        string.push_str(sep);
+        string.push_str(s.as_ref());
+    }
+    string
 }
 
 #[cfg(test)]

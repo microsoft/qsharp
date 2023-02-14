@@ -20,34 +20,19 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
                 span: s.span(lo),
                 kind: TyKind::App(Box::new(array), vec![acc]),
             }
-        } else if token(s, TokenKind::RArrow).is_ok() {
+        } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
             acc = Ty {
                 id: NodeId::PLACEHOLDER,
                 span: s.span(lo),
-                kind: TyKind::Arrow(
-                    CallableKind::Function,
-                    Box::new(acc),
-                    Box::new(output),
-                    None,
-                ),
-            }
-        } else if token(s, TokenKind::FatArrow).is_ok() {
-            let output = ty(s)?;
-            acc = Ty {
-                id: NodeId::PLACEHOLDER,
-                span: s.span(lo),
-                kind: TyKind::Arrow(
-                    CallableKind::Operation,
-                    Box::new(acc),
-                    Box::new(output),
-                    None,
-                ),
+                kind: TyKind::Arrow(kind, Box::new(acc), Box::new(output), None),
             }
         } else {
-            return Ok(acc);
+            break;
         }
     }
+
+    Ok(acc)
 }
 
 pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
@@ -55,13 +40,30 @@ pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
     ident(s)
 }
 
+fn array(s: &mut Scanner) -> Result<Ty> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+    Ok(Ty {
+        id: NodeId::PLACEHOLDER,
+        span: s.span(lo),
+        kind: TyKind::Prim(TyPrim::Array),
+    })
+}
+
+fn arrow(s: &mut Scanner) -> Result<CallableKind> {
+    if token(s, TokenKind::RArrow).is_ok() {
+        Ok(CallableKind::Function)
+    } else if token(s, TokenKind::FatArrow).is_ok() {
+        Ok(CallableKind::Operation)
+    } else {
+        Err(s.error(ErrorKind::Rule("arrow type")))
+    }
+}
+
 fn base(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
-    let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let tys = seq(s, ty)?;
-        token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(TyKind::Tuple(tys))
-    } else if keyword(s, kw::UNDERSCORE).is_ok() {
+    let kind = if keyword(s, kw::UNDERSCORE).is_ok() {
         Ok(TyKind::Hole)
     } else if keyword(s, kw::BIG_INT).is_ok() {
         Ok(TyKind::Prim(TyPrim::BigInt))
@@ -87,6 +89,10 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         Ok(TyKind::Var(TyVar::Name(var.name)))
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
+    } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
+        let tys = seq(s, ty)?;
+        token(s, TokenKind::Close(Delim::Paren))?;
+        Ok(TyKind::Tuple(tys))
     } else {
         Err(s.error(ErrorKind::Rule("type")))
     }?;
@@ -95,17 +101,6 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),
         kind,
-    })
-}
-
-fn array(s: &mut Scanner) -> Result<Ty> {
-    let lo = s.peek().span.lo;
-    token(s, TokenKind::Open(Delim::Bracket))?;
-    token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(Ty {
-        id: NodeId::PLACEHOLDER,
-        span: s.span(lo),
-        kind: TyKind::Prim(TyPrim::Array),
     })
 }
 

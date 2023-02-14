@@ -45,11 +45,10 @@ fn item(s: &mut Scanner) -> Result<Item> {
         visibility: None,
     };
 
-    let kind = if let Some(decl) = opt(s, callable_decl)? {
-        ItemKind::Callable(meta, decl)
-    } else {
-        return Err(s.error(ErrorKind::Rule("namespace item")));
-    };
+    let kind = match opt(s, callable_decl)? {
+        None => Err(s.error(ErrorKind::Rule("namespace item"))),
+        Some(decl) => Ok(ItemKind::Callable(meta, decl)),
+    }?;
 
     Ok(Item {
         id: NodeId::PLACEHOLDER,
@@ -61,19 +60,18 @@ fn item(s: &mut Scanner) -> Result<Item> {
 fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     let lo = s.peek().span.lo;
     let kind = if keyword(s, kw::FUNCTION).is_ok() {
-        CallableKind::Function
+        Ok(CallableKind::Function)
     } else if keyword(s, kw::OPERATION).is_ok() {
-        CallableKind::Operation
+        Ok(CallableKind::Operation)
     } else {
-        return Err(s.error(ErrorKind::Rule("callable declaration")));
-    };
+        Err(s.error(ErrorKind::Rule("callable declaration")))
+    }?;
 
     let name = ident(s)?;
-
     let ty_params = if token(s, TokenKind::Lt).is_ok() {
-        let ty_params = seq(s, ty::var)?;
+        let vars = seq(s, ty::var)?;
         token(s, TokenKind::Gt)?;
-        ty_params
+        vars
     } else {
         Vec::new()
     };
@@ -106,32 +104,32 @@ fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
 fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
     let lo = s.peek().span.lo;
     let spec = if keyword(s, kw::BODY).is_ok() {
-        Spec::Body
+        Ok(Spec::Body)
     } else if keyword(s, kw::ADJOINT).is_ok() {
-        Spec::Adj
+        Ok(Spec::Adj)
     } else if keyword(s, kw::CONTROLLED).is_ok() {
         if keyword(s, kw::ADJOINT).is_ok() {
-            Spec::CtlAdj
+            Ok(Spec::CtlAdj)
         } else {
-            Spec::Ctl
+            Ok(Spec::Ctl)
         }
     } else {
-        return Err(s.error(ErrorKind::Rule("specialization")));
-    };
+        Err(s.error(ErrorKind::Rule("specialization")))
+    }?;
 
     let gen = if keyword(s, kw::AUTO).is_ok() {
-        SpecGen::Auto
+        Ok(SpecGen::Auto)
     } else if keyword(s, kw::DISTRIBUTE).is_ok() {
-        SpecGen::Distribute
+        Ok(SpecGen::Distribute)
     } else if keyword(s, kw::INTRINSIC).is_ok() {
-        SpecGen::Intrinsic
+        Ok(SpecGen::Intrinsic)
     } else if keyword(s, kw::INVERT).is_ok() {
-        SpecGen::Invert
+        Ok(SpecGen::Invert)
     } else if keyword(s, kw::SELF).is_ok() {
-        SpecGen::Slf
+        Ok(SpecGen::Slf)
     } else {
-        return Err(s.error(ErrorKind::Rule("specialization generator")));
-    };
+        Err(s.error(ErrorKind::Rule("specialization generator")))
+    }?;
 
     token(s, TokenKind::Semi)?;
     Ok(SpecDecl {
