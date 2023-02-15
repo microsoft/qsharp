@@ -61,7 +61,7 @@ pub struct Namespace {
     /// The span.
     pub span: Span,
     /// The namespace name.
-    pub name: Path,
+    pub name: Ident,
     /// The items in the namespace.
     pub items: Vec<Item>,
 }

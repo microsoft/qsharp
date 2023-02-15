@@ -77,7 +77,7 @@ pub fn walk_package(vis: &mut impl Visitor, package: &Package) {
 }
 
 pub fn walk_namespace(vis: &mut impl Visitor, namespace: &Namespace) {
-    vis.visit_path(&namespace.name);
+    vis.visit_ident(&namespace.name);
     namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
 

@@ -77,7 +77,7 @@ pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
 }
 
 pub fn walk_namespace(vis: &mut impl MutVisitor, namespace: &mut Namespace) {
-    vis.visit_path(&mut namespace.name);
+    vis.visit_ident(&mut namespace.name);
     namespace.items.iter_mut().for_each(|i| vis.visit_item(i));
 }
 
