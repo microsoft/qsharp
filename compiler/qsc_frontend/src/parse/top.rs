@@ -56,7 +56,7 @@ fn item(s: &mut Scanner) -> Result<Item> {
         };
         Ok(ItemKind::Callable(meta, decl))
     } else {
-        Err(s.error(ErrorKind::Rule("namespace item")))
+        Err(s.error(ErrorKind::Rule("item")))
     }?;
 
     Ok(Item {
