@@ -636,6 +636,155 @@ mod tests {
     }
 
     #[test]
+    fn use_paren() {
+        check(
+            stmt,
+            "use q = (Qubit());",
+            &expect![[r#"
+                Ok(
+                    Stmt {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 18,
+                        },
+                        kind: Use(
+                            Pat {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 4,
+                                    hi: 5,
+                                },
+                                kind: Bind(
+                                    Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 4,
+                                            hi: 5,
+                                        },
+                                        name: "q",
+                                    },
+                                    None,
+                                ),
+                            },
+                            QubitInit {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 8,
+                                    hi: 17,
+                                },
+                                kind: Paren(
+                                    QubitInit {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 9,
+                                            hi: 16,
+                                        },
+                                        kind: Single,
+                                    },
+                                ),
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn use_single_tuple() {
+        check(
+            stmt,
+            "use (q,) = (Qubit(),);",
+            &expect![[r#"
+                Ok(
+                    Stmt {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 22,
+                        },
+                        kind: Use(
+                            Pat {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 4,
+                                    hi: 8,
+                                },
+                                kind: Tuple(
+                                    [
+                                        Pat {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 5,
+                                                hi: 6,
+                                            },
+                                            kind: Bind(
+                                                Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 5,
+                                                        hi: 6,
+                                                    },
+                                                    name: "q",
+                                                },
+                                                None,
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            QubitInit {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 11,
+                                    hi: 21,
+                                },
+                                kind: Tuple(
+                                    [
+                                        QubitInit {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 12,
+                                                hi: 19,
+                                            },
+                                            kind: Single,
+                                        },
+                                    ],
+                                ),
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
     fn borrow_stmt() {
         check(
             stmt,
@@ -956,7 +1105,7 @@ mod tests {
     fn trailing_semi_expr() {
         check(
             block,
-            " { x; y; z; }",
+            "{ x; y; z; }",
             &expect![[r#"
                 Ok(
                     Block {
@@ -964,8 +1113,8 @@ mod tests {
                             4294967295,
                         ),
                         span: Span {
-                            lo: 1,
-                            hi: 13,
+                            lo: 0,
+                            hi: 12,
                         },
                         stmts: [
                             Stmt {
@@ -973,8 +1122,8 @@ mod tests {
                                     4294967295,
                                 ),
                                 span: Span {
-                                    lo: 3,
-                                    hi: 5,
+                                    lo: 2,
+                                    hi: 4,
                                 },
                                 kind: Semi(
                                     Expr {
@@ -982,8 +1131,8 @@ mod tests {
                                             4294967295,
                                         ),
                                         span: Span {
-                                            lo: 3,
-                                            hi: 4,
+                                            lo: 2,
+                                            hi: 3,
                                         },
                                         kind: Path(
                                             Path {
@@ -991,8 +1140,8 @@ mod tests {
                                                     4294967295,
                                                 ),
                                                 span: Span {
-                                                    lo: 3,
-                                                    hi: 4,
+                                                    lo: 2,
+                                                    hi: 3,
                                                 },
                                                 namespace: None,
                                                 name: Ident {
@@ -1000,8 +1149,8 @@ mod tests {
                                                         4294967295,
                                                     ),
                                                     span: Span {
-                                                        lo: 3,
-                                                        hi: 4,
+                                                        lo: 2,
+                                                        hi: 3,
                                                     },
                                                     name: "x",
                                                 },
@@ -1015,8 +1164,8 @@ mod tests {
                                     4294967295,
                                 ),
                                 span: Span {
-                                    lo: 6,
-                                    hi: 8,
+                                    lo: 5,
+                                    hi: 7,
                                 },
                                 kind: Semi(
                                     Expr {
@@ -1024,8 +1173,8 @@ mod tests {
                                             4294967295,
                                         ),
                                         span: Span {
-                                            lo: 6,
-                                            hi: 7,
+                                            lo: 5,
+                                            hi: 6,
                                         },
                                         kind: Path(
                                             Path {
@@ -1033,8 +1182,8 @@ mod tests {
                                                     4294967295,
                                                 ),
                                                 span: Span {
-                                                    lo: 6,
-                                                    hi: 7,
+                                                    lo: 5,
+                                                    hi: 6,
                                                 },
                                                 namespace: None,
                                                 name: Ident {
@@ -1042,8 +1191,8 @@ mod tests {
                                                         4294967295,
                                                     ),
                                                     span: Span {
-                                                        lo: 6,
-                                                        hi: 7,
+                                                        lo: 5,
+                                                        hi: 6,
                                                     },
                                                     name: "y",
                                                 },
@@ -1057,8 +1206,8 @@ mod tests {
                                     4294967295,
                                 ),
                                 span: Span {
-                                    lo: 9,
-                                    hi: 11,
+                                    lo: 8,
+                                    hi: 10,
                                 },
                                 kind: Semi(
                                     Expr {
@@ -1066,8 +1215,8 @@ mod tests {
                                             4294967295,
                                         ),
                                         span: Span {
-                                            lo: 9,
-                                            hi: 10,
+                                            lo: 8,
+                                            hi: 9,
                                         },
                                         kind: Path(
                                             Path {
@@ -1075,8 +1224,8 @@ mod tests {
                                                     4294967295,
                                                 ),
                                                 span: Span {
-                                                    lo: 9,
-                                                    hi: 10,
+                                                    lo: 8,
+                                                    hi: 9,
                                                 },
                                                 namespace: None,
                                                 name: Ident {
@@ -1084,8 +1233,8 @@ mod tests {
                                                         4294967295,
                                                     ),
                                                     span: Span {
-                                                        lo: 9,
-                                                        hi: 10,
+                                                        lo: 8,
+                                                        hi: 9,
                                                     },
                                                     name: "z",
                                                 },
