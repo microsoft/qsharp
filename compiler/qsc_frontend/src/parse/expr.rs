@@ -3,7 +3,7 @@
 
 use super::{
     keyword::Keyword,
-    prim::{keyword, opt, path, token},
+    prim::{keyword, opt, pat, path, token},
     scan::Scanner,
     stmt, ErrorKind, Result,
 };
@@ -12,7 +12,41 @@ use qsc_ast::ast::{self, Expr, ExprKind, Lit, NodeId, Pauli};
 
 pub(super) fn expr(s: &mut Scanner) -> Result<Expr> {
     let lo = s.peek().span.lo;
-    let kind = if let Some(b) = opt(s, stmt::block)? {
+    let kind = if keyword(s, Keyword::Fail).is_ok() {
+        Ok(ExprKind::Fail(Box::new(expr(s)?)))
+    } else if keyword(s, Keyword::For).is_ok() {
+        let vars = pat(s)?;
+        keyword(s, Keyword::In)?;
+        let iter = expr(s)?;
+        let body = stmt::block(s)?;
+        Ok(ExprKind::For(vars, Box::new(iter), body))
+    } else if keyword(s, Keyword::If).is_ok() {
+        if_kind(s)
+    } else if keyword(s, Keyword::Repeat).is_ok() {
+        let body = stmt::block(s)?;
+        keyword(s, Keyword::Until)?;
+        let cond = expr(s)?;
+        let fixup = if keyword(s, Keyword::Fixup).is_ok() {
+            Some(stmt::block(s)?)
+        } else {
+            None
+        };
+        Ok(ExprKind::Repeat(body, Box::new(cond), fixup))
+    } else if keyword(s, Keyword::Return).is_ok() {
+        Ok(ExprKind::Return(Box::new(expr(s)?)))
+    } else if keyword(s, Keyword::Set).is_ok() {
+        let lhs = expr(s)?;
+        token(s, TokenKind::Eq)?;
+        let rhs = expr(s)?;
+        Ok(ExprKind::Assign(Box::new(lhs), Box::new(rhs)))
+    } else if keyword(s, Keyword::While).is_ok() {
+        Ok(ExprKind::While(Box::new(expr(s)?), stmt::block(s)?))
+    } else if keyword(s, Keyword::Within).is_ok() {
+        let outer = stmt::block(s)?;
+        keyword(s, Keyword::Apply)?;
+        let inner = stmt::block(s)?;
+        Ok(ExprKind::Conjugate(outer, inner))
+    } else if let Some(b) = opt(s, stmt::block)? {
         Ok(ExprKind::Block(b))
     } else if let Some(l) = opt(s, lit)? {
         Ok(ExprKind::Lit(l))
@@ -27,6 +61,29 @@ pub(super) fn expr(s: &mut Scanner) -> Result<Expr> {
         span: s.span(lo),
         kind,
     })
+}
+
+fn if_kind(s: &mut Scanner) -> Result<ExprKind> {
+    let cond = expr(s)?;
+    let body = stmt::block(s)?;
+
+    let lo = s.peek().span.lo;
+    let otherwise = if keyword(s, Keyword::Elif).is_ok() {
+        Some(if_kind(s)?)
+    } else if keyword(s, Keyword::Else).is_ok() {
+        Some(ExprKind::Block(stmt::block(s)?))
+    } else {
+        None
+    }
+    .map(|kind| {
+        Box::new(Expr {
+            id: NodeId::PLACEHOLDER,
+            span: s.span(lo),
+            kind,
+        })
+    });
+
+    Ok(ExprKind::If(Box::new(cond), body, otherwise))
 }
 
 fn lit(s: &mut Scanner) -> Result<Lit> {

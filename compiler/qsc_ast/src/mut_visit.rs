@@ -222,12 +222,10 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(iter);
             vis.visit_block(block);
         }
-        ExprKind::If(branches, default) => {
-            for (cond, block) in branches {
-                vis.visit_expr(cond);
-                vis.visit_block(block);
-            }
-            default.iter_mut().for_each(|d| vis.visit_block(d));
+        ExprKind::If(cond, body, otherwise) => {
+            vis.visit_expr(cond);
+            vis.visit_block(body);
+            otherwise.iter_mut().for_each(|e| vis.visit_expr(e));
         }
         ExprKind::Index(array, index) => {
             vis.visit_expr(array);
