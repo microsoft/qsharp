@@ -346,6 +346,130 @@ mod tests {
     }
 
     #[test]
+    fn open_no_alias() {
+        check(
+            item,
+            "open Foo.Bar.Baz;",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 16,
+                        },
+                        kind: Open(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 16,
+                                },
+                                name: "Foo.Bar.Baz",
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn open_alias() {
+        check(
+            item,
+            "open Foo.Bar.Baz as Baz;",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 23,
+                        },
+                        kind: Open(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 16,
+                                },
+                                name: "Foo.Bar.Baz",
+                            },
+                            Some(
+                                Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 20,
+                                        hi: 23,
+                                    },
+                                    name: "Baz",
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn open_alias_dot() {
+        check(
+            item,
+            "open Foo.Bar.Baz as Bar.Baz;",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 27,
+                        },
+                        kind: Open(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 16,
+                                },
+                                name: "Foo.Bar.Baz",
+                            },
+                            Some(
+                                Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 20,
+                                        hi: 27,
+                                    },
+                                    name: "Bar.Baz",
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
     fn function_decl() {
         check(
             item,

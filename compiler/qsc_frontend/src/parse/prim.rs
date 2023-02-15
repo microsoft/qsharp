@@ -47,7 +47,7 @@ pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
 
 pub(super) fn dot_ident(s: &mut Scanner) -> Result<Ident> {
     let p = path(s)?;
-    let name = p.namespace.map_or(String::new(), |i| i.name) + &p.name.name;
+    let name = p.namespace.map_or(String::new(), |i| i.name + ".") + &p.name.name;
     Ok(Ident {
         id: p.id,
         span: p.span,
