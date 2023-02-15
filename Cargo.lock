@@ -240,6 +240,7 @@ version = "0.0.0"
 dependencies = [
  "enum-iterator",
  "expect-test",
+ "num-bigint",
  "qsc_ast",
 ]
 

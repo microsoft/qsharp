@@ -279,8 +279,9 @@ pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
 
 pub fn walk_qubit_init(vis: &mut impl Visitor, init: &QubitInit) {
     match &init.kind {
+        QubitInitKind::Array(len) => vis.visit_expr(len),
+        QubitInitKind::Paren(init) => vis.visit_qubit_init(init),
         QubitInitKind::Single => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
-        QubitInitKind::Array(len) => vis.visit_expr(len),
     }
 }

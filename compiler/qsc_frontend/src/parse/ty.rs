@@ -499,6 +499,78 @@ mod tests {
     }
 
     #[test]
+    fn ty_paren() {
+        check(
+            ty,
+            "(Int)",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 5,
+                        },
+                        kind: Paren(
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 1,
+                                    hi: 4,
+                                },
+                                kind: Prim(
+                                    Int,
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn ty_singleton_tuple() {
+        check(
+            ty,
+            "(Int,)",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 6,
+                        },
+                        kind: Tuple(
+                            [
+                                Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 1,
+                                        hi: 4,
+                                    },
+                                    kind: Prim(
+                                        Int,
+                                    ),
+                                },
+                            ],
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
     fn ty_tuple() {
         check(
             ty,

@@ -531,6 +531,98 @@ mod tests {
     }
 
     #[test]
+    fn pat_paren() {
+        check(
+            pat,
+            "(foo)",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 5,
+                        },
+                        kind: Paren(
+                            Pat {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 1,
+                                    hi: 4,
+                                },
+                                kind: Bind(
+                                    Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 1,
+                                            hi: 4,
+                                        },
+                                        name: "foo",
+                                    },
+                                    None,
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn pat_singleton_tuple() {
+        check(
+            pat,
+            "(foo,)",
+            &expect![[r#"
+                Ok(
+                    Pat {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 6,
+                        },
+                        kind: Tuple(
+                            [
+                                Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 1,
+                                        hi: 4,
+                                    },
+                                    kind: Bind(
+                                        Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 1,
+                                                hi: 4,
+                                            },
+                                            name: "foo",
+                                        },
+                                        None,
+                                    ),
+                                },
+                            ],
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
     fn pat_tuple() {
         check(
             pat,

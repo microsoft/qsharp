@@ -375,12 +375,14 @@ pub struct QubitInit {
 /// A qubit initializer kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum QubitInitKind {
+    /// An array of qubits: `Qubit[a]`.
+    Array(Box<Expr>),
+    /// A parenthesized initializer: `(a)`.
+    Paren(Box<QubitInit>),
     /// A single qubit: `Qubit()`.
     Single,
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<QubitInit>),
-    /// An array of qubits: `Qubit[a]`.
-    Array(Box<Expr>),
 }
 
 /// A path to a declaration.
