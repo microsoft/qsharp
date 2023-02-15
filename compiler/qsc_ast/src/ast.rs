@@ -6,6 +6,7 @@
 #![warn(missing_docs)]
 
 use num_bigint::BigInt;
+use std::ops::Index;
 
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -14,6 +15,9 @@ pub struct NodeId(u32);
 impl NodeId {
     /// The ID for the root node in an AST.
     pub const ROOT: Self = Self(0);
+
+    /// The ID used before unique IDs have been assigned.
+    pub const PLACEHOLDER: Self = Self(u32::MAX);
 
     /// The next ID in the sequence.
     #[must_use]
@@ -30,6 +34,14 @@ pub struct Span {
     pub lo: usize,
     /// The offset immediately following the last byte.
     pub hi: usize,
+}
+
+impl Index<Span> for str {
+    type Output = str;
+
+    fn index(&self, index: Span) -> &Self::Output {
+        &self[index.lo..index.hi]
+    }
 }
 
 /// The package currently being compiled and the root node of an AST.
@@ -82,7 +94,7 @@ pub struct DeclMeta {
     /// The declaration attributes.
     pub attrs: Vec<Attr>,
     /// The declaration visibility.
-    pub visibility: Visibility,
+    pub visibility: Option<Visibility>,
 }
 
 /// A visibility modifier.
@@ -136,7 +148,7 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: FunctorExpr,
+    pub functors: Option<FunctorExpr>,
     /// The body of the callable.
     pub body: CallableBody,
 }
@@ -179,8 +191,6 @@ pub enum FunctorExpr {
     BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
     /// A literal for a specific functor.
     Lit(Functor),
-    /// The empty set.
-    Null,
 }
 
 /// A type.
@@ -200,9 +210,11 @@ pub enum TyKind {
     /// One or more type arguments applied to a type constructor.
     App(Box<Ty>, Vec<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, FunctorExpr),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     /// An unspecified type, `_`, which may be inferred.
     Hole,
+    /// A type wrapped in parentheses.
+    Paren(Box<Ty>),
     /// A named type.
     Path(Path),
     /// A primitive type.
@@ -343,6 +355,8 @@ pub enum PatKind {
     Discard(Option<Ty>),
     /// An elided pattern, `...`, used by specializations.
     Elided,
+    /// Parentheses: `(a)`.
+    Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }

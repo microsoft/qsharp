@@ -119,7 +119,7 @@ pub fn walk_callable_decl(vis: &mut impl Visitor, decl: &CallableDecl) {
     decl.ty_params.iter().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&decl.input);
     vis.visit_ty(&decl.output);
-    vis.visit_functor_expr(&decl.functors);
+    decl.functors.iter().for_each(|f| vis.visit_functor_expr(f));
     match &decl.body {
         CallableBody::Block(block) => vis.visit_block(block),
         CallableBody::Specs(specs) => specs.iter().for_each(|s| vis.visit_spec_decl(s)),
@@ -142,7 +142,7 @@ pub fn walk_functor_expr(vis: &mut impl Visitor, expr: &FunctorExpr) {
             vis.visit_functor_expr(lhs);
             vis.visit_functor_expr(rhs);
         }
-        FunctorExpr::Lit(_) | FunctorExpr::Null => {}
+        FunctorExpr::Lit(_) => {}
     }
 }
 
@@ -155,8 +155,9 @@ pub fn walk_ty(vis: &mut impl Visitor, ty: &Ty) {
         TyKind::Arrow(_, lhs, rhs, functors) => {
             vis.visit_ty(lhs);
             vis.visit_ty(rhs);
-            vis.visit_functor_expr(functors);
+            functors.iter().for_each(|f| vis.visit_functor_expr(f));
         }
+        TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path(path),
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
         TyKind::Hole | TyKind::Prim(_) | TyKind::Var(_) => {}
@@ -270,8 +271,9 @@ pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
             ty.iter().for_each(|t| vis.visit_ty(t));
         }
         PatKind::Discard(ty) => ty.iter().for_each(|t| vis.visit_ty(t)),
-        PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
         PatKind::Elided => {}
+        PatKind::Paren(pat) => vis.visit_pat(pat),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
     }
 }
 
