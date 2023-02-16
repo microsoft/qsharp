@@ -304,8 +304,11 @@ pub enum ExprKind {
     For(Pat, Box<Expr>, Block),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
     Hole,
-    /// An if expression with an optional else block: `if a { ... } else { ... }`. Note that
-    /// `elif ...` is parsed as `else { if ... }`.
+    /// An if expression with an optional else block: `if a { ... } else { ... }`.
+    ///
+    /// Note that, as a special case, `elif ...` is effectively parsed as `else if ...`, without a
+    /// block wrapping the `if`. This distinguishes `elif ...` from `else { if ... }`, which does
+    /// have a block.
     If(Box<Expr>, Block, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
