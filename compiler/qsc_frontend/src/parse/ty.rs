@@ -3,9 +3,9 @@
 
 use super::{
     keyword::Keyword,
-    prim::{ident, keyword, opt, path, seq, token, FinalSep},
+    prim::{fold, ident, keyword, opt, path, seq, token, FinalSep},
     scan::Scanner,
-    ErrorKind, Result,
+    ErrorKind, Parser, Result,
 };
 use crate::lex::{ClosedBinOp, Delim, TokenKind};
 use qsc_ast::ast::{
@@ -117,33 +117,9 @@ fn base(s: &mut Scanner) -> Result<Ty> {
 }
 
 pub(super) fn functor_expr(s: &mut Scanner) -> Result<FunctorExpr> {
-    let lo = s.peek().span.lo;
-    let mut acc = functor_intersect(s)?;
-    while token(s, TokenKind::ClosedBinOp(ClosedBinOp::Plus)).is_ok() {
-        let rhs = functor_intersect(s)?;
-        acc = FunctorExpr {
-            id: NodeId::PLACEHOLDER,
-            span: s.span(lo),
-            kind: FunctorExprKind::BinOp(SetOp::Union, Box::new(acc), Box::new(rhs)),
-        }
-    }
-
-    Ok(acc)
-}
-
-fn functor_intersect(s: &mut Scanner) -> Result<FunctorExpr> {
-    let lo = s.peek().span.lo;
-    let mut acc = functor_base(s)?;
-    while token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok() {
-        let rhs = functor_base(s)?;
-        acc = FunctorExpr {
-            id: NodeId::PLACEHOLDER,
-            span: s.span(lo),
-            kind: FunctorExprKind::BinOp(SetOp::Intersect, Box::new(acc), Box::new(rhs)),
-        }
-    }
-
-    Ok(acc)
+    functor_layer(s, ClosedBinOp::Plus, SetOp::Union, |s| {
+        functor_layer(s, ClosedBinOp::Star, SetOp::Intersect, functor_base)
+    })
 }
 
 fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
@@ -165,6 +141,29 @@ fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
         span: s.span(lo),
         kind,
     })
+}
+
+fn functor_layer(
+    s: &mut Scanner,
+    bin_op: ClosedBinOp,
+    set_op: SetOp,
+    mut p: impl Parser<FunctorExpr>,
+) -> Result<FunctorExpr> {
+    let lo = s.peek().span.lo;
+    let init = p(s)?;
+    fold(
+        s,
+        init,
+        |s| {
+            token(s, TokenKind::ClosedBinOp(bin_op))?;
+            p(s)
+        },
+        |s, lhs, rhs| FunctorExpr {
+            id: NodeId::PLACEHOLDER,
+            span: s.span(lo),
+            kind: FunctorExprKind::BinOp(set_op, Box::new(lhs), Box::new(rhs)),
+        },
+    )
 }
 
 #[cfg(test)]

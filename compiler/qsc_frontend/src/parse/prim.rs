@@ -154,6 +154,19 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, 
     Ok((xs, final_sep))
 }
 
+pub(super) fn fold<T, U>(
+    s: &mut Scanner,
+    init: U,
+    mut p: impl Parser<T>,
+    mut f: impl FnMut(&Scanner, U, T) -> U,
+) -> Result<U> {
+    let mut acc = init;
+    while let Some(x) = opt(s, &mut p)? {
+        acc = f(s, acc, x);
+    }
+    Ok(acc)
+}
+
 fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
     let mut string = String::new();
     if let Some(s) = strings.next() {
