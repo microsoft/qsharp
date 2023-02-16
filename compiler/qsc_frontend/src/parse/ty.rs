@@ -150,10 +150,9 @@ fn functor_layer(
     mut p: impl Parser<FunctorExpr>,
 ) -> Result<FunctorExpr> {
     let lo = s.peek().span.lo;
-    let init = p(s)?;
     fold(
+        p(s)?,
         s,
-        init,
         |s| {
             token(s, TokenKind::ClosedBinOp(bin_op))?;
             p(s)

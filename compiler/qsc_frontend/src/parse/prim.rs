@@ -155,8 +155,8 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, 
 }
 
 pub(super) fn fold<T, U>(
-    s: &mut Scanner,
     init: U,
+    s: &mut Scanner,
     mut p: impl Parser<T>,
     mut f: impl FnMut(&Scanner, U, T) -> U,
 ) -> Result<U> {
