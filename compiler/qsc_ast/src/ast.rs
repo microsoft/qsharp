@@ -61,7 +61,7 @@ pub struct Namespace {
     /// The span.
     pub span: Span,
     /// The namespace name.
-    pub name: Path,
+    pub name: Ident,
     /// The items in the namespace.
     pub items: Vec<Item>,
 }
@@ -304,9 +304,12 @@ pub enum ExprKind {
     For(Pat, Box<Expr>, Block),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
     Hole,
-    /// An if expression, with an arbitrary number of elifs and an optional else:
-    /// `if a { ... } elif b { ... } else { ... }`.
-    If(Vec<(Expr, Block)>, Option<Block>),
+    /// An if expression with an optional else block: `if a { ... } else { ... }`.
+    ///
+    /// Note that, as a special case, `elif ...` is effectively parsed as `else if ...`, without a
+    /// block wrapping the `if`. This distinguishes `elif ...` from `else { if ... }`, which does
+    /// have a block.
+    If(Box<Expr>, Block, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
     /// An interpolated string: `$"{a} {b} {c}"`.

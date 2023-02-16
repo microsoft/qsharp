@@ -3,7 +3,7 @@
 
 use super::{
     keyword::Keyword,
-    prim::{keyword, opt, path, token},
+    prim::{keyword, opt, pat, path, token},
     scan::Scanner,
     stmt, ErrorKind, Result,
 };
@@ -12,7 +12,41 @@ use qsc_ast::ast::{self, Expr, ExprKind, Lit, NodeId, Pauli};
 
 pub(super) fn expr(s: &mut Scanner) -> Result<Expr> {
     let lo = s.peek().span.lo;
-    let kind = if let Some(b) = opt(s, stmt::block)? {
+    let kind = if keyword(s, Keyword::Fail).is_ok() {
+        Ok(ExprKind::Fail(Box::new(expr(s)?)))
+    } else if keyword(s, Keyword::For).is_ok() {
+        let vars = pat(s)?;
+        keyword(s, Keyword::In)?;
+        let iter = expr(s)?;
+        let body = stmt::block(s)?;
+        Ok(ExprKind::For(vars, Box::new(iter), body))
+    } else if keyword(s, Keyword::If).is_ok() {
+        if_kind(s)
+    } else if keyword(s, Keyword::Repeat).is_ok() {
+        let body = stmt::block(s)?;
+        keyword(s, Keyword::Until)?;
+        let cond = expr(s)?;
+        let fixup = if keyword(s, Keyword::Fixup).is_ok() {
+            Some(stmt::block(s)?)
+        } else {
+            None
+        };
+        Ok(ExprKind::Repeat(body, Box::new(cond), fixup))
+    } else if keyword(s, Keyword::Return).is_ok() {
+        Ok(ExprKind::Return(Box::new(expr(s)?)))
+    } else if keyword(s, Keyword::Set).is_ok() {
+        let lhs = expr(s)?;
+        token(s, TokenKind::Eq)?;
+        let rhs = expr(s)?;
+        Ok(ExprKind::Assign(Box::new(lhs), Box::new(rhs)))
+    } else if keyword(s, Keyword::While).is_ok() {
+        Ok(ExprKind::While(Box::new(expr(s)?), stmt::block(s)?))
+    } else if keyword(s, Keyword::Within).is_ok() {
+        let outer = stmt::block(s)?;
+        keyword(s, Keyword::Apply)?;
+        let inner = stmt::block(s)?;
+        Ok(ExprKind::Conjugate(outer, inner))
+    } else if let Some(b) = opt(s, stmt::block)? {
         Ok(ExprKind::Block(b))
     } else if let Some(l) = opt(s, lit)? {
         Ok(ExprKind::Lit(l))
@@ -27,6 +61,29 @@ pub(super) fn expr(s: &mut Scanner) -> Result<Expr> {
         span: s.span(lo),
         kind,
     })
+}
+
+fn if_kind(s: &mut Scanner) -> Result<ExprKind> {
+    let cond = expr(s)?;
+    let body = stmt::block(s)?;
+
+    let lo = s.peek().span.lo;
+    let otherwise = if keyword(s, Keyword::Elif).is_ok() {
+        Some(if_kind(s)?)
+    } else if keyword(s, Keyword::Else).is_ok() {
+        Some(ExprKind::Block(stmt::block(s)?))
+    } else {
+        None
+    }
+    .map(|kind| {
+        Box::new(Expr {
+            id: NodeId::PLACEHOLDER,
+            span: s.span(lo),
+            kind,
+        })
+    });
+
+    Ok(ExprKind::If(Box::new(cond), body, otherwise))
 }
 
 fn lit(s: &mut Scanner) -> Result<Lit> {
@@ -774,6 +831,1573 @@ mod tests {
                                                                 hi: 14,
                                                             },
                                                             name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn fail() {
+        check(
+            expr,
+            r#"fail "message""#,
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 14,
+                        },
+                        kind: Fail(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 14,
+                                },
+                                kind: Lit(
+                                    String(
+                                        "message",
+                                    ),
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn for_in() {
+        check(
+            expr,
+            "for x in xs { x }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 17,
+                        },
+                        kind: For(
+                            Pat {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 4,
+                                    hi: 5,
+                                },
+                                kind: Bind(
+                                    Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 4,
+                                            hi: 5,
+                                        },
+                                        name: "x",
+                                    },
+                                    None,
+                                ),
+                            },
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 11,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 9,
+                                            hi: 11,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 9,
+                                                hi: 11,
+                                            },
+                                            name: "xs",
+                                        },
+                                    },
+                                ),
+                            },
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 12,
+                                    hi: 17,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 14,
+                                            hi: 15,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 14,
+                                                    hi: 15,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 14,
+                                                            hi: 15,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 14,
+                                                                hi: 15,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn if_then() {
+        check(
+            expr,
+            "if c { e }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                        kind: If(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 3,
+                                    hi: 4,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 3,
+                                            hi: 4,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 3,
+                                                hi: 4,
+                                            },
+                                            name: "c",
+                                        },
+                                    },
+                                ),
+                            },
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 10,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 7,
+                                            hi: 8,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 7,
+                                                    hi: 8,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 7,
+                                                            hi: 8,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 7,
+                                                                hi: 8,
+                                                            },
+                                                            name: "e",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn if_else() {
+        check(
+            expr,
+            "if c { x } else { y }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 21,
+                        },
+                        kind: If(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 3,
+                                    hi: 4,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 3,
+                                            hi: 4,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 3,
+                                                hi: 4,
+                                            },
+                                            name: "c",
+                                        },
+                                    },
+                                ),
+                            },
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 10,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 7,
+                                            hi: 8,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 7,
+                                                    hi: 8,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 7,
+                                                            hi: 8,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 7,
+                                                                hi: 8,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                            Some(
+                                Expr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 11,
+                                        hi: 21,
+                                    },
+                                    kind: Block(
+                                        Block {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 16,
+                                                hi: 21,
+                                            },
+                                            stmts: [
+                                                Stmt {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 18,
+                                                        hi: 19,
+                                                    },
+                                                    kind: Expr(
+                                                        Expr {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 18,
+                                                                hi: 19,
+                                                            },
+                                                            kind: Path(
+                                                                Path {
+                                                                    id: NodeId(
+                                                                        4294967295,
+                                                                    ),
+                                                                    span: Span {
+                                                                        lo: 18,
+                                                                        hi: 19,
+                                                                    },
+                                                                    namespace: None,
+                                                                    name: Ident {
+                                                                        id: NodeId(
+                                                                            4294967295,
+                                                                        ),
+                                                                        span: Span {
+                                                                            lo: 18,
+                                                                            hi: 19,
+                                                                        },
+                                                                        name: "y",
+                                                                    },
+                                                                },
+                                                            ),
+                                                        },
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn if_elif() {
+        check(
+            expr,
+            "if c1 { x } elif c2 { y }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 25,
+                        },
+                        kind: If(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 3,
+                                    hi: 5,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 3,
+                                            hi: 5,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 3,
+                                                hi: 5,
+                                            },
+                                            name: "c1",
+                                        },
+                                    },
+                                ),
+                            },
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 6,
+                                    hi: 11,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 8,
+                                            hi: 9,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 8,
+                                                    hi: 9,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 8,
+                                                            hi: 9,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 8,
+                                                                hi: 9,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                            Some(
+                                Expr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 12,
+                                        hi: 25,
+                                    },
+                                    kind: If(
+                                        Expr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 17,
+                                                hi: 19,
+                                            },
+                                            kind: Path(
+                                                Path {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 17,
+                                                        hi: 19,
+                                                    },
+                                                    namespace: None,
+                                                    name: Ident {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 17,
+                                                            hi: 19,
+                                                        },
+                                                        name: "c2",
+                                                    },
+                                                },
+                                            ),
+                                        },
+                                        Block {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 20,
+                                                hi: 25,
+                                            },
+                                            stmts: [
+                                                Stmt {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 22,
+                                                        hi: 23,
+                                                    },
+                                                    kind: Expr(
+                                                        Expr {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 22,
+                                                                hi: 23,
+                                                            },
+                                                            kind: Path(
+                                                                Path {
+                                                                    id: NodeId(
+                                                                        4294967295,
+                                                                    ),
+                                                                    span: Span {
+                                                                        lo: 22,
+                                                                        hi: 23,
+                                                                    },
+                                                                    namespace: None,
+                                                                    name: Ident {
+                                                                        id: NodeId(
+                                                                            4294967295,
+                                                                        ),
+                                                                        span: Span {
+                                                                            lo: 22,
+                                                                            hi: 23,
+                                                                        },
+                                                                        name: "y",
+                                                                    },
+                                                                },
+                                                            ),
+                                                        },
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                        None,
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn if_elif_else() {
+        check(
+            expr,
+            "if c1 { x } elif c2 { y } else { z }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 36,
+                        },
+                        kind: If(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 3,
+                                    hi: 5,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 3,
+                                            hi: 5,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 3,
+                                                hi: 5,
+                                            },
+                                            name: "c1",
+                                        },
+                                    },
+                                ),
+                            },
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 6,
+                                    hi: 11,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 8,
+                                            hi: 9,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 8,
+                                                    hi: 9,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 8,
+                                                            hi: 9,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 8,
+                                                                hi: 9,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                            Some(
+                                Expr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 12,
+                                        hi: 36,
+                                    },
+                                    kind: If(
+                                        Expr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 17,
+                                                hi: 19,
+                                            },
+                                            kind: Path(
+                                                Path {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 17,
+                                                        hi: 19,
+                                                    },
+                                                    namespace: None,
+                                                    name: Ident {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 17,
+                                                            hi: 19,
+                                                        },
+                                                        name: "c2",
+                                                    },
+                                                },
+                                            ),
+                                        },
+                                        Block {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 20,
+                                                hi: 25,
+                                            },
+                                            stmts: [
+                                                Stmt {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 22,
+                                                        hi: 23,
+                                                    },
+                                                    kind: Expr(
+                                                        Expr {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 22,
+                                                                hi: 23,
+                                                            },
+                                                            kind: Path(
+                                                                Path {
+                                                                    id: NodeId(
+                                                                        4294967295,
+                                                                    ),
+                                                                    span: Span {
+                                                                        lo: 22,
+                                                                        hi: 23,
+                                                                    },
+                                                                    namespace: None,
+                                                                    name: Ident {
+                                                                        id: NodeId(
+                                                                            4294967295,
+                                                                        ),
+                                                                        span: Span {
+                                                                            lo: 22,
+                                                                            hi: 23,
+                                                                        },
+                                                                        name: "y",
+                                                                    },
+                                                                },
+                                                            ),
+                                                        },
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                        Some(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 26,
+                                                    hi: 36,
+                                                },
+                                                kind: Block(
+                                                    Block {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 31,
+                                                            hi: 36,
+                                                        },
+                                                        stmts: [
+                                                            Stmt {
+                                                                id: NodeId(
+                                                                    4294967295,
+                                                                ),
+                                                                span: Span {
+                                                                    lo: 33,
+                                                                    hi: 34,
+                                                                },
+                                                                kind: Expr(
+                                                                    Expr {
+                                                                        id: NodeId(
+                                                                            4294967295,
+                                                                        ),
+                                                                        span: Span {
+                                                                            lo: 33,
+                                                                            hi: 34,
+                                                                        },
+                                                                        kind: Path(
+                                                                            Path {
+                                                                                id: NodeId(
+                                                                                    4294967295,
+                                                                                ),
+                                                                                span: Span {
+                                                                                    lo: 33,
+                                                                                    hi: 34,
+                                                                                },
+                                                                                namespace: None,
+                                                                                name: Ident {
+                                                                                    id: NodeId(
+                                                                                        4294967295,
+                                                                                    ),
+                                                                                    span: Span {
+                                                                                        lo: 33,
+                                                                                        hi: 34,
+                                                                                    },
+                                                                                    name: "z",
+                                                                                },
+                                                                            },
+                                                                        ),
+                                                                    },
+                                                                ),
+                                                            },
+                                                        ],
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn repeat_until() {
+        check(
+            expr,
+            "repeat { x } until c",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 20,
+                        },
+                        kind: Repeat(
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 7,
+                                    hi: 12,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 9,
+                                            hi: 10,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 9,
+                                                    hi: 10,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 9,
+                                                            hi: 10,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 9,
+                                                                hi: 10,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 19,
+                                    hi: 20,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 19,
+                                            hi: 20,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 19,
+                                                hi: 20,
+                                            },
+                                            name: "c",
+                                        },
+                                    },
+                                ),
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn repeat_until_fixup() {
+        check(
+            expr,
+            "repeat { x } until c fixup { y }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 32,
+                        },
+                        kind: Repeat(
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 7,
+                                    hi: 12,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 9,
+                                            hi: 10,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 9,
+                                                    hi: 10,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 9,
+                                                            hi: 10,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 9,
+                                                                hi: 10,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 19,
+                                    hi: 20,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 19,
+                                            hi: 20,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 19,
+                                                hi: 20,
+                                            },
+                                            name: "c",
+                                        },
+                                    },
+                                ),
+                            },
+                            Some(
+                                Block {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 27,
+                                        hi: 32,
+                                    },
+                                    stmts: [
+                                        Stmt {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 29,
+                                                hi: 30,
+                                            },
+                                            kind: Expr(
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 29,
+                                                        hi: 30,
+                                                    },
+                                                    kind: Path(
+                                                        Path {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 29,
+                                                                hi: 30,
+                                                            },
+                                                            namespace: None,
+                                                            name: Ident {
+                                                                id: NodeId(
+                                                                    4294967295,
+                                                                ),
+                                                                span: Span {
+                                                                    lo: 29,
+                                                                    hi: 30,
+                                                                },
+                                                                name: "y",
+                                                            },
+                                                        },
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn return_expr() {
+        check(
+            expr,
+            "return x",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 8,
+                        },
+                        kind: Return(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 7,
+                                    hi: 8,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 7,
+                                            hi: 8,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 7,
+                                                hi: 8,
+                                            },
+                                            name: "x",
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn set() {
+        check(
+            expr,
+            "set x = y",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 9,
+                        },
+                        kind: Assign(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 4,
+                                    hi: 5,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 4,
+                                            hi: 5,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 4,
+                                                hi: 5,
+                                            },
+                                            name: "x",
+                                        },
+                                    },
+                                ),
+                            },
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 8,
+                                    hi: 9,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 8,
+                                            hi: 9,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 8,
+                                                hi: 9,
+                                            },
+                                            name: "y",
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn while_expr() {
+        check(
+            expr,
+            "while c { x }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 13,
+                        },
+                        kind: While(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 6,
+                                    hi: 7,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 6,
+                                            hi: 7,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 6,
+                                                hi: 7,
+                                            },
+                                            name: "c",
+                                        },
+                                    },
+                                ),
+                            },
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 8,
+                                    hi: 13,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 10,
+                                            hi: 11,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 10,
+                                                    hi: 11,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 10,
+                                                            hi: 11,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 10,
+                                                                hi: 11,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn within_apply() {
+        check(
+            expr,
+            "within { x } apply { y }",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 24,
+                        },
+                        kind: Conjugate(
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 7,
+                                    hi: 12,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 9,
+                                            hi: 10,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 9,
+                                                    hi: 10,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 9,
+                                                            hi: 10,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 9,
+                                                                hi: 10,
+                                                            },
+                                                            name: "x",
+                                                        },
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            },
+                            Block {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 19,
+                                    hi: 24,
+                                },
+                                stmts: [
+                                    Stmt {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 21,
+                                            hi: 22,
+                                        },
+                                        kind: Expr(
+                                            Expr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 21,
+                                                    hi: 22,
+                                                },
+                                                kind: Path(
+                                                    Path {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 21,
+                                                            hi: 22,
+                                                        },
+                                                        namespace: None,
+                                                        name: Ident {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 21,
+                                                                hi: 22,
+                                                            },
+                                                            name: "y",
                                                         },
                                                     },
                                                 ),

@@ -77,7 +77,7 @@ pub fn walk_package(vis: &mut impl Visitor, package: &Package) {
 }
 
 pub fn walk_namespace(vis: &mut impl Visitor, namespace: &Namespace) {
-    vis.visit_path(&namespace.name);
+    vis.visit_ident(&namespace.name);
     namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
 
@@ -220,12 +220,10 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_expr(iter);
             vis.visit_block(block);
         }
-        ExprKind::If(branches, default) => {
-            for (cond, block) in branches {
-                vis.visit_expr(cond);
-                vis.visit_block(block);
-            }
-            default.iter().for_each(|d| vis.visit_block(d));
+        ExprKind::If(cond, body, otherwise) => {
+            vis.visit_expr(cond);
+            vis.visit_block(body);
+            otherwise.iter().for_each(|e| vis.visit_expr(e));
         }
         ExprKind::Index(array, index) => {
             vis.visit_expr(array);

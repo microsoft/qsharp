@@ -3,7 +3,7 @@
 
 use super::{
     keyword::Keyword,
-    prim::{ident, keyword, many, opt, pat, path, seq, token},
+    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token},
     scan::Scanner,
     stmt::{self, stmt},
     ty::{self, ty},
@@ -27,7 +27,7 @@ pub(super) fn package(s: &mut Scanner) -> Result<Package> {
 fn namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     keyword(s, Keyword::Namespace)?;
-    let name = path(s)?;
+    let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = many(s, item)?;
     token(s, TokenKind::Close(Delim::Brace))?;
@@ -41,14 +41,22 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
 
 fn item(s: &mut Scanner) -> Result<Item> {
     let lo = s.peek().span.lo;
-    let meta = DeclMeta {
-        attrs: Vec::new(),
-        visibility: None,
-    };
-
-    let kind = match opt(s, callable_decl)? {
-        None => Err(s.error(ErrorKind::Rule("namespace item"))),
-        Some(decl) => Ok(ItemKind::Callable(meta, decl)),
+    let kind = if keyword(s, Keyword::Open).is_ok() {
+        let name = dot_ident(s)?;
+        let alias = if keyword(s, Keyword::As).is_ok() {
+            Some(dot_ident(s)?)
+        } else {
+            None
+        };
+        Ok(ItemKind::Open(name, alias))
+    } else if let Some(decl) = opt(s, callable_decl)? {
+        let meta = DeclMeta {
+            attrs: Vec::new(),
+            visibility: None,
+        };
+        Ok(ItemKind::Callable(meta, decl))
+    } else {
+        Err(s.error(ErrorKind::Rule("item")))
     }?;
 
     Ok(Item {
@@ -331,6 +339,130 @@ mod tests {
                             lo: 11,
                             hi: 12,
                         },
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn open_no_alias() {
+        check(
+            item,
+            "open Foo.Bar.Baz;",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 16,
+                        },
+                        kind: Open(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 16,
+                                },
+                                name: "Foo.Bar.Baz",
+                            },
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn open_alias() {
+        check(
+            item,
+            "open Foo.Bar.Baz as Baz;",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 23,
+                        },
+                        kind: Open(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 16,
+                                },
+                                name: "Foo.Bar.Baz",
+                            },
+                            Some(
+                                Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 20,
+                                        hi: 23,
+                                    },
+                                    name: "Baz",
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn open_alias_dot() {
+        check(
+            item,
+            "open Foo.Bar.Baz as Bar.Baz;",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 27,
+                        },
+                        kind: Open(
+                            Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 5,
+                                    hi: 16,
+                                },
+                                name: "Foo.Bar.Baz",
+                            },
+                            Some(
+                                Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 20,
+                                        hi: 27,
+                                    },
+                                    name: "Bar.Baz",
+                                },
+                            ),
+                        ),
                     },
                 )
             "#]],
@@ -1893,7 +2025,7 @@ mod tests {
                                     lo: 0,
                                     hi: 57,
                                 },
-                                name: Path {
+                                name: Ident {
                                     id: NodeId(
                                         4294967295,
                                     ),
@@ -1901,17 +2033,7 @@ mod tests {
                                         lo: 10,
                                         hi: 11,
                                     },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 10,
-                                            hi: 11,
-                                        },
-                                        name: "A",
-                                    },
+                                    name: "A",
                                 },
                                 items: [
                                     Item {
@@ -2021,7 +2143,7 @@ mod tests {
                                     lo: 0,
                                     hi: 14,
                                 },
-                                name: Path {
+                                name: Ident {
                                     id: NodeId(
                                         4294967295,
                                     ),
@@ -2029,17 +2151,7 @@ mod tests {
                                         lo: 10,
                                         hi: 11,
                                     },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 10,
-                                            hi: 11,
-                                        },
-                                        name: "A",
-                                    },
+                                    name: "A",
                                 },
                                 items: [],
                             },
@@ -2051,7 +2163,7 @@ mod tests {
                                     lo: 15,
                                     hi: 29,
                                 },
-                                name: Path {
+                                name: Ident {
                                     id: NodeId(
                                         4294967295,
                                     ),
@@ -2059,17 +2171,7 @@ mod tests {
                                         lo: 25,
                                         hi: 26,
                                     },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 25,
-                                            hi: 26,
-                                        },
-                                        name: "B",
-                                    },
+                                    name: "B",
                                 },
                                 items: [],
                             },
