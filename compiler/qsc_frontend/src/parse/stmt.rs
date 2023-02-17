@@ -4,7 +4,7 @@
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{keyword, many, opt, pat, seq, token, FinalSep},
+    prim::{keyword, many, opt, pat, seq, token},
     scan::Scanner,
     ErrorKind, Result,
 };
@@ -103,14 +103,13 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
             Err(s.error(ErrorKind::Rule("qubit initializer")))
         }
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (mut inits, final_sep) = seq(s, qubit_init)?;
+        let (inits, final_sep) = seq(s, qubit_init)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        if final_sep == FinalSep::Missing && inits.len() == 1 {
-            let init = inits.pop().expect("Sequence has exactly one initializer.");
-            Ok(QubitInitKind::Paren(Box::new(init)))
-        } else {
-            Ok(QubitInitKind::Tuple(inits))
-        }
+        Ok(final_sep.reify(
+            inits,
+            |i| QubitInitKind::Paren(Box::new(i)),
+            QubitInitKind::Tuple,
+        ))
     } else {
         Err(s.error(ErrorKind::Rule("qubit initializer")))
     }?;

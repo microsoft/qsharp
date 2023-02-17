@@ -3,7 +3,7 @@
 
 use super::{
     keyword::Keyword,
-    prim::{ident, keyword, opt, pat, path, seq, token, FinalSep},
+    prim::{ident, keyword, opt, pat, path, seq, token},
     scan::Scanner,
     stmt, ErrorKind, Result,
 };
@@ -92,16 +92,9 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
 fn expr_base(s: &mut Scanner) -> Result<Expr> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (mut exprs, final_sep) = seq(s, expr)?;
+        let (exprs, final_sep) = seq(s, expr)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        if final_sep == FinalSep::Missing && exprs.len() == 1 {
-            let expr = exprs
-                .pop()
-                .expect("Sequence should have exactly one expression.");
-            Ok(ExprKind::Paren(Box::new(expr)))
-        } else {
-            Ok(ExprKind::Tuple(exprs))
-        }
+        Ok(final_sep.reify(exprs, |e| ExprKind::Paren(Box::new(e)), ExprKind::Tuple))
     } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
         let exprs = seq(s, expr)?.0;
         Ok(ExprKind::Array(exprs))
@@ -366,25 +359,14 @@ fn index_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
 
 fn call_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
     let lo = s.span(0).hi - 1;
-    let (mut args, final_sep) = seq(s, expr)?;
+    let (args, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
-
-    let arg_kind = if final_sep == FinalSep::Missing && args.len() == 1 {
-        let arg = args
-            .pop()
-            .expect("Sequence should have exactly one argument.");
-        ExprKind::Paren(Box::new(arg))
-    } else {
-        ExprKind::Tuple(args)
-    };
-
-    let arg = Expr {
+    let rhs = Expr {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),
-        kind: arg_kind,
+        kind: final_sep.reify(args, |a| ExprKind::Paren(Box::new(a)), ExprKind::Tuple),
     };
-
-    Ok(ExprKind::Call(Box::new(lhs), Box::new(arg)))
+    Ok(ExprKind::Call(Box::new(lhs), Box::new(rhs)))
 }
 
 fn op_name(s: &Scanner) -> OpName {
