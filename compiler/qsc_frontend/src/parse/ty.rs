@@ -3,7 +3,7 @@
 
 use super::{
     keyword::Keyword,
-    prim::{fold, ident, keyword, opt, path, seq, token, FinalSep},
+    prim::{ident, keyword, opt, path, seq, token, FinalSep},
     scan::Scanner,
     ErrorKind, Parser, Result,
 };
@@ -117,8 +117,9 @@ fn base(s: &mut Scanner) -> Result<Ty> {
 }
 
 pub(super) fn functor_expr(s: &mut Scanner) -> Result<FunctorExpr> {
-    functor_layer(s, ClosedBinOp::Plus, SetOp::Union, |s| {
-        functor_layer(s, ClosedBinOp::Star, SetOp::Intersect, functor_base)
+    // Intersection binds tighter than union.
+    functor_op(s, ClosedBinOp::Plus, SetOp::Union, |s| {
+        functor_op(s, ClosedBinOp::Star, SetOp::Intersect, functor_base)
     })
 }
 
@@ -143,26 +144,25 @@ fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
     })
 }
 
-fn functor_layer(
+fn functor_op(
     s: &mut Scanner,
     bin_op: ClosedBinOp,
     set_op: SetOp,
     mut p: impl Parser<FunctorExpr>,
 ) -> Result<FunctorExpr> {
     let lo = s.peek().span.lo;
-    fold(
-        p(s)?,
-        s,
-        |s| {
-            token(s, TokenKind::ClosedBinOp(bin_op))?;
-            p(s)
-        },
-        |s, lhs, rhs| FunctorExpr {
+    let mut lhs = p(s)?;
+
+    while token(s, TokenKind::ClosedBinOp(bin_op)).is_ok() {
+        let rhs = p(s)?;
+        lhs = FunctorExpr {
             id: NodeId::PLACEHOLDER,
             span: s.span(lo),
             kind: FunctorExprKind::BinOp(set_op, Box::new(lhs), Box::new(rhs)),
-        },
-    )
+        };
+    }
+
+    Ok(lhs)
 }
 
 #[cfg(test)]
