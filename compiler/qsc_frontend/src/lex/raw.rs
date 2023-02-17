@@ -148,6 +148,16 @@ impl<'a> Lexer<'a> {
         while self.chars.next_if(|i| f(i.1)).is_some() {}
     }
 
+    fn first(&mut self) -> Option<char> {
+        self.chars.peek().map(|i| i.1)
+    }
+
+    fn second(&self) -> Option<char> {
+        let mut chars = self.chars.clone();
+        chars.next();
+        chars.next().map(|i| i.1)
+    }
+
     fn whitespace(&mut self, c: char) -> bool {
         if c.is_whitespace() {
             self.eat_while(char::is_whitespace);
@@ -224,7 +234,10 @@ impl<'a> Lexer<'a> {
         }
 
         self.eat_while(|c| c == '_' || c.is_ascii_digit());
-        if self.next_if_eq('.') {
+
+        // Watch out for ranges: `0..` should be an integer followed by two dots.
+        if self.first() == Some('.') && self.second() != Some('.') {
+            self.chars.next();
             self.eat_while(|c| c == '_' || c.is_ascii_digit());
             self.exp();
             Some(Number::Float)
@@ -541,6 +554,35 @@ mod tests {
                     Token {
                         kind: Ident,
                         offset: 0,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn int_dot_dot() {
+        check(
+            "0..",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 1,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 2,
                     },
                 ]
             "#]],

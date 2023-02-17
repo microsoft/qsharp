@@ -240,10 +240,10 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(expr);
         }
         ExprKind::Path(path) => vis.visit_path(path),
-        ExprKind::Range(start, step, end) => {
-            vis.visit_expr(start);
-            vis.visit_expr(step);
-            vis.visit_expr(end);
+        ExprKind::Range(start, step, stop) => {
+            start.iter_mut().for_each(|s| vis.visit_expr(s));
+            step.iter_mut().for_each(|s| vis.visit_expr(s));
+            stop.iter_mut().for_each(|s| vis.visit_expr(s));
         }
         ExprKind::Repeat(body, until, fixup) => {
             vis.visit_block(body);
