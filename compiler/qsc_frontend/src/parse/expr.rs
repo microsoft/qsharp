@@ -9,107 +9,82 @@ use super::{
 };
 use crate::lex::{ClosedBinOp, TokenKind};
 use qsc_ast::ast::{self, BinOp, Expr, ExprKind, Functor, Lit, NodeId, Pauli, UnOp};
+use std::str::FromStr;
 
-pub(super) fn expr(s: &mut Scanner) -> Result<Expr> {
-    expr_bp(s, 0)
+struct PrefixOp {
+    kind: UnOp,
+    precedence: u8,
 }
 
-fn expr_bp(s: &mut Scanner, min_bp: u8) -> Result<Expr> {
+struct MixfixOp {
+    fixity: Fixity,
+    precedence: u8,
+}
+
+enum Fixity {
+    Infix(BinOp, Assoc),
+    Postfix(UnOp),
+}
+
+enum Assoc {
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy)]
+enum OpName {
+    Token(TokenKind),
+    Keyword(Keyword),
+}
+
+pub(super) fn expr(s: &mut Scanner) -> Result<Expr> {
+    expr_op(s, 0)
+}
+
+fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
     let lo = s.peek().span.lo;
-    let mut lhs = if let Some((op, ((), r_bp))) = prefix_op(s.peek().kind, s.read()) {
+    let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
-        let rhs = expr_bp(s, r_bp)?;
+        let rhs = expr_op(s, op.precedence)?;
         Expr {
             id: NodeId::PLACEHOLDER,
             span: s.span(lo),
-            kind: ExprKind::UnOp(op, Box::new(rhs)),
+            kind: ExprKind::UnOp(op.kind, Box::new(rhs)),
         }
     } else {
         expr_base(s)?
     };
 
-    loop {
-        if let Some((op, (l_bp, ()))) = postfix_op(s.peek().kind) {
-            if l_bp < min_bp {
-                break;
-            }
-
-            s.advance();
-            lhs = Expr {
-                id: NodeId::PLACEHOLDER,
-                span: s.span(lo),
-                kind: ExprKind::UnOp(op, Box::new(lhs)),
-            };
-            continue;
+    while let Some(op) = mixfix_op(op_name(s)) {
+        if op.precedence < min_precedence {
+            break;
         }
 
-        if let Some((op, (l_bp, r_bp))) = infix_op(s.peek().kind) {
-            if l_bp < min_bp {
-                break;
-            }
+        s.advance();
+        lhs = match op.fixity {
+            Fixity::Infix(kind, assoc) => {
+                let min_precedence = op.precedence
+                    + match assoc {
+                        Assoc::Left => 1,
+                        Assoc::Right => 0,
+                    };
 
-            s.advance();
-            let rhs = expr_bp(s, r_bp)?;
-            lhs = Expr {
+                let rhs = expr_op(s, min_precedence)?;
+                Expr {
+                    id: NodeId::PLACEHOLDER,
+                    span: s.span(lo),
+                    kind: ExprKind::BinOp(kind, Box::new(lhs), Box::new(rhs)),
+                }
+            }
+            Fixity::Postfix(kind) => Expr {
                 id: NodeId::PLACEHOLDER,
                 span: s.span(lo),
-                kind: ExprKind::BinOp(op, Box::new(lhs), Box::new(rhs)),
-            };
-            continue;
-        }
-
-        break;
+                kind: ExprKind::UnOp(kind, Box::new(lhs)),
+            },
+        };
     }
 
     Ok(lhs)
-}
-
-fn prefix_op(token: TokenKind, lexeme: &str) -> Option<(UnOp, ((), u8))> {
-    match token {
-        TokenKind::Ident if lexeme == Keyword::Not.as_str() => Some((UnOp::NotL, ((), 13))),
-        TokenKind::TildeTildeTilde => Some((UnOp::NotB, ((), 13))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Plus) => Some((UnOp::Pos, ((), 13))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Minus) => Some((UnOp::Neg, ((), 13))),
-        TokenKind::Ident if lexeme == Keyword::AdjointUpper.as_str() => {
-            Some((UnOp::Functor(Functor::Adj), ((), 16)))
-        }
-        TokenKind::Ident if lexeme == Keyword::ControlledUpper.as_str() => {
-            Some((UnOp::Functor(Functor::Ctl), ((), 16)))
-        }
-        _ => None,
-    }
-}
-
-fn postfix_op(token: TokenKind) -> Option<(UnOp, (u8, ()))> {
-    match token {
-        TokenKind::Bang => Some((UnOp::Unwrap, (17, ()))),
-        _ => None,
-    }
-}
-
-fn infix_op(token: TokenKind) -> Option<(BinOp, (u8, u8))> {
-    match token {
-        TokenKind::ClosedBinOp(ClosedBinOp::Or) => Some((BinOp::OrL, (1, 2))),
-        TokenKind::ClosedBinOp(ClosedBinOp::And) => Some((BinOp::AndL, (3, 4))),
-        TokenKind::EqEq => Some((BinOp::Eq, (5, 6))),
-        TokenKind::Ne => Some((BinOp::Neq, (5, 6))),
-        TokenKind::Gt => Some((BinOp::Gt, (5, 6))),
-        TokenKind::Gte => Some((BinOp::Gte, (5, 6))),
-        TokenKind::Lt => Some((BinOp::Lt, (5, 6))),
-        TokenKind::Lte => Some((BinOp::Lte, (5, 6))),
-        TokenKind::ClosedBinOp(ClosedBinOp::AmpAmpAmp) => Some((BinOp::AndB, (7, 8))),
-        TokenKind::ClosedBinOp(ClosedBinOp::BarBarBar) => Some((BinOp::OrB, (7, 8))),
-        TokenKind::ClosedBinOp(ClosedBinOp::CaretCaretCaret) => Some((BinOp::XorB, (7, 8))),
-        TokenKind::ClosedBinOp(ClosedBinOp::LtLtLt) => Some((BinOp::Shl, (7, 8))),
-        TokenKind::ClosedBinOp(ClosedBinOp::GtGtGt) => Some((BinOp::Shr, (7, 8))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Plus) => Some((BinOp::Add, (9, 10))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Minus) => Some((BinOp::Sub, (9, 10))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Star) => Some((BinOp::Mul, (11, 12))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Slash) => Some((BinOp::Div, (11, 12))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Percent) => Some((BinOp::Mod, (11, 12))),
-        TokenKind::ClosedBinOp(ClosedBinOp::Caret) => Some((BinOp::Exp, (15, 14))),
-        _ => None,
-    }
 }
 
 fn expr_base(s: &mut Scanner) -> Result<Expr> {
@@ -223,6 +198,129 @@ fn lit(s: &mut Scanner) -> Result<Lit> {
         Ok(Lit::Pauli(Pauli::Z))
     } else {
         Err(s.error(ErrorKind::Rule("literal")))
+    }
+}
+
+fn prefix_op(name: OpName) -> Option<PrefixOp> {
+    match name {
+        OpName::Keyword(Keyword::Not) => Some(PrefixOp {
+            kind: UnOp::NotL,
+            precedence: 7,
+        }),
+        OpName::Token(TokenKind::TildeTildeTilde) => Some(PrefixOp {
+            kind: UnOp::NotB,
+            precedence: 7,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Plus)) => Some(PrefixOp {
+            kind: UnOp::Pos,
+            precedence: 7,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Minus)) => Some(PrefixOp {
+            kind: UnOp::Neg,
+            precedence: 7,
+        }),
+        OpName::Keyword(Keyword::AdjointUpper) => Some(PrefixOp {
+            kind: UnOp::Functor(Functor::Adj),
+            precedence: 9,
+        }),
+        OpName::Keyword(Keyword::ControlledUpper) => Some(PrefixOp {
+            kind: UnOp::Functor(Functor::Ctl),
+            precedence: 9,
+        }),
+        _ => None,
+    }
+}
+
+fn mixfix_op(name: OpName) -> Option<MixfixOp> {
+    match name {
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Or)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::OrL, Assoc::Left),
+            precedence: 1,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::And)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::AndL, Assoc::Left),
+            precedence: 2,
+        }),
+        OpName::Token(TokenKind::EqEq) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Eq, Assoc::Left),
+            precedence: 3,
+        }),
+        OpName::Token(TokenKind::Ne) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Neq, Assoc::Left),
+            precedence: 3,
+        }),
+        OpName::Token(TokenKind::Gt) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Gt, Assoc::Left),
+            precedence: 3,
+        }),
+        OpName::Token(TokenKind::Gte) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Gte, Assoc::Left),
+            precedence: 3,
+        }),
+        OpName::Token(TokenKind::Lt) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Lt, Assoc::Left),
+            precedence: 3,
+        }),
+        OpName::Token(TokenKind::Lte) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Lte, Assoc::Left),
+            precedence: 3,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::AmpAmpAmp)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::AndB, Assoc::Left),
+            precedence: 4,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::BarBarBar)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::OrB, Assoc::Left),
+            precedence: 4,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::CaretCaretCaret)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::XorB, Assoc::Left),
+            precedence: 4,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::LtLtLt)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Shl, Assoc::Left),
+            precedence: 4,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::GtGtGt)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Shr, Assoc::Left),
+            precedence: 4,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Plus)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Add, Assoc::Left),
+            precedence: 5,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Minus)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Sub, Assoc::Left),
+            precedence: 5,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Star)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Mul, Assoc::Left),
+            precedence: 6,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Slash)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Div, Assoc::Left),
+            precedence: 6,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Percent)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Mod, Assoc::Left),
+            precedence: 6,
+        }),
+        OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Caret)) => Some(MixfixOp {
+            fixity: Fixity::Infix(BinOp::Exp, Assoc::Right),
+            precedence: 8,
+        }),
+        OpName::Token(TokenKind::Bang) => Some(MixfixOp {
+            fixity: Fixity::Postfix(UnOp::Unwrap),
+            precedence: 10,
+        }),
+        _ => None,
+    }
+}
+
+fn op_name(s: &Scanner) -> OpName {
+    match Keyword::from_str(s.read()) {
+        Ok(Keyword::And | Keyword::Or) | Err(_) => OpName::Token(s.peek().kind),
+        Ok(keyword) => OpName::Keyword(keyword),
     }
 }
 
@@ -3837,6 +3935,135 @@ mod tests {
                                                 hi: 5,
                                             },
                                             name: "y",
+                                        },
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn add_left_assoc() {
+        check(
+            expr,
+            "x + y + z",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 9,
+                        },
+                        kind: BinOp(
+                            Add,
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: BinOp(
+                                    Add,
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 0,
+                                            hi: 1,
+                                        },
+                                        kind: Path(
+                                            Path {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 0,
+                                                    hi: 1,
+                                                },
+                                                namespace: None,
+                                                name: Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 0,
+                                                        hi: 1,
+                                                    },
+                                                    name: "x",
+                                                },
+                                            },
+                                        ),
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 4,
+                                            hi: 5,
+                                        },
+                                        kind: Path(
+                                            Path {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 4,
+                                                    hi: 5,
+                                                },
+                                                namespace: None,
+                                                name: Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 4,
+                                                        hi: 5,
+                                                    },
+                                                    name: "y",
+                                                },
+                                            },
+                                        ),
+                                    },
+                                ),
+                            },
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 8,
+                                    hi: 9,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 8,
+                                            hi: 9,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 8,
+                                                hi: 9,
+                                            },
+                                            name: "z",
                                         },
                                     },
                                 ),
