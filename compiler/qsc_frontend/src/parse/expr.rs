@@ -3,11 +3,11 @@
 
 use super::{
     keyword::Keyword,
-    prim::{keyword, opt, pat, path, token},
+    prim::{keyword, opt, pat, path, seq, token, FinalSep},
     scan::Scanner,
     stmt, ErrorKind, Result,
 };
-use crate::lex::{ClosedBinOp, TokenKind};
+use crate::lex::{ClosedBinOp, Delim, TokenKind};
 use qsc_ast::ast::{self, BinOp, Expr, ExprKind, Functor, Lit, NodeId, Pauli, UnOp};
 use std::str::FromStr;
 
@@ -89,7 +89,21 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
 
 fn expr_base(s: &mut Scanner) -> Result<Expr> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, Keyword::Fail).is_ok() {
+    let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
+        let (mut exprs, final_sep) = seq(s, expr)?;
+        token(s, TokenKind::Close(Delim::Paren))?;
+        if final_sep == FinalSep::Missing && exprs.len() == 1 {
+            let expr = exprs
+                .pop()
+                .expect("Sequence should have exactly one expression.");
+            Ok(ExprKind::Paren(Box::new(expr)))
+        } else {
+            Ok(ExprKind::Tuple(exprs))
+        }
+    } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
+        let exprs = seq(s, expr)?.0;
+        Ok(ExprKind::Array(exprs))
+    } else if keyword(s, Keyword::Fail).is_ok() {
         Ok(ExprKind::Fail(Box::new(expr(s)?)))
     } else if keyword(s, Keyword::For).is_ok() {
         let vars = pat(s)?;
