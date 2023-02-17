@@ -229,7 +229,6 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
             vis.visit_expr(array);
             vis.visit_expr(index);
         }
-        ExprKind::Interp(_, exprs) => exprs.iter().for_each(|e| vis.visit_expr(e)),
         ExprKind::Lambda(_, pat, expr) => {
             vis.visit_pat(pat);
             vis.visit_expr(expr);

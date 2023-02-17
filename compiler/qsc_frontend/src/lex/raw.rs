@@ -61,8 +61,6 @@ pub(super) enum Single {
     Colon,
     /// `,`
     Comma,
-    /// `$`
-    Dollar,
     /// `.`
     Dot,
     /// `=`
@@ -105,7 +103,6 @@ impl Display for Single {
             Single::Close(Delim::Paren) => ')',
             Single::Colon => ':',
             Single::Comma => ',',
-            Single::Dollar => '$',
             Single::Dot => '.',
             Single::Eq => '=',
             Single::Gt => '>',
@@ -317,7 +314,6 @@ fn single(c: char) -> Option<Single> {
         '>' => Some(Single::Gt),
         '|' => Some(Single::Bar),
         '~' => Some(Single::Tilde),
-        '$' => Some(Single::Dollar),
         _ => None,
     }
 }
