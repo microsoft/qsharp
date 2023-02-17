@@ -186,11 +186,24 @@ pub enum SpecBody {
 
 /// An expression that describes a set of functors.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum FunctorExpr {
+pub struct FunctorExpr {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The functor expression kind.
+    pub kind: FunctorExprKind,
+}
+
+/// A functor expression kind.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum FunctorExprKind {
     /// A binary operation.
     BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
     /// A literal for a specific functor.
     Lit(Functor),
+    /// A parenthesized group.
+    Paren(Box<FunctorExpr>),
 }
 
 /// A type.

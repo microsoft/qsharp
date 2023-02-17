@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, Ident, Item, ItemKind,
-    Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
-    StmtKind, Ty, TyDef, TyKind,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
+    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
+    SpecDecl, Stmt, StmtKind, Ty, TyDef, TyKind,
 };
 
 pub trait MutVisitor: Sized {
@@ -139,12 +139,13 @@ pub fn walk_spec_decl(vis: &mut impl MutVisitor, decl: &mut SpecDecl) {
 }
 
 pub fn walk_functor_expr(vis: &mut impl MutVisitor, expr: &mut FunctorExpr) {
-    match expr {
-        FunctorExpr::BinOp(_, lhs, rhs) => {
+    match &mut expr.kind {
+        FunctorExprKind::BinOp(_, lhs, rhs) => {
             vis.visit_functor_expr(lhs);
             vis.visit_functor_expr(rhs);
         }
-        FunctorExpr::Lit(_) => {}
+        FunctorExprKind::Lit(_) => {}
+        FunctorExprKind::Paren(expr) => vis.visit_functor_expr(expr),
     }
 }
 

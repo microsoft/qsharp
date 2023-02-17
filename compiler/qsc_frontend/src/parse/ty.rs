@@ -5,10 +5,13 @@ use super::{
     keyword::Keyword,
     prim::{ident, keyword, opt, path, seq, token, FinalSep},
     scan::Scanner,
-    ErrorKind, Result,
+    ErrorKind, Parser, Result,
 };
-use crate::lex::{Delim, TokenKind};
-use qsc_ast::ast::{CallableKind, Ident, NodeId, Ty, TyKind, TyPrim, TyVar};
+use crate::lex::{ClosedBinOp, Delim, TokenKind};
+use qsc_ast::ast::{
+    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind, TyPrim,
+    TyVar,
+};
 
 pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
@@ -22,10 +25,16 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
             }
         } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
+            let functors = if keyword(s, Keyword::Is).is_ok() {
+                Some(functor_expr(s)?)
+            } else {
+                None
+            };
+
             lhs = Ty {
                 id: NodeId::PLACEHOLDER,
                 span: s.span(lo),
-                kind: TyKind::Arrow(kind, Box::new(lhs), Box::new(output), None),
+                kind: TyKind::Arrow(kind, Box::new(lhs), Box::new(output), functors),
             }
         } else {
             break Ok(lhs);
@@ -107,8 +116,59 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     })
 }
 
+pub(super) fn functor_expr(s: &mut Scanner) -> Result<FunctorExpr> {
+    // Intersection binds tighter than union.
+    functor_op(s, ClosedBinOp::Plus, SetOp::Union, |s| {
+        functor_op(s, ClosedBinOp::Star, SetOp::Intersect, functor_base)
+    })
+}
+
+fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
+    let lo = s.peek().span.lo;
+    let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
+        let e = functor_expr(s)?;
+        token(s, TokenKind::Close(Delim::Paren))?;
+        Ok(FunctorExprKind::Paren(Box::new(e)))
+    } else if keyword(s, Keyword::Adj).is_ok() {
+        Ok(FunctorExprKind::Lit(Functor::Adj))
+    } else if keyword(s, Keyword::Ctl).is_ok() {
+        Ok(FunctorExprKind::Lit(Functor::Ctl))
+    } else {
+        Err(s.error(ErrorKind::Rule("functor literal")))
+    }?;
+
+    Ok(FunctorExpr {
+        id: NodeId::PLACEHOLDER,
+        span: s.span(lo),
+        kind,
+    })
+}
+
+fn functor_op(
+    s: &mut Scanner,
+    bin_op: ClosedBinOp,
+    set_op: SetOp,
+    mut p: impl Parser<FunctorExpr>,
+) -> Result<FunctorExpr> {
+    let lo = s.peek().span.lo;
+    let mut lhs = p(s)?;
+
+    while token(s, TokenKind::ClosedBinOp(bin_op)).is_ok() {
+        let rhs = p(s)?;
+        lhs = FunctorExpr {
+            id: NodeId::PLACEHOLDER,
+            span: s.span(lo),
+            kind: FunctorExprKind::BinOp(set_op, Box::new(lhs), Box::new(rhs)),
+        };
+    }
+
+    Ok(lhs)
+}
+
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::too_many_lines)]
+
     use super::ty;
     use crate::parse::tests::check;
     use expect_test::expect;
@@ -1140,6 +1200,755 @@ mod tests {
                                 ),
                             },
                             None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_is_adj() {
+        check(
+            ty,
+            "Qubit => Unit is Adj",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 20,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 13,
+                                },
+                                kind: Tuple(
+                                    [],
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 17,
+                                        hi: 20,
+                                    },
+                                    kind: Lit(
+                                        Adj,
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_is_adj_ctl() {
+        check(
+            ty,
+            "Qubit => Unit is Adj + Ctl",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 26,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 13,
+                                },
+                                kind: Tuple(
+                                    [],
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 17,
+                                        hi: 26,
+                                    },
+                                    kind: BinOp(
+                                        Union,
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 17,
+                                                hi: 20,
+                                            },
+                                            kind: Lit(
+                                                Adj,
+                                            ),
+                                        },
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 23,
+                                                hi: 26,
+                                            },
+                                            kind: Lit(
+                                                Ctl,
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_is_nested() {
+        check(
+            ty,
+            "Qubit => Qubit => Unit is Adj is Ctl",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 36,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 29,
+                                },
+                                kind: Arrow(
+                                    Operation,
+                                    Ty {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 9,
+                                            hi: 14,
+                                        },
+                                        kind: Prim(
+                                            Qubit,
+                                        ),
+                                    },
+                                    Ty {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 18,
+                                            hi: 22,
+                                        },
+                                        kind: Tuple(
+                                            [],
+                                        ),
+                                    },
+                                    Some(
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 26,
+                                                hi: 29,
+                                            },
+                                            kind: Lit(
+                                                Adj,
+                                            ),
+                                        },
+                                    ),
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 33,
+                                        hi: 36,
+                                    },
+                                    kind: Lit(
+                                        Ctl,
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_is_nested_paren() {
+        check(
+            ty,
+            "Qubit => (Qubit => Unit) is Ctl",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 31,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 24,
+                                },
+                                kind: Paren(
+                                    Ty {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 10,
+                                            hi: 23,
+                                        },
+                                        kind: Arrow(
+                                            Operation,
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 10,
+                                                    hi: 15,
+                                                },
+                                                kind: Prim(
+                                                    Qubit,
+                                                ),
+                                            },
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 19,
+                                                    hi: 23,
+                                                },
+                                                kind: Tuple(
+                                                    [],
+                                                ),
+                                            },
+                                            None,
+                                        ),
+                                    },
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 28,
+                                        hi: 31,
+                                    },
+                                    kind: Lit(
+                                        Ctl,
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_is_paren() {
+        check(
+            ty,
+            "Qubit => Unit is (Adj)",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 22,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 13,
+                                },
+                                kind: Tuple(
+                                    [],
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 17,
+                                        hi: 22,
+                                    },
+                                    kind: Paren(
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 18,
+                                                hi: 21,
+                                            },
+                                            kind: Lit(
+                                                Adj,
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_union_assoc() {
+        check(
+            ty,
+            "Qubit => Unit is Adj + Adj + Adj",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 32,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 13,
+                                },
+                                kind: Tuple(
+                                    [],
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 17,
+                                        hi: 32,
+                                    },
+                                    kind: BinOp(
+                                        Union,
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 17,
+                                                hi: 26,
+                                            },
+                                            kind: BinOp(
+                                                Union,
+                                                FunctorExpr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 17,
+                                                        hi: 20,
+                                                    },
+                                                    kind: Lit(
+                                                        Adj,
+                                                    ),
+                                                },
+                                                FunctorExpr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 23,
+                                                        hi: 26,
+                                                    },
+                                                    kind: Lit(
+                                                        Adj,
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 29,
+                                                hi: 32,
+                                            },
+                                            kind: Lit(
+                                                Adj,
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_intersect_assoc() {
+        check(
+            ty,
+            "Qubit => Unit is Adj * Adj * Adj",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 32,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 13,
+                                },
+                                kind: Tuple(
+                                    [],
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 17,
+                                        hi: 32,
+                                    },
+                                    kind: BinOp(
+                                        Intersect,
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 17,
+                                                hi: 26,
+                                            },
+                                            kind: BinOp(
+                                                Intersect,
+                                                FunctorExpr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 17,
+                                                        hi: 20,
+                                                    },
+                                                    kind: Lit(
+                                                        Adj,
+                                                    ),
+                                                },
+                                                FunctorExpr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 23,
+                                                        hi: 26,
+                                                    },
+                                                    kind: Lit(
+                                                        Adj,
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 29,
+                                                hi: 32,
+                                            },
+                                            kind: Lit(
+                                                Adj,
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn op_ty_is_prec() {
+        check(
+            ty,
+            "Qubit => Unit is Adj + Adj * Ctl",
+            &expect![[r#"
+                Ok(
+                    Ty {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 32,
+                        },
+                        kind: Arrow(
+                            Operation,
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 5,
+                                },
+                                kind: Prim(
+                                    Qubit,
+                                ),
+                            },
+                            Ty {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 13,
+                                },
+                                kind: Tuple(
+                                    [],
+                                ),
+                            },
+                            Some(
+                                FunctorExpr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 17,
+                                        hi: 32,
+                                    },
+                                    kind: BinOp(
+                                        Union,
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 17,
+                                                hi: 20,
+                                            },
+                                            kind: Lit(
+                                                Adj,
+                                            ),
+                                        },
+                                        FunctorExpr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 23,
+                                                hi: 32,
+                                            },
+                                            kind: BinOp(
+                                                Intersect,
+                                                FunctorExpr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 23,
+                                                        hi: 26,
+                                                    },
+                                                    kind: Lit(
+                                                        Adj,
+                                                    ),
+                                                },
+                                                FunctorExpr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 29,
+                                                        hi: 32,
+                                                    },
+                                                    kind: Lit(
+                                                        Ctl,
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ),
                         ),
                     },
                 )
