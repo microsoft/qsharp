@@ -88,6 +88,11 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     let input = pat(s)?;
     token(s, TokenKind::Colon)?;
     let output = ty(s)?;
+    let functors = if keyword(s, Keyword::Is).is_ok() {
+        Some(ty::functor_expr(s)?)
+    } else {
+        None
+    };
     let body = callable_body(s)?;
 
     Ok(CallableDecl {
@@ -98,7 +103,7 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
         ty_params,
         input,
         output,
-        functors: None,
+        functors,
         body,
     })
 }
@@ -1975,6 +1980,226 @@ mod tests {
                                             ),
                                         },
                                     ],
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn operation_is_adj() {
+        check(
+            item,
+            "operation Foo() : Unit is Adj {}",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 32,
+                        },
+                        kind: Callable(
+                            DeclMeta {
+                                attrs: [],
+                                visibility: None,
+                            },
+                            CallableDecl {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 32,
+                                },
+                                kind: Operation,
+                                name: Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 10,
+                                        hi: 13,
+                                    },
+                                    name: "Foo",
+                                },
+                                ty_params: [],
+                                input: Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 13,
+                                        hi: 15,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                output: Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 18,
+                                        hi: 22,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                functors: Some(
+                                    FunctorExpr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 26,
+                                            hi: 29,
+                                        },
+                                        kind: Lit(
+                                            Adj,
+                                        ),
+                                    },
+                                ),
+                                body: Block(
+                                    Block {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 30,
+                                            hi: 32,
+                                        },
+                                        stmts: [],
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn operation_is_adj_ctl() {
+        check(
+            item,
+            "operation Foo() : Unit is Adj + Ctl {}",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 38,
+                        },
+                        kind: Callable(
+                            DeclMeta {
+                                attrs: [],
+                                visibility: None,
+                            },
+                            CallableDecl {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 38,
+                                },
+                                kind: Operation,
+                                name: Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 10,
+                                        hi: 13,
+                                    },
+                                    name: "Foo",
+                                },
+                                ty_params: [],
+                                input: Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 13,
+                                        hi: 15,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                output: Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 18,
+                                        hi: 22,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                functors: Some(
+                                    FunctorExpr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 26,
+                                            hi: 35,
+                                        },
+                                        kind: BinOp(
+                                            Union,
+                                            FunctorExpr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 26,
+                                                    hi: 29,
+                                                },
+                                                kind: Lit(
+                                                    Adj,
+                                                ),
+                                            },
+                                            FunctorExpr {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 32,
+                                                    hi: 35,
+                                                },
+                                                kind: Lit(
+                                                    Ctl,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ),
+                                body: Block(
+                                    Block {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 36,
+                                            hi: 38,
+                                        },
+                                        stmts: [],
+                                    },
                                 ),
                             },
                         ),
