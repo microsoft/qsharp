@@ -23,9 +23,9 @@ struct MixfixOp {
 
 enum OpKind {
     Postfix(UnOp),
-    RichPostfix(fn(&mut Scanner, Expr) -> Result<ExprKind>),
     Binary(BinOp, Assoc),
     Ternary(TernOp, TokenKind, Assoc),
+    Rich(fn(&mut Scanner, Expr) -> Result<ExprKind>),
 }
 
 #[derive(Clone, Copy)]
@@ -68,7 +68,6 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
         s.advance();
         let kind = match op.kind {
             OpKind::Postfix(kind) => ExprKind::UnOp(kind, Box::new(lhs)),
-            OpKind::RichPostfix(f) => f(s, lhs)?,
             OpKind::Binary(kind, assoc) => {
                 let rhs = expr_op(s, next_precedence(op.precedence, assoc))?;
                 ExprKind::BinOp(kind, Box::new(lhs), Box::new(rhs))
@@ -79,6 +78,7 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
                 let rhs = expr_op(s, next_precedence(op.precedence, assoc))?;
                 ExprKind::TernOp(kind, Box::new(lhs), Box::new(middle), Box::new(rhs))
             }
+            OpKind::Rich(f) => f(s, lhs)?,
         };
 
         lhs = Expr {
@@ -246,7 +246,7 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
 fn mixfix_op(name: OpName) -> Option<MixfixOp> {
     match name {
         OpName::Token(TokenKind::DotDot) => Some(MixfixOp {
-            kind: OpKind::RichPostfix(range_op),
+            kind: OpKind::Rich(range_op),
             precedence: RANGE_PRECEDENCE,
         }),
         OpName::Token(TokenKind::WSlash) => Some(MixfixOp {
@@ -338,15 +338,15 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             precedence: 14,
         }),
         OpName::Token(TokenKind::ColonColon) => Some(MixfixOp {
-            kind: OpKind::RichPostfix(field_op),
+            kind: OpKind::Rich(field_op),
             precedence: 14,
         }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
-            kind: OpKind::RichPostfix(index_op),
+            kind: OpKind::Rich(index_op),
             precedence: 14,
         }),
         OpName::Token(TokenKind::Open(Delim::Paren)) => Some(MixfixOp {
-            kind: OpKind::RichPostfix(call_op),
+            kind: OpKind::Rich(call_op),
             precedence: 14,
         }),
         _ => None,
