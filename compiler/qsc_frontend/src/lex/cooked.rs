@@ -59,8 +59,6 @@ pub(crate) enum TokenKind {
     ColonColon,
     /// `,`
     Comma,
-    /// `$`
-    Dollar,
     /// `.`
     Dot,
     /// `..`
@@ -266,7 +264,6 @@ impl<'a> Lexer<'a> {
                 }
             }
             Single::Comma => Ok(TokenKind::Comma),
-            Single::Dollar => Ok(TokenKind::Dollar),
             Single::Dot => {
                 if self.next_if_eq(Single::Dot) {
                     if self.next_if_eq(Single::Dot) {
@@ -397,7 +394,6 @@ mod tests {
             TokenKind::Colon => Some(":".to_string()),
             TokenKind::ColonColon => Some("::".to_string()),
             TokenKind::Comma => Some(",".to_string()),
-            TokenKind::Dollar => Some("$".to_string()),
             TokenKind::Dot => Some(".".to_string()),
             TokenKind::DotDot => Some("..".to_string()),
             TokenKind::DotDotDot => Some("...".to_string()),

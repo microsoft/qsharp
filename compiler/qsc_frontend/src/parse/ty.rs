@@ -15,13 +15,13 @@ use qsc_ast::ast::{
 
 pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
-    let mut acc = base(s)?;
+    let mut lhs = base(s)?;
     loop {
         if let Some(array) = opt(s, array)? {
-            acc = Ty {
+            lhs = Ty {
                 id: NodeId::PLACEHOLDER,
                 span: s.span(lo),
-                kind: TyKind::App(Box::new(array), vec![acc]),
+                kind: TyKind::App(Box::new(array), vec![lhs]),
             }
         } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
@@ -31,13 +31,13 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
                 None
             };
 
-            acc = Ty {
+            lhs = Ty {
                 id: NodeId::PLACEHOLDER,
                 span: s.span(lo),
-                kind: TyKind::Arrow(kind, Box::new(acc), Box::new(output), functors),
+                kind: TyKind::Arrow(kind, Box::new(lhs), Box::new(output), functors),
             }
         } else {
-            break Ok(acc);
+            break Ok(lhs);
         }
     }
 }

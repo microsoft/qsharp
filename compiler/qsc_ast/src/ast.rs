@@ -325,8 +325,6 @@ pub enum ExprKind {
     If(Box<Expr>, Block, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
-    /// An interpolated string: `$"{a} {b} {c}"`.
-    Interp(String, Vec<Expr>),
     /// A lambda: `a -> b` for a function and `a => b` for an operation.
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
