@@ -12,7 +12,7 @@ use super::{
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
     Block, CallableBody, CallableDecl, CallableKind, DeclMeta, Item, ItemKind, Namespace, NodeId,
-    Package, Spec, SpecBody, SpecDecl, SpecGen,
+    Package, Spec, SpecBody, SpecDecl, SpecGen, Visibility, VisibilityKind,
 };
 
 pub(super) fn package(s: &mut Scanner) -> Result<Package> {
@@ -41,20 +41,23 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
 
 fn item(s: &mut Scanner) -> Result<Item> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, Keyword::Open).is_ok() {
-        let name = dot_ident(s)?;
-        let alias = if keyword(s, Keyword::As).is_ok() {
-            Some(dot_ident(s)?)
-        } else {
-            None
-        };
-        Ok(ItemKind::Open(name, alias))
+    let kind = if let Some(meta) = opt(s, decl_meta)? {
+        Ok(ItemKind::Callable(meta, callable_decl(s)?))
     } else if let Some(decl) = opt(s, callable_decl)? {
         let meta = DeclMeta {
             attrs: Vec::new(),
             visibility: None,
         };
         Ok(ItemKind::Callable(meta, decl))
+    } else if keyword(s, Keyword::Open).is_ok() {
+        let name = dot_ident(s)?;
+        let alias = if keyword(s, Keyword::As).is_ok() {
+            Some(dot_ident(s)?)
+        } else {
+            None
+        };
+        token(s, TokenKind::Semi)?;
+        Ok(ItemKind::Open(name, alias))
     } else {
         Err(s.error(ErrorKind::Rule("item")))
     }?;
@@ -63,6 +66,20 @@ fn item(s: &mut Scanner) -> Result<Item> {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),
         kind,
+    })
+}
+
+fn decl_meta(s: &mut Scanner) -> Result<DeclMeta> {
+    let lo = s.peek().span.lo;
+    keyword(s, Keyword::Internal)?;
+    let visibility = Visibility {
+        id: NodeId::PLACEHOLDER,
+        span: s.span(lo),
+        kind: VisibilityKind::Internal,
+    };
+    Ok(DeclMeta {
+        attrs: Vec::new(),
+        visibility: Some(visibility),
     })
 }
 
@@ -363,7 +380,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 16,
+                            hi: 17,
                         },
                         kind: Open(
                             Ident {
@@ -397,7 +414,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 23,
+                            hi: 24,
                         },
                         kind: Open(
                             Ident {
@@ -442,7 +459,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 27,
+                            hi: 28,
                         },
                         kind: Open(
                             Ident {
@@ -2231,6 +2248,198 @@ mod tests {
     }
 
     #[test]
+    fn internal_function() {
+        check(
+            item,
+            "internal function Foo() : Unit {}",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 33,
+                        },
+                        kind: Callable(
+                            DeclMeta {
+                                attrs: [],
+                                visibility: Some(
+                                    Visibility {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 0,
+                                            hi: 8,
+                                        },
+                                        kind: Internal,
+                                    },
+                                ),
+                            },
+                            CallableDecl {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 33,
+                                },
+                                kind: Function,
+                                name: Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 18,
+                                        hi: 21,
+                                    },
+                                    name: "Foo",
+                                },
+                                ty_params: [],
+                                input: Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 21,
+                                        hi: 23,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                output: Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 26,
+                                        hi: 30,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                functors: None,
+                                body: Block(
+                                    Block {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 31,
+                                            hi: 33,
+                                        },
+                                        stmts: [],
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn internal_operation() {
+        check(
+            item,
+            "internal operation Foo() : Unit {}",
+            &expect![[r#"
+                Ok(
+                    Item {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 34,
+                        },
+                        kind: Callable(
+                            DeclMeta {
+                                attrs: [],
+                                visibility: Some(
+                                    Visibility {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 0,
+                                            hi: 8,
+                                        },
+                                        kind: Internal,
+                                    },
+                                ),
+                            },
+                            CallableDecl {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 34,
+                                },
+                                kind: Operation,
+                                name: Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 19,
+                                        hi: 22,
+                                    },
+                                    name: "Foo",
+                                },
+                                ty_params: [],
+                                input: Pat {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 22,
+                                        hi: 24,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                output: Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 27,
+                                        hi: 31,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                                functors: None,
+                                body: Block(
+                                    Block {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 32,
+                                            hi: 34,
+                                        },
+                                        stmts: [],
+                                    },
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
     fn namespace_function() {
         check(
             package,
@@ -2399,6 +2608,90 @@ mod tests {
                                     name: "B",
                                 },
                                 items: [],
+                            },
+                        ],
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn two_open_items() {
+        check(
+            package,
+            "namespace A { open B; open C; }",
+            &expect![[r#"
+                Ok(
+                    Package {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        namespaces: [
+                            Namespace {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 31,
+                                },
+                                name: Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 10,
+                                        hi: 11,
+                                    },
+                                    name: "A",
+                                },
+                                items: [
+                                    Item {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 14,
+                                            hi: 21,
+                                        },
+                                        kind: Open(
+                                            Ident {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 19,
+                                                    hi: 20,
+                                                },
+                                                name: "B",
+                                            },
+                                            None,
+                                        ),
+                                    },
+                                    Item {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 22,
+                                            hi: 29,
+                                        },
+                                        kind: Open(
+                                            Ident {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 27,
+                                                    hi: 28,
+                                                },
+                                                name: "C",
+                                            },
+                                            None,
+                                        ),
+                                    },
+                                ],
                             },
                         ],
                     },
