@@ -388,7 +388,7 @@ fn call_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
 
 fn closed_range_op(s: &mut Scanner, start: Expr) -> Result<ExprKind> {
     let e = expr_op(s, RANGE_PRECEDENCE + 1)?;
-    let (step, stop) = if token(s, TokenKind::DotDot).is_ok() {
+    let (step, end) = if token(s, TokenKind::DotDot).is_ok() {
         (Some(Box::new(e)), expr_op(s, RANGE_PRECEDENCE + 1)?)
     } else {
         (None, e)
@@ -396,7 +396,7 @@ fn closed_range_op(s: &mut Scanner, start: Expr) -> Result<ExprKind> {
     Ok(ExprKind::Range(
         Some(Box::new(start)),
         step,
-        Some(Box::new(stop)),
+        Some(Box::new(end)),
     ))
 }
 
