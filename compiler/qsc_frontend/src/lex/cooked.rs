@@ -684,6 +684,267 @@ mod tests {
     }
 
     #[test]
+    fn leading_point() {
+        check(
+            ".1",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: Dot,
+                            span: Span {
+                                lo: 0,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Int,
+                            span: Span {
+                                lo: 1,
+                                hi: 2,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn trailing_point() {
+        check(
+            "1.",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: Float,
+                            span: Span {
+                                lo: 0,
+                                hi: 2,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn dot_dot_int() {
+        check(
+            "..1",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: DotDot,
+                            span: Span {
+                                lo: 0,
+                                hi: 2,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Int,
+                            span: Span {
+                                lo: 2,
+                                hi: 3,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn dot_dot_dot_int() {
+        check(
+            "...1",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: DotDotDot,
+                            span: Span {
+                                lo: 0,
+                                hi: 3,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Int,
+                            span: Span {
+                                lo: 3,
+                                hi: 4,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn int_dot_dot() {
+        check(
+            "1..",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: Int,
+                            span: Span {
+                                lo: 0,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: DotDot,
+                            span: Span {
+                                lo: 1,
+                                hi: 3,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn int_dot_dot_dot() {
+        check(
+            "1...",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: Int,
+                            span: Span {
+                                lo: 0,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: DotDotDot,
+                            span: Span {
+                                lo: 1,
+                                hi: 4,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn dot_dot_dot_int_dot_dot_dot() {
+        check(
+            "...1...",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: DotDotDot,
+                            span: Span {
+                                lo: 0,
+                                hi: 3,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Int,
+                            span: Span {
+                                lo: 3,
+                                hi: 4,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: DotDotDot,
+                            span: Span {
+                                lo: 4,
+                                hi: 7,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn two_points_with_leading() {
+        check(
+            ".1.2",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: Dot,
+                            span: Span {
+                                lo: 0,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Float,
+                            span: Span {
+                                lo: 1,
+                                hi: 4,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn leading_point_exp() {
+        check(
+            ".1e2",
+            &expect![[r#"
+                [
+                    Ok(
+                        Token {
+                            kind: Dot,
+                            span: Span {
+                                lo: 0,
+                                hi: 1,
+                            },
+                        },
+                    ),
+                    Ok(
+                        Token {
+                            kind: Float,
+                            span: Span {
+                                lo: 1,
+                                hi: 4,
+                            },
+                        },
+                    ),
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
     fn ident() {
         check(
             "foo",
