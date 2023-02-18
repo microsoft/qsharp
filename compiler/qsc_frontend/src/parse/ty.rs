@@ -3,7 +3,7 @@
 
 use super::{
     keyword::Keyword,
-    prim::{ident, keyword, opt, path, seq, token, FinalSep},
+    prim::{ident, keyword, opt, path, seq, token},
     scan::Scanner,
     ErrorKind, Parser, Result,
 };
@@ -97,14 +97,9 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (mut tys, final_sep) = seq(s, ty)?;
+        let (tys, final_sep) = seq(s, ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        if final_sep == FinalSep::Missing && tys.len() == 1 {
-            let ty = tys.pop().expect("Sequence has exactly one type.");
-            Ok(TyKind::Paren(Box::new(ty)))
-        } else {
-            Ok(TyKind::Tuple(tys))
-        }
+        Ok(final_sep.reify(tys, |t| TyKind::Paren(Box::new(t)), TyKind::Tuple))
     } else {
         Err(s.error(ErrorKind::Rule("type")))
     }?;

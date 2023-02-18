@@ -6,10 +6,25 @@ use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 use std::str::FromStr;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum FinalSep {
     Present,
     Missing,
+}
+
+impl FinalSep {
+    pub(super) fn reify<T, U>(
+        self,
+        mut xs: Vec<T>,
+        mut as_paren: impl FnMut(T) -> U,
+        mut as_seq: impl FnMut(Vec<T>) -> U,
+    ) -> U {
+        if self == Self::Missing && xs.len() == 1 {
+            as_paren(xs.pop().expect("Vector should have exactly one item."))
+        } else {
+            as_seq(xs)
+        }
+    }
 }
 
 pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
@@ -96,14 +111,9 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         Ok(PatKind::Elided)
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (mut pats, final_sep) = seq(s, pat)?;
+        let (pats, final_sep) = seq(s, pat)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        if final_sep == FinalSep::Missing && pats.len() == 1 {
-            let pat = pats.pop().expect("Sequence has exactly one pattern.");
-            Ok(PatKind::Paren(Box::new(pat)))
-        } else {
-            Ok(PatKind::Tuple(pats))
-        }
+        Ok(final_sep.reify(pats, |p| PatKind::Paren(Box::new(p)), PatKind::Tuple))
     } else if let Some(name) = opt(s, ident)? {
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(ty(s)?)
