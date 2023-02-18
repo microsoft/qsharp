@@ -48,6 +48,7 @@ fn item(s: &mut Scanner) -> Result<Item> {
         } else {
             None
         };
+        token(s, TokenKind::Semi)?;
         Ok(ItemKind::Open(name, alias))
     } else if let Some(decl) = opt(s, callable_decl)? {
         let meta = DeclMeta {
@@ -363,7 +364,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 16,
+                            hi: 17,
                         },
                         kind: Open(
                             Ident {
@@ -397,7 +398,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 23,
+                            hi: 24,
                         },
                         kind: Open(
                             Ident {
@@ -442,7 +443,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 27,
+                            hi: 28,
                         },
                         kind: Open(
                             Ident {
@@ -2399,6 +2400,90 @@ mod tests {
                                     name: "B",
                                 },
                                 items: [],
+                            },
+                        ],
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn two_open_items() {
+        check(
+            package,
+            "namespace A { open B; open C; }",
+            &expect![[r#"
+                Ok(
+                    Package {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        namespaces: [
+                            Namespace {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 31,
+                                },
+                                name: Ident {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 10,
+                                        hi: 11,
+                                    },
+                                    name: "A",
+                                },
+                                items: [
+                                    Item {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 14,
+                                            hi: 21,
+                                        },
+                                        kind: Open(
+                                            Ident {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 19,
+                                                    hi: 20,
+                                                },
+                                                name: "B",
+                                            },
+                                            None,
+                                        ),
+                                    },
+                                    Item {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 22,
+                                            hi: 29,
+                                        },
+                                        kind: Open(
+                                            Ident {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 27,
+                                                    hi: 28,
+                                                },
+                                                name: "C",
+                                            },
+                                            None,
+                                        ),
+                                    },
+                                ],
                             },
                         ],
                     },
