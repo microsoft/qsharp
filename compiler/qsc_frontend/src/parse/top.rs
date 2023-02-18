@@ -43,6 +43,12 @@ fn item(s: &mut Scanner) -> Result<Item> {
     let lo = s.peek().span.lo;
     let kind = if let Some(meta) = opt(s, decl_meta)? {
         Ok(ItemKind::Callable(meta, callable_decl(s)?))
+    } else if let Some(decl) = opt(s, callable_decl)? {
+        let meta = DeclMeta {
+            attrs: Vec::new(),
+            visibility: None,
+        };
+        Ok(ItemKind::Callable(meta, decl))
     } else if keyword(s, Keyword::Open).is_ok() {
         let name = dot_ident(s)?;
         let alias = if keyword(s, Keyword::As).is_ok() {
@@ -52,12 +58,6 @@ fn item(s: &mut Scanner) -> Result<Item> {
         };
         token(s, TokenKind::Semi)?;
         Ok(ItemKind::Open(name, alias))
-    } else if let Some(decl) = opt(s, callable_decl)? {
-        let meta = DeclMeta {
-            attrs: Vec::new(),
-            visibility: None,
-        };
-        Ok(ItemKind::Callable(meta, decl))
     } else {
         Err(s.error(ErrorKind::Rule("item")))
     }?;
