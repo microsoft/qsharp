@@ -333,8 +333,8 @@ pub enum ExprKind {
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
     Path(Path),
-    /// A range: `a..b..c`.
-    Range(Box<Expr>, Box<Expr>, Box<Expr>),
+    /// A range: `start..step..stop`, `start..stop`, `start...`, `...stop`, or `...`.
+    Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Block, Box<Expr>, Option<Block>),
     /// A return: `return a`.

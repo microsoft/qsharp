@@ -148,6 +148,16 @@ impl<'a> Lexer<'a> {
         while self.chars.next_if(|i| f(i.1)).is_some() {}
     }
 
+    fn first(&mut self) -> Option<char> {
+        self.chars.peek().map(|i| i.1)
+    }
+
+    fn second(&self) -> Option<char> {
+        let mut chars = self.chars.clone();
+        chars.next();
+        chars.next().map(|i| i.1)
+    }
+
     fn whitespace(&mut self, c: char) -> bool {
         if c.is_whitespace() {
             self.eat_while(char::is_whitespace);
@@ -176,13 +186,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn number(&mut self, c: char) -> Option<Number> {
-        if let Some(n) = self.leading_zero(c) {
-            Some(n)
-        } else if self.leading_point(c) {
-            Some(Number::Float)
-        } else {
-            self.decimal(c)
-        }
+        self.leading_zero(c).or_else(|| self.decimal(c))
     }
 
     fn leading_zero(&mut self, c: char) -> Option<Number> {
@@ -208,23 +212,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn leading_point(&mut self, c: char) -> bool {
-        if c == '.' && self.chars.next_if(|i| i.1.is_ascii_digit()).is_some() {
-            self.eat_while(|c| c == '_' || c.is_ascii_digit());
-            self.exp();
-            true
-        } else {
-            false
-        }
-    }
-
     fn decimal(&mut self, c: char) -> Option<Number> {
         if !c.is_ascii_digit() {
             return None;
         }
 
         self.eat_while(|c| c == '_' || c.is_ascii_digit());
-        if self.next_if_eq('.') {
+
+        // Watch out for ranges: `0..` should be an integer followed by two dots.
+        if self.first() == Some('.') && self.second() != Some('.') {
+            self.chars.next();
             self.eat_while(|c| c == '_' || c.is_ascii_digit());
             self.exp();
             Some(Number::Float)
@@ -548,6 +545,99 @@ mod tests {
     }
 
     #[test]
+    fn int_dot_dot() {
+        check(
+            "0..",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 1,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 2,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn dot_dot_int() {
+        check(
+            "..0",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 1,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 2,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn dot_dot_dot_int() {
+        check(
+            "...0",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 1,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 2,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 3,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
     fn hexadecimal() {
         check(
             "0x123abc",
@@ -662,6 +752,29 @@ mod tests {
             &expect![[r#"
                 [
                     Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 1,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn trailing_point() {
+        check(
+            "123.",
+            &expect![[r#"
+                [
+                    Token {
                         kind: Number(
                             Float,
                         ),
@@ -724,6 +837,29 @@ mod tests {
     }
 
     #[test]
+    fn leading_point_exp() {
+        check(
+            ".25e2",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Number(
+                            Float,
+                        ),
+                        offset: 1,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
     fn unknown() {
         check(
             "##",
@@ -755,10 +891,16 @@ mod tests {
                         offset: 0,
                     },
                     Token {
-                        kind: Number(
-                            Float,
+                        kind: Single(
+                            Dot,
                         ),
                         offset: 5,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 6,
                     },
                 ]
             "#]],

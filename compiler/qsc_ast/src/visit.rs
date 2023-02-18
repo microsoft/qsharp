@@ -239,9 +239,9 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
         }
         ExprKind::Path(path) => vis.visit_path(path),
         ExprKind::Range(start, step, end) => {
-            vis.visit_expr(start);
-            vis.visit_expr(step);
-            vis.visit_expr(end);
+            start.iter().for_each(|s| vis.visit_expr(s));
+            step.iter().for_each(|s| vis.visit_expr(s));
+            end.iter().for_each(|e| vis.visit_expr(e));
         }
         ExprKind::Repeat(body, until, fixup) => {
             vis.visit_block(body);
