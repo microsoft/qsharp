@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::pedantic)]
+#![warn(clippy::mod_module_files, clippy::pedantic)]
 
 use qsc_frontend::parse;
 use std::{env, fs, io, result::Result, string::String};
