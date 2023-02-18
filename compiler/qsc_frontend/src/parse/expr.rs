@@ -97,6 +97,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         Ok(final_sep.reify(exprs, |e| ExprKind::Paren(Box::new(e)), ExprKind::Tuple))
     } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
         let exprs = seq(s, expr)?.0;
+        token(s, TokenKind::Close(Delim::Bracket))?;
         Ok(ExprKind::Array(exprs))
     } else if keyword(s, Keyword::Fail).is_ok() {
         Ok(ExprKind::Fail(Box::new(expr(s)?)))
@@ -2906,7 +2907,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 1,
+                            hi: 2,
                         },
                         kind: Array(
                             [],
@@ -2930,7 +2931,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 2,
+                            hi: 3,
                         },
                         kind: Array(
                             [
@@ -2986,7 +2987,7 @@ mod tests {
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 5,
+                            hi: 6,
                         },
                         kind: Array(
                             [
@@ -3053,6 +3054,112 @@ mod tests {
                                     ),
                                 },
                             ],
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn array_concat() {
+        check(
+            expr,
+            "[1, 2] + [3, 4]",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 15,
+                        },
+                        kind: BinOp(
+                            Add,
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 6,
+                                },
+                                kind: Array(
+                                    [
+                                        Expr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 1,
+                                                hi: 2,
+                                            },
+                                            kind: Lit(
+                                                Int(
+                                                    1,
+                                                ),
+                                            ),
+                                        },
+                                        Expr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 4,
+                                                hi: 5,
+                                            },
+                                            kind: Lit(
+                                                Int(
+                                                    2,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 9,
+                                    hi: 15,
+                                },
+                                kind: Array(
+                                    [
+                                        Expr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 10,
+                                                hi: 11,
+                                            },
+                                            kind: Lit(
+                                                Int(
+                                                    3,
+                                                ),
+                                            ),
+                                        },
+                                        Expr {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 13,
+                                                hi: 14,
+                                            },
+                                            kind: Lit(
+                                                Int(
+                                                    4,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
                         ),
                     },
                 )
@@ -7191,6 +7298,112 @@ mod tests {
                                             ),
                                         },
                                     ],
+                                ),
+                            },
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn call_with_array() {
+        check(
+            expr,
+            "f([1, 2])",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 9,
+                        },
+                        kind: Call(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 1,
+                                },
+                                kind: Path(
+                                    Path {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 0,
+                                            hi: 1,
+                                        },
+                                        namespace: None,
+                                        name: Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 0,
+                                                hi: 1,
+                                            },
+                                            name: "f",
+                                        },
+                                    },
+                                ),
+                            },
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 1,
+                                    hi: 9,
+                                },
+                                kind: Paren(
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 2,
+                                            hi: 8,
+                                        },
+                                        kind: Array(
+                                            [
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 3,
+                                                        hi: 4,
+                                                    },
+                                                    kind: Lit(
+                                                        Int(
+                                                            1,
+                                                        ),
+                                                    ),
+                                                },
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 6,
+                                                        hi: 7,
+                                                    },
+                                                    kind: Lit(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
                                 ),
                             },
                         ),
