@@ -243,11 +243,11 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
         }),
         OpName::Keyword(Keyword::AdjointUpper) => Some(PrefixOp {
             kind: UnOp::Functor(Functor::Adj),
-            precedence: 13,
+            precedence: 14,
         }),
         OpName::Keyword(Keyword::ControlledUpper) => Some(PrefixOp {
             kind: UnOp::Functor(Functor::Ctl),
-            precedence: 13,
+            precedence: 14,
         }),
         _ => None,
     }
@@ -348,21 +348,21 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             kind: OpKind::Binary(BinOp::Exp, Assoc::Right),
             precedence: 12,
         }),
+        OpName::Token(TokenKind::Open(Delim::Paren)) => Some(MixfixOp {
+            kind: OpKind::Rich(call_op),
+            precedence: 13,
+        }),
         OpName::Token(TokenKind::Bang) => Some(MixfixOp {
             kind: OpKind::Postfix(UnOp::Unwrap),
-            precedence: 14,
+            precedence: 15,
         }),
         OpName::Token(TokenKind::ColonColon) => Some(MixfixOp {
             kind: OpKind::Rich(field_op),
-            precedence: 14,
+            precedence: 15,
         }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
             kind: OpKind::Rich(index_op),
-            precedence: 14,
-        }),
-        OpName::Token(TokenKind::Open(Delim::Paren)) => Some(MixfixOp {
-            kind: OpKind::Rich(call_op),
-            precedence: 14,
+            precedence: 15,
         }),
         _ => None,
     }
