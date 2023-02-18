@@ -186,13 +186,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn number(&mut self, c: char) -> Option<Number> {
-        if let Some(n) = self.leading_zero(c) {
-            Some(n)
-        } else if self.leading_point(c) {
-            Some(Number::Float)
-        } else {
-            self.decimal(c)
-        }
+        self.leading_zero(c).or_else(|| self.decimal(c))
     }
 
     fn leading_zero(&mut self, c: char) -> Option<Number> {
@@ -215,16 +209,6 @@ impl<'a> Lexer<'a> {
             Some(Number::BigInt)
         } else {
             Some(Number::Int)
-        }
-    }
-
-    fn leading_point(&mut self, c: char) -> bool {
-        if c == '.' && self.chars.next_if(|i| i.1.is_ascii_digit()).is_some() {
-            self.eat_while(|c| c == '_' || c.is_ascii_digit());
-            self.exp();
-            true
-        } else {
-            false
         }
     }
 
@@ -590,6 +574,70 @@ mod tests {
     }
 
     #[test]
+    fn dot_dot_int() {
+        check(
+            "..0",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 1,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 2,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn dot_dot_dot_int() {
+        check(
+            "...0",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 1,
+                    },
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 2,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 3,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
     fn hexadecimal() {
         check(
             "0x123abc",
@@ -704,6 +752,29 @@ mod tests {
             &expect![[r#"
                 [
                     Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 1,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
+    fn trailing_point() {
+        check(
+            "123.",
+            &expect![[r#"
+                [
+                    Token {
                         kind: Number(
                             Float,
                         ),
@@ -766,6 +837,29 @@ mod tests {
     }
 
     #[test]
+    fn leading_point_exp() {
+        check(
+            ".25e2",
+            &expect![[r#"
+                [
+                    Token {
+                        kind: Single(
+                            Dot,
+                        ),
+                        offset: 0,
+                    },
+                    Token {
+                        kind: Number(
+                            Float,
+                        ),
+                        offset: 1,
+                    },
+                ]
+            "#]],
+        );
+    }
+
+    #[test]
     fn unknown() {
         check(
             "##",
@@ -797,10 +891,16 @@ mod tests {
                         offset: 0,
                     },
                     Token {
-                        kind: Number(
-                            Float,
+                        kind: Single(
+                            Dot,
                         ),
                         offset: 5,
+                    },
+                    Token {
+                        kind: Number(
+                            Int,
+                        ),
+                        offset: 6,
                     },
                 ]
             "#]],

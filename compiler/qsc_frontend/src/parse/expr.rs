@@ -100,6 +100,13 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
     } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
         let exprs = seq(s, expr)?.0;
         Ok(ExprKind::Array(exprs))
+    } else if token(s, TokenKind::DotDotDot).is_ok() {
+        let e = opt(s, |s| expr_op(s, RANGE_PRECEDENCE + 1))?.map(Box::new);
+        if token(s, TokenKind::DotDotDot).is_ok() {
+            Ok(ExprKind::Range(None, e, None))
+        } else {
+            Ok(ExprKind::Range(None, None, e))
+        }
     } else if keyword(s, Keyword::Fail).is_ok() {
         Ok(ExprKind::Fail(Box::new(expr(s)?)))
     } else if keyword(s, Keyword::For).is_ok() {
@@ -246,7 +253,11 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
 fn mixfix_op(name: OpName) -> Option<MixfixOp> {
     match name {
         OpName::Token(TokenKind::DotDot) => Some(MixfixOp {
-            kind: OpKind::Rich(range_op),
+            kind: OpKind::Rich(closed_range_op),
+            precedence: RANGE_PRECEDENCE,
+        }),
+        OpName::Token(TokenKind::DotDotDot) => Some(MixfixOp {
+            kind: OpKind::Rich(|_, start| Ok(ExprKind::Range(Some(Box::new(start)), None, None))),
             precedence: RANGE_PRECEDENCE,
         }),
         OpName::Token(TokenKind::WSlash) => Some(MixfixOp {
@@ -375,7 +386,7 @@ fn call_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
     Ok(ExprKind::Call(Box::new(lhs), Box::new(rhs)))
 }
 
-fn range_op(s: &mut Scanner, start: Expr) -> Result<ExprKind> {
+fn closed_range_op(s: &mut Scanner, start: Expr) -> Result<ExprKind> {
     let e = expr_op(s, RANGE_PRECEDENCE + 1)?;
     let (step, stop) = if token(s, TokenKind::DotDot).is_ok() {
         (Some(Box::new(e)), expr_op(s, RANGE_PRECEDENCE + 1)?)
@@ -573,20 +584,15 @@ mod tests {
             expr,
             ".23",
             &expect![[r#"
-                Ok(
-                    Expr {
-                        id: NodeId(
-                            4294967295,
+                Err(
+                    Error {
+                        kind: Rule(
+                            "expression",
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 3,
+                            hi: 1,
                         },
-                        kind: Lit(
-                            Double(
-                                0.23,
-                            ),
-                        ),
                     },
                 )
             "#]],
@@ -8040,6 +8046,129 @@ mod tests {
                                     ),
                                 },
                             ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn range_start_open() {
+        check(
+            expr,
+            "2...",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
+                        kind: Range(
+                            Some(
+                                Expr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 0,
+                                        hi: 1,
+                                    },
+                                    kind: Lit(
+                                        Int(
+                                            2,
+                                        ),
+                                    ),
+                                },
+                            ),
+                            None,
+                            None,
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn range_stop_open() {
+        check(
+            expr,
+            "...2",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
+                        kind: Range(
+                            None,
+                            None,
+                            Some(
+                                Expr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 3,
+                                        hi: 4,
+                                    },
+                                    kind: Lit(
+                                        Int(
+                                            2,
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                )
+            "#]],
+        );
+    }
+
+    #[test]
+    fn range_step_open() {
+        check(
+            expr,
+            "...2...",
+            &expect![[r#"
+                Ok(
+                    Expr {
+                        id: NodeId(
+                            4294967295,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 7,
+                        },
+                        kind: Range(
+                            None,
+                            Some(
+                                Expr {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 3,
+                                        hi: 4,
+                                    },
+                                    kind: Lit(
+                                        Int(
+                                            2,
+                                        ),
+                                    ),
+                                },
+                            ),
+                            None,
                         ),
                     },
                 )
