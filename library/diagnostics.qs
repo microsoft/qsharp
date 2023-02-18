@@ -4,7 +4,7 @@
 namespace Microsoft.Quantum.Diagnostics {
     open QIR.Intrinsic;
 
-    function DumpMachine () : Unit {
+    function DumpMachine() : Unit {
         __quantum__qis__dumpmachine__body();
     }
 

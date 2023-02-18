@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation ApplyGlobalPhase (theta : Double) : Unit is Ctl + Adj {
+    internal operation ApplyGlobalPhase(theta : Double) : Unit is Ctl + Adj {
         body (...) {}
         controlled (ctls, (...)) {
             if Length(ctls) == 0 {
@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.Intrinsic {
         CNOT(control, target);
     }
 
-    internal operation MapPauli (qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
+    internal operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
         if (from == to) {
         }
         elif ((from == PauliZ and to == PauliX) or (from == PauliX and to == PauliZ)) {
@@ -142,7 +142,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation PhaseCCX (control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+    internal operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         // https://arxiv.org/pdf/1210.0974.pdf#page=2
         H(target);
         CNOT(target,control1);
@@ -157,7 +157,7 @@ namespace Microsoft.Quantum.Intrinsic {
         H(target);
     }
 
-    internal operation CCZ (control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+    internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         // [Page 15 of arXiv:1206.0758v3](https://arxiv.org/pdf/1206.0758v3.pdf#page=15)
         Adjoint T(control1);
         Adjoint T(control2);
@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CRxx (control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
+    internal operation CRxx(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
         }
@@ -192,7 +192,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CRyy (control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
+    internal operation CRyy(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
         }
@@ -201,7 +201,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    internal operation CRzz (control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
+    internal operation CRzz(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
         }

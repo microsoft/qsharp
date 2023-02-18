@@ -13,7 +13,7 @@ namespace Microsoft.Quantum.Core {
     /// # Output
     /// The total count of elements in an array.
     ///
-    function Length<'T> (a : 'T[]) : Int {
+    function Length<'T>(a : 'T[]) : Int {
         body intrinsic;
     }
 
