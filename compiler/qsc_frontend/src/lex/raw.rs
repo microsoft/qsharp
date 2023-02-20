@@ -136,6 +136,7 @@ pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
 }
 
+/// The raw lexer is LL2, so it allows for two character lookahead.
 impl<'a> Lexer<'a> {
     pub(super) fn new(input: &'a str) -> Self {
         Self {
