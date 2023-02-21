@@ -170,7 +170,7 @@ pub(crate) struct Lexer<'a> {
     tokens: Peekable<raw::Lexer<'a>>,
 }
 
-/// The cooked lexer is LL1, so it allows one character lookahead.
+/// The cooked lexer is LL1, so it allows one token lookahead.
 impl<'a> Lexer<'a> {
     pub(crate) fn new(input: &'a str) -> Self {
         Self {
