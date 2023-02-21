@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use qsc_frontend::parse;
+use qsc_frontend::compile;
 use std::{env, fs, io, result::Result, string::String};
 
 fn main() {
@@ -13,7 +13,7 @@ fn main() {
         Some(path) => fs::read_to_string(path).unwrap(),
     };
 
-    let (package, errors) = parse::package(&input);
+    let (package, errors) = compile(&input);
     println!("Errors: {errors:#?}");
     println!("AST: {package:#?}");
 }
