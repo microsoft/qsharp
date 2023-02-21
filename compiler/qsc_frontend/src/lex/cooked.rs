@@ -167,10 +167,11 @@ impl Display for ClosedBinOp {
 
 pub(crate) struct Lexer<'a> {
     input: &'a str,
+
+    // This uses a `Peekable` iterator over the raw lexer, which allows for one token lookahead.
     tokens: Peekable<raw::Lexer<'a>>,
 }
 
-/// The cooked lexer is LL1, so it allows one token lookahead.
 impl<'a> Lexer<'a> {
     pub(crate) fn new(input: &'a str) -> Self {
         Self {

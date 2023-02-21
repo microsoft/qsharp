@@ -136,7 +136,6 @@ pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
 }
 
-/// The raw lexer is LL2, so it allows for two character lookahead.
 impl<'a> Lexer<'a> {
     pub(super) fn new(input: &'a str) -> Self {
         Self {
@@ -152,10 +151,12 @@ impl<'a> Lexer<'a> {
         while self.chars.next_if(|i| f(i.1)).is_some() {}
     }
 
+    /// Uses the `Peekable` iterator of characters to look ahead one character.
     fn first(&mut self) -> Option<char> {
         self.chars.peek().map(|i| i.1)
     }
 
+    /// Uses a clone to perform a more expensive two character lookahead.
     fn second(&self) -> Option<char> {
         let mut chars = self.chars.clone();
         chars.next();
