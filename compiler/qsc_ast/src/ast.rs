@@ -19,9 +19,9 @@ impl NodeId {
     /// The ID used before unique IDs have been assigned.
     pub const PLACEHOLDER: Self = Self(u32::MAX);
 
-    /// The next ID in the sequence.
+    /// The successor of this ID.
     #[must_use]
-    pub fn next(&self) -> Self {
+    pub fn successor(self) -> Self {
         Self(self.0 + 1)
     }
 }
