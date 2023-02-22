@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! The qsc parser uses recursive descent to handle turning an input string into a Q# abstract syntax tree.
+//! The parser produces a tree with placeholder node identifiers that are expected to be replaced with
+//! unique identifiers by a later stage.
+
 mod expr;
 mod keyword;
 mod prim;

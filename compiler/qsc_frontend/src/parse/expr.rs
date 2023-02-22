@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Expression parsing makes use of Pratt parsing (or “top-down operator-precedence parsing”) to handle
+//! relative precedence of operators.
+
 #[cfg(test)]
 mod tests;
 
