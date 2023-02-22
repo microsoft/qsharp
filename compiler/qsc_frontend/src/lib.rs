@@ -8,6 +8,7 @@ use qsc_ast::{ast::Package, mut_visit::MutVisitor};
 mod id;
 mod lex;
 pub mod parse;
+mod symbol;
 
 pub fn compile(input: &str) -> (Result<Package, parse::Error>, Vec<parse::Error>) {
     let (mut package, errors) = parse::package(input);
