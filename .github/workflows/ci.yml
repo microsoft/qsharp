@@ -31,6 +31,16 @@ jobs:
       - name: Clippy Lints
         run: cargo clippy -vv --all-targets --all-features -- -D warnings
 
+  benches:
+    name: Benches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: cargo bench
+        run: cargo bench --workspace
+
   build:
     name: CI Build and Test
     strategy:
