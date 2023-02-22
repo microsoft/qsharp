@@ -156,7 +156,6 @@ impl<'a> Lexer<'a> {
     fn first(&mut self) -> Option<char> {
         self.chars.peek().map(|i| i.1)
     }
-
     
     /// Returns the second character ahead of the cursor without consuming it. This is slower
     /// than [`first`] and should be avoided when possible.
