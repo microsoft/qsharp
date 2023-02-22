@@ -39,7 +39,8 @@ impl Table {
 
 pub(super) struct Resolver<'a> {
     symbols: Table,
-    globals: HashMap<&'a str, HashMap<&'a str, Id>>,
+    global_tys: HashMap<&'a str, HashMap<&'a str, Id>>,
+    global_terms: HashMap<&'a str, HashMap<&'a str, Id>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
     locals: Vec<HashMap<&'a str, Id>>,
 }
@@ -66,7 +67,8 @@ impl<'a> From<GlobalTable<'a>> for Resolver<'a> {
     fn from(value: GlobalTable<'a>) -> Self {
         Self {
             symbols: value.symbols,
-            globals: value.globals,
+            global_tys: value.tys,
+            global_terms: value.terms,
             opens: HashMap::new(),
             locals: Vec::new(),
         }
@@ -142,7 +144,8 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 
 pub(super) struct GlobalTable<'a> {
     symbols: Table,
-    globals: HashMap<&'a str, HashMap<&'a str, Id>>,
+    tys: HashMap<&'a str, HashMap<&'a str, Id>>,
+    terms: HashMap<&'a str, HashMap<&'a str, Id>>,
     namespace: &'a str,
 }
 
@@ -154,7 +157,7 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         let id = self.symbols.declare_symbol(decl.name.id);
-        self.globals
+        self.terms
             .entry(self.namespace)
             .or_default()
             .insert(&decl.name.name, id);
