@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use qsc_frontend::*;
+use qsc_frontend::compile;
 
 static CANON: &str = include_str!("../../../library/canon.qs");
 static CORE: &str = include_str!("../../../library/core.qs");
@@ -16,7 +16,7 @@ pub fn library(c: &mut Criterion) {
     c.bench_function("Standard library", |b| {
         b.iter(|| {
             for input in [CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR] {
-                let _ = parse::package(input);
+                compile(input).0.unwrap();
             }
         })
     });
