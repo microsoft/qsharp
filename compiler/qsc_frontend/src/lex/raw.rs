@@ -151,12 +151,15 @@ impl<'a> Lexer<'a> {
         while self.chars.next_if(|i| f(i.1)).is_some() {}
     }
 
-    /// Uses the `Peekable` iterator of characters to look ahead one character.
+    /// Returns the first character ahead of the cursor without consuming it. This operation is fast,
+    /// but if you know you want to consume the character if it matches, use [`next_if_eq`] instead.
     fn first(&mut self) -> Option<char> {
         self.chars.peek().map(|i| i.1)
     }
 
-    /// Uses a clone to perform a more expensive two character lookahead.
+    
+    /// Returns the second character ahead of the cursor without consuming it. This is slower
+    /// than [`first`] and should be avoided when possible.
     fn second(&self) -> Option<char> {
         let mut chars = self.chars.clone();
         chars.next();
