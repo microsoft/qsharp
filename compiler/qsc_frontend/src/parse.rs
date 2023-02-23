@@ -15,12 +15,12 @@ mod tests;
 mod top;
 mod ty;
 
-use self::scan::Scanner;
+use crate::lex::TokenKind;
 use qsc_ast::ast::{Package, Span};
+use scan::Scanner;
 use std::result;
 
-pub(super) use self::keyword::Keyword;
-pub(super) use crate::lex::TokenKind;
+pub(super) use keyword::Keyword;
 
 #[derive(Debug)]
 pub(super) struct Error {

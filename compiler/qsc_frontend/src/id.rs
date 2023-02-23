@@ -4,7 +4,7 @@
 use qsc_ast::{
     ast::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
-        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef,
+        Path, QubitInit, SpecDecl, Stmt, Ty,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -46,10 +46,6 @@ impl MutVisitor for Assigner {
     fn visit_attr(&mut self, attr: &mut Attr) {
         attr.id = self.next_id();
         mut_visit::walk_attr(self, attr);
-    }
-
-    fn visit_ty_def(&mut self, def: &mut TyDef) {
-        mut_visit::walk_ty_def(self, def);
     }
 
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
