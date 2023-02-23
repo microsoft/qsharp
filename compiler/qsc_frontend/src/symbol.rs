@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use qsc_ast::{
     ast::{
         Block, CallableDecl, Expr, ExprKind, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Span,
@@ -10,7 +13,7 @@ use qsc_ast::{
 };
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(super) struct Id(u32);
 
 impl Id {
@@ -19,6 +22,7 @@ impl Id {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct Error {
     span: Span,
     candidates: HashSet<Id>,
@@ -79,19 +83,6 @@ impl<'a> Resolver<'a> {
         match resolve(&self.global_terms, &self.opens, &self.locals, path) {
             Ok(symbol) => self.symbols.use_symbol(path.id, symbol),
             Err(err) => self.errors.push(err),
-        }
-    }
-}
-
-impl<'a> From<GlobalTable<'a>> for Resolver<'a> {
-    fn from(value: GlobalTable<'a>) -> Self {
-        Self {
-            symbols: value.symbols,
-            global_tys: value.tys,
-            global_terms: value.terms,
-            opens: HashMap::new(),
-            locals: Vec::new(),
-            errors: Vec::new(),
         }
     }
 }
@@ -176,6 +167,31 @@ pub(super) struct GlobalTable<'a> {
     tys: HashMap<&'a str, HashMap<&'a str, Id>>,
     terms: HashMap<&'a str, HashMap<&'a str, Id>>,
     namespace: &'a str,
+}
+
+impl<'a> GlobalTable<'a> {
+    pub(super) fn new() -> Self {
+        Self {
+            symbols: Table {
+                nodes: HashMap::new(),
+                next_id: Id(0),
+            },
+            tys: HashMap::new(),
+            terms: HashMap::new(),
+            namespace: "",
+        }
+    }
+
+    pub(super) fn into_resolver(self) -> Resolver<'a> {
+        Resolver {
+            symbols: self.symbols,
+            global_tys: self.tys,
+            global_terms: self.terms,
+            opens: HashMap::new(),
+            locals: Vec::new(),
+            errors: Vec::new(),
+        }
+    }
 }
 
 impl<'a> Visitor<'a> for GlobalTable<'a> {

@@ -9,7 +9,7 @@ use num_bigint::BigInt;
 use std::ops::Index;
 
 /// The unique identifier for an AST node.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(u32);
 
 impl NodeId {
