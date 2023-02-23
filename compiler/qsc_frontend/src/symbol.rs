@@ -14,7 +14,7 @@ use qsc_ast::{
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub(super) struct Id(u32);
+pub struct Id(u32);
 
 impl Id {
     fn successor(self) -> Self {
@@ -24,11 +24,17 @@ impl Id {
 
 #[derive(Debug)]
 pub(super) struct Error {
-    span: Span,
-    candidates: HashSet<Id>,
+    pub(super) span: Span,
+    pub(super) kind: ErrorKind,
 }
 
-pub(super) struct Table {
+#[derive(Debug)]
+pub(super) enum ErrorKind {
+    Unresolved(HashSet<Id>),
+}
+
+#[derive(Debug)]
+pub struct Table {
     nodes: HashMap<NodeId, Id>,
     next_id: Id,
 }
@@ -248,7 +254,7 @@ fn resolve(
         }
         _ => Err(Error {
             span: path.span,
-            candidates,
+            kind: ErrorKind::Unresolved(candidates),
         }),
     }
 }

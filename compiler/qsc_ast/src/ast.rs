@@ -9,13 +9,10 @@ use num_bigint::BigInt;
 use std::ops::Index;
 
 /// The unique identifier for an AST node.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(u32);
 
 impl NodeId {
-    /// The ID for the root node in an AST.
-    pub const ROOT: Self = Self(0);
-
     /// The ID used before unique IDs have been assigned.
     pub const PLACEHOLDER: Self = Self(u32::MAX);
 
@@ -45,7 +42,7 @@ impl Index<Span> for str {
 }
 
 /// The package currently being compiled and the root node of an AST.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
     /// The node ID.
     pub id: NodeId,

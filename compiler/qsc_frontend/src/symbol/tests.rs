@@ -9,9 +9,8 @@ use expect_test::{expect, Expect};
 use qsc_ast::{ast::NodeId, mut_visit::MutVisitor, visit::Visitor};
 
 fn check(input: &str, expect: &Expect) {
-    let mut package = parse::package(input)
-        .0
-        .expect("Test case should not have syntax errors.");
+    let (mut package, errors) = parse::package(input);
+    assert!(errors.is_empty());
 
     let mut assigner = id::Assigner::new();
     assigner.visit_package(&mut package);
@@ -19,8 +18,8 @@ fn check(input: &str, expect: &Expect) {
     globals.visit_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
-    let (table, errors) = resolver.into_table();
-    let mut symbols: Vec<(NodeId, Id)> = table.nodes.into_iter().collect();
+    let (symbols, errors) = resolver.into_table();
+    let mut symbols: Vec<(NodeId, Id)> = symbols.nodes.into_iter().collect();
     symbols.sort();
 
     expect.assert_debug_eq(&(errors, symbols, package));

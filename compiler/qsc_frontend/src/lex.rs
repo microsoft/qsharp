@@ -6,11 +6,11 @@ mod raw;
 
 use enum_iterator::Sequence;
 
-pub(crate) use cooked::{ClosedBinOp, Error, Lexer, Token, TokenKind};
+pub(super) use cooked::{ClosedBinOp, Error, Lexer, Token, TokenKind};
 
 /// A delimiter token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum Delim {
+pub(super) enum Delim {
     /// `{` or `}`
     Brace,
     /// `[` or `]`

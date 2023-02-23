@@ -13,7 +13,5 @@ fn main() {
         Some(path) => fs::read_to_string(path).unwrap(),
     };
 
-    let (package, errors) = compile(&input);
-    println!("Errors: {errors:#?}");
-    println!("AST: {package:#?}");
+    println!("{:#?}", compile(&input));
 }
