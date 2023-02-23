@@ -95,7 +95,7 @@ impl<'a> Resolver<'a> {
 
 impl<'a> Visitor<'a> for Resolver<'a> {
     fn visit_namespace(&mut self, namespace: &'a Namespace) {
-        self.opens = HashMap::new();
+        self.opens = HashMap::from([("", HashSet::from([namespace.name.name.as_str()]))]);
         for item in &namespace.items {
             if let ItemKind::Open(namespace, alias) = &item.kind {
                 let alias = alias.as_ref().map_or("", |a| &a.name);

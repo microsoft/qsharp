@@ -6,7 +6,7 @@
 #![warn(missing_docs)]
 
 use num_bigint::BigInt;
-use std::ops::Index;
+use std::ops::{Bound, Index, RangeBounds};
 
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -38,6 +38,16 @@ impl Index<Span> for str {
 
     fn index(&self, index: Span) -> &Self::Output {
         &self[index.lo..index.hi]
+    }
+}
+
+impl RangeBounds<usize> for &Span {
+    fn start_bound(&self) -> Bound<&usize> {
+        Bound::Included(&self.lo)
+    }
+
+    fn end_bound(&self) -> Bound<&usize> {
+        Bound::Excluded(&self.hi)
     }
 }
 
