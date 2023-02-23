@@ -3,20 +3,25 @@
 
 use qsc_ast::{
     ast::{
-        Block, CallableDecl, Expr, ExprKind, ItemKind, Namespace, NodeId, Pat, PatKind, SpecBody,
-        SpecDecl, Stmt, StmtKind,
+        Block, CallableDecl, Expr, ExprKind, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Span,
+        SpecBody, SpecDecl, Stmt, StmtKind, Ty, TyKind,
     },
     visit::{self, Visitor},
 };
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub(super) struct Id(u32);
 
 impl Id {
     fn successor(self) -> Self {
         Self(self.0 + 1)
     }
+}
+
+pub(super) struct Error {
+    span: Span,
+    candidates: HashSet<Id>,
 }
 
 pub(super) struct Table {
@@ -43,11 +48,12 @@ pub(super) struct Resolver<'a> {
     global_terms: HashMap<&'a str, HashMap<&'a str, Id>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
     locals: Vec<HashMap<&'a str, Id>>,
+    errors: Vec<Error>,
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn into_table(self) -> Table {
-        self.symbols
+    pub(super) fn into_table(self) -> (Table, Vec<Error>) {
+        (self.symbols, self.errors)
     }
 
     fn insert_bindings(&mut self, env: &mut HashMap<&'a str, Id>, pat: &'a Pat) {
@@ -61,6 +67,20 @@ impl<'a> Resolver<'a> {
             PatKind::Tuple(pats) => pats.iter().for_each(|p| self.insert_bindings(env, p)),
         }
     }
+
+    fn resolve_ty(&mut self, path: &Path) {
+        match resolve(&self.global_tys, &self.opens, &[], path) {
+            Ok(symbol) => self.symbols.use_symbol(path.id, symbol),
+            Err(err) => self.errors.push(err),
+        }
+    }
+
+    fn resolve_term(&mut self, path: &Path) {
+        match resolve(&self.global_terms, &self.opens, &self.locals, path) {
+            Ok(symbol) => self.symbols.use_symbol(path.id, symbol),
+            Err(err) => self.errors.push(err),
+        }
+    }
 }
 
 impl<'a> From<GlobalTable<'a>> for Resolver<'a> {
@@ -71,6 +91,7 @@ impl<'a> From<GlobalTable<'a>> for Resolver<'a> {
             global_terms: value.terms,
             opens: HashMap::new(),
             locals: Vec::new(),
+            errors: Vec::new(),
         }
     }
 }
@@ -108,6 +129,14 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         }
     }
 
+    fn visit_ty(&mut self, ty: &'a Ty) {
+        if let TyKind::Path(path) = &ty.kind {
+            self.resolve_ty(path);
+        } else {
+            visit::walk_ty(self, ty);
+        }
+    }
+
     fn visit_block(&mut self, block: &'a Block) {
         self.locals.push(HashMap::new());
         visit::walk_block(self, block);
@@ -135,7 +164,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         if let ExprKind::Path(path) = &expr.kind {
-            todo!()
+            self.resolve_term(path);
         } else {
             visit::walk_expr(self, expr);
         }
@@ -161,5 +190,49 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
             .entry(self.namespace)
             .or_default()
             .insert(&decl.name.name, id);
+    }
+}
+
+fn resolve(
+    globals: &HashMap<&str, HashMap<&str, Id>>,
+    opens: &HashMap<&str, HashSet<&str>>,
+    locals: &[HashMap<&str, Id>],
+    path: &Path,
+) -> Result<Id, Error> {
+    if path.namespace.is_none() {
+        for env in locals.iter().rev() {
+            if let Some(&id) = env.get(path.name.name.as_str()) {
+                return Ok(id);
+            }
+        }
+    }
+
+    let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
+    let name = path.name.name.as_str();
+    let mut candidates = HashSet::new();
+    if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
+        candidates.insert(id);
+    }
+
+    if let Some(namespaces) = opens.get(namespace) {
+        for namespace in namespaces {
+            if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
+                candidates.insert(id);
+            }
+        }
+    }
+
+    match candidates.len() {
+        1 => {
+            let id = candidates
+                .into_iter()
+                .next()
+                .expect("Set should have exactly one item.");
+            Ok(id)
+        }
+        _ => Err(Error {
+            span: path.span,
+            candidates,
+        }),
     }
 }
