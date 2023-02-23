@@ -6,8 +6,8 @@ mod tests;
 
 use qsc_ast::{
     ast::{
-        Block, CallableDecl, Expr, ExprKind, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Span,
-        SpecBody, SpecDecl, Stmt, StmtKind, Ty, TyKind,
+        Block, CallableDecl, Expr, ExprKind, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
+        Span, SpecBody, SpecDecl, Stmt, StmtKind, Ty, TyKind,
     },
     visit::{self, Visitor},
 };
@@ -204,6 +204,19 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     fn visit_namespace(&mut self, namespace: &'a Namespace) {
         self.namespace = &namespace.name.name;
         visit::walk_namespace(self, namespace);
+        self.namespace = "";
+    }
+
+    fn visit_item(&mut self, item: &'a Item) {
+        if let ItemKind::Type(_, name, _) = &item.kind {
+            let id = self.symbols.declare_symbol(name.id);
+            self.tys
+                .entry(self.namespace)
+                .or_default()
+                .insert(&name.name, id);
+        }
+
+        visit::walk_item(self, item);
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
