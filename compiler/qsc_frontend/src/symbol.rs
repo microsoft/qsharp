@@ -257,17 +257,15 @@ fn resolve(
         }
     }
 
-    match candidates.len() {
-        1 => {
-            let id = candidates
-                .into_iter()
-                .next()
-                .expect("Set should have exactly one item.");
-            Ok(id)
-        }
-        _ => Err(Error {
+    if candidates.len() == 1 {
+        Ok(candidates
+            .into_iter()
+            .next()
+            .expect("Set should have exactly one item."))
+    } else {
+        Err(Error {
             span: path.span,
             kind: ErrorKind::Unresolved(candidates),
-        }),
+        })
     }
 }
