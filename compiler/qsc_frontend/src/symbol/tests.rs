@@ -10,6 +10,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::Visitor,
 };
+use std::fmt::{self, Write};
 
 struct Renamer<'a> {
     symbols: &'a Table,
@@ -66,17 +67,20 @@ fn check(input: &str, expect: &Expect) {
         output += "\n";
     }
     for error in &errors {
-        output += &format!("// {}\n", display_error(error));
+        output += "// ";
+        write_error(&mut output, error).expect("Error should write to output string.");
+        output += "\n";
     }
 
     expect.assert_eq(&output);
 }
 
-fn display_error(error: &Error) -> String {
+fn write_error(mut buffer: impl Write, error: &Error) -> fmt::Result {
     let ErrorKind::Unresolved(candidates) = &error.kind;
     let mut candidates: Vec<_> = candidates.iter().collect();
     candidates.sort();
-    format!(
+    write!(
+        buffer,
         "Unresolved symbol at {:?} with candidates {:?}.",
         error.span, candidates
     )
