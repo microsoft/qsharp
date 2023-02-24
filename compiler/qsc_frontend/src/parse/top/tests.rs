@@ -191,6 +191,10 @@ fn open_no_alias() {
                         lo: 0,
                         hi: 17,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Open(
                         Ident {
                             id: NodeId(
@@ -224,6 +228,10 @@ fn open_alias() {
                     span: Span {
                         lo: 0,
                         hi: 24,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
                     },
                     kind: Open(
                         Ident {
@@ -270,6 +278,10 @@ fn open_alias_dot() {
                         lo: 0,
                         hi: 28,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Open(
                         Ident {
                             id: NodeId(
@@ -315,11 +327,11 @@ fn function_decl() {
                         lo: 0,
                         hi: 41,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -405,11 +417,11 @@ fn operation_decl() {
                         lo: 0,
                         hi: 42,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -495,11 +507,11 @@ fn function_one_param() {
                         lo: 0,
                         hi: 48,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -619,11 +631,11 @@ fn function_two_params() {
                         lo: 0,
                         hi: 57,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -780,11 +792,11 @@ fn function_one_ty_param() {
                         lo: 0,
                         hi: 45,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -881,11 +893,11 @@ fn function_two_ty_params() {
                         lo: 0,
                         hi: 49,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -992,11 +1004,11 @@ fn function_single_impl() {
                         lo: 0,
                         hi: 44,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -1218,11 +1230,11 @@ fn operation_body_impl() {
                         lo: 0,
                         hi: 43,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -1381,11 +1393,11 @@ fn operation_body_ctl_impl() {
                         lo: 0,
                         hi: 70,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -1654,11 +1666,11 @@ fn operation_impl_and_gen() {
                         lo: 0,
                         hi: 57,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -1830,11 +1842,11 @@ fn operation_is_adj() {
                         lo: 0,
                         hi: 32,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -1928,11 +1940,11 @@ fn operation_is_adj_ctl() {
                         lo: 0,
                         hi: 38,
                     },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
                     kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: None,
-                        },
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -2071,22 +2083,22 @@ fn internal_function() {
                         lo: 0,
                         hi: 33,
                     },
-                    kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: Some(
-                                Visibility {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 0,
-                                        hi: 8,
-                                    },
-                                    kind: Internal,
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: Some(
+                            Visibility {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 8,
                                 },
-                            ),
-                        },
+                                kind: Internal,
+                            },
+                        ),
+                    },
+                    kind: Callable(
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -2167,22 +2179,22 @@ fn internal_operation() {
                         lo: 0,
                         hi: 34,
                     },
-                    kind: Callable(
-                        DeclMeta {
-                            attrs: [],
-                            visibility: Some(
-                                Visibility {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 0,
-                                        hi: 8,
-                                    },
-                                    kind: Internal,
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: Some(
+                            Visibility {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 8,
                                 },
-                            ),
-                        },
+                                kind: Internal,
+                            },
+                        ),
+                    },
+                    kind: Callable(
                         CallableDecl {
                             id: NodeId(
                                 4294967295,
@@ -2287,11 +2299,11 @@ fn namespace_function() {
                                         lo: 14,
                                         hi: 55,
                                     },
+                                    meta: ItemMeta {
+                                        attrs: [],
+                                        visibility: None,
+                                    },
                                     kind: Callable(
-                                        DeclMeta {
-                                            attrs: [],
-                                            visibility: None,
-                                        },
                                         CallableDecl {
                                             id: NodeId(
                                                 4294967295,
@@ -2464,6 +2476,10 @@ fn two_open_items() {
                                         lo: 14,
                                         hi: 21,
                                     },
+                                    meta: ItemMeta {
+                                        attrs: [],
+                                        visibility: None,
+                                    },
                                     kind: Open(
                                         Ident {
                                             id: NodeId(
@@ -2485,6 +2501,10 @@ fn two_open_items() {
                                     span: Span {
                                         lo: 22,
                                         hi: 29,
+                                    },
+                                    meta: ItemMeta {
+                                        attrs: [],
+                                        visibility: None,
                                     },
                                     kind: Open(
                                         Ident {
