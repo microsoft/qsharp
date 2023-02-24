@@ -282,3 +282,75 @@ fn spec_param_shadow() {
         "#]],
     );
 }
+
+#[test]
+fn local_shadows_global() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function x() : Unit {}
+
+                function y() : Int {
+                    x();
+                    let x = 1;
+                    x
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {}
+
+                function _1() : Int {
+                    _0();
+                    let _2 = 1;
+                    _2
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn merged_aliases() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                function B() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function C() : Unit {
+                    Alias.A();
+                    Alias.B();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {}
+            }
+
+            namespace Bar {
+                function _1() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function _2() : Unit {
+                    _0();
+                    _1();
+                }
+            }
+        "#]],
+    );
+}
