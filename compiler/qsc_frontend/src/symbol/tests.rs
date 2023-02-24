@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{GlobalTable, Id, Table};
+use super::{Error, ErrorKind, GlobalTable, Id, Table};
 use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -62,11 +62,24 @@ fn check(input: &str, expect: &Expect) {
     let mut output = input.to_string();
     renamer.rename(&mut output);
 
-    if errors.is_empty() {
-        expect.assert_eq(&output);
-    } else {
-        expect.assert_eq(&format!("{output}\n{errors:#?}"));
+    if !errors.is_empty() {
+        output += "\n";
     }
+    for error in &errors {
+        output += &format!("// {}\n", display_error(error));
+    }
+
+    expect.assert_eq(&output);
+}
+
+fn display_error(error: &Error) -> String {
+    let ErrorKind::Unresolved(candidates) = &error.kind;
+    let mut candidates: Vec<_> = candidates.iter().collect();
+    candidates.sort();
+    format!(
+        "Unresolved symbol at {:?} with candidates {:?}.",
+        error.span, candidates
+    )
 }
 
 #[test]
@@ -424,17 +437,8 @@ fn unknown_symbol() {
                 }
             }
 
-            [
-                Error {
-                    span: Span {
-                        lo: 50,
-                        hi: 51,
-                    },
-                    kind: Unresolved(
-                        {},
-                    ),
-                },
-            ]"#]],
+            // Unresolved symbol at Span { lo: 50, hi: 51 } with candidates [].
+        "#]],
     );
 }
 
@@ -477,24 +481,8 @@ fn open_ambiguous() {
                 }
             }
 
-            [
-                Error {
-                    span: Span {
-                        lo: 171,
-                        hi: 172,
-                    },
-                    kind: Unresolved(
-                        {
-                            Id(
-                                1,
-                            ),
-                            Id(
-                                0,
-                            ),
-                        },
-                    ),
-                },
-            ]"#]],
+            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [Id(0), Id(1)].
+        "#]],
     );
 }
 
@@ -537,23 +525,7 @@ fn merged_aliases_ambiguous() {
                 }
             }
 
-            [
-                Error {
-                    span: Span {
-                        lo: 189,
-                        hi: 196,
-                    },
-                    kind: Unresolved(
-                        {
-                            Id(
-                                0,
-                            ),
-                            Id(
-                                1,
-                            ),
-                        },
-                    ),
-                },
-            ]"#]],
+            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Id(0), Id(1)].
+        "#]],
     );
 }
