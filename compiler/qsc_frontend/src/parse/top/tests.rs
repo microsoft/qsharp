@@ -313,6 +313,752 @@ fn open_alias_dot() {
 }
 
 #[test]
+fn ty_decl() {
+    check(
+        item,
+        "newtype Foo = Unit;",
+        &expect![[r#"
+            Ok(
+                Item {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 19,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
+                    kind: Ty(
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 11,
+                            },
+                            name: "Foo",
+                        },
+                        TyDef {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 14,
+                                hi: 18,
+                            },
+                            kind: Field(
+                                None,
+                                Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 14,
+                                        hi: 18,
+                                    },
+                                    kind: Tuple(
+                                        [],
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl_field_name() {
+    check(
+        item,
+        "newtype Foo = Bar : Int;",
+        &expect![[r#"
+            Ok(
+                Item {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 24,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
+                    kind: Ty(
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 11,
+                            },
+                            name: "Foo",
+                        },
+                        TyDef {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 14,
+                                hi: 23,
+                            },
+                            kind: Field(
+                                Some(
+                                    Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 14,
+                                            hi: 17,
+                                        },
+                                        name: "Bar",
+                                    },
+                                ),
+                                Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 20,
+                                        hi: 23,
+                                    },
+                                    kind: Prim(
+                                        Int,
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ty_def_invalid_field_name() {
+    check(
+        item,
+        "newtype Foo = Bar.Baz : Int[];",
+        &expect![[r#"
+            Err(
+                Error {
+                    kind: Rule(
+                        "identifier",
+                    ),
+                    span: Span {
+                        lo: 14,
+                        hi: 21,
+                    },
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ty_def_tuple() {
+    check(
+        item,
+        "newtype Foo = (Int, Int);",
+        &expect![[r#"
+            Ok(
+                Item {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 25,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
+                    kind: Ty(
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 11,
+                            },
+                            name: "Foo",
+                        },
+                        TyDef {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 14,
+                                hi: 24,
+                            },
+                            kind: Tuple(
+                                [
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 15,
+                                            hi: 18,
+                                        },
+                                        kind: Field(
+                                            None,
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 15,
+                                                    hi: 18,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 20,
+                                            hi: 23,
+                                        },
+                                        kind: Field(
+                                            None,
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 20,
+                                                    hi: 23,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ty_def_tuple_one_named() {
+    check(
+        item,
+        "newtype Foo = (X : Int, Int);",
+        &expect![[r#"
+            Ok(
+                Item {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 29,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
+                    kind: Ty(
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 11,
+                            },
+                            name: "Foo",
+                        },
+                        TyDef {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 14,
+                                hi: 28,
+                            },
+                            kind: Tuple(
+                                [
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 15,
+                                            hi: 22,
+                                        },
+                                        kind: Field(
+                                            Some(
+                                                Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 15,
+                                                        hi: 16,
+                                                    },
+                                                    name: "X",
+                                                },
+                                            ),
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 19,
+                                                    hi: 22,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 24,
+                                            hi: 27,
+                                        },
+                                        kind: Field(
+                                            None,
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 24,
+                                                    hi: 27,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ty_def_tuple_both_named() {
+    check(
+        item,
+        "newtype Foo = (X : Int, Y : Int);",
+        &expect![[r#"
+            Ok(
+                Item {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 33,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
+                    kind: Ty(
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 11,
+                            },
+                            name: "Foo",
+                        },
+                        TyDef {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 14,
+                                hi: 32,
+                            },
+                            kind: Tuple(
+                                [
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 15,
+                                            hi: 22,
+                                        },
+                                        kind: Field(
+                                            Some(
+                                                Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 15,
+                                                        hi: 16,
+                                                    },
+                                                    name: "X",
+                                                },
+                                            ),
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 19,
+                                                    hi: 22,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 24,
+                                            hi: 31,
+                                        },
+                                        kind: Field(
+                                            Some(
+                                                Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 24,
+                                                        hi: 25,
+                                                    },
+                                                    name: "Y",
+                                                },
+                                            ),
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 28,
+                                                    hi: 31,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ty_def_nested_tuple() {
+    check(
+        item,
+        "newtype Foo = ((X : Int, Y : Int), Z : Int);",
+        &expect![[r#"
+            Ok(
+                Item {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 44,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
+                    kind: Ty(
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 11,
+                            },
+                            name: "Foo",
+                        },
+                        TyDef {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 14,
+                                hi: 43,
+                            },
+                            kind: Tuple(
+                                [
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 15,
+                                            hi: 33,
+                                        },
+                                        kind: Tuple(
+                                            [
+                                                TyDef {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 16,
+                                                        hi: 23,
+                                                    },
+                                                    kind: Field(
+                                                        Some(
+                                                            Ident {
+                                                                id: NodeId(
+                                                                    4294967295,
+                                                                ),
+                                                                span: Span {
+                                                                    lo: 16,
+                                                                    hi: 17,
+                                                                },
+                                                                name: "X",
+                                                            },
+                                                        ),
+                                                        Ty {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 20,
+                                                                hi: 23,
+                                                            },
+                                                            kind: Prim(
+                                                                Int,
+                                                            ),
+                                                        },
+                                                    ),
+                                                },
+                                                TyDef {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 25,
+                                                        hi: 32,
+                                                    },
+                                                    kind: Field(
+                                                        Some(
+                                                            Ident {
+                                                                id: NodeId(
+                                                                    4294967295,
+                                                                ),
+                                                                span: Span {
+                                                                    lo: 25,
+                                                                    hi: 26,
+                                                                },
+                                                                name: "Y",
+                                                            },
+                                                        ),
+                                                        Ty {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 29,
+                                                                hi: 32,
+                                                            },
+                                                            kind: Prim(
+                                                                Int,
+                                                            ),
+                                                        },
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                    TyDef {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 35,
+                                            hi: 42,
+                                        },
+                                        kind: Field(
+                                            Some(
+                                                Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 35,
+                                                        hi: 36,
+                                                    },
+                                                    name: "Z",
+                                                },
+                                            ),
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 39,
+                                                    hi: 42,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ty_def_tuple_with_name() {
+    check(
+        item,
+        "newtype Foo = Pair : (Int, Int);",
+        &expect![[r#"
+            Ok(
+                Item {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 32,
+                    },
+                    meta: ItemMeta {
+                        attrs: [],
+                        visibility: None,
+                    },
+                    kind: Ty(
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 11,
+                            },
+                            name: "Foo",
+                        },
+                        TyDef {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 14,
+                                hi: 31,
+                            },
+                            kind: Field(
+                                Some(
+                                    Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 14,
+                                            hi: 18,
+                                        },
+                                        name: "Pair",
+                                    },
+                                ),
+                                Ty {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 21,
+                                        hi: 31,
+                                    },
+                                    kind: Tuple(
+                                        [
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 22,
+                                                    hi: 25,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                            Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 27,
+                                                    hi: 30,
+                                                },
+                                                kind: Prim(
+                                                    Int,
+                                                ),
+                                            },
+                                        ],
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn function_decl() {
     check(
         item,
@@ -2518,6 +3264,330 @@ fn two_open_items() {
                                             name: "C",
                                         },
                                         None,
+                                    ),
+                                },
+                            ],
+                        },
+                    ],
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn two_ty_items() {
+    check(
+        package,
+        "namespace A { newtype B = Unit; newtype C = Unit; }",
+        &expect![[r#"
+            Ok(
+                Package {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    namespaces: [
+                        Namespace {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 51,
+                            },
+                            name: Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 10,
+                                    hi: 11,
+                                },
+                                name: "A",
+                            },
+                            items: [
+                                Item {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 14,
+                                        hi: 31,
+                                    },
+                                    meta: ItemMeta {
+                                        attrs: [],
+                                        visibility: None,
+                                    },
+                                    kind: Ty(
+                                        Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 22,
+                                                hi: 23,
+                                            },
+                                            name: "B",
+                                        },
+                                        TyDef {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 26,
+                                                hi: 30,
+                                            },
+                                            kind: Field(
+                                                None,
+                                                Ty {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 26,
+                                                        hi: 30,
+                                                    },
+                                                    kind: Tuple(
+                                                        [],
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                                Item {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 32,
+                                        hi: 49,
+                                    },
+                                    meta: ItemMeta {
+                                        attrs: [],
+                                        visibility: None,
+                                    },
+                                    kind: Ty(
+                                        Ident {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 40,
+                                                hi: 41,
+                                            },
+                                            name: "C",
+                                        },
+                                        TyDef {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 44,
+                                                hi: 48,
+                                            },
+                                            kind: Field(
+                                                None,
+                                                Ty {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 44,
+                                                        hi: 48,
+                                                    },
+                                                    kind: Tuple(
+                                                        [],
+                                                    ),
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                            ],
+                        },
+                    ],
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn two_callable_items() {
+    check(
+        package,
+        "namespace A { operation B() : Unit {} function C() : Unit {} }",
+        &expect![[r#"
+            Ok(
+                Package {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    namespaces: [
+                        Namespace {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 62,
+                            },
+                            name: Ident {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 10,
+                                    hi: 11,
+                                },
+                                name: "A",
+                            },
+                            items: [
+                                Item {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 14,
+                                        hi: 37,
+                                    },
+                                    meta: ItemMeta {
+                                        attrs: [],
+                                        visibility: None,
+                                    },
+                                    kind: Callable(
+                                        CallableDecl {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 14,
+                                                hi: 37,
+                                            },
+                                            kind: Operation,
+                                            name: Ident {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 24,
+                                                    hi: 25,
+                                                },
+                                                name: "B",
+                                            },
+                                            ty_params: [],
+                                            input: Pat {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 25,
+                                                    hi: 27,
+                                                },
+                                                kind: Tuple(
+                                                    [],
+                                                ),
+                                            },
+                                            output: Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 30,
+                                                    hi: 34,
+                                                },
+                                                kind: Tuple(
+                                                    [],
+                                                ),
+                                            },
+                                            functors: None,
+                                            body: Block(
+                                                Block {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 35,
+                                                        hi: 37,
+                                                    },
+                                                    stmts: [],
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                },
+                                Item {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 38,
+                                        hi: 60,
+                                    },
+                                    meta: ItemMeta {
+                                        attrs: [],
+                                        visibility: None,
+                                    },
+                                    kind: Callable(
+                                        CallableDecl {
+                                            id: NodeId(
+                                                4294967295,
+                                            ),
+                                            span: Span {
+                                                lo: 38,
+                                                hi: 60,
+                                            },
+                                            kind: Function,
+                                            name: Ident {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 47,
+                                                    hi: 48,
+                                                },
+                                                name: "C",
+                                            },
+                                            ty_params: [],
+                                            input: Pat {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 48,
+                                                    hi: 50,
+                                                },
+                                                kind: Tuple(
+                                                    [],
+                                                ),
+                                            },
+                                            output: Ty {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 53,
+                                                    hi: 57,
+                                                },
+                                                kind: Tuple(
+                                                    [],
+                                                ),
+                                            },
+                                            functors: None,
+                                            body: Block(
+                                                Block {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 58,
+                                                        hi: 60,
+                                                    },
+                                                    stmts: [],
+                                                },
+                                            ),
+                                        },
                                     ),
                                 },
                             ],
