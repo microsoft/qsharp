@@ -6257,7 +6257,7 @@ namespace NQueens {
         (Adjoint X)(q[20]);
     }
 
-    //@EntryPoint()
+    @EntryPoint()
     operation nQueensPuzzleFlattened() : Result[] {
         use q = Qubit[41];
 
