@@ -94,6 +94,34 @@ fn global_callable() {
 }
 
 #[test]
+fn global_path() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                function B() : Unit {
+                    Foo.A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {}
+            }
+
+            namespace Bar {
+                function _1() : Unit {
+                    _0();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn open_namespace() {
     check(
         indoc! {"
@@ -312,6 +340,30 @@ fn local_shadows_global() {
 }
 
 #[test]
+fn shadow_same_block() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    let x = 0;
+                    let x = x + 1;
+                    x
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Int {
+                    let _1 = 0;
+                    let _2 = _2 + 1;
+                    _2
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn merged_aliases() {
     check(
         indoc! {"
@@ -352,5 +404,156 @@ fn merged_aliases() {
                 }
             }
         "#]],
+    );
+}
+
+#[test]
+fn unknown_symbol() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    B();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {
+                    B();
+                }
+            }
+
+            [
+                Error {
+                    span: Span {
+                        lo: 50,
+                        hi: 51,
+                    },
+                    kind: Unresolved(
+                        {},
+                    ),
+                },
+            ]"#]],
+    );
+}
+
+#[test]
+fn open_ambiguous() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                function A() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo;
+                open Bar;
+
+                function C() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {}
+            }
+
+            namespace Bar {
+                function _1() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo;
+                open Bar;
+
+                function _2() : Unit {
+                    A();
+                }
+            }
+
+            [
+                Error {
+                    span: Span {
+                        lo: 171,
+                        hi: 172,
+                    },
+                    kind: Unresolved(
+                        {
+                            Id(
+                                1,
+                            ),
+                            Id(
+                                0,
+                            ),
+                        },
+                    ),
+                },
+            ]"#]],
+    );
+}
+
+#[test]
+fn merged_aliases_ambiguous() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                function A() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function C() : Unit {
+                    Alias.A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {}
+            }
+
+            namespace Bar {
+                function _1() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function _2() : Unit {
+                    Alias.A();
+                }
+            }
+
+            [
+                Error {
+                    span: Span {
+                        lo: 189,
+                        hi: 196,
+                    },
+                    kind: Unresolved(
+                        {
+                            Id(
+                                0,
+                            ),
+                            Id(
+                                1,
+                            ),
+                        },
+                    ),
+                },
+            ]"#]],
     );
 }
