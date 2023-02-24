@@ -243,11 +243,11 @@ fn shadow_local() {
             namespace Foo {
                 function _0() : Int {
                     let _1 = 0;
-                    let _2 = {
-                        let _3 = 1;
-                        _3
+                    let _3 = {
+                        let _2 = 1;
+                        _2
                     };
-                    _1 + _2
+                    _1 + _3
                 }
             }
         "#]],
@@ -372,7 +372,7 @@ fn shadow_same_block() {
             namespace Foo {
                 function _0() : Int {
                     let _1 = 0;
-                    let _2 = _2 + 1;
+                    let _2 = _1 + 1;
                     _2
                 }
             }

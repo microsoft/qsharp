@@ -141,6 +141,8 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
+        visit::walk_stmt(self, stmt);
+
         match &stmt.kind {
             StmtKind::Borrow(pat, _, _)
             | StmtKind::Let(pat, _)
@@ -155,8 +157,6 @@ impl<'a> Visitor<'a> for Resolver<'a> {
             }
             StmtKind::Expr(_) | StmtKind::Semi(_) => {}
         }
-
-        visit::walk_stmt(self, stmt);
     }
 
     fn visit_expr(&mut self, expr: &'a Expr) {
