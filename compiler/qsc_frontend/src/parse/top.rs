@@ -5,17 +5,19 @@
 mod tests;
 
 use super::{
+    expr::expr,
     keyword::Keyword,
-    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token},
+    prim::{dot_ident, ident, keyword, many, opt, pat, path, seq, token},
     scan::Scanner,
     stmt::{self, stmt},
     ty::{self, ty},
-    ErrorKind, Result,
+    Error, ErrorKind, Result,
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
-    Block, CallableBody, CallableDecl, CallableKind, DeclMeta, Item, ItemKind, Namespace, NodeId,
-    Package, Spec, SpecBody, SpecDecl, SpecGen, Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, ItemMeta,
+    Namespace, NodeId, Package, Path, Spec, SpecBody, SpecDecl, SpecGen, Ty, TyDef, TyDefKind,
+    TyKind, Visibility, VisibilityKind,
 };
 
 pub(super) fn package(s: &mut Scanner) -> Result<Package> {
@@ -44,23 +46,13 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
 
 fn item(s: &mut Scanner) -> Result<Item> {
     let lo = s.peek().span.lo;
-    let kind = if let Some(meta) = opt(s, decl_meta)? {
-        Ok(ItemKind::Callable(meta, callable_decl(s)?))
-    } else if let Some(decl) = opt(s, callable_decl)? {
-        let meta = DeclMeta {
-            attrs: Vec::new(),
-            visibility: None,
-        };
-        Ok(ItemKind::Callable(meta, decl))
-    } else if keyword(s, Keyword::Open).is_ok() {
-        let name = dot_ident(s)?;
-        let alias = if keyword(s, Keyword::As).is_ok() {
-            Some(dot_ident(s)?)
-        } else {
-            None
-        };
-        token(s, TokenKind::Semi)?;
-        Ok(ItemKind::Open(name, alias))
+    let meta = opt(s, item_meta)?.unwrap_or_default();
+    let kind = if let Some(open) = opt(s, item_open)? {
+        Ok(open)
+    } else if let Some(ty) = opt(s, item_ty)? {
+        Ok(ty)
+    } else if let Some(callable) = opt(s, callable_decl)? {
+        Ok(ItemKind::Callable(callable))
     } else {
         Err(s.error(ErrorKind::Rule("item")))
     }?;
@@ -68,22 +60,99 @@ fn item(s: &mut Scanner) -> Result<Item> {
     Ok(Item {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),
+        meta,
         kind,
     })
 }
 
-fn decl_meta(s: &mut Scanner) -> Result<DeclMeta> {
+fn item_meta(s: &mut Scanner) -> Result<ItemMeta> {
+    let attrs = many(s, attr)?;
+    let visibility = opt(s, visibility)?;
+    Ok(ItemMeta { attrs, visibility })
+}
+
+fn attr(s: &mut Scanner) -> Result<Attr> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::At)?;
+    let name = path(s)?;
+    let arg = expr(s)?;
+    Ok(Attr {
+        id: NodeId::PLACEHOLDER,
+        span: s.span(lo),
+        name,
+        arg,
+    })
+}
+
+fn visibility(s: &mut Scanner) -> Result<Visibility> {
     let lo = s.peek().span.lo;
     keyword(s, Keyword::Internal)?;
-    let visibility = Visibility {
+    Ok(Visibility {
         id: NodeId::PLACEHOLDER,
         span: s.span(lo),
         kind: VisibilityKind::Internal,
-    };
-    Ok(DeclMeta {
-        attrs: Vec::new(),
-        visibility: Some(visibility),
     })
+}
+
+fn item_open(s: &mut Scanner) -> Result<ItemKind> {
+    keyword(s, Keyword::Open)?;
+    let name = dot_ident(s)?;
+    let alias = if keyword(s, Keyword::As).is_ok() {
+        Some(dot_ident(s)?)
+    } else {
+        None
+    };
+    token(s, TokenKind::Semi)?;
+    Ok(ItemKind::Open(name, alias))
+}
+
+fn item_ty(s: &mut Scanner) -> Result<ItemKind> {
+    keyword(s, Keyword::Newtype)?;
+    let name = ident(s)?;
+    token(s, TokenKind::Eq)?;
+    let def = ty_def(s)?;
+    token(s, TokenKind::Semi)?;
+    Ok(ItemKind::Ty(name, def))
+}
+
+fn ty_def(s: &mut Scanner) -> Result<TyDef> {
+    let lo = s.peek().span.lo;
+    let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
+        let (defs, final_sep) = seq(s, ty_def)?;
+        token(s, TokenKind::Close(Delim::Paren))?;
+        Ok(final_sep.reify(defs, |d| TyDefKind::Paren(Box::new(d)), TyDefKind::Tuple))
+    } else {
+        let field_ty = ty(s)?;
+        if token(s, TokenKind::Colon).is_ok() {
+            let name = ty_as_ident(field_ty)?;
+            let field_ty = ty(s)?;
+            Ok(TyDefKind::Field(Some(name), field_ty))
+        } else {
+            Ok(TyDefKind::Field(None, field_ty))
+        }
+    }?;
+
+    Ok(TyDef {
+        id: NodeId::PLACEHOLDER,
+        span: s.span(lo),
+        kind,
+    })
+}
+
+fn ty_as_ident(ty: Ty) -> Result<Ident> {
+    if let TyKind::Path(Path {
+        namespace: None,
+        name,
+        ..
+    }) = ty.kind
+    {
+        Ok(name)
+    } else {
+        Err(Error {
+            kind: ErrorKind::Rule("identifier"),
+            span: ty.span,
+        })
+    }
 }
 
 fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
