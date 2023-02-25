@@ -123,7 +123,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         let body = stmt::block(s)?;
         Ok(ExprKind::For(vars, Box::new(iter), body))
     } else if keyword(s, Keyword::If).is_ok() {
-        if_kind(s)
+        expr_if(s)
     } else if keyword(s, Keyword::Repeat).is_ok() {
         let body = stmt::block(s)?;
         keyword(s, Keyword::Until)?;
@@ -137,10 +137,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
     } else if keyword(s, Keyword::Return).is_ok() {
         Ok(ExprKind::Return(Box::new(expr(s)?)))
     } else if keyword(s, Keyword::Set).is_ok() {
-        let lhs = expr(s)?;
-        token(s, TokenKind::Eq)?;
-        let rhs = expr(s)?;
-        Ok(ExprKind::Assign(Box::new(lhs), Box::new(rhs)))
+        expr_set(s)
     } else if keyword(s, Keyword::While).is_ok() {
         Ok(ExprKind::While(Box::new(expr(s)?), stmt::block(s)?))
     } else if keyword(s, Keyword::Within).is_ok() {
@@ -165,13 +162,13 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
     })
 }
 
-fn if_kind(s: &mut Scanner) -> Result<ExprKind> {
+fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
     let cond = expr(s)?;
     let body = stmt::block(s)?;
-
     let lo = s.peek().span.lo;
+
     let otherwise = if keyword(s, Keyword::Elif).is_ok() {
-        Some(if_kind(s)?)
+        Some(expr_if(s)?)
     } else if keyword(s, Keyword::Else).is_ok() {
         Some(ExprKind::Block(stmt::block(s)?))
     } else {
@@ -186,6 +183,33 @@ fn if_kind(s: &mut Scanner) -> Result<ExprKind> {
     });
 
     Ok(ExprKind::If(Box::new(cond), body, otherwise))
+}
+
+fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
+    let lhs = expr(s)?;
+    if token(s, TokenKind::Eq).is_ok() {
+        let rhs = expr(s)?;
+        Ok(ExprKind::Assign(Box::new(lhs), Box::new(rhs)))
+    } else if token(s, TokenKind::WSlashEq).is_ok() {
+        let index = expr(s)?;
+        token(s, TokenKind::LArrow)?;
+        let rhs = expr(s)?;
+        Ok(ExprKind::AssignUpdate(
+            Box::new(lhs),
+            Box::new(index),
+            Box::new(rhs),
+        ))
+    } else if let TokenKind::BinOpEq(op) = s.peek().kind {
+        s.advance();
+        let rhs = expr(s)?;
+        Ok(ExprKind::AssignOp(
+            closed_bin_op(op),
+            Box::new(lhs),
+            Box::new(rhs),
+        ))
+    } else {
+        Err(s.error(ErrorKind::Rule("assignment operator")))
+    }
 }
 
 fn lit(s: &mut Scanner) -> Result<Lit> {
@@ -276,11 +300,11 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             precedence: 1,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Or)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::OrL, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::Or), Assoc::Left),
             precedence: 2,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::And)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::AndL, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::And), Assoc::Left),
             precedence: 3,
         }),
         OpName::Token(TokenKind::EqEq) => Some(MixfixOp {
@@ -308,47 +332,47 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             precedence: 4,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::BarBarBar)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::OrB, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::BarBarBar), Assoc::Left),
             precedence: 5,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::CaretCaretCaret)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::XorB, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::CaretCaretCaret), Assoc::Left),
             precedence: 6,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::AmpAmpAmp)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::AndB, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::AmpAmpAmp), Assoc::Left),
             precedence: 7,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::LtLtLt)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Shl, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::LtLtLt), Assoc::Left),
             precedence: 8,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::GtGtGt)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Shr, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::GtGtGt), Assoc::Left),
             precedence: 8,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Plus)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Add, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::Plus), Assoc::Left),
             precedence: 9,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Minus)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Sub, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::Minus), Assoc::Left),
             precedence: 9,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Star)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Mul, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::Star), Assoc::Left),
             precedence: 10,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Slash)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Div, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::Slash), Assoc::Left),
             precedence: 10,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Percent)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Mod, Assoc::Left),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::Percent), Assoc::Left),
             precedence: 10,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Caret)) => Some(MixfixOp {
-            kind: OpKind::Binary(BinOp::Exp, Assoc::Right),
+            kind: OpKind::Binary(closed_bin_op(ClosedBinOp::Caret), Assoc::Right),
             precedence: 12,
         }),
         OpName::Token(TokenKind::Open(Delim::Paren)) => Some(MixfixOp {
@@ -368,6 +392,24 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             precedence: 15,
         }),
         _ => None,
+    }
+}
+
+fn closed_bin_op(op: ClosedBinOp) -> BinOp {
+    match op {
+        ClosedBinOp::AmpAmpAmp => BinOp::AndB,
+        ClosedBinOp::And => BinOp::AndL,
+        ClosedBinOp::BarBarBar => BinOp::OrB,
+        ClosedBinOp::Caret => BinOp::Exp,
+        ClosedBinOp::CaretCaretCaret => BinOp::XorB,
+        ClosedBinOp::GtGtGt => BinOp::Shr,
+        ClosedBinOp::LtLtLt => BinOp::Shl,
+        ClosedBinOp::Minus => BinOp::Sub,
+        ClosedBinOp::Or => BinOp::OrL,
+        ClosedBinOp::Percent => BinOp::Mod,
+        ClosedBinOp::Plus => BinOp::Add,
+        ClosedBinOp::Slash => BinOp::Div,
+        ClosedBinOp::Star => BinOp::Mul,
     }
 }
 
