@@ -208,13 +208,16 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 
     fn visit_item(&mut self, item: &'a Item) {
-        if let ItemKind::Ty(name, def) = &item.kind {
+        if let ItemKind::Ty(name, _) = &item.kind {
             let id = self.symbols.declare_symbol(name.id);
             self.tys
                 .entry(self.namespace)
                 .or_default()
                 .insert(&name.name, id);
-            self.visit_ty_def(def);
+            self.terms
+                .entry(self.namespace)
+                .or_default()
+                .insert(&name.name, id);
         } else {
             visit::walk_item(self, item);
         }

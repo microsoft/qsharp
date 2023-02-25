@@ -111,6 +111,26 @@ fn global_callable() {
 }
 
 #[test]
+fn global_callable_recursive() {
+    check(
+        indoc! {
+            "namespace Foo {
+                function A() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {
+                    _0();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn global_path() {
     check(
         indoc! {"
@@ -530,6 +550,82 @@ fn merged_aliases_ambiguous() {
             }
 
             // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Id(0), Id(1)].
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = Unit;
+                function B(a : A) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                newtype _0 = Unit;
+                function _1(_2 : _0) : Unit {}
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl_in_ty_decl() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = Unit;
+                newtype B = A;
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                newtype _0 = Unit;
+                newtype _1 = _0;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl_recursive() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = A;
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                newtype _0 = _0;
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl_cons() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = Unit;
+
+                function B() : A {
+                    A()
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                newtype _0 = Unit;
+
+                function _1() : _0 {
+                    _0()
+                }
+            }
         "#]],
     );
 }
