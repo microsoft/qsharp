@@ -4,7 +4,7 @@
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, Ty, TyDef, TyKind,
+    SpecDecl, Stmt, StmtKind, Ty, TyDef, TyDefKind, TyKind,
 };
 
 pub trait MutVisitor: Sized {
@@ -82,20 +82,17 @@ pub fn walk_namespace(vis: &mut impl MutVisitor, namespace: &mut Namespace) {
 }
 
 pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
+    item.meta.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
     match &mut item.kind {
         ItemKind::Open(ns, alias) => {
             vis.visit_ident(ns);
             alias.iter_mut().for_each(|a| vis.visit_ident(a));
         }
-        ItemKind::Type(meta, ident, def) => {
-            meta.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
+        ItemKind::Ty(ident, def) => {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
-        ItemKind::Callable(meta, decl) => {
-            meta.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
-            vis.visit_callable_decl(decl);
-        }
+        ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
     }
 }
 
@@ -105,12 +102,13 @@ pub fn walk_attr(vis: &mut impl MutVisitor, attr: &mut Attr) {
 }
 
 pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
-    match def {
-        TyDef::Field(name, ty) => {
+    match &mut def.kind {
+        TyDefKind::Field(name, ty) => {
             name.iter_mut().for_each(|n| vis.visit_ident(n));
             vis.visit_ty(ty);
         }
-        TyDef::Tuple(defs) => defs.iter_mut().for_each(|d| vis.visit_ty_def(d)),
+        TyDefKind::Paren(def) => vis.visit_ty_def(def),
+        TyDefKind::Tuple(defs) => defs.iter_mut().for_each(|d| vis.visit_ty_def(d)),
     }
 }
 
