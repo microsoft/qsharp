@@ -445,116 +445,6 @@ fn merged_aliases() {
 }
 
 #[test]
-fn unknown_symbol() {
-    check(
-        indoc! {"
-            namespace Foo {
-                function A() : Unit {
-                    B();
-                }
-            }
-        "},
-        &expect![[r#"
-            namespace Foo {
-                function _0() : Unit {
-                    B();
-                }
-            }
-
-            // Unresolved symbol at Span { lo: 50, hi: 51 } with candidates [].
-        "#]],
-    );
-}
-
-#[test]
-fn open_ambiguous() {
-    check(
-        indoc! {"
-            namespace Foo {
-                function A() : Unit {}
-            }
-
-            namespace Bar {
-                function A() : Unit {}
-            }
-
-            namespace Baz {
-                open Foo;
-                open Bar;
-
-                function C() : Unit {
-                    A();
-                }
-            }
-        "},
-        &expect![[r#"
-            namespace Foo {
-                function _0() : Unit {}
-            }
-
-            namespace Bar {
-                function _1() : Unit {}
-            }
-
-            namespace Baz {
-                open Foo;
-                open Bar;
-
-                function _2() : Unit {
-                    A();
-                }
-            }
-
-            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [Id(0), Id(1)].
-        "#]],
-    );
-}
-
-#[test]
-fn merged_aliases_ambiguous() {
-    check(
-        indoc! {"
-            namespace Foo {
-                function A() : Unit {}
-            }
-
-            namespace Bar {
-                function A() : Unit {}
-            }
-
-            namespace Baz {
-                open Foo as Alias;
-                open Bar as Alias;
-
-                function C() : Unit {
-                    Alias.A();
-                }
-            }
-        "},
-        &expect![[r#"
-            namespace Foo {
-                function _0() : Unit {}
-            }
-
-            namespace Bar {
-                function _1() : Unit {}
-            }
-
-            namespace Baz {
-                open Foo as Alias;
-                open Bar as Alias;
-
-                function _2() : Unit {
-                    Alias.A();
-                }
-            }
-
-            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Id(0), Id(1)].
-        "#]],
-    );
-}
-
-#[test]
 fn ty_decl() {
     check(
         indoc! {"
@@ -626,6 +516,214 @@ fn ty_decl_cons() {
                     _0()
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn unknown_term() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    B();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {
+                    B();
+                }
+            }
+
+            // Unresolved symbol at Span { lo: 50, hi: 51 } with candidates [].
+        "#]],
+    );
+}
+
+#[test]
+fn unknown_ty() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A(b : B) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0(_1 : B) : Unit {}
+            }
+
+            // Unresolved symbol at Span { lo: 35, hi: 36 } with candidates [].
+        "#]],
+    );
+}
+
+#[test]
+fn open_ambiguous_terms() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                function A() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo;
+                open Bar;
+
+                function C() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {}
+            }
+
+            namespace Bar {
+                function _1() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo;
+                open Bar;
+
+                function _2() : Unit {
+                    A();
+                }
+            }
+
+            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [Id(0), Id(1)].
+        "#]],
+    );
+}
+
+#[test]
+fn open_ambiguous_tys() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = Unit;
+            }
+
+            namespace Bar {
+                newtype A = Unit;
+            }
+
+            namespace Baz {
+                open Foo;
+                open Bar;
+
+                function C(a : A) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                newtype _0 = Unit;
+            }
+
+            namespace Bar {
+                newtype _1 = Unit;
+            }
+
+            namespace Baz {
+                open Foo;
+                open Bar;
+
+                function _2(_3 : A) : Unit {}
+            }
+
+            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [Id(0), Id(1)].
+        "#]],
+    );
+}
+
+#[test]
+fn merged_aliases_ambiguous_terms() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                function A() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function C() : Unit {
+                    Alias.A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {}
+            }
+
+            namespace Bar {
+                function _1() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function _2() : Unit {
+                    Alias.A();
+                }
+            }
+
+            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Id(0), Id(1)].
+        "#]],
+    );
+}
+
+#[test]
+fn merged_aliases_ambiguous_tys() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = Unit;
+            }
+
+            namespace Bar {
+                newtype A = Unit;
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function C(a : Alias.A) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                newtype _0 = Unit;
+            }
+
+            namespace Bar {
+                newtype _1 = Unit;
+            }
+
+            namespace Baz {
+                open Foo as Alias;
+                open Bar as Alias;
+
+                function _2(_3 : Alias.A) : Unit {}
+            }
+
+            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [Id(0), Id(1)].
         "#]],
     );
 }
