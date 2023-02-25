@@ -73,34 +73,36 @@ pub struct Namespace {
     pub items: Vec<Item>,
 }
 
-/// A namespace item.
+/// An item.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The item metadata.
+    pub meta: ItemMeta,
     /// The item kind.
     pub kind: ItemKind,
 }
 
-/// A namespace item kind.
+/// An item kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
-    /// An `open` statement for another namespace with an optional alias.
+    /// An `open` item for a namespace with an optional alias.
     Open(Ident, Option<Ident>),
     /// A `newtype` declaration.
-    Type(DeclMeta, Ident, TyDef),
+    Ty(Ident, TyDef),
     /// A `function` or `operation` declaration.
-    Callable(DeclMeta, CallableDecl),
+    Callable(CallableDecl),
 }
 
-/// Metadata for a top-level declaration.
-#[derive(Clone, Debug, PartialEq)]
-pub struct DeclMeta {
-    /// The declaration attributes.
+/// Metadata for an item.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ItemMeta {
+    /// The attributes.
     pub attrs: Vec<Attr>,
-    /// The declaration visibility.
+    /// The visibility.
     pub visibility: Option<Visibility>,
 }
 
@@ -130,9 +132,22 @@ pub struct Attr {
 
 /// A type definition.
 #[derive(Clone, Debug, PartialEq)]
-pub enum TyDef {
+pub struct TyDef {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The type definition kind.
+    pub kind: TyDefKind,
+}
+
+/// A type definition kind.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TyDefKind {
     /// A field definition with an optional name but required type.
     Field(Option<Ident>, Ty),
+    /// A parenthesized type definition.
+    Paren(Box<TyDef>),
     /// A tuple.
     Tuple(Vec<TyDef>),
 }
