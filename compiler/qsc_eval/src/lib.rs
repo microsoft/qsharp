@@ -3,122 +3,64 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-use std::{ffi::c_void, fmt::Display};
+pub mod val;
 
-use num_bigint::BigInt;
 use qir_backend::Pauli;
-use qsc_ast::ast::{self, Expr, ExprKind, Lit, Result, Stmt, StmtKind};
+use qsc_ast::ast::{self, Expr, ExprKind, Lit, Span, Stmt, StmtKind};
+use val::Value;
 
-pub enum Value {
-    Array(Vec<Box<Value>>),
-    BigInt(BigInt),
-    Bool(bool),
-    Callable,
-    Double(f64),
-    Int(i64),
-    Pauli(Pauli),
-    Qubit(*mut c_void),
-    Range(Option<Box<Value>>, Option<Box<Value>>, Option<Box<Value>>),
-    Result(bool),
-    String(String),
-    Tuple(Vec<Box<Value>>),
-    Udt,
+#[derive(Debug)]
+pub struct Error {
+    pub span: Span,
+    pub kind: ErrorKind,
 }
 
-impl Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Value::Array(arr) => format!(
-                    "[{}]",
-                    arr.iter()
-                        .map(std::string::ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                Value::BigInt(v) => v.to_string(),
-                Value::Bool(v) => v.to_string(),
-                Value::Callable => unimplemented!(),
-                Value::Double(v) => {
-                    if (v.floor() - v.ceil()).abs() < f64::EPSILON {
-                        // The value is a whole number, which by convention is displayed with one decimal point
-                        // to differentiate it from an integer value.
-                        format!("{v:.1}")
-                    } else {
-                        format!("{v}")
-                    }
-                }
-                Value::Int(v) => v.to_string(),
-                Value::Pauli(v) => match v {
-                    Pauli::I => "PauliI".to_string(),
-                    Pauli::X => "PauliX".to_string(),
-                    Pauli::Z => "PauliZ".to_string(),
-                    Pauli::Y => "PauliY".to_string(),
-                },
-                Value::Qubit(v) => (*v as usize).to_string(),
-                Value::Range(start, step, end) => match (start, step, end) {
-                    (Some(start), Some(step), Some(end)) => format!("{start}..{step}..{end}"),
-                    (Some(start), Some(step), None) => format!("{start}..{step}..."),
-                    (Some(start), None, Some(end)) => format! {"{start}..{end}"},
-                    (Some(start), None, None) => format!("{start}..."),
-                    (None, Some(step), Some(end)) => format!("...{step}..{end}"),
-                    (None, Some(step), None) => format!("...{step}..."),
-                    (None, None, Some(end)) => format!("...{end}"),
-                    (None, None, None) => "...".to_string(),
-                },
-                Value::Result(v) => {
-                    if *v {
-                        "One".to_string()
-                    } else {
-                        "Zero".to_string()
-                    }
-                }
-                Value::String(v) => v.clone(),
-                Value::Tuple(tup) => format!(
-                    "({})",
-                    tup.iter()
-                        .map(std::string::ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                Value::Udt => unimplemented!(),
-            }
-        )
+#[derive(Debug)]
+pub enum ErrorKind {
+    IndexErr(i64),
+    TypeError(String),
+    Unimplemented,
+    UserFail(String),
+}
+
+impl Error {
+    fn unimpl(span: Span) -> Result<Value, Error> {
+        Err(Self {
+            span,
+            kind: ErrorKind::Unimplemented,
+        })
     }
 }
 
 pub struct Evaluator {}
 
 impl Evaluator {
-    #[must_use]
-    pub fn eval_stmt(&mut self, stmt: &Stmt) -> Value {
+    /// Evaluates a statement in the current evaluator context.
+    /// # Errors
+    /// Returns the first error encountered during evaluation.
+    pub fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
         match &stmt.kind {
-            StmtKind::Borrow(_, _, _) => unimplemented!(),
             StmtKind::Expr(expr) => self.eval_expr(expr),
-            StmtKind::Let(_, _) => unimplemented!(),
-            StmtKind::Mutable(_, _) => unimplemented!(),
             StmtKind::Semi(expr) => {
                 let _ = self.eval_expr(expr);
-                Value::Tuple(vec![])
+                Ok(Value::Tuple(vec![]))
             }
-            StmtKind::Use(_, _, _) => unimplemented!(),
+            StmtKind::Borrow(_, _, _)
+            | StmtKind::Let(_, _)
+            | StmtKind::Mutable(_, _)
+            | StmtKind::Use(_, _, _) => Error::unimpl(stmt.span),
         }
     }
 
-    fn eval_expr(&mut self, expr: &Expr) -> Value {
+    fn eval_expr(&mut self, expr: &Expr) -> Result<Value, Error> {
         match &expr.kind {
-            ExprKind::Array(arr) => Value::Array(
-                arr.iter()
-                    .map(|expr| Box::new(self.eval_expr(expr)))
-                    .collect::<Vec<_>>(),
-            ),
-            ExprKind::ArrayRepeat(_, _) => unimplemented!(),
-            ExprKind::Assign(_, _) => unimplemented!(),
-            ExprKind::AssignOp(_, _, _) => unimplemented!(),
-            ExprKind::AssignUpdate(_, _, _) => unimplemented!(),
-            ExprKind::BinOp(_, _, _) => unimplemented!(),
+            ExprKind::Array(arr) => {
+                let mut val_arr = vec![];
+                for expr in arr {
+                    val_arr.push(Box::new(self.eval_expr(expr)?));
+                }
+                Ok(Value::Array(val_arr))
+            }
             ExprKind::Block(block) => {
                 if let Some((last, most)) = block.stmts.split_last() {
                     for stmt in most {
@@ -126,19 +68,23 @@ impl Evaluator {
                     }
                     self.eval_stmt(last)
                 } else {
-                    Value::Tuple(vec![])
+                    Ok(Value::Tuple(vec![]))
                 }
             }
-            ExprKind::Call(_, _) => unimplemented!(),
-            ExprKind::Conjugate(_, _) => unimplemented!(),
-            ExprKind::Fail(_) => unimplemented!(),
-            ExprKind::Field(_, _) => unimplemented!(),
-            ExprKind::For(_, _, _) => unimplemented!(),
-            ExprKind::Hole => unimplemented!(),
-            ExprKind::If(_, _, _) => unimplemented!(),
-            ExprKind::Index(_, _) => unimplemented!(),
-            ExprKind::Lambda(_, _, _) => unimplemented!(),
-            ExprKind::Lit(lit) => match lit {
+            ExprKind::Fail(msg) => Err(Error {
+                span: expr.span,
+                kind: ErrorKind::UserFail(self.eval_expr(msg)?.as_string(expr.span)?),
+            }),
+            ExprKind::Index(arr, index) => {
+                let arr = self.eval_expr(arr)?.as_array(arr.span)?;
+                let index_val = self.eval_expr(index)?.as_int(index.span)?;
+                let index: usize = index_val.try_into().map_err(|_| Error {
+                    span: index.span,
+                    kind: ErrorKind::IndexErr(index_val),
+                })?;
+                Ok((*arr[index]).clone())
+            }
+            ExprKind::Lit(lit) => Ok(match lit {
                 Lit::BigInt(v) => Value::BigInt(v.clone()),
                 Lit::Bool(v) => Value::Bool(*v),
                 Lit::Double(v) => Value::Double(*v),
@@ -153,28 +99,52 @@ impl Evaluator {
                     ast::Pauli::Z => Pauli::Z,
                 }),
                 Lit::Result(v) => Value::Result(match v {
-                    Result::Zero => false,
-                    Result::One => true,
+                    ast::Result::Zero => false,
+                    ast::Result::One => true,
                 }),
                 Lit::String(v) => Value::String(v.clone()),
-            },
+            }),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Path(_) => unimplemented!(),
-            ExprKind::Range(start, step, end) => Value::Range(
-                start.as_ref().map(|expr| Box::new(self.eval_expr(expr))),
-                step.as_ref().map(|expr| Box::new(self.eval_expr(expr))),
-                end.as_ref().map(|expr| Box::new(self.eval_expr(expr))),
-            ),
-            ExprKind::Repeat(_, _, _) => unimplemented!(),
-            ExprKind::Return(_) => unimplemented!(),
-            ExprKind::TernOp(_, _, _, _) => unimplemented!(),
-            ExprKind::Tuple(tup) => Value::Tuple(
-                tup.iter()
-                    .map(|expr| Box::new(self.eval_expr(expr)))
-                    .collect::<Vec<_>>(),
-            ),
-            ExprKind::UnOp(_, _) => unimplemented!(),
-            ExprKind::While(_, _) => unimplemented!(),
+            ExprKind::Range(start, step, end) => Ok(Value::Range(
+                start
+                    .as_ref()
+                    .map(|expr| self.eval_expr(expr))
+                    .transpose()?
+                    .map(Box::new),
+                step.as_ref()
+                    .map(|expr| self.eval_expr(expr))
+                    .transpose()?
+                    .map(Box::new),
+                end.as_ref()
+                    .map(|expr| self.eval_expr(expr))
+                    .transpose()?
+                    .map(Box::new),
+            )),
+            ExprKind::Tuple(tup) => {
+                let mut val_tup = vec![];
+                for expr in tup {
+                    val_tup.push(Box::new(self.eval_expr(expr)?));
+                }
+                Ok(Value::Tuple(val_tup))
+            }
+            ExprKind::ArrayRepeat(_, _)
+            | ExprKind::Assign(_, _)
+            | ExprKind::AssignOp(_, _, _)
+            | ExprKind::AssignUpdate(_, _, _)
+            | ExprKind::BinOp(_, _, _)
+            | ExprKind::Call(_, _)
+            | ExprKind::Conjugate(_, _)
+            | ExprKind::Field(_, _)
+            | ExprKind::For(_, _, _)
+            | ExprKind::Hole
+            | ExprKind::If(_, _, _)
+            | ExprKind::Lambda(_, _, _)
+            | ExprKind::Path(_)
+            | ExprKind::Repeat(_, _, _)
+            | ExprKind::Return(_)
+            | ExprKind::TernOp(_, _, _, _)
+            | ExprKind::UnOp(_, _)
+            | ExprKind::While(_, _) => Error::unimpl(expr.span),
         }
     }
 }
