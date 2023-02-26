@@ -100,6 +100,7 @@ impl MutVisitor for Assigner {
 
     fn visit_path(&mut self, path: &mut Path) {
         path.id = self.next_id();
+        mut_visit::walk_path(self, path);
     }
 
     fn visit_ident(&mut self, ident: &mut Ident) {

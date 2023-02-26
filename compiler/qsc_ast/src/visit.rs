@@ -64,7 +64,9 @@ pub trait Visitor<'a>: Sized {
         walk_qubit_init(self, init);
     }
 
-    fn visit_path(&mut self, _: &'a Path) {}
+    fn visit_path(&mut self, path: &'a Path) {
+        walk_path(self, path);
+    }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 }
@@ -280,4 +282,9 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
         QubitInitKind::Single => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
+}
+
+pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
+    path.namespace.iter().for_each(|n| vis.visit_ident(n));
+    vis.visit_ident(&path.name);
 }

@@ -8,7 +8,7 @@ use indoc::indoc;
 use qsc_ast::{
     ast::{Ident, Path, Span},
     mut_visit::MutVisitor,
-    visit::Visitor,
+    visit::{self, Visitor},
 };
 use std::fmt::{self, Write};
 
@@ -36,6 +36,8 @@ impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
         if let Some(&id) = self.symbols.nodes.get(&path.id) {
             self.changes.push((path.span, id));
+        } else {
+            visit::walk_path(self, path);
         }
     }
 
