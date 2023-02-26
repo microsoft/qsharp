@@ -7,7 +7,9 @@ use qsc_frontend::compile;
 static INPUT: &str = include_str!("./nqueens.qs");
 
 pub fn nqueens(c: &mut Criterion) {
-    c.bench_function("NQueens large input file", |b| b.iter(|| compile(INPUT)));
+    c.bench_function("NQueens large input file", |b| {
+        b.iter(|| compile(&[INPUT], None))
+    });
 }
 
 criterion_group!(benches, nqueens);

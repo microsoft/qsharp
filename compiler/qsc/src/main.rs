@@ -12,6 +12,7 @@ fn main() {
         None | Some("-") => io::stdin().lines().map(Result::unwrap).collect(),
         Some(path) => fs::read_to_string(path).unwrap(),
     };
+    let expr = args.get(2).map(String::as_str);
 
-    println!("{:#?}", compile(&input));
+    println!("{:#?}", compile(&[&input], expr));
 }

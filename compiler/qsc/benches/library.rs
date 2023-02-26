@@ -15,9 +15,10 @@ static QIR: &str = include_str!("../../../library/qir.qs");
 pub fn library(c: &mut Criterion) {
     c.bench_function("Standard library", |b| {
         b.iter(|| {
-            for input in [CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR] {
-                compile(input);
-            }
+            compile(
+                &[CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR],
+                None,
+            );
         })
     });
 }
