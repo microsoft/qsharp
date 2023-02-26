@@ -35,24 +35,10 @@ impl Error {
 pub struct Evaluator {}
 
 impl Evaluator {
-    /// Evaluates a statement in the current evaluator context.
+    /// Evaluates an expression in the current evaluator context.
     /// # Errors
     /// Returns the first error encountered during evaluation.
-    pub fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
-        match &stmt.kind {
-            StmtKind::Expr(expr) => self.eval_expr(expr),
-            StmtKind::Semi(expr) => {
-                let _ = self.eval_expr(expr);
-                Ok(Value::Tuple(vec![]))
-            }
-            StmtKind::Borrow(_, _, _)
-            | StmtKind::Let(_, _)
-            | StmtKind::Mutable(_, _)
-            | StmtKind::Use(_, _, _) => Error::unimpl(stmt.span),
-        }
-    }
-
-    fn eval_expr(&mut self, expr: &Expr) -> Result<Value, Error> {
+    pub fn eval_expr(&mut self, expr: &Expr) -> Result<Value, Error> {
         match &expr.kind {
             ExprKind::Array(arr) => {
                 let mut val_arr = vec![];
@@ -145,6 +131,20 @@ impl Evaluator {
             | ExprKind::TernOp(_, _, _, _)
             | ExprKind::UnOp(_, _)
             | ExprKind::While(_, _) => Error::unimpl(expr.span),
+        }
+    }
+
+    fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
+        match &stmt.kind {
+            StmtKind::Expr(expr) => self.eval_expr(expr),
+            StmtKind::Semi(expr) => {
+                let _ = self.eval_expr(expr);
+                Ok(Value::Tuple(vec![]))
+            }
+            StmtKind::Borrow(_, _, _)
+            | StmtKind::Let(_, _)
+            | StmtKind::Mutable(_, _)
+            | StmtKind::Use(_, _, _) => Error::unimpl(stmt.span),
         }
     }
 }
