@@ -17,7 +17,7 @@ pub mod symbol;
 #[derive(Debug)]
 pub struct Context {
     pub package: Package,
-    pub expr: Option<Expr>,
+    pub entry: Option<Expr>,
     pub symbols: symbol::Table,
     pub errors: Vec<Error>,
 }
@@ -53,15 +53,15 @@ enum ErrorKind {
     Symbol(symbol::ErrorKind),
 }
 
-pub fn compile(input: &[&str], expr_input: Option<&str>) -> Context {
-    let input = (*input).join("\n");
+pub fn compile(files: &[&str], entry_expr: &str) -> Context {
+    let input = (*files).join("\n");
     let (mut package, parse_errors) = parse::package(&input);
 
-    let (mut expr, mut expr_parse_errors) = (None, vec![]);
-    if let Some(expr_input) = expr_input {
-        let (parsed_expr, actual_expr_parse_errors) = parse::expr(expr_input);
-        expr = parsed_expr;
-        expr_parse_errors = actual_expr_parse_errors;
+    let (mut entry, mut entry_parse_errors) = (None, vec![]);
+    if !entry_expr.is_empty() {
+        let (parsed_expr, actual_expr_parse_errors) = parse::expr(entry_expr);
+        entry = parsed_expr;
+        entry_parse_errors = actual_expr_parse_errors;
     }
 
     let mut assigner = id::Assigner::new();
@@ -72,7 +72,7 @@ pub fn compile(input: &[&str], expr_input: Option<&str>) -> Context {
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
 
-    if let Some(ref mut expr) = expr {
+    if let Some(ref mut expr) = entry {
         assigner.visit_expr(expr);
         resolver.visit_expr(expr);
     }
@@ -81,12 +81,12 @@ pub fn compile(input: &[&str], expr_input: Option<&str>) -> Context {
 
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(Into::into));
-    errors.extend(expr_parse_errors.into_iter().map(Into::into));
+    errors.extend(entry_parse_errors.into_iter().map(Into::into));
     errors.extend(symbol_errors.into_iter().map(Into::into));
 
     Context {
         package,
-        expr,
+        entry,
         symbols,
         errors,
     }

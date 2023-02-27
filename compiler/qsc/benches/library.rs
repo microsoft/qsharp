@@ -17,7 +17,7 @@ pub fn library(c: &mut Criterion) {
         b.iter(|| {
             compile(
                 &[CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR],
-                None,
+                "",
             );
         })
     });
