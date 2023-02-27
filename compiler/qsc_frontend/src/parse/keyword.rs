@@ -5,7 +5,7 @@ use enum_iterator::Sequence;
 use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
-pub(super) enum Keyword {
+pub(crate) enum Keyword {
     Adj,
     Adjoint,
     AdjointUpper,

@@ -6,22 +6,19 @@
 #![warn(missing_docs)]
 
 use num_bigint::BigInt;
-use std::ops::Index;
+use std::ops::{Bound, Index, RangeBounds};
 
 /// The unique identifier for an AST node.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(u32);
 
 impl NodeId {
-    /// The ID for the root node in an AST.
-    pub const ROOT: Self = Self(0);
-
     /// The ID used before unique IDs have been assigned.
     pub const PLACEHOLDER: Self = Self(u32::MAX);
 
-    /// The next ID in the sequence.
+    /// The successor of this ID.
     #[must_use]
-    pub fn next(&self) -> Self {
+    pub fn successor(self) -> Self {
         Self(self.0 + 1)
     }
 }
@@ -44,8 +41,18 @@ impl Index<Span> for str {
     }
 }
 
+impl RangeBounds<usize> for &Span {
+    fn start_bound(&self) -> Bound<&usize> {
+        Bound::Included(&self.lo)
+    }
+
+    fn end_bound(&self) -> Bound<&usize> {
+        Bound::Excluded(&self.hi)
+    }
+}
+
 /// The package currently being compiled and the root node of an AST.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
     /// The node ID.
     pub id: NodeId,

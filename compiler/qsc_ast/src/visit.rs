@@ -7,81 +7,83 @@ use crate::ast::{
     SpecDecl, Stmt, StmtKind, Ty, TyDef, TyDefKind, TyKind,
 };
 
-pub trait Visitor: Sized {
-    fn visit_package(&mut self, package: &Package) {
+pub trait Visitor<'a>: Sized {
+    fn visit_package(&mut self, package: &'a Package) {
         walk_package(self, package);
     }
 
-    fn visit_namespace(&mut self, namespace: &Namespace) {
+    fn visit_namespace(&mut self, namespace: &'a Namespace) {
         walk_namespace(self, namespace);
     }
 
-    fn visit_item(&mut self, item: &Item) {
+    fn visit_item(&mut self, item: &'a Item) {
         walk_item(self, item);
     }
 
-    fn visit_attr(&mut self, attr: &Attr) {
+    fn visit_attr(&mut self, attr: &'a Attr) {
         walk_attr(self, attr);
     }
 
-    fn visit_ty_def(&mut self, def: &TyDef) {
+    fn visit_ty_def(&mut self, def: &'a TyDef) {
         walk_ty_def(self, def);
     }
 
-    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+    fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         walk_callable_decl(self, decl);
     }
 
-    fn visit_spec_decl(&mut self, decl: &SpecDecl) {
+    fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
         walk_spec_decl(self, decl);
     }
 
-    fn visit_functor_expr(&mut self, expr: &FunctorExpr) {
+    fn visit_functor_expr(&mut self, expr: &'a FunctorExpr) {
         walk_functor_expr(self, expr);
     }
 
-    fn visit_ty(&mut self, ty: &Ty) {
+    fn visit_ty(&mut self, ty: &'a Ty) {
         walk_ty(self, ty);
     }
 
-    fn visit_block(&mut self, block: &Block) {
+    fn visit_block(&mut self, block: &'a Block) {
         walk_block(self, block);
     }
 
-    fn visit_stmt(&mut self, stmt: &Stmt) {
+    fn visit_stmt(&mut self, stmt: &'a Stmt) {
         walk_stmt(self, stmt);
     }
 
-    fn visit_expr(&mut self, expr: &Expr) {
+    fn visit_expr(&mut self, expr: &'a Expr) {
         walk_expr(self, expr);
     }
 
-    fn visit_pat(&mut self, pat: &Pat) {
+    fn visit_pat(&mut self, pat: &'a Pat) {
         walk_pat(self, pat);
     }
 
-    fn visit_qubit_init(&mut self, init: &QubitInit) {
+    fn visit_qubit_init(&mut self, init: &'a QubitInit) {
         walk_qubit_init(self, init);
     }
 
-    fn visit_path(&mut self, _: &Path) {}
+    fn visit_path(&mut self, path: &'a Path) {
+        walk_path(self, path);
+    }
 
-    fn visit_ident(&mut self, _: &Ident) {}
+    fn visit_ident(&mut self, _: &'a Ident) {}
 }
 
-pub fn walk_package(vis: &mut impl Visitor, package: &Package) {
+pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
     package
         .namespaces
         .iter()
         .for_each(|n| vis.visit_namespace(n));
 }
 
-pub fn walk_namespace(vis: &mut impl Visitor, namespace: &Namespace) {
+pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) {
     vis.visit_ident(&namespace.name);
     namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
 
-pub fn walk_item(vis: &mut impl Visitor, item: &Item) {
+pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.meta.attrs.iter().for_each(|a| vis.visit_attr(a));
     match &item.kind {
         ItemKind::Open(ns, alias) => {
@@ -96,12 +98,12 @@ pub fn walk_item(vis: &mut impl Visitor, item: &Item) {
     }
 }
 
-pub fn walk_attr(vis: &mut impl Visitor, attr: &Attr) {
+pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
     vis.visit_path(&attr.name);
     vis.visit_expr(&attr.arg);
 }
 
-pub fn walk_ty_def(vis: &mut impl Visitor, def: &TyDef) {
+pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
     match &def.kind {
         TyDefKind::Field(name, ty) => {
             name.iter().for_each(|n| vis.visit_ident(n));
@@ -112,7 +114,7 @@ pub fn walk_ty_def(vis: &mut impl Visitor, def: &TyDef) {
     }
 }
 
-pub fn walk_callable_decl(vis: &mut impl Visitor, decl: &CallableDecl) {
+pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
     vis.visit_ident(&decl.name);
     decl.ty_params.iter().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&decl.input);
@@ -124,7 +126,7 @@ pub fn walk_callable_decl(vis: &mut impl Visitor, decl: &CallableDecl) {
     }
 }
 
-pub fn walk_spec_decl(vis: &mut impl Visitor, decl: &SpecDecl) {
+pub fn walk_spec_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a SpecDecl) {
     match &decl.body {
         SpecBody::Gen(_) => {}
         SpecBody::Impl(pat, block) => {
@@ -134,7 +136,7 @@ pub fn walk_spec_decl(vis: &mut impl Visitor, decl: &SpecDecl) {
     }
 }
 
-pub fn walk_functor_expr(vis: &mut impl Visitor, expr: &FunctorExpr) {
+pub fn walk_functor_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a FunctorExpr) {
     match &expr.kind {
         FunctorExprKind::BinOp(_, lhs, rhs) => {
             vis.visit_functor_expr(lhs);
@@ -145,7 +147,7 @@ pub fn walk_functor_expr(vis: &mut impl Visitor, expr: &FunctorExpr) {
     }
 }
 
-pub fn walk_ty(vis: &mut impl Visitor, ty: &Ty) {
+pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
     match &ty.kind {
         TyKind::App(ty, tys) => {
             vis.visit_ty(ty);
@@ -163,11 +165,11 @@ pub fn walk_ty(vis: &mut impl Visitor, ty: &Ty) {
     }
 }
 
-pub fn walk_block(vis: &mut impl Visitor, block: &Block) {
+pub fn walk_block<'a>(vis: &mut impl Visitor<'a>, block: &'a Block) {
     block.stmts.iter().for_each(|s| vis.visit_stmt(s));
 }
 
-pub fn walk_stmt(vis: &mut impl Visitor, stmt: &Stmt) {
+pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
     match &stmt.kind {
         StmtKind::Borrow(pat, init, block) | StmtKind::Use(pat, init, block) => {
             vis.visit_pat(pat);
@@ -182,7 +184,7 @@ pub fn walk_stmt(vis: &mut impl Visitor, stmt: &Stmt) {
     }
 }
 
-pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
+pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
     match &expr.kind {
         ExprKind::Array(exprs) => exprs.iter().for_each(|e| vis.visit_expr(e)),
         ExprKind::ArrayRepeat(item, size) => {
@@ -260,7 +262,7 @@ pub fn walk_expr(vis: &mut impl Visitor, expr: &Expr) {
     }
 }
 
-pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
+pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, ty) => {
             vis.visit_ident(name);
@@ -273,11 +275,16 @@ pub fn walk_pat(vis: &mut impl Visitor, pat: &Pat) {
     }
 }
 
-pub fn walk_qubit_init(vis: &mut impl Visitor, init: &QubitInit) {
+pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
     match &init.kind {
         QubitInitKind::Array(len) => vis.visit_expr(len),
         QubitInitKind::Paren(init) => vis.visit_qubit_init(init),
         QubitInitKind::Single => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
+}
+
+pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
+    path.namespace.iter().for_each(|n| vis.visit_ident(n));
+    vis.visit_ident(&path.name);
 }

@@ -15,35 +15,41 @@ mod tests;
 mod top;
 mod ty;
 
-use self::{keyword::Keyword, scan::Scanner};
 use crate::lex::TokenKind;
 use qsc_ast::ast::{Package, Span};
+use scan::Scanner;
 use std::result;
 
-// TODO: Format errors so they can be displayed to the user.
-#[allow(dead_code)]
+pub(super) use keyword::Keyword;
+
 #[derive(Debug)]
-pub struct Error {
-    kind: ErrorKind,
-    span: Span,
+pub(super) struct Error {
+    pub(super) kind: ErrorKind,
+    pub(super) span: Span,
 }
 
 #[derive(Debug)]
-enum ErrorKind {
+pub(super) enum ErrorKind {
     Keyword(Keyword),
     Lexical(&'static str),
     Rule(&'static str),
     Token(TokenKind),
 }
 
-pub type Result<T> = result::Result<T, Error>;
+pub(super) type Result<T> = result::Result<T, Error>;
 
 trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
 
 impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
-pub fn package(input: &str) -> (Result<Package>, Vec<Error>) {
+pub(super) fn package(input: &str) -> (Package, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    let p = top::package(&mut scanner);
-    (p, scanner.errors())
+    match top::package(&mut scanner) {
+        Ok(pack) => (pack, scanner.errors()),
+        Err(err) => {
+            let mut errors = scanner.errors();
+            errors.push(err);
+            (Package::default(), errors)
+        }
+    }
 }
