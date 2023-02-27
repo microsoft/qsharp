@@ -53,8 +53,8 @@ impl Evaluator {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.context.expr.clone() {
-            self.eval_expr(expr)
+        if let Some(expr) = self.context.entry.take() {
+            self.eval_expr(&expr)
         } else {
             Err(Error {
                 span: Span { lo: 0, hi: 0 },
