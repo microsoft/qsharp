@@ -3,10 +3,13 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
+#[cfg(test)]
+mod tests;
+
 pub mod val;
 
 use qir_backend::Pauli;
-use qsc_ast::ast::{self, Expr, ExprKind, Lit, Span, Stmt, StmtKind};
+use qsc_ast::ast::{self, Block, Expr, ExprKind, Lit, Span, Stmt, StmtKind};
 use qsc_frontend::Context;
 use val::Value;
 
@@ -19,9 +22,10 @@ pub struct Error {
 #[derive(Debug)]
 pub enum ErrorKind {
     EmptyExpr,
-    IndexErr(i64),
+    Index(i64),
     IntegerSize,
-    TypeError(String),
+    OutOfRange(i64),
+    Type(&'static str),
     Unimplemented,
     UserFail(String),
 }
@@ -68,16 +72,7 @@ impl Evaluator {
                 }
                 Ok(Value::Array(val_arr))
             }
-            ExprKind::Block(block) => {
-                if let Some((last, most)) = block.stmts.split_last() {
-                    for stmt in most {
-                        let _ = self.eval_stmt(stmt);
-                    }
-                    self.eval_stmt(last)
-                } else {
-                    Ok(Value::Tuple(vec![]))
-                }
-            }
+            ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Fail(msg) => Err(Error {
                 span: expr.span,
                 kind: ErrorKind::UserFail(self.eval_expr(msg)?.as_string(expr.span)?),
@@ -85,48 +80,21 @@ impl Evaluator {
             ExprKind::Index(arr, index) => {
                 let arr = self.eval_expr(arr)?.as_array(arr.span)?;
                 let index_val = self.eval_expr(index)?.as_int(index.span)?;
-                let index: usize = index_val.try_into().map_err(|_| Error {
+                let i: usize = index_val.try_into().map_err(|_| Error {
                     span: index.span,
-                    kind: ErrorKind::IndexErr(index_val),
+                    kind: ErrorKind::Index(index_val),
                 })?;
-                Ok((*arr[index]).clone())
+                match arr.get(i) {
+                    Some(v) => Ok(*v.clone()),
+                    None => Err(Error {
+                        span: index.span,
+                        kind: ErrorKind::OutOfRange(index_val),
+                    }),
+                }
             }
-            ExprKind::Lit(lit) => Ok(match lit {
-                Lit::BigInt(v) => Value::BigInt(v.clone()),
-                Lit::Bool(v) => Value::Bool(*v),
-                Lit::Double(v) => Value::Double(*v),
-                Lit::Int(v) => Value::Int((*v).try_into().map_err(|_| Error {
-                    span: expr.span,
-                    kind: ErrorKind::IntegerSize,
-                })?),
-                Lit::Pauli(v) => Value::Pauli(match v {
-                    ast::Pauli::I => Pauli::I,
-                    ast::Pauli::X => Pauli::X,
-                    ast::Pauli::Y => Pauli::Y,
-                    ast::Pauli::Z => Pauli::Z,
-                }),
-                Lit::Result(v) => Value::Result(match v {
-                    ast::Result::Zero => false,
-                    ast::Result::One => true,
-                }),
-                Lit::String(v) => Value::String(v.clone()),
-            }),
+            ExprKind::Lit(lit) => lit_to_val(lit, expr.span),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Range(start, step, end) => Ok(Value::Range(
-                start
-                    .as_ref()
-                    .map(|expr| self.eval_expr(expr))
-                    .transpose()?
-                    .map(Box::new),
-                step.as_ref()
-                    .map(|expr| self.eval_expr(expr))
-                    .transpose()?
-                    .map(Box::new),
-                end.as_ref()
-                    .map(|expr| self.eval_expr(expr))
-                    .transpose()?
-                    .map(Box::new),
-            )),
+            ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
@@ -155,6 +123,40 @@ impl Evaluator {
         }
     }
 
+    fn eval_range(
+        &mut self,
+        start: &Option<Box<Expr>>,
+        step: &Option<Box<Expr>>,
+        end: &Option<Box<Expr>>,
+    ) -> Result<Value, Error> {
+        Ok(Value::Range(
+            start
+                .as_ref()
+                .map(|expr| self.eval_expr(expr))
+                .transpose()?
+                .map(Box::new),
+            step.as_ref()
+                .map(|expr| self.eval_expr(expr))
+                .transpose()?
+                .map(Box::new),
+            end.as_ref()
+                .map(|expr| self.eval_expr(expr))
+                .transpose()?
+                .map(Box::new),
+        ))
+    }
+
+    fn eval_block(&mut self, block: &Block) -> Result<Value, Error> {
+        if let Some((last, most)) = block.stmts.split_last() {
+            for stmt in most {
+                let _ = self.eval_stmt(stmt);
+            }
+            self.eval_stmt(last)
+        } else {
+            Ok(Value::Tuple(vec![]))
+        }
+    }
+
     fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
         match &stmt.kind {
             StmtKind::Expr(expr) => self.eval_expr(expr),
@@ -170,61 +172,25 @@ impl Evaluator {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use expect_test::{expect, Expect};
-
-    use crate::Evaluator;
-
-    fn check_expression(expr: &str, expect: &Expect) {
-        let context = qsc_frontend::compile(&[], Some(expr));
-        let mut eval = Evaluator::new(context);
-        expect.assert_debug_eq(&eval.run());
-    }
-
-    #[test]
-    fn literal_int() {
-        check_expression(
-            "42",
-            &expect![[r#"
-            Ok(
-                Int(
-                    42,
-                ),
-            )
-        "#]],
-        );
-    }
-
-    #[test]
-    fn literal_int_too_big() {
-        check_expression(
-            "9_223_372_036_854_775_808",
-            &expect![[r#"
-                Err(
-                    Error {
-                        span: Span {
-                            lo: 0,
-                            hi: 25,
-                        },
-                        kind: IntegerSize,
-                    },
-                )
-            "#]],
-        );
-    }
-
-    #[test]
-    fn literal_big_int() {
-        check_expression(
-            "9_223_372_036_854_775_808L",
-            &expect![[r#"
-                Ok(
-                    BigInt(
-                        9223372036854775808,
-                    ),
-                )
-            "#]],
-        );
-    }
+fn lit_to_val(lit: &Lit, span: Span) -> Result<Value, Error> {
+    Ok(match lit {
+        Lit::BigInt(v) => Value::BigInt(v.clone()),
+        Lit::Bool(v) => Value::Bool(*v),
+        Lit::Double(v) => Value::Double(*v),
+        Lit::Int(v) => Value::Int((*v).try_into().map_err(|_| Error {
+            span,
+            kind: ErrorKind::IntegerSize,
+        })?),
+        Lit::Pauli(v) => Value::Pauli(match v {
+            ast::Pauli::I => Pauli::I,
+            ast::Pauli::X => Pauli::X,
+            ast::Pauli::Y => Pauli::Y,
+            ast::Pauli::Z => Pauli::Z,
+        }),
+        Lit::Result(v) => Value::Result(match v {
+            ast::Result::Zero => false,
+            ast::Result::One => true,
+        }),
+        Lit::String(v) => Value::String(v.clone()),
+    })
 }

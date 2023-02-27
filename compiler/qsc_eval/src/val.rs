@@ -98,7 +98,10 @@ impl Value {
         if let Value::String(v) = self {
             Ok(v.clone())
         } else {
-            Err(Error{span, kind: ErrorKind::TypeError("String".to_string())})
+            Err(Error {
+                span,
+                kind: ErrorKind::Type("String"),
+            })
         }
     }
 
@@ -109,7 +112,10 @@ impl Value {
         if let Value::Int(v) = self {
             Ok(*v)
         } else {
-            Err(Error{span, kind: ErrorKind::TypeError("Int".to_string())})
+            Err(Error {
+                span,
+                kind: ErrorKind::Type("Int"),
+            })
         }
     }
 
@@ -120,7 +126,10 @@ impl Value {
         if let Value::Array(v) = self {
             Ok((*v).clone())
         } else {
-            Err(Error{span, kind: ErrorKind::TypeError("Array".to_string())})
+            Err(Error {
+                span,
+                kind: ErrorKind::Type("Array"),
+            })
         }
     }
 }
