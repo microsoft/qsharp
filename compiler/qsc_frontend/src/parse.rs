@@ -54,14 +54,14 @@ pub(super) fn package(input: &str) -> (Package, Vec<Error>) {
     }
 }
 
-pub(super) fn expr(input: &str) -> (Option<Expr>, Vec<Error>) {
+pub(super) fn expr(input: &str) -> (Expr, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match expr::expr(&mut scanner) {
-        Ok(expr) => (Some(expr), scanner.errors()),
+        Ok(expr) => (expr, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();
             errors.push(err);
-            (None, errors)
+            (Expr::default(), errors)
         }
     }
 }

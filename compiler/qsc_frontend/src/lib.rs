@@ -132,17 +132,15 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
     let (mut entry, entry_parse_errors) = if entry_expr.is_empty() {
         (None, Vec::new())
     } else {
-        let (entry, mut errors) = parse::expr(entry_expr);
+        let (mut entry, mut errors) = parse::expr(entry_expr);
+        Offsetter(offset).visit_expr(&mut entry);
+        assigner.visit_expr(&mut entry);
         errors.iter_mut().for_each(|e| offset_error(offset, e));
         offsets.push(offset);
-        (entry, errors)
+        (Some(entry), errors)
     };
 
-    if let Some(ref mut expr) = entry {
-        Offsetter(offset).visit_expr(expr);
-        assigner.visit_expr(expr);
-        resolver.visit_expr(expr);
-    }
+    entry.iter_mut().for_each(|e| resolver.visit_expr(e));
 
     let (symbols, symbol_errors) = resolver.into_table();
     let mut errors = Vec::new();
