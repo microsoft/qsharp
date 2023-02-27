@@ -61,13 +61,6 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
         parse_errors.append(&mut file_errors);
     }
 
-    let (mut entry, mut entry_parse_errors) = (None, vec![]);
-    if !entry_expr.is_empty() {
-        let (parsed_expr, actual_expr_parse_errors) = parse::expr(entry_expr);
-        entry = parsed_expr;
-        entry_parse_errors = actual_expr_parse_errors;
-    }
-
     let mut assigner = id::Assigner::new();
     assigner.visit_package(&mut package);
 
@@ -75,6 +68,13 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
     globals.visit_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
+
+    let (mut entry, entry_parse_errors) = if entry_expr.is_empty() {
+        (None, Vec::new())
+    } else {
+        let (entry, entry_parse_errors) = parse::expr(entry_expr);
+        (entry, entry_parse_errors)
+    };
 
     if let Some(ref mut expr) = entry {
         assigner.visit_expr(expr);
