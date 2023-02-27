@@ -28,7 +28,7 @@ pub(super) struct Error {
     pub(super) span: Span,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(super) enum ErrorKind {
     Keyword(Keyword),
     Lexical(&'static str),
