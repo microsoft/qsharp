@@ -4,7 +4,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc_frontend::compile;
 
-const INPUT: &str = include_str!("./nqueens.qs");
+static INPUT: &str = include_str!("./nqueens.qs");
 
 pub fn nqueens(c: &mut Criterion) {
     c.bench_function("NQueens large input file", |b| {
