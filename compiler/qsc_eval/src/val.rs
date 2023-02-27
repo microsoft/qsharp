@@ -119,6 +119,20 @@ impl Value {
         }
     }
 
+    /// Unwraps the [Value] to a Boolean.
+    /// # Errors
+    /// Will return a type error if the [Value] is not a Boolean.
+    pub fn as_bool(&self, span: Span) -> Result<bool, Error> {
+        if let Value::Bool(b) = self {
+            Ok(*b)
+        } else {
+            Err(Error {
+                span,
+                kind: ErrorKind::Type("Bool"),
+            })
+        }
+    }
+
     /// Unwraps the [Value] to an Array.
     /// # Errors
     /// Will return a type error if the [Value] is not an integer.

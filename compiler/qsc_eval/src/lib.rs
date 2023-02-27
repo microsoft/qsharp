@@ -77,6 +77,15 @@ impl Evaluator {
                 span: expr.span,
                 kind: ErrorKind::UserFail(self.eval_expr(msg)?.as_string(expr.span)?),
             }),
+            ExprKind::If(cond, then, els) => {
+                if self.eval_expr(cond)?.as_bool(cond.span)? {
+                    self.eval_block(then)
+                } else if let Some(els) = els {
+                    self.eval_expr(els)
+                } else {
+                    Ok(Value::Tuple(vec![]))
+                }
+            }
             ExprKind::Index(arr, index) => {
                 let arr = self.eval_expr(arr)?.as_array(arr.span)?;
                 let index_val = self.eval_expr(index)?.as_int(index.span)?;
@@ -113,7 +122,6 @@ impl Evaluator {
             | ExprKind::Field(_, _)
             | ExprKind::For(_, _, _)
             | ExprKind::Hole
-            | ExprKind::If(_, _, _)
             | ExprKind::Lambda(_, _, _)
             | ExprKind::Path(_)
             | ExprKind::Repeat(_, _, _)

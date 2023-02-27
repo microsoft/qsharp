@@ -504,3 +504,191 @@ fn tuple_expr() {
     "#]],
     );
 }
+
+#[test]
+fn if_true_expr() {
+    check_expression(
+        r#"if true {fail "Got Here!";}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 9,
+                        hi: 25,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_false_expr() {
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";}"#,
+        &expect![[r#"
+            Ok(
+                Tuple(
+                    [],
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_else_true_expr() {
+    check_expression(
+        r#"if true {fail "Got Here!";} else {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 9,
+                        hi: 25,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_else_false_expr() {
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} else {fail "Got Here!"}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 47,
+                        hi: 63,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_elif_true_true_expr() {
+    check_expression(
+        r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 9,
+                        hi: 25,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_elif_false_true_expr() {
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 52,
+                        hi: 68,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_elif_false_false_expr() {
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            Ok(
+                Tuple(
+                    [],
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_elif_else_true_true_expr() {
+    check_expression(
+        r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."} else {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 9,
+                        hi: 25,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_elif_else_false_true_expr() {
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"} else {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 52,
+                        hi: 68,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn if_elif_else_false_false_expr() {
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."} else {fail "Got Here!"}"#,
+        &expect![[r#"
+            Err(
+                Error {
+                    span: Span {
+                        lo: 89,
+                        hi: 105,
+                    },
+                    kind: UserFail(
+                        "Got Here!",
+                    ),
+                },
+            )
+        "#]],
+    );
+}
