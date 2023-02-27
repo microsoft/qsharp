@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{compile, FileId};
+use super::{compile, FileId};
 use indoc::indoc;
 use qsc_ast::ast::{Expr, ExprKind, ItemKind, Path};
 
