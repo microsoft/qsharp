@@ -347,18 +347,16 @@ fn range_end_expr() {
     check_expression(
         "...3",
         &expect![[r#"
-        Ok(
-            Range(
-                None,
-                None,
-                Some(
-                    Int(
+            Ok(
+                Range(
+                    None,
+                    None,
+                    Some(
                         3,
                     ),
                 ),
-            ),
-        )
-    "#]],
+            )
+        "#]],
     );
 }
 
@@ -367,28 +365,18 @@ fn range_step_end_expr() {
     check_expression(
         "...2..3",
         &expect![[r#"
-        Ok(
-            Range(
-                Some(
-                    Range(
-                        None,
-                        None,
-                        Some(
-                            Int(
-                                2,
-                            ),
-                        ),
+            Err(
+                Error {
+                    span: Span {
+                        lo: 0,
+                        hi: 7,
+                    },
+                    kind: Type(
+                        "Int",
                     ),
-                ),
-                None,
-                Some(
-                    Int(
-                        3,
-                    ),
-                ),
-            ),
-        )
-    "#]],
+                },
+            )
+        "#]],
     );
 }
 
@@ -397,18 +385,16 @@ fn range_start_expr() {
     check_expression(
         "1...",
         &expect![[r#"
-        Ok(
-            Range(
-                Some(
-                    Int(
+            Ok(
+                Range(
+                    Some(
                         1,
                     ),
+                    None,
+                    None,
                 ),
-                None,
-                None,
-            ),
-        )
-    "#]],
+            )
+        "#]],
     );
 }
 
@@ -417,22 +403,18 @@ fn range_start_end_expr() {
     check_expression(
         "1..3",
         &expect![[r#"
-        Ok(
-            Range(
-                Some(
-                    Int(
+            Ok(
+                Range(
+                    Some(
                         1,
                     ),
-                ),
-                None,
-                Some(
-                    Int(
+                    None,
+                    Some(
                         3,
                     ),
                 ),
-            ),
-        )
-    "#]],
+            )
+        "#]],
     );
 }
 
@@ -441,28 +423,18 @@ fn range_start_step_expr() {
     check_expression(
         "1..2...",
         &expect![[r#"
-        Ok(
-            Range(
-                Some(
-                    Range(
-                        Some(
-                            Int(
-                                1,
-                            ),
-                        ),
-                        None,
-                        Some(
-                            Int(
-                                2,
-                            ),
-                        ),
+            Err(
+                Error {
+                    span: Span {
+                        lo: 0,
+                        hi: 7,
+                    },
+                    kind: Type(
+                        "Int",
                     ),
-                ),
-                None,
-                None,
-            ),
-        )
-    "#]],
+                },
+            )
+        "#]],
     );
 }
 
@@ -471,26 +443,20 @@ fn range_start_step_end_expr() {
     check_expression(
         "1..2..3",
         &expect![[r#"
-        Ok(
-            Range(
-                Some(
-                    Int(
+            Ok(
+                Range(
+                    Some(
                         1,
                     ),
-                ),
-                Some(
-                    Int(
+                    Some(
                         2,
                     ),
-                ),
-                Some(
-                    Int(
+                    Some(
                         3,
                     ),
                 ),
-            ),
-        )
-    "#]],
+            )
+        "#]],
     );
 }
 

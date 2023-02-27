@@ -94,7 +94,7 @@ impl Evaluator {
             }
             ExprKind::Lit(lit) => lit_to_val(lit, expr.span),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
+            ExprKind::Range(start, step, end) => self.eval_range(start, step, end, expr.span),
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
@@ -128,21 +128,25 @@ impl Evaluator {
         start: &Option<Box<Expr>>,
         step: &Option<Box<Expr>>,
         end: &Option<Box<Expr>>,
+        span: Span,
     ) -> Result<Value, Error> {
         Ok(Value::Range(
             start
                 .as_ref()
                 .map(|expr| self.eval_expr(expr))
                 .transpose()?
-                .map(Box::new),
+                .map(|v| v.as_int(span))
+                .transpose()?,
             step.as_ref()
                 .map(|expr| self.eval_expr(expr))
                 .transpose()?
-                .map(Box::new),
+                .map(|v| v.as_int(span))
+                .transpose()?,
             end.as_ref()
                 .map(|expr| self.eval_expr(expr))
                 .transpose()?
-                .map(Box::new),
+                .map(|v| v.as_int(span))
+                .transpose()?,
         ))
     }
 

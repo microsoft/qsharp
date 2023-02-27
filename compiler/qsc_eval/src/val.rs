@@ -19,7 +19,7 @@ pub enum Value {
     Int(i64),
     Pauli(Pauli),
     Qubit(*mut c_void),
-    Range(Option<Box<Value>>, Option<Box<Value>>, Option<Box<Value>>),
+    Range(Option<i64>, Option<i64>, Option<i64>),
     Result(bool),
     String(String),
     Tuple(Vec<Box<Value>>),
