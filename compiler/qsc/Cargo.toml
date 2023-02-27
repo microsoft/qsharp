@@ -20,3 +20,7 @@ harness = false
 [[bench]]
 name = "library"
 harness = false
+
+[[bin]]
+name = "qsc"
+bench = false

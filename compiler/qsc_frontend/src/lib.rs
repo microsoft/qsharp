@@ -4,7 +4,7 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 use qsc_ast::{
-    ast::{Package, Span},
+    ast::{Expr, Package, Span},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
@@ -17,6 +17,7 @@ pub mod symbol;
 #[derive(Debug)]
 pub struct Context {
     pub package: Package,
+    pub entry: Option<Expr>,
     pub symbols: symbol::Table,
     pub errors: Vec<Error>,
 }
@@ -52,8 +53,14 @@ enum ErrorKind {
     Symbol(symbol::ErrorKind),
 }
 
-pub fn compile(input: &str) -> Context {
-    let (mut package, parse_errors) = parse::package(input);
+pub fn compile(files: &[&str], entry_expr: &str) -> Context {
+    let (mut package, mut parse_errors) = (Package::default(), vec![]);
+    for file in files {
+        let (mut file_package, mut file_errors) = parse::package(file);
+        package.namespaces.append(&mut file_package.namespaces);
+        parse_errors.append(&mut file_errors);
+    }
+
     let mut assigner = id::Assigner::new();
     assigner.visit_package(&mut package);
 
@@ -61,14 +68,29 @@ pub fn compile(input: &str) -> Context {
     globals.visit_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
+
+    let (mut entry, entry_parse_errors) = if entry_expr.is_empty() {
+        (None, Vec::new())
+    } else {
+        let (entry, entry_parse_errors) = parse::expr(entry_expr);
+        (entry, entry_parse_errors)
+    };
+
+    if let Some(ref mut expr) = entry {
+        assigner.visit_expr(expr);
+        resolver.visit_expr(expr);
+    }
+
     let (symbols, symbol_errors) = resolver.into_table();
 
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(Into::into));
+    errors.extend(entry_parse_errors.into_iter().map(Into::into));
     errors.extend(symbol_errors.into_iter().map(Into::into));
 
     Context {
         package,
+        entry,
         symbols,
         errors,
     }

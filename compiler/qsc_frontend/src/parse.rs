@@ -16,7 +16,7 @@ mod top;
 mod ty;
 
 use crate::lex::TokenKind;
-use qsc_ast::ast::{Package, Span};
+use qsc_ast::ast::{Expr, Package, Span};
 use scan::Scanner;
 use std::result;
 
@@ -50,6 +50,18 @@ pub(super) fn package(input: &str) -> (Package, Vec<Error>) {
             let mut errors = scanner.errors();
             errors.push(err);
             (Package::default(), errors)
+        }
+    }
+}
+
+pub(super) fn expr(input: &str) -> (Option<Expr>, Vec<Error>) {
+    let mut scanner = Scanner::new(input);
+    match expr::expr(&mut scanner) {
+        Ok(expr) => (Some(expr), scanner.errors()),
+        Err(err) => {
+            let mut errors = scanner.errors();
+            errors.push(err);
+            (None, errors)
         }
     }
 }
