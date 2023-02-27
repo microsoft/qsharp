@@ -13,6 +13,8 @@ mod id;
 mod lex;
 mod parse;
 pub mod symbol;
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug)]
 pub struct Context {
@@ -64,6 +66,7 @@ impl Context {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct FileId(pub usize);
 
 #[allow(dead_code)] // TODO: Format errors for display.
