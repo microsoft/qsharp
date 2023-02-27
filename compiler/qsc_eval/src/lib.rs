@@ -153,7 +153,7 @@ impl Evaluator {
     fn eval_block(&mut self, block: &Block) -> Result<Value, Error> {
         if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
-                let _ = self.eval_stmt(stmt);
+                let _ = self.eval_stmt(stmt)?;
             }
             self.eval_stmt(last)
         } else {
@@ -165,7 +165,7 @@ impl Evaluator {
         match &stmt.kind {
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Semi(expr) => {
-                let _ = self.eval_expr(expr);
+                let _ = self.eval_expr(expr)?;
                 Ok(Value::Tuple(vec![]))
             }
             StmtKind::Borrow(_, _, _)

@@ -79,6 +79,26 @@ fn fail_expr() {
 }
 
 #[test]
+fn fail_shortcut_expr() {
+    check_expression(
+        r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
+        &expect![[r#"
+        Err(
+            Error {
+                span: Span {
+                    lo: 2,
+                    hi: 18,
+                },
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
 fn array_index_expr() {
     check_expression(
         "[1, 2, 3][1]",
