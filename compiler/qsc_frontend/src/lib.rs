@@ -111,10 +111,13 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
     let mut offset = 0;
     let mut offsets = Vec::new();
     for file in files {
-        let (mut file_package, mut file_errors) = parse::package(file);
+        let (mut file_package, mut errors) = parse::package(file);
         Offsetter(offset).visit_package(&mut file_package);
         package.namespaces.append(&mut file_package.namespaces);
-        parse_errors.append(&mut file_errors);
+
+        errors.iter_mut().for_each(|e| offset_error(offset, e));
+        parse_errors.append(&mut errors);
+
         offsets.push(offset);
         offset += file.len();
     }
@@ -129,11 +132,14 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
     let (mut entry, entry_parse_errors) = if entry_expr.is_empty() {
         (None, Vec::new())
     } else {
-        let (entry, entry_parse_errors) = parse::expr(entry_expr);
-        (entry, entry_parse_errors)
+        let (entry, mut errors) = parse::expr(entry_expr);
+        errors.iter_mut().for_each(|e| offset_error(offset, e));
+        offsets.push(offset);
+        (entry, errors)
     };
 
     if let Some(ref mut expr) = entry {
+        Offsetter(offset).visit_expr(expr);
         assigner.visit_expr(expr);
         resolver.visit_expr(expr);
     }
@@ -151,4 +157,9 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
         errors,
         offsets,
     }
+}
+
+fn offset_error(offset: usize, error: &mut parse::Error) {
+    error.span.lo += offset;
+    error.span.hi += offset;
 }
