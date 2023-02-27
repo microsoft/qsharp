@@ -54,8 +54,12 @@ enum ErrorKind {
 }
 
 pub fn compile(files: &[&str], entry_expr: &str) -> Context {
-    let input = (*files).join("\n");
-    let (mut package, parse_errors) = parse::package(&input);
+    let (mut package, mut parse_errors) = (Package::default(), vec![]);
+    for file in files {
+        let (mut file_package, mut file_errors) = parse::package(file);
+        package.namespaces.append(&mut file_package.namespaces);
+        parse_errors.append(&mut file_errors);
+    }
 
     let (mut entry, mut entry_parse_errors) = (None, vec![]);
     if !entry_expr.is_empty() {
