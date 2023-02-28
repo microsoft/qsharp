@@ -18,10 +18,7 @@ fn check_expression(expr: &str, expect: &Expect) {
 
 #[test]
 fn array_expr() {
-    check_expression(
-        "[1, 2, 3]",
-        &expect!["[1, 2, 3]"],
-    );
+    check_expression("[1, 2, 3]", &expect!["[1, 2, 3]"]);
 }
 
 #[test]
@@ -82,10 +79,7 @@ fn fail_shortcut_expr() {
 
 #[test]
 fn array_index_expr() {
-    check_expression(
-        "[1, 2, 3][1]",
-        &expect!["2"],
-    );
+    check_expression("[1, 2, 3][1]", &expect!["2"]);
 }
 
 #[test]
@@ -116,42 +110,27 @@ fn literal_big_int_expr() {
 
 #[test]
 fn literal_bool_false_expr() {
-    check_expression(
-        "false",
-        &expect!["false"],
-    );
+    check_expression("false", &expect!["false"]);
 }
 
 #[test]
 fn literal_bool_true_expr() {
-    check_expression(
-        "true",
-        &expect!["true"],
-    );
+    check_expression("true", &expect!["true"]);
 }
 
 #[test]
 fn literal_double_expr() {
-    check_expression(
-        "4.2",
-        &expect!["4.2"],
-    );
+    check_expression("4.2", &expect!["4.2"]);
 }
 
 #[test]
 fn literal_double_trailing_dot_expr() {
-    check_expression(
-        "4.",
-        &expect!["4.0"],
-    );
+    check_expression("4.", &expect!["4.0"]);
 }
 
 #[test]
 fn literal_int_expr() {
-    check_expression(
-        "42",
-        &expect!["42"],
-    );
+    check_expression("42", &expect!["42"]);
 }
 
 #[test]
@@ -172,130 +151,82 @@ fn literal_int_too_big_expr() {
 
 #[test]
 fn literal_pauli_i_expr() {
-    check_expression(
-        "PauliI",
-        &expect!["PauliI"],
-    );
+    check_expression("PauliI", &expect!["PauliI"]);
 }
 
 #[test]
 fn literal_pauli_x_expr() {
-    check_expression(
-        "PauliX",
-        &expect!["PauliX"],
-    );
+    check_expression("PauliX", &expect!["PauliX"]);
 }
 
 #[test]
 fn literal_pauli_y_expr() {
-    check_expression(
-        "PauliY",
-        &expect!["PauliY"],
-    );
+    check_expression("PauliY", &expect!["PauliY"]);
 }
 
 #[test]
 fn literal_pauli_z_expr() {
-    check_expression(
-        "PauliZ",
-        &expect!["PauliZ"],
-    );
+    check_expression("PauliZ", &expect!["PauliZ"]);
 }
 
 #[test]
 fn literal_result_one_expr() {
-    check_expression(
-        "One",
-        &expect!["One"],
-    );
+    check_expression("One", &expect!["One"]);
 }
 
 #[test]
 fn literal_result_zero_expr() {
-    check_expression(
-        "Zero",
-        &expect!["Zero"],
-    );
+    check_expression("Zero", &expect!["Zero"]);
 }
 
 #[test]
 fn literal_string_expr() {
-    check_expression(
-        r#""foo""#,
-        &expect!["foo"],
-    );
+    check_expression(r#""foo""#, &expect!["foo"]);
 }
 
 #[test]
 fn paren_expr() {
-    check_expression(
-        "(42)",
-        &expect!["42"],
-    );
+    check_expression("(42)", &expect!["42"]);
 }
 
 #[test]
 fn range_all_expr() {
-    check_expression(
-        "...",
-        &expect!["..."],
-    );
+    check_expression("...", &expect!["..."]);
 }
 
 #[test]
 fn range_end_expr() {
-    check_expression(
-        "...3",
-        &expect!["...3"],
-    );
+    check_expression("...3", &expect!["...3"]);
 }
 
 #[test]
 fn range_step_end_expr() {
-    check_expression(
-        "...2..3",
-        &expect!["...2..3"],
-    );
+    check_expression("...2..3", &expect!["...2..3"]);
 }
 
 #[test]
 fn range_start_expr() {
-    check_expression(
-        "1...",
-        &expect!["1..."],
-    );
+    check_expression("1...", &expect!["1..."]);
 }
 
 #[test]
 fn range_start_end_expr() {
-    check_expression(
-        "1..3",
-        &expect!["1..3"],
-    );
+    check_expression("1..3", &expect!["1..3"]);
 }
 
 #[test]
 fn range_start_step_expr() {
-    check_expression(
-        "1..2...",
-        &expect!["1..2..."],
-    );
+    check_expression("1..2...", &expect!["1..2..."]);
 }
 
 #[test]
 fn range_start_step_end_expr() {
-    check_expression(
-        "1..2..3",
-        &expect!["1..2..3"],
-    );
+    check_expression("1..2..3", &expect!["1..2..3"]);
 }
 
 #[test]
 fn tuple_expr() {
-    check_expression(
-        "(1, 2, 3)",
-        &expect!["(1, 2, 3)"],
-    );
+    check_expression("(1, 2, 3)", &expect!["(1, 2, 3)"]);
 }
 
 #[test]
