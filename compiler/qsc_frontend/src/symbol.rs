@@ -40,7 +40,12 @@ pub struct Table {
 }
 
 impl Table {
-    fn declare_symbol(&mut self, node: NodeId) -> Id {
+    #[must_use]
+    pub fn get(&self, node: NodeId) -> Option<Id> {
+        self.nodes.get(&node).copied()
+    }
+
+    fn declare(&mut self, node: NodeId) -> Id {
         let id = self.next_id;
         self.next_id = self.next_id.successor();
         self.nodes.insert(node, id);
@@ -69,7 +74,7 @@ impl<'a> Resolver<'a> {
     fn insert_bindings(&mut self, env: &mut HashMap<&'a str, Id>, pat: &'a Pat) {
         match &pat.kind {
             PatKind::Bind(name, _) => {
-                let id = self.symbols.declare_symbol(name.id);
+                let id = self.symbols.declare(name.id);
                 env.insert(name.name.as_str(), id);
             }
             PatKind::Discard(_) | PatKind::Elided => {}
@@ -209,7 +214,7 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 
     fn visit_item(&mut self, item: &'a Item) {
         if let ItemKind::Ty(name, _) = &item.kind {
-            let id = self.symbols.declare_symbol(name.id);
+            let id = self.symbols.declare(name.id);
             self.tys
                 .entry(self.namespace)
                 .or_default()
@@ -224,7 +229,7 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        let id = self.symbols.declare_symbol(decl.name.id);
+        let id = self.symbols.declare(decl.name.id);
         self.terms
             .entry(self.namespace)
             .or_default()

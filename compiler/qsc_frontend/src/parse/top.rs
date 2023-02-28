@@ -24,7 +24,7 @@ pub(super) fn package(s: &mut Scanner) -> Result<Package> {
     let namespaces = many(s, namespace)?;
     token(s, TokenKind::Eof)?;
     Ok(Package {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         namespaces,
     })
 }
@@ -37,7 +37,7 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
     let items = many(s, item)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         name,
         items,
@@ -58,7 +58,7 @@ fn item(s: &mut Scanner) -> Result<Item> {
     }?;
 
     Ok(Item {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         meta,
         kind,
@@ -77,7 +77,7 @@ fn attr(s: &mut Scanner) -> Result<Attr> {
     let name = path(s)?;
     let arg = expr(s)?;
     Ok(Attr {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         name,
         arg,
@@ -88,7 +88,7 @@ fn visibility(s: &mut Scanner) -> Result<Visibility> {
     let lo = s.peek().span.lo;
     keyword(s, Keyword::Internal)?;
     Ok(Visibility {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind: VisibilityKind::Internal,
     })
@@ -133,7 +133,7 @@ fn ty_def(s: &mut Scanner) -> Result<TyDef> {
     }?;
 
     Ok(TyDef {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })
@@ -185,7 +185,7 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     let body = callable_body(s)?;
 
     Ok(CallableDecl {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
         name,
@@ -205,7 +205,7 @@ fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
         let stmts = many(s, stmt)?;
         token(s, TokenKind::Close(Delim::Brace))?;
         Ok(CallableBody::Block(Block {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             stmts,
         }))
@@ -239,7 +239,7 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
     };
 
     Ok(SpecDecl {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         spec,
         body,
