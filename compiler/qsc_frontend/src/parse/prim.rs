@@ -57,7 +57,7 @@ pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
     let name = s.read().to_string();
     s.advance();
     Ok(Ident {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span,
         name,
     })
@@ -86,7 +86,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
             let lo = first.span.lo;
             let hi = last.span.hi;
             Some(Ident {
-                id: NodeId::PLACEHOLDER,
+                id: NodeId::default(),
                 span: Span { lo, hi },
                 name: join(parts.iter().map(|i| &i.name), "."),
             })
@@ -95,7 +95,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
     };
 
     Ok(Path {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         namespace,
         name,
@@ -129,7 +129,7 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     }?;
 
     Ok(Pat {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })

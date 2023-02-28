@@ -58,7 +58,7 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
         s.advance();
         let rhs = expr_op(s, op.precedence)?;
         Expr {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             kind: ExprKind::UnOp(op.kind, Box::new(rhs)),
         }
@@ -88,7 +88,7 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
         };
 
         lhs = Expr {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             kind,
         };
@@ -108,12 +108,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         token(s, TokenKind::Close(Delim::Bracket))?;
         Ok(ExprKind::Array(exprs))
     } else if token(s, TokenKind::DotDotDot).is_ok() {
-        let e = opt(s, |s| expr_op(s, RANGE_PRECEDENCE + 1))?.map(Box::new);
-        if token(s, TokenKind::DotDotDot).is_ok() {
-            Ok(ExprKind::Range(None, e, None))
-        } else {
-            Ok(ExprKind::Range(None, None, e))
-        }
+        expr_range_prefix(s)
     } else if keyword(s, Keyword::Fail).is_ok() {
         Ok(ExprKind::Fail(Box::new(expr(s)?)))
     } else if keyword(s, Keyword::For).is_ok() {
@@ -156,7 +151,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
     }?;
 
     Ok(Expr {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })
@@ -176,7 +171,7 @@ fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
     }
     .map(|kind| {
         Box::new(Expr {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             kind,
         })
@@ -209,6 +204,18 @@ fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
         ))
     } else {
         Err(s.error(ErrorKind::Rule("assignment operator")))
+    }
+}
+
+fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
+    let e = opt(s, |s| expr_op(s, RANGE_PRECEDENCE + 1))?.map(Box::new);
+    if token(s, TokenKind::DotDotDot).is_ok() {
+        Ok(ExprKind::Range(None, e, None))
+    } else if token(s, TokenKind::DotDot).is_ok() {
+        let end = Box::new(expr_op(s, RANGE_PRECEDENCE + 1)?);
+        Ok(ExprKind::Range(None, e, Some(end)))
+    } else {
+        Ok(ExprKind::Range(None, None, e))
     }
 }
 
@@ -284,7 +291,7 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
 fn mixfix_op(name: OpName) -> Option<MixfixOp> {
     match name {
         OpName::Token(TokenKind::DotDot) => Some(MixfixOp {
-            kind: OpKind::Rich(closed_range_op),
+            kind: OpKind::Rich(range_op),
             precedence: RANGE_PRECEDENCE,
         }),
         OpName::Token(TokenKind::DotDotDot) => Some(MixfixOp {
@@ -428,25 +435,24 @@ fn call_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
     let (args, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
     let rhs = Expr {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind: final_sep.reify(args, |a| ExprKind::Paren(Box::new(a)), ExprKind::Tuple),
     };
     Ok(ExprKind::Call(Box::new(lhs), Box::new(rhs)))
 }
 
-fn closed_range_op(s: &mut Scanner, start: Expr) -> Result<ExprKind> {
-    let e = expr_op(s, RANGE_PRECEDENCE + 1)?;
-    let (step, end) = if token(s, TokenKind::DotDot).is_ok() {
-        (Some(Box::new(e)), expr_op(s, RANGE_PRECEDENCE + 1)?)
+fn range_op(s: &mut Scanner, start: Expr) -> Result<ExprKind> {
+    let start = Box::new(start);
+    let rhs = Box::new(expr_op(s, RANGE_PRECEDENCE + 1)?);
+    if token(s, TokenKind::DotDot).is_ok() {
+        let end = Box::new(expr_op(s, RANGE_PRECEDENCE + 1)?);
+        Ok(ExprKind::Range(Some(start), Some(rhs), Some(end)))
+    } else if token(s, TokenKind::DotDotDot).is_ok() {
+        Ok(ExprKind::Range(Some(start), Some(rhs), None))
     } else {
-        (None, e)
-    };
-    Ok(ExprKind::Range(
-        Some(Box::new(start)),
-        step,
-        Some(Box::new(end)),
-    ))
+        Ok(ExprKind::Range(Some(start), None, Some(rhs)))
+    }
 }
 
 fn op_name(s: &Scanner) -> OpName {

@@ -9,12 +9,15 @@ use num_bigint::BigInt;
 use std::ops::{Bound, Index, RangeBounds};
 
 /// The unique identifier for an AST node.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(u32);
 
 impl NodeId {
-    /// The ID used before unique IDs have been assigned.
-    pub const PLACEHOLDER: Self = Self(u32::MAX);
+    /// The initial node ID.
+    #[must_use]
+    pub fn zero() -> Self {
+        NodeId(0)
+    }
 
     /// The successor of this ID.
     #[must_use]
@@ -23,9 +26,15 @@ impl NodeId {
     }
 }
 
+impl Default for NodeId {
+    fn default() -> Self {
+        Self(u32::MAX)
+    }
+}
+
 /// A region between two source code positions. Spans are the half-open interval `[lo, hi)`. The
 /// offsets are absolute within an AST, assuming that each file has its own offset.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Span {
     /// The offset of the first byte.
     pub lo: usize,
@@ -300,7 +309,7 @@ pub enum StmtKind {
 }
 
 /// An expression.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Expr {
     /// The node ID.
     pub id: NodeId,
@@ -311,7 +320,7 @@ pub struct Expr {
 }
 
 /// An expression kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum ExprKind {
     /// An array: `[a, b, c]`.
     Array(Vec<Expr>),
@@ -331,6 +340,9 @@ pub enum ExprKind {
     Call(Box<Expr>, Box<Expr>),
     /// A conjugation: `within { ... } apply { ... }`.
     Conjugate(Block, Block),
+    /// An expression with invalid syntax that can't be parsed.
+    #[default]
+    Err,
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.

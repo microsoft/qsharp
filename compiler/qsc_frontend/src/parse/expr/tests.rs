@@ -9742,7 +9742,63 @@ fn range_start_open() {
 }
 
 #[test]
-fn range_stop_open() {
+fn range_start_step_open() {
+    check(
+        expr,
+        "3..2...",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 7,
+                    },
+                    kind: Range(
+                        Some(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 0,
+                                    hi: 1,
+                                },
+                                kind: Lit(
+                                    Int(
+                                        3,
+                                    ),
+                                ),
+                            },
+                        ),
+                        Some(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 3,
+                                    hi: 4,
+                                },
+                                kind: Lit(
+                                    Int(
+                                        2,
+                                    ),
+                                ),
+                            },
+                        ),
+                        None,
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn range_open_stop() {
     check(
         expr,
         "...2",
@@ -9783,7 +9839,63 @@ fn range_stop_open() {
 }
 
 #[test]
-fn range_step_open() {
+fn range_open_step_stop() {
+    check(
+        expr,
+        "...2..3",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 7,
+                    },
+                    kind: Range(
+                        None,
+                        Some(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 3,
+                                    hi: 4,
+                                },
+                                kind: Lit(
+                                    Int(
+                                        2,
+                                    ),
+                                ),
+                            },
+                        ),
+                        Some(
+                            Expr {
+                                id: NodeId(
+                                    4294967295,
+                                ),
+                                span: Span {
+                                    lo: 6,
+                                    hi: 7,
+                                },
+                                kind: Lit(
+                                    Int(
+                                        3,
+                                    ),
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn range_open_step_open() {
     check(
         expr,
         "...2...",

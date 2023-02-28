@@ -22,7 +22,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     loop {
         if let Some(array) = opt(s, array)? {
             lhs = Ty {
-                id: NodeId::PLACEHOLDER,
+                id: NodeId::default(),
                 span: s.span(lo),
                 kind: TyKind::App(Box::new(array), vec![lhs]),
             }
@@ -35,7 +35,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
             };
 
             lhs = Ty {
-                id: NodeId::PLACEHOLDER,
+                id: NodeId::default(),
                 span: s.span(lo),
                 kind: TyKind::Arrow(kind, Box::new(lhs), Box::new(output), functors),
             }
@@ -55,7 +55,7 @@ fn array(s: &mut Scanner) -> Result<Ty> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(Ty {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind: TyKind::Prim(TyPrim::Array),
     })
@@ -108,7 +108,7 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     }?;
 
     Ok(Ty {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })
@@ -136,7 +136,7 @@ fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
     }?;
 
     Ok(FunctorExpr {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })
@@ -154,7 +154,7 @@ fn functor_op(
     while token(s, TokenKind::ClosedBinOp(bin_op)).is_ok() {
         let rhs = p(s)?;
         lhs = FunctorExpr {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             kind: FunctorExprKind::BinOp(set_op, Box::new(lhs), Box::new(rhs)),
         };

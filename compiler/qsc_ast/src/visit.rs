@@ -258,7 +258,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Hole | ExprKind::Lit(_) => {}
+        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) => {}
     }
 }
 

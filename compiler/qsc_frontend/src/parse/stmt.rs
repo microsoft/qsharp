@@ -20,7 +20,7 @@ pub(super) fn block(s: &mut Scanner) -> Result<Block> {
     let stmts = many(s, stmt)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Block {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         stmts,
     })
@@ -42,7 +42,7 @@ pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     }?;
 
     Ok(Stmt {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })
@@ -118,7 +118,7 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
     }?;
 
     Ok(QubitInit {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })
