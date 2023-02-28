@@ -28,65 +28,63 @@ pub enum Value {
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Value::Array(arr) => format!(
-                    "[{}]",
-                    arr.iter()
-                        .map(std::string::ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                Value::BigInt(v) => v.to_string(),
-                Value::Bool(v) => v.to_string(),
-                Value::Callable => todo!(),
-                Value::Double(v) => {
-                    if (v.floor() - v.ceil()).abs() < f64::EPSILON {
-                        // The value is a whole number, which by convention is displayed with one decimal point
-                        // to differentiate it from an integer value.
-                        format!("{v:.1}")
-                    } else {
-                        format!("{v}")
-                    }
+        match self {
+            Value::Array(arr) => write!(
+                f,
+                "[{}]",
+                arr.iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            Value::BigInt(v) => write!(f, "{v}"),
+            Value::Bool(v) => write!(f, "{v}"),
+            Value::Callable => todo!(),
+            Value::Double(v) => {
+                if (v.floor() - v.ceil()).abs() < f64::EPSILON {
+                    // The value is a whole number, which by convention is displayed with one decimal point
+                    // to differentiate it from an integer value.
+                    write!(f, "{v:.1}")
+                } else {
+                    write!(f, "{v}")
                 }
-                Value::Int(v) => v.to_string(),
-                Value::Pauli(v) => match v {
-                    Pauli::I => "PauliI".to_string(),
-                    Pauli::X => "PauliX".to_string(),
-                    Pauli::Z => "PauliZ".to_string(),
-                    Pauli::Y => "PauliY".to_string(),
-                },
-                Value::Qubit(v) => (*v as usize).to_string(),
-                Value::Range(start, step, end) => match (start, step, end) {
-                    (Some(start), Some(step), Some(end)) => format!("{start}..{step}..{end}"),
-                    (Some(start), Some(step), None) => format!("{start}..{step}..."),
-                    (Some(start), None, Some(end)) => format! {"{start}..{end}"},
-                    (Some(start), None, None) => format!("{start}..."),
-                    (None, Some(step), Some(end)) => format!("...{step}..{end}"),
-                    (None, Some(step), None) => format!("...{step}..."),
-                    (None, None, Some(end)) => format!("...{end}"),
-                    (None, None, None) => "...".to_string(),
-                },
-                Value::Result(v) => {
-                    if *v {
-                        "One".to_string()
-                    } else {
-                        "Zero".to_string()
-                    }
-                }
-                Value::String(v) => v.clone(),
-                Value::Tuple(tup) => format!(
-                    "({})",
-                    tup.iter()
-                        .map(std::string::ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                Value::Udt => todo!(),
             }
-        )
+            Value::Int(v) => write!(f, "{v}"),
+            Value::Pauli(v) => match v {
+                Pauli::I => write!(f, "PauliI"),
+                Pauli::X => write!(f, "PauliX"),
+                Pauli::Z => write!(f, "PauliZ"),
+                Pauli::Y => write!(f, "PauliY"),
+            },
+            Value::Qubit(v) => write!(f, "{}", (*v as usize)),
+            Value::Range(start, step, end) => match (start, step, end) {
+                (Some(start), Some(step), Some(end)) => write!(f, "{start}..{step}..{end}"),
+                (Some(start), Some(step), None) => write!(f, "{start}..{step}..."),
+                (Some(start), None, Some(end)) => write!(f, "{start}..{end}"),
+                (Some(start), None, None) => write!(f, "{start}..."),
+                (None, Some(step), Some(end)) => write!(f, "...{step}..{end}"),
+                (None, Some(step), None) => write!(f, "...{step}..."),
+                (None, None, Some(end)) => write!(f, "...{end}"),
+                (None, None, None) => write!(f, "..."),
+            },
+            Value::Result(v) => {
+                if *v {
+                    write!(f, "One")
+                } else {
+                    write!(f, "Zero")
+                }
+            }
+            Value::String(v) => write!(f, "{v}"),
+            Value::Tuple(tup) => write!(
+                f,
+                "({})",
+                tup.iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            Value::Udt => todo!(),
+        }
     }
 }
 
