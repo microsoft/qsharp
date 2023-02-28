@@ -29,14 +29,11 @@ pub enum Value {
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Array(arr) => write!(
-                f,
-                "[{}]",
-                arr.iter()
-                    .map(std::string::ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            Value::Array(arr) => {
+                write!(f, "[")?;
+                join(f, arr.iter(), ", ")?;
+                write!(f, "]")
+            }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
             Value::Callable => todo!(),
@@ -75,14 +72,11 @@ impl Display for Value {
                 }
             }
             Value::String(v) => write!(f, "{v}"),
-            Value::Tuple(tup) => write!(
-                f,
-                "({})",
-                tup.iter()
-                    .map(std::string::ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            Value::Tuple(tup) => {
+                write!(f, "(")?;
+                join(f, tup.iter(), ", ")?;
+                write!(f, ")")
+            }
             Value::Udt => todo!(),
         }
     }
@@ -144,4 +138,19 @@ impl Value {
             })
         }
     }
+}
+
+fn join<'a>(
+    f: &mut std::fmt::Formatter<'_>,
+    mut vals: impl Iterator<Item = &'a Box<Value>>,
+    sep: &str,
+) -> std::fmt::Result {
+    if let Some(v) = vals.next() {
+        v.fmt(f)?;
+    }
+    for v in vals {
+        write!(f, "{sep}")?;
+        v.fmt(f)?;
+    }
+    Ok(())
 }
