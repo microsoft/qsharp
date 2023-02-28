@@ -58,7 +58,7 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
         s.advance();
         let rhs = expr_op(s, op.precedence)?;
         Expr {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             kind: ExprKind::UnOp(op.kind, Box::new(rhs)),
         }
@@ -88,7 +88,7 @@ fn expr_op(s: &mut Scanner, min_precedence: u8) -> Result<Expr> {
         };
 
         lhs = Expr {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             kind,
         };
@@ -151,7 +151,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
     }?;
 
     Ok(Expr {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind,
     })
@@ -171,7 +171,7 @@ fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
     }
     .map(|kind| {
         Box::new(Expr {
-            id: NodeId::PLACEHOLDER,
+            id: NodeId::default(),
             span: s.span(lo),
             kind,
         })
@@ -435,7 +435,7 @@ fn call_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
     let (args, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
     let rhs = Expr {
-        id: NodeId::PLACEHOLDER,
+        id: NodeId::default(),
         span: s.span(lo),
         kind: final_sep.reify(args, |a| ExprKind::Paren(Box::new(a)), ExprKind::Tuple),
     };
