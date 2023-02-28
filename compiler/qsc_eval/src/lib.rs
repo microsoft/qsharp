@@ -146,19 +146,13 @@ impl Evaluator {
         Ok(Value::Range(
             start
                 .as_ref()
-                .map(|expr| self.eval_expr(expr))
-                .transpose()?
-                .map(|v| v.as_int(span))
+                .map(|expr| self.eval_expr(expr)?.as_int(span))
                 .transpose()?,
             step.as_ref()
-                .map(|expr| self.eval_expr(expr))
-                .transpose()?
-                .map(|v| v.as_int(span))
+                .map(|expr| self.eval_expr(expr)?.as_int(span))
                 .transpose()?,
             end.as_ref()
-                .map(|expr| self.eval_expr(expr))
-                .transpose()?
-                .map(|v| v.as_int(span))
+                .map(|expr| self.eval_expr(expr)?.as_int(span))
                 .transpose()?,
         ))
     }
