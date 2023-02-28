@@ -8,5 +8,12 @@ members = [
     "compiler/qsc_passes",
 ]
 
+[workspace.package]
+authors = ["Microsoft"]
+homepage = "https://github.com/microsoft/qsharp"
+repository = "https://github.com/microsoft/qsharp"
+edition = "2021"
+license = "MIT"
+
 [profile.release]
 debug = 1
