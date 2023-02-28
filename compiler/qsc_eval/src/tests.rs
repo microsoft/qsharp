@@ -10,30 +10,17 @@ fn check_expression(expr: &str, expect: &Expect) {
     let context = qsc_frontend::compile(&[], expr);
     assert!(context.errors().is_empty());
     let mut eval = Evaluator::new(&context);
-    expect.assert_debug_eq(&eval.run());
+    match eval.run() {
+        Ok(result) => expect.assert_eq(&result.to_string()),
+        Err(e) => expect.assert_debug_eq(&e),
+    }
 }
 
 #[test]
 fn array_expr() {
     check_expression(
         "[1, 2, 3]",
-        &expect![[r#"
-        Ok(
-            Array(
-                [
-                    Int(
-                        1,
-                    ),
-                    Int(
-                        2,
-                    ),
-                    Int(
-                        3,
-                    ),
-                ],
-            ),
-        )
-    "#]],
+        &expect!["[1, 2, 3]"],
     );
 }
 
@@ -46,15 +33,13 @@ fn block_expr() {
             x + y
         }"},
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 6,
-                        hi: 16,
-                    },
-                    kind: Unimplemented,
+            Error {
+                span: Span {
+                    lo: 6,
+                    hi: 16,
                 },
-            )
+                kind: Unimplemented,
+            }
         "#]],
     );
 }
@@ -64,7 +49,6 @@ fn fail_expr() {
     check_expression(
         r#"fail "This is a failure""#,
         &expect![[r#"
-        Err(
             Error {
                 span: Span {
                     lo: 0,
@@ -73,9 +57,8 @@ fn fail_expr() {
                 kind: UserFail(
                     "This is a failure",
                 ),
-            },
-        )
-    "#]],
+            }
+        "#]],
     );
 }
 
@@ -84,7 +67,6 @@ fn fail_shortcut_expr() {
     check_expression(
         r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
         &expect![[r#"
-        Err(
             Error {
                 span: Span {
                     lo: 2,
@@ -93,9 +75,8 @@ fn fail_shortcut_expr() {
                 kind: UserFail(
                     "Got Here!",
                 ),
-            },
-        )
-    "#]],
+            }
+        "#]],
     );
 }
 
@@ -103,13 +84,7 @@ fn fail_shortcut_expr() {
 fn array_index_expr() {
     check_expression(
         "[1, 2, 3][1]",
-        &expect![[r#"
-        Ok(
-            Int(
-                2,
-            ),
-        )
-    "#]],
+        &expect!["2"],
     );
 }
 
@@ -118,7 +93,6 @@ fn array_index_out_of_range_expr() {
     check_expression(
         "[1, 2, 3][4]",
         &expect![[r#"
-        Err(
             Error {
                 span: Span {
                     lo: 10,
@@ -127,9 +101,8 @@ fn array_index_out_of_range_expr() {
                 kind: OutOfRange(
                     4,
                 ),
-            },
-        )
-    "#]],
+            }
+        "#]],
     );
 }
 
@@ -137,13 +110,7 @@ fn array_index_out_of_range_expr() {
 fn literal_big_int_expr() {
     check_expression(
         "9_223_372_036_854_775_808L",
-        &expect![[r#"
-            Ok(
-                BigInt(
-                    9223372036854775808,
-                ),
-            )
-        "#]],
+        &expect!["9223372036854775808"],
     );
 }
 
@@ -151,13 +118,7 @@ fn literal_big_int_expr() {
 fn literal_bool_false_expr() {
     check_expression(
         "false",
-        &expect![[r#"
-        Ok(
-            Bool(
-                false,
-            ),
-        )
-    "#]],
+        &expect!["false"],
     );
 }
 
@@ -165,13 +126,7 @@ fn literal_bool_false_expr() {
 fn literal_bool_true_expr() {
     check_expression(
         "true",
-        &expect![[r#"
-        Ok(
-            Bool(
-                true,
-            ),
-        )
-    "#]],
+        &expect!["true"],
     );
 }
 
@@ -179,13 +134,7 @@ fn literal_bool_true_expr() {
 fn literal_double_expr() {
     check_expression(
         "4.2",
-        &expect![[r#"
-        Ok(
-            Double(
-                4.2,
-            ),
-        )
-    "#]],
+        &expect!["4.2"],
     );
 }
 
@@ -193,13 +142,7 @@ fn literal_double_expr() {
 fn literal_double_trailing_dot_expr() {
     check_expression(
         "4.",
-        &expect![[r#"
-        Ok(
-            Double(
-                4.0,
-            ),
-        )
-    "#]],
+        &expect!["4.0"],
     );
 }
 
@@ -207,13 +150,7 @@ fn literal_double_trailing_dot_expr() {
 fn literal_int_expr() {
     check_expression(
         "42",
-        &expect![[r#"
-        Ok(
-            Int(
-                42,
-            ),
-        )
-    "#]],
+        &expect!["42"],
     );
 }
 
@@ -222,15 +159,13 @@ fn literal_int_too_big_expr() {
     check_expression(
         "9_223_372_036_854_775_808",
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 0,
-                        hi: 25,
-                    },
-                    kind: IntegerSize,
+            Error {
+                span: Span {
+                    lo: 0,
+                    hi: 25,
                 },
-            )
+                kind: IntegerSize,
+            }
         "#]],
     );
 }
@@ -239,13 +174,7 @@ fn literal_int_too_big_expr() {
 fn literal_pauli_i_expr() {
     check_expression(
         "PauliI",
-        &expect![[r#"
-        Ok(
-            Pauli(
-                I,
-            ),
-        )
-    "#]],
+        &expect!["PauliI"],
     );
 }
 
@@ -253,13 +182,7 @@ fn literal_pauli_i_expr() {
 fn literal_pauli_x_expr() {
     check_expression(
         "PauliX",
-        &expect![[r#"
-        Ok(
-            Pauli(
-                X,
-            ),
-        )
-    "#]],
+        &expect!["PauliX"],
     );
 }
 
@@ -267,13 +190,7 @@ fn literal_pauli_x_expr() {
 fn literal_pauli_y_expr() {
     check_expression(
         "PauliY",
-        &expect![[r#"
-        Ok(
-            Pauli(
-                Y,
-            ),
-        )
-    "#]],
+        &expect!["PauliY"],
     );
 }
 
@@ -281,13 +198,7 @@ fn literal_pauli_y_expr() {
 fn literal_pauli_z_expr() {
     check_expression(
         "PauliZ",
-        &expect![[r#"
-        Ok(
-            Pauli(
-                Z,
-            ),
-        )
-    "#]],
+        &expect!["PauliZ"],
     );
 }
 
@@ -295,13 +206,7 @@ fn literal_pauli_z_expr() {
 fn literal_result_one_expr() {
     check_expression(
         "One",
-        &expect![[r#"
-        Ok(
-            Result(
-                true,
-            ),
-        )
-    "#]],
+        &expect!["One"],
     );
 }
 
@@ -309,13 +214,7 @@ fn literal_result_one_expr() {
 fn literal_result_zero_expr() {
     check_expression(
         "Zero",
-        &expect![[r#"
-        Ok(
-            Result(
-                false,
-            ),
-        )
-    "#]],
+        &expect!["Zero"],
     );
 }
 
@@ -323,13 +222,7 @@ fn literal_result_zero_expr() {
 fn literal_string_expr() {
     check_expression(
         r#""foo""#,
-        &expect![[r#"
-        Ok(
-            String(
-                "foo",
-            ),
-        )
-    "#]],
+        &expect!["foo"],
     );
 }
 
@@ -337,13 +230,7 @@ fn literal_string_expr() {
 fn paren_expr() {
     check_expression(
         "(42)",
-        &expect![[r#"
-        Ok(
-            Int(
-                42,
-            ),
-        )
-    "#]],
+        &expect!["42"],
     );
 }
 
@@ -351,15 +238,7 @@ fn paren_expr() {
 fn range_all_expr() {
     check_expression(
         "...",
-        &expect![[r#"
-        Ok(
-            Range(
-                None,
-                None,
-                None,
-            ),
-        )
-    "#]],
+        &expect!["..."],
     );
 }
 
@@ -367,17 +246,7 @@ fn range_all_expr() {
 fn range_end_expr() {
     check_expression(
         "...3",
-        &expect![[r#"
-            Ok(
-                Range(
-                    None,
-                    None,
-                    Some(
-                        3,
-                    ),
-                ),
-            )
-        "#]],
+        &expect!["...3"],
     );
 }
 
@@ -385,19 +254,7 @@ fn range_end_expr() {
 fn range_step_end_expr() {
     check_expression(
         "...2..3",
-        &expect![[r#"
-            Ok(
-                Range(
-                    None,
-                    Some(
-                        2,
-                    ),
-                    Some(
-                        3,
-                    ),
-                ),
-            )
-        "#]],
+        &expect!["...2..3"],
     );
 }
 
@@ -405,17 +262,7 @@ fn range_step_end_expr() {
 fn range_start_expr() {
     check_expression(
         "1...",
-        &expect![[r#"
-            Ok(
-                Range(
-                    Some(
-                        1,
-                    ),
-                    None,
-                    None,
-                ),
-            )
-        "#]],
+        &expect!["1..."],
     );
 }
 
@@ -423,19 +270,7 @@ fn range_start_expr() {
 fn range_start_end_expr() {
     check_expression(
         "1..3",
-        &expect![[r#"
-            Ok(
-                Range(
-                    Some(
-                        1,
-                    ),
-                    None,
-                    Some(
-                        3,
-                    ),
-                ),
-            )
-        "#]],
+        &expect!["1..3"],
     );
 }
 
@@ -443,19 +278,7 @@ fn range_start_end_expr() {
 fn range_start_step_expr() {
     check_expression(
         "1..2...",
-        &expect![[r#"
-            Ok(
-                Range(
-                    Some(
-                        1,
-                    ),
-                    Some(
-                        2,
-                    ),
-                    None,
-                ),
-            )
-        "#]],
+        &expect!["1..2..."],
     );
 }
 
@@ -463,21 +286,7 @@ fn range_start_step_expr() {
 fn range_start_step_end_expr() {
     check_expression(
         "1..2..3",
-        &expect![[r#"
-            Ok(
-                Range(
-                    Some(
-                        1,
-                    ),
-                    Some(
-                        2,
-                    ),
-                    Some(
-                        3,
-                    ),
-                ),
-            )
-        "#]],
+        &expect!["1..2..3"],
     );
 }
 
@@ -485,23 +294,7 @@ fn range_start_step_end_expr() {
 fn tuple_expr() {
     check_expression(
         "(1, 2, 3)",
-        &expect![[r#"
-        Ok(
-            Tuple(
-                [
-                    Int(
-                        1,
-                    ),
-                    Int(
-                        2,
-                    ),
-                    Int(
-                        3,
-                    ),
-                ],
-            ),
-        )
-    "#]],
+        &expect!["(1, 2, 3)"],
     );
 }
 
@@ -510,17 +303,15 @@ fn if_true_expr() {
     check_expression(
         r#"if true {fail "Got Here!";}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 9,
-                        hi: 25,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 9,
+                    hi: 25,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
@@ -529,13 +320,7 @@ fn if_true_expr() {
 fn if_false_expr() {
     check_expression(
         r#"if false {fail "Shouldn't get here...";}"#,
-        &expect![[r#"
-            Ok(
-                Tuple(
-                    [],
-                ),
-            )
-        "#]],
+        &expect!["()"],
     );
 }
 
@@ -544,17 +329,15 @@ fn if_else_true_expr() {
     check_expression(
         r#"if true {fail "Got Here!";} else {fail "Shouldn't get here..."}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 9,
-                        hi: 25,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 9,
+                    hi: 25,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
@@ -564,17 +347,15 @@ fn if_else_false_expr() {
     check_expression(
         r#"if false {fail "Shouldn't get here...";} else {fail "Got Here!"}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 47,
-                        hi: 63,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 47,
+                    hi: 63,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
@@ -584,17 +365,15 @@ fn if_elif_true_true_expr() {
     check_expression(
         r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 9,
-                        hi: 25,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 9,
+                    hi: 25,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
@@ -604,17 +383,15 @@ fn if_elif_false_true_expr() {
     check_expression(
         r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 52,
-                        hi: 68,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 52,
+                    hi: 68,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
@@ -623,13 +400,7 @@ fn if_elif_false_true_expr() {
 fn if_elif_false_false_expr() {
     check_expression(
         r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."}"#,
-        &expect![[r#"
-            Ok(
-                Tuple(
-                    [],
-                ),
-            )
-        "#]],
+        &expect!["()"],
     );
 }
 
@@ -638,17 +409,15 @@ fn if_elif_else_true_true_expr() {
     check_expression(
         r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."} else {fail "Shouldn't get here..."}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 9,
-                        hi: 25,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 9,
+                    hi: 25,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
@@ -658,17 +427,15 @@ fn if_elif_else_false_true_expr() {
     check_expression(
         r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"} else {fail "Shouldn't get here..."}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 52,
-                        hi: 68,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 52,
+                    hi: 68,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
@@ -678,17 +445,15 @@ fn if_elif_else_false_false_expr() {
     check_expression(
         r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."} else {fail "Got Here!"}"#,
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 89,
-                        hi: 105,
-                    },
-                    kind: UserFail(
-                        "Got Here!",
-                    ),
+            Error {
+                span: Span {
+                    lo: 89,
+                    hi: 105,
                 },
-            )
+                kind: UserFail(
+                    "Got Here!",
+                ),
+            }
         "#]],
     );
 }
