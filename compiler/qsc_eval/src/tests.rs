@@ -8,7 +8,7 @@ use crate::Evaluator;
 
 fn check_expression(expr: &str, expect: &Expect) {
     let context = qsc_frontend::compile(&[], expr);
-    assert!(context.errors.is_empty());
+    assert!(context.errors().is_empty());
     let mut eval = Evaluator::new(context);
     expect.assert_debug_eq(&eval.run());
 }
@@ -386,16 +386,16 @@ fn range_step_end_expr() {
     check_expression(
         "...2..3",
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 0,
-                        hi: 7,
-                    },
-                    kind: Type(
-                        "Int",
+            Ok(
+                Range(
+                    None,
+                    Some(
+                        2,
                     ),
-                },
+                    Some(
+                        3,
+                    ),
+                ),
             )
         "#]],
     );
@@ -444,16 +444,16 @@ fn range_start_step_expr() {
     check_expression(
         "1..2...",
         &expect![[r#"
-            Err(
-                Error {
-                    span: Span {
-                        lo: 0,
-                        hi: 7,
-                    },
-                    kind: Type(
-                        "Int",
+            Ok(
+                Range(
+                    Some(
+                        1,
                     ),
-                },
+                    Some(
+                        2,
+                    ),
+                    None,
+                ),
             )
         "#]],
     );

@@ -53,8 +53,8 @@ impl Evaluator {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = self.context.entry.take() {
-            self.eval_expr(&expr)
+        if let Some(expr) = self.context.entry() {
+            self.eval_expr(&expr.clone())
         } else {
             Err(Error {
                 span: Span { lo: 0, hi: 0 },
@@ -109,6 +109,7 @@ impl Evaluator {
             | ExprKind::BinOp(_, _, _)
             | ExprKind::Call(_, _)
             | ExprKind::Conjugate(_, _)
+            | ExprKind::Err
             | ExprKind::Field(_, _)
             | ExprKind::For(_, _, _)
             | ExprKind::Hole
