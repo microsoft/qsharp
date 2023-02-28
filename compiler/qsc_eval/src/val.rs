@@ -117,6 +117,19 @@ impl TryFrom<Value> for Vec<Value> {
     }
 }
 
+pub struct ValueTuple(pub Vec<Value>);
+impl TryFrom<Value> for ValueTuple {
+    type Error = ErrorKind;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::Tuple(v) = value {
+            Ok(ValueTuple(v))
+        } else {
+            Err(ErrorKind::Type("Tuple"))
+        }
+    }
+}
+
 impl TryFrom<Value> for String {
     type Error = ErrorKind;
 

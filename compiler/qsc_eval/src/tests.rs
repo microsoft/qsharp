@@ -26,18 +26,10 @@ fn block_expr() {
     check_expression(
         indoc! { "{
             let x = 1;
-            let y = 2;
-            x + y
+            let y = x;
+            y
         }"},
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 6,
-                    hi: 16,
-                },
-                kind: Unimplemented,
-            }
-        "#]],
+        &expect![["1"]],
     );
 }
 

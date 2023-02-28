@@ -8,10 +8,12 @@ mod tests;
 
 pub mod val;
 
+use std::collections::HashMap;
+
 use qir_backend::Pauli;
-use qsc_ast::ast::{self, Block, Expr, ExprKind, Lit, Span, Stmt, StmtKind};
-use qsc_frontend::Context;
-use val::Value;
+use qsc_ast::ast::{self, Block, Expr, ExprKind, Lit, NodeId, Pat, PatKind, Span, Stmt, StmtKind};
+use qsc_frontend::{symbol::Id, Context};
+use val::{Value, ValueTuple};
 
 #[derive(Debug)]
 pub struct Error {
@@ -25,6 +27,7 @@ pub enum ErrorKind {
     Index(i64),
     IntegerSize,
     OutOfRange(i64),
+    UnrecognizedSymbol,
     Type(&'static str),
     Unimplemented,
     UserFail(String),
@@ -55,12 +58,16 @@ impl<T> WithSpan for Result<T, ErrorKind> {
 
 pub struct Evaluator<'a> {
     context: &'a Context,
+    scopes: Vec<HashMap<Id, Value>>,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
     pub fn new(context: &'a Context) -> Self {
-        Self { context }
+        Self {
+            context,
+            scopes: vec![],
+        }
     }
 
     /// Evaluates the entry expression from the current context.
@@ -86,14 +93,14 @@ impl<'a> Evaluator<'a> {
                 }
                 Ok(Value::Array(val_arr))
             }
-            ExprKind::Block(block) => self.eval_block(block),
+            ExprKind::Block(block) => self.eval_block(block, HashMap::default()),
             ExprKind::Fail(msg) => Err(Error {
                 span: expr.span,
                 kind: ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
             }),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
-                    self.eval_block(then)
+                    self.eval_block(then, HashMap::default())
                 } else if let Some(els) = els {
                     self.eval_expr(els)
                 } else {
@@ -117,6 +124,7 @@ impl<'a> Evaluator<'a> {
             }
             ExprKind::Lit(lit) => lit_to_val(lit, expr.span),
             ExprKind::Paren(expr) => self.eval_expr(expr),
+            ExprKind::Path(path) => self.resolve_binding(path.id, path.span),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
@@ -137,7 +145,6 @@ impl<'a> Evaluator<'a> {
             | ExprKind::For(_, _, _)
             | ExprKind::Hole
             | ExprKind::Lambda(_, _, _)
-            | ExprKind::Path(_)
             | ExprKind::Repeat(_, _, _)
             | ExprKind::Return(_)
             | ExprKind::TernOp(_, _, _, _)
@@ -166,28 +173,85 @@ impl<'a> Evaluator<'a> {
         ))
     }
 
-    fn eval_block(&mut self, block: &Block) -> Result<Value, Error> {
-        if let Some((last, most)) = block.stmts.split_last() {
+    fn eval_block(
+        &mut self,
+        block: &Block,
+        initial_bindings: HashMap<Id, Value>,
+    ) -> Result<Value, Error> {
+        self.scopes.push(initial_bindings);
+        let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
                 let _ = self.eval_stmt(stmt)?;
             }
             self.eval_stmt(last)
         } else {
             Ok(Value::Tuple(vec![]))
-        }
+        };
+        let _ = self.scopes.pop();
+        result
     }
 
     fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
         match &stmt.kind {
             StmtKind::Expr(expr) => self.eval_expr(expr),
+            StmtKind::Let(pat, expr) => {
+                let val = self.eval_expr(expr)?;
+                self.bind_value(pat, &val, expr.span)?;
+                Ok(Value::Tuple(vec![]))
+            }
             StmtKind::Semi(expr) => {
                 let _ = self.eval_expr(expr)?;
                 Ok(Value::Tuple(vec![]))
             }
-            StmtKind::Borrow(_, _, _)
-            | StmtKind::Let(_, _)
-            | StmtKind::Mutable(_, _)
-            | StmtKind::Use(_, _, _) => Error::unimpl(stmt.span),
+            StmtKind::Borrow(_, _, _) | StmtKind::Mutable(_, _) | StmtKind::Use(_, _, _) => {
+                Error::unimpl(stmt.span)
+            }
+        }
+    }
+
+    fn bind_value(&mut self, pat: &Pat, val: &Value, span: Span) -> Result<(), Error> {
+        match &pat.kind {
+            PatKind::Bind(variable, _) => {
+                let id = match self.context.symbols().get(variable.id) {
+                    Some(id) => Ok(id),
+                    None => Err(Error {
+                        span: variable.span,
+                        kind: ErrorKind::UnrecognizedSymbol,
+                    }),
+                }?;
+                self.scopes
+                    .first_mut()
+                    .expect("Statements can only occur in a block scope.")
+                    .insert(id, val.clone());
+                Ok(())
+            }
+            PatKind::Discard(_) => Ok(()),
+            PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
+            PatKind::Paren(pat) => self.bind_value(pat, val, span),
+            PatKind::Tuple(tup) => {
+                let val_tup: ValueTuple = val.clone().try_into().with_span(span)?;
+                for (pat, val) in tup.iter().zip(val_tup.0.iter()) {
+                    self.bind_value(pat, val, span)?;
+                }
+                Ok(())
+            }
+        }
+    }
+
+    fn resolve_binding(&self, id: NodeId, span: Span) -> Result<Value, Error> {
+        let id = match self.context.symbols().get(id) {
+            Some(id) => Ok(id),
+            None => Err(Error {
+                span,
+                kind: ErrorKind::UnrecognizedSymbol,
+            }),
+        }?;
+        match self.scopes.iter().find_map(|scope| scope.get(&id)) {
+            Some(val) => Ok(val.clone()),
+            None => Err(Error {
+                span,
+                kind: ErrorKind::UnrecognizedSymbol,
+            }),
         }
     }
 }
