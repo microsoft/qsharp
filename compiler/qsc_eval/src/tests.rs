@@ -9,8 +9,8 @@ use crate::Evaluator;
 fn check_expression(expr: &str, expect: &Expect) {
     let context = qsc_frontend::compile(&[], expr);
     assert!(context.errors().is_empty());
-    let mut eval = Evaluator::new(context);
-    expect.assert_debug_eq(&eval.run());
+    let mut eval = Evaluator::default();
+    expect.assert_debug_eq(&eval.run(&context));
 }
 
 #[test]
@@ -40,11 +40,11 @@ fn array_expr() {
 #[test]
 fn block_expr() {
     check_expression(
-        indoc! { r#"{
+        indoc! { "{
             let x = 1;
             let y = 2;
             x + y
-        }"#},
+        }"},
         &expect![[r#"
             Err(
                 Error {

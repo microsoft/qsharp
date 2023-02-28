@@ -41,7 +41,7 @@ impl Display for Value {
                 ),
                 Value::BigInt(v) => v.to_string(),
                 Value::Bool(v) => v.to_string(),
-                Value::Callable => unimplemented!(),
+                Value::Callable => todo!(),
                 Value::Double(v) => {
                     if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                         // The value is a whole number, which by convention is displayed with one decimal point
@@ -84,7 +84,7 @@ impl Display for Value {
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
-                Value::Udt => unimplemented!(),
+                Value::Udt => todo!(),
             }
         )
     }

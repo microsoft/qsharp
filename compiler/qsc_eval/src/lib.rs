@@ -39,22 +39,26 @@ impl Error {
     }
 }
 
-pub struct Evaluator {
-    context: Context,
+pub struct Evaluator {}
+
+impl Default for Evaluator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Evaluator {
     #[must_use]
-    pub fn new(context: Context) -> Self {
-        Self { context }
+    pub fn new() -> Self {
+        Self {}
     }
 
-    /// Evaluates the expression from the current context.
+    /// Evaluates the entry expression from the given context.
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = self.context.entry() {
-            self.eval_expr(&expr.clone())
+    pub fn run(&mut self, context: &Context) -> Result<Value, Error> {
+        if let Some(expr) = context.entry() {
+            self.eval_expr(expr)
         } else {
             Err(Error {
                 span: Span { lo: 0, hi: 0 },
