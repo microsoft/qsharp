@@ -1,7 +1,12 @@
 [package]
 name = "qsc"
 version = "0.0.0"
-edition = "2021"
+
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 qsc_ast = { path = "../qsc_ast" }
@@ -11,7 +16,7 @@ qsc_codegen = { path = "../qsc_codegen" }
 qsc_eval = { path = "../qsc_eval" }
 
 [dev-dependencies]
-criterion = "0.4.0"
+criterion = { version = "0.4.0", default-features = false, features = ["cargo_bench_support"] }
 
 [[bench]]
 name = "nqueens"
