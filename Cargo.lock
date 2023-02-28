@@ -535,6 +535,7 @@ name = "qsc_eval"
 version = "0.0.0"
 dependencies = [
  "expect-test",
+ "indoc",
  "num-bigint",
  "qir-backend",
  "qir-stdlib",

@@ -12,3 +12,5 @@ num-bigint = "0.4.3"
 
 [dev-dependencies]
 expect-test = "1.4.0"
+indoc = "2.0.0"
+

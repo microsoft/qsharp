@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use expect_test::{expect, Expect};
+use indoc::indoc;
 
 use crate::Evaluator;
 
@@ -39,22 +40,22 @@ fn array_expr() {
 #[test]
 fn block_expr() {
     check_expression(
-        r#"{
-        let x = 1;
-        let y = 2;
-        x + y
-    }"#,
+        indoc! { r#"{
+            let x = 1;
+            let y = 2;
+            x + y
+        }"#},
         &expect![[r#"
-        Err(
-            Error {
-                span: Span {
-                    lo: 48,
-                    hi: 53,
+            Err(
+                Error {
+                    span: Span {
+                        lo: 6,
+                        hi: 16,
+                    },
+                    kind: Unimplemented,
                 },
-                kind: Unimplemented,
-            },
-        )
-    "#]],
+            )
+        "#]],
     );
 }
 
