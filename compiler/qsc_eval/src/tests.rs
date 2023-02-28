@@ -34,6 +34,33 @@ fn block_expr() {
 }
 
 #[test]
+fn block_shadowing_expr() {
+    check_expression(
+        indoc! { "{
+            let x = 1;
+            let x = 2;
+            x
+        }"},
+        &expect![["2"]],
+    );
+}
+
+#[test]
+fn block_nested_shadowing_expr() {
+    check_expression(
+        indoc! { "{
+            let x = 1;
+            let y = {
+                let x = 2;
+                x
+            };
+            y
+        }"},
+        &expect![["2"]],
+    );
+}
+
+#[test]
 fn fail_expr() {
     check_expression(
         r#"fail "This is a failure""#,
