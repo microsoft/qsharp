@@ -138,9 +138,74 @@ impl Keyword {
 impl FromStr for Keyword {
     type Err = ();
 
+    // This is a hot function. Use a match expression so that the Rust compiler
+    // can optimize the string comparisons better, and order the cases by
+    // frequency in Q# so that fewer comparisons are needed on average.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        enum_iterator::all::<Self>()
-            .find(|kw| kw.as_str() == s)
-            .ok_or(())
+        match s {
+            "let" => Ok(Self::Let),
+            "operation" => Ok(Self::Operation),
+            "is" => Ok(Self::Is),
+            "Qubit" => Ok(Self::Qubit),
+            "in" => Ok(Self::In),
+            "Unit" => Ok(Self::Unit),
+            "and" => Ok(Self::And),
+            "for" => Ok(Self::For),
+            "function" => Ok(Self::Function),
+            "Int" => Ok(Self::Int),
+            "open" => Ok(Self::Open),
+            "if" => Ok(Self::If),
+            "return" => Ok(Self::Return),
+            "Adj" => Ok(Self::Adj),
+            "Result" => Ok(Self::Result),
+            "Controlled" => Ok(Self::ControlledUpper),
+            "controlled" => Ok(Self::Controlled),
+            "Ctl" => Ok(Self::Ctl),
+            "set" => Ok(Self::Set),
+            "Double" => Ok(Self::Double),
+            "use" => Ok(Self::Use),
+            "as" => Ok(Self::As),
+            "not" => Ok(Self::Not),
+            "true" => Ok(Self::True),
+            "Zero" => Ok(Self::Zero),
+            "One" => Ok(Self::One),
+            "namespace" => Ok(Self::Namespace),
+            "Pauli" => Ok(Self::Pauli),
+            "mutable" => Ok(Self::Mutable),
+            "internal" => Ok(Self::Internal),
+            "PauliZ" => Ok(Self::PauliZ),
+            "false" => Ok(Self::False),
+            "PauliX" => Ok(Self::PauliX),
+            "PauliI" => Ok(Self::PauliI),
+            "Adjoint" => Ok(Self::AdjointUpper),
+            "adjoint" => Ok(Self::Adjoint),
+            "Bool" => Ok(Self::Bool),
+            "apply" => Ok(Self::Apply),
+            "intrinsic" => Ok(Self::Intrinsic),
+            "or" => Ok(Self::Or),
+            "elif" => Ok(Self::Elif),
+            "fail" => Ok(Self::Fail),
+            "else" => Ok(Self::Else),
+            "within" => Ok(Self::Within),
+            "BigInt" => Ok(Self::BigInt),
+            "body" => Ok(Self::Body),
+            "newtype" => Ok(Self::Newtype),
+            "Range" => Ok(Self::Range),
+            "String" => Ok(Self::String),
+            "invert" => Ok(Self::Invert),
+            "distribute" => Ok(Self::Distribute),
+            "auto" => Ok(Self::Auto),
+            "self" => Ok(Self::Slf),
+            "while" => Ok(Self::While),
+            "until" => Ok(Self::Until),
+            "repeat" => Ok(Self::Repeat),
+            "fixup" => Ok(Self::Fixup),
+            // The next three were not found or measured
+            // in the standard library for priority order.
+            "PauliY" => Ok(Self::PauliY),
+            "borrow" => Ok(Self::Borrow),
+            "_" => Ok(Self::Underscore),
+            _ => Err(()),
+        }
     }
 }
