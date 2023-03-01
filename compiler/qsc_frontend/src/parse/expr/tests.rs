@@ -86,6 +86,70 @@ fn lit_int_leading_zero() {
 }
 
 #[test]
+fn lit_int_overflow() {
+    check(
+        expr,
+        "9_223_372_036_854_775_808",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 25,
+                    },
+                    kind: Lit(
+                        Int(
+                            -9223372036854775808,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_int_min() {
+    check(
+        expr,
+        "-9_223_372_036_854_775_808",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 26,
+                    },
+                    kind: UnOp(
+                        Neg,
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 1,
+                                hi: 26,
+                            },
+                            kind: Lit(
+                                Int(
+                                    -9223372036854775808,
+                                ),
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn lit_int_hexadecimal() {
     check(
         expr,
