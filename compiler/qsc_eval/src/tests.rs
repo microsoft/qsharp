@@ -46,18 +46,6 @@ fn block_shadowing_expr() {
 }
 
 #[test]
-fn let_bind_tuple() {
-    check_expression(
-        indoc! {"{
-            let x = (1, 2);
-            let (y, z) = x;
-            (z, y)
-        }"},
-        &expect!["(2, 1)"],
-    );
-}
-
-#[test]
 fn block_nested_shadowing_expr() {
     check_expression(
         indoc! { "{
@@ -69,6 +57,18 @@ fn block_nested_shadowing_expr() {
             y
         }"},
         &expect!["2"],
+    );
+}
+
+#[test]
+fn block_let_bind_tuple_expr() {
+    check_expression(
+        indoc! {"{
+            let x = (1, 2);
+            let (y, z) = x;
+            (z, y)
+        }"},
+        &expect!["(2, 1)"],
     );
 }
 
