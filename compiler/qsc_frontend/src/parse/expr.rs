@@ -242,17 +242,17 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
     match kind {
         TokenKind::BigInt => {
             let lexeme = &lexeme[..lexeme.len() - 1]; // Slice off suffix.
-            let value = lexeme.parse().expect("BigInt token can't be parsed.");
+            let value = lexeme.parse().expect("BigInt token should be parsable.");
             Some(Lit::BigInt(value))
         }
         TokenKind::Float => {
             let lexeme = lexeme.replace('_', "");
-            let value = lexeme.parse().expect("Float token can't be parsed.");
+            let value = lexeme.parse().expect("Float token should be parsable.");
             Some(Lit::Double(value))
         }
         TokenKind::Int => {
             let lexeme = lexeme.replace('_', "");
-            let value = lexeme.parse().expect("Int token can't be parsed.");
+            let value = lexeme.parse().expect("Int token should be parsable.");
             Some(Lit::Int(value))
         }
         TokenKind::String => {

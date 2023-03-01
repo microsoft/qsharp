@@ -86,7 +86,22 @@ fn lit_int_leading_zero() {
 }
 
 #[test]
-fn lit_big_int() {
+fn lit_int_hexadecimal() {
+    check(expr, "0x1a2b3c", &expect![]);
+}
+
+#[test]
+fn lit_int_octal() {
+    check(expr, "0o1234567", &expect![]);
+}
+
+#[test]
+fn lit_int_binary() {
+    check(expr, "0b10110", &expect![]);
+}
+
+#[test]
+fn lit_bigint() {
     check(
         expr,
         "123L",
@@ -112,7 +127,7 @@ fn lit_big_int() {
 }
 
 #[test]
-fn lit_big_int_underscore() {
+fn lit_bigint_underscore() {
     check(
         expr,
         "123_456L",
@@ -135,6 +150,21 @@ fn lit_big_int_underscore() {
             )
         "#]],
     );
+}
+
+#[test]
+fn lit_bigint_hexadecimal() {
+    check(expr, "0x1a2b3cL", &expect![]);
+}
+
+#[test]
+fn lit_bigint_octal() {
+    check(expr, "0o1234567L", &expect![]);
+}
+
+#[test]
+fn lit_bigint_binary() {
+    check(expr, "0b10110L", &expect![]);
 }
 
 #[test]
