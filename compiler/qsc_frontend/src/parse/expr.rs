@@ -236,6 +236,7 @@ fn lit(s: &mut Scanner) -> Result<Lit> {
     }
 }
 
+#[allow(clippy::inline_always)]
 #[inline(always)]
 fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
     match kind {
@@ -262,6 +263,7 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
     }
 }
 
+#[allow(clippy::inline_always)]
 #[inline(always)]
 fn lit_keyword(lexeme: &str) -> Option<Lit> {
     match lexeme {
