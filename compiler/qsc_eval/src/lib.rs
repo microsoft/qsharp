@@ -11,7 +11,9 @@ pub mod val;
 use std::collections::HashMap;
 
 use qir_backend::Pauli;
-use qsc_ast::ast::{self, Block, Expr, ExprKind, Lit, NodeId, Pat, PatKind, Span, Stmt, StmtKind};
+use qsc_ast::ast::{
+    self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Pat, PatKind, Span, Stmt, StmtKind,
+};
 use qsc_frontend::{symbol, Context};
 use val::{Value, ValueTuple};
 
@@ -56,6 +58,7 @@ impl<T> WithSpan for Result<T, ErrorKind> {
     }
 }
 
+#[allow(dead_code)]
 pub struct Evaluator<'a> {
     context: &'a Context,
     scopes: Vec<HashMap<symbol::Id, Value>>,
@@ -198,7 +201,7 @@ impl<'a> Evaluator<'a> {
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Let(pat, expr) => {
                 let val = self.eval_expr(expr)?;
-                self.bind_value(pat, &val, expr.span)?;
+                self.bind_value(pat, val, expr.span)?;
                 Ok(Value::Tuple(vec![]))
             }
             StmtKind::Semi(expr) => {
@@ -211,7 +214,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn bind_value(&mut self, pat: &Pat, val: &Value, span: Span) -> Result<(), Error> {
+    fn bind_value(&mut self, pat: &Pat, val: Value, span: Span) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = match self.context.symbols().get(variable.id) {
@@ -224,15 +227,15 @@ impl<'a> Evaluator<'a> {
                 self.scopes
                     .first_mut()
                     .expect("Statements can only occur in a block scope.")
-                    .insert(id, val.clone());
+                    .insert(id, val);
                 Ok(())
             }
             PatKind::Discard(_) => Ok(()),
             PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, val, span),
             PatKind::Tuple(tup) => {
-                let val_tup: ValueTuple = val.clone().try_into().with_span(span)?;
-                for (pat, val) in tup.iter().zip(val_tup.0.iter()) {
+                let val_tup: ValueTuple = val.try_into().with_span(span)?;
+                for (pat, val) in tup.iter().zip(val_tup.0.into_iter()) {
                     self.bind_value(pat, val, span)?;
                 }
                 Ok(())

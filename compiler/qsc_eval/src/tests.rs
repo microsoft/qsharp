@@ -29,7 +29,7 @@ fn block_expr() {
             let y = x;
             y
         }"},
-        &expect![["1"]],
+        &expect!["1"],
     );
 }
 
@@ -41,7 +41,19 @@ fn block_shadowing_expr() {
             let x = 2;
             x
         }"},
-        &expect![["2"]],
+        &expect!["2"],
+    );
+}
+
+#[test]
+fn let_bind_tuple() {
+    check_expression(
+        indoc! {"{
+            let x = (1, 2);
+            let (y, z) = x;
+            (z, y)
+        }"},
+        &expect!["(2, 1)"],
     );
 }
 
@@ -56,7 +68,7 @@ fn block_nested_shadowing_expr() {
             };
             y
         }"},
-        &expect![["2"]],
+        &expect!["2"],
     );
 }
 
