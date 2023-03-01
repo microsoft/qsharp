@@ -262,7 +262,9 @@ fn int() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 3,
@@ -293,7 +295,9 @@ fn negative_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 4,
@@ -324,7 +328,9 @@ fn positive_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 4,
@@ -344,7 +350,9 @@ fn bigint() {
             [
                 Ok(
                     Token {
-                        kind: BigInt,
+                        kind: BigInt(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 4,
@@ -375,7 +383,9 @@ fn negative_bigint() {
                 ),
                 Ok(
                     Token {
-                        kind: BigInt,
+                        kind: BigInt(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 5,
@@ -406,7 +416,9 @@ fn positive_bigint() {
                 ),
                 Ok(
                     Token {
-                        kind: BigInt,
+                        kind: BigInt(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 5,
@@ -517,7 +529,9 @@ fn leading_point() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 2,
@@ -566,7 +580,9 @@ fn dot_dot_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 2,
                             hi: 3,
@@ -595,7 +611,9 @@ fn dot_dot_dot_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 3,
                             hi: 4,
@@ -615,7 +633,9 @@ fn int_dot_dot() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 1,
@@ -644,7 +664,9 @@ fn int_dot_dot_dot() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 1,
@@ -682,7 +704,9 @@ fn dot_dot_dot_int_dot_dot_dot() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 3,
                             hi: 4,

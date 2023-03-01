@@ -153,7 +153,9 @@ fn binary() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Binary,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -170,7 +172,9 @@ fn octal() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Octal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -187,7 +191,9 @@ fn decimal() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -204,7 +210,9 @@ fn number_seps() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -236,7 +244,9 @@ fn int_dot_dot() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -277,7 +287,9 @@ fn dot_dot_int() {
                 },
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 2,
                 },
@@ -312,7 +324,9 @@ fn dot_dot_dot_int() {
                 },
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 3,
                 },
@@ -329,7 +343,9 @@ fn hexadecimal() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Hexadecimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -346,7 +362,9 @@ fn bigint() {
             [
                 Token {
                     kind: Number(
-                        BigInt,
+                        BigInt(
+                            Decimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -369,7 +387,9 @@ fn negative() {
                 },
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 1,
                 },
@@ -392,7 +412,9 @@ fn positive() {
                 },
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 1,
                 },
@@ -409,7 +431,9 @@ fn bigint_hexadecimal() {
             [
                 Token {
                     kind: Number(
-                        BigInt,
+                        BigInt(
+                            Hexadecimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -443,7 +467,9 @@ fn leading_zero() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -466,7 +492,9 @@ fn leading_point() {
                 },
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 1,
                 },
@@ -593,7 +621,9 @@ fn float_hexadecimal() {
             [
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Hexadecimal,
+                        ),
                     ),
                     offset: 0,
                 },
@@ -605,7 +635,9 @@ fn float_hexadecimal() {
                 },
                 Token {
                     kind: Number(
-                        Int,
+                        Int(
+                            Decimal,
+                        ),
                     ),
                     offset: 6,
                 },
