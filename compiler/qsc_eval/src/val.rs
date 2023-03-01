@@ -11,7 +11,7 @@ use crate::{Error, ErrorKind};
 
 #[derive(Clone, Debug)]
 pub enum Value {
-    Array(Vec<Box<Value>>),
+    Array(Vec<Value>),
     BigInt(BigInt),
     Bool(bool),
     Callable,
@@ -22,7 +22,7 @@ pub enum Value {
     Range(Option<i64>, Option<i64>, Option<i64>),
     Result(bool),
     String(String),
-    Tuple(Vec<Box<Value>>),
+    Tuple(Vec<Value>),
     Udt,
 }
 
@@ -128,7 +128,7 @@ impl Value {
     /// Unwraps the [Value] to an Array.
     /// # Errors
     /// Will return a type error if the [Value] is not an integer.
-    pub fn as_array(&self, span: Span) -> Result<Vec<Box<Value>>, Error> {
+    pub fn as_array(&self, span: Span) -> Result<Vec<Value>, Error> {
         if let Value::Array(v) = self {
             Ok((*v).clone())
         } else {
@@ -142,7 +142,7 @@ impl Value {
 
 fn join<'a>(
     f: &mut std::fmt::Formatter<'_>,
-    mut vals: impl Iterator<Item = &'a Box<Value>>,
+    mut vals: impl Iterator<Item = &'a Value>,
     sep: &str,
 ) -> std::fmt::Result {
     if let Some(v) = vals.next() {

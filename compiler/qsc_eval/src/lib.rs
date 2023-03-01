@@ -68,7 +68,7 @@ impl<'a> Evaluator<'a> {
             ExprKind::Array(arr) => {
                 let mut val_arr = vec![];
                 for expr in arr {
-                    val_arr.push(Box::new(self.eval_expr(expr)?));
+                    val_arr.push(self.eval_expr(expr)?);
                 }
                 Ok(Value::Array(val_arr))
             }
@@ -94,7 +94,7 @@ impl<'a> Evaluator<'a> {
                     kind: ErrorKind::Index(index_val),
                 })?;
                 match arr.get(i) {
-                    Some(v) => Ok(*v.clone()),
+                    Some(v) => Ok(v.clone()),
                     None => Err(Error {
                         span: index.span,
                         kind: ErrorKind::OutOfRange(index_val),
@@ -107,7 +107,7 @@ impl<'a> Evaluator<'a> {
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
-                    val_tup.push(Box::new(self.eval_expr(expr)?));
+                    val_tup.push(self.eval_expr(expr)?);
                 }
                 Ok(Value::Tuple(val_tup))
             }
