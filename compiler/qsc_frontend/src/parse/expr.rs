@@ -17,7 +17,7 @@ use crate::lex::{ClosedBinOp, Delim, Radix, TokenKind};
 use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{self, BinOp, Expr, ExprKind, Functor, Lit, NodeId, Pauli, TernOp, UnOp};
-use std::str::FromStr;
+use std::{num::Wrapping, str::FromStr};
 
 struct PrefixOp {
     kind: UnOp,
@@ -269,14 +269,15 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
 }
 
 fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
+    let multiplier = Wrapping(i64::from(radix));
     lexeme
         .chars()
         .filter(|&c| c != '_')
-        .try_rfold((0, 1), |(value, place), c| {
-            let digit = i64::from(c.to_digit(radix)?);
-            Some((value + i64::from(place) * digit, place * radix))
+        .try_rfold((Wrapping(0), Wrapping(1)), |(value, place), c| {
+            let digit = Wrapping(i64::from(c.to_digit(radix)?));
+            Some((value + place * digit, place * multiplier))
         })
-        .map(|(value, _)| value)
+        .map(|(Wrapping(value), _)| value)
 }
 
 #[allow(clippy::inline_always)]

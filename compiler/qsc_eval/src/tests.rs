@@ -137,15 +137,7 @@ fn literal_int_expr() {
 fn literal_int_too_big_expr() {
     check_expression(
         "9_223_372_036_854_775_808",
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 0,
-                    hi: 25,
-                },
-                kind: IntegerSize,
-            }
-        "#]],
+        &expect!["-9223372036854775808"],
     );
 }
 
