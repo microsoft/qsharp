@@ -39,6 +39,20 @@ impl Error {
     }
 }
 
+trait WithSpan {
+    type Output;
+
+    fn with_span(self, span: Span) -> Self::Output;
+}
+
+impl<T> WithSpan for Result<T, ErrorKind> {
+    type Output = Result<T, Error>;
+
+    fn with_span(self, span: Span) -> Result<T, Error> {
+        self.map_err(|kind| Error { span, kind })
+    }
+}
+
 pub struct Evaluator<'a> {
     context: &'a Context,
 }
@@ -75,18 +89,10 @@ impl<'a> Evaluator<'a> {
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Fail(msg) => Err(Error {
                 span: expr.span,
-                kind: ErrorKind::UserFail(String::try_from(self.eval_expr(msg)?).map_err(
-                    |kind| Error {
-                        span: msg.span,
-                        kind,
-                    },
-                )?),
+                kind: ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
             }),
             ExprKind::If(cond, then, els) => {
-                if bool::try_from(self.eval_expr(cond)?).map_err(|kind| Error {
-                    span: cond.span,
-                    kind,
-                })? {
+                if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(then)
                 } else if let Some(els) = els {
                     self.eval_expr(els)
@@ -95,14 +101,8 @@ impl<'a> Evaluator<'a> {
                 }
             }
             ExprKind::Index(arr, index) => {
-                let arr = Vec::try_from(self.eval_expr(arr)?).map_err(|kind| Error {
-                    span: arr.span,
-                    kind,
-                })?;
-                let index_val = i64::try_from(self.eval_expr(index)?).map_err(|kind| Error {
-                    span: index.span,
-                    kind,
-                })?;
+                let arr: Vec<_> = self.eval_expr(arr)?.try_into().with_span(arr.span)?;
+                let index_val: i64 = self.eval_expr(index)?.try_into().with_span(index.span)?;
                 let i: usize = index_val.try_into().map_err(|_| Error {
                     span: index.span,
                     kind: ErrorKind::Index(index_val),
@@ -156,19 +156,13 @@ impl<'a> Evaluator<'a> {
         Ok(Value::Range(
             start
                 .as_ref()
-                .map(|expr| {
-                    i64::try_from(self.eval_expr(expr)?).map_err(|kind| Error { span, kind })
-                })
+                .map(|expr| self.eval_expr(expr)?.try_into().with_span(span))
                 .transpose()?,
             step.as_ref()
-                .map(|expr| {
-                    i64::try_from(self.eval_expr(expr)?).map_err(|kind| Error { span, kind })
-                })
+                .map(|expr| self.eval_expr(expr)?.try_into().with_span(span))
                 .transpose()?,
             end.as_ref()
-                .map(|expr| {
-                    i64::try_from(self.eval_expr(expr)?).map_err(|kind| Error { span, kind })
-                })
+                .map(|expr| self.eval_expr(expr)?.try_into().with_span(span))
                 .transpose()?,
         ))
     }
