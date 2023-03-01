@@ -275,6 +275,46 @@ fn int() {
 }
 
 #[test]
+fn negative_int() {
+    check(
+        "-123",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Int,
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn positive_int() {
+    check(
+        "+123",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Int,
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn bigint() {
     check(
         "123L",
@@ -295,6 +335,46 @@ fn bigint() {
 }
 
 #[test]
+fn negative_bigint() {
+    check(
+        "-123L",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: BigInt,
+                        span: Span {
+                            lo: 0,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn positive_bigint() {
+    check(
+        "+123L",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: BigInt,
+                        span: Span {
+                            lo: 0,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn float() {
     check(
         "1.23",
@@ -306,6 +386,46 @@ fn float() {
                         span: Span {
                             lo: 0,
                             hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn negative_float() {
+    check(
+        "-1.23",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Float,
+                        span: Span {
+                            lo: 0,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn positive_float() {
+    check(
+        "+1.23",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Float,
+                        span: Span {
+                            lo: 0,
+                            hi: 5,
                         },
                     },
                 ),

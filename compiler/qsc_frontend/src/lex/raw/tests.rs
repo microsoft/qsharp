@@ -379,6 +379,29 @@ fn negative() {
 }
 
 #[test]
+fn positive() {
+    check(
+        "+4",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Single(
+                        Plus,
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Number(
+                        Int,
+                    ),
+                    offset: 1,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn bigint_hexadecimal() {
     check(
         "0x123abcL",
