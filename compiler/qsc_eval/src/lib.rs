@@ -151,18 +151,17 @@ impl<'a> Evaluator<'a> {
         start: &Option<Box<Expr>>,
         step: &Option<Box<Expr>>,
         end: &Option<Box<Expr>>,
-        span: Span,
     ) -> Result<Value, Error> {
         Ok(Value::Range(
             start
                 .as_ref()
-                .map(|expr| self.eval_expr(expr)?.try_into().with_span(span))
+                .map(|expr| self.eval_expr(expr)?.try_into().with_span(expr.span))
                 .transpose()?,
             step.as_ref()
-                .map(|expr| self.eval_expr(expr)?.try_into().with_span(span))
+                .map(|expr| self.eval_expr(expr)?.try_into().with_span(expr.span))
                 .transpose()?,
             end.as_ref()
-                .map(|expr| self.eval_expr(expr)?.try_into().with_span(span))
+                .map(|expr| self.eval_expr(expr)?.try_into().with_span(expr.span))
                 .transpose()?,
         ))
     }
