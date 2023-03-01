@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{ffi::c_void, fmt::Display};
+use std::{collections::HashMap, ffi::c_void, fmt::Display};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
+use qsc_frontend::symbol;
 
 use crate::ErrorKind;
 
@@ -13,8 +14,9 @@ pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
     Bool(bool),
-    Callable,
+    Closure(symbol::Id, HashMap<symbol::Id, Value>),
     Double(f64),
+    Global(symbol::Id),
     Int(i64),
     Pauli(Pauli),
     Qubit(*mut c_void),
@@ -35,7 +37,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Callable => todo!(),
+            Value::Closure(_, _) => todo!(),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -45,6 +47,7 @@ impl Display for Value {
                     write!(f, "{v}")
                 }
             }
+            Value::Global(_) => todo!(),
             Value::Int(v) => write!(f, "{v}"),
             Value::Pauli(v) => match v {
                 Pauli::I => write!(f, "PauliI"),

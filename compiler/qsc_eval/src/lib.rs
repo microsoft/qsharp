@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{self, Block, Expr, ExprKind, Lit, NodeId, Pat, PatKind, Span, Stmt, StmtKind};
-use qsc_frontend::{symbol::Id, Context};
+use qsc_frontend::{symbol, Context};
 use val::{Value, ValueTuple};
 
 #[derive(Debug)]
@@ -58,7 +58,8 @@ impl<T> WithSpan for Result<T, ErrorKind> {
 
 pub struct Evaluator<'a> {
     context: &'a Context,
-    scopes: Vec<HashMap<Id, Value>>,
+    scopes: Vec<HashMap<symbol::Id, Value>>,
+    globals: HashMap<symbol::Id, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
@@ -67,6 +68,7 @@ impl<'a> Evaluator<'a> {
         Self {
             context,
             scopes: vec![],
+            globals: HashMap::default(),
         }
     }
 
@@ -176,7 +178,7 @@ impl<'a> Evaluator<'a> {
     fn eval_block(
         &mut self,
         block: &Block,
-        initial_bindings: HashMap<Id, Value>,
+        initial_bindings: HashMap<symbol::Id, Value>,
     ) -> Result<Value, Error> {
         self.scopes.push(initial_bindings);
         let result = if let Some((last, most)) = block.stmts.split_last() {
