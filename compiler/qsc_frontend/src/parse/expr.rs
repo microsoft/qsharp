@@ -13,7 +13,9 @@ use super::{
     scan::Scanner,
     stmt, ErrorKind, Result,
 };
-use crate::lex::{ClosedBinOp, Delim, TokenKind};
+use crate::lex::{ClosedBinOp, Delim, Radix, TokenKind};
+use num_bigint::BigInt;
+use num_traits::Num;
 use qsc_ast::ast::{self, BinOp, Expr, ExprKind, Functor, Lit, NodeId, Pauli, TernOp, UnOp};
 use std::str::FromStr;
 
@@ -240,9 +242,11 @@ fn lit(s: &mut Scanner) -> Result<Lit> {
 #[inline(always)]
 fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
     match kind {
-        TokenKind::BigInt => {
-            let lexeme = &lexeme[..lexeme.len() - 1]; // Slice off suffix.
-            let value = lexeme.parse().expect("BigInt token should be parsable.");
+        TokenKind::BigInt(radix) => {
+            let offset = if radix == Radix::Decimal { 0 } else { 2 };
+            let lexeme = &lexeme[offset..lexeme.len() - 1]; // Slice off prefix and suffix.
+            let value = BigInt::from_str_radix(lexeme, radix.into())
+                .expect("BigInt token should be parsable.");
             Some(Lit::BigInt(value))
         }
         TokenKind::Float => {
@@ -250,7 +254,7 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
             let value = lexeme.parse().expect("Float token should be parsable.");
             Some(Lit::Double(value))
         }
-        TokenKind::Int => {
+        TokenKind::Int(radix) => {
             let lexeme = lexeme.replace('_', "");
             let value = lexeme.parse().expect("Int token should be parsable.");
             Some(Lit::Int(value))

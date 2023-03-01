@@ -154,17 +154,80 @@ fn lit_bigint_underscore() {
 
 #[test]
 fn lit_bigint_hexadecimal() {
-    check(expr, "0x1a2b3cL", &expect![]);
+    check(
+        expr,
+        "0x1a2b3cL",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 9,
+                    },
+                    kind: Lit(
+                        BigInt(
+                            1715004,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn lit_bigint_octal() {
-    check(expr, "0o1234567L", &expect![]);
+    check(
+        expr,
+        "0o1234567L",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 10,
+                    },
+                    kind: Lit(
+                        BigInt(
+                            342391,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn lit_bigint_binary() {
-    check(expr, "0b10110L", &expect![]);
+    check(
+        expr,
+        "0b10110L",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 8,
+                    },
+                    kind: Lit(
+                        BigInt(
+                            22,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
 }
 
 #[test]

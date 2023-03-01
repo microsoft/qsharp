@@ -426,6 +426,7 @@ dependencies = [
  "expect-test",
  "indoc",
  "num-bigint",
+ "num-traits",
  "qsc_ast",
 ]
 

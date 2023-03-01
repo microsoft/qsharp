@@ -15,7 +15,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::Delim;
+use super::{Delim, Radix};
 use enum_iterator::Sequence;
 use std::{
     fmt::{self, Display, Formatter, Write},
@@ -127,9 +127,9 @@ impl Display for Single {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(super) enum Number {
-    BigInt,
+    BigInt(Radix),
     Float,
-    Int,
+    Int(Radix),
 }
 
 pub(super) struct Lexer<'a> {
@@ -202,20 +202,20 @@ impl<'a> Lexer<'a> {
         }
 
         let radix = if self.next_if_eq('b') {
-            2
+            Radix::Binary
         } else if self.next_if_eq('o') {
-            8
+            Radix::Octal
         } else if self.next_if_eq('x') {
-            16
+            Radix::Hexadecimal
         } else {
-            10
+            Radix::Decimal
         };
 
-        self.eat_while(|c| c == '_' || c.is_digit(radix));
+        self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
         if self.next_if_eq('L') {
-            Some(Number::BigInt)
+            Some(Number::BigInt(radix))
         } else {
-            Some(Number::Int)
+            Some(Number::Int(radix))
         }
     }
 
@@ -235,9 +235,9 @@ impl<'a> Lexer<'a> {
         } else if self.exp() {
             Some(Number::Float)
         } else if self.next_if_eq('L') {
-            Some(Number::BigInt)
+            Some(Number::BigInt(Radix::Decimal))
         } else {
-            Some(Number::Int)
+            Some(Number::Int(Radix::Decimal))
         }
     }
 

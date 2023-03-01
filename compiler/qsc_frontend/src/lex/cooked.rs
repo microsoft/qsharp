@@ -16,7 +16,7 @@ mod tests;
 
 use super::{
     raw::{self, Number, Single},
-    Delim,
+    Delim, Radix,
 };
 use enum_iterator::Sequence;
 use qsc_ast::ast::Span;
@@ -49,7 +49,7 @@ pub(crate) enum TokenKind {
     /// `|`
     Bar,
     /// A big integer literal.
-    BigInt,
+    BigInt(Radix),
     /// A closed binary operator followed by an equals token.
     BinOpEq(ClosedBinOp),
     /// A closing delimiter.
@@ -85,7 +85,7 @@ pub(crate) enum TokenKind {
     /// An identifier.
     Ident,
     /// An integer literal.
-    Int,
+    Int(Radix),
     /// `<-`
     LArrow,
     /// `<`
@@ -115,9 +115,9 @@ pub(crate) enum TokenKind {
 impl From<Number> for TokenKind {
     fn from(value: Number) -> Self {
         match value {
-            Number::BigInt => Self::BigInt,
+            Number::BigInt(radix) => Self::BigInt(radix),
             Number::Float => Self::Float,
-            Number::Int => Self::Int,
+            Number::Int(radix) => Self::Int(radix),
         }
     }
 }

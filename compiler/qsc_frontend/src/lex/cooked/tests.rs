@@ -46,11 +46,11 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::TildeTildeTilde => Some("~~~".to_string()),
         TokenKind::WSlash => Some("w/".to_string()),
         TokenKind::WSlashEq => Some("w/=".to_string()),
-        TokenKind::BigInt
+        TokenKind::BigInt(_)
         | TokenKind::Eof
         | TokenKind::Float
         | TokenKind::Ident
-        | TokenKind::Int
+        | TokenKind::Int(_)
         | TokenKind::String => None,
     }
 }
