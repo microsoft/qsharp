@@ -32,7 +32,7 @@ pub(super) struct Token {
     pub(super) offset: usize,
 }
 
-#[derive(Debug, Eq, PartialEq, Sequence)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(super) enum TokenKind {
     Comment,
     Ident,
@@ -125,7 +125,7 @@ impl Display for Single {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Sequence)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(super) enum Number {
     BigInt,
     Float,

@@ -15,7 +15,7 @@
 mod tests;
 
 use super::{
-    raw::{self, Single},
+    raw::{self, Number, Single},
     Delim,
 };
 use enum_iterator::Sequence;
@@ -110,6 +110,16 @@ pub(crate) enum TokenKind {
     WSlash,
     /// `w/=`
     WSlashEq,
+}
+
+impl From<Number> for TokenKind {
+    fn from(value: Number) -> Self {
+        match value {
+            Number::BigInt => Self::BigInt,
+            Number::Float => Self::Float,
+            Number::Int => Self::Int,
+        }
+    }
 }
 
 /// A binary operator that returns the same type as the type of its first operand; in other words,
@@ -207,9 +217,7 @@ impl<'a> Lexer<'a> {
                 let ident = &self.input[token.offset..self.offset()];
                 Ok(Some(self.ident(ident)))
             }
-            raw::TokenKind::Number(raw::Number::BigInt) => Ok(Some(TokenKind::BigInt)),
-            raw::TokenKind::Number(raw::Number::Float) => Ok(Some(TokenKind::Float)),
-            raw::TokenKind::Number(raw::Number::Int) => Ok(Some(TokenKind::Int)),
+            raw::TokenKind::Number(number) => Ok(Some(number.into())),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String => Ok(Some(TokenKind::String)),
             raw::TokenKind::Unknown => Err("Unknown token."),
@@ -314,13 +322,23 @@ impl<'a> Lexer<'a> {
             Single::Minus => {
                 if self.next_if_eq(Single::Gt) {
                     Ok(TokenKind::RArrow)
+                } else if let Some(raw::TokenKind::Number(n)) = self.tokens.peek().map(|t| t.kind) {
+                    self.tokens.next();
+                    Ok(n.into())
                 } else {
                     Ok(self.closed_bin_op(ClosedBinOp::Minus))
                 }
             }
             Single::Open(delim) => Ok(TokenKind::Open(delim)),
             Single::Percent => Ok(self.closed_bin_op(ClosedBinOp::Percent)),
-            Single::Plus => Ok(self.closed_bin_op(ClosedBinOp::Plus)),
+            Single::Plus => {
+                if let Some(raw::TokenKind::Number(n)) = self.tokens.peek().map(|t| t.kind) {
+                    self.tokens.next();
+                    Ok(n.into())
+                } else {
+                    Ok(self.closed_bin_op(ClosedBinOp::Plus))
+                }
+            }
             Single::Question => Ok(TokenKind::Question),
             Single::Semi => Ok(TokenKind::Semi),
             Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),
