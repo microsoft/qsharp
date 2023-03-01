@@ -87,17 +87,80 @@ fn lit_int_leading_zero() {
 
 #[test]
 fn lit_int_hexadecimal() {
-    check(expr, "0x1a2b3c", &expect![]);
+    check(
+        expr,
+        "0x1a2b3c",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 8,
+                    },
+                    kind: Lit(
+                        Int(
+                            1715004,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn lit_int_octal() {
-    check(expr, "0o1234567", &expect![]);
+    check(
+        expr,
+        "0o1234567",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 9,
+                    },
+                    kind: Lit(
+                        Int(
+                            342391,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn lit_int_binary() {
-    check(expr, "0b10110", &expect![]);
+    check(
+        expr,
+        "0b10110",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 7,
+                    },
+                    kind: Lit(
+                        Int(
+                            22,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
 }
 
 #[test]

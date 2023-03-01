@@ -255,8 +255,9 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
             Some(Lit::Double(value))
         }
         TokenKind::Int(radix) => {
-            let lexeme = lexeme.replace('_', "");
-            let value = lexeme.parse().expect("Int token should be parsable.");
+            let offset = if radix == Radix::Decimal { 0 } else { 2 };
+            let value =
+                lit_int(&lexeme[offset..], radix.into()).expect("Int token should be parsable.");
             Some(Lit::Int(value))
         }
         TokenKind::String => {
@@ -265,6 +266,17 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
         }
         _ => None,
     }
+}
+
+fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
+    lexeme
+        .chars()
+        .filter(|&c| c != '_')
+        .try_rfold((0, 1), |(value, place), c| {
+            let digit = i64::from(c.to_digit(radix)?);
+            Some((value + i64::from(place) * digit, place * radix))
+        })
+        .map(|(value, _)| value)
 }
 
 #[allow(clippy::inline_always)]
