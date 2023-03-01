@@ -75,10 +75,18 @@ impl<'a> Evaluator<'a> {
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Fail(msg) => Err(Error {
                 span: expr.span,
-                kind: ErrorKind::UserFail(self.eval_expr(msg)?.as_string(expr.span)?),
+                kind: ErrorKind::UserFail(String::try_from(self.eval_expr(msg)?).map_err(
+                    |kind| Error {
+                        span: msg.span,
+                        kind,
+                    },
+                )?),
             }),
             ExprKind::If(cond, then, els) => {
-                if self.eval_expr(cond)?.as_bool(cond.span)? {
+                if bool::try_from(self.eval_expr(cond)?).map_err(|kind| Error {
+                    span: cond.span,
+                    kind,
+                })? {
                     self.eval_block(then)
                 } else if let Some(els) = els {
                     self.eval_expr(els)
@@ -87,8 +95,14 @@ impl<'a> Evaluator<'a> {
                 }
             }
             ExprKind::Index(arr, index) => {
-                let arr = self.eval_expr(arr)?.as_array(arr.span)?;
-                let index_val = self.eval_expr(index)?.as_int(index.span)?;
+                let arr = Vec::try_from(self.eval_expr(arr)?).map_err(|kind| Error {
+                    span: arr.span,
+                    kind,
+                })?;
+                let index_val = i64::try_from(self.eval_expr(index)?).map_err(|kind| Error {
+                    span: index.span,
+                    kind,
+                })?;
                 let i: usize = index_val.try_into().map_err(|_| Error {
                     span: index.span,
                     kind: ErrorKind::Index(index_val),
@@ -142,13 +156,19 @@ impl<'a> Evaluator<'a> {
         Ok(Value::Range(
             start
                 .as_ref()
-                .map(|expr| self.eval_expr(expr)?.as_int(span))
+                .map(|expr| {
+                    i64::try_from(self.eval_expr(expr)?).map_err(|kind| Error { span, kind })
+                })
                 .transpose()?,
             step.as_ref()
-                .map(|expr| self.eval_expr(expr)?.as_int(span))
+                .map(|expr| {
+                    i64::try_from(self.eval_expr(expr)?).map_err(|kind| Error { span, kind })
+                })
                 .transpose()?,
             end.as_ref()
-                .map(|expr| self.eval_expr(expr)?.as_int(span))
+                .map(|expr| {
+                    i64::try_from(self.eval_expr(expr)?).map_err(|kind| Error { span, kind })
+                })
                 .transpose()?,
         ))
     }

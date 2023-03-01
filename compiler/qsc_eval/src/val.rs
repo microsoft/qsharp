@@ -5,9 +5,8 @@ use std::{ffi::c_void, fmt::Display};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
-use qsc_ast::ast::Span;
 
-use crate::{Error, ErrorKind};
+use crate::ErrorKind;
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -82,60 +81,50 @@ impl Display for Value {
     }
 }
 
-impl Value {
-    /// Unwraps the [Value] to a string.
-    /// # Errors
-    /// Will return a type error if the [Value] is not a string.
-    pub fn as_string(&self, span: Span) -> Result<String, Error> {
-        if let Value::String(v) = self {
-            Ok(v.clone())
+impl TryFrom<Value> for i64 {
+    type Error = ErrorKind;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::Int(v) = value {
+            Ok(v)
         } else {
-            Err(Error {
-                span,
-                kind: ErrorKind::Type("String"),
-            })
+            Err(ErrorKind::Type("Int"))
         }
     }
+}
 
-    /// Unwraps the [Value] to an integer.
-    /// # Errors
-    /// Will return a type error if the [Value] is not an integer.
-    pub fn as_int(&self, span: Span) -> Result<i64, Error> {
-        if let Value::Int(v) = self {
-            Ok(*v)
+impl TryFrom<Value> for bool {
+    type Error = ErrorKind;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::Bool(v) = value {
+            Ok(v)
         } else {
-            Err(Error {
-                span,
-                kind: ErrorKind::Type("Int"),
-            })
+            Err(ErrorKind::Type("Bool"))
         }
     }
+}
 
-    /// Unwraps the [Value] to a Boolean.
-    /// # Errors
-    /// Will return a type error if the [Value] is not a Boolean.
-    pub fn as_bool(&self, span: Span) -> Result<bool, Error> {
-        if let Value::Bool(b) = self {
-            Ok(*b)
+impl TryFrom<Value> for Vec<Value> {
+    type Error = ErrorKind;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::Array(v) = value {
+            Ok(v)
         } else {
-            Err(Error {
-                span,
-                kind: ErrorKind::Type("Bool"),
-            })
+            Err(ErrorKind::Type("Array"))
         }
     }
+}
 
-    /// Unwraps the [Value] to an Array.
-    /// # Errors
-    /// Will return a type error if the [Value] is not an integer.
-    pub fn as_array(&self, span: Span) -> Result<Vec<Value>, Error> {
-        if let Value::Array(v) = self {
-            Ok((*v).clone())
+impl TryFrom<Value> for String {
+    type Error = ErrorKind;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::String(v) = value {
+            Ok(v)
         } else {
-            Err(Error {
-                span,
-                kind: ErrorKind::Type("Array"),
-            })
+            Err(ErrorKind::Type("String"))
         }
     }
 }
