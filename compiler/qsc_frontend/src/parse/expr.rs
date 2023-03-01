@@ -221,39 +221,61 @@ fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
 
 fn lit(s: &mut Scanner) -> Result<Lit> {
     let lexeme = s.read();
-    if token(s, TokenKind::BigInt).is_ok() {
-        let lexeme = &lexeme[..lexeme.len() - 1]; // Slice off suffix.
-        let value = lexeme.parse().expect("BigInt token can't be parsed.");
-        Ok(Lit::BigInt(value))
-    } else if token(s, TokenKind::Float).is_ok() {
-        let lexeme = lexeme.replace('_', "");
-        let value = lexeme.parse().expect("Float token can't be parsed.");
-        Ok(Lit::Double(value))
-    } else if token(s, TokenKind::Int).is_ok() {
-        let lexeme = lexeme.replace('_', "");
-        let value = lexeme.parse().expect("Int token can't be parsed.");
-        Ok(Lit::Int(value))
-    } else if token(s, TokenKind::String).is_ok() {
-        let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
-        Ok(Lit::String(lexeme.to_string()))
-    } else if keyword(s, Keyword::False).is_ok() {
-        Ok(Lit::Bool(false))
-    } else if keyword(s, Keyword::True).is_ok() {
-        Ok(Lit::Bool(true))
-    } else if keyword(s, Keyword::Zero).is_ok() {
-        Ok(Lit::Result(ast::Result::Zero))
-    } else if keyword(s, Keyword::One).is_ok() {
-        Ok(Lit::Result(ast::Result::One))
-    } else if keyword(s, Keyword::PauliI).is_ok() {
-        Ok(Lit::Pauli(Pauli::I))
-    } else if keyword(s, Keyword::PauliX).is_ok() {
-        Ok(Lit::Pauli(Pauli::X))
-    } else if keyword(s, Keyword::PauliY).is_ok() {
-        Ok(Lit::Pauli(Pauli::Y))
-    } else if keyword(s, Keyword::PauliZ).is_ok() {
-        Ok(Lit::Pauli(Pauli::Z))
+    let kind = s.peek().kind;
+
+    if let Some(lit) = lit_token(lexeme, kind) {
+        s.advance();
+        Ok(lit)
+    } else if kind != TokenKind::Ident {
+        Err(s.error(ErrorKind::Rule("literal")))
+    } else if let Some(lit) = lit_keyword(lexeme) {
+        s.advance();
+        Ok(lit)
     } else {
         Err(s.error(ErrorKind::Rule("literal")))
+    }
+}
+
+#[allow(clippy::inline_always)]
+#[inline(always)]
+fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
+    match kind {
+        TokenKind::BigInt => {
+            let lexeme = &lexeme[..lexeme.len() - 1]; // Slice off suffix.
+            let value = lexeme.parse().expect("BigInt token can't be parsed.");
+            Some(Lit::BigInt(value))
+        }
+        TokenKind::Float => {
+            let lexeme = lexeme.replace('_', "");
+            let value = lexeme.parse().expect("Float token can't be parsed.");
+            Some(Lit::Double(value))
+        }
+        TokenKind::Int => {
+            let lexeme = lexeme.replace('_', "");
+            let value = lexeme.parse().expect("Int token can't be parsed.");
+            Some(Lit::Int(value))
+        }
+        TokenKind::String => {
+            let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
+            Some(Lit::String(lexeme.to_string()))
+        }
+        _ => None,
+    }
+}
+
+#[allow(clippy::inline_always)]
+#[inline(always)]
+fn lit_keyword(lexeme: &str) -> Option<Lit> {
+    match lexeme {
+        "true" => Some(Lit::Bool(true)),
+        "Zero" => Some(Lit::Result(ast::Result::Zero)),
+        "One" => Some(Lit::Result(ast::Result::One)),
+        "PauliZ" => Some(Lit::Pauli(Pauli::Z)),
+        "false" => Some(Lit::Bool(false)),
+        "PauliX" => Some(Lit::Pauli(Pauli::X)),
+        "PauliI" => Some(Lit::Pauli(Pauli::I)),
+        "PauliY" => Some(Lit::Pauli(Pauli::Y)),
+        _ => None,
     }
 }
 
