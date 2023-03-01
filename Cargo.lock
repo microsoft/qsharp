@@ -261,12 +261,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
-name = "llvm-tools"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
-
-[[package]]
 name = "matrixmultiply"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -363,7 +357,7 @@ dependencies = [
 [[package]]
 name = "qir-backend"
 version = "0.1.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=67c2902cd8682976aa7e5b71087a9a03a8889999#67c2902cd8682976aa7e5b71087a9a03a8889999"
+source = "git+https://github.com/qir-alliance/qir-runner?tag=v0.1.0#1c2ed04e968b4aedc4eb9f27a99c807201279ec9"
 dependencies = [
  "bitvec",
  "ndarray",
@@ -378,9 +372,8 @@ dependencies = [
 [[package]]
 name = "qir-stdlib"
 version = "0.1.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=67c2902cd8682976aa7e5b71087a9a03a8889999#67c2902cd8682976aa7e5b71087a9a03a8889999"
+source = "git+https://github.com/qir-alliance/qir-runner?tag=v0.1.0#1c2ed04e968b4aedc4eb9f27a99c807201279ec9"
 dependencies = [
- "llvm-tools",
  "num-bigint",
  "rand",
 ]
@@ -416,6 +409,9 @@ dependencies = [
 name = "qsc_eval"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
+ "indoc",
+ "num-bigint",
  "qir-backend",
  "qir-stdlib",
  "qsc_ast",
