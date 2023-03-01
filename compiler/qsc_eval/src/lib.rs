@@ -29,7 +29,6 @@ pub enum ErrorKind {
     Index(i64),
     IntegerSize,
     OutOfRange(i64),
-    UnrecognizedSymbol,
     Type(&'static str),
     Unimplemented,
     UserFail(String),
@@ -129,7 +128,7 @@ impl<'a> Evaluator<'a> {
             }
             ExprKind::Lit(lit) => lit_to_val(lit, expr.span),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Path(path) => self.resolve_binding(path.id, path.span),
+            ExprKind::Path(path) => Ok(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
@@ -217,46 +216,45 @@ impl<'a> Evaluator<'a> {
     fn bind_value(&mut self, pat: &Pat, val: Value, span: Span) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = match self.context.symbols().get(variable.id) {
-                    Some(id) => Ok(id),
-                    None => Err(Error {
-                        span: variable.span,
-                        kind: ErrorKind::UnrecognizedSymbol,
-                    }),
-                }?;
-                self.scopes
-                    .first_mut()
-                    .expect("Statements can only occur in a block scope.")
-                    .insert(id, val);
-                Ok(())
+                if let Some(id) = self.context.symbols().get(variable.id) {
+                    self.scopes
+                        .first_mut()
+                        .expect("Statements can only occur in a block scope.")
+                        .insert(id, val);
+                    Ok(())
+                } else {
+                    panic!("Symbol resolution error: {:?} is not bound", variable.id);
+                }
             }
             PatKind::Discard(_) => Ok(()),
             PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, val, span),
             PatKind::Tuple(tup) => {
                 let val_tup: ValueTuple = val.try_into().with_span(span)?;
-                for (pat, val) in tup.iter().zip(val_tup.0.into_iter()) {
-                    self.bind_value(pat, val, span)?;
+                if val_tup.0.len() == tup.len() {
+                    for (pat, val) in tup.iter().zip(val_tup.0.into_iter()) {
+                        self.bind_value(pat, val, span)?;
+                    }
+                    Ok(())
+                } else {
+                    Err(Error {
+                        span: pat.span,
+                        kind: ErrorKind::Type("Tuple"),
+                    })
                 }
-                Ok(())
             }
         }
     }
 
-    fn resolve_binding(&self, id: NodeId, span: Span) -> Result<Value, Error> {
-        let id = match self.context.symbols().get(id) {
-            Some(id) => Ok(id),
-            None => Err(Error {
-                span,
-                kind: ErrorKind::UnrecognizedSymbol,
-            }),
-        }?;
-        match self.scopes.iter().find_map(|scope| scope.get(&id)) {
-            Some(val) => Ok(val.clone()),
-            None => Err(Error {
-                span,
-                kind: ErrorKind::UnrecognizedSymbol,
-            }),
+    fn resolve_binding(&self, id: NodeId) -> Value {
+        if let Some(id) = self.context.symbols().get(id) {
+            if let Some(val) = self.scopes.iter().find_map(|scope| scope.get(&id)) {
+                val.clone()
+            } else {
+                panic!("Symbol resolution error: {id:?} is not bound.");
+            }
+        } else {
+            panic!("Symbol resolution error: {id:?} not found in symbol table.")
         }
     }
 }
