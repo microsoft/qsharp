@@ -117,7 +117,7 @@ impl<'a> Evaluator<'a> {
             }
             ExprKind::Lit(lit) => lit_to_val(lit, expr.span),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Range(start, step, end) => self.eval_range(start, step, end, expr.span),
+            ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
