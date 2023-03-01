@@ -282,9 +282,20 @@ fn negative_int() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: ClosedBinOp(
+                            Minus,
+                        ),
                         span: Span {
                             lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Int,
+                        span: Span {
+                            lo: 1,
                             hi: 4,
                         },
                     },
@@ -302,9 +313,20 @@ fn positive_int() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
                         span: Span {
                             lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Int,
+                        span: Span {
+                            lo: 1,
                             hi: 4,
                         },
                     },
@@ -342,9 +364,20 @@ fn negative_bigint() {
             [
                 Ok(
                     Token {
-                        kind: BigInt,
+                        kind: ClosedBinOp(
+                            Minus,
+                        ),
                         span: Span {
                             lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: BigInt,
+                        span: Span {
+                            lo: 1,
                             hi: 5,
                         },
                     },
@@ -362,9 +395,20 @@ fn positive_bigint() {
             [
                 Ok(
                     Token {
-                        kind: BigInt,
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
                         span: Span {
                             lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: BigInt,
+                        span: Span {
+                            lo: 1,
                             hi: 5,
                         },
                     },
@@ -402,9 +446,20 @@ fn negative_float() {
             [
                 Ok(
                     Token {
-                        kind: Float,
+                        kind: ClosedBinOp(
+                            Minus,
+                        ),
                         span: Span {
                             lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Float,
+                        span: Span {
+                            lo: 1,
                             hi: 5,
                         },
                     },
@@ -422,9 +477,20 @@ fn positive_float() {
             [
                 Ok(
                     Token {
-                        kind: Float,
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
                         span: Span {
                             lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Float,
+                        span: Span {
+                            lo: 1,
                             hi: 5,
                         },
                     },

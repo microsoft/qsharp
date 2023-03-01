@@ -322,23 +322,13 @@ impl<'a> Lexer<'a> {
             Single::Minus => {
                 if self.next_if_eq(Single::Gt) {
                     Ok(TokenKind::RArrow)
-                } else if let Some(raw::TokenKind::Number(n)) = self.tokens.peek().map(|t| t.kind) {
-                    self.tokens.next();
-                    Ok(n.into())
                 } else {
                     Ok(self.closed_bin_op(ClosedBinOp::Minus))
                 }
             }
             Single::Open(delim) => Ok(TokenKind::Open(delim)),
             Single::Percent => Ok(self.closed_bin_op(ClosedBinOp::Percent)),
-            Single::Plus => {
-                if let Some(raw::TokenKind::Number(n)) = self.tokens.peek().map(|t| t.kind) {
-                    self.tokens.next();
-                    Ok(n.into())
-                } else {
-                    Ok(self.closed_bin_op(ClosedBinOp::Plus))
-                }
-            }
+            Single::Plus => Ok(self.closed_bin_op(ClosedBinOp::Plus)),
             Single::Question => Ok(TokenKind::Question),
             Single::Semi => Ok(TokenKind::Semi),
             Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),

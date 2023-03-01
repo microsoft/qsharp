@@ -32,7 +32,7 @@ pub(super) struct Token {
     pub(super) offset: usize,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+#[derive(Debug, Eq, PartialEq, Sequence)]
 pub(super) enum TokenKind {
     Comment,
     Ident,
