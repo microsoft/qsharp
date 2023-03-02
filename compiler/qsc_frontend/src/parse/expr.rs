@@ -11,10 +11,13 @@ use super::{
     keyword::Keyword,
     prim::{ident, keyword, opt, pat, path, seq, token},
     scan::Scanner,
-    stmt, ErrorKind, Result,
+    stmt, Error, ErrorKind, Result,
 };
 use crate::lex::{ClosedBinOp, Delim, TokenKind};
-use qsc_ast::ast::{self, BinOp, Expr, ExprKind, Functor, Lit, NodeId, Pauli, TernOp, UnOp};
+use qsc_ast::ast::{
+    self, BinOp, CallableKind, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, Pauli, TernOp,
+    UnOp,
+};
 use std::str::FromStr;
 
 struct PrefixOp {
@@ -45,6 +48,8 @@ enum OpName {
     Token(TokenKind),
     Keyword(Keyword),
 }
+
+const LAMBDA_PRECEDENCE: u8 = 1;
 
 const RANGE_PRECEDENCE: u8 = 1;
 
@@ -343,6 +348,14 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
 #[allow(clippy::too_many_lines)]
 fn mixfix_op(name: OpName) -> Option<MixfixOp> {
     match name {
+        OpName::Token(TokenKind::RArrow) => Some(MixfixOp {
+            kind: OpKind::Rich(|s, input| lambda_op(s, input, CallableKind::Function)),
+            precedence: LAMBDA_PRECEDENCE,
+        }),
+        OpName::Token(TokenKind::FatArrow) => Some(MixfixOp {
+            kind: OpKind::Rich(|s, input| lambda_op(s, input, CallableKind::Operation)),
+            precedence: LAMBDA_PRECEDENCE,
+        }),
         OpName::Token(TokenKind::DotDot) => Some(MixfixOp {
             kind: OpKind::Rich(range_op),
             precedence: RANGE_PRECEDENCE,
@@ -473,6 +486,12 @@ fn closed_bin_op(op: ClosedBinOp) -> BinOp {
     }
 }
 
+fn lambda_op(s: &mut Scanner, input: Expr, kind: CallableKind) -> Result<ExprKind> {
+    let input = expr_as_pat(input)?;
+    let output = expr_op(s, LAMBDA_PRECEDENCE)?;
+    Ok(ExprKind::Lambda(kind, input, Box::new(output)))
+}
+
 fn field_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
     Ok(ExprKind::Field(Box::new(lhs), ident(s)?))
 }
@@ -520,4 +539,27 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
         Assoc::Left => precedence + 1,
         Assoc::Right => precedence,
     }
+}
+
+fn expr_as_pat(expr: Expr) -> Result<Pat> {
+    let kind = match expr.kind {
+        ExprKind::Path(path) if path.namespace.is_none() => Ok(PatKind::Bind(path.name, None)),
+        ExprKind::Hole => Ok(PatKind::Discard(None)),
+        ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
+        ExprKind::Paren(expr) => Ok(PatKind::Paren(Box::new(expr_as_pat(*expr)?))),
+        ExprKind::Tuple(exprs) => {
+            let pats = exprs.into_iter().map(expr_as_pat).collect::<Result<_>>()?;
+            Ok(PatKind::Tuple(pats))
+        }
+        _ => Err(Error {
+            kind: ErrorKind::Rule("pattern"),
+            span: expr.span,
+        }),
+    }?;
+
+    Ok(Pat {
+        id: NodeId::default(),
+        span: expr.span,
+        kind,
+    })
 }
