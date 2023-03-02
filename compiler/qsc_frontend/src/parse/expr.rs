@@ -103,10 +103,6 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         let (exprs, final_sep) = seq(s, expr)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(exprs, |e| ExprKind::Paren(Box::new(e)), ExprKind::Tuple))
-    } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
-        let exprs = seq(s, expr)?.0;
-        token(s, TokenKind::Close(Delim::Bracket))?;
-        Ok(ExprKind::Array(exprs))
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         expr_range_prefix(s)
     } else if keyword(s, Keyword::Fail).is_ok() {
@@ -140,6 +136,8 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         keyword(s, Keyword::Apply)?;
         let inner = stmt::block(s)?;
         Ok(ExprKind::Conjugate(outer, inner))
+    } else if let Some(a) = opt(s, expr_array)? {
+        Ok(a)
     } else if let Some(b) = opt(s, stmt::block)? {
         Ok(ExprKind::Block(b))
     } else if let Some(l) = opt(s, lit)? {
@@ -205,6 +203,39 @@ fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
     } else {
         Err(s.error(ErrorKind::Rule("assignment operator")))
     }
+}
+
+fn expr_array(s: &mut Scanner) -> Result<ExprKind> {
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let kind = expr_array_core(s)?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+    Ok(kind)
+}
+
+fn expr_array_core(s: &mut Scanner) -> Result<ExprKind> {
+    let Some(first) = opt(s, expr)? else {
+        return Ok(ExprKind::Array(Vec::new()));
+    };
+
+    if token(s, TokenKind::Comma).is_err() {
+        return Ok(ExprKind::Array(vec![first]));
+    }
+
+    let second = expr(s)?;
+    if is_ident("size", &second.kind) && token(s, TokenKind::Eq).is_ok() {
+        let size = expr(s)?;
+        return Ok(ExprKind::ArrayRepeat(Box::new(first), Box::new(size)));
+    }
+
+    let mut items = vec![first, second];
+    if token(s, TokenKind::Comma).is_ok() {
+        items.append(&mut seq(s, expr)?.0);
+    }
+    Ok(ExprKind::Array(items))
+}
+
+fn is_ident(name: &str, kind: &ExprKind) -> bool {
+    matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name == name)
 }
 
 fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
