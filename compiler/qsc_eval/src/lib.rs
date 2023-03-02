@@ -222,7 +222,7 @@ impl<'a> Evaluator<'a> {
                 if self
                     .scopes
                     .last_mut()
-                    .expect("Statements can only occur in a block scope.")
+                    .expect("Scopes vector should never be empty.")
                     .insert(id, val)
                     .is_none()
                 {
