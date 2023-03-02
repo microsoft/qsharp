@@ -213,23 +213,22 @@ impl<'a> Evaluator<'a> {
     fn bind_value(&mut self, pat: &Pat, val: Value, span: Span) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                if let Some(id) = self.context.symbols().get(variable.id) {
-                    if self
-                        .scopes
-                        .last_mut()
-                        .expect("Statements can only occur in a block scope.")
-                        .insert(id, val)
-                        .is_none()
-                    {
-                        Ok(())
-                    } else {
-                        panic!("Symbol resolution error: {id:?} bound more than once");
-                    }
-                } else {
+                let id = self.context.symbols().get(variable.id).unwrap_or_else(|| {
                     panic!(
                         "Symbol resolution error: no symbol ID for {:?}",
                         variable.id
                     );
+                });
+                if self
+                    .scopes
+                    .last_mut()
+                    .expect("Statements can only occur in a block scope.")
+                    .insert(id, val)
+                    .is_none()
+                {
+                    Ok(())
+                } else {
+                    panic!("Symbol resolution error: {id:?} bound more than once");
                 }
             }
             PatKind::Discard(_) => Ok(()),
@@ -253,15 +252,15 @@ impl<'a> Evaluator<'a> {
     }
 
     fn resolve_binding(&self, id: NodeId) -> Value {
-        if let Some(id) = self.context.symbols().get(id) {
-            if let Some(val) = self.scopes.iter().rev().find_map(|scope| scope.get(&id)) {
-                val.clone()
-            } else {
-                panic!("Symbol resolution error: {id:?} is not bound.");
-            }
-        } else {
-            panic!("Symbol resolution error: {id:?} not found in symbol table.")
-        }
+        let id = self.context.symbols().get(id).unwrap_or_else(|| {
+            panic!("Symbol resolution error: {id:?} not found in symbol table.");
+        });
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.get(&id))
+            .unwrap_or_else(|| panic!("Symbol resolution error: {id:?} is not bound."))
+            .clone()
     }
 }
 

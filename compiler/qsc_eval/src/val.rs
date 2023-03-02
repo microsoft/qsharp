@@ -121,6 +121,9 @@ impl TryFrom<Value> for String {
 }
 
 impl Value {
+    /// Convert the [Value] into an array of [Value]
+    /// # Errors
+    /// This will return an error if the [Value] is not a [`Value::Array`].
     pub fn try_into_array(self) -> Result<Vec<Self>, ErrorKind> {
         if let Value::Array(v) = self {
             Ok(v)
@@ -129,6 +132,9 @@ impl Value {
         }
     }
 
+    /// Convert the [Value] into an tuple of [Value]
+    /// # Errors
+    /// This will return an error if the [Value] is not a [`Value::Tuple`].
     pub fn try_into_tuple(self) -> Result<Vec<Self>, ErrorKind> {
         if let Value::Tuple(v) = self {
             Ok(v)
