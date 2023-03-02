@@ -58,7 +58,7 @@ impl Table {
 }
 
 pub(super) struct Resolver<'a> {
-    symbols: Table,
+    table: Table,
     global_tys: HashMap<&'a str, HashMap<&'a str, Id>>,
     global_terms: HashMap<&'a str, HashMap<&'a str, Id>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
@@ -68,31 +68,19 @@ pub(super) struct Resolver<'a> {
 
 impl<'a> Resolver<'a> {
     pub(super) fn into_table(self) -> (Table, Vec<Error>) {
-        (self.symbols, self.errors)
-    }
-
-    fn insert_bindings(&mut self, env: &mut HashMap<&'a str, Id>, pat: &'a Pat) {
-        match &pat.kind {
-            PatKind::Bind(name, _) => {
-                let id = self.symbols.declare(name.id);
-                env.insert(name.name.as_str(), id);
-            }
-            PatKind::Discard(_) | PatKind::Elided => {}
-            PatKind::Paren(pat) => self.insert_bindings(env, pat),
-            PatKind::Tuple(pats) => pats.iter().for_each(|p| self.insert_bindings(env, p)),
-        }
+        (self.table, self.errors)
     }
 
     fn resolve_ty(&mut self, path: &Path) {
         match resolve(&self.global_tys, &self.opens, &[], path) {
-            Ok(symbol) => self.symbols.use_symbol(path.id, symbol),
+            Ok(symbol) => self.table.use_symbol(path.id, symbol),
             Err(err) => self.errors.push(err),
         }
     }
 
     fn resolve_term(&mut self, path: &Path) {
         match resolve(&self.global_terms, &self.opens, &self.locals, path) {
-            Ok(symbol) => self.symbols.use_symbol(path.id, symbol),
+            Ok(symbol) => self.table.use_symbol(path.id, symbol),
             Err(err) => self.errors.push(err),
         }
     }
@@ -113,7 +101,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         let mut params = HashMap::new();
-        self.insert_bindings(&mut params, &decl.input);
+        bind(&mut self.table, &mut params, &decl.input);
         self.locals.push(params);
         visit::walk_callable_decl(self, decl);
         self.locals.pop();
@@ -122,7 +110,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
         if let SpecBody::Impl(input, block) = &decl.body {
             let mut params = HashMap::new();
-            self.insert_bindings(&mut params, input);
+            bind(&mut self.table, &mut params, input);
             self.locals.push(params);
             self.visit_block(block);
             self.locals.pop();
@@ -153,22 +141,27 @@ impl<'a> Visitor<'a> for Resolver<'a> {
             | StmtKind::Let(pat, _)
             | StmtKind::Mutable(pat, _)
             | StmtKind::Use(pat, _, _) => {
-                let mut env = self
+                let env = self
                     .locals
-                    .pop()
-                    .expect("Statement should always have an environment.");
-                self.insert_bindings(&mut env, pat);
-                self.locals.push(env);
+                    .last_mut()
+                    .expect("Statement should have an environment.");
+                bind(&mut self.table, env, pat);
             }
             StmtKind::Expr(_) | StmtKind::Semi(_) => {}
         }
     }
 
     fn visit_expr(&mut self, expr: &'a Expr) {
-        if let ExprKind::Path(path) = &expr.kind {
-            self.resolve_term(path);
-        } else {
-            visit::walk_expr(self, expr);
+        match &expr.kind {
+            ExprKind::Lambda(_, input, output) => {
+                let mut params = HashMap::new();
+                bind(&mut self.table, &mut params, input);
+                self.locals.push(params);
+                self.visit_expr(output);
+                self.locals.pop();
+            }
+            ExprKind::Path(path) => self.resolve_term(path),
+            _ => visit::walk_expr(self, expr),
         }
     }
 }
@@ -195,7 +188,7 @@ impl<'a> GlobalTable<'a> {
 
     pub(super) fn into_resolver(self) -> Resolver<'a> {
         Resolver {
-            symbols: self.symbols,
+            table: self.symbols,
             global_tys: self.tys,
             global_terms: self.terms,
             opens: HashMap::new(),
@@ -234,6 +227,18 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
             .entry(self.namespace)
             .or_default()
             .insert(&decl.name.name, id);
+    }
+}
+
+fn bind<'a>(table: &mut Table, env: &mut HashMap<&'a str, Id>, pat: &'a Pat) {
+    match &pat.kind {
+        PatKind::Bind(name, _) => {
+            let id = table.declare(name.id);
+            env.insert(name.name.as_str(), id);
+        }
+        PatKind::Discard(_) | PatKind::Elided => {}
+        PatKind::Paren(pat) => bind(table, env, pat),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(table, env, p)),
     }
 }
 
