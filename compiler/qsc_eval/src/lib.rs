@@ -15,7 +15,7 @@ use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Pat, PatKind, Span, Stmt, StmtKind,
 };
 use qsc_frontend::{symbol, Context};
-use val::{Value, ValueTuple};
+use val::Value;
 
 #[derive(Debug)]
 pub struct Error {
@@ -30,6 +30,7 @@ pub enum ErrorKind {
     IntegerSize,
     OutOfRange(i64),
     Type(&'static str),
+    TupleArity(usize, usize),
     Unimplemented,
     UserFail(String),
 }
@@ -97,14 +98,14 @@ impl<'a> Evaluator<'a> {
                 }
                 Ok(Value::Array(val_arr))
             }
-            ExprKind::Block(block) => self.eval_block(block, HashMap::default()),
+            ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Fail(msg) => Err(Error {
                 span: expr.span,
                 kind: ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
             }),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
-                    self.eval_block(then, HashMap::default())
+                    self.eval_block(then)
                 } else if let Some(els) = els {
                     self.eval_expr(els)
                 } else {
@@ -112,7 +113,7 @@ impl<'a> Evaluator<'a> {
                 }
             }
             ExprKind::Index(arr, index) => {
-                let arr: Vec<_> = self.eval_expr(arr)?.try_into().with_span(arr.span)?;
+                let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
                 let index_val: i64 = self.eval_expr(index)?.try_into().with_span(index.span)?;
                 let i: usize = index_val.try_into().map_err(|_| Error {
                     span: index.span,
@@ -177,12 +178,8 @@ impl<'a> Evaluator<'a> {
         ))
     }
 
-    fn eval_block(
-        &mut self,
-        block: &Block,
-        initial_bindings: HashMap<symbol::Id, Value>,
-    ) -> Result<Value, Error> {
-        self.scopes.push(initial_bindings);
+    fn eval_block(&mut self, block: &Block) -> Result<Value, Error> {
+        self.scopes.push(HashMap::default());
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
                 let _ = self.eval_stmt(stmt)?;
@@ -217,29 +214,38 @@ impl<'a> Evaluator<'a> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 if let Some(id) = self.context.symbols().get(variable.id) {
-                    self.scopes
-                        .first_mut()
+                    if self
+                        .scopes
+                        .last_mut()
                         .expect("Statements can only occur in a block scope.")
-                        .insert(id, val);
-                    Ok(())
+                        .insert(id, val)
+                        .is_none()
+                    {
+                        Ok(())
+                    } else {
+                        panic!("Symbol resolution error: {id:?} bound more than once");
+                    }
                 } else {
-                    panic!("Symbol resolution error: {:?} is not bound", variable.id);
+                    panic!(
+                        "Symbol resolution error: no symbol ID for {:?}",
+                        variable.id
+                    );
                 }
             }
             PatKind::Discard(_) => Ok(()),
             PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, val, span),
             PatKind::Tuple(tup) => {
-                let val_tup: ValueTuple = val.try_into().with_span(span)?;
-                if val_tup.0.len() == tup.len() {
-                    for (pat, val) in tup.iter().zip(val_tup.0.into_iter()) {
+                let val_tup = val.try_into_tuple().with_span(span)?;
+                if val_tup.len() == tup.len() {
+                    for (pat, val) in tup.iter().zip(val_tup.into_iter()) {
                         self.bind_value(pat, val, span)?;
                     }
                     Ok(())
                 } else {
                     Err(Error {
                         span: pat.span,
-                        kind: ErrorKind::Type("Tuple"),
+                        kind: ErrorKind::TupleArity(tup.len(), val_tup.len()),
                     })
                 }
             }
@@ -248,7 +254,7 @@ impl<'a> Evaluator<'a> {
 
     fn resolve_binding(&self, id: NodeId) -> Value {
         if let Some(id) = self.context.symbols().get(id) {
-            if let Some(val) = self.scopes.iter().find_map(|scope| scope.get(&id)) {
+            if let Some(val) = self.scopes.iter().rev().find_map(|scope| scope.get(&id)) {
                 val.clone()
             } else {
                 panic!("Symbol resolution error: {id:?} is not bound.");

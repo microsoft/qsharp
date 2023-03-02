@@ -54,9 +54,9 @@ fn block_nested_shadowing_expr() {
                 let x = 2;
                 x
             };
-            y
+            (y, x)
         }"},
-        &expect!["2"],
+        &expect!["(2, 1)"],
     );
 }
 
@@ -69,6 +69,27 @@ fn block_let_bind_tuple_expr() {
             (z, y)
         }"},
         &expect!["(2, 1)"],
+    );
+}
+
+#[test]
+fn block_let_bind_tuple_arity_error_expr() {
+    check_expression(
+        indoc! {"{
+            let (x, y, z) = (0, 1);
+        }"},
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 10,
+                    hi: 19,
+                },
+                kind: TupleArity(
+                    3,
+                    2,
+                ),
+            }
+        "#]],
     );
 }
 

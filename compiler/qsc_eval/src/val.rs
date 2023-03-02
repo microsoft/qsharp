@@ -108,31 +108,6 @@ impl TryFrom<Value> for bool {
     }
 }
 
-impl TryFrom<Value> for Vec<Value> {
-    type Error = ErrorKind;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::Array(v) = value {
-            Ok(v)
-        } else {
-            Err(ErrorKind::Type("Array"))
-        }
-    }
-}
-
-pub struct ValueTuple(pub Vec<Value>);
-impl TryFrom<Value> for ValueTuple {
-    type Error = ErrorKind;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::Tuple(v) = value {
-            Ok(ValueTuple(v))
-        } else {
-            Err(ErrorKind::Type("Tuple"))
-        }
-    }
-}
-
 impl TryFrom<Value> for String {
     type Error = ErrorKind;
 
@@ -141,6 +116,24 @@ impl TryFrom<Value> for String {
             Ok(v)
         } else {
             Err(ErrorKind::Type("String"))
+        }
+    }
+}
+
+impl Value {
+    pub fn try_into_array(self) -> Result<Vec<Self>, ErrorKind> {
+        if let Value::Array(v) = self {
+            Ok(v)
+        } else {
+            Err(ErrorKind::Type("Array"))
+        }
+    }
+
+    pub fn try_into_tuple(self) -> Result<Vec<Self>, ErrorKind> {
+        if let Value::Tuple(v) = self {
+            Ok(v)
+        } else {
+            Err(ErrorKind::Type("Tuple"))
         }
     }
 }
