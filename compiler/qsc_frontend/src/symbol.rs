@@ -84,6 +84,15 @@ impl<'a> Resolver<'a> {
             Err(err) => self.errors.push(err),
         }
     }
+
+    fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
+        let mut env = HashMap::new();
+        pat.into_iter()
+            .for_each(|p| bind(&mut self.table, &mut env, p));
+        self.locals.push(env);
+        f(self);
+        self.locals.pop();
+    }
 }
 
 impl<'a> Visitor<'a> for Resolver<'a> {
@@ -100,20 +109,14 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        let mut params = HashMap::new();
-        bind(&mut self.table, &mut params, &decl.input);
-        self.locals.push(params);
-        visit::walk_callable_decl(self, decl);
-        self.locals.pop();
+        self.with_scope(Some(&decl.input), |resolver| {
+            visit::walk_callable_decl(resolver, decl);
+        });
     }
 
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
         if let SpecBody::Impl(input, block) = &decl.body {
-            let mut params = HashMap::new();
-            bind(&mut self.table, &mut params, input);
-            self.locals.push(params);
-            self.visit_block(block);
-            self.locals.pop();
+            self.with_scope(Some(input), |resolver| resolver.visit_block(block));
         } else {
             visit::walk_spec_decl(self, decl);
         }
@@ -128,9 +131,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 
     fn visit_block(&mut self, block: &'a Block) {
-        self.locals.push(HashMap::new());
-        visit::walk_block(self, block);
-        self.locals.pop();
+        self.with_scope(None, |resolver| visit::walk_block(resolver, block));
     }
 
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
@@ -154,11 +155,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     fn visit_expr(&mut self, expr: &'a Expr) {
         match &expr.kind {
             ExprKind::Lambda(_, input, output) => {
-                let mut params = HashMap::new();
-                bind(&mut self.table, &mut params, input);
-                self.locals.push(params);
-                self.visit_expr(output);
-                self.locals.pop();
+                self.with_scope(Some(input), |resolver| resolver.visit_expr(output));
             }
             ExprKind::Path(path) => self.resolve_term(path),
             _ => visit::walk_expr(self, expr),
