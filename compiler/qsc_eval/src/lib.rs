@@ -8,7 +8,7 @@ mod tests;
 
 pub mod val;
 
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{
@@ -219,17 +219,12 @@ impl<'a> Evaluator<'a> {
                         variable.id
                     );
                 });
-                if self
-                    .scopes
-                    .last_mut()
-                    .expect("Scopes vector should never be empty.")
-                    .insert(id, val)
-                    .is_none()
-                {
-                    Ok(())
-                } else {
-                    panic!("Symbol resolution error: {id:?} bound more than once");
-                }
+                let scope = self.scopes.last_mut().expect("Binding requires a scope.");
+                match scope.entry(id) {
+                    Entry::Vacant(entry) => entry.insert(val),
+                    Entry::Occupied(_) => panic!("{id:?} is already bound"),
+                };
+                Ok(())
             }
             PatKind::Discard(_) => Ok(()),
             PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
