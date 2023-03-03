@@ -164,20 +164,20 @@ impl Value {
     #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self {
-            Value::Array(_) => stringify!(Array),
-            Value::BigInt(_) => stringify!(BigInt),
-            Value::Bool(_) => stringify!(Bool),
-            Value::Closure(_, _) => stringify!(Closure),
-            Value::Double(_) => stringify!(Double),
-            Value::Global(_) => stringify!(Global),
-            Value::Int(_) => stringify!(Int),
-            Value::Pauli(_) => stringify!(Pauli),
-            Value::Qubit(_) => stringify!(Qubit),
-            Value::Range(_, _, _) => stringify!(Range),
-            Value::Result(_) => stringify!(Result),
-            Value::String(_) => stringify!(String),
-            Value::Tuple(_) => stringify!(Tuple),
-            Value::Udt => stringify!(Udt),
+            Value::Array(_) => "Array",
+            Value::BigInt(_) => "BigInt",
+            Value::Bool(_) => "Bool",
+            Value::Closure(_, _) => "Closure",
+            Value::Double(_) => "Double",
+            Value::Global(_) => "Global",
+            Value::Int(_) => "Int",
+            Value::Pauli(_) => "Pauli",
+            Value::Qubit(_) => "Qubit",
+            Value::Range(_, _, _) => "Range",
+            Value::Result(_) => "Result",
+            Value::String(_) => "String",
+            Value::Tuple(_) => "Tuple",
+            Value::Udt => "Udt",
         }
     }
 }
