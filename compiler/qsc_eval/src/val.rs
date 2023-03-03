@@ -7,8 +7,6 @@ use num_bigint::BigInt;
 use qir_backend::Pauli;
 use qsc_frontend::symbol;
 
-use crate::ErrorKind;
-
 #[derive(Clone, Debug)]
 pub enum Value {
     Array(Vec<Value>),
@@ -84,38 +82,52 @@ impl Display for Value {
     }
 }
 
+pub struct ConversionError {
+    pub expected: &'static str,
+    pub actual: &'static str,
+}
+
 impl TryFrom<Value> for i64 {
-    type Error = ErrorKind;
+    type Error = ConversionError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Int(v) = value {
             Ok(v)
         } else {
-            Err(ErrorKind::Type("Int"))
+            Err(ConversionError {
+                expected: "Int",
+                actual: value.type_name(),
+            })
         }
     }
 }
 
 impl TryFrom<Value> for bool {
-    type Error = ErrorKind;
+    type Error = ConversionError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Bool(v) = value {
             Ok(v)
         } else {
-            Err(ErrorKind::Type("Bool"))
+            Err(ConversionError {
+                expected: "Bool",
+                actual: value.type_name(),
+            })
         }
     }
 }
 
 impl TryFrom<Value> for String {
-    type Error = ErrorKind;
+    type Error = ConversionError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::String(v) = value {
             Ok(v)
         } else {
-            Err(ErrorKind::Type("String"))
+            Err(ConversionError {
+                expected: "String",
+                actual: value.type_name(),
+            })
         }
     }
 }
@@ -124,22 +136,48 @@ impl Value {
     /// Convert the [Value] into an array of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Array`].
-    pub fn try_into_array(self) -> Result<Vec<Self>, ErrorKind> {
+    pub fn try_into_array(self) -> Result<Vec<Self>, ConversionError> {
         if let Value::Array(v) = self {
             Ok(v)
         } else {
-            Err(ErrorKind::Type("Array"))
+            Err(ConversionError {
+                expected: "Array",
+                actual: self.type_name(),
+            })
         }
     }
 
     /// Convert the [Value] into an tuple of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Tuple`].
-    pub fn try_into_tuple(self) -> Result<Vec<Self>, ErrorKind> {
+    pub fn try_into_tuple(self) -> Result<Vec<Self>, ConversionError> {
         if let Value::Tuple(v) = self {
             Ok(v)
         } else {
-            Err(ErrorKind::Type("Tuple"))
+            Err(ConversionError {
+                expected: "Tuple",
+                actual: self.type_name(),
+            })
+        }
+    }
+
+    #[must_use]
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Value::Array(_) => "Array",
+            Value::BigInt(_) => "BigInt",
+            Value::Bool(_) => "Bool",
+            Value::Closure(_, _) => "Closure",
+            Value::Double(_) => "Double",
+            Value::Global(_) => "Global",
+            Value::Int(_) => "Int",
+            Value::Pauli(_) => "Pauli",
+            Value::Qubit(_) => "Qubit",
+            Value::Range(_, _, _) => "Range",
+            Value::Result(_) => "Result",
+            Value::String(_) => "String",
+            Value::Tuple(_) => "Tuple",
+            Value::Udt => "Udt",
         }
     }
 }
