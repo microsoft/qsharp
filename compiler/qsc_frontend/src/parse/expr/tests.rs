@@ -86,7 +86,149 @@ fn lit_int_leading_zero() {
 }
 
 #[test]
-fn lit_big_int() {
+fn lit_int_overflow() {
+    check(
+        expr,
+        "9_223_372_036_854_775_808",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 25,
+                    },
+                    kind: Lit(
+                        Int(
+                            -9223372036854775808,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_int_min() {
+    check(
+        expr,
+        "-9_223_372_036_854_775_808",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 26,
+                    },
+                    kind: UnOp(
+                        Neg,
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 1,
+                                hi: 26,
+                            },
+                            kind: Lit(
+                                Int(
+                                    -9223372036854775808,
+                                ),
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_int_hexadecimal() {
+    check(
+        expr,
+        "0x1a2b3c",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 8,
+                    },
+                    kind: Lit(
+                        Int(
+                            1715004,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_int_octal() {
+    check(
+        expr,
+        "0o1234567",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 9,
+                    },
+                    kind: Lit(
+                        Int(
+                            342391,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_int_binary() {
+    check(
+        expr,
+        "0b10110",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 7,
+                    },
+                    kind: Lit(
+                        Int(
+                            22,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_bigint() {
     check(
         expr,
         "123L",
@@ -112,7 +254,7 @@ fn lit_big_int() {
 }
 
 #[test]
-fn lit_big_int_underscore() {
+fn lit_bigint_underscore() {
     check(
         expr,
         "123_456L",
@@ -129,6 +271,84 @@ fn lit_big_int_underscore() {
                     kind: Lit(
                         BigInt(
                             123456,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_bigint_hexadecimal() {
+    check(
+        expr,
+        "0x1a2b3cL",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 9,
+                    },
+                    kind: Lit(
+                        BigInt(
+                            1715004,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_bigint_octal() {
+    check(
+        expr,
+        "0o1234567L",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 10,
+                    },
+                    kind: Lit(
+                        BigInt(
+                            342391,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_bigint_binary() {
+    check(
+        expr,
+        "0b10110L",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 8,
+                    },
+                    kind: Lit(
+                        BigInt(
+                            22,
                         ),
                     ),
                 },

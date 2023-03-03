@@ -46,11 +46,11 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::TildeTildeTilde => Some("~~~".to_string()),
         TokenKind::WSlash => Some("w/".to_string()),
         TokenKind::WSlashEq => Some("w/=".to_string()),
-        TokenKind::BigInt
+        TokenKind::BigInt(_)
         | TokenKind::Eof
         | TokenKind::Float
         | TokenKind::Ident
-        | TokenKind::Int
+        | TokenKind::Int(_)
         | TokenKind::String => None,
     }
 }
@@ -262,10 +262,78 @@ fn int() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 3,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn negative_int() {
+    check(
+        "-123",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Minus,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Int(
+                            Decimal,
+                        ),
+                        span: Span {
+                            lo: 1,
+                            hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn positive_int() {
+    check(
+        "+123",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Int(
+                            Decimal,
+                        ),
+                        span: Span {
+                            lo: 1,
+                            hi: 4,
                         },
                     },
                 ),
@@ -282,10 +350,78 @@ fn bigint() {
             [
                 Ok(
                     Token {
-                        kind: BigInt,
+                        kind: BigInt(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn negative_bigint() {
+    check(
+        "-123L",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Minus,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: BigInt(
+                            Decimal,
+                        ),
+                        span: Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn positive_bigint() {
+    check(
+        "+123L",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: BigInt(
+                            Decimal,
+                        ),
+                        span: Span {
+                            lo: 1,
+                            hi: 5,
                         },
                     },
                 ),
@@ -315,6 +451,68 @@ fn float() {
 }
 
 #[test]
+fn negative_float() {
+    check(
+        "-1.23",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Minus,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Float,
+                        span: Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn positive_float() {
+    check(
+        "+1.23",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Float,
+                        span: Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn leading_point() {
     check(
         ".1",
@@ -331,7 +529,9 @@ fn leading_point() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 2,
@@ -380,7 +580,9 @@ fn dot_dot_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 2,
                             hi: 3,
@@ -409,7 +611,9 @@ fn dot_dot_dot_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 3,
                             hi: 4,
@@ -429,7 +633,9 @@ fn int_dot_dot() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 1,
@@ -458,7 +664,9 @@ fn int_dot_dot_dot() {
             [
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 1,
@@ -496,7 +704,9 @@ fn dot_dot_dot_int_dot_dot_dot() {
                 ),
                 Ok(
                     Token {
-                        kind: Int,
+                        kind: Int(
+                            Decimal,
+                        ),
                         span: Span {
                             lo: 3,
                             hi: 4,

@@ -18,3 +18,22 @@ pub(super) enum Delim {
     /// `(` or `)`
     Paren,
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(super) enum Radix {
+    Binary,
+    Octal,
+    Decimal,
+    Hexadecimal,
+}
+
+impl From<Radix> for u32 {
+    fn from(value: Radix) -> Self {
+        match value {
+            Radix::Binary => 2,
+            Radix::Octal => 8,
+            Radix::Decimal => 10,
+            Radix::Hexadecimal => 16,
+        }
+    }
+}
