@@ -13,9 +13,11 @@ use super::{
     scan::Scanner,
     stmt, ErrorKind, Result,
 };
-use crate::lex::{ClosedBinOp, Delim, TokenKind};
+use crate::lex::{ClosedBinOp, Delim, Radix, TokenKind};
+use num_bigint::BigInt;
+use num_traits::Num;
 use qsc_ast::ast::{self, BinOp, Expr, ExprKind, Functor, Lit, NodeId, Pauli, TernOp, UnOp};
-use std::str::FromStr;
+use std::{num::Wrapping, str::FromStr};
 
 struct PrefixOp {
     kind: UnOp,
@@ -240,19 +242,22 @@ fn lit(s: &mut Scanner) -> Result<Lit> {
 #[inline(always)]
 fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
     match kind {
-        TokenKind::BigInt => {
-            let lexeme = &lexeme[..lexeme.len() - 1]; // Slice off suffix.
-            let value = lexeme.parse().expect("BigInt token can't be parsed.");
+        TokenKind::BigInt(radix) => {
+            let offset = if radix == Radix::Decimal { 0 } else { 2 };
+            let lexeme = &lexeme[offset..lexeme.len() - 1]; // Slice off prefix and suffix.
+            let value = BigInt::from_str_radix(lexeme, radix.into())
+                .expect("BigInt token should be parsable.");
             Some(Lit::BigInt(value))
         }
         TokenKind::Float => {
             let lexeme = lexeme.replace('_', "");
-            let value = lexeme.parse().expect("Float token can't be parsed.");
+            let value = lexeme.parse().expect("Float token should be parsable.");
             Some(Lit::Double(value))
         }
-        TokenKind::Int => {
-            let lexeme = lexeme.replace('_', "");
-            let value = lexeme.parse().expect("Int token can't be parsed.");
+        TokenKind::Int(radix) => {
+            let offset = if radix == Radix::Decimal { 0 } else { 2 };
+            let value =
+                lit_int(&lexeme[offset..], radix.into()).expect("Int token should be parsable.");
             Some(Lit::Int(value))
         }
         TokenKind::String => {
@@ -261,6 +266,18 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
         }
         _ => None,
     }
+}
+
+fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
+    let multiplier = Wrapping(i64::from(radix));
+    lexeme
+        .chars()
+        .filter(|&c| c != '_')
+        .try_rfold((Wrapping(0), Wrapping(1)), |(value, place), c| {
+            let digit = Wrapping(i64::from(c.to_digit(radix)?));
+            Some((value + place * digit, place * multiplier))
+        })
+        .map(|(Wrapping(value), _)| value)
 }
 
 #[allow(clippy::inline_always)]

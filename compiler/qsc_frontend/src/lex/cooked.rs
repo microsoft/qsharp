@@ -15,8 +15,8 @@
 mod tests;
 
 use super::{
-    raw::{self, Single},
-    Delim,
+    raw::{self, Number, Single},
+    Delim, Radix,
 };
 use enum_iterator::Sequence;
 use qsc_ast::ast::Span;
@@ -49,7 +49,7 @@ pub(crate) enum TokenKind {
     /// `|`
     Bar,
     /// A big integer literal.
-    BigInt,
+    BigInt(Radix),
     /// A closed binary operator followed by an equals token.
     BinOpEq(ClosedBinOp),
     /// A closing delimiter.
@@ -85,7 +85,7 @@ pub(crate) enum TokenKind {
     /// An identifier.
     Ident,
     /// An integer literal.
-    Int,
+    Int(Radix),
     /// `<-`
     LArrow,
     /// `<`
@@ -110,6 +110,16 @@ pub(crate) enum TokenKind {
     WSlash,
     /// `w/=`
     WSlashEq,
+}
+
+impl From<Number> for TokenKind {
+    fn from(value: Number) -> Self {
+        match value {
+            Number::BigInt(radix) => Self::BigInt(radix),
+            Number::Float => Self::Float,
+            Number::Int(radix) => Self::Int(radix),
+        }
+    }
 }
 
 /// A binary operator that returns the same type as the type of its first operand; in other words,
@@ -207,9 +217,7 @@ impl<'a> Lexer<'a> {
                 let ident = &self.input[token.offset..self.offset()];
                 Ok(Some(self.ident(ident)))
             }
-            raw::TokenKind::Number(raw::Number::BigInt) => Ok(Some(TokenKind::BigInt)),
-            raw::TokenKind::Number(raw::Number::Float) => Ok(Some(TokenKind::Float)),
-            raw::TokenKind::Number(raw::Number::Int) => Ok(Some(TokenKind::Int)),
+            raw::TokenKind::Number(number) => Ok(Some(number.into())),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String => Ok(Some(TokenKind::String)),
             raw::TokenKind::Unknown => Err("Unknown token."),
