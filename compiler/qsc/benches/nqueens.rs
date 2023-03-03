@@ -8,7 +8,7 @@ static INPUT: &str = include_str!("./nqueens.qs");
 
 pub fn nqueens(c: &mut Criterion) {
     c.bench_function("NQueens large input file", |b| {
-        b.iter(|| compile(&[INPUT], ""))
+        b.iter(|| compile([INPUT], ""))
     });
 }
 

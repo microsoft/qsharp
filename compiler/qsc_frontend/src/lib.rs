@@ -6,7 +6,7 @@
 mod compile;
 mod id;
 mod lex;
-mod parse;
+pub mod parse;
 pub mod symbol;
 
-pub use compile::{compile, Context, Error, FileId};
+pub use compile::{compile, Context, Error, ErrorKind, SourceId};

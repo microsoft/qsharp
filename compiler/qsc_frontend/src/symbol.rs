@@ -29,7 +29,7 @@ pub(super) struct Error {
 }
 
 #[derive(Debug)]
-pub(super) enum ErrorKind {
+pub enum ErrorKind {
     Unresolved(HashSet<Id>),
 }
 

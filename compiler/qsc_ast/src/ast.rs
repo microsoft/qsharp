@@ -50,6 +50,14 @@ impl Index<Span> for str {
     }
 }
 
+impl Index<Span> for String {
+    type Output = str;
+
+    fn index(&self, index: Span) -> &Self::Output {
+        &self[index.lo..index.hi]
+    }
+}
+
 impl RangeBounds<usize> for &Span {
     fn start_bound(&self) -> Bound<&usize> {
         Bound::Included(&self.lo)

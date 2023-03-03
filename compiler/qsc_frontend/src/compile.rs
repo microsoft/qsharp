@@ -42,7 +42,7 @@ impl Context {
     }
 
     #[must_use]
-    pub fn file_span(&self, span: Span) -> (FileId, Span) {
+    pub fn source_span(&self, span: Span) -> (SourceId, Span) {
         let (index, &offset) = self
             .offsets
             .iter()
@@ -52,7 +52,7 @@ impl Context {
             .expect("Span should match at least one offset.");
 
         (
-            FileId(index),
+            SourceId(index),
             Span {
                 lo: span.lo - offset,
                 hi: span.hi - offset,
@@ -62,13 +62,12 @@ impl Context {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct FileId(pub usize);
+pub struct SourceId(pub usize);
 
-#[allow(dead_code)] // TODO: Format errors for display.
 #[derive(Debug)]
 pub struct Error {
-    span: Span,
-    kind: ErrorKind,
+    pub span: Span,
+    pub kind: ErrorKind,
 }
 
 impl From<parse::Error> for Error {
@@ -90,7 +89,7 @@ impl From<symbol::Error> for Error {
 }
 
 #[derive(Debug)]
-enum ErrorKind {
+pub enum ErrorKind {
     Parse(parse::ErrorKind),
     Symbol(symbol::ErrorKind),
 }
@@ -104,20 +103,21 @@ impl MutVisitor for Offsetter {
     }
 }
 
-pub fn compile(files: &[&str], entry_expr: &str) -> Context {
+pub fn compile<T: AsRef<str>>(sources: impl IntoIterator<Item = T>, entry_expr: &str) -> Context {
     let (mut package, mut parse_errors) = (Package::default(), vec![]);
     let mut offset = 0;
     let mut offsets = Vec::new();
-    for file in files {
-        let (mut file_package, mut errors) = parse::package(file);
-        Offsetter(offset).visit_package(&mut file_package);
-        package.namespaces.append(&mut file_package.namespaces);
+    for source in sources {
+        let source = source.as_ref();
+        let (mut source_package, mut errors) = parse::package(source);
+        Offsetter(offset).visit_package(&mut source_package);
+        package.namespaces.append(&mut source_package.namespaces);
 
         errors.iter_mut().for_each(|e| offset_error(offset, e));
         parse_errors.append(&mut errors);
 
         offsets.push(offset);
-        offset += file.len();
+        offset += source.len();
     }
 
     let mut assigner = id::Assigner::new();

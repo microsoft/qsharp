@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, FileId};
+use super::{compile, SourceId};
 use indoc::indoc;
 use qsc_ast::ast::{Expr, ExprKind, ItemKind, Path};
 
 #[test]
 fn one_file_no_entry() {
     let context = compile(
-        &[indoc! {"
+        [indoc! {"
             namespace Foo {
                 function A() : Unit {}
             }
@@ -22,7 +22,7 @@ fn one_file_no_entry() {
 #[test]
 fn one_file_error() {
     let context = compile(
-        &[indoc! {"
+        [indoc! {"
             namespace Foo {
                 function A() : Unit {
                     x
@@ -34,8 +34,8 @@ fn one_file_error() {
 
     assert_eq!(context.errors().len(), 1, "{:#?}", context.errors());
     let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(0));
+    let (file, span) = context.source_span(error.span);
+    assert_eq!(file, SourceId(0));
     assert_eq!(span.lo, 50);
     assert_eq!(span.hi, 51);
 }
@@ -43,7 +43,7 @@ fn one_file_error() {
 #[test]
 fn two_files_dependency() {
     let context = compile(
-        &[
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {}
@@ -65,7 +65,7 @@ fn two_files_dependency() {
 #[test]
 fn two_files_mutual_dependency() {
     let context = compile(
-        &[
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {
@@ -89,7 +89,7 @@ fn two_files_mutual_dependency() {
 #[test]
 fn two_files_error() {
     let context = compile(
-        &[
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {}
@@ -108,8 +108,8 @@ fn two_files_error() {
 
     assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
     let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(1));
+    let (file, span) = context.source_span(error.span);
+    assert_eq!(file, SourceId(1));
     assert_eq!(span.lo, 50);
     assert_eq!(span.hi, 51);
 }
@@ -117,7 +117,7 @@ fn two_files_error() {
 #[test]
 fn entry_call_operation() {
     let context = compile(
-        &[indoc! {"
+        [indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
                 }
@@ -154,18 +154,18 @@ fn entry_call_operation() {
 #[test]
 fn entry_error() {
     let context = compile(
-        &[indoc! {"
-                namespace Foo {
-                    operation A() : Unit {}
-                }
-            "}],
+        [indoc! {"
+            namespace Foo {
+                operation A() : Unit {}
+            }
+        "}],
         "Foo.B()",
     );
 
     assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
     let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(1));
+    let (file, span) = context.source_span(error.span);
+    assert_eq!(file, SourceId(1));
     assert_eq!(span.lo, 0);
     assert_eq!(span.hi, 5);
 }

@@ -16,7 +16,7 @@ pub fn library(c: &mut Criterion) {
     c.bench_function("Standard library", |b| {
         b.iter(|| {
             compile(
-                &[CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR],
+                [CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR],
                 "",
             );
         })

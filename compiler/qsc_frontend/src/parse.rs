@@ -20,7 +20,7 @@ use qsc_ast::ast::{Expr, Package, Span};
 use scan::Scanner;
 use std::result;
 
-pub(super) use keyword::Keyword;
+pub use keyword::Keyword;
 
 #[derive(Debug)]
 pub(super) struct Error {
@@ -29,7 +29,7 @@ pub(super) struct Error {
 }
 
 #[derive(Debug)]
-pub(super) enum ErrorKind {
+pub enum ErrorKind {
     Keyword(Keyword),
     Lexical(&'static str),
     Rule(&'static str),

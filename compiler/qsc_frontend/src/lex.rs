@@ -6,11 +6,12 @@ mod raw;
 
 use enum_iterator::Sequence;
 
-pub(super) use cooked::{ClosedBinOp, Error, Lexer, Token, TokenKind};
+pub use cooked::{ClosedBinOp, TokenKind};
+pub(super) use cooked::{Error, Lexer, Token};
 
 /// A delimiter token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(super) enum Delim {
+pub enum Delim {
     /// `{` or `}`
     Brace,
     /// `[` or `]`
@@ -20,7 +21,7 @@ pub(super) enum Delim {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(super) enum Radix {
+pub enum Radix {
     Binary,
     Octal,
     Decimal,

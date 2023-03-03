@@ -39,7 +39,7 @@ pub(crate) struct Error {
 
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum TokenKind {
+pub enum TokenKind {
     /// `'`
     Apos,
     /// `@`
@@ -126,7 +126,7 @@ impl From<Number> for TokenKind {
 /// the domain of the first operand is closed under this operation. These are candidates for
 /// compound assignment operators, like `+=`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum ClosedBinOp {
+pub enum ClosedBinOp {
     /// `&&&`
     AmpAmpAmp,
     /// `and`
