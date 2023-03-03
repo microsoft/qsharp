@@ -13,20 +13,15 @@ use qsc_ast::{
 
 #[derive(Debug)]
 pub struct Context {
-    package: Package,
+    assigner: Assigner,
     symbols: symbol::Table,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
 
 impl Context {
-    #[must_use]
-    pub fn package(&self) -> &Package {
-        &self.package
-    }
-
-    pub fn package_mut(&mut self) -> &mut Package {
-        &mut self.package
+    pub fn assigner_mut(&mut self) -> &mut Assigner {
+        &mut self.assigner
     }
 
     #[must_use]
@@ -106,7 +101,7 @@ impl MutVisitor for Offsetter {
     }
 }
 
-pub fn compile(files: &[&str], entry_expr: &str) -> Context {
+pub fn compile(files: &[&str], entry_expr: &str) -> (Package, Context) {
     let mut namespaces = Vec::new();
     let mut parse_errors = Vec::new();
     let mut offset = 0;
@@ -146,12 +141,15 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
     errors.extend(parse_errors.into_iter().map(Into::into));
     errors.extend(symbol_errors.into_iter().map(Into::into));
 
-    Context {
+    (
         package,
-        symbols,
-        errors,
-        offsets,
-    }
+        Context {
+            assigner,
+            symbols,
+            errors,
+            offsets,
+        },
+    )
 }
 
 fn append_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {

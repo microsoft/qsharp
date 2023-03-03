@@ -7,9 +7,9 @@ use indoc::indoc;
 use crate::Evaluator;
 
 fn check_expression(expr: &str, expect: &Expect) {
-    let context = qsc_frontend::compile(&[], expr);
+    let (package, context) = qsc_frontend::compile(&[], expr);
     assert!(context.errors().is_empty());
-    let mut eval = Evaluator::new(&context);
+    let mut eval = Evaluator::new(&package, &context);
     match eval.run() {
         Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),

@@ -10,7 +10,7 @@ use qsc_ast::{
 };
 
 #[derive(Debug)]
-pub(super) struct Assigner {
+pub struct Assigner {
     next_id: NodeId,
 }
 
@@ -21,10 +21,15 @@ impl Assigner {
         }
     }
 
+    pub fn next_id(&mut self) -> NodeId {
+        let id = self.next_id;
+        self.next_id = self.next_id.successor();
+        id
+    }
+
     fn assign(&mut self, id: &mut NodeId) {
         if id.is_placeholder() {
-            *id = self.next_id;
-            self.next_id = self.next_id.successor();
+            *id = self.next_id();
         }
     }
 }
