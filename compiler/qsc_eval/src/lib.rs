@@ -16,7 +16,7 @@ use qsc_ast::ast::{
     StmtKind,
 };
 use qsc_frontend::{symbol, Context};
-use val::Value;
+use val::{ConversionError, Value};
 
 #[derive(Debug)]
 pub struct Error {
@@ -29,7 +29,7 @@ pub enum ErrorKind {
     EmptyExpr,
     Index(i64),
     OutOfRange(i64),
-    Type(&'static str),
+    Type(&'static str, &'static str),
     TupleArity(usize, usize),
     Unimplemented,
     UserFail(String),
@@ -50,11 +50,14 @@ trait WithSpan {
     fn with_span(self, span: Span) -> Self::Output;
 }
 
-impl<T> WithSpan for Result<T, ErrorKind> {
+impl<T> WithSpan for Result<T, ConversionError> {
     type Output = Result<T, Error>;
 
     fn with_span(self, span: Span) -> Result<T, Error> {
-        self.map_err(|kind| Error { span, kind })
+        self.map_err(|e| Error {
+            span,
+            kind: ErrorKind::Type(e.expected, e.actual),
+        })
     }
 }
 
