@@ -127,7 +127,7 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
 
-    let (mut entry, entry_parse_errors) = if entry_expr.is_empty() {
+    let (entry, entry_parse_errors) = if entry_expr.is_empty() {
         (None, Vec::new())
     } else {
         let (mut entry, mut errors) = parse::expr(entry_expr);
@@ -138,7 +138,7 @@ pub fn compile(files: &[&str], entry_expr: &str) -> Context {
         (Some(entry), errors)
     };
 
-    entry.iter_mut().for_each(|e| resolver.visit_expr(e));
+    entry.iter().for_each(|e| resolver.visit_expr(e));
 
     let (symbols, symbol_errors) = resolver.into_table();
     let mut errors = Vec::new();

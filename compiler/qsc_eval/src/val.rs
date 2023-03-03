@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{ffi::c_void, fmt::Display};
+use std::{collections::HashMap, ffi::c_void, fmt::Display};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
+use qsc_frontend::symbol;
 
 use crate::ErrorKind;
 
@@ -13,8 +14,9 @@ pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
     Bool(bool),
-    Callable,
+    Closure(symbol::Id, HashMap<symbol::Id, Value>),
     Double(f64),
+    Global(symbol::Id),
     Int(i64),
     Pauli(Pauli),
     Qubit(*mut c_void),
@@ -35,7 +37,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Callable => todo!(),
+            Value::Closure(_, _) => todo!(),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -45,6 +47,7 @@ impl Display for Value {
                     write!(f, "{v}")
                 }
             }
+            Value::Global(_) => todo!(),
             Value::Int(v) => write!(f, "{v}"),
             Value::Pauli(v) => match v {
                 Pauli::I => write!(f, "PauliI"),
@@ -105,18 +108,6 @@ impl TryFrom<Value> for bool {
     }
 }
 
-impl TryFrom<Value> for Vec<Value> {
-    type Error = ErrorKind;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::Array(v) = value {
-            Ok(v)
-        } else {
-            Err(ErrorKind::Type("Array"))
-        }
-    }
-}
-
 impl TryFrom<Value> for String {
     type Error = ErrorKind;
 
@@ -125,6 +116,30 @@ impl TryFrom<Value> for String {
             Ok(v)
         } else {
             Err(ErrorKind::Type("String"))
+        }
+    }
+}
+
+impl Value {
+    /// Convert the [Value] into an array of [Value]
+    /// # Errors
+    /// This will return an error if the [Value] is not a [`Value::Array`].
+    pub fn try_into_array(self) -> Result<Vec<Self>, ErrorKind> {
+        if let Value::Array(v) = self {
+            Ok(v)
+        } else {
+            Err(ErrorKind::Type("Array"))
+        }
+    }
+
+    /// Convert the [Value] into an tuple of [Value]
+    /// # Errors
+    /// This will return an error if the [Value] is not a [`Value::Tuple`].
+    pub fn try_into_tuple(self) -> Result<Vec<Self>, ErrorKind> {
+        if let Value::Tuple(v) = self {
+            Ok(v)
+        } else {
+            Err(ErrorKind::Type("Tuple"))
         }
     }
 }
