@@ -16,7 +16,8 @@ fn one_file_no_entry() {
         "",
     );
     assert!(context.errors().is_empty(), "{:#?}", context.errors());
-    assert!(context.entry().is_none(), "{:#?}", context.entry());
+    let entry = &context.package().entry;
+    assert!(entry.is_none(), "{entry:#?}");
 }
 
 #[test]
@@ -139,7 +140,7 @@ fn entry_call_operation() {
     if let Some(Expr {
         kind: ExprKind::Call(callee, _),
         ..
-    }) = context.entry()
+    }) = &context.package().entry
     {
         if let ExprKind::Path(Path { id, .. }) = callee.kind {
             assert_eq!(context.symbols.get(id), Some(operation));

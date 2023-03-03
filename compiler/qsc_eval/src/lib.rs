@@ -78,7 +78,7 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = self.context.entry() {
+        if let Some(expr) = &self.context.package().entry {
             self.eval_expr(expr)
         } else {
             Err(Error {
