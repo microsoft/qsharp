@@ -13,6 +13,14 @@ use std::ops::{Bound, Index, RangeBounds};
 pub struct NodeId(u32);
 
 impl NodeId {
+    const PLACEHOLDER: Self = Self(u32::MAX);
+
+    /// Whether this ID is a placeholder.
+    #[must_use]
+    pub fn is_placeholder(self) -> bool {
+        self == Self::PLACEHOLDER
+    }
+
     /// The initial node ID.
     #[must_use]
     pub fn zero() -> Self {
@@ -28,7 +36,7 @@ impl NodeId {
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self(u32::MAX)
+        Self::PLACEHOLDER
     }
 }
 
