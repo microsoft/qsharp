@@ -26,16 +26,68 @@ fn block_expr() {
     check_expression(
         indoc! { "{
             let x = 1;
-            let y = 2;
-            x + y
+            let y = x;
+            y
+        }"},
+        &expect!["1"],
+    );
+}
+
+#[test]
+fn block_shadowing_expr() {
+    check_expression(
+        indoc! { "{
+            let x = 1;
+            let x = 2;
+            x
+        }"},
+        &expect!["2"],
+    );
+}
+
+#[test]
+fn block_nested_shadowing_expr() {
+    check_expression(
+        indoc! { "{
+            let x = 1;
+            let y = {
+                let x = 2;
+                x
+            };
+            (y, x)
+        }"},
+        &expect!["(2, 1)"],
+    );
+}
+
+#[test]
+fn block_let_bind_tuple_expr() {
+    check_expression(
+        indoc! {"{
+            let x = (1, 2);
+            let (y, z) = x;
+            (z, y)
+        }"},
+        &expect!["(2, 1)"],
+    );
+}
+
+#[test]
+fn block_let_bind_tuple_arity_error_expr() {
+    check_expression(
+        indoc! {"{
+            let (x, y, z) = (0, 1);
         }"},
         &expect![[r#"
             Error {
                 span: Span {
-                    lo: 6,
-                    hi: 16,
+                    lo: 10,
+                    hi: 19,
                 },
-                kind: Unimplemented,
+                kind: TupleArity(
+                    3,
+                    2,
+                ),
             }
         "#]],
     );
