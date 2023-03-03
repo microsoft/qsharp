@@ -27,7 +27,6 @@ pub struct Error {
 pub enum ErrorKind {
     EmptyExpr,
     Index(i64),
-    IntegerSize,
     OutOfRange(i64),
     Type(&'static str),
     TupleArity(usize, usize),
@@ -127,7 +126,7 @@ impl<'a> Evaluator<'a> {
                     }),
                 }
             }
-            ExprKind::Lit(lit) => lit_to_val(lit, expr.span),
+            ExprKind::Lit(lit) => Ok(lit_to_val(lit)),
             ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Path(path) => Ok(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
@@ -259,15 +258,12 @@ impl<'a> Evaluator<'a> {
     }
 }
 
-fn lit_to_val(lit: &Lit, span: Span) -> Result<Value, Error> {
-    Ok(match lit {
+fn lit_to_val(lit: &Lit) -> Value {
+    match lit {
         Lit::BigInt(v) => Value::BigInt(v.clone()),
         Lit::Bool(v) => Value::Bool(*v),
         Lit::Double(v) => Value::Double(*v),
-        Lit::Int(v) => Value::Int((*v).try_into().map_err(|_| Error {
-            span,
-            kind: ErrorKind::IntegerSize,
-        })?),
+        Lit::Int(v) => Value::Int(*v),
         Lit::Pauli(v) => Value::Pauli(match v {
             ast::Pauli::I => Pauli::I,
             ast::Pauli::X => Pauli::X,
@@ -279,5 +275,5 @@ fn lit_to_val(lit: &Lit, span: Span) -> Result<Value, Error> {
             ast::Result::One => true,
         }),
         Lit::String(v) => Value::String(v.clone()),
-    })
+    }
 }

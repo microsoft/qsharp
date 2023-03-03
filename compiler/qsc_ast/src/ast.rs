@@ -519,7 +519,7 @@ pub enum Lit {
     /// A floating-point literal.
     Double(f64),
     /// An integer literal.
-    Int(u64),
+    Int(i64),
     /// A Pauli operator literal.
     Pauli(Pauli),
     /// A measurement result literal.
