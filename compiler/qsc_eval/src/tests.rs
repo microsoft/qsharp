@@ -153,6 +153,25 @@ fn array_index_out_of_range_expr() {
 }
 
 #[test]
+fn array_index_type_error_expr() {
+    check_expression(
+        "[1, 2, 3][false]",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 10,
+                hi: 15,
+            },
+            kind: Type(
+                "Int",
+                "Bool",
+            ),
+        }
+    "#]],
+    );
+}
+
+#[test]
 fn literal_big_int_expr() {
     check_expression(
         "9_223_372_036_854_775_808L",
@@ -296,6 +315,25 @@ fn if_false_expr() {
     check_expression(
         r#"if false {fail "Shouldn't get here...";}"#,
         &expect!["()"],
+    );
+}
+
+#[test]
+fn if_type_error_expr() {
+    check_expression(
+        "if 4 { 3 }",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 3,
+                hi: 4,
+            },
+            kind: Type(
+                "Bool",
+                "Int",
+            ),
+        }
+    "#]],
     );
 }
 
