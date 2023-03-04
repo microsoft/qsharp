@@ -83,33 +83,9 @@ impl Context {
 pub struct SourceId(pub usize);
 
 #[derive(Debug)]
-pub struct Error {
-    pub span: Span,
-    pub kind: ErrorKind,
-}
-
-impl From<parse::Error> for Error {
-    fn from(value: parse::Error) -> Self {
-        Self {
-            span: value.span,
-            kind: ErrorKind::Parse(value.kind),
-        }
-    }
-}
-
-impl From<symbol::Error> for Error {
-    fn from(value: symbol::Error) -> Self {
-        Self {
-            span: value.span,
-            kind: ErrorKind::Symbol(value.kind),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum ErrorKind {
-    Parse(parse::ErrorKind),
-    Symbol(symbol::ErrorKind),
+pub enum Error {
+    Parse(parse::Error),
+    Symbol(symbol::Error),
 }
 
 struct Offsetter(usize);
@@ -160,9 +136,9 @@ pub fn compile<T: AsRef<str>>(sources: impl IntoIterator<Item = T>, entry_expr: 
 
     let (symbols, symbol_errors) = resolver.into_table();
     let mut errors = Vec::new();
-    errors.extend(parse_errors.into_iter().map(Into::into));
-    errors.extend(entry_parse_errors.into_iter().map(Into::into));
-    errors.extend(symbol_errors.into_iter().map(Into::into));
+    errors.extend(parse_errors.into_iter().map(Error::Parse));
+    errors.extend(entry_parse_errors.into_iter().map(Error::Parse));
+    errors.extend(symbol_errors.into_iter().map(Error::Symbol));
 
     Context {
         package,

@@ -10,9 +10,11 @@ license.workspace = true
 
 [dependencies]
 enum-iterator = "1.2.0"
+miette = "5.5.0"
 num-bigint = { version = "0.4.3", default-features = false }
 num-traits = "0.2.15"
 qsc_ast = { path = "../qsc_ast" }
+thiserror = "1.0.38"
 
 [dev-dependencies]
 expect-test = "1.4.0"

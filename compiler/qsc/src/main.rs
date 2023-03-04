@@ -5,8 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, LabeledSpan, NamedSource, Report, SourceCode};
-use qsc_ast::ast::Span;
-use qsc_frontend::{compile, symbol, Context, ErrorKind};
+use qsc_frontend::{compile, Context};
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
@@ -17,7 +16,6 @@ use std::{
     result::Result,
     string::String,
 };
-use thiserror::Error;
 
 #[derive(Parser)]
 struct Cli {
@@ -122,19 +120,6 @@ struct OffsetSource {
     offset: usize,
 }
 
-#[derive(Debug, Diagnostic, Error)]
-enum SymbolError {
-    #[error("`{0}` not found in this scope")]
-    NotFound(String, #[label("not found")] Span),
-    #[error("`{0}` is ambiguous")]
-    Ambiguous(
-        String,
-        #[label("ambiguous name")] Span,
-        #[label("could refer to the item in this namespace")] Span,
-        #[label("could also refer to the item in this namespace")] Span,
-    ),
-}
-
 fn main() {
     let cli = Cli::parse();
     let sources: Vec<_> = cli
@@ -145,18 +130,12 @@ fn main() {
     let context = compile(sources.iter().map(|s| &s.1), &cli.entry);
 
     for error in context.errors() {
-        match &error.kind {
-            ErrorKind::Symbol(symbol::ErrorKind::NotFound(name)) => {
-                let error = SymbolError::NotFound(name.to_string(), error.span);
-                let report = Report::new(OffsetDiagnostic::new(&context, &sources, error));
+        match &error {
+            qsc_frontend::Error::Symbol(error) => {
+                let report = Report::new(OffsetDiagnostic::new(&context, &sources, error.clone()));
                 eprint!("{report:?}");
             }
-            ErrorKind::Symbol(symbol::ErrorKind::Ambiguous(name, first, second)) => {
-                let error = SymbolError::Ambiguous(name.to_string(), error.span, *first, *second);
-                let report = Report::new(OffsetDiagnostic::new(&context, &sources, error));
-                eprint!("{report:?}");
-            }
-            _ => eprintln!("{error:#?}"),
+            qsc_frontend::Error::Parse(_) => eprintln!("{error:#?}"),
         }
     }
 }

@@ -9,4 +9,4 @@ mod lex;
 pub mod parse;
 pub mod symbol;
 
-pub use compile::{compile, Context, Error, ErrorKind, SourceId};
+pub use compile::{compile, Context, Error, SourceId};

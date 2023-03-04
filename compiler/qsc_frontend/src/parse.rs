@@ -23,9 +23,9 @@ use std::result;
 pub use keyword::Keyword;
 
 #[derive(Debug)]
-pub(super) struct Error {
-    pub(super) kind: ErrorKind,
-    pub(super) span: Span,
+pub struct Error {
+    pub kind: ErrorKind,
+    pub span: Span,
 }
 
 #[derive(Debug)]

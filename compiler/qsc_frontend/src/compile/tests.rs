@@ -2,8 +2,18 @@
 // Licensed under the MIT License.
 
 use super::{compile, SourceId};
+use crate::{symbol, Error};
 use indoc::indoc;
-use qsc_ast::ast::{Expr, ExprKind, ItemKind, Path};
+use qsc_ast::ast::{Expr, ExprKind, ItemKind, Path, Span};
+
+fn error_span(error: &Error) -> Span {
+    match error {
+        Error::Parse(error) => error.span,
+        Error::Symbol(
+            symbol::Error::NotFound(_, span) | symbol::Error::Ambiguous(_, span, _, _),
+        ) => *span,
+    }
+}
 
 #[test]
 fn one_file_no_entry() {
@@ -34,7 +44,7 @@ fn one_file_error() {
 
     assert_eq!(context.errors().len(), 1, "{:#?}", context.errors());
     let error = &context.errors()[0];
-    let (file, span) = context.source_span(error.span);
+    let (file, span) = context.source_span(error_span(error));
     assert_eq!(file, SourceId(0));
     assert_eq!(span.lo, 50);
     assert_eq!(span.hi, 51);
@@ -108,7 +118,7 @@ fn two_files_error() {
 
     assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
     let error = &context.errors()[0];
-    let (file, span) = context.source_span(error.span);
+    let (file, span) = context.source_span(error_span(error));
     assert_eq!(file, SourceId(1));
     assert_eq!(span.lo, 50);
     assert_eq!(span.hi, 51);
@@ -164,7 +174,7 @@ fn entry_error() {
 
     assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
     let error = &context.errors()[0];
-    let (file, span) = context.source_span(error.span);
+    let (file, span) = context.source_span(error_span(error));
     assert_eq!(file, SourceId(1));
     assert_eq!(span.lo, 0);
     assert_eq!(span.hi, 5);

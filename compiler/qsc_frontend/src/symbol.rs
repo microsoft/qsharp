@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         Block, CallableDecl, Expr, ExprKind, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
@@ -12,6 +13,7 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use std::collections::HashMap;
+use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Id(u32);
@@ -22,16 +24,18 @@ impl Id {
     }
 }
 
-#[derive(Debug)]
-pub(super) struct Error {
-    pub(super) span: Span,
-    pub(super) kind: ErrorKind,
-}
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[error("`{0}` not found in this scope")]
+    NotFound(String, #[label("not found")] Span),
 
-#[derive(Debug)]
-pub enum ErrorKind {
-    NotFound(String),
-    Ambiguous(String, Span, Span),
+    #[error("`{0}` is ambiguous")]
+    Ambiguous(
+        String,
+        #[label("ambiguous name")] Span,
+        #[label("could refer to the item in this namespace")] Span,
+        #[label("could also refer to the item in this namespace")] Span,
+    ),
 }
 
 #[derive(Debug)]
@@ -286,16 +290,15 @@ fn resolve(
             .next()
             .expect("Candidates should not be empty."))
     } else if candidates.is_empty() {
-        Err(Error {
-            span: path.span,
-            kind: ErrorKind::NotFound(name.to_string()),
-        })
+        Err(Error::NotFound(name.to_string(), path.span))
     } else {
         let mut spans: Vec<_> = candidates.into_values().collect();
         spans.sort();
-        Err(Error {
-            span: path.span,
-            kind: ErrorKind::Ambiguous(name.to_string(), spans[0], spans[1]),
-        })
+        Err(Error::Ambiguous(
+            name.to_string(),
+            path.span,
+            spans[0],
+            spans[1],
+        ))
     }
 }
