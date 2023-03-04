@@ -5,6 +5,7 @@
 
 #![warn(missing_docs)]
 
+use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::ops::{Bound, Index, RangeBounds};
 
@@ -65,6 +66,12 @@ impl RangeBounds<usize> for &Span {
 
     fn end_bound(&self) -> Bound<&usize> {
         Bound::Excluded(&self.hi)
+    }
+}
+
+impl From<Span> for SourceSpan {
+    fn from(value: Span) -> Self {
+        Self::from(value.lo..value.hi)
     }
 }
 

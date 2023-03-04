@@ -4,8 +4,13 @@
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
 use clap::Parser;
-use miette::{Diagnostic, NamedSource, Report, SourceSpan};
-use qsc_frontend::{compile, symbol, ErrorKind};
+use miette::{Diagnostic, LabeledSpan, NamedSource, Report, SourceCode};
+use qsc_ast::ast::Span;
+use qsc_frontend::{compile, symbol, Context, ErrorKind};
+use std::{
+    error::Error,
+    fmt::{self, Debug, Display, Formatter},
+};
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -22,33 +27,123 @@ struct Cli {
     entry: String,
 }
 
+struct OffsetDiagnostic<D> {
+    diagnostic: D,
+    source: Option<OffsetSource>,
+}
+
+impl<D> OffsetDiagnostic<D> {
+    fn new(context: &Context, sources: &[(&Path, impl ToString)], diagnostic: D) -> Self
+    where
+        D: Diagnostic,
+    {
+        if let Some(label) = diagnostic.labels().and_then(|mut l| l.next()) {
+            let id = context.find_source(label.offset());
+            let (path, source) = &sources[id.0];
+            let name = path.to_string_lossy();
+            let source = NamedSource::new(name, source.to_string());
+            let offset = context.offsets()[id.0];
+            Self {
+                diagnostic,
+                source: Some(OffsetSource { source, offset }),
+            }
+        } else {
+            Self {
+                diagnostic,
+                source: None,
+            }
+        }
+    }
+}
+
+impl<D: Diagnostic> Diagnostic for OffsetDiagnostic<D> {
+    fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.diagnostic.code()
+    }
+
+    fn severity(&self) -> Option<miette::Severity> {
+        self.diagnostic.severity()
+    }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.diagnostic.help()
+    }
+
+    fn url<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.diagnostic.url()
+    }
+
+    fn source_code(&self) -> Option<&dyn SourceCode> {
+        match &self.source {
+            None => None,
+            Some(source) => Some(&source.source),
+        }
+    }
+
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+        if let Some(ls) = self.diagnostic.labels() {
+            Some(Box::new(ls.map(|l| {
+                LabeledSpan::new(
+                    l.label().map(ToString::to_string),
+                    l.offset() - self.source.as_ref().map(|s| s.offset).unwrap_or_default(),
+                    l.len(),
+                )
+            })))
+        } else {
+            None
+        }
+    }
+
+    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+        self.diagnostic.related()
+    }
+
+    fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+        self.diagnostic.diagnostic_source()
+    }
+}
+
+impl<D: Debug> Debug for OffsetDiagnostic<D> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.diagnostic.fmt(f)
+    }
+}
+
+impl<D: Display> Display for OffsetDiagnostic<D> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.diagnostic.fmt(f)
+    }
+}
+
+impl<D: Debug + Display> Error for OffsetDiagnostic<D> {}
+
+struct OffsetSource {
+    source: NamedSource,
+    offset: usize,
+}
+
 #[derive(Debug, Diagnostic, Error)]
-#[error("symbol `{name}` not found in this scope")]
-struct SymbolNotFound {
-    name: String,
-    #[label("not found in this scope")]
-    span: SourceSpan,
+enum SymbolError {
+    #[error("symbol `{0}` not found in this scope")]
+    NotFound(String, #[label("not found")] Span),
 }
 
 fn main() {
     let cli = Cli::parse();
-    let sources: Vec<_> = cli.sources.iter().map(|s| read_source(s)).collect();
-    let context = compile(&sources, &cli.entry);
+    let sources: Vec<_> = cli
+        .sources
+        .iter()
+        .map(|p| (p.as_path(), read_source(p)))
+        .collect();
+    let context = compile(sources.iter().map(|s| &s.1), &cli.entry);
 
     for error in context.errors() {
-        let (id, span) = context.source_span(error.span);
-        let source_name = cli.sources[id.0].to_string_lossy();
-        let source_code = &sources[id.0];
-
         match &error.kind {
-            ErrorKind::Symbol(symbol::ErrorKind::Unresolved(candidates))
+            ErrorKind::Symbol(symbol::ErrorKind::Unresolved(name, candidates))
                 if candidates.is_empty() =>
             {
-                let report = Report::new(SymbolNotFound {
-                    name: source_code[span].to_string(),
-                    span: (span.lo..span.hi).into(),
-                })
-                .with_source_code(NamedSource::new(source_name, source_code.to_string()));
+                let error = SymbolError::NotFound(name.to_string(), error.span);
+                let report = Report::new(OffsetDiagnostic::new(&context, &sources, error));
                 eprint!("{report:?}");
             }
             _ => eprintln!("{error:#?}"),

@@ -78,13 +78,13 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn write_error(mut buffer: impl Write, error: &Error) -> fmt::Result {
-    let ErrorKind::Unresolved(candidates) = &error.kind;
+    let ErrorKind::Unresolved(name, candidates) = &error.kind;
     let mut candidates: Vec<_> = candidates.iter().collect();
     candidates.sort();
     write!(
         buffer,
-        "Unresolved symbol at {:?} with candidates {:?}.",
-        error.span, candidates
+        "Unresolved symbol `{}` at {:?} with candidates {:?}.",
+        name, error.span, candidates
     )
 }
 

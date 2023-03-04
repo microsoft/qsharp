@@ -30,7 +30,7 @@ pub(super) struct Error {
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    Unresolved(HashSet<Id>),
+    Unresolved(String, HashSet<Id>),
 }
 
 #[derive(Debug)]
@@ -274,7 +274,7 @@ fn resolve(
     } else {
         Err(Error {
             span: path.span,
-            kind: ErrorKind::Unresolved(candidates),
+            kind: ErrorKind::Unresolved(name.to_string(), candidates),
         })
     }
 }

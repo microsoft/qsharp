@@ -651,6 +651,7 @@ dependencies = [
 name = "qsc_ast"
 version = "0.0.0"
 dependencies = [
+ "miette",
  "num-bigint",
 ]
 
