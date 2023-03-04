@@ -16,17 +16,14 @@ use super::{
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, ItemMeta,
-    Namespace, NodeId, Package, Path, Spec, SpecBody, SpecDecl, SpecGen, Ty, TyDef, TyDefKind,
-    TyKind, Visibility, VisibilityKind,
+    Namespace, NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Ty, TyDef, TyDefKind, TyKind,
+    Visibility, VisibilityKind,
 };
 
-pub(super) fn package(s: &mut Scanner) -> Result<Package> {
+pub(super) fn namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
     let namespaces = many(s, namespace)?;
     token(s, TokenKind::Eof)?;
-    Ok(Package {
-        id: NodeId::default(),
-        namespaces,
-    })
+    Ok(namespaces)
 }
 
 fn namespace(s: &mut Scanner) -> Result<Namespace> {

@@ -13,6 +13,14 @@ use std::ops::{Bound, Index, RangeBounds};
 pub struct NodeId(u32);
 
 impl NodeId {
+    const PLACEHOLDER: Self = Self(u32::MAX);
+
+    /// Whether this ID is a placeholder.
+    #[must_use]
+    pub fn is_placeholder(self) -> bool {
+        self == Self::PLACEHOLDER
+    }
+
     /// The initial node ID.
     #[must_use]
     pub fn zero() -> Self {
@@ -28,7 +36,7 @@ impl NodeId {
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self(u32::MAX)
+        Self::PLACEHOLDER
     }
 }
 
@@ -60,13 +68,27 @@ impl RangeBounds<usize> for &Span {
     }
 }
 
-/// The package currently being compiled and the root node of an AST.
+/// The root node of an AST.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
     /// The node ID.
     pub id: NodeId,
     /// The namespaces in the package.
     pub namespaces: Vec<Namespace>,
+    /// The entry expression for an executable package.
+    pub entry: Option<Expr>,
+}
+
+impl Package {
+    /// Creates a new package.
+    #[must_use]
+    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
+        Self {
+            id: NodeId::default(),
+            namespaces,
+            entry,
+        }
+    }
 }
 
 /// A namespace.
