@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind, GlobalTable, Id, Table};
+use super::{GlobalTable, Id, Table};
 use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -10,7 +10,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use std::fmt::{self, Write};
+use std::fmt::Write;
 
 struct Renamer<'a> {
     symbols: &'a Table,
@@ -69,23 +69,10 @@ fn check(input: &str, expect: &Expect) {
         output += "\n";
     }
     for error in &errors {
-        output += "// ";
-        write_error(&mut output, error).expect("Error should write to output string.");
-        output += "\n";
+        writeln!(output, "// {error:?}").expect("Error should be written to output string.");
     }
 
     expect.assert_eq(&output);
-}
-
-fn write_error(mut buffer: impl Write, error: &Error) -> fmt::Result {
-    let ErrorKind::Unresolved(name, candidates) = &error.kind;
-    let mut candidates: Vec<_> = candidates.iter().collect();
-    candidates.sort();
-    write!(
-        buffer,
-        "Unresolved symbol `{}` at {:?} with candidates {:?}.",
-        name, error.span, candidates
-    )
 }
 
 #[test]

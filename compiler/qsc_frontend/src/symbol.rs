@@ -11,7 +11,7 @@ use qsc_ast::{
     },
     visit::{self, Visitor},
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Id(u32);
@@ -30,7 +30,8 @@ pub(super) struct Error {
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    Unresolved(String, HashSet<Id>),
+    NotFound(String),
+    Ambiguous(String, Span, Span),
 }
 
 #[derive(Debug)]
@@ -59,9 +60,10 @@ impl Table {
 
 pub(super) struct Resolver<'a> {
     symbols: Table,
-    global_tys: HashMap<&'a str, HashMap<&'a str, Id>>,
-    global_terms: HashMap<&'a str, HashMap<&'a str, Id>>,
-    opens: HashMap<&'a str, HashSet<&'a str>>,
+    tys: HashMap<&'a str, HashMap<&'a str, Id>>,
+    terms: HashMap<&'a str, HashMap<&'a str, Id>>,
+    namespace: &'a str,
+    opens: HashMap<&'a str, HashMap<&'a str, Span>>,
     locals: Vec<HashMap<&'a str, Id>>,
     errors: Vec<Error>,
 }
@@ -84,14 +86,14 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_ty(&mut self, path: &Path) {
-        match resolve(&self.global_tys, &self.opens, &[], path) {
+        match resolve(&self.tys, self.namespace, &self.opens, &[], path) {
             Ok(symbol) => self.symbols.use_symbol(path.id, symbol),
             Err(err) => self.errors.push(err),
         }
     }
 
     fn resolve_term(&mut self, path: &Path) {
-        match resolve(&self.global_terms, &self.opens, &self.locals, path) {
+        match resolve(&self.terms, self.namespace, &self.opens, &self.locals, path) {
             Ok(symbol) => self.symbols.use_symbol(path.id, symbol),
             Err(err) => self.errors.push(err),
         }
@@ -100,11 +102,15 @@ impl<'a> Resolver<'a> {
 
 impl<'a> Visitor<'a> for Resolver<'a> {
     fn visit_namespace(&mut self, namespace: &'a Namespace) {
-        self.opens = HashMap::from([("", HashSet::from([namespace.name.name.as_str()]))]);
+        self.namespace = &namespace.name.name;
+        self.opens = HashMap::new();
         for item in &namespace.items {
-            if let ItemKind::Open(namespace, alias) = &item.kind {
+            if let ItemKind::Open(name, alias) = &item.kind {
                 let alias = alias.as_ref().map_or("", |a| &a.name);
-                self.opens.entry(alias).or_default().insert(&namespace.name);
+                self.opens
+                    .entry(alias)
+                    .or_default()
+                    .insert(&name.name, name.span);
             }
         }
 
@@ -196,8 +202,9 @@ impl<'a> GlobalTable<'a> {
     pub(super) fn into_resolver(self) -> Resolver<'a> {
         Resolver {
             symbols: self.symbols,
-            global_tys: self.tys,
-            global_terms: self.terms,
+            tys: self.tys,
+            terms: self.terms,
+            namespace: "",
             opens: HashMap::new(),
             locals: Vec::new(),
             errors: Vec::new(),
@@ -239,42 +246,56 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 
 fn resolve(
     globals: &HashMap<&str, HashMap<&str, Id>>,
-    opens: &HashMap<&str, HashSet<&str>>,
+    parent: &str,
+    opens: &HashMap<&str, HashMap<&str, Span>>,
     locals: &[HashMap<&str, Id>],
     path: &Path,
 ) -> Result<Id, Error> {
+    let name = path.name.name.as_str();
     if path.namespace.is_none() {
-        for env in locals.iter().rev() {
-            if let Some(&id) = env.get(path.name.name.as_str()) {
-                return Ok(id);
-            }
+        if let Some(&id) = locals.iter().rev().find_map(|env| env.get(name)) {
+            // Locals shadow everything.
+            return Ok(id);
+        } else if let Some(&id) = globals.get(parent).and_then(|ns| ns.get(name)) {
+            // Items in the parent namespace shadow opens.
+            return Ok(id);
         }
     }
 
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
-    let name = path.name.name.as_str();
-    let mut candidates = HashSet::new();
-    if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
-        candidates.insert(id);
+    let mut candidates = HashMap::new();
+    if let Some(namespaces) = opens.get(namespace) {
+        for (&namespace, &span) in namespaces {
+            if let Some(&id) = globals.get(namespace).and_then(|ns| ns.get(name)) {
+                // Opens shadow unopened globals.
+                candidates.insert(id, span);
+            }
+        }
     }
 
-    if let Some(namespaces) = opens.get(namespace) {
-        for namespace in namespaces {
-            if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
-                candidates.insert(id);
-            }
+    if candidates.is_empty() {
+        if let Some(&id) = globals.get(namespace).and_then(|ns| ns.get(name)) {
+            // An unopened global is the last resort.
+            return Ok(id);
         }
     }
 
     if candidates.len() == 1 {
         Ok(candidates
-            .into_iter()
+            .into_keys()
             .next()
-            .expect("Set should have exactly one item."))
-    } else {
+            .expect("Candidates should not be empty."))
+    } else if candidates.is_empty() {
         Err(Error {
             span: path.span,
-            kind: ErrorKind::Unresolved(name.to_string(), candidates),
+            kind: ErrorKind::NotFound(name.to_string()),
+        })
+    } else {
+        let mut spans: Vec<_> = candidates.into_values().collect();
+        spans.sort();
+        Err(Error {
+            span: path.span,
+            kind: ErrorKind::Ambiguous(name.to_string(), spans[0], spans[1]),
         })
     }
 }

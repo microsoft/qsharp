@@ -35,7 +35,7 @@ impl Default for NodeId {
 
 /// A region between two source code positions. Spans are the half-open interval `[lo, hi)`. The
 /// offsets are absolute within an AST, assuming that each file has its own offset.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Span {
     /// The offset of the first byte.
     pub lo: usize,

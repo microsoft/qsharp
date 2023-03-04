@@ -124,8 +124,15 @@ struct OffsetSource {
 
 #[derive(Debug, Diagnostic, Error)]
 enum SymbolError {
-    #[error("symbol `{0}` not found in this scope")]
+    #[error("`{0}` not found in this scope")]
     NotFound(String, #[label("not found")] Span),
+    #[error("`{0}` is ambiguous")]
+    Ambiguous(
+        String,
+        #[label("ambiguous name")] Span,
+        #[label("could refer to the item in this namespace")] Span,
+        #[label("could also refer to the item in this namespace")] Span,
+    ),
 }
 
 fn main() {
@@ -139,10 +146,13 @@ fn main() {
 
     for error in context.errors() {
         match &error.kind {
-            ErrorKind::Symbol(symbol::ErrorKind::Unresolved(name, candidates))
-                if candidates.is_empty() =>
-            {
+            ErrorKind::Symbol(symbol::ErrorKind::NotFound(name)) => {
                 let error = SymbolError::NotFound(name.to_string(), error.span);
+                let report = Report::new(OffsetDiagnostic::new(&context, &sources, error));
+                eprint!("{report:?}");
+            }
+            ErrorKind::Symbol(symbol::ErrorKind::Ambiguous(name, first, second)) => {
+                let error = SymbolError::Ambiguous(name.to_string(), error.span, *first, *second);
                 let report = Report::new(OffsetDiagnostic::new(&context, &sources, error));
                 eprint!("{report:?}");
             }
