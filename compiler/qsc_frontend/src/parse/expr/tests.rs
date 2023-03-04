@@ -390,15 +390,14 @@ fn lit_double_leading_dot() {
         ".23",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "expression",
-                    ),
-                    span: Span {
+                Rule(
+                    "expression",
+                    Dot,
+                    Span {
                         lo: 0,
                         hi: 1,
                     },
-                },
+                ),
             )
         "#]],
     );

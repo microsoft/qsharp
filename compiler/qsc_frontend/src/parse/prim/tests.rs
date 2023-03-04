@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use super::{ident, opt, pat, path, seq};
-use crate::parse::{scan::Scanner, tests::check, Error, Keyword};
+use crate::{
+    lex::{ClosedBinOp, TokenKind},
+    parse::{scan::Scanner, tests::check, Error, Keyword},
+};
 use expect_test::expect;
 use qsc_ast::ast::Span;
 
@@ -79,15 +82,16 @@ fn ident_num_prefix() {
         "2foo",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "identifier",
+                Rule(
+                    "identifier",
+                    Int(
+                        Decimal,
                     ),
-                    span: Span {
+                    Span {
                         lo: 0,
                         hi: 1,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -98,15 +102,20 @@ fn ident_keyword() {
     for keyword in enum_iterator::all::<Keyword>() {
         let mut scanner = Scanner::new(keyword.as_str());
         let actual = ident(&mut scanner);
-        let expected = Err(Error::RuleKeyword(
-            "identifier",
-            keyword,
-            Span {
-                lo: 0,
-                hi: keyword.as_str().len(),
-            },
-        ));
-        assert_eq!(actual, expected, "{keyword}");
+        let span = Span {
+            lo: 0,
+            hi: keyword.as_str().len(),
+        };
+
+        let expected = match keyword {
+            Keyword::And => {
+                Error::Rule("identifier", TokenKind::ClosedBinOp(ClosedBinOp::And), span)
+            }
+            Keyword::Or => Error::Rule("identifier", TokenKind::ClosedBinOp(ClosedBinOp::Or), span),
+            _ => Error::RuleKeyword("identifier", keyword, span),
+        };
+
+        assert_eq!(actual, Err(expected), "{keyword}");
     }
 }
 
@@ -235,15 +244,14 @@ fn path_trailing_dot() {
         "Foo.Bar.",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "identifier",
-                    ),
-                    span: Span {
+                Rule(
+                    "identifier",
+                    Eof,
+                    Span {
                         lo: 8,
                         hi: 8,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -631,15 +639,14 @@ fn pat_invalid() {
         "@",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "pattern",
-                    ),
-                    span: Span {
+                Rule(
+                    "pattern",
+                    At,
+                    Span {
                         lo: 0,
                         hi: 1,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -652,15 +659,14 @@ fn pat_missing_ty() {
         "foo :",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "type",
-                    ),
-                    span: Span {
+                Rule(
+                    "type",
+                    Eof,
+                    Span {
                         lo: 5,
                         hi: 5,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -731,15 +737,14 @@ fn opt_fail_consume() {
         "Foo.#",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "identifier",
-                    ),
-                    span: Span {
+                Rule(
+                    "identifier",
+                    Eof,
+                    Span {
                         lo: 5,
                         hi: 5,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -896,15 +901,14 @@ fn seq_fail_consume() {
         "foo, bar.",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "identifier",
-                    ),
-                    span: Span {
+                Rule(
+                    "identifier",
+                    Eof,
+                    Span {
                         lo: 9,
                         hi: 9,
                     },
-                },
+                ),
             )
         "#]],
     );
