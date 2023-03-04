@@ -80,6 +80,7 @@ pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
         .namespaces
         .iter_mut()
         .for_each(|n| vis.visit_namespace(n));
+    package.entry.iter_mut().for_each(|e| vis.visit_expr(e));
 }
 
 pub fn walk_namespace(vis: &mut impl MutVisitor, namespace: &mut Namespace) {

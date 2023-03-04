@@ -121,7 +121,7 @@ fn main() {
         .iter()
         .map(|p| (p.as_path(), read_source(p)))
         .collect();
-    let context = compile(sources.iter().map(|s| &s.1), &cli.entry);
+    let (_, context) = compile(sources.iter().map(|s| &s.1), &cli.entry);
 
     for error in context.errors() {
         let error = OffsetDiagnostic::new(&context, &sources, error.clone());

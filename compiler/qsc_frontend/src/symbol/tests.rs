@@ -6,7 +6,7 @@ use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
-    ast::{Ident, Path, Span},
+    ast::{Ident, Package, Path, Span},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -49,9 +49,9 @@ impl Visitor<'_> for Renamer<'_> {
 }
 
 fn check(input: &str, expect: &Expect) {
-    let (mut package, errors) = parse::package(input);
+    let (namespaces, errors) = parse::namespaces(input);
     assert!(errors.is_empty(), "Program has syntax errors: {errors:#?}");
-
+    let mut package = Package::new(namespaces, None);
     let mut assigner = id::Assigner::new();
     assigner.visit_package(&mut package);
     let mut globals = GlobalTable::new();
@@ -59,7 +59,6 @@ fn check(input: &str, expect: &Expect) {
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
     let (symbols, errors) = resolver.into_table();
-
     let mut renamer = Renamer::new(&symbols);
     renamer.visit_package(&package);
     let mut output = input.to_string();
@@ -68,6 +67,7 @@ fn check(input: &str, expect: &Expect) {
     if !errors.is_empty() {
         output += "\n";
     }
+
     for error in &errors {
         writeln!(output, "// {error:?}").expect("Error should be written to output string.");
     }

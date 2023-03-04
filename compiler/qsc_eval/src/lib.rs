@@ -12,7 +12,8 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Pat, PatKind, Span, Stmt, StmtKind,
+    self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Package, Pat, PatKind, Span, Stmt,
+    StmtKind,
 };
 use qsc_frontend::{symbol, Context};
 use val::{ConversionError, Value};
@@ -62,6 +63,7 @@ impl<T> WithSpan for Result<T, ConversionError> {
 
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
+    package: &'a Package,
     context: &'a Context,
     scopes: Vec<HashMap<symbol::Id, Value>>,
     globals: HashMap<symbol::Id, &'a CallableDecl>,
@@ -69,8 +71,9 @@ pub struct Evaluator<'a> {
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(context: &'a Context) -> Self {
+    pub fn new(package: &'a Package, context: &'a Context) -> Self {
         Self {
+            package,
             context,
             scopes: vec![],
             globals: HashMap::default(),
@@ -81,7 +84,7 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = self.context.entry() {
+        if let Some(expr) = &self.package.entry {
             self.eval_expr(expr)
         } else {
             Err(Error {

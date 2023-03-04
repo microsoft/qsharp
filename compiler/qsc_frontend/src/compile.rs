@@ -4,10 +4,10 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{id, parse, symbol};
+use crate::{id::Assigner, parse, symbol};
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Expr, Package, Span},
+    ast::{Package, Span},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
@@ -15,27 +15,24 @@ use thiserror::Error;
 
 #[derive(Debug)]
 pub struct Context {
-    package: Package,
-    entry: Option<Expr>,
+    assigner: Assigner,
     symbols: symbol::Table,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
 
 impl Context {
-    #[must_use]
-    pub fn package(&self) -> &Package {
-        &self.package
-    }
-
-    #[must_use]
-    pub fn entry(&self) -> Option<&Expr> {
-        self.entry.as_ref()
+    pub fn assigner_mut(&mut self) -> &mut Assigner {
+        &mut self.assigner
     }
 
     #[must_use]
     pub fn symbols(&self) -> &symbol::Table {
         &self.symbols
+    }
+
+    pub fn symbols_mut(&mut self) -> &mut symbol::Table {
+        &mut self.symbols
     }
 
     #[must_use]
@@ -101,59 +98,65 @@ impl MutVisitor for Offsetter {
     }
 }
 
-pub fn compile<T: AsRef<str>>(sources: impl IntoIterator<Item = T>, entry_expr: &str) -> Context {
-    let (mut package, mut parse_errors) = (Package::default(), vec![]);
+pub fn compile<T: AsRef<str>>(
+    sources: impl IntoIterator<Item = T>,
+    entry_expr: &str,
+) -> (Package, Context) {
+    let mut namespaces = Vec::new();
+    let mut parse_errors = Vec::new();
     let mut offset = 0;
     let mut offsets = Vec::new();
+
     for source in sources {
         let source = source.as_ref();
-        let (mut source_package, mut errors) = parse::package(source);
-        Offsetter(offset).visit_package(&mut source_package);
-        package.namespaces.append(&mut source_package.namespaces);
+        let (source_namespaces, errors) = parse::namespaces(source);
+        for mut namespace in source_namespaces {
+            Offsetter(offset).visit_namespace(&mut namespace);
+            namespaces.push(namespace);
+        }
 
-        errors.iter_mut().for_each(|e| offset_error(offset, e));
-        parse_errors.append(&mut errors);
-
+        append_errors(&mut parse_errors, offset, errors);
         offsets.push(offset);
         offset += source.len();
     }
 
-    let mut assigner = id::Assigner::new();
+    let entry = if entry_expr.is_empty() {
+        None
+    } else {
+        let (mut entry, errors) = parse::expr(entry_expr);
+        Offsetter(offset).visit_expr(&mut entry);
+        append_errors(&mut parse_errors, offset, errors);
+        offsets.push(offset);
+        Some(entry)
+    };
+
+    let mut package = Package::new(namespaces, entry);
+    let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let mut globals = symbol::GlobalTable::new();
     globals.visit_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
-
-    let (entry, entry_parse_errors) = if entry_expr.is_empty() {
-        (None, Vec::new())
-    } else {
-        let (mut entry, mut errors) = parse::expr(entry_expr);
-        Offsetter(offset).visit_expr(&mut entry);
-        assigner.visit_expr(&mut entry);
-        errors.iter_mut().for_each(|e| offset_error(offset, e));
-        offsets.push(offset);
-        (Some(entry), errors)
-    };
-
-    entry.iter().for_each(|e| resolver.visit_expr(e));
-
     let (symbols, symbol_errors) = resolver.into_table();
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(Error::Parse));
-    errors.extend(entry_parse_errors.into_iter().map(Error::Parse));
     errors.extend(symbol_errors.into_iter().map(Error::Symbol));
 
-    Context {
+    (
         package,
-        entry,
-        symbols,
-        errors,
-        offsets,
-    }
+        Context {
+            assigner,
+            symbols,
+            errors,
+            offsets,
+        },
+    )
 }
 
-fn offset_error(offset: usize, error: &mut parse::Error) {
-    error.span.lo += offset;
-    error.span.hi += offset;
+fn append_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {
+    for mut error in other {
+        error.span.lo += offset;
+        error.span.hi += offset;
+        errors.push(error);
+    }
 }
