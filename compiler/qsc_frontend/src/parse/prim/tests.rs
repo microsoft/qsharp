@@ -2,8 +2,9 @@
 // Licensed under the MIT License.
 
 use super::{ident, opt, pat, path, seq};
-use crate::parse::tests::check;
+use crate::parse::{scan::Scanner, tests::check, Error, ErrorKind, Keyword};
 use expect_test::expect;
+use qsc_ast::ast::Span;
 
 #[test]
 fn ident_basic() {
@@ -90,6 +91,23 @@ fn ident_num_prefix() {
             )
         "#]],
     );
+}
+
+#[test]
+fn ident_keyword() {
+    for keyword in enum_iterator::all::<Keyword>() {
+        let keyword = keyword.as_str();
+        let mut scanner = Scanner::new(keyword);
+        let actual = ident(&mut scanner);
+        let expected = Err(Error {
+            kind: ErrorKind::Rule("identifier"),
+            span: Span {
+                lo: 0,
+                hi: keyword.len(),
+            },
+        });
+        assert_eq!(actual, expected, "{keyword}");
+    }
 }
 
 #[test]
