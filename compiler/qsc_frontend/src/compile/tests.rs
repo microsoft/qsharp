@@ -2,12 +2,17 @@
 // Licensed under the MIT License.
 
 use super::{compile, FileId};
+use crate::id::Assigner;
+use expect_test::expect;
 use indoc::indoc;
-use qsc_ast::ast::{Expr, ExprKind, ItemKind, Path};
+use qsc_ast::{
+    ast::{CallableBody, CallableDecl, Expr, ExprKind, ItemKind, Lit, Path},
+    mut_visit::MutVisitor,
+};
 
 #[test]
 fn one_file_no_entry() {
-    let context = compile(
+    let (package, context) = compile(
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {}
@@ -16,12 +21,12 @@ fn one_file_no_entry() {
         "",
     );
     assert!(context.errors().is_empty(), "{:#?}", context.errors());
-    assert!(context.entry().is_none(), "{:#?}", context.entry());
+    assert!(package.entry.is_none(), "{:#?}", package.entry);
 }
 
 #[test]
 fn one_file_error() {
-    let context = compile(
+    let (_, context) = compile(
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {
@@ -42,7 +47,7 @@ fn one_file_error() {
 
 #[test]
 fn two_files_dependency() {
-    let context = compile(
+    let (_, context) = compile(
         &[
             indoc! {"
                 namespace Foo {
@@ -64,7 +69,7 @@ fn two_files_dependency() {
 
 #[test]
 fn two_files_mutual_dependency() {
-    let context = compile(
+    let (_, context) = compile(
         &[
             indoc! {"
                 namespace Foo {
@@ -88,7 +93,7 @@ fn two_files_mutual_dependency() {
 
 #[test]
 fn two_files_error() {
-    let context = compile(
+    let (_, context) = compile(
         &[
             indoc! {"
                 namespace Foo {
@@ -116,7 +121,7 @@ fn two_files_error() {
 
 #[test]
 fn entry_call_operation() {
-    let context = compile(
+    let (package, context) = compile(
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
@@ -126,20 +131,19 @@ fn entry_call_operation() {
     );
     assert!(context.errors.is_empty(), "{:#?}", context.errors());
 
-    let operation =
-        if let ItemKind::Callable(callable) = &context.package().namespaces[0].items[0].kind {
-            context
-                .symbols
-                .get(callable.name.id)
-                .expect("Callable should have a symbol ID.")
-        } else {
-            panic!("First item should be a callable.")
-        };
+    let operation = if let ItemKind::Callable(callable) = &package.namespaces[0].items[0].kind {
+        context
+            .symbols
+            .get(callable.name.id)
+            .expect("Callable should have a symbol ID.")
+    } else {
+        panic!("First item should be a callable.")
+    };
 
     if let Some(Expr {
         kind: ExprKind::Call(callee, _),
         ..
-    }) = context.entry()
+    }) = &package.entry
     {
         if let ExprKind::Path(Path { id, .. }) = callee.kind {
             assert_eq!(context.symbols.get(id), Some(operation));
@@ -153,7 +157,7 @@ fn entry_call_operation() {
 
 #[test]
 fn entry_error() {
-    let context = compile(
+    let (_, context) = compile(
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
@@ -168,4 +172,78 @@ fn entry_error() {
     assert_eq!(file, FileId(1));
     assert_eq!(span.lo, 0);
     assert_eq!(span.hi, 5);
+}
+
+#[test]
+fn replace_node() {
+    struct Replacer<'a>(&'a mut Assigner);
+
+    impl MutVisitor for Replacer<'_> {
+        fn visit_expr(&mut self, expr: &mut Expr) {
+            *expr = Expr {
+                id: self.0.next_id(),
+                span: expr.span,
+                kind: ExprKind::Lit(Lit::Int(2)),
+            };
+        }
+    }
+
+    let (mut package, mut context) = compile(
+        &[indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    1
+                }
+            }"}],
+        "",
+    );
+
+    Replacer(context.assigner_mut()).visit_package(&mut package);
+
+    let ItemKind::Callable(CallableDecl {
+        body: CallableBody::Block(block),
+        ..
+    }) = &package.namespaces[0].items[0].kind else {
+        panic!("Expected callable item.");
+    };
+
+    expect![[r#"
+        Block {
+            id: NodeId(
+                8,
+            ),
+            span: Span {
+                lo: 39,
+                hi: 56,
+            },
+            stmts: [
+                Stmt {
+                    id: NodeId(
+                        9,
+                    ),
+                    span: Span {
+                        lo: 49,
+                        hi: 50,
+                    },
+                    kind: Expr(
+                        Expr {
+                            id: NodeId(
+                                11,
+                            ),
+                            span: Span {
+                                lo: 49,
+                                hi: 50,
+                            },
+                            kind: Lit(
+                                Int(
+                                    2,
+                                ),
+                            ),
+                        },
+                    ),
+                },
+            ],
+        }
+    "#]]
+    .assert_debug_eq(&block);
 }

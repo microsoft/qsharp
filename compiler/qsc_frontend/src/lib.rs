@@ -4,7 +4,7 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 mod compile;
-mod id;
+pub mod id;
 mod lex;
 mod parse;
 pub mod symbol;

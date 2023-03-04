@@ -16,7 +16,7 @@ mod top;
 mod ty;
 
 use crate::lex::TokenKind;
-use qsc_ast::ast::{Expr, Package, Span};
+use qsc_ast::ast::{Expr, Namespace, Span};
 use scan::Scanner;
 use std::result;
 
@@ -42,14 +42,14 @@ trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
 
 impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
-pub(super) fn package(input: &str) -> (Package, Vec<Error>) {
+pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match top::package(&mut scanner) {
-        Ok(pack) => (pack, scanner.errors()),
+    match top::namespaces(&mut scanner) {
+        Ok(namespaces) => (namespaces, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();
             errors.push(err);
-            (Package::default(), errors)
+            (Vec::new(), errors)
         }
     }
 }

@@ -45,14 +45,14 @@ impl Table {
         self.nodes.get(&node).copied()
     }
 
-    fn declare(&mut self, node: NodeId) -> Id {
+    pub fn declare(&mut self, node: NodeId) -> Id {
         let id = self.next_id;
         self.next_id = self.next_id.successor();
         self.nodes.insert(node, id);
         id
     }
 
-    fn use_symbol(&mut self, node: NodeId, symbol: Id) {
+    pub fn use_symbol(&mut self, node: NodeId, symbol: Id) {
         self.nodes.insert(node, symbol);
     }
 }
