@@ -35,22 +35,16 @@ impl<D> OffsetDiagnostic<D> {
     where
         D: Diagnostic,
     {
-        if let Some(label) = diagnostic.labels().and_then(|mut l| l.next()) {
+        let source = diagnostic.labels().and_then(|mut i| i.next()).map(|label| {
             let id = context.find_source(label.offset());
             let (path, source) = &sources[id.0];
             let name = path.to_string_lossy();
             let source = NamedSource::new(name, source.to_string());
             let offset = context.offsets()[id.0];
-            Self {
-                diagnostic,
-                source: Some(OffsetSource { source, offset }),
-            }
-        } else {
-            Self {
-                diagnostic,
-                source: None,
-            }
-        }
+            OffsetSource { source, offset }
+        });
+
+        Self { diagnostic, source }
     }
 }
 
@@ -130,13 +124,8 @@ fn main() {
     let context = compile(sources.iter().map(|s| &s.1), &cli.entry);
 
     for error in context.errors() {
-        match &error {
-            qsc_frontend::Error::Symbol(error) => {
-                let report = Report::new(OffsetDiagnostic::new(&context, &sources, error.clone()));
-                eprint!("{report:?}");
-            }
-            qsc_frontend::Error::Parse(_) => eprintln!("{error:#?}"),
-        }
+        let error = OffsetDiagnostic::new(&context, &sources, error.clone());
+        eprint!("{:?}", Report::new(error));
     }
 }
 

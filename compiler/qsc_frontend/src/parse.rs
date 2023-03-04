@@ -16,19 +16,23 @@ mod top;
 mod ty;
 
 use crate::lex::TokenKind;
+use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Package, Span};
 use scan::Scanner;
 use std::result;
+use thiserror::Error;
 
 pub use keyword::Keyword;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[error("syntax error: {kind:?}")]
 pub struct Error {
     pub kind: ErrorKind,
+    #[label("here")]
     pub span: Span,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ErrorKind {
     Keyword(Keyword),
     Lexical(&'static str),

@@ -5,11 +5,13 @@
 mod tests;
 
 use crate::{id, parse, symbol};
+use miette::Diagnostic;
 use qsc_ast::{
     ast::{Expr, Package, Span},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
+use thiserror::Error;
 
 #[derive(Debug)]
 pub struct Context {
@@ -82,7 +84,9 @@ impl Context {
 #[derive(Debug, Eq, PartialEq)]
 pub struct SourceId(pub usize);
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+#[error(transparent)]
 pub enum Error {
     Parse(parse::Error),
     Symbol(symbol::Error),
