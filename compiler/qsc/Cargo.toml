@@ -14,8 +14,9 @@ qsc_frontend = { path = "../qsc_frontend" }
 qsc_passes = { path = "../qsc_passes" }
 qsc_codegen = { path = "../qsc_codegen" }
 qsc_eval = { path = "../qsc_eval" }
-ariadne = "0.1.5"
 clap = { version = "4.1.8", features = ["derive"] }
+miette = { version = "5.5.0", features = ["fancy"] }
+thiserror = "1.0.38"
 
 [dev-dependencies]
 criterion = { version = "0.4.0", default-features = false, features = ["cargo_bench_support"] }

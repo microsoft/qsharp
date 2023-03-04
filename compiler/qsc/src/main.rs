@@ -3,8 +3,8 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use ariadne::{Label, Report, ReportKind, Source};
 use clap::Parser;
+use miette::{Diagnostic, NamedSource, Report, SourceSpan};
 use qsc_frontend::{compile, symbol, ErrorKind};
 use std::{
     fs, io,
@@ -12,14 +12,22 @@ use std::{
     result::Result,
     string::String,
 };
+use thiserror::Error;
 
 #[derive(Parser)]
 struct Cli {
     #[arg(required(true), num_args(1..))]
     sources: Vec<PathBuf>,
-
     #[arg(short, long, default_value = "")]
     entry: String,
+}
+
+#[derive(Debug, Diagnostic, Error)]
+#[error("symbol `{name}` not found in this scope")]
+struct SymbolNotFound {
+    name: String,
+    #[label("not found in this scope")]
+    span: SourceSpan,
 }
 
 fn main() {
@@ -28,24 +36,20 @@ fn main() {
     let context = compile(&sources, &cli.entry);
 
     for error in context.errors() {
-        let (source_id, span) = context.source_span(error.span);
-        let source_name = cli.sources[source_id.0].to_string_lossy();
-        let source_code = &sources[source_id.0];
+        let (id, span) = context.source_span(error.span);
+        let source_name = cli.sources[id.0].to_string_lossy();
+        let source_code = &sources[id.0];
 
         match &error.kind {
             ErrorKind::Symbol(symbol::ErrorKind::Unresolved(candidates))
                 if candidates.is_empty() =>
             {
-                let symbol = &source_code[span];
-                Report::build(ReportKind::Error, &source_name, span.lo)
-                    .with_message(format!("symbol `{symbol}` not found in this scope"))
-                    .with_label(
-                        Label::new((&source_name, span.lo..span.hi))
-                            .with_message("not found in this scope"),
-                    )
-                    .finish()
-                    .print((&source_name, Source::from(source_code)))
-                    .unwrap();
+                let report = Report::new(SymbolNotFound {
+                    name: source_code[span].to_string(),
+                    span: (span.lo..span.hi).into(),
+                })
+                .with_source_code(NamedSource::new(source_name, source_code.to_string()));
+                eprint!("{report:?}");
             }
             _ => eprintln!("{error:#?}"),
         }
