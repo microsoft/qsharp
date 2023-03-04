@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{compile, SourceId};
-use crate::{id::Assigner, symbol, Error};
+use crate::{id::Assigner, lex, parse, symbol, Error};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_ast::{
@@ -10,10 +10,22 @@ use qsc_ast::{
     mut_visit::MutVisitor,
 };
 
+// TODO: Brittle.
 fn error_span(error: &Error) -> Span {
     match error {
-        Error::Parse(error) => error.span,
-        Error::Symbol(
+        Error::Parse(
+            parse::Error::Lex(
+                lex::Error::Incomplete(_, _, _, span)
+                | lex::Error::IncompleteEof(_, _, span)
+                | lex::Error::Unknown(_, span),
+            )
+            | parse::Error::Token(_, _, span)
+            | parse::Error::Keyword(_, _, span)
+            | parse::Error::Rule(_, _, span)
+            | parse::Error::RuleKeyword(_, _, span)
+            | parse::Error::Convert(_, _, span),
+        )
+        | Error::Symbol(
             symbol::Error::NotFound(_, span) | symbol::Error::Ambiguous(_, span, _, _),
         ) => *span,
     }

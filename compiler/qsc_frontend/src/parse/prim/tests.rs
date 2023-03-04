@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{ident, opt, pat, path, seq};
-use crate::parse::{scan::Scanner, tests::check, Error, ErrorKind, Keyword};
+use crate::parse::{scan::Scanner, tests::check, Error, Keyword};
 use expect_test::expect;
 use qsc_ast::ast::Span;
 
@@ -96,16 +96,16 @@ fn ident_num_prefix() {
 #[test]
 fn ident_keyword() {
     for keyword in enum_iterator::all::<Keyword>() {
-        let keyword = keyword.as_str();
-        let mut scanner = Scanner::new(keyword);
+        let mut scanner = Scanner::new(keyword.as_str());
         let actual = ident(&mut scanner);
-        let expected = Err(Error {
-            kind: ErrorKind::Rule("identifier"),
-            span: Span {
+        let expected = Err(Error::RuleKeyword(
+            "identifier",
+            keyword,
+            Span {
                 lo: 0,
-                hi: keyword.len(),
+                hi: keyword.as_str().len(),
             },
-        });
+        ));
         assert_eq!(actual, expected, "{keyword}");
     }
 }

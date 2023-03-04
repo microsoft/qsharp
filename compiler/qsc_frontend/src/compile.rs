@@ -4,13 +4,14 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{id::Assigner, parse, symbol};
+use crate::{id::Assigner, lex, parse, symbol};
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{Package, Span},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
+use std::fmt::Debug;
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -154,9 +155,49 @@ pub fn compile<T: AsRef<str>>(
 }
 
 fn append_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {
-    for mut error in other {
-        error.span.lo += offset;
-        error.span.hi += offset;
-        errors.push(error);
+    for error in other {
+        errors.push(offset_error(offset, error));
+    }
+}
+
+// TODO: Not very pretty, and brittle.
+fn offset_error(offset: usize, error: parse::Error) -> parse::Error {
+    match error {
+        parse::Error::Lex(lex::Error::Incomplete(expected, found, single, span)) => {
+            parse::Error::Lex(lex::Error::Incomplete(
+                expected,
+                found,
+                single,
+                offset_span(offset, span),
+            ))
+        }
+        parse::Error::Lex(lex::Error::IncompleteEof(expected, found, span)) => parse::Error::Lex(
+            lex::Error::IncompleteEof(expected, found, offset_span(offset, span)),
+        ),
+        parse::Error::Lex(lex::Error::Unknown(c, span)) => {
+            parse::Error::Lex(lex::Error::Unknown(c, offset_span(offset, span)))
+        }
+        parse::Error::Token(expected, found, span) => {
+            parse::Error::Token(expected, found, offset_span(offset, span))
+        }
+        parse::Error::Keyword(expected, found, span) => {
+            parse::Error::Keyword(expected, found, offset_span(offset, span))
+        }
+        parse::Error::Rule(expected, found, span) => {
+            parse::Error::Rule(expected, found, offset_span(offset, span))
+        }
+        parse::Error::RuleKeyword(expected, keyword, span) => {
+            parse::Error::RuleKeyword(expected, keyword, offset_span(offset, span))
+        }
+        parse::Error::Convert(expected, found, span) => {
+            parse::Error::Convert(expected, found, offset_span(offset, span))
+        }
+    }
+}
+
+fn offset_span(offset: usize, span: Span) -> Span {
+    Span {
+        lo: span.lo + offset,
+        hi: span.hi + offset,
     }
 }

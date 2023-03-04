@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind};
-use crate::lex::{self, Lexer, Token, TokenKind};
+use super::Error;
+use crate::lex::{Lexer, Token, TokenKind};
 use qsc_ast::ast::Span;
 
 pub(super) struct Scanner<'a> {
@@ -20,7 +20,7 @@ impl<'a> Scanner<'a> {
         Self {
             input,
             tokens,
-            errors: errors.iter().map(lex_error).collect(),
+            errors: errors.into_iter().map(Error::Lex).collect(),
             peek: peek.unwrap_or_else(|| eof(input.len())),
             offset: 0,
         }
@@ -38,7 +38,7 @@ impl<'a> Scanner<'a> {
         if self.peek.kind != TokenKind::Eof {
             self.offset = self.peek.span.hi;
             let (peek, errors) = next_ok(&mut self.tokens);
-            self.errors.extend(errors.iter().map(lex_error));
+            self.errors.extend(errors.into_iter().map(Error::Lex));
             self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
         }
     }
@@ -47,13 +47,6 @@ impl<'a> Scanner<'a> {
         Span {
             lo: from,
             hi: self.offset,
-        }
-    }
-
-    pub(super) fn error(&self, kind: ErrorKind) -> Error {
-        Error {
-            kind,
-            span: self.peek.span,
         }
     }
 
@@ -85,11 +78,4 @@ fn next_ok<T, E>(iter: impl Iterator<Item = Result<T, E>>) -> (Option<T>, Vec<E>
     }
 
     (None, errors)
-}
-
-fn lex_error(error: &lex::Error) -> Error {
-    Error {
-        kind: ErrorKind::Lexical(error.message),
-        span: error.span,
-    }
 }

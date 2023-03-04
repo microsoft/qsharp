@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use enum_iterator::Sequence;
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
 pub enum Keyword {
@@ -132,6 +135,12 @@ impl Keyword {
             Self::Within => "within",
             Self::Zero => "Zero",
         }
+    }
+}
+
+impl Display for Keyword {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 mod cooked;
-mod raw;
+pub mod raw;
 
 use enum_iterator::Sequence;
 

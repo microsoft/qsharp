@@ -11,7 +11,7 @@ use super::{
     keyword::Keyword,
     prim::{ident, keyword, opt, pat, path, seq, token},
     scan::Scanner,
-    stmt, ErrorKind, Result,
+    stmt, Error, Result,
 };
 use crate::lex::{ClosedBinOp, Delim, Radix, TokenKind};
 use num_bigint::BigInt;
@@ -149,7 +149,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
     } else if let Some(p) = opt(s, path)? {
         Ok(ExprKind::Path(p))
     } else {
-        Err(s.error(ErrorKind::Rule("expression")))
+        Err(Error::Rule("expression", s.peek().kind, s.peek().span))
     }?;
 
     Ok(Expr {
@@ -205,7 +205,11 @@ fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
             Box::new(rhs),
         ))
     } else {
-        Err(s.error(ErrorKind::Rule("assignment operator")))
+        Err(Error::Rule(
+            "assignment operator",
+            s.peek().kind,
+            s.peek().span,
+        ))
     }
 }
 
@@ -229,12 +233,12 @@ fn lit(s: &mut Scanner) -> Result<Lit> {
         s.advance();
         Ok(lit)
     } else if kind != TokenKind::Ident {
-        Err(s.error(ErrorKind::Rule("literal")))
+        Err(Error::Rule("literal", kind, s.peek().span))
     } else if let Some(lit) = lit_keyword(lexeme) {
         s.advance();
         Ok(lit)
     } else {
-        Err(s.error(ErrorKind::Rule("literal")))
+        Err(Error::Rule("literal", kind, s.peek().span))
     }
 }
 
