@@ -526,7 +526,7 @@ fn unknown_term() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 50, hi: 51 } with candidates [].
+            // NotFound("B", Span { lo: 50, hi: 51 })
         "#]],
     );
 }
@@ -544,7 +544,7 @@ fn unknown_ty() {
                 function _0(_1 : B) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 35, hi: 36 } with candidates [].
+            // NotFound("B", Span { lo: 35, hi: 36 })
         "#]],
     );
 }
@@ -588,7 +588,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [Id(0), Id(1)].
+            // Ambiguous("A", Span { lo: 171, hi: 172 }, Span { lo: 117, hi: 120 }, Span { lo: 131, hi: 134 })
         "#]],
     );
 }
@@ -628,7 +628,7 @@ fn open_ambiguous_tys() {
                 function _2(_3 : A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [Id(0), Id(1)].
+            // Ambiguous("A", Span { lo: 146, hi: 147 }, Span { lo: 107, hi: 110 }, Span { lo: 121, hi: 124 })
         "#]],
     );
 }
@@ -672,7 +672,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Id(0), Id(1)].
+            // Ambiguous("A", Span { lo: 189, hi: 196 }, Span { lo: 117, hi: 120 }, Span { lo: 140, hi: 143 })
         "#]],
     );
 }
@@ -712,7 +712,7 @@ fn merged_aliases_ambiguous_tys() {
                 function _2(_3 : Alias.A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [Id(0), Id(1)].
+            // Ambiguous("A", Span { lo: 164, hi: 171 }, Span { lo: 107, hi: 110 }, Span { lo: 130, hi: 133 })
         "#]],
     );
 }
