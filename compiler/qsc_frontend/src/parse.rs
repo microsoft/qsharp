@@ -22,13 +22,13 @@ use std::result;
 
 pub(super) use keyword::Keyword;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub(super) struct Error {
     pub(super) kind: ErrorKind,
     pub(super) span: Span,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub(super) enum ErrorKind {
     Keyword(Keyword),
     Lexical(&'static str),
