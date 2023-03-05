@@ -141,6 +141,18 @@ fn block_mutable_update_tuple_item_expr() {
 }
 
 #[test]
+fn block_mutable_update_tuple_hole_expr() {
+    check_expression(
+        indoc! {"{
+            mutable (x, y) = (0, 1);
+            set (_, y) = (1, 2);
+            (x, y)
+        }"},
+        &expect!["(0, 2)"],
+    );
+}
+
+#[test]
 fn block_mutable_update_tuple_arity_error_expr() {
     check_expression(
         indoc! {"{
