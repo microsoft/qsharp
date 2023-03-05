@@ -304,6 +304,7 @@ impl<'a> Evaluator<'a> {
                 };
                 Ok(Value::Tuple(vec![]))
             }
+            (ExprKind::Hole, _) => Ok(Value::Tuple(vec![])),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
                 if var_tup.len() == tup.len() {
