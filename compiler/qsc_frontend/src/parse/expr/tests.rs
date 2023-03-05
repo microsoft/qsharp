@@ -717,6 +717,28 @@ fn lit_pauli_z() {
 }
 
 #[test]
+fn hole() {
+    check(
+        expr,
+        "_",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 1,
+                    },
+                    kind: Hole,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn single_path() {
     check(
         expr,
@@ -2258,6 +2280,339 @@ fn set() {
                                         name: "y",
                                     },
                                 },
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn set_hole() {
+    check(
+        expr,
+        "set _ = 1",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 9,
+                    },
+                    kind: Assign(
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 4,
+                                hi: 5,
+                            },
+                            kind: Hole,
+                        },
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 8,
+                                hi: 9,
+                            },
+                            kind: Lit(
+                                Int(
+                                    1,
+                                ),
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn set_hole_tuple() {
+    check(
+        expr,
+        "set (x, _) = (1, 2)",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 19,
+                    },
+                    kind: Assign(
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 4,
+                                hi: 10,
+                            },
+                            kind: Tuple(
+                                [
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 5,
+                                            hi: 6,
+                                        },
+                                        kind: Path(
+                                            Path {
+                                                id: NodeId(
+                                                    4294967295,
+                                                ),
+                                                span: Span {
+                                                    lo: 5,
+                                                    hi: 6,
+                                                },
+                                                namespace: None,
+                                                name: Ident {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 5,
+                                                        hi: 6,
+                                                    },
+                                                    name: "x",
+                                                },
+                                            },
+                                        ),
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 8,
+                                            hi: 9,
+                                        },
+                                        kind: Hole,
+                                    },
+                                ],
+                            ),
+                        },
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 13,
+                                hi: 19,
+                            },
+                            kind: Tuple(
+                                [
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 14,
+                                            hi: 15,
+                                        },
+                                        kind: Lit(
+                                            Int(
+                                                1,
+                                            ),
+                                        ),
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 17,
+                                            hi: 18,
+                                        },
+                                        kind: Lit(
+                                            Int(
+                                                2,
+                                            ),
+                                        ),
+                                    },
+                                ],
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn set_hole_tuple_nested() {
+    check(
+        expr,
+        "set (_, (x, _)) = (1, (2, 3))",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 29,
+                    },
+                    kind: Assign(
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 4,
+                                hi: 15,
+                            },
+                            kind: Tuple(
+                                [
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 5,
+                                            hi: 6,
+                                        },
+                                        kind: Hole,
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 8,
+                                            hi: 14,
+                                        },
+                                        kind: Tuple(
+                                            [
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 9,
+                                                        hi: 10,
+                                                    },
+                                                    kind: Path(
+                                                        Path {
+                                                            id: NodeId(
+                                                                4294967295,
+                                                            ),
+                                                            span: Span {
+                                                                lo: 9,
+                                                                hi: 10,
+                                                            },
+                                                            namespace: None,
+                                                            name: Ident {
+                                                                id: NodeId(
+                                                                    4294967295,
+                                                                ),
+                                                                span: Span {
+                                                                    lo: 9,
+                                                                    hi: 10,
+                                                                },
+                                                                name: "x",
+                                                            },
+                                                        },
+                                                    ),
+                                                },
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 12,
+                                                        hi: 13,
+                                                    },
+                                                    kind: Hole,
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                ],
+                            ),
+                        },
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 18,
+                                hi: 29,
+                            },
+                            kind: Tuple(
+                                [
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 19,
+                                            hi: 20,
+                                        },
+                                        kind: Lit(
+                                            Int(
+                                                1,
+                                            ),
+                                        ),
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 22,
+                                            hi: 28,
+                                        },
+                                        kind: Tuple(
+                                            [
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 23,
+                                                        hi: 24,
+                                                    },
+                                                    kind: Lit(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                },
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 26,
+                                                        hi: 27,
+                                                    },
+                                                    kind: Lit(
+                                                        Int(
+                                                            3,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                ],
                             ),
                         },
                     ),
@@ -9543,6 +9898,239 @@ fn call_with_array() {
                                         ],
                                     ),
                                 },
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn call_partial_app() {
+    check(
+        expr,
+        "Foo(1, _, 3)",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 12,
+                    },
+                    kind: Call(
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 3,
+                            },
+                            kind: Path(
+                                Path {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 0,
+                                        hi: 3,
+                                    },
+                                    namespace: None,
+                                    name: Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 0,
+                                            hi: 3,
+                                        },
+                                        name: "Foo",
+                                    },
+                                },
+                            ),
+                        },
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 3,
+                                hi: 12,
+                            },
+                            kind: Tuple(
+                                [
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 4,
+                                            hi: 5,
+                                        },
+                                        kind: Lit(
+                                            Int(
+                                                1,
+                                            ),
+                                        ),
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 7,
+                                            hi: 8,
+                                        },
+                                        kind: Hole,
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 10,
+                                            hi: 11,
+                                        },
+                                        kind: Lit(
+                                            Int(
+                                                3,
+                                            ),
+                                        ),
+                                    },
+                                ],
+                            ),
+                        },
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn call_partial_app_nested() {
+    check(
+        expr,
+        "Foo(1, _, (_, 4))",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 17,
+                    },
+                    kind: Call(
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 3,
+                            },
+                            kind: Path(
+                                Path {
+                                    id: NodeId(
+                                        4294967295,
+                                    ),
+                                    span: Span {
+                                        lo: 0,
+                                        hi: 3,
+                                    },
+                                    namespace: None,
+                                    name: Ident {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 0,
+                                            hi: 3,
+                                        },
+                                        name: "Foo",
+                                    },
+                                },
+                            ),
+                        },
+                        Expr {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 3,
+                                hi: 17,
+                            },
+                            kind: Tuple(
+                                [
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 4,
+                                            hi: 5,
+                                        },
+                                        kind: Lit(
+                                            Int(
+                                                1,
+                                            ),
+                                        ),
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 7,
+                                            hi: 8,
+                                        },
+                                        kind: Hole,
+                                    },
+                                    Expr {
+                                        id: NodeId(
+                                            4294967295,
+                                        ),
+                                        span: Span {
+                                            lo: 10,
+                                            hi: 16,
+                                        },
+                                        kind: Tuple(
+                                            [
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 11,
+                                                        hi: 12,
+                                                    },
+                                                    kind: Hole,
+                                                },
+                                                Expr {
+                                                    id: NodeId(
+                                                        4294967295,
+                                                    ),
+                                                    span: Span {
+                                                        lo: 14,
+                                                        hi: 15,
+                                                    },
+                                                    kind: Lit(
+                                                        Int(
+                                                            4,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                ],
                             ),
                         },
                     ),
