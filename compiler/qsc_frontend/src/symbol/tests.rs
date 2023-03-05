@@ -729,3 +729,47 @@ fn merged_aliases_ambiguous_tys() {
         "#]],
     );
 }
+
+#[test]
+fn lambda_param() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    let f = x -> x + 1;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Unit {
+                    let _2 = _1 -> _1 + 1;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn lambda_shadows_local() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Int {
+                    let x = 1;
+                    let f = x -> x + 1;
+                    x
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _0() : Int {
+                    let _1 = 1;
+                    let _3 = _2 -> _2 + 1;
+                    _1
+                }
+            }
+        "#]],
+    );
+}

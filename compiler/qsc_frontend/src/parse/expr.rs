@@ -11,12 +11,15 @@ use super::{
     keyword::Keyword,
     prim::{ident, keyword, opt, pat, path, seq, token},
     scan::Scanner,
-    stmt, ErrorKind, Result,
+    stmt, Error, ErrorKind, Result,
 };
 use crate::lex::{ClosedBinOp, Delim, Radix, TokenKind};
 use num_bigint::BigInt;
 use num_traits::Num;
-use qsc_ast::ast::{self, BinOp, Expr, ExprKind, Functor, Lit, NodeId, Pauli, TernOp, UnOp};
+use qsc_ast::ast::{
+    self, BinOp, CallableKind, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, Pauli, TernOp,
+    UnOp,
+};
 use std::{num::Wrapping, str::FromStr};
 
 struct PrefixOp {
@@ -47,6 +50,8 @@ enum OpName {
     Token(TokenKind),
     Keyword(Keyword),
 }
+
+const LAMBDA_PRECEDENCE: u8 = 1;
 
 const RANGE_PRECEDENCE: u8 = 1;
 
@@ -105,10 +110,6 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         let (exprs, final_sep) = seq(s, expr)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(exprs, |e| ExprKind::Paren(Box::new(e)), ExprKind::Tuple))
-    } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
-        let exprs = seq(s, expr)?.0;
-        token(s, TokenKind::Close(Delim::Bracket))?;
-        Ok(ExprKind::Array(exprs))
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         expr_range_prefix(s)
     } else if keyword(s, Keyword::Fail).is_ok() {
@@ -142,6 +143,8 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         keyword(s, Keyword::Apply)?;
         let inner = stmt::block(s)?;
         Ok(ExprKind::Conjugate(outer, inner))
+    } else if let Some(a) = opt(s, expr_array)? {
+        Ok(a)
     } else if let Some(b) = opt(s, stmt::block)? {
         Ok(ExprKind::Block(b))
     } else if let Some(l) = opt(s, lit)? {
@@ -207,6 +210,39 @@ fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
     } else {
         Err(s.error(ErrorKind::Rule("assignment operator")))
     }
+}
+
+fn expr_array(s: &mut Scanner) -> Result<ExprKind> {
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let kind = expr_array_core(s)?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+    Ok(kind)
+}
+
+fn expr_array_core(s: &mut Scanner) -> Result<ExprKind> {
+    let Some(first) = opt(s, expr)? else {
+        return Ok(ExprKind::Array(Vec::new()));
+    };
+
+    if token(s, TokenKind::Comma).is_err() {
+        return Ok(ExprKind::Array(vec![first]));
+    }
+
+    let second = expr(s)?;
+    if is_ident("size", &second.kind) && token(s, TokenKind::Eq).is_ok() {
+        let size = expr(s)?;
+        return Ok(ExprKind::ArrayRepeat(Box::new(first), Box::new(size)));
+    }
+
+    let mut items = vec![first, second];
+    if token(s, TokenKind::Comma).is_ok() {
+        items.append(&mut seq(s, expr)?.0);
+    }
+    Ok(ExprKind::Array(items))
+}
+
+fn is_ident(name: &str, kind: &ExprKind) -> bool {
+    matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name == name)
 }
 
 fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
@@ -329,6 +365,14 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
 #[allow(clippy::too_many_lines)]
 fn mixfix_op(name: OpName) -> Option<MixfixOp> {
     match name {
+        OpName::Token(TokenKind::RArrow) => Some(MixfixOp {
+            kind: OpKind::Rich(|s, input| lambda_op(s, input, CallableKind::Function)),
+            precedence: LAMBDA_PRECEDENCE,
+        }),
+        OpName::Token(TokenKind::FatArrow) => Some(MixfixOp {
+            kind: OpKind::Rich(|s, input| lambda_op(s, input, CallableKind::Operation)),
+            precedence: LAMBDA_PRECEDENCE,
+        }),
         OpName::Token(TokenKind::DotDot) => Some(MixfixOp {
             kind: OpKind::Rich(range_op),
             precedence: RANGE_PRECEDENCE,
@@ -459,6 +503,12 @@ fn closed_bin_op(op: ClosedBinOp) -> BinOp {
     }
 }
 
+fn lambda_op(s: &mut Scanner, input: Expr, kind: CallableKind) -> Result<ExprKind> {
+    let input = expr_as_pat(input)?;
+    let output = expr_op(s, LAMBDA_PRECEDENCE)?;
+    Ok(ExprKind::Lambda(kind, input, Box::new(output)))
+}
+
 fn field_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
     Ok(ExprKind::Field(Box::new(lhs), ident(s)?))
 }
@@ -506,4 +556,27 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
         Assoc::Left => precedence + 1,
         Assoc::Right => precedence,
     }
+}
+
+fn expr_as_pat(expr: Expr) -> Result<Pat> {
+    let kind = match expr.kind {
+        ExprKind::Path(path) if path.namespace.is_none() => Ok(PatKind::Bind(path.name, None)),
+        ExprKind::Hole => Ok(PatKind::Discard(None)),
+        ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
+        ExprKind::Paren(expr) => Ok(PatKind::Paren(Box::new(expr_as_pat(*expr)?))),
+        ExprKind::Tuple(exprs) => {
+            let pats = exprs.into_iter().map(expr_as_pat).collect::<Result<_>>()?;
+            Ok(PatKind::Tuple(pats))
+        }
+        _ => Err(Error {
+            kind: ErrorKind::Rule("pattern"),
+            span: expr.span,
+        }),
+    }?;
+
+    Ok(Pat {
+        id: NodeId::default(),
+        span: expr.span,
+        kind,
+    })
 }
