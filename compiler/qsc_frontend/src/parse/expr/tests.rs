@@ -4899,17 +4899,16 @@ fn array_repeat_no_items() {
         "[size = 3]",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Token(
-                        Close(
-                            Bracket,
-                        ),
+                Token(
+                    Close(
+                        Bracket,
                     ),
-                    span: Span {
+                    Eq,
+                    Span {
                         lo: 6,
                         hi: 7,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -4922,17 +4921,16 @@ fn array_repeat_two_items() {
         "[1, 2, size = 3]",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Token(
-                        Close(
-                            Bracket,
-                        ),
+                Token(
+                    Close(
+                        Bracket,
                     ),
-                    span: Span {
+                    Eq,
+                    Span {
                         lo: 12,
                         hi: 13,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -11596,15 +11594,14 @@ fn lambda_invalid_input() {
         "x + 1 -> x",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "pattern",
-                    ),
-                    span: Span {
+                Convert(
+                    "pattern",
+                    "expression",
+                    Span {
                         lo: 0,
                         hi: 5,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -11617,15 +11614,14 @@ fn lambda_invalid_tuple_input() {
         "(x, y + 1) -> x + y",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "pattern",
-                    ),
-                    span: Span {
+                Convert(
+                    "pattern",
+                    "expression",
+                    Span {
                         lo: 4,
                         hi: 9,
                     },
-                },
+                ),
             )
         "#]],
     );
