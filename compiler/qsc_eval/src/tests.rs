@@ -94,6 +94,76 @@ fn block_let_bind_tuple_arity_error_expr() {
 }
 
 #[test]
+fn block_mutable_expr() {
+    check_expression(
+        indoc! {"{
+            mutable x = 0;
+            x
+        }"},
+        &expect!["0"],
+    );
+}
+
+#[test]
+fn block_mutable_update_expr() {
+    check_expression(
+        indoc! {"{
+            mutable x = 0;
+            set x = 1;
+            x
+        }"},
+        &expect!["1"],
+    );
+}
+
+#[test]
+fn block_mutable_update_tuple_expr() {
+    check_expression(
+        indoc! {"{
+            mutable x = (0, 1);
+            set x = (1, 2);
+            x
+        }"},
+        &expect!["(1, 2)"],
+    );
+}
+
+#[test]
+fn block_mutable_update_tuple_item_expr() {
+    check_expression(
+        indoc! {"{
+            mutable (x, y) = (0, 1);
+            set (x, y) = (1, 2);
+            (x, y)
+        }"},
+        &expect!["(1, 2)"],
+    );
+}
+
+#[test]
+fn block_mutable_update_tuple_arity_error_expr() {
+    check_expression(
+        indoc! {"{
+            mutable (x, y) = (0, 1);
+            set (x, y) = (1, 2, 3);
+            x
+        }"},
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 39,
+                    hi: 45,
+                },
+                kind: TupleArity(
+                    2,
+                    3,
+                ),
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn fail_expr() {
     check_expression(
         r#"fail "This is a failure""#,

@@ -61,11 +61,16 @@ impl<T> WithSpan for Result<T, ConversionError> {
     }
 }
 
+struct Variable {
+    value: Value,
+    mutable: bool,
+}
+
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
     package: &'a Package,
     context: &'a Context,
-    scopes: Vec<HashMap<symbol::Id, Value>>,
+    scopes: Vec<HashMap<symbol::Id, Variable>>,
     globals: HashMap<symbol::Id, &'a CallableDecl>,
 }
 
@@ -102,6 +107,10 @@ impl<'a> Evaluator<'a> {
                     val_arr.push(self.eval_expr(expr)?);
                 }
                 Ok(Value::Array(val_arr))
+            }
+            ExprKind::Assign(lhs, rhs) => {
+                let val = self.eval_expr(rhs)?;
+                self.update_binding(lhs, val)
             }
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Fail(msg) => Err(Error {
@@ -144,7 +153,6 @@ impl<'a> Evaluator<'a> {
                 Ok(Value::Tuple(val_tup))
             }
             ExprKind::ArrayRepeat(_, _)
-            | ExprKind::Assign(_, _)
             | ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _)
             | ExprKind::BinOp(_, _, _)
@@ -202,20 +210,29 @@ impl<'a> Evaluator<'a> {
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Let(pat, expr) => {
                 let val = self.eval_expr(expr)?;
-                self.bind_value(pat, val, expr.span)?;
+                self.bind_value(pat, val, expr.span, false)?;
+                Ok(Value::Tuple(vec![]))
+            }
+            StmtKind::Mutable(pat, expr) => {
+                let val = self.eval_expr(expr)?;
+                self.bind_value(pat, val, expr.span, true)?;
                 Ok(Value::Tuple(vec![]))
             }
             StmtKind::Semi(expr) => {
                 let _ = self.eval_expr(expr)?;
                 Ok(Value::Tuple(vec![]))
             }
-            StmtKind::Borrow(_, _, _) | StmtKind::Mutable(_, _) | StmtKind::Use(_, _, _) => {
-                Error::unimpl(stmt.span)
-            }
+            StmtKind::Borrow(_, _, _) | StmtKind::Use(_, _, _) => Error::unimpl(stmt.span),
         }
     }
 
-    fn bind_value(&mut self, pat: &Pat, val: Value, span: Span) -> Result<(), Error> {
+    fn bind_value(
+        &mut self,
+        pat: &Pat,
+        value: Value,
+        span: Span,
+        mutable: bool,
+    ) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = self.context.symbols().get(variable.id).unwrap_or_else(|| {
@@ -226,19 +243,19 @@ impl<'a> Evaluator<'a> {
                 });
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
                 match scope.entry(id) {
-                    Entry::Vacant(entry) => entry.insert(val),
+                    Entry::Vacant(entry) => entry.insert(Variable { value, mutable }),
                     Entry::Occupied(_) => panic!("{id:?} is already bound"),
                 };
                 Ok(())
             }
             PatKind::Discard(_) => Ok(()),
             PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
-            PatKind::Paren(pat) => self.bind_value(pat, val, span),
+            PatKind::Paren(pat) => self.bind_value(pat, value, span, mutable),
             PatKind::Tuple(tup) => {
-                let val_tup = val.try_into_tuple().with_span(span)?;
+                let val_tup = value.try_into_tuple().with_span(span)?;
                 if val_tup.len() == tup.len() {
                     for (pat, val) in tup.iter().zip(val_tup.into_iter()) {
-                        self.bind_value(pat, val, span)?;
+                        self.bind_value(pat, val, span, mutable)?;
                     }
                     Ok(())
                 } else {
@@ -260,7 +277,49 @@ impl<'a> Evaluator<'a> {
             .rev()
             .find_map(|scope| scope.get(&id))
             .unwrap_or_else(|| panic!("Symbol resolution error: {id:?} is not bound."))
+            .value
             .clone()
+    }
+
+    fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> Result<Value, Error> {
+        match (&lhs.kind, rhs) {
+            (ExprKind::Path(path), rhs) => {
+                let id = self.context.symbols().get(path.id).unwrap_or_else(|| {
+                    panic!("Symbol resolution error: no symbol ID for {:?}", path.id);
+                });
+                let scope = self.scopes.last_mut().expect("Binding requires a scope.");
+                match scope.entry(id) {
+                    Entry::Vacant(_) => panic!("{id:?} is not bound"),
+                    Entry::Occupied(mut entry) => {
+                        let mut variable = entry.get_mut();
+                        if variable.mutable {
+                            variable.value = rhs;
+                        } else {
+                            Err(Error {
+                                span: path.span,
+                                kind: ErrorKind::Type("mutable", "immutable"),
+                            })?;
+                        }
+                    }
+                };
+                Ok(Value::Tuple(vec![]))
+            }
+            (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
+            (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
+                if var_tup.len() == tup.len() {
+                    for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
+                        self.update_binding(expr, val)?;
+                    }
+                    Ok(Value::Tuple(vec![]))
+                } else {
+                    Err(Error {
+                        span: lhs.span,
+                        kind: ErrorKind::TupleArity(var_tup.len(), tup.len()),
+                    })
+                }
+            }
+            _ => panic!("Unexpected assignment syntax"),
+        }
     }
 }
 
