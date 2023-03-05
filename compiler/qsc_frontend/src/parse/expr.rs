@@ -112,6 +112,8 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         Ok(final_sep.reify(exprs, |e| ExprKind::Paren(Box::new(e)), ExprKind::Tuple))
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         expr_range_prefix(s)
+    } else if keyword(s, Keyword::Underscore).is_ok() {
+        Ok(ExprKind::Hole)
     } else if keyword(s, Keyword::Fail).is_ok() {
         Ok(ExprKind::Fail(Box::new(expr(s)?)))
     } else if keyword(s, Keyword::For).is_ok() {
