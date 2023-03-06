@@ -138,17 +138,14 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         visit::walk_stmt(self, stmt);
 
         match &stmt.kind {
-            StmtKind::Borrow(pat, _, _)
-            | StmtKind::Let(pat, _)
-            | StmtKind::Mutable(pat, _)
-            | StmtKind::Use(pat, _, _) => {
+            StmtKind::Local(_, pat, _) | StmtKind::Qubit(_, pat, _, _) => {
                 let env = self
                     .locals
                     .last_mut()
                     .expect("Statement should have an environment.");
                 bind(&mut self.table, env, pat);
             }
-            StmtKind::Expr(_) | StmtKind::Semi(_) => {}
+            StmtKind::Expr(..) | StmtKind::Semi(..) => {}
         }
     }
 
