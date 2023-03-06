@@ -234,7 +234,7 @@ fn assign_invalid_expr() {
                     lo: 4,
                     hi: 5,
                 },
-                kind: Syntax,
+                kind: Unassignable,
             }
         "#]],
     );
