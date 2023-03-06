@@ -66,19 +66,13 @@ impl<T> WithSpan for Result<T, ConversionError> {
 #[derive(Debug)]
 struct Variable {
     value: Value,
-    mutable: Mutability,
+    mutability: Mutability,
 }
 
 impl Variable {
     fn is_mutable(&self) -> bool {
-        self.mutable == Mutability::Mutable
+        self.mutability == Mutability::Mutable
     }
-}
-
-#[derive(Debug, PartialEq, Copy, Clone)]
-enum Mutability {
-    Mutable,
-    Immutable,
 }
 
 #[allow(dead_code)]
@@ -223,21 +217,16 @@ impl<'a> Evaluator<'a> {
     fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
         match &stmt.kind {
             StmtKind::Expr(expr) => self.eval_expr(expr),
-            StmtKind::Local(Mutability::Immutable, pat, expr) => {
+            StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;
-                self.bind_value(pat, val, expr.span, Mutability::Immutable)?;
-                Ok(Value::Tuple(vec![]))
-            }
-            StmtKind::Mutable(pat, expr) => {
-                let val = self.eval_expr(expr)?;
-                self.bind_value(pat, val, expr.span, Mutability::Mutable)?;
+                self.bind_value(pat, val, expr.span, *mutability)?;
                 Ok(Value::Tuple(vec![]))
             }
             StmtKind::Semi(expr) => {
                 let _ = self.eval_expr(expr)?;
                 Ok(Value::Tuple(vec![]))
             }
-            StmtKind::Local(..) | StmtKind::Qubit(..) => Error::unimpl(stmt.span),
+            StmtKind::Qubit(..) => Error::unimpl(stmt.span),
         }
     }
 
@@ -246,7 +235,7 @@ impl<'a> Evaluator<'a> {
         pat: &Pat,
         value: Value,
         span: Span,
-        mutable: Mutability,
+        mutability: Mutability,
     ) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
@@ -258,19 +247,19 @@ impl<'a> Evaluator<'a> {
                 });
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
                 match scope.entry(id) {
-                    Entry::Vacant(entry) => entry.insert(Variable { value, mutable }),
+                    Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("{id:?} is already bound"),
                 };
                 Ok(())
             }
             PatKind::Discard(_) => Ok(()),
             PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
-            PatKind::Paren(pat) => self.bind_value(pat, value, span, mutable),
+            PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
                 let val_tup = value.try_into_tuple().with_span(span)?;
                 if val_tup.len() == tup.len() {
                     for (pat, val) in tup.iter().zip(val_tup.into_iter()) {
-                        self.bind_value(pat, val, span, mutable)?;
+                        self.bind_value(pat, val, span, mutability)?;
                     }
                     Ok(())
                 } else {
