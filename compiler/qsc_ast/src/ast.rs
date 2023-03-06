@@ -40,6 +40,12 @@ impl Default for NodeId {
     }
 }
 
+impl From<NodeId> for u32 {
+    fn from(value: NodeId) -> Self {
+        value.0
+    }
+}
+
 /// A region between two source code positions. Spans are the half-open interval `[lo, hi)`. The
 /// offsets are absolute within an AST, assuming that each file has its own offset.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]

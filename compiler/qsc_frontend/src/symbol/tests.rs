@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind, GlobalTable, Id, Table};
+use super::{DefId, Error, ErrorKind, GlobalTable, Table};
 use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -14,7 +14,7 @@ use std::fmt::{self, Write};
 
 struct Renamer<'a> {
     symbols: &'a Table,
-    changes: Vec<(Span, Id)>,
+    changes: Vec<(Span, DefId)>,
 }
 
 impl<'a> Renamer<'a> {
@@ -27,23 +27,23 @@ impl<'a> Renamer<'a> {
 
     fn rename(&self, input: &mut String) {
         for (span, id) in self.changes.iter().rev() {
-            input.replace_range(span, &format!("_{}", id.0));
+            input.replace_range(span, &format!("_{}_{}", id.package.0, u32::from(id.node)));
         }
     }
 }
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.symbols.nodes.get(&path.id) {
-            self.changes.push((path.span, id));
+        if let Some(def) = self.symbols.get(path.id) {
+            self.changes.push((path.span, def));
         } else {
             visit::walk_path(self, path);
         }
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.symbols.nodes.get(&ident.id) {
-            self.changes.push((ident.span, id));
+        if let Some(def) = self.symbols.get(ident.id) {
+            self.changes.push((ident.span, def));
         }
     }
 }

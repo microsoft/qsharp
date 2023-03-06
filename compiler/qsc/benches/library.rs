@@ -18,6 +18,7 @@ pub fn library(c: &mut Criterion) {
             compile(
                 &[CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR],
                 "",
+                Vec::new(),
             );
         })
     });

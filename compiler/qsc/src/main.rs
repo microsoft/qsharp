@@ -14,5 +14,5 @@ fn main() {
     };
     let expr = args.get(2).map_or_else(|| "", String::as_str);
 
-    println!("{:#?}", compile(&[&input], expr));
+    println!("{:#?}", compile(&[&input], expr, Vec::new()));
 }

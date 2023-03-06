@@ -19,6 +19,7 @@ fn one_file_no_entry() {
             }
         "}],
         "",
+        Vec::new(),
     );
     assert!(context.errors().is_empty(), "{:#?}", context.errors());
     assert!(package.entry.is_none(), "{:#?}", package.entry);
@@ -35,6 +36,7 @@ fn one_file_error() {
             }
         "}],
         "",
+        Vec::new(),
     );
 
     assert_eq!(context.errors().len(), 1, "{:#?}", context.errors());
@@ -63,6 +65,7 @@ fn two_files_dependency() {
             "},
         ],
         "",
+        Vec::new(),
     );
     assert!(context.errors().is_empty(), "{:#?}", context.errors());
 }
@@ -87,6 +90,7 @@ fn two_files_mutual_dependency() {
             "},
         ],
         "",
+        Vec::new(),
     );
     assert!(context.errors().is_empty(), "{:#?}", context.errors());
 }
@@ -109,6 +113,7 @@ fn two_files_error() {
             "},
         ],
         "",
+        Vec::new(),
     );
 
     assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
@@ -128,6 +133,7 @@ fn entry_call_operation() {
                 }
             "}],
         "Foo.A()",
+        Vec::new(),
     );
     assert!(context.errors.is_empty(), "{:#?}", context.errors());
 
@@ -164,6 +170,7 @@ fn entry_error() {
                 }
             "}],
         "Foo.B()",
+        Vec::new(),
     );
 
     assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
@@ -196,6 +203,7 @@ fn replace_node() {
                 }
             }"}],
         "",
+        Vec::new(),
     );
 
     Replacer(context.assigner_mut()).visit_package(&mut package);
