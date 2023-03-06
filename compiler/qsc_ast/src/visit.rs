@@ -172,15 +172,15 @@ pub fn walk_block<'a>(vis: &mut impl Visitor<'a>, block: &'a Block) {
 
 pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
     match &stmt.kind {
-        StmtKind::Borrow(pat, init, block) | StmtKind::Use(pat, init, block) => {
+        StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
+        StmtKind::Local(_, pat, value) => {
+            vis.visit_pat(pat);
+            vis.visit_expr(value);
+        }
+        StmtKind::Qubit(_, pat, init, block) => {
             vis.visit_pat(pat);
             vis.visit_qubit_init(init);
             block.iter().for_each(|b| vis.visit_block(b));
-        }
-        StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
-        StmtKind::Let(pat, value) | StmtKind::Mutable(pat, value) => {
-            vis.visit_pat(pat);
-            vis.visit_expr(value);
         }
     }
 }
