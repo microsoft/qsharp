@@ -77,7 +77,8 @@ impl<'a> Resolver<'a> {
 
     fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
         let mut env = HashMap::new();
-        pat.into_iter().for_each(|p| bind(&mut env, p));
+        pat.into_iter()
+            .for_each(|p| bind(&mut self.table, &mut env, p));
         self.locals.push(env);
         f(self);
         self.locals.pop();
@@ -135,7 +136,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
                     .locals
                     .last_mut()
                     .expect("Statement should have an environment.");
-                bind(env, pat);
+                bind(&mut self.table, env, pat);
             }
             StmtKind::Expr(_) | StmtKind::Semi(_) => {}
         }
@@ -153,7 +154,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 }
 
 pub(super) struct GlobalTable<'a> {
-    symbols: Table,
+    table: Table,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
     package: PackageId,
@@ -163,7 +164,7 @@ pub(super) struct GlobalTable<'a> {
 impl<'a> GlobalTable<'a> {
     pub(super) fn new() -> Self {
         Self {
-            symbols: Table(HashMap::new()),
+            table: Table(HashMap::new()),
             tys: HashMap::new(),
             terms: HashMap::new(),
             package: PackageId(0),
@@ -173,7 +174,7 @@ impl<'a> GlobalTable<'a> {
 
     pub(super) fn into_resolver(self) -> Resolver<'a> {
         Resolver {
-            table: self.symbols,
+            table: self.table,
             global_tys: self.tys,
             global_terms: self.terms,
             opens: HashMap::new(),
@@ -191,24 +192,30 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 
     fn visit_item(&mut self, item: &'a Item) {
-        let def = DefId {
-            package: self.package,
-            node: item.id,
-        };
-
         match &item.kind {
             ItemKind::Ty(name, _) => {
+                let def = DefId {
+                    package: self.package,
+                    node: name.id,
+                };
+
+                self.table.resolves_to(name.id, def);
                 self.tys
                     .entry(self.namespace)
                     .or_default()
                     .insert(&name.name, def);
-
                 self.terms
                     .entry(self.namespace)
                     .or_default()
                     .insert(&name.name, def);
             }
             ItemKind::Callable(decl) => {
+                let def = DefId {
+                    package: self.package,
+                    node: decl.name.id,
+                };
+
+                self.table.resolves_to(decl.name.id, def);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
@@ -219,18 +226,19 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 }
 
-fn bind<'a>(env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
+fn bind<'a>(table: &mut Table, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
             let def = DefId {
                 package: PackageId(0),
                 node: name.id,
             };
+            table.resolves_to(name.id, def);
             env.insert(name.name.as_str(), def);
         }
         PatKind::Discard(_) | PatKind::Elided => {}
-        PatKind::Paren(pat) => bind(env, pat),
-        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(env, p)),
+        PatKind::Paren(pat) => bind(table, env, pat),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(table, env, p)),
     }
 }
 
