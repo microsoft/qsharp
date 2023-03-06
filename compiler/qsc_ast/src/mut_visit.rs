@@ -195,15 +195,15 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
     vis.visit_span(&mut stmt.span);
 
     match &mut stmt.kind {
-        StmtKind::Borrow(pat, init, block) | StmtKind::Use(pat, init, block) => {
+        StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
+        StmtKind::Local(_, pat, value) => {
+            vis.visit_pat(pat);
+            vis.visit_expr(value);
+        }
+        StmtKind::Qubit(_, pat, init, block) => {
             vis.visit_pat(pat);
             vis.visit_qubit_init(init);
             block.iter_mut().for_each(|b| vis.visit_block(b));
-        }
-        StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
-        StmtKind::Let(pat, value) | StmtKind::Mutable(pat, value) => {
-            vis.visit_pat(pat);
-            vis.visit_expr(value);
         }
     }
 }

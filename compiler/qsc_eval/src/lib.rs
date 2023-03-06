@@ -12,8 +12,8 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Package, Pat, PatKind, Span, Stmt,
-    StmtKind,
+    self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Package, Pat, PatKind,
+    Span, Stmt, StmtKind,
 };
 use qsc_frontend::{symbol, Context};
 use val::{ConversionError, Value};
@@ -223,7 +223,7 @@ impl<'a> Evaluator<'a> {
     fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
         match &stmt.kind {
             StmtKind::Expr(expr) => self.eval_expr(expr),
-            StmtKind::Let(pat, expr) => {
+            StmtKind::Local(Mutability::Immutable, pat, expr) => {
                 let val = self.eval_expr(expr)?;
                 self.bind_value(pat, val, expr.span, Mutability::Immutable)?;
                 Ok(Value::Tuple(vec![]))
@@ -237,7 +237,7 @@ impl<'a> Evaluator<'a> {
                 let _ = self.eval_expr(expr)?;
                 Ok(Value::Tuple(vec![]))
             }
-            StmtKind::Borrow(_, _, _) | StmtKind::Use(_, _, _) => Error::unimpl(stmt.span),
+            StmtKind::Local(..) | StmtKind::Qubit(..) => Error::unimpl(stmt.span),
         }
     }
 

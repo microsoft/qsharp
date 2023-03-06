@@ -12,7 +12,9 @@ use super::{
     ErrorKind, Result,
 };
 use crate::lex::{Delim, TokenKind};
-use qsc_ast::ast::{Block, NodeId, QubitInit, QubitInitKind, Stmt, StmtKind};
+use qsc_ast::ast::{
+    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
+};
 
 pub(super) fn block(s: &mut Scanner) -> Result<Block> {
     let lo = s.peek().span.lo;
@@ -49,10 +51,10 @@ pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
 }
 
 fn var_binding(s: &mut Scanner) -> Result<StmtKind> {
-    let mutable = if keyword(s, Keyword::Let).is_ok() {
-        Ok(false)
+    let mutability = if keyword(s, Keyword::Let).is_ok() {
+        Ok(Mutability::Immutable)
     } else if keyword(s, Keyword::Mutable).is_ok() {
-        Ok(true)
+        Ok(Mutability::Mutable)
     } else {
         Err(s.error(ErrorKind::Rule("variable binding")))
     }?;
@@ -61,18 +63,14 @@ fn var_binding(s: &mut Scanner) -> Result<StmtKind> {
     token(s, TokenKind::Eq)?;
     let rhs = expr(s)?;
     token(s, TokenKind::Semi)?;
-    if mutable {
-        Ok(StmtKind::Mutable(lhs, rhs))
-    } else {
-        Ok(StmtKind::Let(lhs, rhs))
-    }
+    Ok(StmtKind::Local(mutability, lhs, rhs))
 }
 
 fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
-    let borrow = if keyword(s, Keyword::Use).is_ok() {
-        Ok(false)
+    let source = if keyword(s, Keyword::Use).is_ok() {
+        Ok(QubitSource::Fresh)
     } else if keyword(s, Keyword::Borrow).is_ok() {
-        Ok(true)
+        Ok(QubitSource::Dirty)
     } else {
         Err(s.error(ErrorKind::Rule("qubit binding")))
     }?;
@@ -85,11 +83,7 @@ fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
         token(s, TokenKind::Semi)?;
     }
 
-    if borrow {
-        Ok(StmtKind::Borrow(lhs, rhs, scope))
-    } else {
-        Ok(StmtKind::Use(lhs, rhs, scope))
-    }
+    Ok(StmtKind::Qubit(source, lhs, rhs, scope))
 }
 
 fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
