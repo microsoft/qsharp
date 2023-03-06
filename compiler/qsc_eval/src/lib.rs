@@ -30,9 +30,9 @@ pub enum ErrorKind {
     Index(i64),
     Mutability,
     OutOfRange(i64),
-    Syntax,
     Type(&'static str, &'static str),
     TupleArity(usize, usize),
+    Unassignable,
     Unimplemented,
     UserFail(String),
 }
@@ -324,7 +324,7 @@ impl<'a> Evaluator<'a> {
             }
             _ => Err(Error {
                 span: lhs.span,
-                kind: ErrorKind::Syntax,
+                kind: ErrorKind::Unassignable,
             }),
         }
     }
