@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use qsc_frontend::compile;
+use qsc_frontend::{compile, PackageStore};
 use std::{env, fs, io, result::Result, string::String};
 
 fn main() {
@@ -14,5 +14,6 @@ fn main() {
     };
     let expr = args.get(2).map_or_else(|| "", String::as_str);
 
-    println!("{:#?}", compile(&[&input], expr, Vec::new()));
+    let package = compile(&PackageStore::new(), &[&input], expr, Vec::new());
+    println!("{package:#?}");
 }

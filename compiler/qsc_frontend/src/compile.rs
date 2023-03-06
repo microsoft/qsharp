@@ -10,17 +10,24 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::Visitor,
 };
+use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct Context<'a> {
+pub struct CompiledPackage {
+    pub package: Package,
+    pub context: Context,
+}
+
+#[derive(Debug)]
+pub struct Context {
     assigner: Assigner,
     symbols: symbol::Table,
     errors: Vec<Error>,
     offsets: Vec<usize>,
-    deps: Vec<&'a Package>,
+    dependencies: Vec<PackageId>,
 }
 
-impl<'a> Context<'a> {
+impl Context {
     pub fn assigner_mut(&mut self) -> &mut Assigner {
         &mut self.assigner
     }
@@ -40,12 +47,12 @@ impl<'a> Context<'a> {
     }
 
     #[must_use]
-    pub fn deps(&self) -> &[&'a Package] {
-        &self.deps
+    pub fn dependencies(&self) -> &[PackageId] {
+        &self.dependencies
     }
 
     #[must_use]
-    pub fn file_span(&self, span: Span) -> (FileId, Span) {
+    pub fn file_span(&self, span: Span) -> (FileIndex, Span) {
         let (index, &offset) = self
             .offsets
             .iter()
@@ -55,7 +62,7 @@ impl<'a> Context<'a> {
             .expect("Span should match at least one offset.");
 
         (
-            FileId(index),
+            FileIndex(index),
             Span {
                 lo: span.lo - offset,
                 hi: span.hi - offset,
@@ -65,7 +72,35 @@ impl<'a> Context<'a> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct FileId(pub usize);
+pub struct FileIndex(pub usize);
+
+#[derive(Default)]
+pub struct PackageStore {
+    packages: HashMap<PackageId, CompiledPackage>,
+    next_id: PackageId,
+}
+
+impl PackageStore {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn insert(&mut self, package: CompiledPackage) -> PackageId {
+        let id = self.next_id;
+        self.next_id = PackageId(id.0 + 1);
+        self.packages.insert(id, package);
+        id
+    }
+
+    #[must_use]
+    pub fn get(&self, id: PackageId) -> Option<&CompiledPackage> {
+        self.packages.get(&id)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct PackageId(u32);
 
 #[allow(dead_code)] // TODO: Format errors for display.
 #[derive(Debug)]
@@ -107,11 +142,12 @@ impl MutVisitor for Offsetter {
     }
 }
 
-pub fn compile<'a>(
+pub fn compile(
+    _store: &PackageStore,
     files: &[&str],
     entry_expr: &str,
-    deps: Vec<&'a Package>,
-) -> (Package, Context<'a>) {
+    dependencies: Vec<PackageId>,
+) -> CompiledPackage {
     let mut namespaces = Vec::new();
     let mut parse_errors = Vec::new();
     let mut offset = 0;
@@ -151,16 +187,16 @@ pub fn compile<'a>(
     errors.extend(parse_errors.into_iter().map(Into::into));
     errors.extend(symbol_errors.into_iter().map(Into::into));
 
-    (
+    CompiledPackage {
         package,
-        Context {
+        context: Context {
             assigner,
             symbols,
             errors,
             offsets,
-            deps,
+            dependencies,
         },
-    )
+    }
 }
 
 fn append_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {

@@ -12,10 +12,9 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Package, Pat, PatKind, Span, Stmt,
-    StmtKind,
+    self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Pat, PatKind, Span, Stmt, StmtKind,
 };
-use qsc_frontend::{symbol::DefId, Context};
+use qsc_frontend::{symbol::DefId, CompiledPackage};
 use val::{ConversionError, Value};
 
 #[derive(Debug)]
@@ -63,18 +62,16 @@ impl<T> WithSpan for Result<T, ConversionError> {
 
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
-    package: &'a Package,
-    context: &'a Context<'a>,
+    package: &'a CompiledPackage,
     scopes: Vec<HashMap<DefId, Value>>,
     globals: HashMap<DefId, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(package: &'a Package, context: &'a Context) -> Self {
+    pub fn new(package: &'a CompiledPackage) -> Self {
         Self {
             package,
-            context,
             scopes: vec![],
             globals: HashMap::default(),
         }
@@ -84,7 +81,7 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.package.entry {
+        if let Some(expr) = &self.package.package.entry {
             self.eval_expr(expr)
         } else {
             Err(Error {
@@ -218,12 +215,17 @@ impl<'a> Evaluator<'a> {
     fn bind_value(&mut self, pat: &Pat, val: Value, span: Span) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self.context.symbols().get(variable.id).unwrap_or_else(|| {
-                    panic!(
-                        "Symbol resolution error: no symbol ID for {:?}",
-                        variable.id
-                    );
-                });
+                let id = self
+                    .package
+                    .context
+                    .symbols()
+                    .get(variable.id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Symbol resolution error: no symbol ID for {:?}",
+                            variable.id
+                        );
+                    });
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
                 match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(val),
@@ -252,7 +254,7 @@ impl<'a> Evaluator<'a> {
     }
 
     fn resolve_binding(&self, id: NodeId) -> Value {
-        let id = self.context.symbols().get(id).unwrap_or_else(|| {
+        let id = self.package.context.symbols().get(id).unwrap_or_else(|| {
             panic!("Symbol resolution error: {id:?} not found in symbol table.");
         });
         self.scopes

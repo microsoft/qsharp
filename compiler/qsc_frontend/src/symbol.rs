@@ -14,11 +14,11 @@ use qsc_ast::{
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct PackageId(u32);
+pub struct PackageIndex(u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DefId {
-    package: PackageId,
+    package: PackageIndex,
     node: NodeId,
 }
 
@@ -157,7 +157,7 @@ pub(super) struct GlobalTable<'a> {
     table: Table,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
-    package: PackageId,
+    package: PackageIndex,
     namespace: &'a str,
 }
 
@@ -167,7 +167,7 @@ impl<'a> GlobalTable<'a> {
             table: Table(HashMap::new()),
             tys: HashMap::new(),
             terms: HashMap::new(),
-            package: PackageId(0),
+            package: PackageIndex(0),
             namespace: "",
         }
     }
@@ -230,7 +230,7 @@ fn bind<'a>(table: &mut Table, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) 
     match &pat.kind {
         PatKind::Bind(name, _) => {
             let def = DefId {
-                package: PackageId(0),
+                package: PackageIndex(0),
                 node: name.id,
             };
             table.resolves_to(name.id, def);

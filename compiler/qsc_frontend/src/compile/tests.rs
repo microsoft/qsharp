@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, FileId};
-use crate::id::Assigner;
+use super::{compile, FileIndex};
+use crate::{compile::PackageStore, id::Assigner};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_ast::{
@@ -12,7 +12,8 @@ use qsc_ast::{
 
 #[test]
 fn one_file_no_entry() {
-    let (package, context) = compile(
+    let package = compile(
+        &PackageStore::new(),
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {}
@@ -21,13 +22,22 @@ fn one_file_no_entry() {
         "",
         Vec::new(),
     );
-    assert!(context.errors().is_empty(), "{:#?}", context.errors());
-    assert!(package.entry.is_none(), "{:#?}", package.entry);
+    assert!(
+        package.context.errors().is_empty(),
+        "{:#?}",
+        package.context.errors()
+    );
+    assert!(
+        package.package.entry.is_none(),
+        "{:#?}",
+        package.package.entry
+    );
 }
 
 #[test]
 fn one_file_error() {
-    let (_, context) = compile(
+    let package = compile(
+        &PackageStore::new(),
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {
@@ -39,17 +49,23 @@ fn one_file_error() {
         Vec::new(),
     );
 
-    assert_eq!(context.errors().len(), 1, "{:#?}", context.errors());
-    let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(0));
+    assert_eq!(
+        package.context.errors().len(),
+        1,
+        "{:#?}",
+        package.context.errors()
+    );
+    let error = &package.context.errors()[0];
+    let (file, span) = package.context.file_span(error.span);
+    assert_eq!(file, FileIndex(0));
     assert_eq!(span.lo, 50);
     assert_eq!(span.hi, 51);
 }
 
 #[test]
 fn two_files_dependency() {
-    let (_, context) = compile(
+    let package = compile(
+        &PackageStore::new(),
         &[
             indoc! {"
                 namespace Foo {
@@ -67,12 +83,17 @@ fn two_files_dependency() {
         "",
         Vec::new(),
     );
-    assert!(context.errors().is_empty(), "{:#?}", context.errors());
+    assert!(
+        package.context.errors().is_empty(),
+        "{:#?}",
+        package.context.errors()
+    );
 }
 
 #[test]
 fn two_files_mutual_dependency() {
-    let (_, context) = compile(
+    let package = compile(
+        &PackageStore::new(),
         &[
             indoc! {"
                 namespace Foo {
@@ -92,12 +113,17 @@ fn two_files_mutual_dependency() {
         "",
         Vec::new(),
     );
-    assert!(context.errors().is_empty(), "{:#?}", context.errors());
+    assert!(
+        package.context.errors().is_empty(),
+        "{:#?}",
+        package.context.errors()
+    );
 }
 
 #[test]
 fn two_files_error() {
-    let (_, context) = compile(
+    let package = compile(
+        &PackageStore::new(),
         &[
             indoc! {"
                 namespace Foo {
@@ -116,17 +142,23 @@ fn two_files_error() {
         Vec::new(),
     );
 
-    assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
-    let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(1));
+    assert_eq!(
+        package.context.errors.len(),
+        1,
+        "{:#?}",
+        package.context.errors()
+    );
+    let error = &package.context.errors()[0];
+    let (file, span) = package.context.file_span(error.span);
+    assert_eq!(file, FileIndex(1));
     assert_eq!(span.lo, 50);
     assert_eq!(span.hi, 51);
 }
 
 #[test]
 fn entry_call_operation() {
-    let (package, context) = compile(
+    let package = compile(
+        &PackageStore::new(),
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
@@ -135,24 +167,30 @@ fn entry_call_operation() {
         "Foo.A()",
         Vec::new(),
     );
-    assert!(context.errors.is_empty(), "{:#?}", context.errors());
+    assert!(
+        package.context.errors.is_empty(),
+        "{:#?}",
+        package.context.errors()
+    );
 
-    let operation = if let ItemKind::Callable(callable) = &package.namespaces[0].items[0].kind {
-        context
-            .symbols
-            .get(callable.name.id)
-            .expect("Callable should have a symbol ID.")
-    } else {
-        panic!("First item should be a callable.")
-    };
+    let operation =
+        if let ItemKind::Callable(callable) = &package.package.namespaces[0].items[0].kind {
+            package
+                .context
+                .symbols
+                .get(callable.name.id)
+                .expect("Callable should have a symbol ID.")
+        } else {
+            panic!("First item should be a callable.")
+        };
 
     if let Some(Expr {
         kind: ExprKind::Call(callee, _),
         ..
-    }) = &package.entry
+    }) = &package.package.entry
     {
         if let ExprKind::Path(Path { id, .. }) = callee.kind {
-            assert_eq!(context.symbols.get(id), Some(operation));
+            assert_eq!(package.context.symbols.get(id), Some(operation));
         } else {
             panic!("Callee should be a path.");
         }
@@ -163,7 +201,8 @@ fn entry_call_operation() {
 
 #[test]
 fn entry_error() {
-    let (_, context) = compile(
+    let package = compile(
+        &PackageStore::new(),
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
@@ -173,10 +212,15 @@ fn entry_error() {
         Vec::new(),
     );
 
-    assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
-    let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(1));
+    assert_eq!(
+        package.context.errors.len(),
+        1,
+        "{:#?}",
+        package.context.errors()
+    );
+    let error = &package.context.errors()[0];
+    let (file, span) = package.context.file_span(error.span);
+    assert_eq!(file, FileIndex(1));
     assert_eq!(span.lo, 0);
     assert_eq!(span.hi, 5);
 }
@@ -195,7 +239,8 @@ fn replace_node() {
         }
     }
 
-    let (mut package, mut context) = compile(
+    let mut package = compile(
+        &PackageStore::new(),
         &[indoc! {"
             namespace Foo {
                 function A() : Int {
@@ -206,12 +251,12 @@ fn replace_node() {
         Vec::new(),
     );
 
-    Replacer(context.assigner_mut()).visit_package(&mut package);
+    Replacer(package.context.assigner_mut()).visit_package(&mut package.package);
 
     let ItemKind::Callable(CallableDecl {
         body: CallableBody::Block(block),
         ..
-    }) = &package.namespaces[0].items[0].kind else {
+    }) = &package.package.namespaces[0].items[0].kind else {
         panic!("Expected callable item.");
     };
 
