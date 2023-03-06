@@ -28,7 +28,9 @@ pub struct Error {
 pub enum ErrorKind {
     EmptyExpr,
     Index(i64),
+    Mutability,
     OutOfRange(i64),
+    Syntax,
     Type(&'static str, &'static str),
     TupleArity(usize, usize),
     Unimplemented,
@@ -61,9 +63,22 @@ impl<T> WithSpan for Result<T, ConversionError> {
     }
 }
 
+#[derive(Debug)]
 struct Variable {
     value: Value,
-    mutable: bool,
+    mutable: Mutability,
+}
+
+impl Variable {
+    fn is_mutable(&self) -> bool {
+        self.mutable == Mutability::Mutable
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+enum Mutability {
+    Mutable,
+    Immutable,
 }
 
 #[allow(dead_code)]
@@ -210,12 +225,12 @@ impl<'a> Evaluator<'a> {
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Let(pat, expr) => {
                 let val = self.eval_expr(expr)?;
-                self.bind_value(pat, val, expr.span, false)?;
+                self.bind_value(pat, val, expr.span, Mutability::Immutable)?;
                 Ok(Value::Tuple(vec![]))
             }
             StmtKind::Mutable(pat, expr) => {
                 let val = self.eval_expr(expr)?;
-                self.bind_value(pat, val, expr.span, true)?;
+                self.bind_value(pat, val, expr.span, Mutability::Mutable)?;
                 Ok(Value::Tuple(vec![]))
             }
             StmtKind::Semi(expr) => {
@@ -231,7 +246,7 @@ impl<'a> Evaluator<'a> {
         pat: &Pat,
         value: Value,
         span: Span,
-        mutable: bool,
+        mutable: Mutability,
     ) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
@@ -287,21 +302,19 @@ impl<'a> Evaluator<'a> {
                 let id = self.context.symbols().get(path.id).unwrap_or_else(|| {
                     panic!("Symbol resolution error: no symbol ID for {:?}", path.id);
                 });
-                let scope = self.scopes.last_mut().expect("Binding requires a scope.");
-                match scope.entry(id) {
-                    Entry::Vacant(_) => panic!("{id:?} is not bound"),
-                    Entry::Occupied(mut entry) => {
-                        let mut variable = entry.get_mut();
-                        if variable.mutable {
-                            variable.value = rhs;
-                        } else {
-                            Err(Error {
-                                span: path.span,
-                                kind: ErrorKind::Type("mutable", "immutable"),
-                            })?;
-                        }
-                    }
-                };
+                let mut variable = self
+                    .scopes
+                    .iter_mut()
+                    .find_map(|scope| scope.get_mut(&id))
+                    .unwrap_or_else(|| panic!("{id:?} is not bound"));
+                if variable.is_mutable() {
+                    variable.value = rhs;
+                } else {
+                    Err(Error {
+                        span: path.span,
+                        kind: ErrorKind::Mutability,
+                    })?;
+                }
                 Ok(Value::Tuple(vec![]))
             }
             (ExprKind::Hole, _) => Ok(Value::Tuple(vec![])),
@@ -319,7 +332,10 @@ impl<'a> Evaluator<'a> {
                     })
                 }
             }
-            _ => panic!("Unexpected assignment syntax"),
+            _ => Err(Error {
+                span: lhs.span,
+                kind: ErrorKind::Syntax,
+            }),
         }
     }
 }

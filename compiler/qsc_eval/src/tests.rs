@@ -176,6 +176,70 @@ fn block_mutable_update_tuple_arity_error_expr() {
 }
 
 #[test]
+fn block_mutable_nested_scopes_expr() {
+    check_expression(
+        indoc! {"{
+            mutable x = 0;
+            {
+                mutable y = 1;
+                set x = y;
+            }
+            x
+        }"},
+        &expect!["1"],
+    );
+}
+
+#[test]
+fn block_mutable_nested_scopes_shadowing_expr() {
+    check_expression(
+        indoc! {"{
+            mutable x = 0;
+            {
+                mutable x = 1;
+                set x = 2;
+            }
+            x
+        }"},
+        &expect!["0"],
+    );
+}
+
+#[test]
+fn block_mutable_immutable_expr() {
+    check_expression(
+        indoc! {"{
+            let x = 0;
+            set x = 1;
+        }"},
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 25,
+                    hi: 26,
+                },
+                kind: Mutability,
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn assign_invalid_expr() {
+    check_expression("set 0 = 1",
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 4,
+                    hi: 5,
+                },
+                kind: Syntax,
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn fail_expr() {
     check_expression(
         r#"fail "This is a failure""#,
