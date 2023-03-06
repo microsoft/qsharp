@@ -18,8 +18,8 @@ pub struct PackageIndex(pub usize);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DefId {
-    package: PackageIndex,
-    node: NodeId,
+    pub package: PackageIndex,
+    pub node: NodeId,
 }
 
 #[derive(Debug)]

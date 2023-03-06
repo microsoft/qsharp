@@ -186,7 +186,7 @@ pub fn compile(
     let mut globals = symbol::GlobalTable::new();
     globals.visit_package(&package);
     for (index, &dependency) in dependencies.iter().enumerate() {
-        globals.set_package(PackageIndex(index));
+        globals.set_package(PackageIndex(index + 1));
         let package = store
             .get(dependency)
             .expect("Dependency should be in package store.");

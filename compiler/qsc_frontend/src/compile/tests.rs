@@ -2,11 +2,15 @@
 // Licensed under the MIT License.
 
 use super::{compile, FileIndex};
-use crate::{compile::PackageStore, id::Assigner};
+use crate::{
+    compile::PackageStore,
+    id::Assigner,
+    symbol::{DefId, PackageIndex},
+};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_ast::{
-    ast::{CallableBody, CallableDecl, Expr, ExprKind, ItemKind, Lit, Path},
+    ast::{CallableBody, CallableDecl, Expr, ExprKind, ItemKind, Lit, Path, StmtKind},
     mut_visit::MutVisitor,
 };
 
@@ -299,4 +303,78 @@ fn replace_node() {
         }
     "#]]
     .assert_debug_eq(&block);
+}
+
+#[test]
+fn package_dependency() {
+    let mut store = PackageStore::new();
+    let package1 = compile(
+        &store,
+        &[indoc! {"
+            namespace Package1 {
+                function Foo() : Int {
+                    1
+                }
+            }"}],
+        "",
+        Vec::new(),
+    );
+
+    let foo_node_id =
+        if let ItemKind::Callable(callable) = &package1.package.namespaces[0].items[0].kind {
+            package1
+                .context
+                .symbols
+                .get(callable.name.id)
+                .expect("Callable should have a symbol ID.")
+                .node
+        } else {
+            panic!("First item should be a callable.")
+        };
+
+    let package1_id = store.insert(package1);
+
+    let package2 = compile(
+        &store,
+        &[indoc! {"
+            namespace Package2 {
+                function Bar() : Int {
+                    Package1.Foo()
+                }
+            }
+        "}],
+        "",
+        vec![package1_id],
+    );
+
+    let foo_ref = if let ItemKind::Callable(CallableDecl {
+        body: CallableBody::Block(block),
+        ..
+    }) = &package2.package.namespaces[0].items[0].kind
+    {
+        match &block.stmts[0].kind {
+            StmtKind::Expr(Expr {
+                kind: ExprKind::Call(callee, _),
+                ..
+            }) => match &callee.kind {
+                ExprKind::Path(path) => package2
+                    .context
+                    .symbols
+                    .get(path.id)
+                    .expect("Symbol should be resolved."),
+                _ => panic!(),
+            },
+            _ => panic!("Statement is not a call expression."),
+        }
+    } else {
+        panic!("Expected callable not found.");
+    };
+
+    assert_eq!(
+        foo_ref,
+        DefId {
+            package: PackageIndex(1),
+            node: foo_node_id
+        }
+    );
 }
