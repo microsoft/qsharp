@@ -294,6 +294,7 @@ impl<'a> Evaluator<'a> {
                 let mut variable = self
                     .scopes
                     .iter_mut()
+                    .rev()
                     .find_map(|scope| scope.get_mut(&id))
                     .unwrap_or_else(|| panic!("{id:?} is not bound"));
                 if variable.is_mutable() {
