@@ -331,18 +331,14 @@ pub struct Stmt {
 /// A statement kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
-    /// A borrowed qubit binding: `borrow a = b;`.
-    Borrow(Pat, QubitInit, Option<Block>),
     /// An expression without a trailing semicolon.
     Expr(Expr),
-    /// A let binding: `let a = b;`.
-    Let(Pat, Expr),
-    /// A mutable binding: `mutable a = b;`.
-    Mutable(Pat, Expr),
+    /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
+    Local(Mutability, Pat, Expr),
+    /// A use or borrow qubit allocation: `use a = b;` or `borrow a = b;`.
+    Qubit(QubitSource, Pat, QubitInit, Option<Block>),
     /// An expression with a trailing semicolon.
     Semi(Expr),
-    /// A fresh qubit binding: `use a = b;`.
-    Use(Pat, QubitInit, Option<Block>),
 }
 
 /// An expression.
@@ -510,6 +506,25 @@ pub enum CallableKind {
     Function,
     /// An operation.
     Operation,
+}
+
+/// The mutability of a binding.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Mutability {
+    /// An immutable binding.
+    Immutable,
+    /// A mutable binding.
+    Mutable,
+}
+
+/// The source of an allocated qubit.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum QubitSource {
+    /// A qubit initialized to the zero state.
+    Fresh,
+    /// A qubit borrowed from another part of the program that may be in any state, and is expected
+    /// to be returned to that state before being released.
+    Dirty,
 }
 
 /// A primitive type.

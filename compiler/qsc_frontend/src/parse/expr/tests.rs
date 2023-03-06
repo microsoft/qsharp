@@ -867,7 +867,8 @@ fn block() {
                                         lo: 2,
                                         hi: 12,
                                     },
-                                    kind: Let(
+                                    kind: Local(
+                                        Immutable,
                                         Pat {
                                             id: NodeId(
                                                 4294967295,
