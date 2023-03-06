@@ -4,7 +4,11 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{id::Assigner, parse, symbol};
+use crate::{
+    id::Assigner,
+    parse,
+    symbol::{self, PackageIndex},
+};
 use qsc_ast::{
     ast::{Package, Span},
     mut_visit::MutVisitor,
@@ -143,7 +147,7 @@ impl MutVisitor for Offsetter {
 }
 
 pub fn compile(
-    _store: &PackageStore,
+    store: &PackageStore,
     files: &[&str],
     entry_expr: &str,
     dependencies: Vec<PackageId>,
@@ -178,8 +182,17 @@ pub fn compile(
     let mut package = Package::new(namespaces, entry);
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
+
     let mut globals = symbol::GlobalTable::new();
     globals.visit_package(&package);
+    for (index, &dependency) in dependencies.iter().enumerate() {
+        globals.set_package(PackageIndex(index));
+        let package = store
+            .get(dependency)
+            .expect("Dependency should be in package store.");
+        globals.visit_package(&package.package);
+    }
+
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
     let (symbols, symbol_errors) = resolver.into_table();

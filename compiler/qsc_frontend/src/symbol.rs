@@ -14,7 +14,7 @@ use qsc_ast::{
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct PackageIndex(u32);
+pub struct PackageIndex(pub usize);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DefId {
@@ -167,6 +167,10 @@ impl<'a> GlobalTable<'a> {
             package: PackageIndex(0),
             namespace: "",
         }
+    }
+
+    pub(super) fn set_package(&mut self, package: PackageIndex) {
+        self.package = package;
     }
 
     pub(super) fn into_resolver(self) -> Resolver<'a> {
