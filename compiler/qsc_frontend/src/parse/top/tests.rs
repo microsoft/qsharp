@@ -1852,7 +1852,8 @@ fn function_single_impl() {
                                                 lo: 30,
                                                 hi: 40,
                                             },
-                                            kind: Let(
+                                            kind: Local(
+                                                Immutable,
                                                 Pat {
                                                     id: NodeId(
                                                         4294967295,

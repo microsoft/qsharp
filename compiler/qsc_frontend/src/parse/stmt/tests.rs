@@ -22,7 +22,8 @@ fn let_stmt() {
                         lo: 0,
                         hi: 10,
                     },
-                    kind: Let(
+                    kind: Local(
+                        Immutable,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -81,7 +82,8 @@ fn let_pat_match() {
                         lo: 0,
                         hi: 22,
                     },
-                    kind: Let(
+                    kind: Local(
+                        Immutable,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -227,7 +229,8 @@ fn mutable_stmt() {
                         lo: 0,
                         hi: 14,
                     },
-                    kind: Mutable(
+                    kind: Local(
+                        Mutable,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -286,7 +289,8 @@ fn use_stmt() {
                         lo: 0,
                         hi: 16,
                     },
-                    kind: Use(
+                    kind: Qubit(
+                        Fresh,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -342,7 +346,8 @@ fn use_qubit_array() {
                         lo: 0,
                         hi: 18,
                     },
-                    kind: Use(
+                    kind: Qubit(
+                        Fresh,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -413,7 +418,8 @@ fn use_pat_match() {
                         lo: 0,
                         hi: 34,
                     },
-                    kind: Use(
+                    kind: Qubit(
+                        Fresh,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -527,7 +533,8 @@ fn use_paren() {
                         lo: 0,
                         hi: 18,
                     },
-                    kind: Use(
+                    kind: Qubit(
+                        Fresh,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -594,7 +601,8 @@ fn use_single_tuple() {
                         lo: 0,
                         hi: 22,
                     },
-                    kind: Use(
+                    kind: Qubit(
+                        Fresh,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -676,7 +684,8 @@ fn borrow_stmt() {
                         lo: 0,
                         hi: 19,
                     },
-                    kind: Borrow(
+                    kind: Qubit(
+                        Dirty,
                         Pat {
                             id: NodeId(
                                 4294967295,
@@ -741,7 +750,8 @@ fn let_in_block() {
                                 lo: 2,
                                 hi: 12,
                             },
-                            kind: Let(
+                            kind: Local(
+                                Immutable,
                                 Pat {
                                     id: NodeId(
                                         4294967295,
@@ -1355,7 +1365,8 @@ fn let_if() {
                                 lo: 2,
                                 hi: 39,
                             },
-                            kind: Let(
+                            kind: Local(
+                                Immutable,
                                 Pat {
                                     id: NodeId(
                                         4294967295,
