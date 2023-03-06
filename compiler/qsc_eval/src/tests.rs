@@ -226,7 +226,8 @@ fn block_mutable_immutable_expr() {
 
 #[test]
 fn assign_invalid_expr() {
-    check_expression("set 0 = 1",
+    check_expression(
+        "set 0 = 1",
         &expect![[r#"
             Error {
                 span: Span {
