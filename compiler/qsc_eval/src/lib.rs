@@ -15,7 +15,7 @@ use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, NodeId, Package, Pat, PatKind, Span, Stmt,
     StmtKind,
 };
-use qsc_frontend::{symbol, Context};
+use qsc_frontend::{symbol::DefId, Context};
 use val::{ConversionError, Value};
 
 #[derive(Debug)]
@@ -64,9 +64,9 @@ impl<T> WithSpan for Result<T, ConversionError> {
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
     package: &'a Package,
-    context: &'a Context,
-    scopes: Vec<HashMap<symbol::Id, Value>>,
-    globals: HashMap<symbol::Id, &'a CallableDecl>,
+    context: &'a Context<'a>,
+    scopes: Vec<HashMap<DefId, Value>>,
+    globals: HashMap<DefId, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
