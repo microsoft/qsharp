@@ -28,7 +28,7 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, id) in self.changes.iter().rev() {
             assert_eq!(id.package, PackageIndex(0));
-            input.replace_range(span, &format!("_{}", u32::from(id.node)));
+            input.replace_range(span, &format!("_{}", id.node));
         }
     }
 }
