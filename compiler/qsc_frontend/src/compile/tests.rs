@@ -2,21 +2,17 @@
 // Licensed under the MIT License.
 
 use super::{compile, FileIndex};
-use crate::{
-    compile::PackageStore,
-    id::Assigner,
-    resolve::{PackageRes, Res},
-};
+use crate::{compile::PackageStore, id::Assigner, resolve::PackageRes};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_ast::{
-    ast::{CallableBody, CallableDecl, Expr, ExprKind, ItemKind, Lit, Path, StmtKind},
+    ast::{CallableBody, Expr, ExprKind, ItemKind, Lit, Span, StmtKind},
     mut_visit::MutVisitor,
 };
 
 #[test]
 fn one_file_no_entry() {
-    let package = compile(
+    let unit = compile(
         &PackageStore::new(),
         &[],
         &[indoc! {"
@@ -26,21 +22,16 @@ fn one_file_no_entry() {
         "}],
         "",
     );
-    assert!(
-        package.context.errors().is_empty(),
-        "{:#?}",
-        package.context.errors()
-    );
-    assert!(
-        package.package.entry.is_none(),
-        "{:#?}",
-        package.package.entry
-    );
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
+    let entry = unit.package.entry.as_ref();
+    assert!(entry.is_none(), "{entry:#?}");
 }
 
 #[test]
 fn one_file_error() {
-    let package = compile(
+    let unit = compile(
         &PackageStore::new(),
         &[],
         &[indoc! {"
@@ -53,22 +44,16 @@ fn one_file_error() {
         "",
     );
 
-    assert_eq!(
-        package.context.errors().len(),
-        1,
-        "{:#?}",
-        package.context.errors()
-    );
-    let error = &package.context.errors()[0];
-    let (file, span) = package.context.file_span(error.span);
+    let errors = unit.context.errors();
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    let (file, span) = unit.context.file_span(errors[0].span);
     assert_eq!(file, FileIndex(0));
-    assert_eq!(span.lo, 50);
-    assert_eq!(span.hi, 51);
+    assert_eq!(span, Span { lo: 50, hi: 51 });
 }
 
 #[test]
 fn two_files_dependency() {
-    let package = compile(
+    let unit = compile(
         &PackageStore::new(),
         &[],
         &[
@@ -87,16 +72,14 @@ fn two_files_dependency() {
         ],
         "",
     );
-    assert!(
-        package.context.errors().is_empty(),
-        "{:#?}",
-        package.context.errors()
-    );
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
 }
 
 #[test]
 fn two_files_mutual_dependency() {
-    let package = compile(
+    let unit = compile(
         &PackageStore::new(),
         &[],
         &[
@@ -117,16 +100,14 @@ fn two_files_mutual_dependency() {
         ],
         "",
     );
-    assert!(
-        package.context.errors().is_empty(),
-        "{:#?}",
-        package.context.errors()
-    );
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
 }
 
 #[test]
 fn two_files_error() {
-    let package = compile(
+    let unit = compile(
         &PackageStore::new(),
         &[],
         &[
@@ -146,22 +127,16 @@ fn two_files_error() {
         "",
     );
 
-    assert_eq!(
-        package.context.errors.len(),
-        1,
-        "{:#?}",
-        package.context.errors()
-    );
-    let error = &package.context.errors()[0];
-    let (file, span) = package.context.file_span(error.span);
+    let errors = unit.context.errors();
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    let (file, span) = unit.context.file_span(errors[0].span);
     assert_eq!(file, FileIndex(1));
-    assert_eq!(span.lo, 50);
-    assert_eq!(span.hi, 51);
+    assert_eq!(span, Span { lo: 50, hi: 51 });
 }
 
 #[test]
 fn entry_call_operation() {
-    let package = compile(
+    let unit = compile(
         &PackageStore::new(),
         &[],
         &[indoc! {"
@@ -171,41 +146,23 @@ fn entry_call_operation() {
             "}],
         "Foo.A()",
     );
-    assert!(
-        package.context.errors.is_empty(),
-        "{:#?}",
-        package.context.errors()
-    );
 
-    let operation =
-        if let ItemKind::Callable(callable) = &package.package.namespaces[0].items[0].kind {
-            package
-                .context
-                .resolutions
-                .get(&callable.name.id)
-                .expect("Callable should resolve.")
-        } else {
-            panic!("First item should be a callable.")
-        };
-
-    if let Some(Expr {
-        kind: ExprKind::Call(callee, _),
-        ..
-    }) = &package.package.entry
-    {
-        if let ExprKind::Path(Path { id, .. }) = callee.kind {
-            assert_eq!(package.context.resolutions.get(&id), Some(operation));
-        } else {
-            panic!("Callee should be a path.");
-        }
-    } else {
-        panic!("Entry should be a call expression.");
-    }
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}",);
+    let resolutions = unit.context.resolutions();
+    let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable item.");
+    };
+    let res = resolutions.get(&callable.name.id).expect("Should resolve.");
+    let entry = unit.package.entry.expect("Should have entry expression.");
+    let ExprKind::Call(callee, _) = entry.kind else { panic!("Expected call.") };
+    let ExprKind::Path(path) = callee.kind else { panic!("Expected path.") };
+    assert_eq!(unit.context.resolutions.get(&path.id), Some(res));
 }
 
 #[test]
 fn entry_error() {
-    let package = compile(
+    let unit = compile(
         &PackageStore::new(),
         &[],
         &[indoc! {"
@@ -216,17 +173,11 @@ fn entry_error() {
         "Foo.B()",
     );
 
-    assert_eq!(
-        package.context.errors.len(),
-        1,
-        "{:#?}",
-        package.context.errors()
-    );
-    let error = &package.context.errors()[0];
-    let (file, span) = package.context.file_span(error.span);
+    let errors = unit.context.errors();
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    let (file, span) = unit.context.file_span(errors[0].span);
     assert_eq!(file, FileIndex(1));
-    assert_eq!(span.lo, 0);
-    assert_eq!(span.hi, 5);
+    assert_eq!(span, Span { lo: 0, hi: 5 });
 }
 
 #[test]
@@ -243,7 +194,7 @@ fn replace_node() {
         }
     }
 
-    let mut package = compile(
+    let mut unit = compile(
         &PackageStore::new(),
         &[],
         &[indoc! {"
@@ -255,14 +206,11 @@ fn replace_node() {
         "",
     );
 
-    Replacer(package.context.assigner_mut()).visit_package(&mut package.package);
-
-    let ItemKind::Callable(CallableDecl {
-        body: CallableBody::Block(block),
-        ..
-    }) = &package.package.namespaces[0].items[0].kind else {
-        panic!("Expected callable item.");
+    Replacer(unit.context.assigner_mut()).visit_package(&mut unit.package);
+    let ItemKind::Callable(callable)= &unit.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable.");
     };
+    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
 
     expect![[r#"
         Block {
@@ -308,7 +256,7 @@ fn replace_node() {
 #[test]
 fn package_dependency() {
     let mut store = PackageStore::new();
-    let package1 = compile(
+    let unit1 = compile(
         &store,
         &[],
         &[indoc! {"
@@ -320,22 +268,16 @@ fn package_dependency() {
         "",
     );
 
-    let foo_node_id =
-        if let ItemKind::Callable(callable) = &package1.package.namespaces[0].items[0].kind {
-            package1
-                .context
-                .resolutions
-                .get(&callable.name.id)
-                .expect("Callable should resolve.")
-                .node
-        } else {
-            panic!("First item should be a callable.")
-        };
+    let foo = if let ItemKind::Callable(foo) = &unit1.package.namespaces[0].items[0].kind {
+        foo.name.id
+    } else {
+        panic!("Expected callable.");
+    };
 
-    let package1_id = store.insert(package1);
-    let package2 = compile(
+    let package1 = store.insert(unit1);
+    let unit2 = compile(
         &store,
-        &[package1_id],
+        &[package1],
         &[indoc! {"
             namespace Package2 {
                 function Bar() : Int {
@@ -346,42 +288,23 @@ fn package_dependency() {
         "",
     );
 
-    let &foo_ref = if let ItemKind::Callable(CallableDecl {
-        body: CallableBody::Block(block),
-        ..
-    }) = &package2.package.namespaces[0].items[0].kind
-    {
-        match &block.stmts[0].kind {
-            StmtKind::Expr(Expr {
-                kind: ExprKind::Call(callee, _),
-                ..
-            }) => match &callee.kind {
-                ExprKind::Path(path) => package2
-                    .context
-                    .resolutions
-                    .get(&path.id)
-                    .expect("Path should resolve."),
-                _ => panic!("Expression is not a path."),
-            },
-            _ => panic!("Statement is not a call expression."),
-        }
-    } else {
-        panic!("Expected callable not found.");
+    let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable.");
     };
-
-    assert_eq!(
-        foo_ref,
-        Res {
-            package: PackageRes::Extern(package1_id),
-            node: foo_node_id
-        }
-    );
+    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("Expected expression.") };
+    let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
+    let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
+    let resolutions = unit2.context.resolutions();
+    let res = resolutions.get(&path.id).expect("Should resolve.");
+    assert_eq!(res.package, PackageRes::Extern(package1));
+    assert_eq!(res.node, foo);
 }
 
 #[test]
 fn package_dependency_internal() {
     let mut store = PackageStore::new();
-    let package1 = compile(
+    let unit1 = compile(
         &store,
         &[],
         &[indoc! {"
@@ -392,10 +315,11 @@ fn package_dependency_internal() {
             }"}],
         "",
     );
-    let package1_id = store.insert(package1);
-    let package2 = compile(
+
+    let package1 = store.insert(unit1);
+    let unit2 = compile(
         &store,
-        &[package1_id],
+        &[package1],
         &[indoc! {"
             namespace Package2 {
                 function Bar() : Int {
@@ -406,25 +330,12 @@ fn package_dependency_internal() {
         "",
     );
 
-    if let ItemKind::Callable(CallableDecl {
-        body: CallableBody::Block(block),
-        ..
-    }) = &package2.package.namespaces[0].items[0].kind
-    {
-        match &block.stmts[0].kind {
-            StmtKind::Expr(Expr {
-                kind: ExprKind::Call(callee, _),
-                ..
-            }) => match &callee.kind {
-                ExprKind::Path(path) => assert!(
-                    package2.context.resolutions.get(&path.id).is_none(),
-                    "Path resolved to internal function."
-                ),
-                _ => panic!("Expression is not a path."),
-            },
-            _ => panic!("Statement is not a call expression."),
-        }
-    } else {
-        panic!("Expected callable not found.");
+    let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable.");
     };
+    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("Expected expression.") };
+    let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
+    let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
+    assert!(unit2.context.resolutions.get(&path.id).is_none());
 }
