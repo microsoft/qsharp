@@ -62,8 +62,8 @@ fn check(input: &str, expect: &Expect) {
     globals.visit_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
-    let (symbols, errors) = resolver.into_resolutions();
-    let mut renamer = Renamer::new(&symbols);
+    let (resolutions, errors) = resolver.into_resolutions();
+    let mut renamer = Renamer::new(&resolutions);
     renamer.visit_package(&package);
     let mut output = input.to_string();
     renamer.rename(&mut output);
@@ -83,7 +83,7 @@ fn check(input: &str, expect: &Expect) {
 
 fn write_error(mut buffer: impl Write, error: &Error) -> fmt::Result {
     let ErrorKind::Unresolved(candidates) = &error.kind;
-    let mut candidates: Vec<_> = candidates.iter().collect();
+    let mut candidates: Vec<_> = candidates.iter().map(|r| (r.package, r.node)).collect();
     candidates.sort();
     write!(
         buffer,
@@ -629,7 +629,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [Res { package: Local, node: NodeId(5) }, Res { package: Local, node: NodeId(13) }].
+            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [(Local, NodeId(5)), (Local, NodeId(13))].
         "#]],
     );
 }
@@ -669,7 +669,7 @@ fn open_ambiguous_tys() {
                 function _21(_24 : A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [Res { package: Local, node: NodeId(4) }, Res { package: Local, node: NodeId(10) }].
+            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [(Local, NodeId(4)), (Local, NodeId(10))].
         "#]],
     );
 }
@@ -713,7 +713,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Res { package: Local, node: NodeId(5) }, Res { package: Local, node: NodeId(13) }].
+            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [(Local, NodeId(5)), (Local, NodeId(13))].
         "#]],
     );
 }
@@ -753,7 +753,7 @@ fn merged_aliases_ambiguous_tys() {
                 function _23(_26 : Alias.A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [Res { package: Local, node: NodeId(4) }, Res { package: Local, node: NodeId(10) }].
+            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [(Local, NodeId(4)), (Local, NodeId(10))].
         "#]],
     );
 }
