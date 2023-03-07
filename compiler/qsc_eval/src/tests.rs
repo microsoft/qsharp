@@ -81,16 +81,16 @@ fn block_let_bind_tuple_arity_error_expr() {
             let (x, y, z) = (0, 1);
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            Error(
+                Span {
                     lo: 10,
                     hi: 19,
                 },
-                kind: TupleArity(
+                TupleArity(
                     3,
                     2,
                 ),
-            }
+            )
         "#]],
     );
 }
@@ -163,16 +163,16 @@ fn block_mutable_update_tuple_arity_error_expr() {
             x
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            Error(
+                Span {
                     lo: 39,
                     hi: 45,
                 },
-                kind: TupleArity(
+                TupleArity(
                     2,
                     3,
                 ),
-            }
+            )
         "#]],
     );
 }
@@ -215,13 +215,13 @@ fn block_mutable_immutable_expr() {
             set x = 1;
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            Error(
+                Span {
                     lo: 25,
                     hi: 26,
                 },
-                kind: Mutability,
-            }
+                Mutability,
+            )
         "#]],
     );
 }
@@ -231,13 +231,13 @@ fn assign_invalid_expr() {
     check_expression(
         "set 0 = 1",
         &expect![[r#"
-            Error {
-                span: Span {
+            Error(
+                Span {
                     lo: 4,
                     hi: 5,
                 },
-                kind: Unassignable,
-            }
+                Unassignable,
+            )
         "#]],
     );
 }
@@ -247,15 +247,9 @@ fn fail_expr() {
     check_expression(
         r#"fail "This is a failure""#,
         &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 0,
-                    hi: 24,
-                },
-                kind: UserFail(
-                    "This is a failure",
-                ),
-            }
+            UserFail(
+                "This is a failure",
+            )
         "#]],
     );
 }
@@ -265,15 +259,9 @@ fn fail_shortcut_expr() {
     check_expression(
         r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
         &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 2,
-                    hi: 18,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
+            UserFail(
+                "Got Here!",
+            )
         "#]],
     );
 }
@@ -288,15 +276,15 @@ fn array_index_out_of_range_expr() {
     check_expression(
         "[1, 2, 3][4]",
         &expect![[r#"
-            Error {
-                span: Span {
+            Error(
+                Span {
                     lo: 10,
                     hi: 11,
                 },
-                kind: OutOfRange(
+                OutOfRange(
                     4,
                 ),
-            }
+            )
         "#]],
     );
 }
@@ -306,17 +294,17 @@ fn array_index_type_error_expr() {
     check_expression(
         "[1, 2, 3][false]",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 10,
-                hi: 15,
-            },
-            kind: Type(
-                "Int",
-                "Bool",
-            ),
-        }
-    "#]],
+            Error(
+                Span {
+                    lo: 10,
+                    hi: 15,
+                },
+                Type(
+                    "Int",
+                    "Bool",
+                ),
+            )
+        "#]],
     );
 }
 
@@ -446,15 +434,9 @@ fn if_true_expr() {
     check_expression(
         r#"if true {fail "Got Here!";}"#,
         &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 9,
-                    hi: 25,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
+            UserFail(
+                "Got Here!",
+            )
         "#]],
     );
 }
@@ -472,150 +454,65 @@ fn if_type_error_expr() {
     check_expression(
         "if 4 { 3 }",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 3,
-                hi: 4,
-            },
-            kind: Type(
-                "Bool",
-                "Int",
-            ),
-        }
-    "#]],
+            Error(
+                Span {
+                    lo: 3,
+                    hi: 4,
+                },
+                Type(
+                    "Bool",
+                    "Int",
+                ),
+            )
+        "#]],
     );
 }
 
 #[test]
 fn if_else_true_expr() {
-    check_expression(
-        r#"if true {fail "Got Here!";} else {fail "Shouldn't get here..."}"#,
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 9,
-                    hi: 25,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
-        "#]],
-    );
+    check_expression(r#"if true {One} else {Zero}"#, &expect!["One"]);
 }
 
 #[test]
 fn if_else_false_expr() {
-    check_expression(
-        r#"if false {fail "Shouldn't get here...";} else {fail "Got Here!"}"#,
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 47,
-                    hi: 63,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
-        "#]],
-    );
+    check_expression(r#"if false {Zero} else {One}"#, &expect!["One"]);
 }
 
 #[test]
 fn if_elif_true_true_expr() {
-    check_expression(
-        r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."}"#,
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 9,
-                    hi: 25,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
-        "#]],
-    );
+    check_expression(r#"if true {One} elif true {Zero}"#, &expect!["One"]);
 }
 
 #[test]
 fn if_elif_false_true_expr() {
-    check_expression(
-        r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"}"#,
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 52,
-                    hi: 68,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
-        "#]],
-    );
+    check_expression(r#"if false {Zero} elif true {One}"#, &expect!["One"]);
 }
 
 #[test]
 fn if_elif_false_false_expr() {
-    check_expression(
-        r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."}"#,
-        &expect!["()"],
-    );
+    check_expression(r#"if false {Zero} elif false {Zero}"#, &expect!["()"]);
 }
 
 #[test]
 fn if_elif_else_true_true_expr() {
     check_expression(
-        r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."} else {fail "Shouldn't get here..."}"#,
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 9,
-                    hi: 25,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
-        "#]],
+        r#"if true {One} elif true {Zero} else {Zero}"#,
+        &expect!["One"],
     );
 }
 
 #[test]
 fn if_elif_else_false_true_expr() {
     check_expression(
-        r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"} else {fail "Shouldn't get here..."}"#,
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 52,
-                    hi: 68,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
-        "#]],
+        r#"if false {Zero} elif true {One} else {Zero}"#,
+        &expect!["One"],
     );
 }
 
 #[test]
 fn if_elif_else_false_false_expr() {
     check_expression(
-        r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."} else {fail "Got Here!"}"#,
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 89,
-                    hi: 105,
-                },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
-        "#]],
+        r#"if false {Zero} elif false {Zero} else {One}"#,
+        &expect!["One"],
     );
 }
