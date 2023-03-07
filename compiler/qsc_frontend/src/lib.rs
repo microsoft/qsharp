@@ -7,6 +7,6 @@ mod compile;
 pub mod id;
 mod lex;
 mod parse;
-pub mod symbol;
+pub mod resolve;
 
 pub use compile::{compile, CompiledPackage, Context, Error, FileIndex, PackageStore};

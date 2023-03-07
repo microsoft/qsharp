@@ -4,7 +4,11 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{id::Assigner, parse, symbol};
+use crate::{
+    id::Assigner,
+    parse,
+    resolve::{self, GlobalTable, ResTable},
+};
 use qsc_ast::{
     ast::{Package, Span},
     mut_visit::MutVisitor,
@@ -24,7 +28,7 @@ pub struct CompiledPackage {
 #[derive(Debug)]
 pub struct Context {
     assigner: Assigner,
-    symbols: symbol::Table,
+    resolutions: ResTable,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
@@ -35,12 +39,12 @@ impl Context {
     }
 
     #[must_use]
-    pub fn symbols(&self) -> &symbol::Table {
-        &self.symbols
+    pub fn resolutions(&self) -> &ResTable {
+        &self.resolutions
     }
 
-    pub fn symbols_mut(&mut self) -> &mut symbol::Table {
-        &mut self.symbols
+    pub fn resolutions_mut(&mut self) -> &mut ResTable {
+        &mut self.resolutions
     }
 
     #[must_use]
@@ -121,11 +125,11 @@ impl From<parse::Error> for Error {
     }
 }
 
-impl From<symbol::Error> for Error {
-    fn from(value: symbol::Error) -> Self {
+impl From<resolve::Error> for Error {
+    fn from(value: resolve::Error) -> Self {
         Self {
             span: value.span,
-            kind: ErrorKind::Symbol(value.kind),
+            kind: ErrorKind::Resolve(value.kind),
         }
     }
 }
@@ -133,7 +137,7 @@ impl From<symbol::Error> for Error {
 #[derive(Debug)]
 enum ErrorKind {
     Parse(parse::ErrorKind),
-    Symbol(symbol::ErrorKind),
+    Resolve(resolve::ErrorKind),
 }
 
 struct Offsetter(usize);
@@ -182,7 +186,7 @@ pub fn compile(
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
 
-    let mut globals = symbol::GlobalTable::new();
+    let mut globals = GlobalTable::new();
     globals.visit_package(&package);
     for &dependency in dependencies {
         globals.set_package(dependency);
@@ -194,16 +198,16 @@ pub fn compile(
 
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
-    let (symbols, symbol_errors) = resolver.into_table();
+    let (resolutions, resolve_errors) = resolver.into_table();
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(Into::into));
-    errors.extend(symbol_errors.into_iter().map(Into::into));
+    errors.extend(resolve_errors.into_iter().map(Into::into));
 
     CompiledPackage {
         package,
         context: Context {
             assigner,
-            symbols,
+            resolutions,
             errors,
             offsets,
         },

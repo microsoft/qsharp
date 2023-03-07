@@ -15,15 +15,15 @@ use qsc_ast::{
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct DefId {
-    pub package: PackageLink,
+pub struct Res {
+    pub package: PackageRes,
     pub node: NodeId,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum PackageLink {
+pub enum PackageRes {
     Local,
-    External(PackageId),
+    Extern(PackageId),
 }
 
 #[derive(Debug)]
@@ -34,34 +34,34 @@ pub(super) struct Error {
 
 #[derive(Debug)]
 pub(super) enum ErrorKind {
-    Unresolved(HashSet<DefId>),
+    Unresolved(HashSet<Res>),
 }
 
 #[derive(Debug)]
-pub struct Table(HashMap<NodeId, DefId>);
+pub struct ResTable(HashMap<NodeId, Res>);
 
-impl Table {
+impl ResTable {
     #[must_use]
-    pub fn get(&self, node: NodeId) -> Option<DefId> {
+    pub fn get(&self, node: NodeId) -> Option<Res> {
         self.0.get(&node).copied()
     }
 
-    pub fn resolves_to(&mut self, node: NodeId, def: DefId) {
-        self.0.insert(node, def);
+    pub fn resolves_to(&mut self, node: NodeId, res: Res) {
+        self.0.insert(node, res);
     }
 }
 
 pub(super) struct Resolver<'a> {
-    table: Table,
-    global_tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
-    global_terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    table: ResTable,
+    global_tys: HashMap<&'a str, HashMap<&'a str, Res>>,
+    global_terms: HashMap<&'a str, HashMap<&'a str, Res>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
-    locals: Vec<HashMap<&'a str, DefId>>,
+    locals: Vec<HashMap<&'a str, Res>>,
     errors: Vec<Error>,
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn into_table(self) -> (Table, Vec<Error>) {
+    pub(super) fn into_table(self) -> (ResTable, Vec<Error>) {
         (self.table, self.errors)
     }
 
@@ -155,26 +155,26 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 }
 
 pub(super) struct GlobalTable<'a> {
-    table: Table,
-    tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
-    terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
-    package: PackageLink,
+    table: ResTable,
+    tys: HashMap<&'a str, HashMap<&'a str, Res>>,
+    terms: HashMap<&'a str, HashMap<&'a str, Res>>,
+    package: PackageRes,
     namespace: &'a str,
 }
 
 impl<'a> GlobalTable<'a> {
     pub(super) fn new() -> Self {
         Self {
-            table: Table(HashMap::new()),
+            table: ResTable(HashMap::new()),
             tys: HashMap::new(),
             terms: HashMap::new(),
-            package: PackageLink::Local,
+            package: PackageRes::Local,
             namespace: "",
         }
     }
 
     pub(super) fn set_package(&mut self, package: PackageId) {
-        self.package = PackageLink::External(package);
+        self.package = PackageRes::Extern(package);
     }
 
     pub(super) fn into_resolver(self) -> Resolver<'a> {
@@ -198,53 +198,53 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 
     fn visit_item(&mut self, item: &'a Item) {
         let visibility = item.meta.visibility.map(|v| v.kind);
-        if self.package != PackageLink::Local && visibility == Some(VisibilityKind::Internal) {
+        if self.package != PackageRes::Local && visibility == Some(VisibilityKind::Internal) {
             return;
         }
 
         match &item.kind {
             ItemKind::Ty(name, _) => {
-                let def = DefId {
+                let res = Res {
                     package: self.package,
                     node: name.id,
                 };
 
-                self.table.resolves_to(name.id, def);
+                self.table.resolves_to(name.id, res);
                 self.tys
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, def);
+                    .insert(&name.name, res);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, def);
+                    .insert(&name.name, res);
             }
             ItemKind::Callable(decl) => {
-                let def = DefId {
+                let res = Res {
                     package: self.package,
                     node: decl.name.id,
                 };
 
-                self.table.resolves_to(decl.name.id, def);
+                self.table.resolves_to(decl.name.id, res);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&decl.name.name, def);
+                    .insert(&decl.name.name, res);
             }
             ItemKind::Open(..) => {}
         }
     }
 }
 
-fn bind<'a>(table: &mut Table, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
+fn bind<'a>(table: &mut ResTable, env: &mut HashMap<&'a str, Res>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
-            let def = DefId {
-                package: PackageLink::Local,
+            let res = Res {
+                package: PackageRes::Local,
                 node: name.id,
             };
-            table.resolves_to(name.id, def);
-            env.insert(name.name.as_str(), def);
+            table.resolves_to(name.id, res);
+            env.insert(name.name.as_str(), res);
         }
         PatKind::Discard(_) | PatKind::Elided => {}
         PatKind::Paren(pat) => bind(table, env, pat),
@@ -253,11 +253,11 @@ fn bind<'a>(table: &mut Table, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) 
 }
 
 fn resolve(
-    globals: &HashMap<&str, HashMap<&str, DefId>>,
+    globals: &HashMap<&str, HashMap<&str, Res>>,
     opens: &HashMap<&str, HashSet<&str>>,
-    locals: &[HashMap<&str, DefId>],
+    locals: &[HashMap<&str, Res>],
     path: &Path,
-) -> Result<DefId, Error> {
+) -> Result<Res, Error> {
     if path.namespace.is_none() {
         for env in locals.iter().rev() {
             if let Some(&id) = env.get(path.name.name.as_str()) {

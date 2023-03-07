@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{DefId, Error, ErrorKind, GlobalTable, Table};
-use crate::{id, parse, symbol::PackageLink};
+use super::{Error, ErrorKind, GlobalTable, PackageRes, Res, ResTable};
+use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -13,14 +13,14 @@ use qsc_ast::{
 use std::fmt::{self, Write};
 
 struct Renamer<'a> {
-    symbols: &'a Table,
-    changes: Vec<(Span, DefId)>,
+    resolutions: &'a ResTable,
+    changes: Vec<(Span, Res)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(symbols: &'a Table) -> Self {
+    fn new(resolutions: &'a ResTable) -> Self {
         Self {
-            symbols,
+            resolutions,
             changes: Vec::new(),
         }
     }
@@ -28,8 +28,8 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, id) in self.changes.iter().rev() {
             let name = match id.package {
-                PackageLink::Local => format!("_{}", id.node),
-                PackageLink::External(package) => format!("_{package}_{}", id.node),
+                PackageRes::Local => format!("_{}", id.node),
+                PackageRes::Extern(package) => format!("_{package}_{}", id.node),
             };
             input.replace_range(span, &name);
         }
@@ -38,16 +38,16 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(def) = self.symbols.get(path.id) {
-            self.changes.push((path.span, def));
+        if let Some(res) = self.resolutions.get(path.id) {
+            self.changes.push((path.span, res));
         } else {
             visit::walk_path(self, path);
         }
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(def) = self.symbols.get(ident.id) {
-            self.changes.push((ident.span, def));
+        if let Some(res) = self.resolutions.get(ident.id) {
+            self.changes.push((ident.span, res));
         }
     }
 }
@@ -629,7 +629,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [DefId { package: Local, node: NodeId(5) }, DefId { package: Local, node: NodeId(13) }].
+            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [Res { package: Local, node: NodeId(5) }, Res { package: Local, node: NodeId(13) }].
         "#]],
     );
 }
@@ -669,7 +669,7 @@ fn open_ambiguous_tys() {
                 function _21(_24 : A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [DefId { package: Local, node: NodeId(4) }, DefId { package: Local, node: NodeId(10) }].
+            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [Res { package: Local, node: NodeId(4) }, Res { package: Local, node: NodeId(10) }].
         "#]],
     );
 }
@@ -713,7 +713,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [DefId { package: Local, node: NodeId(5) }, DefId { package: Local, node: NodeId(13) }].
+            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Res { package: Local, node: NodeId(5) }, Res { package: Local, node: NodeId(13) }].
         "#]],
     );
 }
@@ -753,7 +753,7 @@ fn merged_aliases_ambiguous_tys() {
                 function _23(_26 : Alias.A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [DefId { package: Local, node: NodeId(4) }, DefId { package: Local, node: NodeId(10) }].
+            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [Res { package: Local, node: NodeId(4) }, Res { package: Local, node: NodeId(10) }].
         "#]],
     );
 }

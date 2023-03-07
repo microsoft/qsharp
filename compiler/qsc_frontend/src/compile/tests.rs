@@ -5,7 +5,7 @@ use super::{compile, FileIndex};
 use crate::{
     compile::PackageStore,
     id::Assigner,
-    symbol::{DefId, PackageLink},
+    resolve::{PackageRes, Res},
 };
 use expect_test::expect;
 use indoc::indoc;
@@ -181,9 +181,9 @@ fn entry_call_operation() {
         if let ItemKind::Callable(callable) = &package.package.namespaces[0].items[0].kind {
             package
                 .context
-                .symbols
+                .resolutions
                 .get(callable.name.id)
-                .expect("Callable should have a symbol ID.")
+                .expect("Callable should resolve.")
         } else {
             panic!("First item should be a callable.")
         };
@@ -194,7 +194,7 @@ fn entry_call_operation() {
     }) = &package.package.entry
     {
         if let ExprKind::Path(Path { id, .. }) = callee.kind {
-            assert_eq!(package.context.symbols.get(id), Some(operation));
+            assert_eq!(package.context.resolutions.get(id), Some(operation));
         } else {
             panic!("Callee should be a path.");
         }
@@ -324,9 +324,9 @@ fn package_dependency() {
         if let ItemKind::Callable(callable) = &package1.package.namespaces[0].items[0].kind {
             package1
                 .context
-                .symbols
+                .resolutions
                 .get(callable.name.id)
-                .expect("Callable should have a symbol ID.")
+                .expect("Callable should resolve.")
                 .node
         } else {
             panic!("First item should be a callable.")
@@ -358,9 +358,9 @@ fn package_dependency() {
             }) => match &callee.kind {
                 ExprKind::Path(path) => package2
                     .context
-                    .symbols
+                    .resolutions
                     .get(path.id)
-                    .expect("Symbol should be resolved."),
+                    .expect("Path should resolve."),
                 _ => panic!("Expression is not a path."),
             },
             _ => panic!("Statement is not a call expression."),
@@ -371,8 +371,8 @@ fn package_dependency() {
 
     assert_eq!(
         foo_ref,
-        DefId {
-            package: PackageLink::External(package1_id),
+        Res {
+            package: PackageRes::Extern(package1_id),
             node: foo_node_id
         }
     );
@@ -417,8 +417,8 @@ fn package_dependency_internal() {
                 ..
             }) => match &callee.kind {
                 ExprKind::Path(path) => assert!(
-                    package2.context.symbols.get(path.id).is_none(),
-                    "Symbol resolved to internal function."
+                    package2.context.resolutions.get(path.id).is_none(),
+                    "Path resolved to internal function."
                 ),
                 _ => panic!("Expression is not a path."),
             },

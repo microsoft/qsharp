@@ -15,7 +15,7 @@ use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind, Span, Stmt,
     StmtKind,
 };
-use qsc_frontend::{symbol::DefId, CompiledPackage};
+use qsc_frontend::{resolve::Res, CompiledPackage};
 use val::{ConversionError, Value};
 
 #[derive(Debug)]
@@ -78,8 +78,8 @@ impl Variable {
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
     package: &'a CompiledPackage,
-    scopes: Vec<HashMap<DefId, Variable>>,
-    globals: HashMap<DefId, &'a CallableDecl>,
+    scopes: Vec<HashMap<Res, Variable>>,
+    globals: HashMap<Res, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
@@ -240,13 +240,10 @@ impl<'a> Evaluator<'a> {
                 let id = self
                     .package
                     .context
-                    .symbols()
+                    .resolutions()
                     .get(variable.id)
                     .unwrap_or_else(|| {
-                        panic!(
-                            "Symbol resolution error: no symbol ID for {:?}",
-                            variable.id
-                        );
+                        panic!("{:?} is not resolved", variable.id);
                     });
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
                 match scope.entry(id) {
@@ -276,9 +273,14 @@ impl<'a> Evaluator<'a> {
     }
 
     fn resolve_binding(&self, id: NodeId) -> Value {
-        let id = self.package.context.symbols().get(id).unwrap_or_else(|| {
-            panic!("Symbol resolution error: {id:?} not found in symbol table.");
-        });
+        let id = self
+            .package
+            .context
+            .resolutions()
+            .get(id)
+            .unwrap_or_else(|| {
+                panic!("{id:?} is not resolved");
+            });
         self.scopes
             .iter()
             .rev()
@@ -294,7 +296,7 @@ impl<'a> Evaluator<'a> {
                 let id = self
                     .package
                     .context
-                    .symbols()
+                    .resolutions()
                     .get(path.id)
                     .unwrap_or_else(|| {
                         panic!("Symbol resolution error: no symbol ID for {:?}", path.id);
