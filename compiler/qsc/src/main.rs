@@ -13,7 +13,6 @@ fn main() {
         Some(path) => fs::read_to_string(path).unwrap(),
     };
     let expr = args.get(2).map_or_else(|| "", String::as_str);
-
-    let package = compile(&PackageStore::new(), &[], &[&input], expr);
-    println!("{package:#?}");
+    let unit = compile(&PackageStore::new(), &[], &[&input], expr);
+    println!("{unit:#?}");
 }
