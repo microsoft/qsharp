@@ -5,7 +5,7 @@ use super::{compile, FileIndex};
 use crate::{
     compile::PackageStore,
     id::Assigner,
-    symbol::{DefId, PackageIndex},
+    symbol::{DefId, PackageLink},
 };
 use expect_test::expect;
 use indoc::indoc;
@@ -24,7 +24,7 @@ fn one_file_no_entry() {
             }
         "}],
         "",
-        Vec::new(),
+        &[],
     );
     assert!(
         package.context.errors().is_empty(),
@@ -50,7 +50,7 @@ fn one_file_error() {
             }
         "}],
         "",
-        Vec::new(),
+        &[],
     );
 
     assert_eq!(
@@ -85,7 +85,7 @@ fn two_files_dependency() {
             "},
         ],
         "",
-        Vec::new(),
+        &[],
     );
     assert!(
         package.context.errors().is_empty(),
@@ -115,7 +115,7 @@ fn two_files_mutual_dependency() {
             "},
         ],
         "",
-        Vec::new(),
+        &[],
     );
     assert!(
         package.context.errors().is_empty(),
@@ -143,7 +143,7 @@ fn two_files_error() {
             "},
         ],
         "",
-        Vec::new(),
+        &[],
     );
 
     assert_eq!(
@@ -169,7 +169,7 @@ fn entry_call_operation() {
                 }
             "}],
         "Foo.A()",
-        Vec::new(),
+        &[],
     );
     assert!(
         package.context.errors.is_empty(),
@@ -213,7 +213,7 @@ fn entry_error() {
                 }
             "}],
         "Foo.B()",
-        Vec::new(),
+        &[],
     );
 
     assert_eq!(
@@ -252,7 +252,7 @@ fn replace_node() {
                 }
             }"}],
         "",
-        Vec::new(),
+        &[],
     );
 
     Replacer(package.context.assigner_mut()).visit_package(&mut package.package);
@@ -317,7 +317,7 @@ fn package_dependency() {
                 }
             }"}],
         "",
-        Vec::new(),
+        &[],
     );
 
     let foo_node_id =
@@ -344,7 +344,7 @@ fn package_dependency() {
             }
         "}],
         "",
-        vec![package1_id],
+        &[package1_id],
     );
 
     let foo_ref = if let ItemKind::Callable(CallableDecl {
@@ -373,7 +373,7 @@ fn package_dependency() {
     assert_eq!(
         foo_ref,
         DefId {
-            package: PackageIndex(1),
+            package: PackageLink::External(package1_id),
             node: foo_node_id
         }
     );

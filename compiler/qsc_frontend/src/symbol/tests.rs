@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{DefId, Error, ErrorKind, GlobalTable, Table};
-use crate::{id, parse, symbol::PackageIndex};
+use crate::{id, parse, symbol::PackageLink};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -27,8 +27,11 @@ impl<'a> Renamer<'a> {
 
     fn rename(&self, input: &mut String) {
         for (span, id) in self.changes.iter().rev() {
-            assert_eq!(id.package, PackageIndex(0));
-            input.replace_range(span, &format!("_{}", id.node));
+            let name = match id.package {
+                PackageLink::Local => format!("_{}", id.node),
+                PackageLink::External(package) => format!("_{package}_{}", id.node),
+            };
+            input.replace_range(span, &name);
         }
     }
 }
@@ -602,7 +605,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [DefId { package: PackageIndex(0), node: NodeId(5) }, DefId { package: PackageIndex(0), node: NodeId(13) }].
+            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [DefId { package: Local, node: NodeId(5) }, DefId { package: Local, node: NodeId(13) }].
         "#]],
     );
 }
@@ -642,7 +645,7 @@ fn open_ambiguous_tys() {
                 function _21(_24 : A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [DefId { package: PackageIndex(0), node: NodeId(4) }, DefId { package: PackageIndex(0), node: NodeId(10) }].
+            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [DefId { package: Local, node: NodeId(4) }, DefId { package: Local, node: NodeId(10) }].
         "#]],
     );
 }
@@ -686,7 +689,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [DefId { package: PackageIndex(0), node: NodeId(5) }, DefId { package: PackageIndex(0), node: NodeId(13) }].
+            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [DefId { package: Local, node: NodeId(5) }, DefId { package: Local, node: NodeId(13) }].
         "#]],
     );
 }
@@ -726,7 +729,7 @@ fn merged_aliases_ambiguous_tys() {
                 function _23(_26 : Alias.A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [DefId { package: PackageIndex(0), node: NodeId(4) }, DefId { package: PackageIndex(0), node: NodeId(10) }].
+            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [DefId { package: Local, node: NodeId(4) }, DefId { package: Local, node: NodeId(10) }].
         "#]],
     );
 }

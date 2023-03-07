@@ -4,17 +4,16 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{
-    id::Assigner,
-    parse,
-    symbol::{self, PackageIndex},
-};
+use crate::{id::Assigner, parse, symbol};
 use qsc_ast::{
     ast::{Package, Span},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+};
 
 #[derive(Debug)]
 pub struct CompiledPackage {
@@ -28,7 +27,6 @@ pub struct Context {
     symbols: symbol::Table,
     errors: Vec<Error>,
     offsets: Vec<usize>,
-    dependencies: Vec<PackageId>,
 }
 
 impl Context {
@@ -48,11 +46,6 @@ impl Context {
     #[must_use]
     pub fn errors(&self) -> &[Error] {
         &self.errors
-    }
-
-    #[must_use]
-    pub fn dependencies(&self) -> &[PackageId] {
-        &self.dependencies
     }
 
     #[must_use]
@@ -103,8 +96,14 @@ impl PackageStore {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageId(u32);
+
+impl Display for PackageId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 #[allow(dead_code)] // TODO: Format errors for display.
 #[derive(Debug)]
@@ -150,7 +149,7 @@ pub fn compile(
     store: &PackageStore,
     files: &[&str],
     entry_expr: &str,
-    dependencies: Vec<PackageId>,
+    dependencies: &[PackageId],
 ) -> CompiledPackage {
     let mut namespaces = Vec::new();
     let mut parse_errors = Vec::new();
@@ -185,8 +184,8 @@ pub fn compile(
 
     let mut globals = symbol::GlobalTable::new();
     globals.visit_package(&package);
-    for (index, &dependency) in dependencies.iter().enumerate() {
-        globals.set_package(PackageIndex(index + 1));
+    for &dependency in dependencies {
+        globals.set_package(dependency);
         let package = store
             .get(dependency)
             .expect("Dependency should be in package store.");
@@ -207,7 +206,6 @@ pub fn compile(
             symbols,
             errors,
             offsets,
-            dependencies,
         },
     }
 }

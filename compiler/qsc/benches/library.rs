@@ -19,7 +19,7 @@ pub fn library(c: &mut Criterion) {
                 &PackageStore::new(),
                 &[CANON, CORE, DIAGNOSTICS, INTERNAL, INTRINSIC, MATH, QIR],
                 "",
-                Vec::new(),
+                &[],
             );
         })
     });

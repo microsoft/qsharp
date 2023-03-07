@@ -14,6 +14,6 @@ fn main() {
     };
     let expr = args.get(2).map_or_else(|| "", String::as_str);
 
-    let package = compile(&PackageStore::new(), &[&input], expr, Vec::new());
+    let package = compile(&PackageStore::new(), &[&input], expr, &[]);
     println!("{package:#?}");
 }

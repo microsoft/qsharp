@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::compile::PackageId;
 use qsc_ast::{
     ast::{
         Block, CallableDecl, Expr, ExprKind, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
@@ -14,12 +15,15 @@ use qsc_ast::{
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct PackageIndex(pub usize);
+pub struct DefId {
+    pub package: PackageLink,
+    pub node: NodeId,
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct DefId {
-    pub package: PackageIndex,
-    pub node: NodeId,
+pub enum PackageLink {
+    Local,
+    External(PackageId),
 }
 
 #[derive(Debug)]
@@ -154,7 +158,7 @@ pub(super) struct GlobalTable<'a> {
     table: Table,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
-    package: PackageIndex,
+    package: PackageLink,
     namespace: &'a str,
 }
 
@@ -164,13 +168,13 @@ impl<'a> GlobalTable<'a> {
             table: Table(HashMap::new()),
             tys: HashMap::new(),
             terms: HashMap::new(),
-            package: PackageIndex(0),
+            package: PackageLink::Local,
             namespace: "",
         }
     }
 
-    pub(super) fn set_package(&mut self, package: PackageIndex) {
-        self.package = package;
+    pub(super) fn set_package(&mut self, package: PackageId) {
+        self.package = PackageLink::External(package);
     }
 
     pub(super) fn into_resolver(self) -> Resolver<'a> {
@@ -231,7 +235,7 @@ fn bind<'a>(table: &mut Table, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) 
     match &pat.kind {
         PatKind::Bind(name, _) => {
             let def = DefId {
-                package: PackageIndex(0),
+                package: PackageLink::Local,
                 node: name.id,
             };
             table.resolves_to(name.id, def);
