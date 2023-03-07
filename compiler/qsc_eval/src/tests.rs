@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::ops::ControlFlow;
+
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
@@ -11,8 +13,8 @@ fn check_expression(expr: &str, expect: &Expect) {
     assert!(context.errors().is_empty());
     let mut eval = Evaluator::new(&package, &context);
     match eval.run() {
-        Ok(result) => expect.assert_eq(&result.to_string()),
-        Err(e) => expect.assert_debug_eq(&e),
+        ControlFlow::Continue(result) => expect.assert_eq(&result.to_string()),
+        ControlFlow::Break(e) => expect.assert_debug_eq(&e),
     }
 }
 
