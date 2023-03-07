@@ -12,10 +12,13 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind, Span, Stmt,
-    StmtKind,
+    self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Package, Pat, PatKind,
+    Span, Stmt, StmtKind,
 };
-use qsc_frontend::{compile::CompileUnit, resolve::Res};
+use qsc_frontend::{
+    compile::{CompileUnit, Context},
+    resolve::Res,
+};
 use val::{ConversionError, Value};
 
 #[derive(Debug)]
@@ -77,7 +80,8 @@ impl Variable {
 
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
-    unit: &'a CompileUnit,
+    package: &'a Package,
+    context: &'a Context,
     scopes: Vec<HashMap<Res, Variable>>,
     globals: HashMap<Res, &'a CallableDecl>,
 }
@@ -86,7 +90,8 @@ impl<'a> Evaluator<'a> {
     #[must_use]
     pub fn new(unit: &'a CompileUnit) -> Self {
         Self {
-            unit,
+            package: &unit.package,
+            context: &unit.context,
             scopes: vec![],
             globals: HashMap::default(),
         }
@@ -96,7 +101,7 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.unit.package.entry {
+        if let Some(expr) = &self.package.entry {
             self.eval_expr(expr)
         } else {
             Err(Error {
@@ -238,13 +243,11 @@ impl<'a> Evaluator<'a> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = self
-                    .unit
                     .context
                     .resolutions()
                     .get(variable.id)
-                    .unwrap_or_else(|| {
-                        panic!("{:?} is not resolved", variable.id);
-                    });
+                    .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id));
+
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
                 match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
@@ -273,14 +276,17 @@ impl<'a> Evaluator<'a> {
     }
 
     fn resolve_binding(&self, id: NodeId) -> Value {
-        let id = self.unit.context.resolutions().get(id).unwrap_or_else(|| {
-            panic!("{id:?} is not resolved");
-        });
+        let id = self
+            .context
+            .resolutions()
+            .get(id)
+            .unwrap_or_else(|| panic!("{id:?} is not resolved"));
+
         self.scopes
             .iter()
             .rev()
             .find_map(|scope| scope.get(&id))
-            .unwrap_or_else(|| panic!("Symbol resolution error: {id:?} is not bound."))
+            .unwrap_or_else(|| panic!("{id:?} is not bound."))
             .value
             .clone()
     }
@@ -289,28 +295,27 @@ impl<'a> Evaluator<'a> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
                 let id = self
-                    .unit
                     .context
                     .resolutions()
                     .get(path.id)
-                    .unwrap_or_else(|| {
-                        panic!("Symbol resolution error: no symbol ID for {:?}", path.id);
-                    });
+                    .unwrap_or_else(|| panic!("{:?} is not resolved", path.id));
+
                 let mut variable = self
                     .scopes
                     .iter_mut()
                     .rev()
                     .find_map(|scope| scope.get_mut(&id))
                     .unwrap_or_else(|| panic!("{id:?} is not bound"));
+
                 if variable.is_mutable() {
                     variable.value = rhs;
+                    Ok(Value::Tuple(vec![]))
                 } else {
                     Err(Error {
                         span: path.span,
                         kind: ErrorKind::Mutability,
-                    })?;
+                    })
                 }
-                Ok(Value::Tuple(vec![]))
             }
             (ExprKind::Hole, _) => Ok(Value::Tuple(vec![])),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
