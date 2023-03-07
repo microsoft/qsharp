@@ -137,6 +137,30 @@ fn global_callable_recursive() {
 }
 
 #[test]
+fn global_callable_internal() {
+    check(
+        indoc! {"
+            namespace Foo {
+                internal function A() : Unit {}
+
+                function B() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                internal function _5() : Unit {}
+
+                function _11() : Unit {
+                    _5();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn global_path() {
     check(
         indoc! {"

@@ -333,7 +333,6 @@ fn package_dependency() {
         };
 
     let package1_id = store.insert(package1);
-
     let package2 = compile(
         &store,
         &[indoc! {"
@@ -362,7 +361,7 @@ fn package_dependency() {
                     .symbols
                     .get(path.id)
                     .expect("Symbol should be resolved."),
-                _ => panic!(),
+                _ => panic!("Expression is not a path."),
             },
             _ => panic!("Statement is not a call expression."),
         }
@@ -377,4 +376,55 @@ fn package_dependency() {
             node: foo_node_id
         }
     );
+}
+
+#[test]
+fn package_dependency_internal() {
+    let mut store = PackageStore::new();
+    let package1 = compile(
+        &store,
+        &[indoc! {"
+            namespace Package1 {
+                internal function Foo() : Int {
+                    1
+                }
+            }"}],
+        "",
+        &[],
+    );
+    let package1_id = store.insert(package1);
+    let package2 = compile(
+        &store,
+        &[indoc! {"
+            namespace Package2 {
+                function Bar() : Int {
+                    Package1.Foo()
+                }
+            }
+        "}],
+        "",
+        &[package1_id],
+    );
+
+    if let ItemKind::Callable(CallableDecl {
+        body: CallableBody::Block(block),
+        ..
+    }) = &package2.package.namespaces[0].items[0].kind
+    {
+        match &block.stmts[0].kind {
+            StmtKind::Expr(Expr {
+                kind: ExprKind::Call(callee, _),
+                ..
+            }) => match &callee.kind {
+                ExprKind::Path(path) => assert!(
+                    package2.context.symbols.get(path.id).is_none(),
+                    "Symbol resolved to internal function."
+                ),
+                _ => panic!("Expression is not a path."),
+            },
+            _ => panic!("Statement is not a call expression."),
+        }
+    } else {
+        panic!("Expected callable not found.");
+    };
 }

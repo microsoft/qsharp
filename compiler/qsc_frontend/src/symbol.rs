@@ -8,7 +8,7 @@ use crate::compile::PackageId;
 use qsc_ast::{
     ast::{
         Block, CallableDecl, Expr, ExprKind, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
-        Span, SpecBody, SpecDecl, Stmt, StmtKind, Ty, TyKind,
+        Span, SpecBody, SpecDecl, Stmt, StmtKind, Ty, TyKind, VisibilityKind,
     },
     visit::{self, Visitor},
 };
@@ -197,6 +197,11 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 
     fn visit_item(&mut self, item: &'a Item) {
+        let visibility = item.meta.visibility.map(|v| v.kind);
+        if self.package != PackageLink::Local && visibility == Some(VisibilityKind::Internal) {
+            return;
+        }
+
         match &item.kind {
             ItemKind::Ty(name, _) => {
                 let def = DefId {
