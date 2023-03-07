@@ -156,50 +156,10 @@ pub fn compile(
     files: &[&str],
     entry_expr: &str,
 ) -> CompileUnit {
-    let mut namespaces = Vec::new();
-    let mut parse_errors = Vec::new();
-    let mut offset = 0;
-    let mut offsets = Vec::new();
-
-    for file in files {
-        let (file_namespaces, errors) = parse::namespaces(file);
-        for mut namespace in file_namespaces {
-            Offsetter(offset).visit_namespace(&mut namespace);
-            namespaces.push(namespace);
-        }
-
-        append_errors(&mut parse_errors, offset, errors);
-        offsets.push(offset);
-        offset += file.len();
-    }
-
-    let entry = if entry_expr.is_empty() {
-        None
-    } else {
-        let (mut entry, errors) = parse::expr(entry_expr);
-        Offsetter(offset).visit_expr(&mut entry);
-        append_errors(&mut parse_errors, offset, errors);
-        offsets.push(offset);
-        Some(entry)
-    };
-
-    let mut package = Package::new(namespaces, entry);
+    let (mut package, parse_errors, offsets) = parse_all(files, entry_expr);
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
-
-    let mut globals = GlobalTable::new();
-    globals.visit_package(&package);
-    for &dependency in dependencies {
-        globals.set_package(dependency);
-        let package = store
-            .get(dependency)
-            .expect("Dependency should be in package store.");
-        globals.visit_package(&package.package);
-    }
-
-    let mut resolver = globals.into_resolver();
-    resolver.visit_package(&package);
-    let (resolutions, resolve_errors) = resolver.into_resolutions();
+    let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(Into::into));
     errors.extend(resolve_errors.into_iter().map(Into::into));
@@ -213,6 +173,58 @@ pub fn compile(
             offsets,
         },
     }
+}
+
+fn parse_all(files: &[&str], entry_expr: &str) -> (Package, Vec<parse::Error>, Vec<usize>) {
+    let mut namespaces = Vec::new();
+    let mut errors = Vec::new();
+    let mut offsets = Vec::new();
+    let mut offset = 0;
+
+    for file in files {
+        let (file_namespaces, file_errors) = parse::namespaces(file);
+        for mut namespace in file_namespaces {
+            Offsetter(offset).visit_namespace(&mut namespace);
+            namespaces.push(namespace);
+        }
+
+        append_errors(&mut errors, offset, file_errors);
+        offsets.push(offset);
+        offset += file.len();
+    }
+
+    let entry = if entry_expr.is_empty() {
+        None
+    } else {
+        let (mut entry, entry_errors) = parse::expr(entry_expr);
+        Offsetter(offset).visit_expr(&mut entry);
+        append_errors(&mut errors, offset, entry_errors);
+        offsets.push(offset);
+        Some(entry)
+    };
+
+    (Package::new(namespaces, entry), errors, offsets)
+}
+
+fn resolve_all<'a>(
+    store: &'a PackageStore,
+    dependencies: &[PackageId],
+    package: &'a Package,
+) -> (Resolutions, Vec<resolve::Error>) {
+    let mut globals = GlobalTable::new();
+    globals.visit_package(package);
+
+    for &dependency in dependencies {
+        globals.set_package(dependency);
+        let unit = store
+            .get(dependency)
+            .expect("Dependency should be in package store.");
+        globals.visit_package(&unit.package);
+    }
+
+    let mut resolver = globals.into_resolver();
+    resolver.visit_package(package);
+    resolver.into_resolutions()
 }
 
 fn append_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {
