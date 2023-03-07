@@ -263,14 +263,14 @@ fn resolve(
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let name = path.name.name.as_str();
     let mut candidates = HashSet::new();
-    if let Some(&def) = globals.get(namespace).and_then(|n| n.get(name)) {
-        candidates.insert(def);
+    if let Some(&res) = globals.get(namespace).and_then(|n| n.get(name)) {
+        candidates.insert(res);
     }
 
     if let Some(namespaces) = opens.get(namespace) {
         for namespace in namespaces {
-            if let Some(&def) = globals.get(namespace).and_then(|n| n.get(name)) {
-                candidates.insert(def);
+            if let Some(&res) = globals.get(namespace).and_then(|n| n.get(name)) {
+                candidates.insert(res);
             }
         }
     }

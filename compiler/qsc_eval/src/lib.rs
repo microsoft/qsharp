@@ -286,7 +286,7 @@ impl<'a> Evaluator<'a> {
             .iter()
             .rev()
             .find_map(|scope| scope.get(key))
-            .unwrap_or_else(|| panic!("{id:?} is not bound."))
+            .unwrap_or_else(|| panic!("{key:?} is not bound."))
             .value
             .clone()
     }
