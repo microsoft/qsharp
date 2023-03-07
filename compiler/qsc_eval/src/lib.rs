@@ -15,7 +15,7 @@ use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind, Span, Stmt,
     StmtKind,
 };
-use qsc_frontend::{resolve::Res, CompileUnit};
+use qsc_frontend::{compile::CompileUnit, resolve::Res};
 use val::{ConversionError, Value};
 
 #[derive(Debug)]

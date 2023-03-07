@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use qsc_frontend::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore};
 
 const CANON: &str = include_str!("../../../library/canon.qs");
 const CORE: &str = include_str!("../../../library/core.qs");

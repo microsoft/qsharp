@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use qsc_frontend::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore};
 use std::{env, fs, io, result::Result, string::String};
 
 fn main() {

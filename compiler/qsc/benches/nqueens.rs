@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use qsc_frontend::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore};
 
 const INPUT: &str = include_str!("./nqueens.qs");
 
