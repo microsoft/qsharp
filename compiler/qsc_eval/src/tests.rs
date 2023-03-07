@@ -470,49 +470,92 @@ fn if_type_error_expr() {
 
 #[test]
 fn if_else_true_expr() {
-    check_expression(r#"if true {One} else {Zero}"#, &expect!["One"]);
+    check_expression(
+        r#"if true {fail "Got Here!";} else {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            UserFail(
+                "Got Here!",
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn if_else_false_expr() {
-    check_expression(r#"if false {Zero} else {One}"#, &expect!["One"]);
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} else {fail "Got Here!"}"#,
+        &expect![[r#"
+            UserFail(
+                "Got Here!",
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn if_elif_true_true_expr() {
-    check_expression(r#"if true {One} elif true {Zero}"#, &expect!["One"]);
+    check_expression(
+        r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            UserFail(
+                "Got Here!",
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn if_elif_false_true_expr() {
-    check_expression(r#"if false {Zero} elif true {One}"#, &expect!["One"]);
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"}"#,
+        &expect![[r#"
+            UserFail(
+                "Got Here!",
+            )
+        "#]],
+    );
 }
 
 #[test]
 fn if_elif_false_false_expr() {
-    check_expression(r#"if false {Zero} elif false {Zero}"#, &expect!["()"]);
+    check_expression(
+        r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."}"#,
+        &expect!["()"],
+    );
 }
 
 #[test]
 fn if_elif_else_true_true_expr() {
     check_expression(
-        r#"if true {One} elif true {Zero} else {Zero}"#,
-        &expect!["One"],
+        r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."} else {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            UserFail(
+                "Got Here!",
+            )
+        "#]],
     );
 }
 
 #[test]
 fn if_elif_else_false_true_expr() {
     check_expression(
-        r#"if false {Zero} elif true {One} else {Zero}"#,
-        &expect!["One"],
+        r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"} else {fail "Shouldn't get here..."}"#,
+        &expect![[r#"
+            UserFail(
+                "Got Here!",
+            )
+        "#]],
     );
 }
 
 #[test]
 fn if_elif_else_false_false_expr() {
     check_expression(
-        r#"if false {Zero} elif false {Zero} else {One}"#,
-        &expect!["One"],
+        r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."} else {fail "Got Here!"}"#,
+        &expect![[r#"
+            UserFail(
+                "Got Here!",
+            )
+        "#]],
     );
 }
