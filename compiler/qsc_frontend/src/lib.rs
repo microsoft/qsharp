@@ -9,4 +9,4 @@ mod lex;
 mod parse;
 pub mod resolve;
 
-pub use compile::{compile, CompiledPackage, Context, Error, FileIndex, PackageStore};
+pub use compile::{compile, CompileUnit, Context, Error, FileIndex, PackageStore};

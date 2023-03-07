@@ -18,13 +18,13 @@ use qsc_ast::{
 fn one_file_no_entry() {
     let package = compile(
         &PackageStore::new(),
+        &[],
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {}
             }
         "}],
         "",
-        &[],
     );
     assert!(
         package.context.errors().is_empty(),
@@ -42,6 +42,7 @@ fn one_file_no_entry() {
 fn one_file_error() {
     let package = compile(
         &PackageStore::new(),
+        &[],
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {
@@ -50,7 +51,6 @@ fn one_file_error() {
             }
         "}],
         "",
-        &[],
     );
 
     assert_eq!(
@@ -70,6 +70,7 @@ fn one_file_error() {
 fn two_files_dependency() {
     let package = compile(
         &PackageStore::new(),
+        &[],
         &[
             indoc! {"
                 namespace Foo {
@@ -85,7 +86,6 @@ fn two_files_dependency() {
             "},
         ],
         "",
-        &[],
     );
     assert!(
         package.context.errors().is_empty(),
@@ -98,6 +98,7 @@ fn two_files_dependency() {
 fn two_files_mutual_dependency() {
     let package = compile(
         &PackageStore::new(),
+        &[],
         &[
             indoc! {"
                 namespace Foo {
@@ -115,7 +116,6 @@ fn two_files_mutual_dependency() {
             "},
         ],
         "",
-        &[],
     );
     assert!(
         package.context.errors().is_empty(),
@@ -128,6 +128,7 @@ fn two_files_mutual_dependency() {
 fn two_files_error() {
     let package = compile(
         &PackageStore::new(),
+        &[],
         &[
             indoc! {"
                 namespace Foo {
@@ -143,7 +144,6 @@ fn two_files_error() {
             "},
         ],
         "",
-        &[],
     );
 
     assert_eq!(
@@ -163,13 +163,13 @@ fn two_files_error() {
 fn entry_call_operation() {
     let package = compile(
         &PackageStore::new(),
+        &[],
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
                 }
             "}],
         "Foo.A()",
-        &[],
     );
     assert!(
         package.context.errors.is_empty(),
@@ -207,13 +207,13 @@ fn entry_call_operation() {
 fn entry_error() {
     let package = compile(
         &PackageStore::new(),
+        &[],
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
                 }
             "}],
         "Foo.B()",
-        &[],
     );
 
     assert_eq!(
@@ -245,6 +245,7 @@ fn replace_node() {
 
     let mut package = compile(
         &PackageStore::new(),
+        &[],
         &[indoc! {"
             namespace Foo {
                 function A() : Int {
@@ -252,7 +253,6 @@ fn replace_node() {
                 }
             }"}],
         "",
-        &[],
     );
 
     Replacer(package.context.assigner_mut()).visit_package(&mut package.package);
@@ -310,6 +310,7 @@ fn package_dependency() {
     let mut store = PackageStore::new();
     let package1 = compile(
         &store,
+        &[],
         &[indoc! {"
             namespace Package1 {
                 function Foo() : Int {
@@ -317,7 +318,6 @@ fn package_dependency() {
                 }
             }"}],
         "",
-        &[],
     );
 
     let foo_node_id =
@@ -335,6 +335,7 @@ fn package_dependency() {
     let package1_id = store.insert(package1);
     let package2 = compile(
         &store,
+        &[package1_id],
         &[indoc! {"
             namespace Package2 {
                 function Bar() : Int {
@@ -343,7 +344,6 @@ fn package_dependency() {
             }
         "}],
         "",
-        &[package1_id],
     );
 
     let foo_ref = if let ItemKind::Callable(CallableDecl {
@@ -383,6 +383,7 @@ fn package_dependency_internal() {
     let mut store = PackageStore::new();
     let package1 = compile(
         &store,
+        &[],
         &[indoc! {"
             namespace Package1 {
                 internal function Foo() : Int {
@@ -390,11 +391,11 @@ fn package_dependency_internal() {
                 }
             }"}],
         "",
-        &[],
     );
     let package1_id = store.insert(package1);
     let package2 = compile(
         &store,
+        &[package1_id],
         &[indoc! {"
             namespace Package2 {
                 function Bar() : Int {
@@ -403,7 +404,6 @@ fn package_dependency_internal() {
             }
         "}],
         "",
-        &[package1_id],
     );
 
     if let ItemKind::Callable(CallableDecl {

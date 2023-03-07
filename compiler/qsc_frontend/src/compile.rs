@@ -19,8 +19,9 @@ use std::{
     fmt::{self, Display, Formatter},
 };
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
-pub struct CompiledPackage {
+pub struct CompileUnit {
     pub package: Package,
     pub context: Context,
 }
@@ -77,7 +78,7 @@ pub struct FileIndex(pub usize);
 
 #[derive(Default)]
 pub struct PackageStore {
-    packages: HashMap<PackageId, CompiledPackage>,
+    units: HashMap<PackageId, CompileUnit>,
     next_id: PackageId,
 }
 
@@ -87,16 +88,16 @@ impl PackageStore {
         Self::default()
     }
 
-    pub fn insert(&mut self, package: CompiledPackage) -> PackageId {
+    pub fn insert(&mut self, unit: CompileUnit) -> PackageId {
         let id = self.next_id;
         self.next_id = PackageId(id.0 + 1);
-        self.packages.insert(id, package);
+        self.units.insert(id, unit);
         id
     }
 
     #[must_use]
-    pub fn get(&self, id: PackageId) -> Option<&CompiledPackage> {
-        self.packages.get(&id)
+    pub fn get(&self, id: PackageId) -> Option<&CompileUnit> {
+        self.units.get(&id)
     }
 }
 
@@ -151,10 +152,10 @@ impl MutVisitor for Offsetter {
 
 pub fn compile(
     store: &PackageStore,
+    dependencies: &[PackageId],
     files: &[&str],
     entry_expr: &str,
-    dependencies: &[PackageId],
-) -> CompiledPackage {
+) -> CompileUnit {
     let mut namespaces = Vec::new();
     let mut parse_errors = Vec::new();
     let mut offset = 0;
@@ -203,7 +204,7 @@ pub fn compile(
     errors.extend(parse_errors.into_iter().map(Into::into));
     errors.extend(resolve_errors.into_iter().map(Into::into));
 
-    CompiledPackage {
+    CompileUnit {
         package,
         context: Context {
             assigner,

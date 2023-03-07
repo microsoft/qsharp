@@ -15,7 +15,7 @@ use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind, Span, Stmt,
     StmtKind,
 };
-use qsc_frontend::{resolve::Res, CompiledPackage};
+use qsc_frontend::{resolve::Res, CompileUnit};
 use val::{ConversionError, Value};
 
 #[derive(Debug)]
@@ -77,16 +77,16 @@ impl Variable {
 
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
-    package: &'a CompiledPackage,
+    unit: &'a CompileUnit,
     scopes: Vec<HashMap<Res, Variable>>,
     globals: HashMap<Res, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(package: &'a CompiledPackage) -> Self {
+    pub fn new(unit: &'a CompileUnit) -> Self {
         Self {
-            package,
+            unit,
             scopes: vec![],
             globals: HashMap::default(),
         }
@@ -96,7 +96,7 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.package.package.entry {
+        if let Some(expr) = &self.unit.package.entry {
             self.eval_expr(expr)
         } else {
             Err(Error {
@@ -238,7 +238,7 @@ impl<'a> Evaluator<'a> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = self
-                    .package
+                    .unit
                     .context
                     .resolutions()
                     .get(variable.id)
@@ -273,14 +273,9 @@ impl<'a> Evaluator<'a> {
     }
 
     fn resolve_binding(&self, id: NodeId) -> Value {
-        let id = self
-            .package
-            .context
-            .resolutions()
-            .get(id)
-            .unwrap_or_else(|| {
-                panic!("{id:?} is not resolved");
-            });
+        let id = self.unit.context.resolutions().get(id).unwrap_or_else(|| {
+            panic!("{id:?} is not resolved");
+        });
         self.scopes
             .iter()
             .rev()
@@ -294,7 +289,7 @@ impl<'a> Evaluator<'a> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
                 let id = self
-                    .package
+                    .unit
                     .context
                     .resolutions()
                     .get(path.id)
