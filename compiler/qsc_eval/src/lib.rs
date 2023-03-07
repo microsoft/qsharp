@@ -36,8 +36,10 @@ enum Reason {
 
 #[derive(Debug)]
 enum ErrorKind {
+    Count(i64),
     EmptyExpr,
-    Index(i64),
+    IndexSyntax,
+    IndexVal(i64),
     Mutability,
     OutOfRange(i64),
     Type(&'static str, &'static str),
@@ -62,6 +64,23 @@ impl<T> WithSpan for Result<T, ConversionError> {
             Err(e) => {
                 ControlFlow::Break(Reason::Error(span, ErrorKind::Type(e.expected, e.actual)))
             }
+        }
+    }
+}
+
+trait AsIndex {
+    type Output;
+
+    fn as_index(&self, span: Span) -> Self::Output;
+}
+
+impl AsIndex for i64 {
+    type Output = ControlFlow<Reason, usize>;
+
+    fn as_index(&self, span: Span) -> ControlFlow<Reason, usize> {
+        match (*self).try_into() {
+            Ok(index) => ControlFlow::Continue(index),
+            Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IndexVal(*self))),
         }
     }
 }
@@ -123,6 +142,17 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Array(val_arr))
             }
+            ExprKind::ArrayRepeat(item, size) => {
+                let item_val = self.eval_expr(item)?;
+                let size_val: i64 = self.eval_expr(size)?.try_into().with_span(size.span)?;
+                let s = match size_val.try_into() {
+                    Ok(i) => ControlFlow::Continue(i),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(size.span, ErrorKind::Count(size_val)))
+                    }
+                }?;
+                ControlFlow::Continue(Value::Array(vec![item_val; s]))
+            }
             ExprKind::Assign(lhs, rhs) => {
                 let val = self.eval_expr(rhs)?;
                 self.update_binding(lhs, val)
@@ -143,19 +173,12 @@ impl<'a> Evaluator<'a> {
             }
             ExprKind::Index(arr, index) => {
                 let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
-                let index_val: i64 = self.eval_expr(index)?.try_into().with_span(index.span)?;
-                let i: usize = match index_val.try_into() {
-                    Ok(i) => ControlFlow::Continue(i),
-                    Err(_) => {
-                        ControlFlow::Break(Reason::Error(index.span, ErrorKind::Index(index_val)))
+                match self.eval_expr(index)? {
+                    Value::Int(index_val) => index_array(&arr, index_val, index.span),
+                    Value::Range(start, step, end) => {
+                        slice_array(&arr, start, step, end, index.span)
                     }
-                }?;
-                match arr.get(i) {
-                    Some(v) => ControlFlow::Continue(v.clone()),
-                    None => ControlFlow::Break(Reason::Error(
-                        index.span,
-                        ErrorKind::OutOfRange(index_val),
-                    )),
+                    _ => ControlFlow::Break(Reason::Error(index.span, ErrorKind::IndexSyntax)),
                 }
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
@@ -170,8 +193,7 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
-            ExprKind::ArrayRepeat(_, _)
-            | ExprKind::AssignOp(_, _, _)
+            ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _)
             | ExprKind::BinOp(_, _, _)
             | ExprKind::Call(_, _)
@@ -353,4 +375,45 @@ fn lit_to_val(lit: &Lit) -> Value {
         }),
         Lit::String(v) => Value::String(v.clone()),
     }
+}
+
+fn index_array(arr: &[Value], index: i64, span: Span) -> ControlFlow<Reason, Value> {
+    match arr.get(index.as_index(span)?) {
+        Some(v) => ControlFlow::Continue(v.clone()),
+        None => ControlFlow::Break(Reason::Error(span, ErrorKind::OutOfRange(index))),
+    }
+}
+
+fn slice_array(
+    arr: &[Value],
+    start: Option<i64>,
+    step: Option<i64>,
+    end: Option<i64>,
+    span: Span,
+) -> ControlFlow<Reason, Value> {
+    let start = start.map_or(0, |s| s).as_index(span)?;
+    let step = step.map_or(1, |s| s);
+    let end = end.map_or(ControlFlow::Continue(arr.len() - 1), |e| e.as_index(span))?;
+
+    let iter: Box<dyn Iterator<Item = usize>> = if step > 0 {
+        Box::new(start..=end)
+    } else {
+        Box::new((end..=start).rev())
+    };
+
+    let mut slice = vec![];
+    for i in iter.step_by(step.abs().as_index(span)?) {
+        match arr.get(i) {
+            Some(v) => {
+                slice.push(v.clone());
+                ControlFlow::Continue(())
+            }
+            None => ControlFlow::Break(Reason::Error(
+                span,
+                ErrorKind::OutOfRange(i.try_into().expect("Value originally converted from i64")),
+            )),
+        }?;
+    }
+
+    ControlFlow::Continue(Value::Array(slice))
 }
