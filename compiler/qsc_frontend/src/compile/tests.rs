@@ -148,7 +148,7 @@ fn entry_call_operation() {
     );
 
     let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}",);
+    assert!(errors.is_empty(), "{errors:#?}");
     let resolutions = unit.context.resolutions();
     let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
         panic!("Expected callable item.");
