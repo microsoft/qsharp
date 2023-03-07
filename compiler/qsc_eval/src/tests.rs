@@ -248,6 +248,10 @@ fn fail_expr() {
         r#"fail "This is a failure""#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 0,
+                    hi: 24,
+                },
                 "This is a failure",
             )
         "#]],
@@ -260,6 +264,10 @@ fn fail_shortcut_expr() {
         r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 2,
+                    hi: 18,
+                },
                 "Got Here!",
             )
         "#]],
@@ -435,6 +443,10 @@ fn if_true_expr() {
         r#"if true {fail "Got Here!";}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 9,
+                    hi: 25,
+                },
                 "Got Here!",
             )
         "#]],
@@ -474,6 +486,10 @@ fn if_else_true_expr() {
         r#"if true {fail "Got Here!";} else {fail "Shouldn't get here..."}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 9,
+                    hi: 25,
+                },
                 "Got Here!",
             )
         "#]],
@@ -486,6 +502,10 @@ fn if_else_false_expr() {
         r#"if false {fail "Shouldn't get here...";} else {fail "Got Here!"}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 47,
+                    hi: 63,
+                },
                 "Got Here!",
             )
         "#]],
@@ -498,6 +518,10 @@ fn if_elif_true_true_expr() {
         r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 9,
+                    hi: 25,
+                },
                 "Got Here!",
             )
         "#]],
@@ -510,6 +534,10 @@ fn if_elif_false_true_expr() {
         r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 52,
+                    hi: 68,
+                },
                 "Got Here!",
             )
         "#]],
@@ -530,6 +558,10 @@ fn if_elif_else_true_true_expr() {
         r#"if true {fail "Got Here!";} elif true {fail "Shouldn't get here..."} else {fail "Shouldn't get here..."}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 9,
+                    hi: 25,
+                },
                 "Got Here!",
             )
         "#]],
@@ -542,6 +574,10 @@ fn if_elif_else_false_true_expr() {
         r#"if false {fail "Shouldn't get here...";} elif true {fail "Got Here!"} else {fail "Shouldn't get here..."}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 52,
+                    hi: 68,
+                },
                 "Got Here!",
             )
         "#]],
@@ -554,6 +590,10 @@ fn if_elif_else_false_false_expr() {
         r#"if false {fail "Shouldn't get here...";} elif false {fail "Shouldn't get here..."} else {fail "Got Here!"}"#,
         &expect![[r#"
             UserFail(
+                Span {
+                    lo: 89,
+                    hi: 105,
+                },
                 "Got Here!",
             )
         "#]],
