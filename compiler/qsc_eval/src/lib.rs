@@ -24,13 +24,13 @@ use val::{ConversionError, Value};
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum Reason {
-    Error(Span, ErrorKind),
+    Error(Span, Error),
     Return(Value),
-    UserFail(String),
+    UserFail(Span, String),
 }
 
 #[derive(Debug)]
-pub enum ErrorKind {
+pub enum Error {
     EmptyExpr,
     Index(i64),
     Mutability,
@@ -53,9 +53,7 @@ impl<T> WithSpan for Result<T, ConversionError> {
     fn with_span(self, span: Span) -> ControlFlow<Reason, T> {
         match self {
             Ok(c) => ControlFlow::Continue(c),
-            Err(e) => {
-                ControlFlow::Break(Reason::Error(span, ErrorKind::Type(e.expected, e.actual)))
-            }
+            Err(e) => ControlFlow::Break(Reason::Error(span, Error::Type(e.expected, e.actual))),
         }
     }
 }
@@ -98,7 +96,7 @@ impl<'a> Evaluator<'a> {
         if let Some(expr) = &self.package.entry {
             self.eval_expr(expr)
         } else {
-            ControlFlow::Break(Reason::Error(Span { lo: 0, hi: 0 }, ErrorKind::EmptyExpr))
+            ControlFlow::Break(Reason::Error(Span { lo: 0, hi: 0 }, Error::EmptyExpr))
         }
     }
 
@@ -117,6 +115,7 @@ impl<'a> Evaluator<'a> {
             }
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::UserFail(
+                expr.span,
                 self.eval_expr(msg)?.try_into().with_span(msg.span)?,
             )),
             ExprKind::If(cond, then, els) => {
@@ -134,15 +133,14 @@ impl<'a> Evaluator<'a> {
                 let i: usize = match index_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => {
-                        ControlFlow::Break(Reason::Error(index.span, ErrorKind::Index(index_val)))
+                        ControlFlow::Break(Reason::Error(index.span, Error::Index(index_val)))
                     }
                 }?;
                 match arr.get(i) {
                     Some(v) => ControlFlow::Continue(v.clone()),
-                    None => ControlFlow::Break(Reason::Error(
-                        index.span,
-                        ErrorKind::OutOfRange(index_val),
-                    )),
+                    None => {
+                        ControlFlow::Break(Reason::Error(index.span, Error::OutOfRange(index_val)))
+                    }
                 }
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
@@ -172,7 +170,7 @@ impl<'a> Evaluator<'a> {
             | ExprKind::TernOp(_, _, _, _)
             | ExprKind::UnOp(_, _)
             | ExprKind::While(_, _) => {
-                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
+                ControlFlow::Break(Reason::Error(expr.span, Error::Unimplemented))
             }
         }
     }
@@ -223,7 +221,7 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::Tuple(vec![]))
             }
             StmtKind::Qubit(..) => {
-                ControlFlow::Break(Reason::Error(stmt.span, ErrorKind::Unimplemented))
+                ControlFlow::Break(Reason::Error(stmt.span, Error::Unimplemented))
             }
         }
     }
@@ -263,7 +261,7 @@ impl<'a> Evaluator<'a> {
                 } else {
                     ControlFlow::Break(Reason::Error(
                         pat.span,
-                        ErrorKind::TupleArity(tup.len(), val_tup.len()),
+                        Error::TupleArity(tup.len(), val_tup.len()),
                     ))
                 }
             }
@@ -298,7 +296,7 @@ impl<'a> Evaluator<'a> {
                 if variable.is_mutable() {
                     variable.value = rhs;
                 } else {
-                    ControlFlow::Break(Reason::Error(path.span, ErrorKind::Mutability))?;
+                    ControlFlow::Break(Reason::Error(path.span, Error::Mutability))?;
                 }
                 ControlFlow::Continue(Value::Tuple(vec![]))
             }
@@ -313,11 +311,11 @@ impl<'a> Evaluator<'a> {
                 } else {
                     ControlFlow::Break(Reason::Error(
                         lhs.span,
-                        ErrorKind::TupleArity(var_tup.len(), tup.len()),
+                        Error::TupleArity(var_tup.len(), tup.len()),
                     ))
                 }
             }
-            _ => ControlFlow::Break(Reason::Error(lhs.span, ErrorKind::Unassignable)),
+            _ => ControlFlow::Break(Reason::Error(lhs.span, Error::Unassignable)),
         }
     }
 }
