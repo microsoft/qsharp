@@ -14,6 +14,8 @@ use qsc_ast::{
 };
 use std::collections::{HashMap, HashSet};
 
+pub type Resolutions = HashMap<NodeId, Res>;
+
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Res {
     pub package: PackageRes,
@@ -37,22 +39,8 @@ pub(super) enum ErrorKind {
     Unresolved(HashSet<Res>),
 }
 
-#[derive(Debug)]
-pub struct ResTable(HashMap<NodeId, Res>);
-
-impl ResTable {
-    #[must_use]
-    pub fn get(&self, node: NodeId) -> Option<Res> {
-        self.0.get(&node).copied()
-    }
-
-    pub fn resolves_to(&mut self, node: NodeId, res: Res) {
-        self.0.insert(node, res);
-    }
-}
-
 pub(super) struct Resolver<'a> {
-    table: ResTable,
+    resolutions: Resolutions,
     global_tys: HashMap<&'a str, HashMap<&'a str, Res>>,
     global_terms: HashMap<&'a str, HashMap<&'a str, Res>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
@@ -61,20 +49,24 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn into_table(self) -> (ResTable, Vec<Error>) {
-        (self.table, self.errors)
+    pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
+        (self.resolutions, self.errors)
     }
 
     fn resolve_ty(&mut self, path: &Path) {
         match resolve(&self.global_tys, &self.opens, &[], path) {
-            Ok(def) => self.table.resolves_to(path.id, def),
+            Ok(res) => {
+                self.resolutions.insert(path.id, res);
+            }
             Err(err) => self.errors.push(err),
         }
     }
 
     fn resolve_term(&mut self, path: &Path) {
         match resolve(&self.global_terms, &self.opens, &self.locals, path) {
-            Ok(def) => self.table.resolves_to(path.id, def),
+            Ok(res) => {
+                self.resolutions.insert(path.id, res);
+            }
             Err(err) => self.errors.push(err),
         }
     }
@@ -82,7 +74,7 @@ impl<'a> Resolver<'a> {
     fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
         let mut env = HashMap::new();
         pat.into_iter()
-            .for_each(|p| bind(&mut self.table, &mut env, p));
+            .for_each(|p| bind(&mut self.resolutions, &mut env, p));
         self.locals.push(env);
         f(self);
         self.locals.pop();
@@ -137,7 +129,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
                     .locals
                     .last_mut()
                     .expect("Statement should have an environment.");
-                bind(&mut self.table, env, pat);
+                bind(&mut self.resolutions, env, pat);
             }
             StmtKind::Expr(..) | StmtKind::Semi(..) => {}
         }
@@ -155,7 +147,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 }
 
 pub(super) struct GlobalTable<'a> {
-    table: ResTable,
+    resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, Res>>,
     terms: HashMap<&'a str, HashMap<&'a str, Res>>,
     package: PackageRes,
@@ -165,7 +157,7 @@ pub(super) struct GlobalTable<'a> {
 impl<'a> GlobalTable<'a> {
     pub(super) fn new() -> Self {
         Self {
-            table: ResTable(HashMap::new()),
+            resolutions: Resolutions::new(),
             tys: HashMap::new(),
             terms: HashMap::new(),
             package: PackageRes::Local,
@@ -179,7 +171,7 @@ impl<'a> GlobalTable<'a> {
 
     pub(super) fn into_resolver(self) -> Resolver<'a> {
         Resolver {
-            table: self.table,
+            resolutions: self.resolutions,
             global_tys: self.tys,
             global_terms: self.terms,
             opens: HashMap::new(),
@@ -208,8 +200,9 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
                     package: self.package,
                     node: name.id,
                 };
-
-                self.table.resolves_to(name.id, res);
+                if self.package == PackageRes::Local {
+                    self.resolutions.insert(name.id, res);
+                }
                 self.tys
                     .entry(self.namespace)
                     .or_default()
@@ -224,8 +217,9 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
                     package: self.package,
                     node: decl.name.id,
                 };
-
-                self.table.resolves_to(decl.name.id, res);
+                if self.package == PackageRes::Local {
+                    self.resolutions.insert(decl.name.id, res);
+                }
                 self.terms
                     .entry(self.namespace)
                     .or_default()
@@ -236,19 +230,19 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 }
 
-fn bind<'a>(table: &mut ResTable, env: &mut HashMap<&'a str, Res>, pat: &'a Pat) {
+fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, Res>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
             let res = Res {
                 package: PackageRes::Local,
                 node: name.id,
             };
-            table.resolves_to(name.id, res);
+            resolutions.insert(name.id, res);
             env.insert(name.name.as_str(), res);
         }
         PatKind::Discard(_) | PatKind::Elided => {}
-        PatKind::Paren(pat) => bind(table, env, pat),
-        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(table, env, p)),
+        PatKind::Paren(pat) => bind(resolutions, env, pat),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(resolutions, env, p)),
     }
 }
 

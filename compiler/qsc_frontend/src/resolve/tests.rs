@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind, GlobalTable, PackageRes, Res, ResTable};
+use super::{Error, ErrorKind, GlobalTable, PackageRes, Res, Resolutions};
 use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -13,12 +13,12 @@ use qsc_ast::{
 use std::fmt::{self, Write};
 
 struct Renamer<'a> {
-    resolutions: &'a ResTable,
+    resolutions: &'a Resolutions,
     changes: Vec<(Span, Res)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(resolutions: &'a ResTable) -> Self {
+    fn new(resolutions: &'a Resolutions) -> Self {
         Self {
             resolutions,
             changes: Vec::new(),
@@ -38,7 +38,7 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(res) = self.resolutions.get(path.id) {
+        if let Some(&res) = self.resolutions.get(&path.id) {
             self.changes.push((path.span, res));
         } else {
             visit::walk_path(self, path);
@@ -46,7 +46,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(res) = self.resolutions.get(ident.id) {
+        if let Some(&res) = self.resolutions.get(&ident.id) {
             self.changes.push((ident.span, res));
         }
     }
@@ -62,7 +62,7 @@ fn check(input: &str, expect: &Expect) {
     globals.visit_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
-    let (symbols, errors) = resolver.into_table();
+    let (symbols, errors) = resolver.into_resolutions();
     let mut renamer = Renamer::new(&symbols);
     renamer.visit_package(&package);
     let mut output = input.to_string();

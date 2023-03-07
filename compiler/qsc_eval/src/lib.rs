@@ -242,16 +242,16 @@ impl<'a> Evaluator<'a> {
     ) -> Result<(), Error> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self
+                let key = self
                     .context
                     .resolutions()
-                    .get(variable.id)
+                    .get(&variable.id)
                     .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id));
 
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
-                match scope.entry(id) {
+                match scope.entry(*key) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
-                    Entry::Occupied(_) => panic!("{id:?} is already bound"),
+                    Entry::Occupied(_) => panic!("{key:?} is already bound"),
                 };
                 Ok(())
             }
@@ -276,16 +276,16 @@ impl<'a> Evaluator<'a> {
     }
 
     fn resolve_binding(&self, id: NodeId) -> Value {
-        let id = self
+        let key = self
             .context
             .resolutions()
-            .get(id)
+            .get(&id)
             .unwrap_or_else(|| panic!("{id:?} is not resolved"));
 
         self.scopes
             .iter()
             .rev()
-            .find_map(|scope| scope.get(&id))
+            .find_map(|scope| scope.get(key))
             .unwrap_or_else(|| panic!("{id:?} is not bound."))
             .value
             .clone()
@@ -294,18 +294,18 @@ impl<'a> Evaluator<'a> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> Result<Value, Error> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
-                let id = self
+                let key = self
                     .context
                     .resolutions()
-                    .get(path.id)
+                    .get(&path.id)
                     .unwrap_or_else(|| panic!("{:?} is not resolved", path.id));
 
                 let mut variable = self
                     .scopes
                     .iter_mut()
                     .rev()
-                    .find_map(|scope| scope.get_mut(&id))
-                    .unwrap_or_else(|| panic!("{id:?} is not bound"));
+                    .find_map(|scope| scope.get_mut(key))
+                    .unwrap_or_else(|| panic!("{key:?} is not bound"));
 
                 if variable.is_mutable() {
                     variable.value = rhs;

@@ -7,7 +7,7 @@ mod tests;
 use crate::{
     id::Assigner,
     parse,
-    resolve::{self, GlobalTable, ResTable},
+    resolve::{self, GlobalTable, Resolutions},
 };
 use qsc_ast::{
     ast::{Package, Span},
@@ -29,7 +29,7 @@ pub struct CompileUnit {
 #[derive(Debug)]
 pub struct Context {
     assigner: Assigner,
-    resolutions: ResTable,
+    resolutions: Resolutions,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
@@ -40,11 +40,11 @@ impl Context {
     }
 
     #[must_use]
-    pub fn resolutions(&self) -> &ResTable {
+    pub fn resolutions(&self) -> &Resolutions {
         &self.resolutions
     }
 
-    pub fn resolutions_mut(&mut self) -> &mut ResTable {
+    pub fn resolutions_mut(&mut self) -> &mut Resolutions {
         &mut self.resolutions
     }
 
@@ -199,7 +199,7 @@ pub fn compile(
 
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
-    let (resolutions, resolve_errors) = resolver.into_table();
+    let (resolutions, resolve_errors) = resolver.into_resolutions();
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(Into::into));
     errors.extend(resolve_errors.into_iter().map(Into::into));

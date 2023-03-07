@@ -182,7 +182,7 @@ fn entry_call_operation() {
             package
                 .context
                 .resolutions
-                .get(callable.name.id)
+                .get(&callable.name.id)
                 .expect("Callable should resolve.")
         } else {
             panic!("First item should be a callable.")
@@ -194,7 +194,7 @@ fn entry_call_operation() {
     }) = &package.package.entry
     {
         if let ExprKind::Path(Path { id, .. }) = callee.kind {
-            assert_eq!(package.context.resolutions.get(id), Some(operation));
+            assert_eq!(package.context.resolutions.get(&id), Some(operation));
         } else {
             panic!("Callee should be a path.");
         }
@@ -325,7 +325,7 @@ fn package_dependency() {
             package1
                 .context
                 .resolutions
-                .get(callable.name.id)
+                .get(&callable.name.id)
                 .expect("Callable should resolve.")
                 .node
         } else {
@@ -346,7 +346,7 @@ fn package_dependency() {
         "",
     );
 
-    let foo_ref = if let ItemKind::Callable(CallableDecl {
+    let &foo_ref = if let ItemKind::Callable(CallableDecl {
         body: CallableBody::Block(block),
         ..
     }) = &package2.package.namespaces[0].items[0].kind
@@ -359,7 +359,7 @@ fn package_dependency() {
                 ExprKind::Path(path) => package2
                     .context
                     .resolutions
-                    .get(path.id)
+                    .get(&path.id)
                     .expect("Path should resolve."),
                 _ => panic!("Expression is not a path."),
             },
@@ -417,7 +417,7 @@ fn package_dependency_internal() {
                 ..
             }) => match &callee.kind {
                 ExprKind::Path(path) => assert!(
-                    package2.context.resolutions.get(path.id).is_none(),
+                    package2.context.resolutions.get(&path.id).is_none(),
                     "Path resolved to internal function."
                 ),
                 _ => panic!("Expression is not a path."),
