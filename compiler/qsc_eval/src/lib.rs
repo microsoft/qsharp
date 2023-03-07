@@ -26,7 +26,6 @@ use val::{ConversionError, Value};
 pub enum Reason {
     Error(Span, Error),
     Return(Value),
-    UserFail(Span, String),
 }
 
 #[derive(Debug)]
@@ -39,6 +38,7 @@ pub enum Error {
     TupleArity(usize, usize),
     Unassignable,
     Unimplemented,
+    UserFail(String),
 }
 
 trait WithSpan {
@@ -114,9 +114,9 @@ impl<'a> Evaluator<'a> {
                 self.update_binding(lhs, val)
             }
             ExprKind::Block(block) => self.eval_block(block),
-            ExprKind::Fail(msg) => ControlFlow::Break(Reason::UserFail(
+            ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(
                 expr.span,
-                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
+                Error::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
             )),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
