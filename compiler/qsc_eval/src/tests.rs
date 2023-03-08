@@ -3,14 +3,14 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_frontend::compile::{compile, PackageStore};
 
 use crate::Evaluator;
 
 fn check_expression(expr: &str, expect: &Expect) {
-    let (package, context) = qsc_frontend::compile(&[], expr);
-    assert!(context.errors().is_empty());
-    let mut eval = Evaluator::new(&package, &context);
-    match eval.run() {
+    let unit = compile(&PackageStore::new(), &[], &[], expr);
+    assert!(unit.context.errors().is_empty());
+    match Evaluator::new(&unit).run() {
         Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
