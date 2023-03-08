@@ -17,6 +17,56 @@ fn check_expression(expr: &str, expect: &Expect) {
 }
 
 #[test]
+fn unop_negate_double_expr() {
+    check_expression("-(3.4)", &expect!["-3.4"]);
+}
+
+#[test]
+fn unop_negate_int_expr() {
+    check_expression("-(13)", &expect!["-13"]);
+}
+
+#[test]
+fn unop_negate_big_int_expr() {
+    check_expression(
+        "-(9_223_372_036_854_775_808L)",
+        &expect!["-9223372036854775808"],
+    );
+}
+
+#[test]
+fn unop_negate_int_overflow_expr() {
+    check_expression(
+        "-(9_223_372_036_854_775_808)",
+        &expect!["-9223372036854775808"],
+    );
+}
+
+#[test]
+fn unop_negate_negative_int_expr() {
+    check_expression("-(-(13))", &expect!["13"]);
+}
+
+#[test]
+fn unop_negate_bool_expr() {
+    check_expression(
+        "-(false)",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 1,
+                hi: 8,
+            },
+            kind: Type(
+                "Int, BigInt, or Double",
+                "Bool",
+            ),
+        }
+    "#]],
+    );
+}
+
+#[test]
 fn array_expr() {
     check_expression("[1, 2, 3]", &expect!["[1, 2, 3]"]);
 }

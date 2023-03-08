@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{collections::HashMap, ffi::c_void, fmt::Display};
+use std::{collections::HashMap, ffi::c_void, fmt::Display, ops::Neg};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
@@ -178,6 +178,23 @@ impl Value {
             Value::String(_) => "String",
             Value::Tuple(_) => "Tuple",
             Value::Udt => "Udt",
+        }
+    }
+
+    /// Returns the arithmetic negate of this [`Value`].
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the value is not an `Int`, `BigInt`, or `Double`.
+    pub fn arithmetic_negate(&self) -> Result<Self, ConversionError> {
+        match self {
+            Value::BigInt(v) => Ok(Value::BigInt(v.neg())),
+            Value::Double(v) => Ok(Value::Double(v.neg())),
+            Value::Int(v) => Ok(Value::Int(v.wrapping_neg())),
+            _ => Err(ConversionError {
+                expected: "Int, BigInt, or Double",
+                actual: self.type_name(),
+            }),
         }
     }
 }

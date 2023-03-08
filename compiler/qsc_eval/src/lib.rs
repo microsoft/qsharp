@@ -16,7 +16,7 @@ use std::{
 use qir_backend::Pauli;
 use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Package, Pat, PatKind,
-    Span, Stmt, StmtKind,
+    Span, Stmt, StmtKind, UnOp,
 };
 use qsc_frontend::{symbol, Context};
 use val::{ConversionError, Value};
@@ -170,6 +170,15 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
+            ExprKind::UnOp(op, rhs) => {
+                let val = self.eval_expr(rhs)?;
+                match op {
+                    UnOp::Neg => val.arithmetic_negate().with_span(rhs.span),
+                    UnOp::Functor(_) | UnOp::NotB | UnOp::NotL | UnOp::Pos | UnOp::Unwrap => {
+                        ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
+                    }
+                }
+            }
             ExprKind::ArrayRepeat(_, _)
             | ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _)
@@ -183,7 +192,6 @@ impl<'a> Evaluator<'a> {
             | ExprKind::Lambda(_, _, _)
             | ExprKind::Repeat(_, _, _)
             | ExprKind::TernOp(_, _, _, _)
-            | ExprKind::UnOp(_, _)
             | ExprKind::While(_, _) => {
                 ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
             }
