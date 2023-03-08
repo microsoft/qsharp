@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind, GlobalTable, PackageRes, Res, Resolutions};
+use super::{DefId, Error, ErrorKind, GlobalTable, PackageSrc, Resolutions};
 use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -14,7 +14,7 @@ use std::fmt::{self, Write};
 
 struct Renamer<'a> {
     resolutions: &'a Resolutions,
-    changes: Vec<(Span, Res)>,
+    changes: Vec<(Span, DefId)>,
 }
 
 impl<'a> Renamer<'a> {
@@ -28,8 +28,8 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, id) in self.changes.iter().rev() {
             let name = match id.package {
-                PackageRes::Local => format!("_{}", id.node),
-                PackageRes::Extern(package) => format!("_{package}_{}", id.node),
+                PackageSrc::Local => format!("_{}", id.node),
+                PackageSrc::Extern(package) => format!("_{package}_{}", id.node),
             };
             input.replace_range(span, &name);
         }

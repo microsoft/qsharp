@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{compile, FileIndex};
-use crate::{compile::PackageStore, id::Assigner, resolve::PackageRes};
+use crate::{compile::PackageStore, id::Assigner, resolve::PackageSrc};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_ast::{
@@ -297,7 +297,7 @@ fn package_dependency() {
     let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
     let resolutions = unit2.context.resolutions();
     let res = resolutions.get(&path.id).expect("Should resolve.");
-    assert_eq!(res.package, PackageRes::Extern(package1));
+    assert_eq!(res.package, PackageSrc::Extern(package1));
     assert_eq!(res.node, foo);
 }
 

@@ -20,7 +20,7 @@ use qsc_ast::ast::{
 };
 use qsc_frontend::{
     compile::{CompileUnit, Context},
-    resolve::Res,
+    resolve::DefId,
 };
 use val::{ConversionError, Value};
 
@@ -85,8 +85,8 @@ impl Variable {
 pub struct Evaluator<'a> {
     package: &'a Package,
     context: &'a Context,
-    scopes: Vec<HashMap<Res, Variable>>,
-    globals: HashMap<Res, &'a CallableDecl>,
+    scopes: Vec<HashMap<DefId, Variable>>,
+    globals: HashMap<DefId, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {

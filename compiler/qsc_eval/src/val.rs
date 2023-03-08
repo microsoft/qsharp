@@ -5,16 +5,16 @@ use std::{collections::HashMap, ffi::c_void, fmt::Display};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
-use qsc_frontend::resolve::Res;
+use qsc_frontend::resolve::DefId;
 
 #[derive(Clone, Debug)]
 pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
     Bool(bool),
-    Closure(Res, HashMap<Res, Value>),
+    Closure(DefId, HashMap<DefId, Value>),
     Double(f64),
-    Global(Res),
+    Global(DefId),
     Int(i64),
     Pauli(Pauli),
     Qubit(*mut c_void),

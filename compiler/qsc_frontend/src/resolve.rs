@@ -14,16 +14,16 @@ use qsc_ast::{
 };
 use std::collections::{HashMap, HashSet};
 
-pub type Resolutions = HashMap<NodeId, Res>;
+pub type Resolutions = HashMap<NodeId, DefId>;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct Res {
-    pub package: PackageRes,
+pub struct DefId {
+    pub package: PackageSrc,
     pub node: NodeId,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum PackageRes {
+pub enum PackageSrc {
     Local,
     Extern(PackageId),
 }
@@ -36,15 +36,15 @@ pub(super) struct Error {
 
 #[derive(Debug)]
 pub(super) enum ErrorKind {
-    Unresolved(HashSet<Res>),
+    Unresolved(HashSet<DefId>),
 }
 
 pub(super) struct Resolver<'a> {
     resolutions: Resolutions,
-    global_tys: HashMap<&'a str, HashMap<&'a str, Res>>,
-    global_terms: HashMap<&'a str, HashMap<&'a str, Res>>,
+    global_tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    global_terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
-    locals: Vec<HashMap<&'a str, Res>>,
+    locals: Vec<HashMap<&'a str, DefId>>,
     errors: Vec<Error>,
 }
 
@@ -148,9 +148,9 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 
 pub(super) struct GlobalTable<'a> {
     resolutions: Resolutions,
-    tys: HashMap<&'a str, HashMap<&'a str, Res>>,
-    terms: HashMap<&'a str, HashMap<&'a str, Res>>,
-    package: PackageRes,
+    tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    package: PackageSrc,
     namespace: &'a str,
 }
 
@@ -160,13 +160,13 @@ impl<'a> GlobalTable<'a> {
             resolutions: Resolutions::new(),
             tys: HashMap::new(),
             terms: HashMap::new(),
-            package: PackageRes::Local,
+            package: PackageSrc::Local,
             namespace: "",
         }
     }
 
     pub(super) fn set_package(&mut self, package: PackageId) {
-        self.package = PackageRes::Extern(package);
+        self.package = PackageSrc::Extern(package);
     }
 
     pub(super) fn into_resolver(self) -> Resolver<'a> {
@@ -190,17 +190,17 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 
     fn visit_item(&mut self, item: &'a Item) {
         let visibility = item.meta.visibility.map(|v| v.kind);
-        if self.package != PackageRes::Local && visibility == Some(VisibilityKind::Internal) {
+        if self.package != PackageSrc::Local && visibility == Some(VisibilityKind::Internal) {
             return;
         }
 
         match &item.kind {
             ItemKind::Ty(name, _) => {
-                let res = Res {
+                let res = DefId {
                     package: self.package,
                     node: name.id,
                 };
-                if self.package == PackageRes::Local {
+                if self.package == PackageSrc::Local {
                     self.resolutions.insert(name.id, res);
                 }
                 self.tys
@@ -213,11 +213,11 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
                     .insert(&name.name, res);
             }
             ItemKind::Callable(decl) => {
-                let res = Res {
+                let res = DefId {
                     package: self.package,
                     node: decl.name.id,
                 };
-                if self.package == PackageRes::Local {
+                if self.package == PackageSrc::Local {
                     self.resolutions.insert(decl.name.id, res);
                 }
                 self.terms
@@ -230,11 +230,11 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 }
 
-fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, Res>, pat: &'a Pat) {
+fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
-            let res = Res {
-                package: PackageRes::Local,
+            let res = DefId {
+                package: PackageSrc::Local,
                 node: name.id,
             };
             resolutions.insert(name.id, res);
@@ -247,11 +247,11 @@ fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, Res>, pat:
 }
 
 fn resolve(
-    globals: &HashMap<&str, HashMap<&str, Res>>,
+    globals: &HashMap<&str, HashMap<&str, DefId>>,
     opens: &HashMap<&str, HashSet<&str>>,
-    locals: &[HashMap<&str, Res>],
+    locals: &[HashMap<&str, DefId>],
     path: &Path,
-) -> Result<Res, Error> {
+) -> Result<DefId, Error> {
     if path.namespace.is_none() {
         for env in locals.iter().rev() {
             if let Some(&id) = env.get(path.name.name.as_str()) {
