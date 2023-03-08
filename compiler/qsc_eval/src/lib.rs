@@ -177,7 +177,16 @@ impl<'a> Evaluator<'a> {
                 let val = self.eval_expr(rhs)?;
                 match op {
                     UnOp::Neg => val.arithmetic_negate().with_span(rhs.span),
-                    UnOp::Functor(_) | UnOp::NotB | UnOp::NotL | UnOp::Pos | UnOp::Unwrap => {
+                    UnOp::Pos => match val {
+                        Value::BigInt(_) | Value::Int(_) | Value::Double(_) => {
+                            ControlFlow::Continue(val)
+                        }
+                        _ => ControlFlow::Break(Reason::Error(
+                            rhs.span,
+                            ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
+                        )),
+                    },
+                    UnOp::Functor(_) | UnOp::NotB | UnOp::NotL | UnOp::Unwrap => {
                         ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
                     }
                 }
