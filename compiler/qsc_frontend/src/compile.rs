@@ -175,6 +175,33 @@ pub fn compile(
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
+#[must_use]
+pub fn std() -> CompileUnit {
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
+        &[
+            include_str!("../../../library/canon.qs"),
+            include_str!("../../../library/core.qs"),
+            include_str!("../../../library/diagnostics.qs"),
+            include_str!("../../../library/internal.qs"),
+            include_str!("../../../library/intrinsic.qs"),
+            include_str!("../../../library/math.qs"),
+            include_str!("../../../library/qir.qs"),
+        ],
+        "",
+    );
+
+    let errors = unit.context.errors();
+    assert!(
+        errors.is_empty(),
+        "Failed to compile standard library: {errors:#?}"
+    );
+
+    unit
+}
+
 fn parse_all(files: &[&str], entry_expr: &str) -> (Package, Vec<parse::Error>, Vec<usize>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
