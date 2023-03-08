@@ -8,7 +8,10 @@ mod tests;
 
 pub mod val;
 
-use std::collections::{hash_map::Entry, HashMap};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    ops::ControlFlow,
+};
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{
@@ -21,14 +24,21 @@ use qsc_frontend::{
 };
 use val::{ConversionError, Value};
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Error {
-    pub span: Span,
-    pub kind: ErrorKind,
+    span: Span,
+    kind: ErrorKind,
 }
 
 #[derive(Debug)]
-pub enum ErrorKind {
+enum Reason {
+    Error(Span, ErrorKind),
+    Return(Value),
+}
+
+#[derive(Debug)]
+enum ErrorKind {
     EmptyExpr,
     Index(i64),
     Mutability,
@@ -40,15 +50,6 @@ pub enum ErrorKind {
     UserFail(String),
 }
 
-impl Error {
-    fn unimpl(span: Span) -> Result<Value, Error> {
-        Err(Self {
-            span,
-            kind: ErrorKind::Unimplemented,
-        })
-    }
-}
-
 trait WithSpan {
     type Output;
 
@@ -56,13 +57,15 @@ trait WithSpan {
 }
 
 impl<T> WithSpan for Result<T, ConversionError> {
-    type Output = Result<T, Error>;
+    type Output = ControlFlow<Reason, T>;
 
-    fn with_span(self, span: Span) -> Result<T, Error> {
-        self.map_err(|e| Error {
-            span,
-            kind: ErrorKind::Type(e.expected, e.actual),
-        })
+    fn with_span(self, span: Span) -> ControlFlow<Reason, T> {
+        match self {
+            Ok(c) => ControlFlow::Continue(c),
+            Err(e) => {
+                ControlFlow::Break(Reason::Error(span, ErrorKind::Type(e.expected, e.actual)))
+            }
+        }
     }
 }
 
@@ -102,7 +105,10 @@ impl<'a> Evaluator<'a> {
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
         if let Some(expr) = &self.package.entry {
-            self.eval_expr(expr)
+            match self.eval_expr(expr) {
+                ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
+                ControlFlow::Break(Reason::Error(span, kind)) => Err(Error { span, kind }),
+            }
         } else {
             Err(Error {
                 span: Span { lo: 0, hi: 0 },
@@ -111,58 +117,61 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn eval_expr(&mut self, expr: &Expr) -> Result<Value, Error> {
+    fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
                 let mut val_arr = vec![];
                 for expr in arr {
                     val_arr.push(self.eval_expr(expr)?);
                 }
-                Ok(Value::Array(val_arr))
+                ControlFlow::Continue(Value::Array(val_arr))
             }
             ExprKind::Assign(lhs, rhs) => {
                 let val = self.eval_expr(rhs)?;
                 self.update_binding(lhs, val)
             }
             ExprKind::Block(block) => self.eval_block(block),
-            ExprKind::Fail(msg) => Err(Error {
-                span: expr.span,
-                kind: ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
-            }),
+            ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(
+                expr.span,
+                ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
+            )),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(then)
                 } else if let Some(els) = els {
                     self.eval_expr(els)
                 } else {
-                    Ok(Value::Tuple(vec![]))
+                    ControlFlow::Continue(Value::Tuple(vec![]))
                 }
             }
             ExprKind::Index(arr, index) => {
                 let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
                 let index_val: i64 = self.eval_expr(index)?.try_into().with_span(index.span)?;
-                let i: usize = index_val.try_into().map_err(|_| Error {
-                    span: index.span,
-                    kind: ErrorKind::Index(index_val),
-                })?;
+                let i: usize = match index_val.try_into() {
+                    Ok(i) => ControlFlow::Continue(i),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(index.span, ErrorKind::Index(index_val)))
+                    }
+                }?;
                 match arr.get(i) {
-                    Some(v) => Ok(v.clone()),
-                    None => Err(Error {
-                        span: index.span,
-                        kind: ErrorKind::OutOfRange(index_val),
-                    }),
+                    Some(v) => ControlFlow::Continue(v.clone()),
+                    None => ControlFlow::Break(Reason::Error(
+                        index.span,
+                        ErrorKind::OutOfRange(index_val),
+                    )),
                 }
             }
-            ExprKind::Lit(lit) => Ok(lit_to_val(lit)),
+            ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Path(path) => Ok(self.resolve_binding(path.id)),
+            ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
+            ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
                     val_tup.push(self.eval_expr(expr)?);
                 }
-                Ok(Value::Tuple(val_tup))
+                ControlFlow::Continue(Value::Tuple(val_tup))
             }
             ExprKind::ArrayRepeat(_, _)
             | ExprKind::AssignOp(_, _, _)
@@ -176,10 +185,11 @@ impl<'a> Evaluator<'a> {
             | ExprKind::Hole
             | ExprKind::Lambda(_, _, _)
             | ExprKind::Repeat(_, _, _)
-            | ExprKind::Return(_)
             | ExprKind::TernOp(_, _, _, _)
             | ExprKind::UnOp(_, _)
-            | ExprKind::While(_, _) => Error::unimpl(expr.span),
+            | ExprKind::While(_, _) => {
+                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
+            }
         }
     }
 
@@ -188,22 +198,21 @@ impl<'a> Evaluator<'a> {
         start: &Option<Box<Expr>>,
         step: &Option<Box<Expr>>,
         end: &Option<Box<Expr>>,
-    ) -> Result<Value, Error> {
-        Ok(Value::Range(
-            start
-                .as_ref()
-                .map(|expr| self.eval_expr(expr)?.try_into().with_span(expr.span))
-                .transpose()?,
-            step.as_ref()
-                .map(|expr| self.eval_expr(expr)?.try_into().with_span(expr.span))
-                .transpose()?,
-            end.as_ref()
-                .map(|expr| self.eval_expr(expr)?.try_into().with_span(expr.span))
-                .transpose()?,
+    ) -> ControlFlow<Reason, Value> {
+        let mut to_opt_i64 = |e: &Option<Box<Expr>>| match e {
+            Some(expr) => {
+                ControlFlow::Continue(Some(self.eval_expr(expr)?.try_into().with_span(expr.span)?))
+            }
+            None => ControlFlow::Continue(None),
+        };
+        ControlFlow::Continue(Value::Range(
+            to_opt_i64(start)?,
+            to_opt_i64(step)?,
+            to_opt_i64(end)?,
         ))
     }
 
-    fn eval_block(&mut self, block: &Block) -> Result<Value, Error> {
+    fn eval_block(&mut self, block: &Block) -> ControlFlow<Reason, Value> {
         self.scopes.push(HashMap::default());
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
@@ -211,25 +220,27 @@ impl<'a> Evaluator<'a> {
             }
             self.eval_stmt(last)
         } else {
-            Ok(Value::Tuple(vec![]))
+            ControlFlow::Continue(Value::Tuple(vec![]))
         };
         let _ = self.scopes.pop();
         result
     }
 
-    fn eval_stmt(&mut self, stmt: &Stmt) -> Result<Value, Error> {
+    fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;
                 self.bind_value(pat, val, expr.span, *mutability)?;
-                Ok(Value::Tuple(vec![]))
+                ControlFlow::Continue(Value::Tuple(vec![]))
             }
             StmtKind::Semi(expr) => {
                 let _ = self.eval_expr(expr)?;
-                Ok(Value::Tuple(vec![]))
+                ControlFlow::Continue(Value::Tuple(vec![]))
             }
-            StmtKind::Qubit(..) => Error::unimpl(stmt.span),
+            StmtKind::Qubit(..) => {
+                ControlFlow::Break(Reason::Error(stmt.span, ErrorKind::Unimplemented))
+            }
         }
     }
 
@@ -239,7 +250,7 @@ impl<'a> Evaluator<'a> {
         value: Value,
         span: Span,
         mutability: Mutability,
-    ) -> Result<(), Error> {
+    ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let key = self
@@ -253,9 +264,9 @@ impl<'a> Evaluator<'a> {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("{key:?} is already bound"),
                 };
-                Ok(())
+                ControlFlow::Continue(())
             }
-            PatKind::Discard(_) => Ok(()),
+            PatKind::Discard(_) => ControlFlow::Continue(()),
             PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
@@ -264,12 +275,12 @@ impl<'a> Evaluator<'a> {
                     for (pat, val) in tup.iter().zip(val_tup.into_iter()) {
                         self.bind_value(pat, val, span, mutability)?;
                     }
-                    Ok(())
+                    ControlFlow::Continue(())
                 } else {
-                    Err(Error {
-                        span: pat.span,
-                        kind: ErrorKind::TupleArity(tup.len(), val_tup.len()),
-                    })
+                    ControlFlow::Break(Reason::Error(
+                        pat.span,
+                        ErrorKind::TupleArity(tup.len(), val_tup.len()),
+                    ))
                 }
             }
         }
@@ -291,7 +302,7 @@ impl<'a> Evaluator<'a> {
             .clone()
     }
 
-    fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> Result<Value, Error> {
+    fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
                 let key = self
@@ -309,33 +320,27 @@ impl<'a> Evaluator<'a> {
 
                 if variable.is_mutable() {
                     variable.value = rhs;
-                    Ok(Value::Tuple(vec![]))
+                    ControlFlow::Continue(Value::Tuple(vec![]))
                 } else {
-                    Err(Error {
-                        span: path.span,
-                        kind: ErrorKind::Mutability,
-                    })
+                    ControlFlow::Break(Reason::Error(path.span, ErrorKind::Mutability))
                 }
             }
-            (ExprKind::Hole, _) => Ok(Value::Tuple(vec![])),
+            (ExprKind::Hole, _) => ControlFlow::Continue(Value::Tuple(vec![])),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
                 if var_tup.len() == tup.len() {
                     for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
                         self.update_binding(expr, val)?;
                     }
-                    Ok(Value::Tuple(vec![]))
+                    ControlFlow::Continue(Value::Tuple(vec![]))
                 } else {
-                    Err(Error {
-                        span: lhs.span,
-                        kind: ErrorKind::TupleArity(var_tup.len(), tup.len()),
-                    })
+                    ControlFlow::Break(Reason::Error(
+                        lhs.span,
+                        ErrorKind::TupleArity(var_tup.len(), tup.len()),
+                    ))
                 }
             }
-            _ => Err(Error {
-                span: lhs.span,
-                kind: ErrorKind::Unassignable,
-            }),
+            _ => ControlFlow::Break(Reason::Error(lhs.span, ErrorKind::Unassignable)),
         }
     }
 }
