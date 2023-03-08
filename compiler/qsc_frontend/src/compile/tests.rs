@@ -1,18 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, FileId};
-use crate::id::Assigner;
+use super::{compile, FileIndex};
+use crate::{compile::PackageStore, id::Assigner, resolve::PackageSrc};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_ast::{
-    ast::{CallableBody, CallableDecl, Expr, ExprKind, ItemKind, Lit, Path},
+    ast::{CallableBody, Expr, ExprKind, ItemKind, Lit, Span, StmtKind},
     mut_visit::MutVisitor,
 };
 
 #[test]
 fn one_file_no_entry() {
-    let (package, context) = compile(
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {}
@@ -20,13 +22,18 @@ fn one_file_no_entry() {
         "}],
         "",
     );
-    assert!(context.errors().is_empty(), "{:#?}", context.errors());
-    assert!(package.entry.is_none(), "{:#?}", package.entry);
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
+    let entry = unit.package.entry.as_ref();
+    assert!(entry.is_none(), "{entry:#?}");
 }
 
 #[test]
 fn one_file_error() {
-    let (_, context) = compile(
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
         &[indoc! {"
             namespace Foo {
                 function A() : Unit {
@@ -37,17 +44,18 @@ fn one_file_error() {
         "",
     );
 
-    assert_eq!(context.errors().len(), 1, "{:#?}", context.errors());
-    let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(0));
-    assert_eq!(span.lo, 50);
-    assert_eq!(span.hi, 51);
+    let errors = unit.context.errors();
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    let (file, span) = unit.context.file_span(errors[0].span);
+    assert_eq!(file, FileIndex(0));
+    assert_eq!(span, Span { lo: 50, hi: 51 });
 }
 
 #[test]
 fn two_files_dependency() {
-    let (_, context) = compile(
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
         &[
             indoc! {"
                 namespace Foo {
@@ -64,12 +72,16 @@ fn two_files_dependency() {
         ],
         "",
     );
-    assert!(context.errors().is_empty(), "{:#?}", context.errors());
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
 }
 
 #[test]
 fn two_files_mutual_dependency() {
-    let (_, context) = compile(
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
         &[
             indoc! {"
                 namespace Foo {
@@ -88,12 +100,16 @@ fn two_files_mutual_dependency() {
         ],
         "",
     );
-    assert!(context.errors().is_empty(), "{:#?}", context.errors());
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
 }
 
 #[test]
 fn two_files_error() {
-    let (_, context) = compile(
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
         &[
             indoc! {"
                 namespace Foo {
@@ -111,17 +127,18 @@ fn two_files_error() {
         "",
     );
 
-    assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
-    let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(1));
-    assert_eq!(span.lo, 50);
-    assert_eq!(span.hi, 51);
+    let errors = unit.context.errors();
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    let (file, span) = unit.context.file_span(errors[0].span);
+    assert_eq!(file, FileIndex(1));
+    assert_eq!(span, Span { lo: 50, hi: 51 });
 }
 
 #[test]
 fn entry_call_operation() {
-    let (package, context) = compile(
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
@@ -129,35 +146,25 @@ fn entry_call_operation() {
             "}],
         "Foo.A()",
     );
-    assert!(context.errors.is_empty(), "{:#?}", context.errors());
 
-    let operation = if let ItemKind::Callable(callable) = &package.namespaces[0].items[0].kind {
-        context
-            .symbols
-            .get(callable.name.id)
-            .expect("Callable should have a symbol ID.")
-    } else {
-        panic!("First item should be a callable.")
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
+    let resolutions = unit.context.resolutions();
+    let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable item.");
     };
-
-    if let Some(Expr {
-        kind: ExprKind::Call(callee, _),
-        ..
-    }) = &package.entry
-    {
-        if let ExprKind::Path(Path { id, .. }) = callee.kind {
-            assert_eq!(context.symbols.get(id), Some(operation));
-        } else {
-            panic!("Callee should be a path.");
-        }
-    } else {
-        panic!("Entry should be a call expression.");
-    }
+    let res = resolutions.get(&callable.name.id).expect("Should resolve.");
+    let entry = unit.package.entry.expect("Should have entry expression.");
+    let ExprKind::Call(callee, _) = entry.kind else { panic!("Expected call.") };
+    let ExprKind::Path(path) = callee.kind else { panic!("Expected path.") };
+    assert_eq!(unit.context.resolutions.get(&path.id), Some(res));
 }
 
 #[test]
 fn entry_error() {
-    let (_, context) = compile(
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
         &[indoc! {"
                 namespace Foo {
                     operation A() : Unit {}
@@ -166,12 +173,11 @@ fn entry_error() {
         "Foo.B()",
     );
 
-    assert_eq!(context.errors.len(), 1, "{:#?}", context.errors());
-    let error = &context.errors()[0];
-    let (file, span) = context.file_span(error.span);
-    assert_eq!(file, FileId(1));
-    assert_eq!(span.lo, 0);
-    assert_eq!(span.hi, 5);
+    let errors = unit.context.errors();
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    let (file, span) = unit.context.file_span(errors[0].span);
+    assert_eq!(file, FileIndex(1));
+    assert_eq!(span, Span { lo: 0, hi: 5 });
 }
 
 #[test]
@@ -188,7 +194,9 @@ fn replace_node() {
         }
     }
 
-    let (mut package, mut context) = compile(
+    let mut unit = compile(
+        &PackageStore::new(),
+        &[],
         &[indoc! {"
             namespace Foo {
                 function A() : Int {
@@ -198,14 +206,11 @@ fn replace_node() {
         "",
     );
 
-    Replacer(context.assigner_mut()).visit_package(&mut package);
-
-    let ItemKind::Callable(CallableDecl {
-        body: CallableBody::Block(block),
-        ..
-    }) = &package.namespaces[0].items[0].kind else {
-        panic!("Expected callable item.");
+    Replacer(unit.context.assigner_mut()).visit_package(&mut unit.package);
+    let ItemKind::Callable(callable)= &unit.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable.");
     };
+    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
 
     expect![[r#"
         Block {
@@ -246,4 +251,91 @@ fn replace_node() {
         }
     "#]]
     .assert_debug_eq(&block);
+}
+
+#[test]
+fn package_dependency() {
+    let mut store = PackageStore::new();
+    let unit1 = compile(
+        &store,
+        &[],
+        &[indoc! {"
+            namespace Package1 {
+                function Foo() : Int {
+                    1
+                }
+            }"}],
+        "",
+    );
+
+    let foo = if let ItemKind::Callable(foo) = &unit1.package.namespaces[0].items[0].kind {
+        foo.name.id
+    } else {
+        panic!("Expected callable.");
+    };
+
+    let package1 = store.insert(unit1);
+    let unit2 = compile(
+        &store,
+        &[package1],
+        &[indoc! {"
+            namespace Package2 {
+                function Bar() : Int {
+                    Package1.Foo()
+                }
+            }
+        "}],
+        "",
+    );
+
+    let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable.");
+    };
+    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("Expected expression.") };
+    let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
+    let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
+    let resolutions = unit2.context.resolutions();
+    let res = resolutions.get(&path.id).expect("Should resolve.");
+    assert_eq!(res.package, PackageSrc::Extern(package1));
+    assert_eq!(res.node, foo);
+}
+
+#[test]
+fn package_dependency_internal() {
+    let mut store = PackageStore::new();
+    let unit1 = compile(
+        &store,
+        &[],
+        &[indoc! {"
+            namespace Package1 {
+                internal function Foo() : Int {
+                    1
+                }
+            }"}],
+        "",
+    );
+
+    let package1 = store.insert(unit1);
+    let unit2 = compile(
+        &store,
+        &[package1],
+        &[indoc! {"
+            namespace Package2 {
+                function Bar() : Int {
+                    Package1.Foo()
+                }
+            }
+        "}],
+        "",
+    );
+
+    let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
+        panic!("Expected callable.");
+    };
+    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("Expected expression.") };
+    let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
+    let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
+    assert!(unit2.context.resolutions.get(&path.id).is_none());
 }

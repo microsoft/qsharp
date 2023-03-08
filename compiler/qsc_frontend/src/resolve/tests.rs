@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind, GlobalTable, Id, Table};
+use super::{DefId, Error, ErrorKind, GlobalTable, PackageSrc, Resolutions};
 use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -13,37 +13,41 @@ use qsc_ast::{
 use std::fmt::{self, Write};
 
 struct Renamer<'a> {
-    symbols: &'a Table,
-    changes: Vec<(Span, Id)>,
+    resolutions: &'a Resolutions,
+    changes: Vec<(Span, DefId)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(symbols: &'a Table) -> Self {
+    fn new(resolutions: &'a Resolutions) -> Self {
         Self {
-            symbols,
+            resolutions,
             changes: Vec::new(),
         }
     }
 
     fn rename(&self, input: &mut String) {
         for (span, id) in self.changes.iter().rev() {
-            input.replace_range(span, &format!("_{}", id.0));
+            let name = match id.package {
+                PackageSrc::Local => format!("_{}", id.node),
+                PackageSrc::Extern(package) => format!("_{package}_{}", id.node),
+            };
+            input.replace_range(span, &name);
         }
     }
 }
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.symbols.nodes.get(&path.id) {
-            self.changes.push((path.span, id));
+        if let Some(&res) = self.resolutions.get(&path.id) {
+            self.changes.push((path.span, res));
         } else {
             visit::walk_path(self, path);
         }
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.symbols.nodes.get(&ident.id) {
-            self.changes.push((ident.span, id));
+        if let Some(&res) = self.resolutions.get(&ident.id) {
+            self.changes.push((ident.span, res));
         }
     }
 }
@@ -58,8 +62,8 @@ fn check(input: &str, expect: &Expect) {
     globals.visit_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
-    let (symbols, errors) = resolver.into_table();
-    let mut renamer = Renamer::new(&symbols);
+    let (resolutions, errors) = resolver.into_resolutions();
+    let mut renamer = Renamer::new(&resolutions);
     renamer.visit_package(&package);
     let mut output = input.to_string();
     renamer.rename(&mut output);
@@ -79,7 +83,7 @@ fn check(input: &str, expect: &Expect) {
 
 fn write_error(mut buffer: impl Write, error: &Error) -> fmt::Result {
     let ErrorKind::Unresolved(candidates) = &error.kind;
-    let mut candidates: Vec<_> = candidates.iter().collect();
+    let mut candidates: Vec<_> = candidates.iter().map(|r| (r.package, r.node)).collect();
     candidates.sort();
     write!(
         buffer,
@@ -102,10 +106,10 @@ fn global_callable() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
 
-                function _1() : Unit {
-                    _0();
+                function _11() : Unit {
+                    _5();
                 }
             }
         "#]],
@@ -124,8 +128,32 @@ fn global_callable_recursive() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {
-                    _0();
+                function _5() : Unit {
+                    _5();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn global_callable_internal() {
+    check(
+        indoc! {"
+            namespace Foo {
+                internal function A() : Unit {}
+
+                function B() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                internal function _5() : Unit {}
+
+                function _11() : Unit {
+                    _5();
                 }
             }
         "#]],
@@ -148,12 +176,12 @@ fn global_path() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
             }
 
             namespace Bar {
-                function _1() : Unit {
-                    _0();
+                function _13() : Unit {
+                    _5();
                 }
             }
         "#]],
@@ -178,14 +206,14 @@ fn open_namespace() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
             }
 
             namespace Bar {
                 open Foo;
 
-                function _1() : Unit {
-                    _0();
+                function _15() : Unit {
+                    _5();
                 }
             }
         "#]],
@@ -210,14 +238,14 @@ fn open_alias() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
             }
 
             namespace Bar {
                 open Foo as F;
 
-                function _1() : Unit {
-                    _0();
+                function _16() : Unit {
+                    _5();
                 }
             }
         "#]],
@@ -237,9 +265,9 @@ fn local_var() {
         "},
         &expect![[r#"
             namespace Foo { 
-                function _0() : Int {
-                    let _1 = 0;
-                    _1
+                function _5() : Int {
+                    let _11 = 0;
+                    _11
                 }
             }
         "#]],
@@ -263,13 +291,13 @@ fn shadow_local() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Int {
-                    let _1 = 0;
-                    let _3 = {
-                        let _2 = 1;
-                        _2
+                function _5() : Int {
+                    let _11 = 0;
+                    let _15 = {
+                        let _20 = 1;
+                        _20
                     };
-                    _1 + _3
+                    _11 + _15
                 }
             }
         "#]],
@@ -288,8 +316,8 @@ fn callable_param() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0(_1 : Int) : Int {
-                    _1
+                function _5(_8 : Int) : Int {
+                    _8
                 }
             }
         "#]],
@@ -310,9 +338,9 @@ fn spec_param() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _0(_1 : Qubit) : (Qubit[], Qubit) {
-                    controlled (_2, ...) {
-                        (_2, _1)
+                operation _5(_8 : Qubit) : (Qubit[], Qubit) {
+                    controlled (_18, ...) {
+                        (_18, _8)
                     }
                 }
             }
@@ -337,12 +365,12 @@ fn spec_param_shadow() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _0(_1 : Qubit[]) : Qubit[] {
-                    controlled (_2, ...) {
-                        _2
+                operation _5(_8 : Qubit[]) : Qubit[] {
+                    controlled (_18, ...) {
+                        _18
                     }
                     body ... {
-                        _1
+                        _8
                     }
                 }
             }
@@ -366,12 +394,12 @@ fn local_shadows_global() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
 
-                function _1() : Int {
-                    _0();
-                    let _2 = 1;
-                    _2
+                function _11() : Int {
+                    _5();
+                    let _23 = 1;
+                    _23
                 }
             }
         "#]],
@@ -392,10 +420,10 @@ fn shadow_same_block() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Int {
-                    let _1 = 0;
-                    let _2 = _1 + 1;
-                    _2
+                function _5() : Int {
+                    let _11 = 0;
+                    let _15 = _11 + 1;
+                    _15
                 }
             }
         "#]],
@@ -426,20 +454,20 @@ fn merged_aliases() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
             }
 
             namespace Bar {
-                function _1() : Unit {}
+                function _13() : Unit {}
             }
 
             namespace Baz {
                 open Foo as Alias;
                 open Bar as Alias;
 
-                function _2() : Unit {
-                    _0();
-                    _1();
+                function _27() : Unit {
+                    _5();
+                    _13();
                 }
             }
         "#]],
@@ -457,8 +485,8 @@ fn ty_decl() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _0 = Unit;
-                function _1(_2 : _0) : Unit {}
+                newtype _4 = Unit;
+                function _9(_12 : _4) : Unit {}
             }
         "#]],
     );
@@ -475,8 +503,8 @@ fn ty_decl_in_ty_decl() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _0 = Unit;
-                newtype _1 = _0;
+                newtype _4 = Unit;
+                newtype _8 = _4;
             }
         "#]],
     );
@@ -492,7 +520,7 @@ fn ty_decl_recursive() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _0 = _0;
+                newtype _4 = _4;
             }
         "#]],
     );
@@ -512,10 +540,10 @@ fn ty_decl_cons() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _0 = Unit;
+                newtype _4 = Unit;
 
-                function _1() : _0 {
-                    _0()
+                function _9() : _4 {
+                    _4()
                 }
             }
         "#]],
@@ -534,7 +562,7 @@ fn unknown_term() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {
+                function _5() : Unit {
                     B();
                 }
             }
@@ -554,7 +582,7 @@ fn unknown_ty() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0(_1 : B) : Unit {}
+                function _5(_8 : B) : Unit {}
             }
 
             // Unresolved symbol at Span { lo: 35, hi: 36 } with candidates [].
@@ -585,23 +613,23 @@ fn open_ambiguous_terms() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
             }
 
             namespace Bar {
-                function _1() : Unit {}
+                function _13() : Unit {}
             }
 
             namespace Baz {
                 open Foo;
                 open Bar;
 
-                function _2() : Unit {
+                function _25() : Unit {
                     A();
                 }
             }
 
-            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [Id(0), Id(1)].
+            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [(Local, NodeId(5)), (Local, NodeId(13))].
         "#]],
     );
 }
@@ -627,21 +655,21 @@ fn open_ambiguous_tys() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _0 = Unit;
+                newtype _4 = Unit;
             }
 
             namespace Bar {
-                newtype _1 = Unit;
+                newtype _10 = Unit;
             }
 
             namespace Baz {
                 open Foo;
                 open Bar;
 
-                function _2(_3 : A) : Unit {}
+                function _21(_24 : A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [Id(0), Id(1)].
+            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [(Local, NodeId(4)), (Local, NodeId(10))].
         "#]],
     );
 }
@@ -669,23 +697,23 @@ fn merged_aliases_ambiguous_terms() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {}
+                function _5() : Unit {}
             }
 
             namespace Bar {
-                function _1() : Unit {}
+                function _13() : Unit {}
             }
 
             namespace Baz {
                 open Foo as Alias;
                 open Bar as Alias;
 
-                function _2() : Unit {
+                function _27() : Unit {
                     Alias.A();
                 }
             }
 
-            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [Id(0), Id(1)].
+            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [(Local, NodeId(5)), (Local, NodeId(13))].
         "#]],
     );
 }
@@ -711,21 +739,21 @@ fn merged_aliases_ambiguous_tys() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _0 = Unit;
+                newtype _4 = Unit;
             }
 
             namespace Bar {
-                newtype _1 = Unit;
+                newtype _10 = Unit;
             }
 
             namespace Baz {
                 open Foo as Alias;
                 open Bar as Alias;
 
-                function _2(_3 : Alias.A) : Unit {}
+                function _23(_26 : Alias.A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [Id(0), Id(1)].
+            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [(Local, NodeId(4)), (Local, NodeId(10))].
         "#]],
     );
 }
@@ -742,8 +770,8 @@ fn lambda_param() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Unit {
-                    let _2 = _1 -> _1 + 1;
+                function _5() : Unit {
+                    let _11 = _14 -> _14 + 1;
                 }
             }
         "#]],
@@ -764,10 +792,10 @@ fn lambda_shadows_local() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _0() : Int {
-                    let _1 = 1;
-                    let _3 = _2 -> _2 + 1;
-                    _1
+                function _5() : Int {
+                    let _11 = 1;
+                    let _15 = _18 -> _18 + 1;
+                    _11
                 }
             }
         "#]],
