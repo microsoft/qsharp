@@ -801,3 +801,51 @@ fn lambda_shadows_local() {
         "#]],
     );
 }
+
+#[test]
+fn for_loop_range() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    for i in 0..9 {
+                        let _ = i;
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _5() : Unit {
+                    for _12 in 0..9 {
+                        let _ = _12;
+                    }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn for_loop_var() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A(xs : Int[]) : Unit {
+                    for x in xs {
+                        let _ = x;
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _5(_8 : Int[]) : Unit {
+                    for _17 in _8 {
+                        let _ = _17;
+                    }
+                }
+            }
+        "#]],
+    );
+}
