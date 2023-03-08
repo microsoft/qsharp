@@ -801,3 +801,27 @@ fn lambda_shadows_local() {
         "#]],
     );
 }
+
+#[test]
+fn for_loop() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    for i in 0..9 {
+                        let _ = i;
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _5() : Unit {
+                    for _12 in 0..9 {
+                        let _ = _12;
+                    }
+                }
+            }
+        "#]],
+    );
+}

@@ -137,6 +137,10 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         match &expr.kind {
+            ExprKind::For(pat, iter, block) => {
+                self.visit_expr(iter);
+                self.with_scope(Some(pat), |resolver| resolver.visit_block(block));
+            }
             ExprKind::Lambda(_, input, output) => {
                 self.with_scope(Some(input), |resolver| resolver.visit_expr(output));
             }
