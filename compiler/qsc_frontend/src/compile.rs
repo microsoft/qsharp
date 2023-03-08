@@ -183,6 +183,7 @@ pub fn std() -> CompileUnit {
         &[],
         &[
             include_str!("../../../library/canon.qs"),
+            include_str!("../../../library/convert.qs"),
             include_str!("../../../library/core.qs"),
             include_str!("../../../library/diagnostics.qs"),
             include_str!("../../../library/internal.qs"),
