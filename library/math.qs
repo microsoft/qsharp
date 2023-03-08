@@ -16,4 +16,9 @@ namespace Microsoft.Quantum.Math {
         return 3.14159265358979323846;
     }
 
+    // TODO
+    function IntAsDouble(a : Int) : Double {
+        body intrinsic;
+    }
+    
 }
