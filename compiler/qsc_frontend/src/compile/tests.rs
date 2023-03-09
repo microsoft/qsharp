@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, FileIndex};
-use crate::{compile::PackageStore, id::Assigner, resolve::PackageSrc};
+use super::{compile, FileIndex, PackageStore};
+use crate::{id::Assigner, resolve::PackageSrc};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_ast::{
@@ -153,11 +153,11 @@ fn entry_call_operation() {
     let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
         panic!("Expected callable item.");
     };
-    let res = resolutions.get(&callable.name.id).expect("Should resolve.");
+    let id = resolutions.get(&callable.name.id).expect("Should resolve.");
     let entry = unit.package.entry.expect("Should have entry expression.");
     let ExprKind::Call(callee, _) = entry.kind else { panic!("Expected call.") };
     let ExprKind::Path(path) = callee.kind else { panic!("Expected path.") };
-    assert_eq!(unit.context.resolutions.get(&path.id), Some(res));
+    assert_eq!(unit.context.resolutions.get(&path.id), Some(id));
 }
 
 #[test]
@@ -296,9 +296,9 @@ fn package_dependency() {
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
     let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
     let resolutions = unit2.context.resolutions();
-    let res = resolutions.get(&path.id).expect("Should resolve.");
-    assert_eq!(res.package, PackageSrc::Extern(package1));
-    assert_eq!(res.node, foo);
+    let id = resolutions.get(&path.id).expect("Should resolve.");
+    assert_eq!(id.package, PackageSrc::Extern(package1));
+    assert_eq!(id.node, foo);
 }
 
 #[test]
@@ -338,4 +338,28 @@ fn package_dependency_internal() {
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
     let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
     assert!(unit2.context.resolutions.get(&path.id).is_none());
+}
+
+#[test]
+fn std_dependency() {
+    let mut store = PackageStore::new();
+    let std = store.insert(super::std());
+    let unit = compile(
+        &store,
+        &[std],
+        &[indoc! {"
+            namespace Foo {
+                open Microsoft.Quantum.Intrinsic;
+
+                operation Main() : Unit {
+                    use q = Qubit();
+                    X(q);
+                }
+            }
+        "}],
+        "Foo.Main()",
+    );
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
 }
