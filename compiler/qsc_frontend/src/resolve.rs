@@ -265,7 +265,7 @@ fn resolve(
         if let Some(&id) = locals.iter().rev().find_map(|env| env.get(name)) {
             // Locals shadow everything.
             return Ok(id);
-        } else if let Some(&id) = globals.get(parent).and_then(|ns| ns.get(name)) {
+        } else if let Some(&id) = globals.get(parent).and_then(|env| env.get(name)) {
             // Items in the parent namespace shadow opens.
             return Ok(id);
         }
@@ -273,9 +273,9 @@ fn resolve(
 
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let mut candidates = HashSet::new();
-    if let Some(namespaces) = opens.get(namespace) {
-        for namespace in namespaces {
-            if let Some(&id) = globals.get(namespace).and_then(|ns| ns.get(name)) {
+    if let Some(open_namespaces) = opens.get(namespace) {
+        for open_namespace in open_namespaces {
+            if let Some(&id) = globals.get(open_namespace).and_then(|env| env.get(name)) {
                 // Opens shadow unopened globals.
                 candidates.insert(id);
             }
@@ -283,7 +283,7 @@ fn resolve(
     }
 
     if candidates.is_empty() {
-        if let Some(&id) = globals.get(namespace).and_then(|ns| ns.get(name)) {
+        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
             // An unopened global is the last resort.
             return Ok(id);
         }
