@@ -364,3 +364,27 @@ fn package_dependency_internal() {
     let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
     assert!(unit2.context.resolutions.get(&path.id).is_none());
 }
+
+#[test]
+fn std_dependency() {
+    let mut store = PackageStore::new();
+    let std = store.insert(super::std());
+    let unit = compile(
+        &store,
+        &[std],
+        &[indoc! {"
+            namespace Foo {
+                open Microsoft.Quantum.Intrinsic;
+
+                operation Main() : Unit {
+                    use q = Qubit();
+                    X(q);
+                }
+            }
+        "}],
+        "Foo.Main()",
+    );
+
+    let errors = unit.context.errors();
+    assert!(errors.is_empty(), "{errors:#?}");
+}

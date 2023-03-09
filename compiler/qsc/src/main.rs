@@ -5,7 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, LabeledSpan, NamedSource, Report, SourceCode};
-use qsc_frontend::compile::{compile, Context, PackageStore};
+use qsc_frontend::compile::{self, compile, Context, PackageStore};
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
@@ -122,9 +122,11 @@ fn main() {
         .map(|p| (p.as_path(), read_source(p)))
         .collect();
 
+    let mut store = PackageStore::new();
+    let std = store.insert(compile::std());
     let unit = compile(
         &PackageStore::new(),
-        &[],
+        &[std],
         &sources.iter().map(|s| s.1.as_str()).collect::<Vec<_>>(),
         &cli.entry,
     );
