@@ -335,30 +335,22 @@ fn array_slice_step_expr() {
     check_expression("[1, 2, 3, 4, 5][...2...]", &expect!["[1, 3, 5]"]);
 }
 
-// Cannot test until negation is supported.
-// #[test]
-#[allow(dead_code)]
+#[test]
 fn array_slice_reverse_expr() {
     check_expression("[1, 2, 3, 4, 5][2..-1..0]", &expect!["[3, 2, 1]"]);
 }
 
-// Cannot test until negation is supported.
-// #[test]
-#[allow(dead_code)]
+#[test]
 fn array_slice_reverse_end_expr() {
     check_expression("[1, 2, 3, 4, 5][...-1..2]", &expect!["[5, 4, 3]"]);
 }
 
-// Cannot test until negation is supported.
-// #[test]
-#[allow(dead_code)]
+#[test]
 fn array_slice_reverse_start_expr() {
     check_expression("[1, 2, 3, 4, 5][2..-1...]", &expect!["[3, 2, 1]"]);
 }
 
-// Cannot test until negation is supported.
-// #[test]
-#[allow(dead_code)]
+#[test]
 fn array_slice_reverse_all_expr() {
     check_expression("[1, 2, 3, 4, 5][...-1...]", &expect!["[5, 4, 3, 2, 1]"]);
 }
@@ -373,8 +365,7 @@ fn array_slice_none_expr() {
     check_expression("[1, 2, 3, 4, 5][1..0]", &expect!["[]"]);
 }
 
-// #[test]
-#[allow(dead_code)]
+#[test]
 fn array_slice_reverse_none_expr() {
     check_expression("[1, 2, 3, 4, 5][0..-1..1]", &expect!["[]"]);
 }
