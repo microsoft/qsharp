@@ -5,7 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, LabeledSpan, NamedSource, Report, SourceCode};
-use qsc_frontend::{compile, Context};
+use qsc_frontend::compile::{compile, Context, PackageStore};
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
@@ -121,10 +121,16 @@ fn main() {
         .iter()
         .map(|p| (p.as_path(), read_source(p)))
         .collect();
-    let (_, context) = compile(sources.iter().map(|s| &s.1), &cli.entry);
 
-    for error in context.errors() {
-        let error = OffsetDiagnostic::new(&context, &sources, error.clone());
+    let unit = compile(
+        &PackageStore::new(),
+        &[],
+        &sources.iter().map(|s| s.1.as_str()).collect::<Vec<_>>(),
+        &cli.entry,
+    );
+
+    for error in unit.context.errors() {
+        let error = OffsetDiagnostic::new(&unit.context, &sources, error.clone());
         eprint!("{:?}", Report::new(error));
     }
 }

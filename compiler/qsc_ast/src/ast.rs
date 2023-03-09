@@ -7,7 +7,10 @@
 
 use miette::SourceSpan;
 use num_bigint::BigInt;
-use std::ops::{Bound, Index, RangeBounds};
+use std::{
+    fmt::{self, Display, Formatter},
+    ops::{Bound, Index, RangeBounds},
+};
 
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -38,6 +41,12 @@ impl NodeId {
 impl Default for NodeId {
     fn default() -> Self {
         Self::PLACEHOLDER
+    }
+}
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 

@@ -18,7 +18,10 @@ use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Package, Pat, PatKind,
     Span, Stmt, StmtKind,
 };
-use qsc_frontend::{symbol, Context};
+use qsc_frontend::{
+    compile::{CompileUnit, Context},
+    resolve::DefId,
+};
 use val::{ConversionError, Value};
 
 #[allow(dead_code)]
@@ -82,16 +85,16 @@ impl Variable {
 pub struct Evaluator<'a> {
     package: &'a Package,
     context: &'a Context,
-    scopes: Vec<HashMap<symbol::Id, Variable>>,
-    globals: HashMap<symbol::Id, &'a CallableDecl>,
+    scopes: Vec<HashMap<DefId, Variable>>,
+    globals: HashMap<DefId, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(package: &'a Package, context: &'a Context) -> Self {
+    pub fn new(unit: &'a CompileUnit) -> Self {
         Self {
-            package,
-            context,
+            package: &unit.package,
+            context: &unit.context,
             scopes: vec![],
             globals: HashMap::default(),
         }
@@ -250,16 +253,16 @@ impl<'a> Evaluator<'a> {
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self.context.symbols().get(variable.id).unwrap_or_else(|| {
-                    panic!(
-                        "Symbol resolution error: no symbol ID for {:?}",
-                        variable.id
-                    );
-                });
+                let key = self
+                    .context
+                    .resolutions()
+                    .get(&variable.id)
+                    .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id));
+
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
-                match scope.entry(id) {
+                match scope.entry(*key) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
-                    Entry::Occupied(_) => panic!("{id:?} is already bound"),
+                    Entry::Occupied(_) => panic!("{key:?} is already bound"),
                 };
                 ControlFlow::Continue(())
             }
@@ -284,14 +287,17 @@ impl<'a> Evaluator<'a> {
     }
 
     fn resolve_binding(&self, id: NodeId) -> Value {
-        let id = self.context.symbols().get(id).unwrap_or_else(|| {
-            panic!("Symbol resolution error: {id:?} not found in symbol table.");
-        });
+        let key = self
+            .context
+            .resolutions()
+            .get(&id)
+            .unwrap_or_else(|| panic!("{id:?} is not resolved"));
+
         self.scopes
             .iter()
             .rev()
-            .find_map(|scope| scope.get(&id))
-            .unwrap_or_else(|| panic!("Symbol resolution error: {id:?} is not bound."))
+            .find_map(|scope| scope.get(key))
+            .unwrap_or_else(|| panic!("{key:?} is not bound."))
             .value
             .clone()
     }
@@ -299,21 +305,25 @@ impl<'a> Evaluator<'a> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
-                let id = self.context.symbols().get(path.id).unwrap_or_else(|| {
-                    panic!("Symbol resolution error: no symbol ID for {:?}", path.id);
-                });
+                let key = self
+                    .context
+                    .resolutions()
+                    .get(&path.id)
+                    .unwrap_or_else(|| panic!("{:?} is not resolved", path.id));
+
                 let mut variable = self
                     .scopes
                     .iter_mut()
                     .rev()
-                    .find_map(|scope| scope.get_mut(&id))
-                    .unwrap_or_else(|| panic!("{id:?} is not bound"));
+                    .find_map(|scope| scope.get_mut(key))
+                    .unwrap_or_else(|| panic!("{key:?} is not bound"));
+
                 if variable.is_mutable() {
                     variable.value = rhs;
+                    ControlFlow::Continue(Value::Tuple(vec![]))
                 } else {
-                    ControlFlow::Break(Reason::Error(path.span, ErrorKind::Mutability))?;
+                    ControlFlow::Break(Reason::Error(path.span, ErrorKind::Mutability))
                 }
-                ControlFlow::Continue(Value::Tuple(vec![]))
             }
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::Tuple(vec![])),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
