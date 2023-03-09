@@ -41,8 +41,8 @@ enum Reason {
 enum ErrorKind {
     Count(i64),
     EmptyExpr,
-    IndexSyntax,
     IndexVal(i64),
+    IntegerSize,
     Mutability,
     OutOfRange(i64),
     Type(&'static str, &'static str),
@@ -61,7 +61,7 @@ trait WithSpan {
 impl<T> WithSpan for Result<T, ConversionError> {
     type Output = ControlFlow<Reason, T>;
 
-    fn with_span(self, span: Span) -> ControlFlow<Reason, T> {
+    fn with_span(self, span: Span) -> Self::Output {
         match self {
             Ok(c) => ControlFlow::Continue(c),
             Err(e) => {
@@ -97,6 +97,45 @@ struct Variable {
 impl Variable {
     fn is_mutable(&self) -> bool {
         self.mutability == Mutability::Mutable
+    }
+}
+
+struct Range {
+    step: i64,
+    end: i64,
+    curr: i64,
+}
+
+impl Iterator for Range {
+    type Item = i64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let curr = self.curr;
+        self.curr += self.step;
+        if (self.step > 0 && curr <= self.end) || (self.step < 0 && curr >= self.end) {
+            Some(curr)
+        } else {
+            None
+        }
+    }
+}
+
+impl Range {
+    fn new(start: &Option<i64>, step: &Option<i64>, end: &Option<i64>, len: i64) -> Self {
+        let step = step.unwrap_or(1);
+        if step > 0 {
+            Range {
+                step,
+                end: end.unwrap_or(len - 1),
+                curr: start.unwrap_or(0),
+            }
+        } else {
+            Range {
+                step,
+                end: end.unwrap_or(0),
+                curr: start.unwrap_or(len - 1),
+            }
+        }
     }
 }
 
@@ -174,14 +213,18 @@ impl<'a> Evaluator<'a> {
                     ControlFlow::Continue(Value::Tuple(vec![]))
                 }
             }
-            ExprKind::Index(arr, index) => {
+            ExprKind::Index(arr, index_expr) => {
                 let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
-                match self.eval_expr(index)? {
-                    Value::Int(index_val) => index_array(&arr, index_val, index.span),
+                let index_val = self.eval_expr(index_expr)?;
+                match &index_val {
+                    Value::Int(index) => index_array(&arr, *index, index_expr.span),
                     Value::Range(start, step, end) => {
-                        slice_array(&arr, start, step, end, index.span)
+                        slice_array(&arr, start, step, end, index_expr.span)
                     }
-                    _ => ControlFlow::Break(Reason::Error(index.span, ErrorKind::IndexSyntax)),
+                    _ => ControlFlow::Break(Reason::Error(
+                        index_expr.span,
+                        ErrorKind::Type("Int or Range", index_val.type_name()),
+                    )),
                 }
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
@@ -396,23 +439,22 @@ fn index_array(arr: &[Value], index: i64, span: Span) -> ControlFlow<Reason, Val
 
 fn slice_array(
     arr: &[Value],
-    start: Option<i64>,
-    step: Option<i64>,
-    end: Option<i64>,
+    start: &Option<i64>,
+    step: &Option<i64>,
+    end: &Option<i64>,
     span: Span,
 ) -> ControlFlow<Reason, Value> {
-    let start = start.unwrap_or(0).as_index(span)?;
-    let step = step.unwrap_or(1);
-    let end = end.map_or(ControlFlow::Continue(arr.len() - 1), |e| e.as_index(span))?;
-
-    let iter: Box<dyn Iterator<Item = usize>> = if step > 0 {
-        Box::new(start..=end)
-    } else {
-        Box::new((end..=start).rev())
-    };
-
+    let len = match arr.len().try_into() {
+        Ok(len) => ControlFlow::Continue(len),
+        Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
+    }?;
+    let range = Range::new(start, step, end, len);
     let mut slice = vec![];
-    for i in iter.step_by(step.abs().as_index(span)?) {
+    for i in range {
+        let i: usize = match i.try_into() {
+            Ok(i) => ControlFlow::Continue(i),
+            Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
+        }?;
         match arr.get(i) {
             Some(v) => {
                 slice.push(v.clone());

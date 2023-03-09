@@ -306,12 +306,12 @@ fn array_index_expr() {
 }
 
 #[test]
-fn array_slice_expr() {
+fn array_slice_start_end_expr() {
     check_expression("[1, 2, 3, 4, 5][0..2]", &expect!["[1, 2, 3]"]);
 }
 
 #[test]
-fn array_slice_step_expr() {
+fn array_slice_start_step_end_expr() {
     check_expression("[1, 2, 3, 4, 5][0..2..2]", &expect!["[1, 3]"]);
 }
 
@@ -325,11 +325,47 @@ fn array_slice_end_expr() {
     check_expression("[1, 2, 3, 4, 5][...2]", &expect!["[1, 2, 3]"]);
 }
 
+#[test]
+fn array_slice_step_end_expr() {
+    check_expression("[1, 2, 3, 4, 5][...2..3]", &expect!["[1, 3]"]);
+}
+
+#[test]
+fn array_slice_step_expr() {
+    check_expression("[1, 2, 3, 4, 5][...2...]", &expect!["[1, 3, 5]"]);
+}
+
 // Cannot test until negation is supported.
 // #[test]
 #[allow(dead_code)]
 fn array_slice_reverse_expr() {
     check_expression("[1, 2, 3, 4, 5][2..-1..0]", &expect!["[3, 2, 1]"]);
+}
+
+// Cannot test until negation is supported.
+// #[test]
+#[allow(dead_code)]
+fn array_slice_reverse_end_expr() {
+    check_expression("[1, 2, 3, 4, 5][...-1..2]", &expect!["[5, 4, 3]"]);
+}
+
+// Cannot test until negation is supported.
+// #[test]
+#[allow(dead_code)]
+fn array_slice_reverse_start_expr() {
+    check_expression("[1, 2, 3, 4, 5][2..-1...]", &expect!["[3, 2, 1]"]);
+}
+
+// Cannot test until negation is supported.
+// #[test]
+#[allow(dead_code)]
+fn array_slice_reverse_all_expr() {
+    check_expression("[1, 2, 3, 4, 5][...-1...]", &expect!["[5, 4, 3, 2, 1]"]);
+}
+
+#[test]
+fn array_slice_all_expr() {
+    check_expression("[1, 2, 3, 4, 5][...]", &expect!["[1, 2, 3, 4, 5]"]);
 }
 
 #[test]
@@ -378,7 +414,10 @@ fn array_index_type_error_expr() {
                     lo: 10,
                     hi: 15,
                 },
-                kind: IndexSyntax,
+                kind: Type(
+                    "Int or Range",
+                    "Bool",
+                ),
             }
         "#]],
     );
