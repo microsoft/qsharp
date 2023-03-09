@@ -2,9 +2,10 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Intrinsic {
-    open QIR.Intrinsic;
+    open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Math;
+    open QIR.Intrinsic;
 
     /// # Summary
     /// Applies the doubly controlled–NOT (CCNOT) gate to three qubits.

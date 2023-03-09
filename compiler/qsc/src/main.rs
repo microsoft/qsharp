@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{self, compile, PackageStore};
 use std::{env, fs, io, result::Result, string::String};
 
 fn main() {
@@ -13,6 +13,9 @@ fn main() {
         Some(path) => fs::read_to_string(path).unwrap(),
     };
     let expr = args.get(2).map_or_else(|| "", String::as_str);
-    let unit = compile(&PackageStore::new(), &[], &[&input], expr);
+
+    let mut store = PackageStore::new();
+    let std = store.insert(compile::std());
+    let unit = compile(&store, &[std], &[&input], expr);
     println!("{unit:#?}");
 }
