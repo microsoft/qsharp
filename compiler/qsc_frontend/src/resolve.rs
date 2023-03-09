@@ -55,8 +55,8 @@ impl<'a> Resolver<'a> {
 
     fn resolve_ty(&mut self, path: &Path) {
         match resolve(&self.global_tys, &self.opens, &[], path) {
-            Ok(res) => {
-                self.resolutions.insert(path.id, res);
+            Ok(id) => {
+                self.resolutions.insert(path.id, id);
             }
             Err(err) => self.errors.push(err),
         }
@@ -64,8 +64,8 @@ impl<'a> Resolver<'a> {
 
     fn resolve_term(&mut self, path: &Path) {
         match resolve(&self.global_terms, &self.opens, &self.locals, path) {
-            Ok(res) => {
-                self.resolutions.insert(path.id, res);
+            Ok(id) => {
+                self.resolutions.insert(path.id, id);
             }
             Err(err) => self.errors.push(err),
         }
@@ -200,34 +200,34 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 
         match &item.kind {
             ItemKind::Ty(name, _) => {
-                let res = DefId {
+                let id = DefId {
                     package: self.package,
                     node: name.id,
                 };
                 if self.package == PackageSrc::Local {
-                    self.resolutions.insert(name.id, res);
+                    self.resolutions.insert(name.id, id);
                 }
                 self.tys
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, res);
+                    .insert(&name.name, id);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, res);
+                    .insert(&name.name, id);
             }
             ItemKind::Callable(decl) => {
-                let res = DefId {
+                let id = DefId {
                     package: self.package,
                     node: decl.name.id,
                 };
                 if self.package == PackageSrc::Local {
-                    self.resolutions.insert(decl.name.id, res);
+                    self.resolutions.insert(decl.name.id, id);
                 }
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&decl.name.name, res);
+                    .insert(&decl.name.name, id);
             }
             ItemKind::Open(..) => {}
         }
@@ -237,12 +237,12 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
-            let res = DefId {
+            let id = DefId {
                 package: PackageSrc::Local,
                 node: name.id,
             };
-            resolutions.insert(name.id, res);
-            env.insert(name.name.as_str(), res);
+            resolutions.insert(name.id, id);
+            env.insert(name.name.as_str(), id);
         }
         PatKind::Discard(_) | PatKind::Elided => {}
         PatKind::Paren(pat) => bind(resolutions, env, pat),
@@ -267,14 +267,14 @@ fn resolve(
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let name = path.name.name.as_str();
     let mut candidates = HashSet::new();
-    if let Some(&res) = globals.get(namespace).and_then(|n| n.get(name)) {
-        candidates.insert(res);
+    if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
+        candidates.insert(id);
     }
 
     if let Some(namespaces) = opens.get(namespace) {
         for namespace in namespaces {
-            if let Some(&res) = globals.get(namespace).and_then(|n| n.get(name)) {
-                candidates.insert(res);
+            if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
+                candidates.insert(id);
             }
         }
     }

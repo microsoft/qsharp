@@ -38,16 +38,16 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&res) = self.resolutions.get(&path.id) {
-            self.changes.push((path.span, res));
+        if let Some(&id) = self.resolutions.get(&path.id) {
+            self.changes.push((path.span, id));
         } else {
             visit::walk_path(self, path);
         }
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&res) = self.resolutions.get(&ident.id) {
-            self.changes.push((ident.span, res));
+        if let Some(&id) = self.resolutions.get(&ident.id) {
+            self.changes.push((ident.span, id));
         }
     }
 }
