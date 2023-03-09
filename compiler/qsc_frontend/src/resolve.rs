@@ -211,34 +211,34 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 
         match &item.kind {
             ItemKind::Ty(name, _) => {
-                let res = DefId {
+                let id = DefId {
                     package: self.package,
                     node: name.id,
                 };
                 if self.package == PackageSrc::Local {
-                    self.resolutions.insert(name.id, res);
+                    self.resolutions.insert(name.id, id);
                 }
                 self.tys
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, res);
+                    .insert(&name.name, id);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, res);
+                    .insert(&name.name, id);
             }
             ItemKind::Callable(decl) => {
-                let res = DefId {
+                let id = DefId {
                     package: self.package,
                     node: decl.name.id,
                 };
                 if self.package == PackageSrc::Local {
-                    self.resolutions.insert(decl.name.id, res);
+                    self.resolutions.insert(decl.name.id, id);
                 }
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&decl.name.name, res);
+                    .insert(&decl.name.name, id);
             }
             ItemKind::Open(..) => {}
         }
@@ -248,12 +248,12 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
 fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
-            let res = DefId {
+            let id = DefId {
                 package: PackageSrc::Local,
                 node: name.id,
             };
-            resolutions.insert(name.id, res);
-            env.insert(name.name.as_str(), res);
+            resolutions.insert(name.id, id);
+            env.insert(name.name.as_str(), id);
         }
         PatKind::Discard(_) | PatKind::Elided => {}
         PatKind::Paren(pat) => bind(resolutions, env, pat),
