@@ -4,22 +4,28 @@
 #[cfg(test)]
 mod tests;
 
+use crate::compile::PackageId;
 use qsc_ast::{
     ast::{
         Block, CallableDecl, Expr, ExprKind, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
-        Span, SpecBody, SpecDecl, Stmt, StmtKind, Ty, TyKind,
+        Span, SpecBody, SpecDecl, Stmt, StmtKind, Ty, TyKind, VisibilityKind,
     },
     visit::{self, Visitor},
 };
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct Id(u32);
+pub type Resolutions = HashMap<NodeId, DefId>;
 
-impl Id {
-    fn successor(self) -> Self {
-        Self(self.0 + 1)
-    }
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct DefId {
+    pub package: PackageSrc,
+    pub node: NodeId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum PackageSrc {
+    Local,
+    Extern(PackageId),
 }
 
 #[derive(Debug)]
@@ -30,57 +36,37 @@ pub(super) struct Error {
 
 #[derive(Debug)]
 pub(super) enum ErrorKind {
-    Unresolved(HashSet<Id>),
-}
-
-#[derive(Debug)]
-pub struct Table {
-    nodes: HashMap<NodeId, Id>,
-    next_id: Id,
-}
-
-impl Table {
-    #[must_use]
-    pub fn get(&self, node: NodeId) -> Option<Id> {
-        self.nodes.get(&node).copied()
-    }
-
-    pub fn declare(&mut self, node: NodeId) -> Id {
-        let id = self.next_id;
-        self.next_id = self.next_id.successor();
-        self.nodes.insert(node, id);
-        id
-    }
-
-    pub fn use_symbol(&mut self, node: NodeId, symbol: Id) {
-        self.nodes.insert(node, symbol);
-    }
+    Unresolved(HashSet<DefId>),
 }
 
 pub(super) struct Resolver<'a> {
-    table: Table,
-    global_tys: HashMap<&'a str, HashMap<&'a str, Id>>,
-    global_terms: HashMap<&'a str, HashMap<&'a str, Id>>,
+    resolutions: Resolutions,
+    global_tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    global_terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
-    locals: Vec<HashMap<&'a str, Id>>,
+    locals: Vec<HashMap<&'a str, DefId>>,
     errors: Vec<Error>,
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn into_table(self) -> (Table, Vec<Error>) {
-        (self.table, self.errors)
+    pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
+        (self.resolutions, self.errors)
     }
 
     fn resolve_ty(&mut self, path: &Path) {
         match resolve(&self.global_tys, &self.opens, &[], path) {
-            Ok(symbol) => self.table.use_symbol(path.id, symbol),
+            Ok(res) => {
+                self.resolutions.insert(path.id, res);
+            }
             Err(err) => self.errors.push(err),
         }
     }
 
     fn resolve_term(&mut self, path: &Path) {
         match resolve(&self.global_terms, &self.opens, &self.locals, path) {
-            Ok(symbol) => self.table.use_symbol(path.id, symbol),
+            Ok(res) => {
+                self.resolutions.insert(path.id, res);
+            }
             Err(err) => self.errors.push(err),
         }
     }
@@ -88,7 +74,7 @@ impl<'a> Resolver<'a> {
     fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
         let mut env = HashMap::new();
         pat.into_iter()
-            .for_each(|p| bind(&mut self.table, &mut env, p));
+            .for_each(|p| bind(&mut self.resolutions, &mut env, p));
         self.locals.push(env);
         f(self);
         self.locals.pop();
@@ -143,7 +129,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
                     .locals
                     .last_mut()
                     .expect("Statement should have an environment.");
-                bind(&mut self.table, env, pat);
+                bind(&mut self.resolutions, env, pat);
             }
             StmtKind::Expr(..) | StmtKind::Semi(..) => {}
         }
@@ -151,6 +137,10 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         match &expr.kind {
+            ExprKind::For(pat, iter, block) => {
+                self.visit_expr(iter);
+                self.with_scope(Some(pat), |resolver| resolver.visit_block(block));
+            }
             ExprKind::Lambda(_, input, output) => {
                 self.with_scope(Some(input), |resolver| resolver.visit_expr(output));
             }
@@ -161,28 +151,31 @@ impl<'a> Visitor<'a> for Resolver<'a> {
 }
 
 pub(super) struct GlobalTable<'a> {
-    symbols: Table,
-    tys: HashMap<&'a str, HashMap<&'a str, Id>>,
-    terms: HashMap<&'a str, HashMap<&'a str, Id>>,
+    resolutions: Resolutions,
+    tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    package: PackageSrc,
     namespace: &'a str,
 }
 
 impl<'a> GlobalTable<'a> {
     pub(super) fn new() -> Self {
         Self {
-            symbols: Table {
-                nodes: HashMap::new(),
-                next_id: Id(0),
-            },
+            resolutions: Resolutions::new(),
             tys: HashMap::new(),
             terms: HashMap::new(),
+            package: PackageSrc::Local,
             namespace: "",
         }
     }
 
+    pub(super) fn set_package(&mut self, package: PackageId) {
+        self.package = PackageSrc::Extern(package);
+    }
+
     pub(super) fn into_resolver(self) -> Resolver<'a> {
         Resolver {
-            table: self.symbols,
+            resolutions: self.resolutions,
             global_tys: self.tys,
             global_terms: self.terms,
             opens: HashMap::new(),
@@ -200,48 +193,69 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 
     fn visit_item(&mut self, item: &'a Item) {
-        if let ItemKind::Ty(name, _) = &item.kind {
-            let id = self.symbols.declare(name.id);
-            self.tys
-                .entry(self.namespace)
-                .or_default()
-                .insert(&name.name, id);
-            self.terms
-                .entry(self.namespace)
-                .or_default()
-                .insert(&name.name, id);
-        } else {
-            visit::walk_item(self, item);
+        let visibility = item.meta.visibility.map(|v| v.kind);
+        if self.package != PackageSrc::Local && visibility == Some(VisibilityKind::Internal) {
+            return;
         }
-    }
 
-    fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        let id = self.symbols.declare(decl.name.id);
-        self.terms
-            .entry(self.namespace)
-            .or_default()
-            .insert(&decl.name.name, id);
+        match &item.kind {
+            ItemKind::Ty(name, _) => {
+                let res = DefId {
+                    package: self.package,
+                    node: name.id,
+                };
+                if self.package == PackageSrc::Local {
+                    self.resolutions.insert(name.id, res);
+                }
+                self.tys
+                    .entry(self.namespace)
+                    .or_default()
+                    .insert(&name.name, res);
+                self.terms
+                    .entry(self.namespace)
+                    .or_default()
+                    .insert(&name.name, res);
+            }
+            ItemKind::Callable(decl) => {
+                let res = DefId {
+                    package: self.package,
+                    node: decl.name.id,
+                };
+                if self.package == PackageSrc::Local {
+                    self.resolutions.insert(decl.name.id, res);
+                }
+                self.terms
+                    .entry(self.namespace)
+                    .or_default()
+                    .insert(&decl.name.name, res);
+            }
+            ItemKind::Open(..) => {}
+        }
     }
 }
 
-fn bind<'a>(table: &mut Table, env: &mut HashMap<&'a str, Id>, pat: &'a Pat) {
+fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
-            let id = table.declare(name.id);
-            env.insert(name.name.as_str(), id);
+            let res = DefId {
+                package: PackageSrc::Local,
+                node: name.id,
+            };
+            resolutions.insert(name.id, res);
+            env.insert(name.name.as_str(), res);
         }
         PatKind::Discard(_) | PatKind::Elided => {}
-        PatKind::Paren(pat) => bind(table, env, pat),
-        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(table, env, p)),
+        PatKind::Paren(pat) => bind(resolutions, env, pat),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(resolutions, env, p)),
     }
 }
 
 fn resolve(
-    globals: &HashMap<&str, HashMap<&str, Id>>,
+    globals: &HashMap<&str, HashMap<&str, DefId>>,
     opens: &HashMap<&str, HashSet<&str>>,
-    locals: &[HashMap<&str, Id>],
+    locals: &[HashMap<&str, DefId>],
     path: &Path,
-) -> Result<Id, Error> {
+) -> Result<DefId, Error> {
     if path.namespace.is_none() {
         for env in locals.iter().rev() {
             if let Some(&id) = env.get(path.name.name.as_str()) {
@@ -253,14 +267,14 @@ fn resolve(
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let name = path.name.name.as_str();
     let mut candidates = HashSet::new();
-    if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
-        candidates.insert(id);
+    if let Some(&res) = globals.get(namespace).and_then(|n| n.get(name)) {
+        candidates.insert(res);
     }
 
     if let Some(namespaces) = opens.get(namespace) {
         for namespace in namespaces {
-            if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
-                candidates.insert(id);
+            if let Some(&res) = globals.get(namespace).and_then(|n| n.get(name)) {
+                candidates.insert(res);
             }
         }
     }
