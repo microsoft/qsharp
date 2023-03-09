@@ -41,9 +41,10 @@ pub(super) enum ErrorKind {
 
 pub(super) struct Resolver<'a> {
     resolutions: Resolutions,
-    global_tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
-    global_terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
     opens: HashMap<&'a str, HashSet<&'a str>>,
+    namespace: &'a str,
     locals: Vec<HashMap<&'a str, DefId>>,
     errors: Vec<Error>,
 }
@@ -54,7 +55,7 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_ty(&mut self, path: &Path) {
-        match resolve(&self.global_tys, &self.opens, &[], path) {
+        match resolve(&self.tys, &self.opens, self.namespace, &[], path) {
             Ok(id) => {
                 self.resolutions.insert(path.id, id);
             }
@@ -63,7 +64,7 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_term(&mut self, path: &Path) {
-        match resolve(&self.global_terms, &self.opens, &self.locals, path) {
+        match resolve(&self.terms, &self.opens, self.namespace, &self.locals, path) {
             Ok(id) => {
                 self.resolutions.insert(path.id, id);
             }
@@ -83,11 +84,12 @@ impl<'a> Resolver<'a> {
 
 impl<'a> Visitor<'a> for Resolver<'a> {
     fn visit_namespace(&mut self, namespace: &'a Namespace) {
-        self.opens = HashMap::from([("", HashSet::from([namespace.name.name.as_str()]))]);
+        self.opens = HashMap::new();
+        self.namespace = &namespace.name.name;
         for item in &namespace.items {
-            if let ItemKind::Open(namespace, alias) = &item.kind {
+            if let ItemKind::Open(name, alias) = &item.kind {
                 let alias = alias.as_ref().map_or("", |a| &a.name);
-                self.opens.entry(alias).or_default().insert(&namespace.name);
+                self.opens.entry(alias).or_default().insert(&name.name);
             }
         }
 
@@ -176,9 +178,10 @@ impl<'a> GlobalTable<'a> {
     pub(super) fn into_resolver(self) -> Resolver<'a> {
         Resolver {
             resolutions: self.resolutions,
-            global_tys: self.tys,
-            global_terms: self.terms,
+            tys: self.tys,
+            terms: self.terms,
             opens: HashMap::new(),
+            namespace: "",
             locals: Vec::new(),
             errors: Vec::new(),
         }
@@ -253,29 +256,36 @@ fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pa
 fn resolve(
     globals: &HashMap<&str, HashMap<&str, DefId>>,
     opens: &HashMap<&str, HashSet<&str>>,
+    parent: &str,
     locals: &[HashMap<&str, DefId>],
     path: &Path,
 ) -> Result<DefId, Error> {
+    let name = path.name.name.as_str();
     if path.namespace.is_none() {
-        for env in locals.iter().rev() {
-            if let Some(&id) = env.get(path.name.name.as_str()) {
-                return Ok(id);
-            }
+        if let Some(&id) = locals.iter().rev().find_map(|env| env.get(name)) {
+            // Locals shadow everything.
+            return Ok(id);
+        } else if let Some(&id) = globals.get(parent).and_then(|env| env.get(name)) {
+            // Items in the parent namespace shadow opens.
+            return Ok(id);
         }
     }
 
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
-    let name = path.name.name.as_str();
     let mut candidates = HashSet::new();
-    if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
-        candidates.insert(id);
-    }
-
-    if let Some(namespaces) = opens.get(namespace) {
-        for namespace in namespaces {
-            if let Some(&id) = globals.get(namespace).and_then(|n| n.get(name)) {
+    if let Some(open_namespaces) = opens.get(namespace) {
+        for open_namespace in open_namespaces {
+            if let Some(&id) = globals.get(open_namespace).and_then(|env| env.get(name)) {
+                // Opens shadow unopened globals.
                 candidates.insert(id);
             }
+        }
+    }
+
+    if candidates.is_empty() {
+        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
+            // An unopened global is the last resort.
+            return Ok(id);
         }
     }
 
@@ -283,7 +293,7 @@ fn resolve(
         Ok(candidates
             .into_iter()
             .next()
-            .expect("Set should have exactly one item."))
+            .expect("Candidates should not be empty."))
     } else {
         Err(Error {
             span: path.span,
