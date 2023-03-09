@@ -282,6 +282,24 @@ fn array_index_expr() {
 }
 
 #[test]
+fn array_index_negative_expr() {
+    check_expression(
+        "[1, 2, 3][-2]",
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 10,
+                    hi: 12,
+                },
+                kind: Index(
+                    -2,
+                ),
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn array_index_out_of_range_expr() {
     check_expression(
         "[1, 2, 3][4]",
