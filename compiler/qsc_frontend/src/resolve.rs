@@ -14,6 +14,12 @@ use qsc_ast::{
 };
 use std::collections::{HashMap, HashSet};
 
+const PRELUDE: &[&str] = &[
+    "Microsoft.Quantum.Canon",
+    "Microsoft.Quantum.Core",
+    "Microsoft.Quantum.Intrinsic",
+];
+
 pub type Resolutions = HashMap<NodeId, DefId>;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -261,7 +267,8 @@ fn resolve(
     path: &Path,
 ) -> Result<DefId, Error> {
     let name = path.name.name.as_str();
-    if path.namespace.is_none() {
+    let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
+    if namespace.is_empty() {
         if let Some(&id) = locals.iter().rev().find_map(|env| env.get(name)) {
             // Locals shadow everything.
             return Ok(id);
@@ -271,33 +278,55 @@ fn resolve(
         }
     }
 
-    let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
-    let mut candidates = HashSet::new();
-    if let Some(open_namespaces) = opens.get(namespace) {
-        for open_namespace in open_namespaces {
-            if let Some(&id) = globals.get(open_namespace).and_then(|env| env.get(name)) {
-                // Opens shadow unopened globals.
-                candidates.insert(id);
-            }
+    // Explicit opens shadow prelude and unopened globals.
+    let open_candidates = opens
+        .get(namespace)
+        .map(|open_namespaces| resolve_opens(globals, open_namespaces, name))
+        .unwrap_or_default();
+
+    if open_candidates.is_empty() && namespace.is_empty() {
+        // Prelude shadows unopened globals.
+        let candidates = resolve_opens(globals, PRELUDE, name);
+        assert!(candidates.len() <= 1, "Ambiguity in prelude resolution.");
+        if let Some(id) = single(candidates) {
+            return Ok(id);
         }
     }
 
-    if candidates.is_empty() {
+    if open_candidates.is_empty() {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
             // An unopened global is the last resort.
             return Ok(id);
         }
     }
 
-    if candidates.len() == 1 {
-        Ok(candidates
-            .into_iter()
-            .next()
-            .expect("Candidates should not be empty."))
-    } else {
-        Err(Error {
-            span: path.span,
-            kind: ErrorKind::Unresolved(candidates),
-        })
+    single(&open_candidates).copied().ok_or(Error {
+        span: path.span,
+        kind: ErrorKind::Unresolved(open_candidates),
+    })
+}
+
+fn resolve_opens(
+    globals: &HashMap<&str, HashMap<&str, DefId>>,
+    namespaces: impl IntoIterator<Item = impl AsRef<str>>,
+    name: &str,
+) -> HashSet<DefId> {
+    let mut candidates = HashSet::new();
+    for namespace in namespaces {
+        let namespace = namespace.as_ref();
+        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
+            candidates.insert(id);
+        }
+    }
+
+    candidates
+}
+
+fn single<T>(xs: impl IntoIterator<Item = T>) -> Option<T> {
+    let mut xs = xs.into_iter();
+    let x = xs.next();
+    match xs.next() {
+        None => x,
+        Some(_) => None,
     }
 }
