@@ -418,6 +418,82 @@ fn shadow_same_block() {
 }
 
 #[test]
+fn parent_namespace_shadows_open() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                open Foo;
+
+                function A() : Unit {}
+
+                function B() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _5() : Unit {}
+            }
+
+            namespace Bar {
+                open Foo;
+
+                function _15() : Unit {}
+
+                function _21() : Unit {
+                    _15();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn open_alias_shadows_global() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                function A() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Bar;
+
+                function B() : Unit {
+                    Bar.A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                function _5() : Unit {}
+            }
+
+            namespace Bar {
+                function _13() : Unit {}
+            }
+
+            namespace Baz {
+                open Foo as Bar;
+
+                function _24() : Unit {
+                    _5();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn merged_aliases() {
     check(
         indoc! {"
