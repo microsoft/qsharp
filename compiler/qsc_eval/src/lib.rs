@@ -122,20 +122,11 @@ impl Iterator for Range {
 }
 
 impl Range {
-    fn new(start: &Option<i64>, step: &Option<i64>, end: &Option<i64>, len: i64) -> Self {
-        let step = step.unwrap_or(1);
-        if step > 0 {
-            Range {
-                step,
-                end: end.unwrap_or(len - 1),
-                curr: start.unwrap_or(0),
-            }
-        } else {
-            Range {
-                step,
-                end: end.unwrap_or(0),
-                curr: start.unwrap_or(len - 1),
-            }
+    fn new(start: i64, step: i64, end: i64) -> Self {
+        Range {
+            step,
+            end,
+            curr: start,
         }
     }
 }
@@ -465,29 +456,21 @@ fn slice_array(
     if let Some(0) = step {
         ControlFlow::Break(Reason::Error(span, ErrorKind::RangeStepZero))
     } else {
-        let len = match arr.len().try_into() {
+        let len: i64 = match arr.len().try_into() {
             Ok(len) => ControlFlow::Continue(len),
             Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
         }?;
-        let range = Range::new(start, step, end, len);
+        let step = step.unwrap_or(1);
+        let (start, end) = if step > 0 {
+            (start.unwrap_or(0), end.unwrap_or(len - 1))
+        } else {
+            (start.unwrap_or(len - 1), end.unwrap_or(0))
+        };
+
+        let range = Range::new(start, step, end);
         let mut slice = vec![];
         for i in range {
-            let i: usize = match i.try_into() {
-                Ok(i) => ControlFlow::Continue(i),
-                Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
-            }?;
-            match arr.get(i) {
-                Some(v) => {
-                    slice.push(v.clone());
-                    ControlFlow::Continue(())
-                }
-                None => ControlFlow::Break(Reason::Error(
-                    span,
-                    ErrorKind::OutOfRange(
-                        i.try_into().expect("Value originally converted from i64"),
-                    ),
-                )),
-            }?;
+            slice.push(index_array(arr, i, span)?);
         }
 
         ControlFlow::Continue(Value::Array(slice))
