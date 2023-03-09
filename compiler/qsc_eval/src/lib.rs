@@ -401,8 +401,8 @@ fn slice_array(
     end: Option<i64>,
     span: Span,
 ) -> ControlFlow<Reason, Value> {
-    let start = start.map_or(0, |s| s).as_index(span)?;
-    let step = step.map_or(1, |s| s);
+    let start = start.unwrap_or(0).as_index(span)?;
+    let step = step.unwrap_or(1);
     let end = end.map_or(ControlFlow::Continue(arr.len() - 1), |e| e.as_index(span))?;
 
     let iter: Box<dyn Iterator<Item = usize>> = if step > 0 {
