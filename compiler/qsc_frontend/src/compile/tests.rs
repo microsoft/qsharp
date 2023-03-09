@@ -153,11 +153,11 @@ fn entry_call_operation() {
     let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
         panic!("Expected callable item.");
     };
-    let res = resolutions.get(&callable.name.id).expect("Should resolve.");
+    let id = resolutions.get(&callable.name.id).expect("Should resolve.");
     let entry = unit.package.entry.expect("Should have entry expression.");
     let ExprKind::Call(callee, _) = entry.kind else { panic!("Expected call.") };
     let ExprKind::Path(path) = callee.kind else { panic!("Expected path.") };
-    assert_eq!(unit.context.resolutions.get(&path.id), Some(res));
+    assert_eq!(unit.context.resolutions.get(&path.id), Some(id));
 }
 
 #[test]
@@ -296,9 +296,9 @@ fn package_dependency() {
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
     let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
     let resolutions = unit2.context.resolutions();
-    let res = resolutions.get(&path.id).expect("Should resolve.");
-    assert_eq!(res.package, PackageSrc::Extern(package1));
-    assert_eq!(res.node, foo);
+    let id = resolutions.get(&path.id).expect("Should resolve.");
+    assert_eq!(id.package, PackageSrc::Extern(package1));
+    assert_eq!(id.node, foo);
 }
 
 #[test]
