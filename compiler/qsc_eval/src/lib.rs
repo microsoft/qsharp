@@ -45,6 +45,7 @@ enum ErrorKind {
     IntegerSize,
     Mutability,
     OutOfRange(i64),
+    RangeStepZero,
     Type(&'static str, &'static str),
     TupleArity(usize, usize),
     Unassignable,
@@ -444,28 +445,34 @@ fn slice_array(
     end: &Option<i64>,
     span: Span,
 ) -> ControlFlow<Reason, Value> {
-    let len = match arr.len().try_into() {
-        Ok(len) => ControlFlow::Continue(len),
-        Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
-    }?;
-    let range = Range::new(start, step, end, len);
-    let mut slice = vec![];
-    for i in range {
-        let i: usize = match i.try_into() {
-            Ok(i) => ControlFlow::Continue(i),
+    if let Some(0) = step {
+        ControlFlow::Break(Reason::Error(span, ErrorKind::RangeStepZero))
+    } else {
+        let len = match arr.len().try_into() {
+            Ok(len) => ControlFlow::Continue(len),
             Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
         }?;
-        match arr.get(i) {
-            Some(v) => {
-                slice.push(v.clone());
-                ControlFlow::Continue(())
-            }
-            None => ControlFlow::Break(Reason::Error(
-                span,
-                ErrorKind::OutOfRange(i.try_into().expect("Value originally converted from i64")),
-            )),
-        }?;
-    }
+        let range = Range::new(start, step, end, len);
+        let mut slice = vec![];
+        for i in range {
+            let i: usize = match i.try_into() {
+                Ok(i) => ControlFlow::Continue(i),
+                Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
+            }?;
+            match arr.get(i) {
+                Some(v) => {
+                    slice.push(v.clone());
+                    ControlFlow::Continue(())
+                }
+                None => ControlFlow::Break(Reason::Error(
+                    span,
+                    ErrorKind::OutOfRange(
+                        i.try_into().expect("Value originally converted from i64"),
+                    ),
+                )),
+            }?;
+        }
 
-    ControlFlow::Continue(Value::Array(slice))
+        ControlFlow::Continue(Value::Array(slice))
+    }
 }

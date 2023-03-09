@@ -369,6 +369,33 @@ fn array_slice_all_expr() {
 }
 
 #[test]
+fn array_slice_none_expr() {
+    check_expression("[1, 2, 3, 4, 5][1..0]", &expect!["[]"]);
+}
+
+// #[test]
+#[allow(dead_code)]
+fn array_slice_reverse_none_expr() {
+    check_expression("[1, 2, 3, 4, 5][0..-1..1]", &expect!["[]"]);
+}
+
+#[test]
+fn array_slice_step_zero_expr() {
+    check_expression(
+        "[1, 2, 3, 4, 5][...0...]",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 16,
+                hi: 23,
+            },
+            kind: RangeStepZero,
+        }
+    "#]],
+    );
+}
+
+#[test]
 fn array_slice_out_of_range_expr() {
     check_expression(
         "[1, 2, 3, 4, 5][0..7]",
