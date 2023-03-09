@@ -400,13 +400,31 @@ fn array_slice_out_of_range_expr() {
     check_expression(
         "[1, 2, 3, 4, 5][0..7]",
         &expect![[r#"
+        Error {
+            span: Span {
+                lo: 16,
+                hi: 20,
+            },
+            kind: OutOfRange(
+                5,
+            ),
+        }
+    "#]],
+    );
+}
+
+#[test]
+fn array_index_negative_expr() {
+    check_expression(
+        "[1, 2, 3][-2]",
+        &expect![[r#"
             Error {
                 span: Span {
-                    lo: 16,
-                    hi: 20,
+                    lo: 10,
+                    hi: 12,
                 },
-                kind: OutOfRange(
-                    5,
+                kind: IndexVal(
+                    -2,
                 ),
             }
         "#]],
@@ -582,6 +600,93 @@ fn return_shortcut_expr() {
 #[test]
 fn tuple_expr() {
     check_expression("(1, 2, 3)", &expect!["(1, 2, 3)"]);
+}
+
+#[test]
+fn unop_negate_big_int_expr() {
+    check_expression(
+        "-(9_223_372_036_854_775_808L)",
+        &expect!["-9223372036854775808"],
+    );
+}
+
+#[test]
+fn unop_negate_bool_expr() {
+    check_expression(
+        "-(false)",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 1,
+                hi: 8,
+            },
+            kind: Type(
+                "Int, BigInt, or Double",
+                "Bool",
+            ),
+        }
+    "#]],
+    );
+}
+
+#[test]
+fn unop_negate_double_expr() {
+    check_expression("-(3.4)", &expect!["-3.4"]);
+}
+
+#[test]
+fn unop_negate_int_expr() {
+    check_expression("-(13)", &expect!["-13"]);
+}
+
+#[test]
+fn unop_negate_int_overflow_expr() {
+    check_expression(
+        "-(9_223_372_036_854_775_808)",
+        &expect!["-9223372036854775808"],
+    );
+}
+
+#[test]
+fn unop_negate_negative_int_expr() {
+    check_expression("-(-(13))", &expect!["13"]);
+}
+
+#[test]
+fn unop_positive_big_int_expr() {
+    check_expression(
+        "+(9_223_372_036_854_775_808L)",
+        &expect!["9223372036854775808"],
+    );
+}
+
+#[test]
+fn unop_positive_bool_expr() {
+    check_expression(
+        "+(false)",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 1,
+                hi: 8,
+            },
+            kind: Type(
+                "Int, BigInt, or Double",
+                "Bool",
+            ),
+        }
+    "#]],
+    );
+}
+
+#[test]
+fn unop_positive_double_expr() {
+    check_expression("+(3.4)", &expect!["3.4"]);
+}
+
+#[test]
+fn unop_positive_int_expr() {
+    check_expression("+(13)", &expect!["13"]);
 }
 
 #[test]
