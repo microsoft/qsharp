@@ -15,11 +15,11 @@ use std::{
 
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Package, Pat, PatKind,
-    Span, Stmt, StmtKind, UnOp,
+    self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind, Span, Stmt,
+    StmtKind, UnOp,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, Context},
+    compile::{CompileUnit, PackageId, PackageStore},
     resolve::DefId,
 };
 use val::{ConversionError, Value};
@@ -131,20 +131,29 @@ impl Range {
     }
 }
 
+pub struct Scope {
+    package_id: PackageId,
+    bindings: HashMap<DefId, Variable>,
+}
+
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
-    package: &'a Package,
-    context: &'a Context,
-    scopes: Vec<HashMap<DefId, Variable>>,
+    store: &'a PackageStore,
+    current_unit: &'a CompileUnit,
+    current_id: PackageId,
+    scopes: Vec<Scope>,
     globals: HashMap<DefId, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(unit: &'a CompileUnit) -> Self {
+    pub fn new(store: &'a PackageStore, entry_id: PackageId) -> Self {
         Self {
-            package: &unit.package,
-            context: &unit.context,
+            store,
+            current_unit: store
+                .get(entry_id)
+                .expect("Entry id must be present in package store"),
+            current_id: entry_id,
             scopes: vec![],
             globals: HashMap::default(),
         }
@@ -154,7 +163,7 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.package.entry {
+        if let Some(expr) = &self.current_unit.package.entry {
             match self.eval_expr(expr) {
                 ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
                 ControlFlow::Break(Reason::Error(span, kind)) => Err(Error { span, kind }),
@@ -287,7 +296,10 @@ impl<'a> Evaluator<'a> {
     }
 
     fn eval_block(&mut self, block: &Block) -> ControlFlow<Reason, Value> {
-        self.scopes.push(HashMap::default());
+        self.scopes.push(Scope {
+            package_id: self.current_id,
+            bindings: HashMap::default(),
+        });
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
                 let _ = self.eval_stmt(stmt)?;
@@ -328,13 +340,14 @@ impl<'a> Evaluator<'a> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = self
+                    .current_unit
                     .context
                     .resolutions()
                     .get(&variable.id)
                     .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id));
 
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
-                match scope.entry(*id) {
+                match scope.bindings.entry(*id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("{id:?} is already bound"),
                 };
@@ -362,6 +375,7 @@ impl<'a> Evaluator<'a> {
 
     fn resolve_binding(&self, id: NodeId) -> Value {
         let id = self
+            .current_unit
             .context
             .resolutions()
             .get(&id)
@@ -370,7 +384,8 @@ impl<'a> Evaluator<'a> {
         self.scopes
             .iter()
             .rev()
-            .find_map(|scope| scope.get(id))
+            .take_while(|scope| scope.package_id == self.current_id)
+            .find_map(|scope| scope.bindings.get(id))
             .unwrap_or_else(|| panic!("{id:?} is not bound."))
             .value
             .clone()
@@ -380,6 +395,7 @@ impl<'a> Evaluator<'a> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
                 let id = self
+                    .current_unit
                     .context
                     .resolutions()
                     .get(&path.id)
@@ -389,7 +405,8 @@ impl<'a> Evaluator<'a> {
                     .scopes
                     .iter_mut()
                     .rev()
-                    .find_map(|scope| scope.get_mut(id))
+                    .take_while(|scope| scope.package_id == self.current_id)
+                    .find_map(|scope| scope.bindings.get_mut(id))
                     .unwrap_or_else(|| panic!("{id:?} is not bound"));
 
                 if variable.is_mutable() {
