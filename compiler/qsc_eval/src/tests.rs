@@ -594,6 +594,38 @@ fn tuple_expr() {
 }
 
 #[test]
+fn unop_bitwise_not_big_int_expr() {
+    check_expression(
+        "~~~(9_223_372_036_854_775_808L)",
+        &expect!["-9223372036854775809"],
+    );
+}
+
+#[test]
+fn unop_bitwise_not_bool_expr() {
+    check_expression(
+        "~~~(false)",
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 3,
+                    hi: 10,
+                },
+                kind: Type(
+                    "Int or BigInt",
+                    "Bool",
+                ),
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn unop_bitwise_not_int_expr() {
+    check_expression("~~~(13)", &expect!["-14"]);
+}
+
+#[test]
 fn unop_negate_big_int_expr() {
     check_expression(
         "-(9_223_372_036_854_775_808L)",
@@ -650,7 +682,9 @@ fn unop_not_bool_expr() {
 
 #[test]
 fn unop_not_int_expr() {
-    check_expression("not 0", &expect![[r#"
+    check_expression(
+        "not 0",
+        &expect![[r#"
         Error {
             span: Span {
                 lo: 4,
@@ -661,7 +695,8 @@ fn unop_not_int_expr() {
                 "Int",
             ),
         }
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]

@@ -10,7 +10,7 @@ pub mod val;
 
 use std::{
     collections::{hash_map::Entry, HashMap},
-    ops::ControlFlow,
+    ops::{ControlFlow, Neg},
 };
 
 use qir_backend::Pauli;
@@ -175,7 +175,15 @@ impl<'a> Evaluator<'a> {
     ) -> ControlFlow<Reason, Value> {
         let val = self.eval_expr(rhs)?;
         match op {
-            UnOp::Neg => val.arithmetic_negate().with_span(rhs.span),
+            UnOp::Neg => match val {
+                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
+                Value::Double(v) => ControlFlow::Continue(Value::Double(v.neg())),
+                Value::Int(v) => ControlFlow::Continue(Value::Int(v.wrapping_neg())),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
+                )),
+            },
             UnOp::Pos => match val {
                 Value::BigInt(_) | Value::Int(_) | Value::Double(_) => ControlFlow::Continue(val),
                 _ => ControlFlow::Break(Reason::Error(
@@ -190,7 +198,15 @@ impl<'a> Evaluator<'a> {
                     ErrorKind::Type("Bool", val.type_name()),
                 )),
             },
-            UnOp::Functor(_) | UnOp::NotB | UnOp::Unwrap => {
+            UnOp::NotB => match val {
+                Value::Int(v) => ControlFlow::Continue(Value::Int(!v)),
+                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(!v)),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Int or BigInt", val.type_name()),
+                )),
+            },
+            UnOp::Functor(_) | UnOp::Unwrap => {
                 ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
             }
         }
