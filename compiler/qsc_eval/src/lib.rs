@@ -167,6 +167,35 @@ impl<'a> Evaluator<'a> {
         }
     }
 
+    fn eval_unary_op_expr(
+        &mut self,
+        expr: &Expr,
+        op: UnOp,
+        rhs: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let val = self.eval_expr(rhs)?;
+        match op {
+            UnOp::Neg => val.arithmetic_negate().with_span(rhs.span),
+            UnOp::Pos => match val {
+                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => ControlFlow::Continue(val),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
+                )),
+            },
+            UnOp::NotL => match val {
+                Value::Bool(b) => ControlFlow::Continue(Value::Bool(!b)),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Bool", val.type_name()),
+                )),
+            },
+            UnOp::Functor(_) | UnOp::NotB | UnOp::Unwrap => {
+                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
+            }
+        }
+    }
+
     fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
@@ -231,24 +260,7 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
-            ExprKind::UnOp(op, rhs) => {
-                let val = self.eval_expr(rhs)?;
-                match op {
-                    UnOp::Neg => val.arithmetic_negate().with_span(rhs.span),
-                    UnOp::Pos => match val {
-                        Value::BigInt(_) | Value::Int(_) | Value::Double(_) => {
-                            ControlFlow::Continue(val)
-                        }
-                        _ => ControlFlow::Break(Reason::Error(
-                            rhs.span,
-                            ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
-                        )),
-                    },
-                    UnOp::Functor(_) | UnOp::NotB | UnOp::NotL | UnOp::Unwrap => {
-                        ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
-                    }
-                }
-            }
+            ExprKind::UnOp(op, rhs) => self.eval_unary_op_expr(expr, *op, rhs),
             ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _)
             | ExprKind::BinOp(_, _, _)

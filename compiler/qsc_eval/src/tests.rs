@@ -644,6 +644,27 @@ fn unop_negate_negative_int_expr() {
 }
 
 #[test]
+fn unop_not_bool_expr() {
+    check_expression("not false", &expect!["true"]);
+}
+
+#[test]
+fn unop_not_int_expr() {
+    check_expression("not 0", &expect![[r#"
+        Error {
+            span: Span {
+                lo: 4,
+                hi: 5,
+            },
+            kind: Type(
+                "Bool",
+                "Int",
+            ),
+        }
+    "#]]);
+}
+
+#[test]
 fn unop_positive_big_int_expr() {
     check_expression(
         "+(9_223_372_036_854_775_808L)",
