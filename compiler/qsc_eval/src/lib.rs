@@ -39,10 +39,13 @@ enum Reason {
 
 #[derive(Debug)]
 enum ErrorKind {
+    Count(i64),
     EmptyExpr,
-    Index(i64),
+    IndexVal(i64),
+    IntegerSize,
     Mutability,
     OutOfRange(i64),
+    RangeStepZero,
     Type(&'static str, &'static str),
     TupleArity(usize, usize),
     Unassignable,
@@ -59,12 +62,29 @@ trait WithSpan {
 impl<T> WithSpan for Result<T, ConversionError> {
     type Output = ControlFlow<Reason, T>;
 
-    fn with_span(self, span: Span) -> ControlFlow<Reason, T> {
+    fn with_span(self, span: Span) -> Self::Output {
         match self {
             Ok(c) => ControlFlow::Continue(c),
             Err(e) => {
                 ControlFlow::Break(Reason::Error(span, ErrorKind::Type(e.expected, e.actual)))
             }
+        }
+    }
+}
+
+trait AsIndex {
+    type Output;
+
+    fn as_index(&self, span: Span) -> Self::Output;
+}
+
+impl AsIndex for i64 {
+    type Output = ControlFlow<Reason, usize>;
+
+    fn as_index(&self, span: Span) -> ControlFlow<Reason, usize> {
+        match (*self).try_into() {
+            Ok(index) => ControlFlow::Continue(index),
+            Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IndexVal(*self))),
         }
     }
 }
@@ -78,6 +98,36 @@ struct Variable {
 impl Variable {
     fn is_mutable(&self) -> bool {
         self.mutability == Mutability::Mutable
+    }
+}
+
+struct Range {
+    step: i64,
+    end: i64,
+    curr: i64,
+}
+
+impl Iterator for Range {
+    type Item = i64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let curr = self.curr;
+        self.curr += self.step;
+        if (self.step > 0 && curr <= self.end) || (self.step < 0 && curr >= self.end) {
+            Some(curr)
+        } else {
+            None
+        }
+    }
+}
+
+impl Range {
+    fn new(start: i64, step: i64, end: i64) -> Self {
+        Range {
+            step,
+            end,
+            curr: start,
+        }
     }
 }
 
@@ -126,6 +176,17 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Array(val_arr))
             }
+            ExprKind::ArrayRepeat(item, size) => {
+                let item_val = self.eval_expr(item)?;
+                let size_val: i64 = self.eval_expr(size)?.try_into().with_span(size.span)?;
+                let s = match size_val.try_into() {
+                    Ok(i) => ControlFlow::Continue(i),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(size.span, ErrorKind::Count(size_val)))
+                    }
+                }?;
+                ControlFlow::Continue(Value::Array(vec![item_val; s]))
+            }
             ExprKind::Assign(lhs, rhs) => {
                 let val = self.eval_expr(rhs)?;
                 self.update_binding(lhs, val)
@@ -144,20 +205,17 @@ impl<'a> Evaluator<'a> {
                     ControlFlow::Continue(Value::Tuple(vec![]))
                 }
             }
-            ExprKind::Index(arr, index) => {
+            ExprKind::Index(arr, index_expr) => {
                 let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
-                let index_val: i64 = self.eval_expr(index)?.try_into().with_span(index.span)?;
-                let i: usize = match index_val.try_into() {
-                    Ok(i) => ControlFlow::Continue(i),
-                    Err(_) => {
-                        ControlFlow::Break(Reason::Error(index.span, ErrorKind::Index(index_val)))
+                let index_val = self.eval_expr(index_expr)?;
+                match &index_val {
+                    Value::Int(index) => index_array(&arr, *index, index_expr.span),
+                    Value::Range(start, step, end) => {
+                        slice_array(&arr, start, step, end, index_expr.span)
                     }
-                }?;
-                match arr.get(i) {
-                    Some(v) => ControlFlow::Continue(v.clone()),
-                    None => ControlFlow::Break(Reason::Error(
-                        index.span,
-                        ErrorKind::OutOfRange(index_val),
+                    _ => ControlFlow::Break(Reason::Error(
+                        index_expr.span,
+                        ErrorKind::Type("Int or Range", index_val.type_name()),
                     )),
                 }
             }
@@ -191,8 +249,7 @@ impl<'a> Evaluator<'a> {
                     }
                 }
             }
-            ExprKind::ArrayRepeat(_, _)
-            | ExprKind::AssignOp(_, _, _)
+            ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _)
             | ExprKind::BinOp(_, _, _)
             | ExprKind::Call(_, _)
@@ -379,5 +436,43 @@ fn lit_to_val(lit: &Lit) -> Value {
             ast::Result::One => true,
         }),
         Lit::String(v) => Value::String(v.clone()),
+    }
+}
+
+fn index_array(arr: &[Value], index: i64, span: Span) -> ControlFlow<Reason, Value> {
+    match arr.get(index.as_index(span)?) {
+        Some(v) => ControlFlow::Continue(v.clone()),
+        None => ControlFlow::Break(Reason::Error(span, ErrorKind::OutOfRange(index))),
+    }
+}
+
+fn slice_array(
+    arr: &[Value],
+    start: &Option<i64>,
+    step: &Option<i64>,
+    end: &Option<i64>,
+    span: Span,
+) -> ControlFlow<Reason, Value> {
+    if let Some(0) = step {
+        ControlFlow::Break(Reason::Error(span, ErrorKind::RangeStepZero))
+    } else {
+        let len: i64 = match arr.len().try_into() {
+            Ok(len) => ControlFlow::Continue(len),
+            Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
+        }?;
+        let step = step.unwrap_or(1);
+        let (start, end) = if step > 0 {
+            (start.unwrap_or(0), end.unwrap_or(len - 1))
+        } else {
+            (start.unwrap_or(len - 1), end.unwrap_or(0))
+        };
+
+        let range = Range::new(start, step, end);
+        let mut slice = vec![];
+        for i in range {
+            slice.push(index_array(arr, i, span)?);
+        }
+
+        ControlFlow::Continue(Value::Array(slice))
     }
 }

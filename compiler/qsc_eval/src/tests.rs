@@ -22,6 +22,30 @@ fn array_expr() {
 }
 
 #[test]
+fn array_repeat_expr() {
+    check_expression("[4, size = 3]", &expect!["[4, 4, 4]"]);
+}
+
+#[test]
+fn array_repeat_type_error_expr() {
+    check_expression(
+        "[4, size = true]",
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 11,
+                    hi: 15,
+                },
+                kind: Type(
+                    "Int",
+                    "Bool",
+                ),
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn block_expr() {
     check_expression(
         indoc! { "{
@@ -282,6 +306,105 @@ fn array_index_expr() {
 }
 
 #[test]
+fn array_slice_start_end_expr() {
+    check_expression("[1, 2, 3, 4, 5][0..2]", &expect!["[1, 2, 3]"]);
+}
+
+#[test]
+fn array_slice_start_step_end_expr() {
+    check_expression("[1, 2, 3, 4, 5][0..2..2]", &expect!["[1, 3]"]);
+}
+
+#[test]
+fn array_slice_start_expr() {
+    check_expression("[1, 2, 3, 4, 5][2...]", &expect!["[3, 4, 5]"]);
+}
+
+#[test]
+fn array_slice_end_expr() {
+    check_expression("[1, 2, 3, 4, 5][...2]", &expect!["[1, 2, 3]"]);
+}
+
+#[test]
+fn array_slice_step_end_expr() {
+    check_expression("[1, 2, 3, 4, 5][...2..3]", &expect!["[1, 3]"]);
+}
+
+#[test]
+fn array_slice_step_expr() {
+    check_expression("[1, 2, 3, 4, 5][...2...]", &expect!["[1, 3, 5]"]);
+}
+
+#[test]
+fn array_slice_reverse_expr() {
+    check_expression("[1, 2, 3, 4, 5][2..-1..0]", &expect!["[3, 2, 1]"]);
+}
+
+#[test]
+fn array_slice_reverse_end_expr() {
+    check_expression("[1, 2, 3, 4, 5][...-1..2]", &expect!["[5, 4, 3]"]);
+}
+
+#[test]
+fn array_slice_reverse_start_expr() {
+    check_expression("[1, 2, 3, 4, 5][2..-1...]", &expect!["[3, 2, 1]"]);
+}
+
+#[test]
+fn array_slice_reverse_all_expr() {
+    check_expression("[1, 2, 3, 4, 5][...-1...]", &expect!["[5, 4, 3, 2, 1]"]);
+}
+
+#[test]
+fn array_slice_all_expr() {
+    check_expression("[1, 2, 3, 4, 5][...]", &expect!["[1, 2, 3, 4, 5]"]);
+}
+
+#[test]
+fn array_slice_none_expr() {
+    check_expression("[1, 2, 3, 4, 5][1..0]", &expect!["[]"]);
+}
+
+#[test]
+fn array_slice_reverse_none_expr() {
+    check_expression("[1, 2, 3, 4, 5][0..-1..1]", &expect!["[]"]);
+}
+
+#[test]
+fn array_slice_step_zero_expr() {
+    check_expression(
+        "[1, 2, 3, 4, 5][...0...]",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 16,
+                hi: 23,
+            },
+            kind: RangeStepZero,
+        }
+    "#]],
+    );
+}
+
+#[test]
+fn array_slice_out_of_range_expr() {
+    check_expression(
+        "[1, 2, 3, 4, 5][0..7]",
+        &expect![[r#"
+        Error {
+            span: Span {
+                lo: 16,
+                hi: 20,
+            },
+            kind: OutOfRange(
+                5,
+            ),
+        }
+    "#]],
+    );
+}
+
+#[test]
 fn array_index_negative_expr() {
     check_expression(
         "[1, 2, 3][-2]",
@@ -291,7 +414,7 @@ fn array_index_negative_expr() {
                     lo: 10,
                     hi: 12,
                 },
-                kind: Index(
+                kind: IndexVal(
                     -2,
                 ),
             }
@@ -328,7 +451,7 @@ fn array_index_type_error_expr() {
                     hi: 15,
                 },
                 kind: Type(
-                    "Int",
+                    "Int or Range",
                     "Bool",
                 ),
             }
