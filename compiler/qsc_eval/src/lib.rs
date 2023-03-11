@@ -6,6 +6,7 @@
 #[cfg(test)]
 mod tests;
 
+mod globals;
 pub mod val;
 
 use std::{
@@ -13,6 +14,7 @@ use std::{
     ops::ControlFlow,
 };
 
+use globals::extract_callables;
 use qir_backend::Pauli;
 use qsc_ast::ast::{
     self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind, Span, Stmt,
@@ -20,7 +22,7 @@ use qsc_ast::ast::{
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
-    resolve::DefId,
+    resolve::{DefId, PackageSrc},
 };
 use val::{ConversionError, Value};
 
@@ -131,17 +133,12 @@ impl Range {
     }
 }
 
-pub struct Scope {
-    package_id: PackageId,
-    bindings: HashMap<DefId, Variable>,
-}
-
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
     current_unit: &'a CompileUnit,
     current_id: PackageId,
-    scopes: Vec<Scope>,
+    scopes: Vec<HashMap<DefId, Variable>>,
     globals: HashMap<DefId, &'a CallableDecl>,
 }
 
@@ -155,7 +152,7 @@ impl<'a> Evaluator<'a> {
                 .expect("Entry id must be present in package store"),
             current_id: entry_id,
             scopes: vec![],
-            globals: HashMap::default(),
+            globals: extract_callables(store),
         }
     }
 
@@ -201,6 +198,7 @@ impl<'a> Evaluator<'a> {
                 self.update_binding(lhs, val)
             }
             ExprKind::Block(block) => self.eval_block(block),
+            ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(
                 expr.span,
                 ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
@@ -261,7 +259,6 @@ impl<'a> Evaluator<'a> {
             ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _)
             | ExprKind::BinOp(_, _, _)
-            | ExprKind::Call(_, _)
             | ExprKind::Conjugate(_, _)
             | ExprKind::Err
             | ExprKind::Field(_, _)
@@ -296,10 +293,7 @@ impl<'a> Evaluator<'a> {
     }
 
     fn eval_block(&mut self, block: &Block) -> ControlFlow<Reason, Value> {
-        self.scopes.push(Scope {
-            package_id: self.current_id,
-            bindings: HashMap::default(),
-        });
+        self.scopes.push(HashMap::default());
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
                 let _ = self.eval_stmt(stmt)?;
@@ -330,6 +324,22 @@ impl<'a> Evaluator<'a> {
         }
     }
 
+    fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
+        let call_val = self.eval_expr(call)?;
+        let call = match call_val {
+            Value::Closure(_, _) => {
+                ControlFlow::Break(Reason::Error(call.span, ErrorKind::Unimplemented))
+            }
+            Value::Global(_) => todo!(),
+            _ => ControlFlow::Break(Reason::Error(
+                call.span,
+                ErrorKind::Type("Callable", call_val.type_name()),
+            )),
+        }?;
+        let args_val = self.eval_expr(args)?;
+        todo!()
+    }
+
     fn bind_value(
         &mut self,
         pat: &Pat,
@@ -347,7 +357,7 @@ impl<'a> Evaluator<'a> {
                     .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id));
 
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
-                match scope.bindings.entry(*id) {
+                match scope.entry(*id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("{id:?} is already bound"),
                 };
@@ -373,7 +383,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn resolve_binding(&self, id: NodeId) -> Value {
+    fn resolve_binding(&mut self, id: NodeId) -> Value {
         let id = self
             .current_unit
             .context
@@ -381,14 +391,19 @@ impl<'a> Evaluator<'a> {
             .get(&id)
             .unwrap_or_else(|| panic!("{id:?} is not resolved"));
 
-        self.scopes
-            .iter()
-            .rev()
-            .take_while(|scope| scope.package_id == self.current_id)
-            .find_map(|scope| scope.bindings.get(id))
-            .unwrap_or_else(|| panic!("{id:?} is not bound."))
-            .value
-            .clone()
+        if id.package == PackageSrc::Local {
+            if let Some(var) = self.scopes.iter().rev().find_map(|scope| scope.get(id)) {
+                var.value.clone()
+            } else {
+                let id = &DefId {
+                    package: PackageSrc::Extern(self.current_id),
+                    node: id.node,
+                };
+                self.resolve_global(id)
+            }
+        } else {
+            self.resolve_global(id)
+        }
     }
 
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
@@ -405,8 +420,7 @@ impl<'a> Evaluator<'a> {
                     .scopes
                     .iter_mut()
                     .rev()
-                    .take_while(|scope| scope.package_id == self.current_id)
-                    .find_map(|scope| scope.bindings.get_mut(id))
+                    .find_map(|scope| scope.get_mut(id))
                     .unwrap_or_else(|| panic!("{id:?} is not bound"));
 
                 if variable.is_mutable() {
@@ -432,6 +446,14 @@ impl<'a> Evaluator<'a> {
                 }
             }
             _ => ControlFlow::Break(Reason::Error(lhs.span, ErrorKind::Unassignable)),
+        }
+    }
+
+    fn resolve_global(&mut self, id: &DefId) -> Value {
+        if self.globals.contains_key(id) {
+            Value::Global(*id)
+        } else {
+            panic!("{id:?} is not bound")
         }
     }
 }

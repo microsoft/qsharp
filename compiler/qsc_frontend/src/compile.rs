@@ -15,7 +15,7 @@ use qsc_ast::{
     visit::Visitor,
 };
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Iter, HashMap},
     fmt::{self, Display, Formatter},
 };
 
@@ -98,6 +98,11 @@ impl PackageStore {
     #[must_use]
     pub fn get(&self, id: PackageId) -> Option<&CompileUnit> {
         self.units.get(&id)
+    }
+
+    #[must_use]
+    pub fn iter(&self) -> Iter<PackageId, CompileUnit> {
+        self.units.iter()
     }
 }
 

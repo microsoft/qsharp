@@ -45,7 +45,7 @@ impl Display for Value {
                     write!(f, "{v}")
                 }
             }
-            Value::Global(_) => todo!(),
+            Value::Global(g) => write!(f, "{g:?}"),
             Value::Int(v) => write!(f, "{v}"),
             Value::Pauli(v) => match v {
                 Pauli::I => write!(f, "PauliI"),
