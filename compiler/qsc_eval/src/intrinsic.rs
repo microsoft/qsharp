@@ -25,6 +25,7 @@ pub(crate) fn invoke_intrinsic(
             args_span,
             ErrorKind::Type("Array", args.type_name()),
         )),
+
         ("IntAsDouble", Value::Int(val)) => {
             let val: i32 = match val.try_into() {
                 Ok(i) => ControlFlow::Continue(i),
@@ -39,6 +40,7 @@ pub(crate) fn invoke_intrinsic(
             args_span,
             ErrorKind::Type("Int", args.type_name()),
         )),
+
         _ => ControlFlow::Break(Reason::Error(name_span, ErrorKind::UnknownIntrinsic)),
     }
 }
