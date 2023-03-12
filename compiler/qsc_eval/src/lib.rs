@@ -17,8 +17,8 @@ use std::{
 use globals::extract_callables;
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind, Span, Stmt,
-    StmtKind, UnOp,
+    self, Block, CallableBody, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind,
+    Span, Spec, SpecBody, Stmt, StmtKind, UnOp,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
@@ -45,6 +45,7 @@ enum ErrorKind {
     EmptyExpr,
     IndexVal(i64),
     IntegerSize,
+    MissingSpecialization(Spec),
     Mutability,
     OutOfRange(i64),
     RangeStepZero,
@@ -330,14 +331,60 @@ impl<'a> Evaluator<'a> {
             Value::Closure(_, _) => {
                 ControlFlow::Break(Reason::Error(call.span, ErrorKind::Unimplemented))
             }
-            Value::Global(_) => todo!(),
+            Value::Global(global) => ControlFlow::Continue(match global.package {
+                PackageSrc::Local => DefId {
+                    package: PackageSrc::Extern(self.current_id),
+                    node: global.node,
+                },
+                PackageSrc::Extern(_) => global,
+            }),
             _ => ControlFlow::Break(Reason::Error(
                 call.span,
                 ErrorKind::Type("Callable", call_val.type_name()),
             )),
         }?;
+
         let args_val = self.eval_expr(args)?;
-        todo!()
+
+        let decl = *self
+            .globals
+            .get(&call)
+            .unwrap_or_else(|| panic!("{call:?} is not in globals map"));
+
+        self.scopes.push(HashMap::default());
+        self.bind_value(&decl.input, args_val, args.span, Mutability::Immutable)?;
+
+        let call_res = match &decl.body {
+            CallableBody::Block(body_block) => self.eval_block(body_block),
+            CallableBody::Specs(specs) => {
+                if let SpecBody::Impl(_, body_block) = specs
+                    .iter()
+                    .find(|spec| spec.spec == Spec::Body)
+                    .map_or_else(
+                        || {
+                            ControlFlow::Break(Reason::Error(
+                                decl.span,
+                                ErrorKind::MissingSpecialization(Spec::Body),
+                            ))
+                        },
+                        |spec| ControlFlow::Continue(&spec.body),
+                    )?
+                {
+                    self.eval_block(body_block)
+                } else {
+                    ControlFlow::Break(Reason::Error(
+                        decl.span,
+                        ErrorKind::MissingSpecialization(Spec::Body),
+                    ))
+                }
+            }
+        };
+        let _ = self.scopes.pop();
+
+        match call_res {
+            ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
+            ControlFlow::Continue(_) | ControlFlow::Break(_) => call_res,
+        }
     }
 
     fn bind_value(
