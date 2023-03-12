@@ -12,9 +12,9 @@ pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
     Bool(bool),
-    Closure(DefId, HashMap<DefId, Value>),
+    Closure(DefId, FunctorApp, HashMap<DefId, Value>),
     Double(f64),
-    Global(DefId),
+    Global(DefId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
     Qubit(*mut c_void),
@@ -23,6 +23,12 @@ pub enum Value {
     String(String),
     Tuple(Vec<Value>),
     Udt,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct FunctorApp {
+    pub adjoint: bool,
+    pub controlled: u8,
 }
 
 impl Display for Value {
@@ -35,7 +41,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Closure(_, _) => todo!(),
+            Value::Closure(_, _, _) => todo!(),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -45,7 +51,7 @@ impl Display for Value {
                     write!(f, "{v}")
                 }
             }
-            Value::Global(g) => write!(f, "{g:?}"),
+            Value::Global(g, functor) => write!(f, "{g:?}({functor:?})"),
             Value::Int(v) => write!(f, "{v}"),
             Value::Pauli(v) => match v {
                 Pauli::I => write!(f, "PauliI"),
@@ -167,9 +173,9 @@ impl Value {
             Value::Array(_) => "Array",
             Value::BigInt(_) => "BigInt",
             Value::Bool(_) => "Bool",
-            Value::Closure(_, _) => "Closure",
+            Value::Closure(_, _, _) => "Closure",
             Value::Double(_) => "Double",
-            Value::Global(_) => "Global",
+            Value::Global(_, _) => "Global",
             Value::Int(_) => "Int",
             Value::Pauli(_) => "Pauli",
             Value::Qubit(_) => "Qubit",

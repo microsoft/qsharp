@@ -7,6 +7,7 @@
 mod tests;
 
 mod globals;
+mod intrinsic;
 pub mod val;
 
 use std::{
@@ -15,16 +16,17 @@ use std::{
 };
 
 use globals::extract_callables;
+use intrinsic::invoke_intrinsic;
 use qir_backend::Pauli;
 use qsc_ast::ast::{
     self, Block, CallableBody, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind,
-    Span, Spec, SpecBody, Stmt, StmtKind, UnOp,
+    Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
     resolve::{DefId, PackageSrc},
 };
-use val::{ConversionError, Value};
+use val::{ConversionError, FunctorApp, Value};
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -53,6 +55,7 @@ enum ErrorKind {
     TupleArity(usize, usize),
     Unassignable,
     Unimplemented,
+    UnknownIntrinsic,
     UserFail(String),
 }
 
@@ -327,16 +330,20 @@ impl<'a> Evaluator<'a> {
 
     fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
         let call_val = self.eval_expr(call)?;
-        let call = match call_val {
-            Value::Closure(_, _) => {
+        let call_span = call.span;
+        let (call, functor) = match call_val {
+            Value::Closure(_, _, _) => {
                 ControlFlow::Break(Reason::Error(call.span, ErrorKind::Unimplemented))
             }
-            Value::Global(global) => ControlFlow::Continue(match global.package {
-                PackageSrc::Local => DefId {
-                    package: PackageSrc::Extern(self.current_id),
-                    node: global.node,
-                },
-                PackageSrc::Extern(_) => global,
+            Value::Global(global, functor) => ControlFlow::Continue(match global.package {
+                PackageSrc::Local => (
+                    DefId {
+                        package: PackageSrc::Extern(self.current_id),
+                        node: global.node,
+                    },
+                    functor,
+                ),
+                PackageSrc::Extern(_) => (global, functor),
             }),
             _ => ControlFlow::Break(Reason::Error(
                 call.span,
@@ -351,33 +358,59 @@ impl<'a> Evaluator<'a> {
             .get(&call)
             .unwrap_or_else(|| panic!("{call:?} is not in globals map"));
 
-        self.scopes.push(HashMap::default());
-        self.bind_value(&decl.input, args_val, args.span, Mutability::Immutable)?;
+        let spec = match (functor.adjoint, functor.controlled) {
+            (false, 0) => Spec::Body,
+            (true, 0) => Spec::Adj,
+            (false, _) => Spec::Ctl,
+            (true, _) => Spec::CtlAdj,
+        };
 
-        let call_res = match &decl.body {
-            CallableBody::Block(body_block) => self.eval_block(body_block),
-            CallableBody::Specs(specs) => {
-                if let SpecBody::Impl(_, body_block) = specs
+        self.scopes.push(HashMap::default());
+        let call_res = match (&decl.body, spec) {
+            (CallableBody::Block(body_block), Spec::Body) => {
+                self.bind_value(&decl.input, args_val, args.span, Mutability::Immutable)?;
+                self.eval_block(body_block)
+            }
+            (CallableBody::Specs(spec_decls), spec) => {
+                let spec_decl = spec_decls
                     .iter()
-                    .find(|spec| spec.spec == Spec::Body)
+                    .find(|spec_decl| spec_decl.spec == spec)
                     .map_or_else(
                         || {
                             ControlFlow::Break(Reason::Error(
                                 decl.span,
-                                ErrorKind::MissingSpecialization(Spec::Body),
+                                ErrorKind::MissingSpecialization(spec),
                             ))
                         },
-                        |spec| ControlFlow::Continue(&spec.body),
-                    )?
-                {
-                    self.eval_block(body_block)
-                } else {
-                    ControlFlow::Break(Reason::Error(
+                        |spec_decl| ControlFlow::Continue(&spec_decl.body),
+                    )?;
+                match spec_decl {
+                    SpecBody::Impl(_, body_block) => {
+                        if spec == Spec::Ctl || spec == Spec::CtlAdj {
+                            ControlFlow::Break(Reason::Error(call_span, ErrorKind::Unimplemented))
+                        } else {
+                            self.bind_value(
+                                &decl.input,
+                                args_val,
+                                args.span,
+                                Mutability::Immutable,
+                            )?;
+                            self.eval_block(body_block)
+                        }
+                    }
+                    SpecBody::Gen(SpecGen::Intrinsic) => {
+                        invoke_intrinsic(&decl.name.name, decl.name.span, args_val, args.span)
+                    }
+                    SpecBody::Gen(_) => ControlFlow::Break(Reason::Error(
                         decl.span,
-                        ErrorKind::MissingSpecialization(Spec::Body),
-                    ))
+                        ErrorKind::MissingSpecialization(spec),
+                    )),
                 }
             }
+            _ => ControlFlow::Break(Reason::Error(
+                decl.span,
+                ErrorKind::MissingSpecialization(spec),
+            )),
         };
         let _ = self.scopes.pop();
 
@@ -498,7 +531,7 @@ impl<'a> Evaluator<'a> {
 
     fn resolve_global(&mut self, id: &DefId) -> Value {
         if self.globals.contains_key(id) {
-            Value::Global(*id)
+            Value::Global(*id, FunctorApp::default())
         } else {
             panic!("{id:?} is not bound")
         }
