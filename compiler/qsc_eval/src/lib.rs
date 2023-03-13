@@ -167,51 +167,6 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn eval_unary_op_expr(
-        &mut self,
-        expr: &Expr,
-        op: UnOp,
-        rhs: &Expr,
-    ) -> ControlFlow<Reason, Value> {
-        let val = self.eval_expr(rhs)?;
-        match op {
-            UnOp::Neg => match val {
-                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
-                Value::Double(v) => ControlFlow::Continue(Value::Double(v.neg())),
-                Value::Int(v) => ControlFlow::Continue(Value::Int(v.wrapping_neg())),
-                _ => ControlFlow::Break(Reason::Error(
-                    rhs.span,
-                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
-                )),
-            },
-            UnOp::Pos => match val {
-                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => ControlFlow::Continue(val),
-                _ => ControlFlow::Break(Reason::Error(
-                    rhs.span,
-                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
-                )),
-            },
-            UnOp::NotL => match val {
-                Value::Bool(b) => ControlFlow::Continue(Value::Bool(!b)),
-                _ => ControlFlow::Break(Reason::Error(
-                    rhs.span,
-                    ErrorKind::Type("Bool", val.type_name()),
-                )),
-            },
-            UnOp::NotB => match val {
-                Value::Int(v) => ControlFlow::Continue(Value::Int(!v)),
-                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(!v)),
-                _ => ControlFlow::Break(Reason::Error(
-                    rhs.span,
-                    ErrorKind::Type("Int or BigInt", val.type_name()),
-                )),
-            },
-            UnOp::Functor(_) | UnOp::Unwrap => {
-                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
-            }
-        }
-    }
-
     fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
@@ -342,6 +297,51 @@ impl<'a> Evaluator<'a> {
             }
             StmtKind::Qubit(..) => {
                 ControlFlow::Break(Reason::Error(stmt.span, ErrorKind::Unimplemented))
+            }
+        }
+    }
+
+    fn eval_unary_op_expr(
+        &mut self,
+        expr: &Expr,
+        op: UnOp,
+        rhs: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let val = self.eval_expr(rhs)?;
+        match op {
+            UnOp::Neg => match val {
+                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
+                Value::Double(v) => ControlFlow::Continue(Value::Double(v.neg())),
+                Value::Int(v) => ControlFlow::Continue(Value::Int(v.wrapping_neg())),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
+                )),
+            },
+            UnOp::Pos => match val {
+                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => ControlFlow::Continue(val),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
+                )),
+            },
+            UnOp::NotL => match val {
+                Value::Bool(b) => ControlFlow::Continue(Value::Bool(!b)),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Bool", val.type_name()),
+                )),
+            },
+            UnOp::NotB => match val {
+                Value::Int(v) => ControlFlow::Continue(Value::Int(!v)),
+                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(!v)),
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Int or BigInt", val.type_name()),
+                )),
+            },
+            UnOp::Functor(_) | UnOp::Unwrap => {
+                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
             }
         }
     }
