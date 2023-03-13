@@ -628,6 +628,7 @@ fn tuple_expr() {
 #[test]
 fn unop_bitwise_not_big_int_expr() {
     check_expression(
+        "",
         "~~~(9_223_372_036_854_775_808L)",
         &expect!["-9223372036854775809"],
     );
@@ -636,6 +637,7 @@ fn unop_bitwise_not_big_int_expr() {
 #[test]
 fn unop_bitwise_not_bool_expr() {
     check_expression(
+        "",
         "~~~(false)",
         &expect![[r#"
             Error {
@@ -654,7 +656,7 @@ fn unop_bitwise_not_bool_expr() {
 
 #[test]
 fn unop_bitwise_not_int_expr() {
-    check_expression("~~~(13)", &expect!["-14"]);
+    check_expression("", "~~~(13)", &expect!["-14"]);
 }
 
 #[test]
@@ -712,12 +714,13 @@ fn unop_negate_negative_int_expr() {
 
 #[test]
 fn unop_not_bool_expr() {
-    check_expression("not false", &expect!["true"]);
+    check_expression("", "not false", &expect!["true"]);
 }
 
 #[test]
 fn unop_not_int_expr() {
     check_expression(
+        "",
         "not 0",
         &expect![[r#"
         Error {
