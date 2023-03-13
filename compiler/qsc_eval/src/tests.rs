@@ -777,6 +777,90 @@ fn unop_positive_int_expr() {
 }
 
 #[test]
+fn unop_adjoint_functor_expr() {
+    check_expression(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body intrinsic;
+                }
+            }
+        "}, 
+        "Adjoint Test.Foo", 
+        &expect!["DefId { package: Extern(PackageId(0)), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 0 })"]);
+}
+
+#[test]
+fn unop_controlled_functor_expr() {
+    check_expression(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body intrinsic;
+                }
+            }
+        "}, 
+        "Controlled Test.Foo", 
+        &expect!["DefId { package: Extern(PackageId(0)), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 1 })"]);
+}
+
+#[test]
+fn unop_adjoint_adjoint_functor_expr() {
+    check_expression(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body intrinsic;
+                }
+            }
+        "}, 
+        "Adjoint (Adjoint Test.Foo)", 
+        &expect!["DefId { package: Extern(PackageId(0)), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 0 })"]);
+}
+
+#[test]
+fn unop_controlled_adjoint_functor_expr() {
+    check_expression(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body intrinsic;
+                }
+            }
+        "}, 
+        "Controlled Adjoint Test.Foo", 
+        &expect!["DefId { package: Extern(PackageId(0)), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 1 })"]);
+}
+
+#[test]
+fn unop_adjoint_controlled_functor_expr() {
+    check_expression(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body intrinsic;
+                }
+            }
+        "}, 
+        "Adjoint Controlled Test.Foo", 
+        &expect!["DefId { package: Extern(PackageId(0)), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 1 })"]);
+}
+
+#[test]
+fn unop_controlled_controlled_functor_expr() {
+    check_expression(
+        indoc! {"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body intrinsic;
+                }
+            }
+        "}, 
+        "Controlled (Controlled Test.Foo)", 
+        &expect!["DefId { package: Extern(PackageId(0)), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 2 })"]);
+}
+
+#[test]
 fn if_true_expr() {
     check_expression(
         "",
@@ -978,5 +1062,77 @@ fn call_call_expr() {
         "},
         "Test.TupleToList((3, 2))",
         &expect!["[3, 3]"],
+    );
+}
+
+#[test]
+fn call_adjoint_expr() {
+    check_expression(
+        indoc! {r#"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body (...) {
+                        fail "Body Implementation";
+                    }
+                    adjoint (...) {
+                        fail "Adjoint Implementation";
+                    }
+                    controlled (ctls, ...) {
+                        fail "Controlled Implementation";
+                    }
+                    controlled adjoint (ctls, ...) {
+                        fail "Controlled Adjoint Implementation";
+                    }
+                }
+            }
+        "#},
+        "Adjoint Test.Foo()",
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 166,
+                    hi: 195,
+                },
+                kind: UserFail(
+                    "Adjoint Implementation",
+                ),
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn call_adjoint_adjoint_expr() {
+    check_expression(
+        indoc! {r#"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body (...) {
+                        fail "Body Implementation";
+                    }
+                    adjoint (...) {
+                        fail "Adjoint Implementation";
+                    }
+                    controlled (ctls, ...) {
+                        fail "Controlled Implementation";
+                    }
+                    controlled adjoint (ctls, ...) {
+                        fail "Controlled Adjoint Implementation";
+                    }
+                }
+            }
+        "#},
+        "Adjoint Adjoint Test.Foo()",
+        &expect![[r#"
+            Error {
+                span: Span {
+                    lo: 92,
+                    hi: 118,
+                },
+                kind: UserFail(
+                    "Body Implementation",
+                ),
+            }
+        "#]],
     );
 }

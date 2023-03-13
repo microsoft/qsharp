@@ -19,8 +19,8 @@ use globals::extract_callables;
 use intrinsic::invoke_intrinsic;
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableBody, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PatKind,
-    Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
+    self, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability, NodeId, Pat,
+    PatKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
@@ -442,9 +442,21 @@ impl<'a> Evaluator<'a> {
                     ErrorKind::Type("Int or BigInt", val.type_name()),
                 )),
             },
-            UnOp::Functor(_) | UnOp::Unwrap => {
-                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
-            }
+            UnOp::Functor(functor) => match val {
+                Value::Closure(id, app, capture) => ControlFlow::Continue(Value::Closure(
+                    id,
+                    update_functor_app(functor, &app),
+                    capture,
+                )),
+                Value::Global(id, app) => {
+                    ControlFlow::Continue(Value::Global(id, update_functor_app(functor, &app)))
+                }
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Callable", val.type_name()),
+                )),
+            },
+            UnOp::Unwrap => ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented)),
         }
     }
 
@@ -621,5 +633,18 @@ fn slice_array(
         }
 
         ControlFlow::Continue(Value::Array(slice))
+    }
+}
+
+fn update_functor_app(functor: Functor, app: &FunctorApp) -> FunctorApp {
+    match functor {
+        Functor::Adj => FunctorApp {
+            adjoint: !app.adjoint,
+            controlled: app.controlled,
+        },
+        Functor::Ctl => FunctorApp {
+            adjoint: app.adjoint,
+            controlled: app.controlled + 1,
+        },
     }
 }
