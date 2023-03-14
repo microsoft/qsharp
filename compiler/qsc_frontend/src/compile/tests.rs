@@ -39,8 +39,8 @@ fn error_span(error: &Error) -> Span {
 fn one_file_no_entry() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Foo {
                 function A() : Unit {}
             }
@@ -58,8 +58,8 @@ fn one_file_no_entry() {
 fn one_file_error() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Foo {
                 function A() : Unit {
                     x
@@ -80,8 +80,8 @@ fn one_file_error() {
 fn two_files_dependency() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[
+        [],
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {}
@@ -106,8 +106,8 @@ fn two_files_dependency() {
 fn two_files_mutual_dependency() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[
+        [],
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {
@@ -134,8 +134,8 @@ fn two_files_mutual_dependency() {
 fn two_files_error() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[
+        [],
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {}
@@ -163,12 +163,12 @@ fn two_files_error() {
 fn entry_call_operation() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
-                namespace Foo {
-                    operation A() : Unit {}
-                }
-            "}],
+        [],
+        [indoc! {"
+            namespace Foo {
+                operation A() : Unit {}
+            }
+        "}],
         "Foo.A()",
     );
 
@@ -189,12 +189,12 @@ fn entry_call_operation() {
 fn entry_error() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
-                namespace Foo {
-                    operation A() : Unit {}
-                }
-            "}],
+        [],
+        [indoc! {"
+            namespace Foo {
+                operation A() : Unit {}
+            }
+        "}],
         "Foo.B()",
     );
 
@@ -221,13 +221,14 @@ fn replace_node() {
 
     let mut unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Foo {
                 function A() : Int {
                     1
                 }
-            }"}],
+            }
+        "}],
         "",
     );
 
@@ -283,13 +284,14 @@ fn package_dependency() {
     let mut store = PackageStore::new();
     let unit1 = compile(
         &store,
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Package1 {
                 function Foo() : Int {
                     1
                 }
-            }"}],
+            }
+        "}],
         "",
     );
 
@@ -302,8 +304,8 @@ fn package_dependency() {
     let package1 = store.insert(unit1);
     let unit2 = compile(
         &store,
-        &[package1],
-        &[indoc! {"
+        [package1],
+        [indoc! {"
             namespace Package2 {
                 function Bar() : Int {
                     Package1.Foo()
@@ -331,21 +333,22 @@ fn package_dependency_internal() {
     let mut store = PackageStore::new();
     let unit1 = compile(
         &store,
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Package1 {
                 internal function Foo() : Int {
                     1
                 }
-            }"}],
+            }
+        "}],
         "",
     );
 
     let package1 = store.insert(unit1);
     let unit2 = compile(
         &store,
-        &[package1],
-        &[indoc! {"
+        [package1],
+        [indoc! {"
             namespace Package2 {
                 function Bar() : Int {
                     Package1.Foo()
@@ -371,8 +374,8 @@ fn std_dependency() {
     let std = store.insert(super::std());
     let unit = compile(
         &store,
-        &[std],
-        &[indoc! {"
+        [std],
+        [indoc! {"
             namespace Foo {
                 open Microsoft.Quantum.Intrinsic;
 

@@ -150,8 +150,8 @@ impl MutVisitor for Offsetter {
 
 pub fn compile(
     store: &PackageStore,
-    dependencies: &[PackageId],
-    sources: &[&str],
+    dependencies: impl IntoIterator<Item = PackageId>,
+    sources: impl IntoIterator<Item = impl AsRef<str>>,
     entry_expr: &str,
 ) -> CompileUnit {
     let (mut package, parse_errors, offsets) = parse_all(sources, entry_expr);
@@ -178,8 +178,8 @@ pub fn compile(
 pub fn std() -> CompileUnit {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[
+        [],
+        [
             include_str!("../../../library/canon.qs"),
             include_str!("../../../library/convert.qs"),
             include_str!("../../../library/core.qs"),
@@ -201,13 +201,17 @@ pub fn std() -> CompileUnit {
     unit
 }
 
-fn parse_all(sources: &[&str], entry_expr: &str) -> (Package, Vec<parse::Error>, Vec<usize>) {
+fn parse_all(
+    sources: impl IntoIterator<Item = impl AsRef<str>>,
+    entry_expr: &str,
+) -> (Package, Vec<parse::Error>, Vec<usize>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     let mut offsets = Vec::new();
     let mut offset = 0;
 
     for source in sources {
+        let source = source.as_ref();
         let (source_namespaces, source_errors) = parse::namespaces(source);
         for mut namespace in source_namespaces {
             Offsetter(offset).visit_namespace(&mut namespace);
@@ -234,13 +238,13 @@ fn parse_all(sources: &[&str], entry_expr: &str) -> (Package, Vec<parse::Error>,
 
 fn resolve_all<'a>(
     store: &'a PackageStore,
-    dependencies: &[PackageId],
+    dependencies: impl IntoIterator<Item = PackageId>,
     package: &'a Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = GlobalTable::new();
     globals.visit_package(package);
 
-    for &dependency in dependencies {
+    for dependency in dependencies {
         globals.set_package(dependency);
         let unit = store
             .get(dependency)

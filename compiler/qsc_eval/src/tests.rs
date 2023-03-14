@@ -8,7 +8,8 @@ use qsc_frontend::compile::{compile, PackageStore};
 use crate::Evaluator;
 
 fn check_expression(expr: &str, expect: &Expect) {
-    let unit = compile(&PackageStore::new(), &[], &[], expr);
+    let sources: [&str; 0] = [];
+    let unit = compile(&PackageStore::new(), [], sources, expr);
     assert!(unit.context.errors().is_empty());
     match Evaluator::new(&unit).run() {
         Ok(result) => expect.assert_eq(&result.to_string()),
