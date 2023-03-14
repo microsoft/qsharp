@@ -17,10 +17,10 @@ use std::{
 
 use globals::{extract_callables, GlobalId};
 use intrinsic::invoke_intrinsic;
-use qir_backend::Pauli;
+use qir_backend::{Pauli, __quantum__rt__qubit_allocate};
 use qsc_ast::ast::{
     self, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability, NodeId, Pat,
-    PatKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
+    PatKind, QubitInit, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
@@ -243,18 +243,18 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
             ExprKind::UnOp(op, rhs) => self.eval_unary_op_expr(expr, *op, rhs),
-            ExprKind::AssignOp(_, _, _)
-            | ExprKind::AssignUpdate(_, _, _)
-            | ExprKind::BinOp(_, _, _)
-            | ExprKind::Conjugate(_, _)
+            ExprKind::AssignOp(..)
+            | ExprKind::AssignUpdate(..)
+            | ExprKind::BinOp(..)
+            | ExprKind::Conjugate(..)
             | ExprKind::Err
-            | ExprKind::Field(_, _)
-            | ExprKind::For(_, _, _)
+            | ExprKind::Field(..)
+            | ExprKind::For(..)
             | ExprKind::Hole
-            | ExprKind::Lambda(_, _, _)
-            | ExprKind::Repeat(_, _, _)
-            | ExprKind::TernOp(_, _, _, _)
-            | ExprKind::While(_, _) => {
+            | ExprKind::Lambda(..)
+            | ExprKind::Repeat(..)
+            | ExprKind::TernOp(..)
+            | ExprKind::While(..) => {
                 ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
             }
         }
@@ -280,7 +280,7 @@ impl<'a> Evaluator<'a> {
     }
 
     fn eval_block(&mut self, block: &Block) -> ControlFlow<Reason, Value> {
-        self.scopes.push(HashMap::default());
+        self.enter_scope();
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
                 let _ = self.eval_stmt(stmt)?;
@@ -289,7 +289,7 @@ impl<'a> Evaluator<'a> {
         } else {
             ControlFlow::Continue(Value::Tuple(vec![]))
         };
-        let _ = self.scopes.pop();
+        self.leave_scope();
         result
     }
 
@@ -305,8 +305,47 @@ impl<'a> Evaluator<'a> {
                 let _ = self.eval_expr(expr)?;
                 ControlFlow::Continue(Value::Tuple(vec![]))
             }
-            StmtKind::Qubit(..) => {
-                ControlFlow::Break(Reason::Error(stmt.span, ErrorKind::Unimplemented))
+            StmtKind::Qubit(_, pat, qubit_init, block) => {
+                let qubits = self.eval_qubit_init(qubit_init)?;
+                if let Some(block) = block {
+                    self.enter_scope();
+                    self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
+                    let _ = self.eval_block(block)?;
+                    self.leave_scope();
+                } else {
+                    self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
+                }
+                ControlFlow::Continue(Value::Tuple(vec![]))
+            }
+        }
+    }
+
+    fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {
+        match &qubit_init.kind {
+            ast::QubitInitKind::Array(count) => {
+                let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
+                let count: usize = match count_val.try_into() {
+                    Ok(i) => ControlFlow::Continue(i),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(count.span, ErrorKind::Count(count_val)))
+                    }
+                }?;
+                let mut arr = vec![];
+                for _ in 0..count {
+                    arr.push(Value::Qubit(__quantum__rt__qubit_allocate()));
+                }
+                ControlFlow::Continue(Value::Array(arr))
+            }
+            ast::QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
+            ast::QubitInitKind::Single => {
+                ControlFlow::Continue(Value::Qubit(__quantum__rt__qubit_allocate()))
+            }
+            ast::QubitInitKind::Tuple(tup) => {
+                let mut tup_vec = vec![];
+                for init in tup {
+                    tup_vec.push(self.eval_qubit_init(init)?);
+                }
+                ControlFlow::Continue(Value::Tuple(tup_vec))
             }
         }
     }
@@ -333,9 +372,9 @@ impl<'a> Evaluator<'a> {
                 .expect("Store must contain compile unit for package id"),
         );
 
-        self.scopes.push(HashMap::default());
+        self.enter_scope();
         let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
-        let _ = self.scopes.pop();
+        self.leave_scope();
 
         (self.current_id, self.current_unit) = (cached_id, cached_unit);
 
@@ -449,6 +488,21 @@ impl<'a> Evaluator<'a> {
                 )),
             },
             UnOp::Unwrap => ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented)),
+        }
+    }
+
+    fn enter_scope(&mut self) {
+        self.scopes.push(HashMap::default());
+    }
+
+    fn leave_scope(&mut self) {
+        for (_, mut var) in self
+            .scopes
+            .pop()
+            .expect("Cannot leave scope without entering")
+            .drain()
+        {
+            var.value.release();
         }
     }
 
