@@ -57,9 +57,9 @@ fn error_report(
         return Report::new(error.clone());
     };
 
-    let index = context.find_source(first_label.offset()).0;
-    let name = paths[index].to_str().unwrap();
-    let source = NamedSource::new(name, sources[index].clone());
-    let offset = -isize::try_from(context.offsets()[index]).unwrap();
+    let (index, offset) = context.source(first_label.offset());
+    let name = paths[index.0].to_str().unwrap();
+    let source = NamedSource::new(name, sources[index.0].clone());
+    let offset = -isize::try_from(offset).unwrap();
     Report::new(OffsetError::new(error.clone(), offset)).with_source_code(source)
 }

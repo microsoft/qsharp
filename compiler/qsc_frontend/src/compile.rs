@@ -58,40 +58,16 @@ impl Context {
     }
 
     #[must_use]
-    pub fn offsets(&self) -> &[usize] {
-        &self.offsets
-    }
-
-    #[must_use]
-    pub fn find_source(&self, offset: usize) -> SourceIndex {
-        SourceIndex(
-            self.offsets
-                .iter()
-                .enumerate()
-                .rev()
-                .find(|(_, &o)| offset >= o)
-                .expect("Span should match at least one offset.")
-                .0,
-        )
-    }
-
-    #[must_use]
-    pub fn source_span(&self, span: Span) -> (SourceIndex, Span) {
+    pub fn source(&self, offset: usize) -> (SourceIndex, usize) {
         let (index, &offset) = self
             .offsets
             .iter()
             .enumerate()
             .rev()
-            .find(|(_, &offset)| span.lo >= offset)
+            .find(|(_, &o)| offset >= o)
             .expect("Span should match at least one offset.");
 
-        (
-            SourceIndex(index),
-            Span {
-                lo: span.lo - offset,
-                hi: span.hi - offset,
-            },
-        )
+        (SourceIndex(index), offset)
     }
 }
 
