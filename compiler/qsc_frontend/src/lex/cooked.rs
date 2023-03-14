@@ -264,10 +264,11 @@ impl<'a> Lexer<'a> {
     fn expect(&mut self, single: Single, complete: TokenKind) -> Result<(), Error> {
         if self.next_if_eq(single) {
             Ok(())
-        } else if let Some(token) = self.tokens.peek() {
-            let lo = token.offset;
-            let span = Span { lo, hi: lo + 1 };
-            Err(Error::Incomplete(single, complete, token.kind, span))
+        } else if let Some(&raw::Token { kind, offset }) = self.tokens.peek() {
+            let mut tokens = self.tokens.clone();
+            let hi = tokens.nth(1).map_or_else(|| self.input.len(), |t| t.offset);
+            let span = Span { lo: offset, hi };
+            Err(Error::Incomplete(single, complete, kind, span))
         } else {
             let lo = self.input.len();
             let span = Span { lo, hi: lo };
@@ -286,14 +287,14 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String => Ok(Some(TokenKind::String)),
             raw::TokenKind::Unknown => {
-                let span = Span {
-                    lo: token.offset,
-                    hi: self.offset(),
-                };
                 let c = self.input[token.offset..]
                     .chars()
                     .next()
                     .expect("Token offset should be the start of a character.");
+                let span = Span {
+                    lo: token.offset,
+                    hi: self.offset(),
+                };
                 Err(Error::Unknown(c, span))
             }
         }?;

@@ -128,6 +128,76 @@ fn amp_amp() {
 }
 
 #[test]
+fn amp_plus() {
+    check(
+        "&+",
+        &expect![[r#"
+            [
+                Err(
+                    Incomplete(
+                        Amp,
+                        ClosedBinOp(
+                            AmpAmpAmp,
+                        ),
+                        Single(
+                            Plus,
+                        ),
+                        Span {
+                            lo: 1,
+                            hi: 2,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
+                        span: Span {
+                            lo: 1,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn amp_multibyte() {
+    check(
+        "&🦀",
+        &expect![[r#"
+            [
+                Err(
+                    Incomplete(
+                        Amp,
+                        ClosedBinOp(
+                            AmpAmpAmp,
+                        ),
+                        Unknown,
+                        Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    ),
+                ),
+                Err(
+                    Unknown(
+                        '🦀',
+                        Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn amp_amp_amp_amp_amp_amp() {
     check(
         "&&&&&&",

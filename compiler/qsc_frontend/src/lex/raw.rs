@@ -24,7 +24,7 @@ use std::{
 };
 
 /// A raw token.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct Token {
     /// The token kind.
     pub(super) kind: TokenKind,
@@ -148,6 +148,7 @@ pub(crate) enum Number {
     Int(Radix),
 }
 
+#[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
 }
