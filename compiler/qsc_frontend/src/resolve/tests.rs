@@ -53,6 +53,10 @@ impl Visitor<'_> for Renamer<'_> {
 }
 
 fn check(input: &str, expect: &Expect) {
+    expect.assert_eq(&resolve_names(input));
+}
+
+fn resolve_names(input: &str) -> String {
     let (namespaces, errors) = parse::namespaces(input);
     assert!(errors.is_empty(), "Program has syntax errors: {errors:#?}");
     let mut package = Package::new(namespaces, None);
@@ -76,7 +80,7 @@ fn check(input: &str, expect: &Expect) {
         writeln!(output, "// {error:?}").expect("Error should be written to output string.");
     }
 
-    expect.assert_eq(&output);
+    output
 }
 
 #[test]
@@ -237,6 +241,126 @@ fn open_alias() {
             }
         "#]],
     );
+}
+
+#[test]
+fn prelude_callable() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Core {
+                function A() : Unit {}
+            }
+
+            namespace Foo {
+                function B() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Microsoft.Quantum.Core {
+                function _5() : Unit {}
+            }
+
+            namespace Foo {
+                function _13() : Unit {
+                    _5();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn parent_namespace_shadows_prelude() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Core {
+                function A() : Unit {}
+            }
+
+            namespace Foo {
+                function A() : Unit {}
+
+                function B() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Microsoft.Quantum.Core {
+                function _5() : Unit {}
+            }
+
+            namespace Foo {
+                function _13() : Unit {}
+
+                function _19() : Unit {
+                    _13();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn open_shadows_prelude() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Core {
+                function A() : Unit {}
+            }
+
+            namespace Foo {
+                function A() : Unit {}
+            }
+
+            namespace Bar {
+                open Foo;
+
+                function B() : Unit {
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Microsoft.Quantum.Core {
+                function _5() : Unit {}
+            }
+
+            namespace Foo {
+                function _13() : Unit {}
+            }
+
+            namespace Bar {
+                open Foo;
+
+                function _23() : Unit {
+                    _13();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+#[should_panic(expected = "Ambiguity in prelude resolution.")]
+fn ambiguous_prelude() {
+    resolve_names(indoc! {"
+        namespace Microsoft.Quantum.Canon {
+            function A() : Unit {}
+        }
+
+        namespace Microsoft.Quantum.Core {
+            function A() : Unit {}
+        }
+        
+        namespace Foo {
+            function B() : Unit {
+                A();
+            }
+        }
+    "});
 }
 
 #[test]
