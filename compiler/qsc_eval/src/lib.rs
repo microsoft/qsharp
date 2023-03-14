@@ -213,7 +213,7 @@ impl<'a> Evaluator<'a> {
                 } else if let Some(els) = els {
                     self.eval_expr(els)
                 } else {
-                    ControlFlow::Continue(Value::Tuple(vec![]))
+                    ControlFlow::Continue(Value::UNIT)
                 }
             }
             ExprKind::Index(arr, index_expr) => {
@@ -287,7 +287,7 @@ impl<'a> Evaluator<'a> {
             }
             self.eval_stmt(last)
         } else {
-            ControlFlow::Continue(Value::Tuple(vec![]))
+            ControlFlow::Continue(Value::UNIT)
         };
         self.leave_scope();
         result
@@ -299,11 +299,11 @@ impl<'a> Evaluator<'a> {
             StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;
                 self.bind_value(pat, val, expr.span, *mutability)?;
-                ControlFlow::Continue(Value::Tuple(vec![]))
+                ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Semi(expr) => {
                 let _ = self.eval_expr(expr)?;
-                ControlFlow::Continue(Value::Tuple(vec![]))
+                ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
                 let qubits = self.eval_qubit_init(qubit_init)?;
@@ -315,7 +315,7 @@ impl<'a> Evaluator<'a> {
                 } else {
                     self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
                 }
-                ControlFlow::Continue(Value::Tuple(vec![]))
+                ControlFlow::Continue(Value::UNIT)
             }
         }
     }
@@ -591,19 +591,19 @@ impl<'a> Evaluator<'a> {
 
                 if variable.is_mutable() {
                     variable.value = rhs;
-                    ControlFlow::Continue(Value::Tuple(vec![]))
+                    ControlFlow::Continue(Value::UNIT)
                 } else {
                     ControlFlow::Break(Reason::Error(path.span, ErrorKind::Mutability))
                 }
             }
-            (ExprKind::Hole, _) => ControlFlow::Continue(Value::Tuple(vec![])),
+            (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
                 if var_tup.len() == tup.len() {
                     for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
                         self.update_binding(expr, val)?;
                     }
-                    ControlFlow::Continue(Value::Tuple(vec![]))
+                    ControlFlow::Continue(Value::UNIT)
                 } else {
                     ControlFlow::Break(Reason::Error(
                         lhs.span,

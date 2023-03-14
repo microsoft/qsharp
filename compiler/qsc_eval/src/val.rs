@@ -144,6 +144,8 @@ impl TryFrom<Value> for String {
 }
 
 impl Value {
+    pub const UNIT: Self = Self::Tuple(Vec::new());
+
     /// Convert the [Value] into an array of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Array`].
