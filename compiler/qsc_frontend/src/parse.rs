@@ -25,7 +25,7 @@ use thiserror::Error;
 pub use keyword::Keyword;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
-pub enum Error {
+pub(super) enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),

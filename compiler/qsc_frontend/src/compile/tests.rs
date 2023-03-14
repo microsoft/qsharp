@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Error, PackageStore, SourceIndex};
+use super::{compile, Error, ErrorKind, PackageStore, SourceIndex};
 use crate::{
     id::Assigner,
     lex, parse,
@@ -16,8 +16,8 @@ use qsc_ast::{
 
 // TODO: Brittle.
 fn error_span(error: &Error) -> Span {
-    match error {
-        Error::Parse(
+    match &error.0 {
+        ErrorKind::Parse(
             parse::Error::Lex(
                 lex::Error::Incomplete(_, _, _, span)
                 | lex::Error::IncompleteEof(_, _, span)
@@ -29,7 +29,7 @@ fn error_span(error: &Error) -> Span {
             | parse::Error::RuleKeyword(_, _, span)
             | parse::Error::Convert(_, _, span),
         )
-        | Error::Resolve(
+        | ErrorKind::Resolve(
             resolve::Error::NotFound(_, span) | resolve::Error::Ambiguous(_, span, _, _),
         ) => *span,
     }

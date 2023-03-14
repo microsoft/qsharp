@@ -37,7 +37,7 @@ pub enum PackageSrc {
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-pub enum Error {
+pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
     NotFound(String, #[label("not found")] Span),
 

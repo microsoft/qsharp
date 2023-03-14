@@ -100,7 +100,12 @@ pub struct SourceIndex(pub usize);
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub enum Error {
+pub struct Error(ErrorKind);
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+#[error(transparent)]
+enum ErrorKind {
     Parse(parse::Error),
     Resolve(resolve::Error),
 }
@@ -158,9 +163,14 @@ pub fn compile(
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
+
     let mut errors = Vec::new();
-    errors.extend(parse_errors.into_iter().map(Error::Parse));
-    errors.extend(resolve_errors.into_iter().map(Error::Resolve));
+    errors.extend(parse_errors.into_iter().map(|e| Error(ErrorKind::Parse(e))));
+    errors.extend(
+        resolve_errors
+            .into_iter()
+            .map(|e| Error(ErrorKind::Resolve(e))),
+    );
 
     CompileUnit {
         package,
