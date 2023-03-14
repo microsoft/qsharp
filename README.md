@@ -1,14 +1,20 @@
-# Project
+# Microsoft Quantum Development Kit:
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Welcome to the Microsoft Quantum Development Kit!
 
-As the maintainer of this project, please make a few updates:
+This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/azure/quantum/).
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+- **[compiler](./compiler/qsc/)**: Q# command line compiler
+- **[library](./library/)**: Q# standard library
+
+## Feedback
+
+If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp/issues/new/choose)!
+If you have feedback about some other part of the Microsoft Quantum Development Kit, please see the [contribution guide](https://docs.microsoft.com/azure/quantum/contributing-overview/) for more information.
+
+## Reporting Security Issues
+
+Security issues and bugs should be reported privately following our [security issue documentation](./SECURITY.md#reporting-security-issues).
 
 ## Contributing
 
@@ -24,7 +30,22 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-## Trademarks
+For more details, please see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Legal and Licensing
+
+### Telemetry
+
+By default, sending out telemetry is disabled for all code in this repository, but it can be enabled via compilation flag.
+Our shipped extensions that are built based on the code in this repository support collecting telemetry.
+In that case, opt-in or opt-out works via the corresponding setting in Visual Studio and Visual Studio Code,
+and the telemetry we collect falls under the [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement).
+
+### Data Collection
+
+The software may collect information about you and your use of the software and send it to Microsoft. Microsoft may use this information to provide services and improve our products and services. You may turn off the telemetry as described in the repository. There are also some features in the software that may enable you and Microsoft to collect data from users of your applications. If you use these features, you must comply with applicable law, including providing appropriate notices to users of your applications together with a copy of Microsoft's privacy statement. Our privacy statement is located at https://go.microsoft.com/fwlink/?LinkID=824704. You can learn more about data collection and use in the help documentation and our privacy statement. Your use of the software operates as your consent to these practices.
+
+### Trademarks
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
 trademarks or logos is subject to and must follow 
