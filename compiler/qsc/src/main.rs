@@ -3,17 +3,18 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-mod diagnostic;
-
-use crate::diagnostic::OffsetDiagnostic;
 use clap::Parser;
-use miette::Report;
-use qsc_frontend::compile::{self, compile, PackageStore};
+use miette::{Diagnostic, NamedSource, Report};
+use qsc_frontend::{
+    compile::{self, compile, Context, PackageStore},
+    diagnostic::OffsetError,
+};
 use std::{
     fs, io,
     path::{Path, PathBuf},
     result::Result,
     string::String,
+    sync::Arc,
 };
 
 #[derive(Parser)]
@@ -26,31 +27,39 @@ struct Cli {
 
 fn main() {
     let cli = Cli::parse();
-    let sources: Vec<_> = cli
-        .sources
-        .iter()
-        .map(|p| (p.as_path(), read_source(p)))
-        .collect();
-
+    let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
-    let unit = compile(
-        &PackageStore::new(),
-        [std],
-        sources.iter().map(|s| s.1.as_str()),
-        &cli.entry,
-    );
+    let unit = compile(&store, [std], &sources, &cli.entry);
 
+    let sources: Vec<_> = sources.into_iter().map(Arc::new).collect();
     for error in unit.context.errors() {
-        let error = OffsetDiagnostic::new(&unit.context, &sources, error.clone());
-        eprint!("{:?}", Report::new(error));
+        let report = error_report(&cli.sources, &sources, &unit.context, error);
+        eprintln!("{report:?}");
     }
 }
 
-fn read_source(path: &Path) -> String {
-    if path.as_os_str() == "-" {
+fn read_source(path: impl AsRef<Path>) -> String {
+    if path.as_ref().as_os_str() == "-" {
         io::stdin().lines().map(Result::unwrap).collect()
     } else {
         fs::read_to_string(path).unwrap()
     }
+}
+
+fn error_report(
+    paths: &[PathBuf],
+    sources: &[Arc<String>],
+    context: &Context,
+    error: &compile::Error,
+) -> Report {
+    let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
+        return Report::new(error.clone());
+    };
+
+    let index = context.find_source(first_label.offset()).0;
+    let name = paths[index].to_str().unwrap();
+    let source = NamedSource::new(name, sources[index].clone());
+    let offset = -isize::try_from(context.offsets()[index]).unwrap();
+    Report::new(OffsetError::new(error.clone(), offset)).with_source_code(source)
 }

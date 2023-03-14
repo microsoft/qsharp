@@ -1,37 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Error, ErrorKind, PackageStore, SourceIndex};
-use crate::{
-    id::Assigner,
-    lex, parse,
-    resolve::{self, PackageSrc},
-};
+use super::{compile, Error, PackageStore, SourceIndex};
+use crate::{id::Assigner, resolve::PackageSrc};
 use expect_test::expect;
 use indoc::indoc;
+use miette::Diagnostic;
 use qsc_ast::{
     ast::{CallableBody, Expr, ExprKind, ItemKind, Lit, Span, StmtKind},
     mut_visit::MutVisitor,
 };
 
-// TODO: Brittle.
 fn error_span(error: &Error) -> Span {
-    match &error.0 {
-        ErrorKind::Parse(
-            parse::Error::Lex(
-                lex::Error::Incomplete(_, _, _, span)
-                | lex::Error::IncompleteEof(_, _, span)
-                | lex::Error::Unknown(_, span),
-            )
-            | parse::Error::Token(_, _, span)
-            | parse::Error::Keyword(_, _, span)
-            | parse::Error::Rule(_, _, span)
-            | parse::Error::RuleKeyword(_, _, span)
-            | parse::Error::Convert(_, _, span),
-        )
-        | ErrorKind::Resolve(
-            resolve::Error::NotFound(_, span) | resolve::Error::Ambiguous(_, span, _, _),
-        ) => *span,
+    let label = error
+        .labels()
+        .and_then(|mut ls| ls.next())
+        .expect("Error should have label.");
+
+    let span = label.inner();
+    Span {
+        lo: span.offset(),
+        hi: span.offset() + span.len(),
     }
 }
 

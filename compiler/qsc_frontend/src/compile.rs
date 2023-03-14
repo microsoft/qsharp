@@ -5,8 +5,9 @@
 mod tests;
 
 use crate::{
+    diagnostic::OffsetError,
     id::Assigner,
-    lex, parse,
+    parse,
     resolve::{self, GlobalTable, Resolutions},
 };
 use miette::Diagnostic;
@@ -106,7 +107,7 @@ pub struct Error(ErrorKind);
 #[diagnostic(transparent)]
 #[error(transparent)]
 enum ErrorKind {
-    Parse(parse::Error),
+    Parse(OffsetError<parse::Error>),
     Resolve(resolve::Error),
 }
 
@@ -214,7 +215,7 @@ pub fn std() -> CompileUnit {
 fn parse_all(
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     entry_expr: &str,
-) -> (Package, Vec<parse::Error>, Vec<usize>) {
+) -> (Package, Vec<OffsetError<parse::Error>>, Vec<usize>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     let mut offsets = Vec::new();
@@ -267,50 +268,13 @@ fn resolve_all<'a>(
     resolver.into_resolutions()
 }
 
-fn append_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {
+fn append_errors(
+    errors: &mut Vec<OffsetError<parse::Error>>,
+    offset: usize,
+    other: Vec<parse::Error>,
+) {
+    let offset = offset.try_into().expect("Offset should fit into isize.");
     for error in other {
-        errors.push(offset_error(offset, error));
-    }
-}
-
-// TODO: Not very pretty, and brittle.
-fn offset_error(offset: usize, error: parse::Error) -> parse::Error {
-    match error {
-        parse::Error::Lex(lex::Error::Incomplete(expected, found, single, span)) => {
-            parse::Error::Lex(lex::Error::Incomplete(
-                expected,
-                found,
-                single,
-                offset_span(offset, span),
-            ))
-        }
-        parse::Error::Lex(lex::Error::IncompleteEof(expected, found, span)) => parse::Error::Lex(
-            lex::Error::IncompleteEof(expected, found, offset_span(offset, span)),
-        ),
-        parse::Error::Lex(lex::Error::Unknown(c, span)) => {
-            parse::Error::Lex(lex::Error::Unknown(c, offset_span(offset, span)))
-        }
-        parse::Error::Token(expected, found, span) => {
-            parse::Error::Token(expected, found, offset_span(offset, span))
-        }
-        parse::Error::Keyword(expected, found, span) => {
-            parse::Error::Keyword(expected, found, offset_span(offset, span))
-        }
-        parse::Error::Rule(expected, found, span) => {
-            parse::Error::Rule(expected, found, offset_span(offset, span))
-        }
-        parse::Error::RuleKeyword(expected, keyword, span) => {
-            parse::Error::RuleKeyword(expected, keyword, offset_span(offset, span))
-        }
-        parse::Error::Convert(expected, found, span) => {
-            parse::Error::Convert(expected, found, offset_span(offset, span))
-        }
-    }
-}
-
-fn offset_span(offset: usize, span: Span) -> Span {
-    Span {
-        lo: span.lo + offset,
-        hi: span.hi + offset,
+        errors.push(OffsetError::new(error, offset));
     }
 }
