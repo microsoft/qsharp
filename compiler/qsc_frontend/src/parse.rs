@@ -22,7 +22,7 @@ use scan::Scanner;
 use std::result;
 use thiserror::Error;
 
-pub use keyword::Keyword;
+pub(super) use keyword::Keyword;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub(super) enum Error {
