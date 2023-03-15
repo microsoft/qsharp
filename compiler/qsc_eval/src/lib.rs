@@ -24,7 +24,7 @@ use qsc_ast::ast::{
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
-    resolve::PackageSrc,
+    resolve::{DefId, PackageSrc},
 };
 use val::{ConversionError, FunctorApp, Value};
 
@@ -47,7 +47,7 @@ enum ErrorKind {
     EmptyExpr,
     IndexVal(i64),
     IntegerSize,
-    MissingSpecialization(Spec),
+    MissingSpec(Spec),
     Mutability,
     OutOfRange(i64),
     RangeStepZero,
@@ -142,7 +142,7 @@ pub struct Evaluator<'a> {
     store: &'a PackageStore,
     current_unit: &'a CompileUnit,
     current_id: PackageId,
-    scopes: Vec<HashMap<NodeId, Variable>>,
+    scopes: Vec<HashMap<GlobalId, Variable>>,
     globals: HashMap<GlobalId, &'a CallableDecl>,
 }
 
@@ -325,9 +325,19 @@ impl<'a> Evaluator<'a> {
 
         let spec = specialization_from_functor_app(&functor);
 
+        let (cached_id, cached_unit) = (self.current_id, self.current_unit);
+        (self.current_id, self.current_unit) = (
+            call.package,
+            self.store
+                .get(call.package)
+                .expect("Store must contain compile unit for package id"),
+        );
+
         self.scopes.push(HashMap::default());
         let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
         let _ = self.scopes.pop();
+
+        (self.current_id, self.current_unit) = (cached_id, cached_unit);
 
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
@@ -356,7 +366,7 @@ impl<'a> Evaluator<'a> {
                         || {
                             ControlFlow::Break(Reason::Error(
                                 decl.span,
-                                ErrorKind::MissingSpecialization(spec),
+                                ErrorKind::MissingSpec(spec),
                             ))
                         },
                         |spec_decl| ControlFlow::Continue(&spec_decl.body),
@@ -378,16 +388,12 @@ impl<'a> Evaluator<'a> {
                     SpecBody::Gen(SpecGen::Intrinsic) => {
                         invoke_intrinsic(&decl.name.name, decl.name.span, args_val, args_span)
                     }
-                    SpecBody::Gen(_) => ControlFlow::Break(Reason::Error(
-                        decl.span,
-                        ErrorKind::MissingSpecialization(spec),
-                    )),
+                    SpecBody::Gen(_) => {
+                        ControlFlow::Break(Reason::Error(decl.span, ErrorKind::MissingSpec(spec)))
+                    }
                 }
             }
-            _ => ControlFlow::Break(Reason::Error(
-                decl.span,
-                ErrorKind::MissingSpecialization(spec),
-            )),
+            _ => ControlFlow::Break(Reason::Error(decl.span, ErrorKind::MissingSpec(spec))),
         }
     }
 
@@ -455,15 +461,16 @@ impl<'a> Evaluator<'a> {
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self
-                    .current_unit
-                    .context
-                    .resolutions()
-                    .get(&variable.id)
-                    .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id));
+                let id = self.defid_to_globalid(
+                    self.current_unit
+                        .context
+                        .resolutions()
+                        .get(&variable.id)
+                        .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id)),
+                );
 
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
-                match scope.entry(id.node) {
+                match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("{id:?} is already bound"),
                 };
@@ -503,7 +510,7 @@ impl<'a> Evaluator<'a> {
                     .scopes
                     .iter()
                     .rev()
-                    .find_map(|scope| scope.get(&id.node))
+                    .find_map(|scope| scope.get(&self.defid_to_globalid(id)))
                 {
                     var.value.clone()
                 } else {
@@ -527,18 +534,19 @@ impl<'a> Evaluator<'a> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
-                let id = self
-                    .current_unit
-                    .context
-                    .resolutions()
-                    .get(&path.id)
-                    .unwrap_or_else(|| panic!("{:?} is not resolved", path.id));
+                let id = self.defid_to_globalid(
+                    self.current_unit
+                        .context
+                        .resolutions()
+                        .get(&path.id)
+                        .unwrap_or_else(|| panic!("{:?} is not resolved", path.id)),
+                );
 
                 let mut variable = self
                     .scopes
                     .iter_mut()
                     .rev()
-                    .find_map(|scope| scope.get_mut(&id.node))
+                    .find_map(|scope| scope.get_mut(&id))
                     .unwrap_or_else(|| panic!("{id:?} is not bound"));
 
                 if variable.is_mutable() {
@@ -572,6 +580,16 @@ impl<'a> Evaluator<'a> {
             Value::Global(id, FunctorApp::default())
         } else {
             panic!("{id:?} is not bound")
+        }
+    }
+
+    fn defid_to_globalid(&self, id: &DefId) -> GlobalId {
+        GlobalId {
+            package: match id.package {
+                PackageSrc::Local => self.current_id,
+                PackageSrc::Extern(p) => p,
+            },
+            node: id.node,
         }
     }
 }

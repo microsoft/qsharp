@@ -28,7 +28,12 @@ pub enum Value {
 
 #[derive(Clone, Debug, Default)]
 pub struct FunctorApp {
+    /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
+    /// between the two, so a bool is sufficient to track.
     pub adjoint: bool,
+
+    /// An invocation can have mutiple `Controlled` functors with each one adding another layer of updates
+    /// to the argument tuple, so the functor application must be tracked with a count.
     pub controlled: u8,
 }
 

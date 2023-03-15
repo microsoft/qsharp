@@ -78,19 +78,11 @@ fn int_as_double_type_error() {
 }
 
 #[test]
-fn int_as_double_too_big() {
+fn int_as_double_precision_loss() {
     check_intrinsic(
         "",
         "Microsoft.Quantum.Convert.IntAsDouble(9_223_372_036_854_775_807)",
-        &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 37,
-                    hi: 64,
-                },
-                kind: IntegerSize,
-            }
-        "#]],
+        &expect!["9223372036854775808.0"],
     );
 }
 
