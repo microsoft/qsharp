@@ -15,7 +15,7 @@ qsc_passes = { path = "../qsc_passes" }
 qsc_codegen = { path = "../qsc_codegen" }
 qsc_eval = { path = "../qsc_eval" }
 clap = { version = "4.1.8", features = ["derive"] }
-miette = { version = "5.5.0", features = ["fancy"] }
+miette = { version = "5.6.0", features = ["fancy"] }
 thiserror = "1.0.38"
 
 [dev-dependencies]
