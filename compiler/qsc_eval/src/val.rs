@@ -1,20 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{collections::HashMap, ffi::c_void, fmt::Display};
+use std::{ffi::c_void, fmt::Display};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
-use qsc_frontend::resolve::DefId;
+
+use crate::globals::GlobalId;
 
 #[derive(Clone, Debug)]
 pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
     Bool(bool),
-    Closure(DefId, FunctorApp, HashMap<DefId, Value>),
+    Closure,
     Double(f64),
-    Global(DefId, FunctorApp),
+    Global(GlobalId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
     Qubit(*mut c_void),
@@ -41,7 +42,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Closure(_, _, _) => todo!(),
+            Value::Closure => todo!(),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -173,7 +174,7 @@ impl Value {
             Value::Array(_) => "Array",
             Value::BigInt(_) => "BigInt",
             Value::Bool(_) => "Bool",
-            Value::Closure(_, _, _) => "Closure",
+            Value::Closure => "Closure",
             Value::Double(_) => "Double",
             Value::Global(_, _) => "Global",
             Value::Int(_) => "Int",
