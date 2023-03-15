@@ -6,6 +6,8 @@
 #[cfg(test)]
 mod tests;
 
+mod globals;
+mod intrinsic;
 pub mod val;
 
 use std::{
@@ -13,16 +15,18 @@ use std::{
     ops::{ControlFlow, Neg},
 };
 
+use globals::{extract_callables, GlobalId};
+use intrinsic::invoke_intrinsic;
 use qir_backend::Pauli;
 use qsc_ast::ast::{
-    self, Block, CallableDecl, Expr, ExprKind, Lit, Mutability, NodeId, Package, Pat, PatKind,
-    Span, Stmt, StmtKind, UnOp,
+    self, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability, NodeId, Pat,
+    PatKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, Context},
-    resolve::DefId,
+    compile::{CompileUnit, PackageId, PackageStore},
+    resolve::{DefId, PackageSrc},
 };
-use val::{ConversionError, Value};
+use val::{ConversionError, FunctorApp, Value};
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -43,6 +47,7 @@ enum ErrorKind {
     EmptyExpr,
     IndexVal(i64),
     IntegerSize,
+    MissingSpec(Spec),
     Mutability,
     OutOfRange(i64),
     RangeStepZero,
@@ -50,6 +55,7 @@ enum ErrorKind {
     TupleArity(usize, usize),
     Unassignable,
     Unimplemented,
+    UnknownIntrinsic,
     UserFail(String),
 }
 
@@ -133,20 +139,24 @@ impl Range {
 
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
-    package: &'a Package,
-    context: &'a Context,
-    scopes: Vec<HashMap<DefId, Variable>>,
-    globals: HashMap<DefId, &'a CallableDecl>,
+    store: &'a PackageStore,
+    current_unit: &'a CompileUnit,
+    current_id: PackageId,
+    scopes: Vec<HashMap<GlobalId, Variable>>,
+    globals: HashMap<GlobalId, &'a CallableDecl>,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(unit: &'a CompileUnit) -> Self {
+    pub fn new(store: &'a PackageStore, entry_id: PackageId) -> Self {
         Self {
-            package: &unit.package,
-            context: &unit.context,
+            store,
+            current_unit: store
+                .get(entry_id)
+                .expect("Entry id must be present in package store"),
+            current_id: entry_id,
             scopes: vec![],
-            globals: HashMap::default(),
+            globals: extract_callables(store),
         }
     }
 
@@ -154,7 +164,7 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.package.entry {
+        if let Some(expr) = &self.current_unit.package.entry {
             match self.eval_expr(expr) {
                 ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
                 ControlFlow::Break(Reason::Error(span, kind)) => Err(Error { span, kind }),
@@ -192,6 +202,7 @@ impl<'a> Evaluator<'a> {
                 self.update_binding(lhs, val)
             }
             ExprKind::Block(block) => self.eval_block(block),
+            ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(
                 expr.span,
                 ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
@@ -235,7 +246,6 @@ impl<'a> Evaluator<'a> {
             ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _)
             | ExprKind::BinOp(_, _, _)
-            | ExprKind::Call(_, _)
             | ExprKind::Conjugate(_, _)
             | ExprKind::Err
             | ExprKind::Field(_, _)
@@ -301,6 +311,92 @@ impl<'a> Evaluator<'a> {
         }
     }
 
+    fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
+        let call_val = self.eval_expr(call)?;
+        let call_span = call.span;
+        let (call, functor) = value_to_call_id(call_val, call.span)?;
+
+        let args_val = self.eval_expr(args)?;
+
+        let decl = *self
+            .globals
+            .get(&call)
+            .unwrap_or_else(|| panic!("{call:?} is not in globals map"));
+
+        let spec = specialization_from_functor_app(&functor);
+
+        let (cached_id, cached_unit) = (self.current_id, self.current_unit);
+        (self.current_id, self.current_unit) = (
+            call.package,
+            self.store
+                .get(call.package)
+                .expect("Store must contain compile unit for package id"),
+        );
+
+        self.scopes.push(HashMap::default());
+        let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
+        let _ = self.scopes.pop();
+
+        (self.current_id, self.current_unit) = (cached_id, cached_unit);
+
+        match call_res {
+            ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
+            ControlFlow::Continue(_) | ControlFlow::Break(_) => call_res,
+        }
+    }
+
+    fn eval_call_specialization(
+        &mut self,
+        decl: &CallableDecl,
+        spec: Spec,
+        args_val: Value,
+        args_span: Span,
+        call_span: Span,
+    ) -> ControlFlow<Reason, Value> {
+        match (&decl.body, spec) {
+            (CallableBody::Block(body_block), Spec::Body) => {
+                self.bind_value(&decl.input, args_val, args_span, Mutability::Immutable)?;
+                self.eval_block(body_block)
+            }
+            (CallableBody::Specs(spec_decls), spec) => {
+                let spec_decl = spec_decls
+                    .iter()
+                    .find(|spec_decl| spec_decl.spec == spec)
+                    .map_or_else(
+                        || {
+                            ControlFlow::Break(Reason::Error(
+                                decl.span,
+                                ErrorKind::MissingSpec(spec),
+                            ))
+                        },
+                        |spec_decl| ControlFlow::Continue(&spec_decl.body),
+                    )?;
+                match spec_decl {
+                    SpecBody::Impl(_, body_block) => {
+                        if spec == Spec::Ctl || spec == Spec::CtlAdj {
+                            ControlFlow::Break(Reason::Error(call_span, ErrorKind::Unimplemented))
+                        } else {
+                            self.bind_value(
+                                &decl.input,
+                                args_val,
+                                args_span,
+                                Mutability::Immutable,
+                            )?;
+                            self.eval_block(body_block)
+                        }
+                    }
+                    SpecBody::Gen(SpecGen::Intrinsic) => {
+                        invoke_intrinsic(&decl.name.name, decl.name.span, args_val, args_span)
+                    }
+                    SpecBody::Gen(_) => {
+                        ControlFlow::Break(Reason::Error(decl.span, ErrorKind::MissingSpec(spec)))
+                    }
+                }
+            }
+            _ => ControlFlow::Break(Reason::Error(decl.span, ErrorKind::MissingSpec(spec))),
+        }
+    }
+
     fn eval_unary_op_expr(
         &mut self,
         expr: &Expr,
@@ -340,9 +436,19 @@ impl<'a> Evaluator<'a> {
                     ErrorKind::Type("Int or BigInt", val.type_name()),
                 )),
             },
-            UnOp::Functor(_) | UnOp::Unwrap => {
-                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
-            }
+            UnOp::Functor(functor) => match val {
+                Value::Closure => {
+                    ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
+                }
+                Value::Global(id, app) => {
+                    ControlFlow::Continue(Value::Global(id, update_functor_app(functor, &app)))
+                }
+                _ => ControlFlow::Break(Reason::Error(
+                    rhs.span,
+                    ErrorKind::Type("Callable", val.type_name()),
+                )),
+            },
+            UnOp::Unwrap => ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented)),
         }
     }
 
@@ -355,14 +461,16 @@ impl<'a> Evaluator<'a> {
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self
-                    .context
-                    .resolutions()
-                    .get(&variable.id)
-                    .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id));
+                let id = self.defid_to_globalid(
+                    self.current_unit
+                        .context
+                        .resolutions()
+                        .get(&variable.id)
+                        .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id)),
+                );
 
                 let scope = self.scopes.last_mut().expect("Binding requires a scope.");
-                match scope.entry(*id) {
+                match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("{id:?} is already bound"),
                 };
@@ -388,36 +496,43 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn resolve_binding(&self, id: NodeId) -> Value {
+    fn resolve_binding(&mut self, id: NodeId) -> Value {
         let id = self
+            .current_unit
             .context
             .resolutions()
             .get(&id)
             .unwrap_or_else(|| panic!("{id:?} is not resolved"));
 
-        self.scopes
-            .iter()
-            .rev()
-            .find_map(|scope| scope.get(id))
-            .unwrap_or_else(|| panic!("{id:?} is not bound."))
-            .value
-            .clone()
+        let global_id = self.defid_to_globalid(id);
+        let local = if id.package == PackageSrc::Local {
+            self.scopes
+                .iter()
+                .rev()
+                .find_map(|s| s.get(&global_id))
+                .map(|v| v.value.clone())
+        } else {
+            None
+        };
+        local.unwrap_or_else(|| self.resolve_global(global_id))
     }
 
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
-                let id = self
-                    .context
-                    .resolutions()
-                    .get(&path.id)
-                    .unwrap_or_else(|| panic!("{:?} is not resolved", path.id));
+                let id = self.defid_to_globalid(
+                    self.current_unit
+                        .context
+                        .resolutions()
+                        .get(&path.id)
+                        .unwrap_or_else(|| panic!("{:?} is not resolved", path.id)),
+                );
 
                 let mut variable = self
                     .scopes
                     .iter_mut()
                     .rev()
-                    .find_map(|scope| scope.get_mut(id))
+                    .find_map(|scope| scope.get_mut(&id))
                     .unwrap_or_else(|| panic!("{id:?} is not bound"));
 
                 if variable.is_mutable() {
@@ -444,6 +559,44 @@ impl<'a> Evaluator<'a> {
             }
             _ => ControlFlow::Break(Reason::Error(lhs.span, ErrorKind::Unassignable)),
         }
+    }
+
+    fn resolve_global(&mut self, id: GlobalId) -> Value {
+        if self.globals.contains_key(&id) {
+            Value::Global(id, FunctorApp::default())
+        } else {
+            panic!("{id:?} is not bound")
+        }
+    }
+
+    fn defid_to_globalid(&self, id: &DefId) -> GlobalId {
+        GlobalId {
+            package: match id.package {
+                PackageSrc::Local => self.current_id,
+                PackageSrc::Extern(p) => p,
+            },
+            node: id.node,
+        }
+    }
+}
+
+fn specialization_from_functor_app(functor: &FunctorApp) -> Spec {
+    match (functor.adjoint, functor.controlled) {
+        (false, 0) => Spec::Body,
+        (true, 0) => Spec::Adj,
+        (false, _) => Spec::Ctl,
+        (true, _) => Spec::CtlAdj,
+    }
+}
+
+fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
+    match val {
+        Value::Closure => ControlFlow::Break(Reason::Error(span, ErrorKind::Unimplemented)),
+        Value::Global(global, functor) => ControlFlow::Continue((global, functor)),
+        _ => ControlFlow::Break(Reason::Error(
+            span,
+            ErrorKind::Type("Callable", val.type_name()),
+        )),
     }
 }
 
@@ -502,5 +655,18 @@ fn slice_array(
         }
 
         ControlFlow::Continue(Value::Array(slice))
+    }
+}
+
+fn update_functor_app(functor: Functor, app: &FunctorApp) -> FunctorApp {
+    match functor {
+        Functor::Adj => FunctorApp {
+            adjoint: !app.adjoint,
+            controlled: app.controlled,
+        },
+        Functor::Ctl => FunctorApp {
+            adjoint: app.adjoint,
+            controlled: app.controlled + 1,
+        },
     }
 }

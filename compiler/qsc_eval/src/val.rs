@@ -1,20 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{collections::HashMap, ffi::c_void, fmt::Display};
+use std::{ffi::c_void, fmt::Display};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
-use qsc_frontend::resolve::DefId;
+
+use crate::globals::GlobalId;
 
 #[derive(Clone, Debug)]
 pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
     Bool(bool),
-    Closure(DefId, HashMap<DefId, Value>),
+    Closure,
     Double(f64),
-    Global(DefId),
+    Global(GlobalId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
     Qubit(*mut c_void),
@@ -23,6 +24,17 @@ pub enum Value {
     String(String),
     Tuple(Vec<Value>),
     Udt,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct FunctorApp {
+    /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
+    /// between the two, so a bool is sufficient to track.
+    pub adjoint: bool,
+
+    /// An invocation can have multiple `Controlled` functors with each one adding another layer of updates
+    /// to the argument tuple, so the functor application must be tracked with a count.
+    pub controlled: u8,
 }
 
 impl Display for Value {
@@ -35,7 +47,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Closure(_, _) => todo!(),
+            Value::Closure => todo!(),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -45,7 +57,7 @@ impl Display for Value {
                     write!(f, "{v}")
                 }
             }
-            Value::Global(_) => todo!(),
+            Value::Global(g, functor) => write!(f, "{g:?}({functor:?})"),
             Value::Int(v) => write!(f, "{v}"),
             Value::Pauli(v) => match v {
                 Pauli::I => write!(f, "PauliI"),
@@ -167,9 +179,9 @@ impl Value {
             Value::Array(_) => "Array",
             Value::BigInt(_) => "BigInt",
             Value::Bool(_) => "Bool",
-            Value::Closure(_, _) => "Closure",
+            Value::Closure => "Closure",
             Value::Double(_) => "Double",
-            Value::Global(_) => "Global",
+            Value::Global(_, _) => "Global",
             Value::Int(_) => "Int",
             Value::Pauli(_) => "Pauli",
             Value::Qubit(_) => "Qubit",
