@@ -24,7 +24,7 @@ use std::{
 };
 
 /// A raw token.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct Token {
     /// The token kind.
     pub(super) kind: TokenKind,
@@ -32,8 +32,8 @@ pub(super) struct Token {
     pub(super) offset: usize,
 }
 
-#[derive(Debug, Eq, PartialEq, Sequence)]
-pub(super) enum TokenKind {
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(crate) enum TokenKind {
     Comment,
     Ident,
     Number(Number),
@@ -43,9 +43,25 @@ pub(super) enum TokenKind {
     Whitespace,
 }
 
+impl Display for TokenKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            TokenKind::Comment => f.write_str("comment"),
+            TokenKind::Ident => f.write_str("identifier"),
+            TokenKind::Number(Number::BigInt(_)) => f.write_str("big integer"),
+            TokenKind::Number(Number::Float) => f.write_str("float"),
+            TokenKind::Number(Number::Int(_)) => f.write_str("integer"),
+            TokenKind::Single(single) => write!(f, "`{single}`"),
+            TokenKind::String => f.write_str("string"),
+            TokenKind::Unknown => f.write_str("unknown"),
+            TokenKind::Whitespace => f.write_str("whitespace"),
+        }
+    }
+}
+
 /// A single-character operator token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(super) enum Single {
+pub(crate) enum Single {
     /// `&`
     Amp,
     /// `'`
@@ -126,12 +142,13 @@ impl Display for Single {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(super) enum Number {
+pub(crate) enum Number {
     BigInt(Radix),
     Float,
     Int(Radix),
 }
 
+#[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
 }

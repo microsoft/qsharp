@@ -139,15 +139,14 @@ fn spec_gen_missing_semi() {
         "body intrinsic",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Token(
-                        Semi,
-                    ),
-                    span: Span {
+                Token(
+                    Semi,
+                    Eof,
+                    Span {
                         lo: 14,
                         hi: 14,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -160,17 +159,16 @@ fn spec_invalid_gen() {
         "adjoint foo;",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Token(
-                        Open(
-                            Brace,
-                        ),
+                Token(
+                    Open(
+                        Brace,
                     ),
-                    span: Span {
+                    Semi,
+                    Span {
                         lo: 11,
                         hi: 12,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -452,15 +450,14 @@ fn ty_def_invalid_field_name() {
         "newtype Foo = Bar.Baz : Int[];",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Rule(
-                        "identifier",
-                    ),
-                    span: Span {
+                Convert(
+                    "identifier",
+                    "type",
+                    Span {
                         lo: 14,
                         hi: 21,
                     },
-                },
+                ),
             )
         "#]],
     );
@@ -2801,15 +2798,16 @@ fn function_missing_output_ty() {
         "function Foo() { body intrinsic; }",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Token(
-                        Colon,
+                Token(
+                    Colon,
+                    Open(
+                        Brace,
                     ),
-                    span: Span {
+                    Span {
                         lo: 15,
                         hi: 16,
                     },
-                },
+                ),
             )
         "#]],
     );

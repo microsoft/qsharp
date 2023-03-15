@@ -8,7 +8,7 @@ use super::{
     keyword::Keyword,
     prim::{ident, keyword, opt, path, seq, token},
     scan::Scanner,
-    ErrorKind, Parser, Result,
+    Error, Parser, Result,
 };
 use crate::lex::{ClosedBinOp, Delim, TokenKind};
 use qsc_ast::ast::{
@@ -67,7 +67,7 @@ fn arrow(s: &mut Scanner) -> Result<CallableKind> {
     } else if token(s, TokenKind::FatArrow).is_ok() {
         Ok(CallableKind::Operation)
     } else {
-        Err(s.error(ErrorKind::Rule("arrow type")))
+        Err(Error::Rule("arrow type", s.peek().kind, s.peek().span))
     }
 }
 
@@ -104,7 +104,7 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(tys, |t| TyKind::Paren(Box::new(t)), TyKind::Tuple))
     } else {
-        Err(s.error(ErrorKind::Rule("type")))
+        Err(Error::Rule("type", s.peek().kind, s.peek().span))
     }?;
 
     Ok(Ty {
@@ -132,7 +132,7 @@ fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
     } else if keyword(s, Keyword::Ctl).is_ok() {
         Ok(FunctorExprKind::Lit(Functor::Ctl))
     } else {
-        Err(s.error(ErrorKind::Rule("functor literal")))
+        Err(Error::Rule("functor literal", s.peek().kind, s.peek().span))
     }?;
 
     Ok(FunctorExpr {

@@ -88,13 +88,16 @@ fn amp() {
         &expect![[r#"
             [
                 Err(
-                    Error {
-                        message: "Expecting `&&&`.",
-                        span: Span {
-                            lo: 0,
+                    IncompleteEof(
+                        Amp,
+                        ClosedBinOp(
+                            AmpAmpAmp,
+                        ),
+                        Span {
+                            lo: 1,
                             hi: 1,
                         },
-                    },
+                    ),
                 ),
             ]
         "#]],
@@ -108,13 +111,86 @@ fn amp_amp() {
         &expect![[r#"
             [
                 Err(
-                    Error {
-                        message: "Expecting `&&&`.",
+                    IncompleteEof(
+                        Amp,
+                        ClosedBinOp(
+                            AmpAmpAmp,
+                        ),
+                        Span {
+                            lo: 2,
+                            hi: 2,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn amp_plus() {
+    check(
+        "&+",
+        &expect![[r#"
+            [
+                Err(
+                    Incomplete(
+                        Amp,
+                        ClosedBinOp(
+                            AmpAmpAmp,
+                        ),
+                        Single(
+                            Plus,
+                        ),
+                        Span {
+                            lo: 1,
+                            hi: 2,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
                         span: Span {
-                            lo: 0,
+                            lo: 1,
                             hi: 2,
                         },
                     },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn amp_multibyte() {
+    check(
+        "&🦀",
+        &expect![[r#"
+            [
+                Err(
+                    Incomplete(
+                        Amp,
+                        ClosedBinOp(
+                            AmpAmpAmp,
+                        ),
+                        Unknown,
+                        Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    ),
+                ),
+                Err(
+                    Unknown(
+                        '🦀',
+                        Span {
+                            lo: 1,
+                            hi: 5,
+                        },
+                    ),
                 ),
             ]
         "#]],
@@ -161,13 +237,16 @@ fn caret_caret() {
         &expect![[r#"
             [
                 Err(
-                    Error {
-                        message: "Expecting `^^^`.",
-                        span: Span {
-                            lo: 0,
+                    IncompleteEof(
+                        Caret,
+                        ClosedBinOp(
+                            CaretCaretCaret,
+                        ),
+                        Span {
+                            lo: 2,
                             hi: 2,
                         },
-                    },
+                    ),
                 ),
             ]
         "#]],
@@ -832,22 +911,22 @@ fn unknown() {
         &expect![[r#"
             [
                 Err(
-                    Error {
-                        message: "Unknown token.",
-                        span: Span {
+                    Unknown(
+                        '#',
+                        Span {
                             lo: 0,
                             hi: 1,
                         },
-                    },
+                    ),
                 ),
                 Err(
-                    Error {
-                        message: "Unknown token.",
-                        span: Span {
+                    Unknown(
+                        '#',
+                        Span {
                             lo: 1,
                             hi: 2,
                         },
-                    },
+                    ),
                 ),
             ]
         "#]],

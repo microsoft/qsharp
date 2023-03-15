@@ -11,7 +11,7 @@ use super::{
     scan::Scanner,
     stmt::{self, stmt},
     ty::{self, ty},
-    Error, ErrorKind, Result,
+    Error, Result,
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
@@ -51,7 +51,7 @@ fn item(s: &mut Scanner) -> Result<Item> {
     } else if let Some(callable) = opt(s, callable_decl)? {
         Ok(ItemKind::Callable(callable))
     } else {
-        Err(s.error(ErrorKind::Rule("item")))
+        Err(Error::Rule("item", s.peek().kind, s.peek().span))
     }?;
 
     Ok(Item {
@@ -145,10 +145,7 @@ fn ty_as_ident(ty: Ty) -> Result<Ident> {
     {
         Ok(name)
     } else {
-        Err(Error {
-            kind: ErrorKind::Rule("identifier"),
-            span: ty.span,
-        })
+        Err(Error::Convert("identifier", "type", ty.span))
     }
 }
 
@@ -159,7 +156,8 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     } else if keyword(s, Keyword::Operation).is_ok() {
         Ok(CallableKind::Operation)
     } else {
-        Err(s.error(ErrorKind::Rule("callable declaration")))
+        let token = s.peek();
+        Err(Error::Rule("callable declaration", token.kind, token.span))
     }?;
 
     let name = ident(s)?;
@@ -225,7 +223,7 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
             Ok(Spec::Ctl)
         }
     } else {
-        Err(s.error(ErrorKind::Rule("specialization")))
+        Err(Error::Rule("specialization", s.peek().kind, s.peek().span))
     }?;
 
     let body = if let Some(gen) = opt(s, spec_gen)? {
@@ -255,6 +253,10 @@ fn spec_gen(s: &mut Scanner) -> Result<SpecGen> {
     } else if keyword(s, Keyword::Slf).is_ok() {
         Ok(SpecGen::Slf)
     } else {
-        Err(s.error(ErrorKind::Rule("specialization generator")))
+        Err(Error::Rule(
+            "specialization generator",
+            s.peek().kind,
+            s.peek().span,
+        ))
     }
 }

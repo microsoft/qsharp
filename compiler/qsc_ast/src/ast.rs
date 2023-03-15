@@ -5,6 +5,7 @@
 
 #![warn(missing_docs)]
 
+use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::{
     fmt::{self, Display, Formatter},
@@ -51,7 +52,7 @@ impl Display for NodeId {
 
 /// A region between two source code positions. Spans are the half-open interval `[lo, hi)`. The
 /// offsets are absolute within an AST, assuming that each file has its own offset.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Span {
     /// The offset of the first byte.
     pub lo: usize,
@@ -67,6 +68,14 @@ impl Index<Span> for str {
     }
 }
 
+impl Index<Span> for String {
+    type Output = str;
+
+    fn index(&self, index: Span) -> &Self::Output {
+        &self[index.lo..index.hi]
+    }
+}
+
 impl RangeBounds<usize> for &Span {
     fn start_bound(&self) -> Bound<&usize> {
         Bound::Included(&self.lo)
@@ -74,6 +83,12 @@ impl RangeBounds<usize> for &Span {
 
     fn end_bound(&self) -> Bound<&usize> {
         Bound::Excluded(&self.hi)
+    }
+}
+
+impl From<Span> for SourceSpan {
+    fn from(value: Span) -> Self {
+        Self::from(value.lo..value.hi)
     }
 }
 

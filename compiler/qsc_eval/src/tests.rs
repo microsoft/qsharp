@@ -9,7 +9,7 @@ use crate::Evaluator;
 
 fn check_expression(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
-    let unit = compile(&store, &[], &[file], expr);
+    let unit = compile(&store, [], [file], expr);
     assert!(
         unit.context.errors().is_empty(),
         "Compilation errors: {:?}",

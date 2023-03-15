@@ -3,19 +3,66 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use qsc_frontend::compile::{self, compile, PackageStore};
-use std::{env, fs, io, result::Result, string::String};
+use clap::Parser;
+use miette::{Diagnostic, NamedSource, Report};
+use qsc_frontend::{
+    compile::{self, compile, Context, PackageStore},
+    diagnostic::OffsetError,
+};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+    result::Result,
+    string::String,
+    sync::Arc,
+};
+
+#[derive(Parser)]
+struct Cli {
+    #[arg(required(true), num_args(1..))]
+    sources: Vec<PathBuf>,
+    #[arg(short, long, default_value = "")]
+    entry: String,
+}
 
 fn main() {
-    let args: Vec<_> = env::args().collect();
-    let input: String = match args.get(1).map(String::as_str) {
-        None | Some("-") => io::stdin().lines().map(Result::unwrap).collect(),
-        Some(path) => fs::read_to_string(path).unwrap(),
-    };
-    let expr = args.get(2).map_or_else(|| "", String::as_str);
-
+    let cli = Cli::parse();
+    let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
-    let unit = compile(&store, &[std], &[&input], expr);
-    println!("{unit:#?}");
+    let unit = compile(&store, [std], &sources, &cli.entry);
+
+    let sources: Vec<_> = sources.into_iter().map(Arc::new).collect();
+    for error in unit.context.errors() {
+        let report = error_report(&cli.sources, &sources, &unit.context, error);
+        eprintln!("{report:?}");
+    }
+}
+
+fn read_source(path: impl AsRef<Path>) -> String {
+    if path.as_ref().as_os_str() == "-" {
+        io::stdin().lines().map(Result::unwrap).collect()
+    } else {
+        fs::read_to_string(path).unwrap()
+    }
+}
+
+fn error_report(
+    paths: &[PathBuf],
+    sources: &[Arc<String>],
+    context: &Context,
+    error: &compile::Error,
+) -> Report {
+    let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
+        return Report::new(error.clone());
+    };
+
+    // Use the offset of the first labeled span to find which source code to include in the report.
+    let (index, offset) = context.source(first_label.offset());
+    let name = paths[index.0].to_str().unwrap();
+    let source = NamedSource::new(name, sources[index.0].clone());
+
+    // Adjust all spans in the error to be relative to the start of this source.
+    let offset = -isize::try_from(offset).unwrap();
+    Report::new(OffsetError::new(error.clone(), offset)).with_source_code(source)
 }

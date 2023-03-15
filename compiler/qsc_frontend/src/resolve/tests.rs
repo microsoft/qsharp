@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{DefId, Error, ErrorKind, GlobalTable, PackageSrc, Resolutions};
+use super::{DefId, GlobalTable, PackageSrc, Resolutions};
 use crate::{id, parse};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -10,7 +10,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use std::fmt::{self, Write};
+use std::fmt::Write;
 
 struct Renamer<'a> {
     resolutions: &'a Resolutions,
@@ -77,23 +77,10 @@ fn resolve_names(input: &str) -> String {
     }
 
     for error in &errors {
-        output += "// ";
-        write_error(&mut output, error).expect("Error should write to output string.");
-        output += "\n";
+        writeln!(output, "// {error:?}").expect("Error should be written to output string.");
     }
 
     output
-}
-
-fn write_error(mut buffer: impl Write, error: &Error) -> fmt::Result {
-    let ErrorKind::Unresolved(candidates) = &error.kind;
-    let mut candidates: Vec<_> = candidates.iter().map(|r| (r.package, r.node)).collect();
-    candidates.sort();
-    write!(
-        buffer,
-        "Unresolved symbol at {:?} with candidates {:?}.",
-        error.span, candidates
-    )
 }
 
 #[test]
@@ -767,7 +754,7 @@ fn unknown_term() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 50, hi: 51 } with candidates [].
+            // NotFound("B", Span { lo: 50, hi: 51 })
         "#]],
     );
 }
@@ -785,7 +772,7 @@ fn unknown_ty() {
                 function _5(_8 : B) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 35, hi: 36 } with candidates [].
+            // NotFound("B", Span { lo: 35, hi: 36 })
         "#]],
     );
 }
@@ -829,7 +816,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 171, hi: 172 } with candidates [(Local, NodeId(5)), (Local, NodeId(13))].
+            // Ambiguous("A", Span { lo: 171, hi: 172 }, Span { lo: 117, hi: 120 }, Span { lo: 131, hi: 134 })
         "#]],
     );
 }
@@ -869,7 +856,7 @@ fn open_ambiguous_tys() {
                 function _21(_24 : A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 146, hi: 147 } with candidates [(Local, NodeId(4)), (Local, NodeId(10))].
+            // Ambiguous("A", Span { lo: 146, hi: 147 }, Span { lo: 107, hi: 110 }, Span { lo: 121, hi: 124 })
         "#]],
     );
 }
@@ -913,7 +900,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Unresolved symbol at Span { lo: 189, hi: 196 } with candidates [(Local, NodeId(5)), (Local, NodeId(13))].
+            // Ambiguous("A", Span { lo: 189, hi: 196 }, Span { lo: 117, hi: 120 }, Span { lo: 140, hi: 143 })
         "#]],
     );
 }
@@ -953,7 +940,7 @@ fn merged_aliases_ambiguous_tys() {
                 function _23(_26 : Alias.A) : Unit {}
             }
 
-            // Unresolved symbol at Span { lo: 164, hi: 171 } with candidates [(Local, NodeId(4)), (Local, NodeId(10))].
+            // Ambiguous("A", Span { lo: 164, hi: 171 }, Span { lo: 107, hi: 110 }, Span { lo: 130, hi: 133 })
         "#]],
     );
 }

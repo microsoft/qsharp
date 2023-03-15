@@ -19,11 +19,13 @@ use super::{
     Delim, Radix,
 };
 use enum_iterator::Sequence;
+use miette::Diagnostic;
 use qsc_ast::ast::Span;
 use std::{
     fmt::{self, Display, Formatter},
     iter::Peekable,
 };
+use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Token {
@@ -31,10 +33,21 @@ pub(crate) struct Token {
     pub(crate) span: Span,
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub(crate) struct Error {
-    pub(crate) message: &'static str,
-    pub(crate) span: Span,
+#[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
+pub(crate) enum Error {
+    #[error("expected `{0}` to complete {1}, but found {2}")]
+    Incomplete(
+        raw::Single,
+        TokenKind,
+        raw::TokenKind,
+        #[label("expected `{0}`")] Span,
+    ),
+
+    #[error("expected `{0}` to complete {1}, but found EOF")]
+    IncompleteEof(raw::Single, TokenKind, #[label] Span),
+
+    #[error("unrecognized character `{0}`")]
+    Unknown(char, #[label("unrecognized character")] Span),
 }
 
 /// A token kind.
@@ -110,6 +123,52 @@ pub(crate) enum TokenKind {
     WSlash,
     /// `w/=`
     WSlashEq,
+}
+
+impl Display for TokenKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            TokenKind::Apos => f.write_str("`'`"),
+            TokenKind::At => f.write_str("`@`"),
+            TokenKind::Bang => f.write_str("`!`"),
+            TokenKind::Bar => f.write_str("`|`"),
+            TokenKind::BigInt(_) => f.write_str("big integer"),
+            TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
+            TokenKind::Close(Delim::Brace) => f.write_str("`}`"),
+            TokenKind::Close(Delim::Bracket) => f.write_str("`]`"),
+            TokenKind::Close(Delim::Paren) => f.write_str("`)`"),
+            TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
+            TokenKind::Colon => f.write_str("`:`"),
+            TokenKind::ColonColon => f.write_str("`::`"),
+            TokenKind::Comma => f.write_str("`,`"),
+            TokenKind::Dot => f.write_str("`.`"),
+            TokenKind::DotDot => f.write_str("`..`"),
+            TokenKind::DotDotDot => f.write_str("`...`"),
+            TokenKind::Eof => f.write_str("EOF"),
+            TokenKind::Eq => f.write_str("`=`"),
+            TokenKind::EqEq => f.write_str("`==`"),
+            TokenKind::FatArrow => f.write_str("`=>`"),
+            TokenKind::Float => f.write_str("float"),
+            TokenKind::Gt => f.write_str("`>`"),
+            TokenKind::Gte => f.write_str("`>=`"),
+            TokenKind::Ident => f.write_str("identifier"),
+            TokenKind::Int(_) => f.write_str("integer"),
+            TokenKind::LArrow => f.write_str("`<-`"),
+            TokenKind::Lt => f.write_str("`<`"),
+            TokenKind::Lte => f.write_str("`<=`"),
+            TokenKind::Ne => f.write_str("`!=`"),
+            TokenKind::Open(Delim::Brace) => f.write_str("`{`"),
+            TokenKind::Open(Delim::Bracket) => f.write_str("`[`"),
+            TokenKind::Open(Delim::Paren) => f.write_str("`(`"),
+            TokenKind::Question => f.write_str("`?`"),
+            TokenKind::RArrow => f.write_str("`->`"),
+            TokenKind::Semi => f.write_str("`;`"),
+            TokenKind::String => f.write_str("string"),
+            TokenKind::TildeTildeTilde => f.write_str("`~~~`"),
+            TokenKind::WSlash => f.write_str("`w/`"),
+            TokenKind::WSlashEq => f.write_str("`w/=`"),
+        }
+    }
 }
 
 impl From<Number> for TokenKind {
@@ -202,11 +261,18 @@ impl<'a> Lexer<'a> {
             .is_some()
     }
 
-    fn expect(&mut self, single: Single, err: &'static str) -> Result<(), &'static str> {
+    fn expect(&mut self, single: Single, complete: TokenKind) -> Result<(), Error> {
         if self.next_if_eq(single) {
             Ok(())
+        } else if let Some(&raw::Token { kind, offset }) = self.tokens.peek() {
+            let mut tokens = self.tokens.clone();
+            let hi = tokens.nth(1).map_or_else(|| self.input.len(), |t| t.offset);
+            let span = Span { lo: offset, hi };
+            Err(Error::Incomplete(single, complete, kind, span))
         } else {
-            Err(err)
+            let lo = self.input.len();
+            let span = Span { lo, hi: lo };
+            Err(Error::IncompleteEof(single, complete, span))
         }
     }
 
@@ -220,28 +286,36 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String => Ok(Some(TokenKind::String)),
-            raw::TokenKind::Unknown => Err("Unknown token."),
-        };
+            raw::TokenKind::Unknown => {
+                let c = self.input[token.offset..]
+                    .chars()
+                    .next()
+                    .expect("Token offset should be the start of a character.");
+                let span = Span {
+                    lo: token.offset,
+                    hi: self.offset(),
+                };
+                Err(Error::Unknown(c, span))
+            }
+        }?;
 
-        let span = Span {
-            lo: token.offset,
-            hi: self.offset(),
-        };
-
-        match kind {
-            Ok(None) => Ok(None),
-            Ok(Some(kind)) => Ok(Some(Token { kind, span })),
-            Err(message) => Err(Error { message, span }),
-        }
+        Ok(kind.map(|kind| {
+            let span = Span {
+                lo: token.offset,
+                hi: self.offset(),
+            };
+            Token { kind, span }
+        }))
     }
 
     #[allow(clippy::too_many_lines)]
-    fn single(&mut self, single: Single) -> Result<TokenKind, &'static str> {
+    fn single(&mut self, single: Single) -> Result<TokenKind, Error> {
         match single {
             Single::Amp => {
-                self.expect(Single::Amp, "Expecting `&&&`.")?;
-                self.expect(Single::Amp, "Expecting `&&&`.")?;
-                Ok(self.closed_bin_op(ClosedBinOp::AmpAmpAmp))
+                let op = ClosedBinOp::AmpAmpAmp;
+                self.expect(Single::Amp, TokenKind::ClosedBinOp(op))?;
+                self.expect(Single::Amp, TokenKind::ClosedBinOp(op))?;
+                Ok(self.closed_bin_op(op))
             }
             Single::Apos => Ok(TokenKind::Apos),
             Single::At => Ok(TokenKind::At),
@@ -254,16 +328,18 @@ impl<'a> Lexer<'a> {
             }
             Single::Bar => {
                 if self.next_if_eq(Single::Bar) {
-                    self.expect(Single::Bar, "Expecting `|||`.")?;
-                    Ok(self.closed_bin_op(ClosedBinOp::BarBarBar))
+                    let op = ClosedBinOp::BarBarBar;
+                    self.expect(Single::Bar, TokenKind::ClosedBinOp(op))?;
+                    Ok(self.closed_bin_op(op))
                 } else {
                     Ok(TokenKind::Bar)
                 }
             }
             Single::Caret => {
                 if self.next_if_eq(Single::Caret) {
-                    self.expect(Single::Caret, "Expecting `^^^`.")?;
-                    Ok(self.closed_bin_op(ClosedBinOp::CaretCaretCaret))
+                    let op = ClosedBinOp::CaretCaretCaret;
+                    self.expect(Single::Caret, TokenKind::ClosedBinOp(op))?;
+                    Ok(self.closed_bin_op(op))
                 } else {
                     Ok(self.closed_bin_op(ClosedBinOp::Caret))
                 }
@@ -301,8 +377,9 @@ impl<'a> Lexer<'a> {
                 if self.next_if_eq(Single::Eq) {
                     Ok(TokenKind::Gte)
                 } else if self.next_if_eq(Single::Gt) {
-                    self.expect(Single::Gt, "Expecting `>>>`.")?;
-                    Ok(self.closed_bin_op(ClosedBinOp::GtGtGt))
+                    let op = ClosedBinOp::GtGtGt;
+                    self.expect(Single::Gt, TokenKind::ClosedBinOp(op))?;
+                    Ok(self.closed_bin_op(op))
                 } else {
                     Ok(TokenKind::Gt)
                 }
@@ -313,8 +390,9 @@ impl<'a> Lexer<'a> {
                 } else if self.next_if_eq(Single::Minus) {
                     Ok(TokenKind::LArrow)
                 } else if self.next_if_eq(Single::Lt) {
-                    self.expect(Single::Lt, "Expecting `<<<`.")?;
-                    Ok(self.closed_bin_op(ClosedBinOp::LtLtLt))
+                    let op = ClosedBinOp::LtLtLt;
+                    self.expect(Single::Lt, TokenKind::ClosedBinOp(op))?;
+                    Ok(self.closed_bin_op(op))
                 } else {
                     Ok(TokenKind::Lt)
                 }
@@ -334,9 +412,10 @@ impl<'a> Lexer<'a> {
             Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),
             Single::Star => Ok(self.closed_bin_op(ClosedBinOp::Star)),
             Single::Tilde => {
-                self.expect(Single::Tilde, "Expecting `~~~`.")?;
-                self.expect(Single::Tilde, "Expecting `~~~`.")?;
-                Ok(TokenKind::TildeTildeTilde)
+                let complete = TokenKind::TildeTildeTilde;
+                self.expect(Single::Tilde, complete)?;
+                self.expect(Single::Tilde, complete)?;
+                Ok(complete)
             }
         }
     }

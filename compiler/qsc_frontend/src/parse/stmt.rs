@@ -9,7 +9,7 @@ use super::{
     keyword::Keyword,
     prim::{keyword, many, opt, pat, seq, token},
     scan::Scanner,
-    ErrorKind, Result,
+    Error, Result,
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
@@ -56,7 +56,8 @@ fn var_binding(s: &mut Scanner) -> Result<StmtKind> {
     } else if keyword(s, Keyword::Mutable).is_ok() {
         Ok(Mutability::Mutable)
     } else {
-        Err(s.error(ErrorKind::Rule("variable binding")))
+        let token = s.peek();
+        Err(Error::Rule("variable binding", token.kind, token.span))
     }?;
 
     let lhs = pat(s)?;
@@ -72,7 +73,7 @@ fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
     } else if keyword(s, Keyword::Borrow).is_ok() {
         Ok(QubitSource::Dirty)
     } else {
-        Err(s.error(ErrorKind::Rule("qubit binding")))
+        Err(Error::Rule("qubit binding", s.peek().kind, s.peek().span))
     }?;
 
     let lhs = pat(s)?;
@@ -97,7 +98,8 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
             token(s, TokenKind::Close(Delim::Bracket))?;
             Ok(QubitInitKind::Array(Box::new(size)))
         } else {
-            Err(s.error(ErrorKind::Rule("qubit initializer")))
+            let token = s.peek();
+            Err(Error::Rule("qubit initializer", token.kind, token.span))
         }
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (inits, final_sep) = seq(s, qubit_init)?;
@@ -108,7 +110,8 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
             QubitInitKind::Tuple,
         ))
     } else {
-        Err(s.error(ErrorKind::Rule("qubit initializer")))
+        let token = s.peek();
+        Err(Error::Rule("qubit initializer", token.kind, token.span))
     }?;
 
     Ok(QubitInit {

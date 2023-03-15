@@ -10,7 +10,7 @@ use crate::Evaluator;
 fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let stdlib = store.insert(compile::std());
-    let unit = compile(&store, &[stdlib], &[file], expr);
+    let unit = compile(&store, [stdlib], [file], expr);
     assert!(
         unit.context.errors().is_empty(),
         "Compilation errors: {:?}",
