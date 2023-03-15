@@ -514,7 +514,7 @@ impl<'a> Evaluator<'a> {
         } else {
             None
         };
-        local.map_or_else(|| self.resolve_global(global_id), |v| v)
+        local.unwrap_or_else(|| self.resolve_global(global_id))
     }
 
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
