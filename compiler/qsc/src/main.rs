@@ -27,7 +27,7 @@ struct Cli {
     entry: String,
 }
 
-fn main() -> Result<ExitCode, qsc_eval::Error> {
+fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
     let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
     let mut store = PackageStore::new();
@@ -35,9 +35,18 @@ fn main() -> Result<ExitCode, qsc_eval::Error> {
     let unit = compile(&store, [std], &sources, &cli.entry);
 
     if unit.context.errors().is_empty() {
-        let value = Evaluator::new(&unit).run()?;
-        println!("{value}");
-        Ok(ExitCode::SUCCESS)
+        match Evaluator::new(&unit).run() {
+            Ok(value) => {
+                println!("{value}");
+                Ok(ExitCode::SUCCESS)
+            }
+            Err(error) => {
+                let sources: Vec<_> = sources.into_iter().map(Arc::new).collect();
+                let entry = Arc::new(cli.entry);
+                let report = error_report(&cli.sources, &sources, &entry, &unit.context, error);
+                Err(report)
+            }
+        }
     } else {
         let sources: Vec<_> = sources.into_iter().map(Arc::new).collect();
         let entry = Arc::new(cli.entry);
@@ -63,7 +72,7 @@ fn error_report(
     sources: &[Arc<String>],
     entry: &Arc<String>,
     context: &Context,
-    error: compile::Error,
+    error: impl Diagnostic + Send + Sync + 'static,
 ) -> Report {
     let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
         return Report::new(error);
