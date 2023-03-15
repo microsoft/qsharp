@@ -504,31 +504,17 @@ impl<'a> Evaluator<'a> {
             .get(&id)
             .unwrap_or_else(|| panic!("{id:?} is not resolved"));
 
-        match id.package {
-            PackageSrc::Local => {
-                if let Some(var) = self
-                    .scopes
-                    .iter()
-                    .rev()
-                    .find_map(|scope| scope.get(&self.defid_to_globalid(id)))
-                {
-                    var.value.clone()
-                } else {
-                    let id = &GlobalId {
-                        package: self.current_id,
-                        node: id.node,
-                    };
-                    self.resolve_global(*id)
-                }
-            }
-            PackageSrc::Extern(package_id) => {
-                let id = &GlobalId {
-                    package: package_id,
-                    node: id.node,
-                };
-                self.resolve_global(*id)
-            }
-        }
+        let global_id = self.defid_to_globalid(id);
+        let local = if id.package == PackageSrc::Local {
+            self.scopes
+                .iter()
+                .rev()
+                .find_map(|s| s.get(&global_id))
+                .map(|v| v.value.clone())
+        } else {
+            None
+        };
+        local.map_or_else(|| self.resolve_global(global_id), |v| v)
     }
 
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
