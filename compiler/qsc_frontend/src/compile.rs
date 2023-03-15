@@ -57,6 +57,8 @@ impl Context {
         &self.errors
     }
 
+    /// Finds the source in this context that the byte offset corresponds to. Returns the index of
+    /// that source and its starting byte offset.
     #[must_use]
     pub fn source(&self, offset: usize) -> (SourceIndex, usize) {
         let (index, &offset) = self

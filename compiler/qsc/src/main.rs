@@ -57,9 +57,12 @@ fn error_report(
         return Report::new(error.clone());
     };
 
+    // Use the offset of the first labeled span to find which source code to include in the report.
     let (index, offset) = context.source(first_label.offset());
     let name = paths[index.0].to_str().unwrap();
     let source = NamedSource::new(name, sources[index.0].clone());
+
+    // Adjust all spans in the error to be relative to the start of this source.
     let offset = -isize::try_from(offset).unwrap();
     Report::new(OffsetError::new(error.clone(), offset)).with_source_code(source)
 }
