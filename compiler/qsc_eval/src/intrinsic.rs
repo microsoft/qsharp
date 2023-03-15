@@ -8,7 +8,7 @@ use std::ops::ControlFlow;
 
 use qsc_ast::ast::Span;
 
-use crate::{val::Value, ErrorKind, Reason};
+use crate::{val::Value, ErrorKind, Reason, WithSpan};
 
 pub(crate) fn invoke_intrinsic(
     name: &str,
@@ -17,16 +17,13 @@ pub(crate) fn invoke_intrinsic(
     args_span: Span,
 ) -> ControlFlow<Reason, Value> {
     match (name, args) {
-        ("Length", Value::Array(arr)) => match arr.len().try_into() {
+        ("Length", arr) => match arr.try_into_array().with_span(args_span)?.len().try_into() {
             Ok(len) => ControlFlow::Continue(Value::Int(len)),
             Err(_) => ControlFlow::Break(Reason::Error(args_span, ErrorKind::IntegerSize)),
         },
-        ("Length", args) => ControlFlow::Break(Reason::Error(
-            args_span,
-            ErrorKind::Type("Array", args.type_name()),
-        )),
 
-        ("IntAsDouble", Value::Int(val)) => {
+        ("IntAsDouble", val) => {
+            let val: i64 = val.try_into().with_span(args_span)?;
             let val: i32 = match val.try_into() {
                 Ok(i) => ControlFlow::Continue(i),
                 Err(_) => ControlFlow::Break(Reason::Error(args_span, ErrorKind::IntegerSize)),
@@ -36,10 +33,6 @@ pub(crate) fn invoke_intrinsic(
                 Err(_) => ControlFlow::Break(Reason::Error(args_span, ErrorKind::IntegerSize)),
             }
         }
-        ("IntAsDouble", args) => ControlFlow::Break(Reason::Error(
-            args_span,
-            ErrorKind::Type("Int", args.type_name()),
-        )),
 
         _ => ControlFlow::Break(Reason::Error(name_span, ErrorKind::UnknownIntrinsic)),
     }
