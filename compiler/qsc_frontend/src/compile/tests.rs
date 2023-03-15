@@ -1,21 +1,47 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, FileIndex, PackageStore};
+use super::{compile, Context, Error, PackageStore, SourceIndex};
 use crate::{id::Assigner, resolve::PackageSrc};
 use expect_test::expect;
 use indoc::indoc;
+use miette::Diagnostic;
 use qsc_ast::{
     ast::{CallableBody, Expr, ExprKind, ItemKind, Lit, Span, StmtKind},
     mut_visit::MutVisitor,
 };
 
+fn error_span(error: &Error) -> Span {
+    let label = error
+        .labels()
+        .and_then(|mut ls| ls.next())
+        .expect("Error should have label.");
+
+    let span = label.inner();
+    Span {
+        lo: span.offset(),
+        hi: span.offset() + span.len(),
+    }
+}
+
+fn source_span(context: &Context, error: &Error) -> (SourceIndex, Span) {
+    let span = error_span(error);
+    let (index, offset) = context.source(span.lo);
+    (
+        index,
+        Span {
+            lo: span.lo - offset,
+            hi: span.hi - offset,
+        },
+    )
+}
+
 #[test]
 fn one_file_no_entry() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Foo {
                 function A() : Unit {}
             }
@@ -33,8 +59,8 @@ fn one_file_no_entry() {
 fn one_file_error() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Foo {
                 function A() : Unit {
                     x
@@ -46,8 +72,8 @@ fn one_file_error() {
 
     let errors = unit.context.errors();
     assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (file, span) = unit.context.file_span(errors[0].span);
-    assert_eq!(file, FileIndex(0));
+    let (source, span) = source_span(&unit.context, &errors[0]);
+    assert_eq!(source, SourceIndex(0));
     assert_eq!(span, Span { lo: 50, hi: 51 });
 }
 
@@ -55,8 +81,8 @@ fn one_file_error() {
 fn two_files_dependency() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[
+        [],
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {}
@@ -81,8 +107,8 @@ fn two_files_dependency() {
 fn two_files_mutual_dependency() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[
+        [],
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {
@@ -109,8 +135,8 @@ fn two_files_mutual_dependency() {
 fn two_files_error() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[
+        [],
+        [
             indoc! {"
                 namespace Foo {
                     function A() : Unit {}
@@ -129,8 +155,8 @@ fn two_files_error() {
 
     let errors = unit.context.errors();
     assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (file, span) = unit.context.file_span(errors[0].span);
-    assert_eq!(file, FileIndex(1));
+    let (source, span) = source_span(&unit.context, &errors[0]);
+    assert_eq!(source, SourceIndex(1));
     assert_eq!(span, Span { lo: 50, hi: 51 });
 }
 
@@ -138,12 +164,12 @@ fn two_files_error() {
 fn entry_call_operation() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
-                namespace Foo {
-                    operation A() : Unit {}
-                }
-            "}],
+        [],
+        [indoc! {"
+            namespace Foo {
+                operation A() : Unit {}
+            }
+        "}],
         "Foo.A()",
     );
 
@@ -164,19 +190,19 @@ fn entry_call_operation() {
 fn entry_error() {
     let unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
-                namespace Foo {
-                    operation A() : Unit {}
-                }
-            "}],
+        [],
+        [indoc! {"
+            namespace Foo {
+                operation A() : Unit {}
+            }
+        "}],
         "Foo.B()",
     );
 
     let errors = unit.context.errors();
     assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (file, span) = unit.context.file_span(errors[0].span);
-    assert_eq!(file, FileIndex(1));
+    let (source, span) = source_span(&unit.context, &errors[0]);
+    assert_eq!(source, SourceIndex(1));
     assert_eq!(span, Span { lo: 0, hi: 5 });
 }
 
@@ -196,13 +222,14 @@ fn replace_node() {
 
     let mut unit = compile(
         &PackageStore::new(),
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Foo {
                 function A() : Int {
                     1
                 }
-            }"}],
+            }
+        "}],
         "",
     );
 
@@ -258,13 +285,14 @@ fn package_dependency() {
     let mut store = PackageStore::new();
     let unit1 = compile(
         &store,
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Package1 {
                 function Foo() : Int {
                     1
                 }
-            }"}],
+            }
+        "}],
         "",
     );
 
@@ -277,8 +305,8 @@ fn package_dependency() {
     let package1 = store.insert(unit1);
     let unit2 = compile(
         &store,
-        &[package1],
-        &[indoc! {"
+        [package1],
+        [indoc! {"
             namespace Package2 {
                 function Bar() : Int {
                     Package1.Foo()
@@ -306,21 +334,22 @@ fn package_dependency_internal() {
     let mut store = PackageStore::new();
     let unit1 = compile(
         &store,
-        &[],
-        &[indoc! {"
+        [],
+        [indoc! {"
             namespace Package1 {
                 internal function Foo() : Int {
                     1
                 }
-            }"}],
+            }
+        "}],
         "",
     );
 
     let package1 = store.insert(unit1);
     let unit2 = compile(
         &store,
-        &[package1],
-        &[indoc! {"
+        [package1],
+        [indoc! {"
             namespace Package2 {
                 function Bar() : Int {
                     Package1.Foo()
@@ -346,8 +375,8 @@ fn std_dependency() {
     let std = store.insert(super::std());
     let unit = compile(
         &store,
-        &[std],
-        &[indoc! {"
+        [std],
+        [indoc! {"
             namespace Foo {
                 open Microsoft.Quantum.Intrinsic;
 

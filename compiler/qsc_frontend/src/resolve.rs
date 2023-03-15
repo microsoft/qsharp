@@ -5,6 +5,7 @@
 mod tests;
 
 use crate::compile::PackageId;
+use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         Block, CallableDecl, Expr, ExprKind, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
@@ -13,6 +14,7 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use std::collections::{HashMap, HashSet};
+use thiserror::Error;
 
 const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Canon",
@@ -34,22 +36,25 @@ pub enum PackageSrc {
     Extern(PackageId),
 }
 
-#[derive(Debug)]
-pub(super) struct Error {
-    pub(super) span: Span,
-    pub(super) kind: ErrorKind,
-}
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub(super) enum Error {
+    #[error("`{0}` not found in this scope")]
+    NotFound(String, #[label("not found")] Span),
 
-#[derive(Debug)]
-pub(super) enum ErrorKind {
-    Unresolved(HashSet<DefId>),
+    #[error("`{0}` is ambiguous")]
+    Ambiguous(
+        String,
+        #[label("ambiguous name")] Span,
+        #[label("could refer to the item in this namespace")] Span,
+        #[label("could also refer to the item in this namespace")] Span,
+    ),
 }
 
 pub(super) struct Resolver<'a> {
     resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
-    opens: HashMap<&'a str, HashSet<&'a str>>,
+    opens: HashMap<&'a str, HashMap<&'a str, Span>>,
     namespace: &'a str,
     locals: Vec<HashMap<&'a str, DefId>>,
     errors: Vec<Error>,
@@ -95,7 +100,10 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         for item in &namespace.items {
             if let ItemKind::Open(name, alias) = &item.kind {
                 let alias = alias.as_ref().map_or("", |a| &a.name);
-                self.opens.entry(alias).or_default().insert(&name.name);
+                self.opens
+                    .entry(alias)
+                    .or_default()
+                    .insert(&name.name, name.span);
             }
         }
 
@@ -261,7 +269,7 @@ fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pa
 
 fn resolve(
     globals: &HashMap<&str, HashMap<&str, DefId>>,
-    opens: &HashMap<&str, HashSet<&str>>,
+    opens: &HashMap<&str, HashMap<&str, Span>>,
     parent: &str,
     locals: &[HashMap<&str, DefId>],
     path: &Path,
@@ -281,12 +289,12 @@ fn resolve(
     // Explicit opens shadow prelude and unopened globals.
     let open_candidates = opens
         .get(namespace)
-        .map(|open_namespaces| resolve_opens(globals, open_namespaces, name))
+        .map(|open_namespaces| resolve_explicit_opens(globals, open_namespaces, name))
         .unwrap_or_default();
 
     if open_candidates.is_empty() && namespace.is_empty() {
         // Prelude shadows unopened globals.
-        let candidates = resolve_opens(globals, PRELUDE, name);
+        let candidates = resolve_implicit_opens(globals, PRELUDE, name);
         assert!(candidates.len() <= 1, "Ambiguity in prelude resolution.");
         if let Some(id) = single(candidates) {
             return Ok(id);
@@ -300,25 +308,46 @@ fn resolve(
         }
     }
 
-    single(&open_candidates).copied().ok_or(Error {
-        span: path.span,
-        kind: ErrorKind::Unresolved(open_candidates),
-    })
+    if open_candidates.len() > 1 {
+        let mut spans: Vec<_> = open_candidates.into_values().collect();
+        spans.sort();
+        Err(Error::Ambiguous(
+            name.to_string(),
+            path.span,
+            spans[0],
+            spans[1],
+        ))
+    } else {
+        single(open_candidates.into_keys())
+            .ok_or_else(|| Error::NotFound(name.to_string(), path.span))
+    }
 }
 
-fn resolve_opens(
+fn resolve_implicit_opens<'a>(
     globals: &HashMap<&str, HashMap<&str, DefId>>,
-    namespaces: impl IntoIterator<Item = impl AsRef<str>>,
+    namespaces: impl IntoIterator<Item = &'a &'a str>,
     name: &str,
 ) -> HashSet<DefId> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
-        let namespace = namespace.as_ref();
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
             candidates.insert(id);
         }
     }
+    candidates
+}
 
+fn resolve_explicit_opens<'a>(
+    globals: &HashMap<&str, HashMap<&str, DefId>>,
+    namespaces: impl IntoIterator<Item = (&'a &'a str, &'a Span)>,
+    name: &str,
+) -> HashMap<DefId, Span> {
+    let mut candidates = HashMap::new();
+    for (&namespace, &span) in namespaces {
+        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
+            candidates.insert(id, span);
+        }
+    }
     candidates
 }
 

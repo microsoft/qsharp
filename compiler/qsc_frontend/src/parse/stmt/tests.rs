@@ -1144,15 +1144,14 @@ fn stmt_missing_semi() {
         "let x = 2",
         &expect![[r#"
             Err(
-                Error {
-                    kind: Token(
-                        Semi,
-                    ),
-                    span: Span {
+                Token(
+                    Semi,
+                    Eof,
+                    Span {
                         lo: 9,
                         hi: 9,
                     },
-                },
+                ),
             )
         "#]],
     );

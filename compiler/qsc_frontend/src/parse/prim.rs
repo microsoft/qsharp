@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::{keyword::Keyword, scan::Scanner, ty::ty, ErrorKind, Parser, Result};
+use super::{keyword::Keyword, scan::Scanner, ty::ty, Error, Parser, Result};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
 use std::str::FromStr;
@@ -35,7 +35,7 @@ pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
         s.advance();
         Ok(())
     } else {
-        Err(s.error(ErrorKind::Token(kind)))
+        Err(Error::Token(kind, s.peek().kind, s.peek().span))
     }
 }
 
@@ -44,13 +44,15 @@ pub(super) fn keyword(s: &mut Scanner, kw: Keyword) -> Result<()> {
         s.advance();
         Ok(())
     } else {
-        Err(s.error(ErrorKind::Keyword(kw)))
+        Err(Error::Keyword(kw, s.peek().kind, s.peek().span))
     }
 }
 
 pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
-    if s.peek().kind != TokenKind::Ident || Keyword::from_str(s.read()).is_ok() {
-        return Err(s.error(ErrorKind::Rule("identifier")));
+    if s.peek().kind != TokenKind::Ident {
+        return Err(Error::Rule("identifier", s.peek().kind, s.peek().span));
+    } else if let Ok(kw) = Keyword::from_str(s.read()) {
+        return Err(Error::RuleKeyword("identifier", kw, s.peek().span));
     }
 
     let span = s.peek().span;
@@ -117,15 +119,14 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
         let (pats, final_sep) = seq(s, pat)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(pats, |p| PatKind::Paren(Box::new(p)), PatKind::Tuple))
-    } else if let Some(name) = opt(s, ident)? {
+    } else {
+        let name = ident(s).map_err(|e| map_rule_name("pattern", e))?;
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(ty(s)?)
         } else {
             None
         };
         Ok(PatKind::Bind(name, ty))
-    } else {
-        Err(s.error(ErrorKind::Rule("pattern")))
     }?;
 
     Ok(Pat {
@@ -177,4 +178,13 @@ fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String
         string.push_str(s.as_ref());
     }
     string
+}
+
+fn map_rule_name(name: &'static str, error: Error) -> Error {
+    match error {
+        Error::Rule(_, found, span) => Error::Rule(name, found, span),
+        Error::RuleKeyword(_, keyword, span) => Error::RuleKeyword(name, keyword, span),
+        Error::Convert(_, found, span) => Error::Convert(name, found, span),
+        _ => error,
+    }
 }
