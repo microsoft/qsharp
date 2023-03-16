@@ -39,8 +39,8 @@ pub enum Error {
     #[error("nothing to evaluate; entry expression is empty")]
     EmptyExpr,
 
-    #[error("integer-to-index conversion failed")]
-    IndexVal(i64, #[label] Span),
+    #[error("value cannot be used as an index: {0}")]
+    IndexVal(i64, #[label("invalid index")] Span),
 
     #[error("integer-to-integer conversion failed")]
     IntegerSize(#[label] Span),
