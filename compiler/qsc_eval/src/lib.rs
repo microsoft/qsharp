@@ -76,7 +76,7 @@ pub enum Error {
     Unassignable(#[label("not assignable")] Span),
 
     #[error("not implemented")]
-    #[diagnostic(help("this is an internal compiler error, not a bug in your program"))]
+    #[diagnostic(help("this language feature is not yet supported"))]
     Unimplemented(#[label("cannot evaluate this")] Span),
 
     #[error("unknown intrinsic")]
