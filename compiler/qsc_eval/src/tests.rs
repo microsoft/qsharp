@@ -787,7 +787,7 @@ fn unop_adjoint_functor_expr() {
             }
         "}, 
         "Adjoint Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 0 })"]);
+        &expect!["Adjoint <node 0 in package 5>"]);
 }
 
 #[test]
@@ -801,7 +801,7 @@ fn unop_controlled_functor_expr() {
             }
         "}, 
         "Controlled Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 1 })"]);
+        &expect!["Controlled <node 0 in package 5>"]);
 }
 
 #[test]
@@ -815,7 +815,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "}, 
         "Adjoint (Adjoint Test.Foo)", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 0 })"]);
+        &expect!["<node 0 in package 5>"]);
 }
 
 #[test]
@@ -829,7 +829,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "}, 
         "Controlled Adjoint Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 1 })"]);
+        &expect!["Controlled Adjoint <node 0 in package 5>"]);
 }
 
 #[test]
@@ -843,7 +843,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "}, 
         "Adjoint Controlled Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 1 })"]);
+        &expect!["Controlled Adjoint <node 0 in package 5>"]);
 }
 
 #[test]
@@ -857,7 +857,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "}, 
         "Controlled (Controlled Test.Foo)", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 2 })"]);
+        &expect!["Controlled Controlled <node 0 in package 5>"]);
 }
 
 #[test]
