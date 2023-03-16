@@ -13,6 +13,6 @@ namespace Microsoft.Quantum.Diagnostics {
     }
 
     function CheckZero(qubit : Qubit) : Bool {
-        return __quantum__qis__checkzero__body(qubit);
+        __quantum__qis__checkzero__body(qubit)
     }
 }
