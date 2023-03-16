@@ -77,7 +77,7 @@ pub enum Error {
 
     #[error("not implemented")]
     #[diagnostic(help("this is an internal compiler error, not a bug in your program"))]
-    Unimplemented(#[label("cannot evaluate this expression")] Span),
+    Unimplemented(#[label("cannot evaluate this")] Span),
 
     #[error("unknown intrinsic")]
     UnknownIntrinsic(#[label("callable has no implementation")] Span),
