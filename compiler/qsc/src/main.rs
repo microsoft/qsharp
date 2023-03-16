@@ -69,12 +69,16 @@ fn main() -> miette::Result<ExitCode> {
     let unit = compile(&store, [std], &sources, &cli.entry);
 
     if unit.context.errors().is_empty() {
-        match Evaluator::new(&unit).run() {
+        let user = store.insert(unit);
+        match Evaluator::new(&store, user).run() {
             Ok(value) => {
                 println!("{value}");
                 Ok(ExitCode::SUCCESS)
             }
-            Err(error) => Err(ErrorReporter::new(cli, sources, &unit.context).report(error)),
+            Err(error) => {
+                let unit = store.get(user).expect("store should have compiled package");
+                Err(ErrorReporter::new(cli, sources, &unit.context).report(error))
+            }
         }
     } else {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);

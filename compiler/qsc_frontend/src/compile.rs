@@ -18,7 +18,7 @@ use qsc_ast::{
 };
 use std::fmt::Debug;
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Iter, HashMap},
     fmt::{self, Display, Formatter},
 };
 use thiserror::Error;
@@ -111,6 +111,11 @@ impl PackageStore {
     #[must_use]
     pub fn get(&self, id: PackageId) -> Option<&CompileUnit> {
         self.units.get(&id)
+    }
+
+    #[must_use]
+    pub fn iter(&self) -> Iter<PackageId, CompileUnit> {
+        self.units.iter()
     }
 }
 
