@@ -10,13 +10,12 @@ mod globals;
 mod intrinsic;
 pub mod val;
 
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    ops::{ControlFlow, Neg},
+use crate::{
+    globals::{extract_callables, GlobalId},
+    val::{ConversionError, FunctorApp, Value},
 };
-
-use globals::{extract_callables, GlobalId};
 use intrinsic::invoke_intrinsic;
+use miette::Diagnostic;
 use qir_backend::{Pauli, __quantum__rt__qubit_allocate};
 use qsc_ast::ast::{
     self, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability, NodeId, Pat,
@@ -26,37 +25,71 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
     resolve::{DefId, PackageSrc},
 };
-use val::{ConversionError, FunctorApp, Value};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    ops::{ControlFlow, Neg},
+};
+use thiserror::Error;
 
-#[allow(dead_code)]
-#[derive(Debug)]
-pub struct Error {
-    span: Span,
-    kind: ErrorKind,
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[error("array too large")]
+    ArrayTooLarge(#[label("this array has too many items")] Span),
+
+    #[error("invalid array length: {0}")]
+    Count(i64, #[label("cannot be used as a length")] Span),
+
+    #[error("nothing to evaluate; entry expression is empty")]
+    EmptyExpr,
+
+    #[error("value cannot be used as an index: {0}")]
+    IndexVal(i64, #[label("invalid index")] Span),
+
+    #[error("missing specialization: {0}")]
+    MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
+
+    #[error("reassigning immutable variable")]
+    Mutability(#[label("variable declared as immutable")] Span),
+
+    #[error("index out of range: {0}")]
+    OutOfRange(i64, #[label("out of range")] Span),
+
+    #[error("range with step size of zero")]
+    RangeStepZero(#[label("invalid range")] Span),
+
+    #[error("mismatched types")]
+    Type(
+        &'static str,
+        &'static str,
+        #[label("expected {0}, found {1}")] Span,
+    ),
+
+    #[error("mismatched tuples")]
+    TupleArity(
+        usize,
+        usize,
+        #[label("expected {0}-tuple, found {1}-tuple")] Span,
+    ),
+
+    #[error("invalid left-hand side of assignment")]
+    #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
+    Unassignable(#[label("not assignable")] Span),
+
+    #[error("not implemented")]
+    #[diagnostic(help("this language feature is not yet supported"))]
+    Unimplemented(#[label("cannot evaluate this")] Span),
+
+    #[error("unknown intrinsic")]
+    UnknownIntrinsic(#[label("callable has no implementation")] Span),
+
+    #[error("program failed: {0}")]
+    UserFail(String, #[label("explicit fail")] Span),
 }
 
 #[derive(Debug)]
 enum Reason {
-    Error(Span, ErrorKind),
+    Error(Error),
     Return(Value),
-}
-
-#[derive(Debug)]
-enum ErrorKind {
-    Count(i64),
-    EmptyExpr,
-    IndexVal(i64),
-    IntegerSize,
-    MissingSpec(Spec),
-    Mutability,
-    OutOfRange(i64),
-    RangeStepZero,
-    Type(&'static str, &'static str),
-    TupleArity(usize, usize),
-    Unassignable,
-    Unimplemented,
-    UnknownIntrinsic,
-    UserFail(String),
 }
 
 trait WithSpan {
@@ -71,9 +104,7 @@ impl<T> WithSpan for Result<T, ConversionError> {
     fn with_span(self, span: Span) -> Self::Output {
         match self {
             Ok(c) => ControlFlow::Continue(c),
-            Err(e) => {
-                ControlFlow::Break(Reason::Error(span, ErrorKind::Type(e.expected, e.actual)))
-            }
+            Err(e) => ControlFlow::Break(Reason::Error(Error::Type(e.expected, e.actual, span))),
         }
     }
 }
@@ -90,7 +121,7 @@ impl AsIndex for i64 {
     fn as_index(&self, span: Span) -> ControlFlow<Reason, usize> {
         match (*self).try_into() {
             Ok(index) => ControlFlow::Continue(index),
-            Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IndexVal(*self))),
+            Err(_) => ControlFlow::Break(Reason::Error(Error::IndexVal(*self, span))),
         }
     }
 }
@@ -167,13 +198,10 @@ impl<'a> Evaluator<'a> {
         if let Some(expr) = &self.current_unit.package.entry {
             match self.eval_expr(expr) {
                 ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
-                ControlFlow::Break(Reason::Error(span, kind)) => Err(Error { span, kind }),
+                ControlFlow::Break(Reason::Error(error)) => Err(error),
             }
         } else {
-            Err(Error {
-                span: Span { lo: 0, hi: 0 },
-                kind: ErrorKind::EmptyExpr,
-            })
+            Err(Error::EmptyExpr)
         }
     }
 
@@ -191,9 +219,7 @@ impl<'a> Evaluator<'a> {
                 let size_val: i64 = self.eval_expr(size)?.try_into().with_span(size.span)?;
                 let s = match size_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
-                    Err(_) => {
-                        ControlFlow::Break(Reason::Error(size.span, ErrorKind::Count(size_val)))
-                    }
+                    Err(_) => ControlFlow::Break(Reason::Error(Error::Count(size_val, size.span))),
                 }?;
                 ControlFlow::Continue(Value::Array(vec![item_val; s]))
             }
@@ -203,10 +229,10 @@ impl<'a> Evaluator<'a> {
             }
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
-            ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(
+            ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
+                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
                 expr.span,
-                ErrorKind::UserFail(self.eval_expr(msg)?.try_into().with_span(msg.span)?),
-            )),
+            ))),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(then)
@@ -224,10 +250,11 @@ impl<'a> Evaluator<'a> {
                     Value::Range(start, step, end) => {
                         slice_array(&arr, start, step, end, index_expr.span)
                     }
-                    _ => ControlFlow::Break(Reason::Error(
+                    _ => ControlFlow::Break(Reason::Error(Error::Type(
+                        "Int or Range",
+                        index_val.type_name(),
                         index_expr.span,
-                        ErrorKind::Type("Int or Range", index_val.type_name()),
-                    )),
+                    ))),
                 }
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
@@ -255,7 +282,7 @@ impl<'a> Evaluator<'a> {
             | ExprKind::Repeat(..)
             | ExprKind::TernOp(..)
             | ExprKind::While(..) => {
-                ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
+                ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
             }
         }
     }
@@ -327,7 +354,7 @@ impl<'a> Evaluator<'a> {
                 let count: usize = match count_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => {
-                        ControlFlow::Break(Reason::Error(count.span, ErrorKind::Count(count_val)))
+                        ControlFlow::Break(Reason::Error(Error::Count(count_val, count.span)))
                     }
                 }?;
                 let mut arr = vec![];
@@ -402,18 +429,13 @@ impl<'a> Evaluator<'a> {
                     .iter()
                     .find(|spec_decl| spec_decl.spec == spec)
                     .map_or_else(
-                        || {
-                            ControlFlow::Break(Reason::Error(
-                                decl.span,
-                                ErrorKind::MissingSpec(spec),
-                            ))
-                        },
+                        || ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
                         |spec_decl| ControlFlow::Continue(&spec_decl.body),
                     )?;
                 match spec_decl {
                     SpecBody::Impl(_, body_block) => {
                         if spec == Spec::Ctl || spec == Spec::CtlAdj {
-                            ControlFlow::Break(Reason::Error(call_span, ErrorKind::Unimplemented))
+                            ControlFlow::Break(Reason::Error(Error::Unimplemented(call_span)))
                         } else {
                             self.bind_value(
                                 &decl.input,
@@ -425,14 +447,14 @@ impl<'a> Evaluator<'a> {
                         }
                     }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
-                        invoke_intrinsic(&decl.name.name, decl.name.span, args_val, args_span)
+                        invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
                     SpecBody::Gen(_) => {
-                        ControlFlow::Break(Reason::Error(decl.span, ErrorKind::MissingSpec(spec)))
+                        ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span)))
                     }
                 }
             }
-            _ => ControlFlow::Break(Reason::Error(decl.span, ErrorKind::MissingSpec(spec))),
+            _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
         }
     }
 
@@ -448,46 +470,51 @@ impl<'a> Evaluator<'a> {
                 Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
                 Value::Double(v) => ControlFlow::Continue(Value::Double(v.neg())),
                 Value::Int(v) => ControlFlow::Continue(Value::Int(v.wrapping_neg())),
-                _ => ControlFlow::Break(Reason::Error(
+                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                    "Int, BigInt, or Double",
+                    val.type_name(),
                     rhs.span,
-                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
-                )),
+                ))),
             },
             UnOp::Pos => match val {
                 Value::BigInt(_) | Value::Int(_) | Value::Double(_) => ControlFlow::Continue(val),
-                _ => ControlFlow::Break(Reason::Error(
+                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                    "Int, BigInt, or Double",
+                    val.type_name(),
                     rhs.span,
-                    ErrorKind::Type("Int, BigInt, or Double", val.type_name()),
-                )),
+                ))),
             },
             UnOp::NotL => match val {
                 Value::Bool(b) => ControlFlow::Continue(Value::Bool(!b)),
-                _ => ControlFlow::Break(Reason::Error(
+                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                    "Bool",
+                    val.type_name(),
                     rhs.span,
-                    ErrorKind::Type("Bool", val.type_name()),
-                )),
+                ))),
             },
             UnOp::NotB => match val {
                 Value::Int(v) => ControlFlow::Continue(Value::Int(!v)),
                 Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(!v)),
-                _ => ControlFlow::Break(Reason::Error(
+                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                    "Int or BigInt",
+                    val.type_name(),
                     rhs.span,
-                    ErrorKind::Type("Int or BigInt", val.type_name()),
-                )),
+                ))),
             },
             UnOp::Functor(functor) => match val {
                 Value::Closure => {
-                    ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented))
+                    ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
                 }
                 Value::Global(id, app) => {
                     ControlFlow::Continue(Value::Global(id, update_functor_app(functor, &app)))
                 }
-                _ => ControlFlow::Break(Reason::Error(
+                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                    "Callable",
+                    val.type_name(),
                     rhs.span,
-                    ErrorKind::Type("Callable", val.type_name()),
-                )),
+                ))),
             },
-            UnOp::Unwrap => ControlFlow::Break(Reason::Error(expr.span, ErrorKind::Unimplemented)),
+            UnOp::Unwrap => ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span))),
         }
     }
 
@@ -541,10 +568,11 @@ impl<'a> Evaluator<'a> {
                     }
                     ControlFlow::Continue(())
                 } else {
-                    ControlFlow::Break(Reason::Error(
+                    ControlFlow::Break(Reason::Error(Error::TupleArity(
+                        tup.len(),
+                        val_tup.len(),
                         pat.span,
-                        ErrorKind::TupleArity(tup.len(), val_tup.len()),
-                    ))
+                    )))
                 }
             }
         }
@@ -593,7 +621,7 @@ impl<'a> Evaluator<'a> {
                     variable.value = rhs;
                     ControlFlow::Continue(Value::UNIT)
                 } else {
-                    ControlFlow::Break(Reason::Error(path.span, ErrorKind::Mutability))
+                    ControlFlow::Break(Reason::Error(Error::Mutability(path.span)))
                 }
             }
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
@@ -605,13 +633,14 @@ impl<'a> Evaluator<'a> {
                     }
                     ControlFlow::Continue(Value::UNIT)
                 } else {
-                    ControlFlow::Break(Reason::Error(
+                    ControlFlow::Break(Reason::Error(Error::TupleArity(
+                        var_tup.len(),
+                        tup.len(),
                         lhs.span,
-                        ErrorKind::TupleArity(var_tup.len(), tup.len()),
-                    ))
+                    )))
                 }
             }
-            _ => ControlFlow::Break(Reason::Error(lhs.span, ErrorKind::Unassignable)),
+            _ => ControlFlow::Break(Reason::Error(Error::Unassignable(lhs.span))),
         }
     }
 
@@ -645,12 +674,13 @@ fn specialization_from_functor_app(functor: &FunctorApp) -> Spec {
 
 fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
     match val {
-        Value::Closure => ControlFlow::Break(Reason::Error(span, ErrorKind::Unimplemented)),
+        Value::Closure => ControlFlow::Break(Reason::Error(Error::Unimplemented(span))),
         Value::Global(global, functor) => ControlFlow::Continue((global, functor)),
-        _ => ControlFlow::Break(Reason::Error(
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "Callable",
+            val.type_name(),
             span,
-            ErrorKind::Type("Callable", val.type_name()),
-        )),
+        ))),
     }
 }
 
@@ -677,7 +707,7 @@ fn lit_to_val(lit: &Lit) -> Value {
 fn index_array(arr: &[Value], index: i64, span: Span) -> ControlFlow<Reason, Value> {
     match arr.get(index.as_index(span)?) {
         Some(v) => ControlFlow::Continue(v.clone()),
-        None => ControlFlow::Break(Reason::Error(span, ErrorKind::OutOfRange(index))),
+        None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, span))),
     }
 }
 
@@ -689,11 +719,11 @@ fn slice_array(
     span: Span,
 ) -> ControlFlow<Reason, Value> {
     if let Some(0) = step {
-        ControlFlow::Break(Reason::Error(span, ErrorKind::RangeStepZero))
+        ControlFlow::Break(Reason::Error(Error::RangeStepZero(span)))
     } else {
         let len: i64 = match arr.len().try_into() {
             Ok(len) => ControlFlow::Continue(len),
-            Err(_) => ControlFlow::Break(Reason::Error(span, ErrorKind::IntegerSize)),
+            Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(span))),
         }?;
         let step = step.unwrap_or(1);
         let (start, end) = if step > 0 {
