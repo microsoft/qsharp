@@ -785,9 +785,10 @@ fn unop_adjoint_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Adjoint Test.Foo", 
-        &expect!["Adjoint <node 0 in package 5>"]);
+        "},
+        "Adjoint Test.Foo",
+        &expect!["Adjoint <node 0 in package 5>"],
+    );
 }
 
 #[test]
@@ -799,9 +800,10 @@ fn unop_controlled_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Controlled Test.Foo", 
-        &expect!["Controlled <node 0 in package 5>"]);
+        "},
+        "Controlled Test.Foo",
+        &expect!["Controlled <node 0 in package 5>"],
+    );
 }
 
 #[test]
@@ -813,9 +815,10 @@ fn unop_adjoint_adjoint_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Adjoint (Adjoint Test.Foo)", 
-        &expect!["<node 0 in package 5>"]);
+        "},
+        "Adjoint (Adjoint Test.Foo)",
+        &expect!["<node 0 in package 5>"],
+    );
 }
 
 #[test]
@@ -827,9 +830,10 @@ fn unop_controlled_adjoint_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Controlled Adjoint Test.Foo", 
-        &expect!["Controlled Adjoint <node 0 in package 5>"]);
+        "},
+        "Controlled Adjoint Test.Foo",
+        &expect!["Controlled Adjoint <node 0 in package 5>"],
+    );
 }
 
 #[test]
@@ -841,9 +845,10 @@ fn unop_adjoint_controlled_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Adjoint Controlled Test.Foo", 
-        &expect!["Controlled Adjoint <node 0 in package 5>"]);
+        "},
+        "Adjoint Controlled Test.Foo",
+        &expect!["Controlled Adjoint <node 0 in package 5>"],
+    );
 }
 
 #[test]
@@ -855,9 +860,10 @@ fn unop_controlled_controlled_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Controlled (Controlled Test.Foo)", 
-        &expect!["Controlled Controlled <node 0 in package 5>"]);
+        "},
+        "Controlled (Controlled Test.Foo)",
+        &expect!["Controlled Controlled <node 0 in package 5>"],
+    );
 }
 
 #[test]
