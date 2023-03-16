@@ -263,6 +263,158 @@ fn block_mutable_immutable_expr() {
 }
 
 #[test]
+fn block_qubit_use_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            q
+        }"},
+        &expect!["Qubit0"],
+    );
+}
+
+#[test]
+fn block_qubit_use_use_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use q1 = Qubit();
+            q1
+        }"},
+        &expect!["Qubit1"],
+    );
+}
+
+#[test]
+fn block_qubit_use_reuse_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            {
+                use q = Qubit();
+            }
+            use q = Qubit();
+            q
+        }"},
+        &expect!["Qubit0"],
+    );
+}
+
+#[test]
+fn block_qubit_use_scope_reuse_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit() {
+            }
+            use q = Qubit();
+            q
+        }"},
+        &expect!["Qubit0"],
+    );
+}
+
+#[test]
+fn block_qubit_use_array_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit[3];
+            q
+        }"},
+        &expect!["[Qubit0, Qubit1, Qubit2]"],
+    );
+}
+
+#[test]
+fn block_qubit_use_array_invalid_count_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit[-3];
+            q
+        }"},
+        &expect![[r#"
+            Count(
+                -3,
+                Span {
+                    lo: 20,
+                    hi: 22,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn block_qubit_use_array_invalid_type_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit[false];
+            q
+        }"},
+        &expect![[r#"
+            Type(
+                "Int",
+                "Bool",
+                Span {
+                    lo: 20,
+                    hi: 25,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn block_qubit_use_tuple_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = (Qubit[3], Qubit(), Qubit());
+            q
+        }"},
+        &expect!["([Qubit0, Qubit1, Qubit2], Qubit3, Qubit4)"],
+    );
+}
+
+#[test]
+fn block_qubit_use_nested_tuple_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = (Qubit[3], (Qubit(), Qubit()));
+            q
+        }"},
+        &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
+    );
+}
+
+#[test]
+fn block_qubit_use_tuple_invalid_arity_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use (q, q1) = (Qubit[3], Qubit(), Qubit());
+            q
+        }"},
+        &expect![[r#"
+            TupleArity(
+                2,
+                3,
+                Span {
+                    lo: 10,
+                    hi: 17,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn assign_invalid_expr() {
     check_expression(
         "",
