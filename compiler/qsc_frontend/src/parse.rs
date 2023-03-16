@@ -29,15 +29,15 @@ pub(super) enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),
-    #[error("expected {0}, but found {1}")]
+    #[error("expected {0}, found {1}")]
     Token(TokenKind, TokenKind, #[label("expected {0}")] Span),
-    #[error("expected keyword `{0}`, but found {1}")]
+    #[error("expected keyword `{0}`, found {1}")]
     Keyword(Keyword, TokenKind, #[label("expected keyword `{0}`")] Span),
-    #[error("expected {0}, but found {1}")]
+    #[error("expected {0}, found {1}")]
     Rule(&'static str, TokenKind, #[label("expected {0}")] Span),
-    #[error("expected {0}, but found keyword `{1}`")]
+    #[error("expected {0}, found keyword `{1}`")]
     RuleKeyword(&'static str, Keyword, #[label("expected {0}")] Span),
-    #[error("expected {0}, but found {1}")]
+    #[error("expected {0}, found {1}")]
     Convert(&'static str, &'static str, #[label("expected {0}")] Span),
 }
 

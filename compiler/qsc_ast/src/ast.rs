@@ -633,6 +633,17 @@ pub enum Spec {
     CtlAdj,
 }
 
+impl Display for Spec {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Spec::Body => f.write_str("body"),
+            Spec::Adj => f.write_str("adjoint"),
+            Spec::Ctl => f.write_str("controlled"),
+            Spec::CtlAdj => f.write_str("controlled adjoint"),
+        }
+    }
+}
+
 /// A strategy for generating a specialization.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SpecGen {
