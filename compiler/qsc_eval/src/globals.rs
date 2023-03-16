@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+};
 
 use qsc_ast::{
     ast::{CallableDecl, Item, ItemKind, NodeId},
@@ -13,6 +16,12 @@ use qsc_frontend::compile::{PackageId, PackageStore};
 pub struct GlobalId {
     pub package: PackageId,
     pub node: NodeId,
+}
+
+impl Display for GlobalId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<node {} in package {}>", self.node, self.package)
+    }
 }
 
 struct CallableVisitor<'a, 'b> {
