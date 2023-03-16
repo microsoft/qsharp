@@ -40,7 +40,7 @@ pub enum Error {
     EmptyExpr,
 
     #[error("integer-to-index conversion failed")]
-    IndexVal(i64, #[label("that ain't right")] Span),
+    IndexVal(i64, #[label] Span),
 
     #[error("integer-to-integer conversion failed")]
     IntegerSize(#[label] Span),
