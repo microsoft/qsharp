@@ -33,6 +33,9 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
+    #[error("array too large")]
+    ArrayTooLarge(#[label("this array has too many items")] Span),
+
     #[error("invalid array length: {0}")]
     Count(i64, #[label("cannot be used as a length")] Span),
 
@@ -41,9 +44,6 @@ pub enum Error {
 
     #[error("value cannot be used as an index: {0}")]
     IndexVal(i64, #[label("invalid index")] Span),
-
-    #[error("integer-to-integer conversion failed")]
-    IntegerSize(#[label] Span),
 
     #[error("missing specialization: {0}")]
     MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
@@ -669,7 +669,7 @@ fn slice_array(
     } else {
         let len: i64 = match arr.len().try_into() {
             Ok(len) => ControlFlow::Continue(len),
-            Err(_) => ControlFlow::Break(Reason::Error(Error::IntegerSize(span))),
+            Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(span))),
         }?;
         let step = step.unwrap_or(1);
         let (start, end) = if step > 0 {

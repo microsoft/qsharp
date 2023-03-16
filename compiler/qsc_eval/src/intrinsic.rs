@@ -19,7 +19,7 @@ pub(crate) fn invoke_intrinsic(
     match name {
         "Length" => match args.try_into_array().with_span(args_span)?.len().try_into() {
             Ok(len) => ControlFlow::Continue(Value::Int(len)),
-            Err(_) => ControlFlow::Break(Reason::Error(Error::IntegerSize(args_span))),
+            Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(args_span))),
         },
 
         #[allow(clippy::cast_precision_loss)]
