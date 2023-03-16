@@ -787,7 +787,7 @@ fn unop_adjoint_functor_expr() {
             }
         "},
         "Adjoint Test.Foo",
-        &expect!["Adjoint <node 0 in package 5>"],
+        &expect!["Adjoint <node 5 in package 0>"],
     );
 }
 
@@ -802,7 +802,7 @@ fn unop_controlled_functor_expr() {
             }
         "},
         "Controlled Test.Foo",
-        &expect!["Controlled <node 0 in package 5>"],
+        &expect!["Controlled <node 5 in package 0>"],
     );
 }
 
@@ -817,7 +817,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "},
         "Adjoint (Adjoint Test.Foo)",
-        &expect!["<node 0 in package 5>"],
+        &expect!["<node 5 in package 0>"],
     );
 }
 
@@ -832,7 +832,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "},
         "Controlled Adjoint Test.Foo",
-        &expect!["Controlled Adjoint <node 0 in package 5>"],
+        &expect!["Controlled Adjoint <node 5 in package 0>"],
     );
 }
 
@@ -847,7 +847,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "},
         "Adjoint Controlled Test.Foo",
-        &expect!["Controlled Adjoint <node 0 in package 5>"],
+        &expect!["Controlled Adjoint <node 5 in package 0>"],
     );
 }
 
@@ -862,7 +862,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "},
         "Controlled (Controlled Test.Foo)",
-        &expect!["Controlled Controlled <node 0 in package 5>"],
+        &expect!["Controlled Controlled <node 5 in package 0>"],
     );
 }
 

@@ -20,7 +20,7 @@ pub struct GlobalId {
 
 impl Display for GlobalId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "<node {} in package {}>", self.package, self.node)
+        write!(f, "<node {} in package {}>", self.node, self.package)
     }
 }
 
