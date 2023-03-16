@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{ffi::c_void, fmt::Display};
+use std::{
+    ffi::c_void,
+    fmt::{self, Display, Formatter},
+    iter,
+};
 
 use num_bigint::BigInt;
 use qir_backend::Pauli;
@@ -26,7 +30,7 @@ pub enum Value {
     Udt,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
     /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
     /// between the two, so a bool is sufficient to track.
@@ -37,8 +41,16 @@ pub struct FunctorApp {
     pub controlled: u8,
 }
 
+impl Display for FunctorApp {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let controlleds = iter::repeat("Controlled").take(self.controlled.into());
+        let adjoint = iter::once("Adjoint").filter(|_| self.adjoint);
+        join(f, controlleds.chain(adjoint), " ")
+    }
+}
+
 impl Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Value::Array(arr) => {
                 write!(f, "[")?;
@@ -57,7 +69,8 @@ impl Display for Value {
                     write!(f, "{v}")
                 }
             }
-            Value::Global(g, functor) => write!(f, "{g:?}({functor:?})"),
+            Value::Global(id, functor) if functor == &FunctorApp::default() => id.fmt(f),
+            Value::Global(id, functor) => write!(f, "{functor} {id}"),
             Value::Int(v) => write!(f, "{v}"),
             Value::Pauli(v) => match v {
                 Pauli::I => write!(f, "PauliI"),
@@ -194,11 +207,7 @@ impl Value {
     }
 }
 
-fn join<'a>(
-    f: &mut std::fmt::Formatter<'_>,
-    mut vals: impl Iterator<Item = &'a Value>,
-    sep: &str,
-) -> std::fmt::Result {
+fn join(f: &mut Formatter, mut vals: impl Iterator<Item = impl Display>, sep: &str) -> fmt::Result {
     if let Some(v) = vals.next() {
         v.fmt(f)?;
     }
