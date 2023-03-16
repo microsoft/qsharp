@@ -2,15 +2,14 @@
 
 Welcome to the Microsoft Quantum Development Kit!
 
-This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/azure/quantum/).
+This repository contains Q# tooling, specifically:
 
-- **[compiler](./compiler/qsc/)**: Q# command line compiler
-- **[library](./library/)**: Q# standard library
+- **[compiler](./compiler/qsc/)**: command line compiler
+- **[library](./library/)**: standard library
 
 ## Feedback
 
 If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp/issues/new/choose)!
-If you have feedback about some other part of the Microsoft Quantum Development Kit, please see the [contribution guide](https://docs.microsoft.com/azure/quantum/contributing-overview/) for more information.
 
 ## Reporting Security Issues
 

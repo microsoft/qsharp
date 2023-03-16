@@ -2,8 +2,6 @@
 
 Welcome, and thank you for your interest in contributing to Q# and the Quantum Development Kit!
 
-There are many ways in which you can contribute. The goal of this document is to provide a high-level overview of how you can get involved. For more details on how to contribute to Q# or the rest of the Quantum Development Kit, please see the [contribution guide](https://docs.microsoft.com/azure/quantum/contributing-overview/).
-
 ## Asking and Answering Questions
 
 Have a question? The `q#` tags on [Stack Overflow](https://stackoverflow.com/questions/tagged/q%23) and [Quantum Computing StackExchange](https://quantumcomputing.stackexchange.com/questions/tagged/q%23) are great places to ask questions about Q#, Quantum Development Kit and quantum computing in general.
@@ -19,7 +17,6 @@ Have you identified a reproducible problem in the Quantum Development Kit?
 Have a feature request?
 We want to hear about it!
 
-The Quantum Development Kit is distributed across multiple repositories. Filing an issue against the correct repository will help address it swiftly. Check the list [in the contribution guide](https://docs.microsoft.com/azure/quantum/contributing-overview#where-do-contributions-go) to figure out which repo is a good place to file it.
 You can follow the [template](https://github.com/microsoft/qsharp/issues/new?assignees=&labels=bug&template=bug_report.md&title=) for reporting issues on this repository.
 
 ## Contributing Code
@@ -56,8 +53,6 @@ If you are looking for a place to get started with contributing code,
 search for example for the [good-first-issue](https://github.com/microsoft/qsharp/labels/good%20first%20issue) or [help-wanted](https://github.com/microsoft/qsharp/labels/help%20wanted) labels.
 Also, look for issues that have already been discussed in more detail,
 and check if you can help someone who has already started working on it.
-
-Whether you want to help fixing bugs or add new features, please take a look at our general guide for [Contributing Code](https://docs.microsoft.com/azure/quantum/contributing-code).
 
 And last but not least:
 
