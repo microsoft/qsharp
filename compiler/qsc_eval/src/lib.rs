@@ -390,7 +390,7 @@ impl<'a> Evaluator<'a> {
                     .iter()
                     .find(|spec_decl| spec_decl.spec == spec)
                     .map_or_else(
-                        || ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, decl.span))),
+                        || ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
                         |spec_decl| ControlFlow::Continue(&spec_decl.body),
                     )?;
                 match spec_decl {
@@ -408,14 +408,14 @@ impl<'a> Evaluator<'a> {
                         }
                     }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
-                        invoke_intrinsic(&decl.name.name, decl.name.span, args_val, args_span)
+                        invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
                     SpecBody::Gen(_) => {
-                        ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, decl.span)))
+                        ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span)))
                     }
                 }
             }
-            _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, decl.span))),
+            _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
         }
     }
 
