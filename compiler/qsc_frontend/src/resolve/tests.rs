@@ -77,7 +77,7 @@ fn resolve_names(input: &str) -> String {
     }
 
     for error in &errors {
-        writeln!(output, "// {error:?}").expect("Error should be written to output string.");
+        writeln!(output, "// {error:?}").expect("error should write to output string");
     }
 
     output

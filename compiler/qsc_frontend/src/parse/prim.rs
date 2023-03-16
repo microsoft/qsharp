@@ -23,7 +23,7 @@ impl FinalSep {
         mut as_seq: impl FnMut(Vec<T>) -> U,
     ) -> U {
         if self == Self::Missing && xs.len() == 1 {
-            as_paren(xs.pop().expect("Vector should have exactly one item."))
+            as_paren(xs.pop().expect("vector should have exactly one item"))
         } else {
             as_seq(xs)
         }
@@ -82,7 +82,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
         parts.push(ident(s)?);
     }
 
-    let name = parts.pop().expect("Path has at least one part.");
+    let name = parts.pop().expect("path should have at least one part");
     let namespace = match (parts.first(), parts.last()) {
         (Some(first), Some(last)) => {
             let lo = first.span.lo;

@@ -288,18 +288,18 @@ fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
             let lexeme = &lexeme[offset..lexeme.len() - 1]; // Slice off prefix and suffix.
             let value = BigInt::from_str_radix(lexeme, radix.into())
-                .expect("BigInt token should be parsable.");
+                .expect("big integer token should be parsable");
             Some(Lit::BigInt(value))
         }
         TokenKind::Float => {
             let lexeme = lexeme.replace('_', "");
-            let value = lexeme.parse().expect("Float token should be parsable.");
+            let value = lexeme.parse().expect("float token should be parsable");
             Some(Lit::Double(value))
         }
         TokenKind::Int(radix) => {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
             let value =
-                lit_int(&lexeme[offset..], radix.into()).expect("Int token should be parsable.");
+                lit_int(&lexeme[offset..], radix.into()).expect("integer token should be parsable");
             Some(Lit::Int(value))
         }
         TokenKind::String => {

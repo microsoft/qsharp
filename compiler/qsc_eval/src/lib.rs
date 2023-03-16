@@ -153,7 +153,7 @@ impl<'a> Evaluator<'a> {
             store,
             current_unit: store
                 .get(entry_id)
-                .expect("Entry id must be present in package store"),
+                .expect("entry package should be added to store before evaluation"),
             current_id: entry_id,
             scopes: vec![],
             globals: extract_callables(store),
@@ -321,7 +321,7 @@ impl<'a> Evaluator<'a> {
         let decl = *self
             .globals
             .get(&call)
-            .unwrap_or_else(|| panic!("{call:?} is not in globals map"));
+            .unwrap_or_else(|| panic!("called unknown global value: {call}"));
 
         let spec = specialization_from_functor_app(&functor);
 
@@ -330,7 +330,7 @@ impl<'a> Evaluator<'a> {
             call.package,
             self.store
                 .get(call.package)
-                .expect("Store must contain compile unit for package id"),
+                .expect("global value should refer only to stored packages"),
         );
 
         self.scopes.push(HashMap::default());
@@ -466,18 +466,18 @@ impl<'a> Evaluator<'a> {
                         .context
                         .resolutions()
                         .get(&variable.id)
-                        .unwrap_or_else(|| panic!("{:?} is not resolved", variable.id)),
+                        .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
 
-                let scope = self.scopes.last_mut().expect("Binding requires a scope.");
+                let scope = self.scopes.last_mut().expect("binding should have a scope");
                 match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
-                    Entry::Occupied(_) => panic!("{id:?} is already bound"),
+                    Entry::Occupied(_) => panic!("duplicate binding: {id}"),
                 };
                 ControlFlow::Continue(())
             }
             PatKind::Discard(_) => ControlFlow::Continue(()),
-            PatKind::Elided => panic!("Elided pattern not valid syntax in binding"),
+            PatKind::Elided => panic!("elision used in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
                 let val_tup = value.try_into_tuple().with_span(span)?;
@@ -502,7 +502,7 @@ impl<'a> Evaluator<'a> {
             .context
             .resolutions()
             .get(&id)
-            .unwrap_or_else(|| panic!("{id:?} is not resolved"));
+            .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
         let global_id = self.defid_to_globalid(id);
         let local = if id.package == PackageSrc::Local {
@@ -525,7 +525,7 @@ impl<'a> Evaluator<'a> {
                         .context
                         .resolutions()
                         .get(&path.id)
-                        .unwrap_or_else(|| panic!("{:?} is not resolved", path.id)),
+                        .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
                 );
 
                 let mut variable = self
@@ -533,7 +533,7 @@ impl<'a> Evaluator<'a> {
                     .iter_mut()
                     .rev()
                     .find_map(|scope| scope.get_mut(&id))
-                    .unwrap_or_else(|| panic!("{id:?} is not bound"));
+                    .unwrap_or_else(|| panic!("path is not bound: {id}"));
 
                 if variable.is_mutable() {
                     variable.value = rhs;
@@ -565,7 +565,7 @@ impl<'a> Evaluator<'a> {
         if self.globals.contains_key(&id) {
             Value::Global(id, FunctorApp::default())
         } else {
-            panic!("{id:?} is not bound")
+            panic!("unknown global: {id}")
         }
     }
 

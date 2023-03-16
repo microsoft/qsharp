@@ -144,7 +144,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
                 let env = self
                     .locals
                     .last_mut()
-                    .expect("Statement should have an environment.");
+                    .expect("parent block of statement should have added environment");
                 bind(&mut self.resolutions, env, pat);
             }
             StmtKind::Expr(..) | StmtKind::Semi(..) => {}
