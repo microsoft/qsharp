@@ -13,7 +13,7 @@ namespace Microsoft.Quantum.Math {
     /// # See Also
     /// - Microsoft.Quantum.Math.E
     function PI() : Double {
-        return 3.14159265358979323846;
+        3.14159265358979323846
     }
 
     /// # Summary
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Math {
     /// # See Also
     /// - Microsoft.Quantum.Math.PI
     function E() : Double {
-        return 2.7182818284590452354;
+        2.7182818284590452354
     }
 
     /// # Summary

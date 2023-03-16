@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Controlled X([control1, control2], target);
     /// ```
     operation CCNOT(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__ccx__body(control1, control2, target);
         }
         controlled (ctls, ...) {
@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Controlled X([control], target);
     /// ```
     operation CNOT(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__cx__body(control, target);
         }
         controlled (ctls, ...) {
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit
     /// Qubit to which the gate should be applied.
     operation H(qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__h__body(qubit);
         }
         controlled (ctls, ...) {
@@ -125,7 +125,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// This is a no-op. It is provided for completeness and because
     /// sometimes it is useful to call the identity in an algorithm or to pass it as a parameter.
     operation I(target : Qubit) : Unit is Adj + Ctl {
-        body (...) { }
+        body ... { }
         adjoint self;
     }
 
@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// Measure([PauliZ], [qubit]);
     /// ```
     operation M(qubit : Qubit) : Result {
-        return __quantum__qis__m__body(qubit);
+        __quantum__qis__m__body(qubit)
     }
 
     /// # Summary
@@ -218,7 +218,7 @@ namespace Microsoft.Quantum.Intrinsic {
             }
             set res = __quantum__qis__mresetz__body(aux);
         }
-        return res;
+        res
     }
 
     /// # Summary
@@ -280,7 +280,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// R(PauliI, -theta, qubit);
     /// ```
     operation R1(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             Rz(theta, qubit);
         }
         controlled (ctls, ...) {
@@ -346,7 +346,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Input
     /// ## qubit
     /// The qubit whose state is to be reset to $\ket{0}$.
-    operation Reset (qubit : Qubit) : Unit {
+    operation Reset(qubit : Qubit) : Unit {
         __quantum__qis__reset__body(qubit);
     }
 
@@ -415,7 +415,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// R(PauliX, theta, qubit);
     /// ```
     operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__rx__body(theta, qubit);
         }
         controlled (ctls, ...) {
@@ -431,7 +431,7 @@ namespace Microsoft.Quantum.Intrinsic {
                 }
             }
         }
-        adjoint (...) {
+        adjoint ... {
             Rx(-theta, qubit);
         }
     }
@@ -458,7 +458,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit1
     /// The second qubit input to the gate.
     operation Rxx(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__rxx__body(theta, qubit0, qubit1);
         }
         controlled (ctls, ...) {
@@ -479,7 +479,7 @@ namespace Microsoft.Quantum.Intrinsic {
                 }
             }
         }
-        adjoint (...) {
+        adjoint ... {
             Rxx(-theta, qubit0, qubit1);
         }
     }
@@ -509,7 +509,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// R(PauliY, theta, qubit);
     /// ```
     operation Ry(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__ry__body(theta, qubit);
         }
         controlled (ctls, ...) {
@@ -525,7 +525,7 @@ namespace Microsoft.Quantum.Intrinsic {
                 }
             }
         }
-        adjoint (...) {
+        adjoint ... {
             Ry(-theta, qubit);
         }
     }
@@ -552,7 +552,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit1
     /// The second qubit input to the gate.
     operation Ryy(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__ryy__body(theta, qubit0, qubit1);
         }
         controlled (ctls, ...) {
@@ -573,7 +573,7 @@ namespace Microsoft.Quantum.Intrinsic {
                 }
             }
         }
-        adjoint (...) {
+        adjoint ... {
             Ryy(-theta, qubit0, qubit1);
         }
     }
@@ -603,7 +603,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// R(PauliZ, theta, qubit);
     /// ```
     operation Rz(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__rz__body(theta, qubit);
         }
         controlled (ctls, ...) {
@@ -624,7 +624,7 @@ namespace Microsoft.Quantum.Intrinsic {
                 }
             }
         }
-        adjoint (...) {
+        adjoint ... {
             Rz(-theta, qubit);
         }
     }
@@ -651,7 +651,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit1
     /// The second qubit input to the gate.
     operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__rzz__body(theta, qubit0, qubit1);
         }
         controlled (ctls, ...) {
@@ -672,7 +672,7 @@ namespace Microsoft.Quantum.Intrinsic {
                 }
             }
         }
-        adjoint (...) {
+        adjoint ... {
             Rzz(-theta, qubit0, qubit1);
         }
     }
@@ -693,10 +693,10 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit
     /// Qubit to which the gate should be applied.
     operation S(qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__s__body(qubit);
         }
-        adjoint (...) {
+        adjoint ... {
             __quantum__qis__s__adj(qubit);
         }
         controlled (ctls, ...) {
@@ -781,7 +781,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// CNOT(qubit1, qubit2);
     /// ```
     operation SWAP(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__swap__body(qubit1, qubit2);
         }
         adjoint self;
@@ -816,10 +816,10 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit
     /// Qubit to which the gate should be applied.
     operation T(qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__t__body(qubit);
         }
-        adjoint (...) {
+        adjoint ... {
             __quantum__qis__t__adj(qubit);
         }
         controlled (ctls, ...) {
@@ -876,7 +876,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit
     /// Qubit to which the gate should be applied.
     operation X(qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__x__body(qubit);
         }
         controlled (ctls, ...) {
@@ -923,7 +923,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit
     /// Qubit to which the gate should be applied.
     operation Y(qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__y__body(qubit);
         }
         controlled (ctls, ...) {
@@ -970,7 +970,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ## qubit
     /// Qubit to which the gate should be applied.
     operation Z(qubit : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__z__body(qubit);
         }
         controlled (ctls, ...) {
