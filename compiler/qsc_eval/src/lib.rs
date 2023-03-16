@@ -61,7 +61,7 @@ pub enum Error {
     Type(
         &'static str,
         &'static str,
-        #[label("expected `{0}`, found `{1}`")] Span,
+        #[label("expected {0}, found {1}")] Span,
     ),
 
     #[error("mismatched tuples")]
