@@ -77,7 +77,7 @@ impl Display for Value {
                 Pauli::Z => write!(f, "PauliZ"),
                 Pauli::Y => write!(f, "PauliY"),
             },
-            Value::Qubit(v) => write!(f, "Qubit_{}", (*v as usize)),
+            Value::Qubit(v) => write!(f, "Qubit{}", (*v as usize)),
             Value::Range(start, step, end) => match (start, step, end) {
                 (Some(start), Some(step), Some(end)) => write!(f, "{start}..{step}..{end}"),
                 (Some(start), Some(step), None) => write!(f, "{start}..{step}..."),
@@ -187,7 +187,7 @@ impl Value {
         }
     }
 
-    pub fn release(&mut self) {
+    pub fn release(&self) {
         if let Value::Qubit(q) = self {
             __quantum__rt__qubit_release(*q);
         }

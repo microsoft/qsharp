@@ -270,7 +270,7 @@ fn block_qubit_use_expr() {
             use q = Qubit();
             q
         }"},
-        &expect!["Qubit_0"],
+        &expect!["Qubit0"],
     );
 }
 
@@ -283,7 +283,7 @@ fn block_qubit_use_use_expr() {
             use q1 = Qubit();
             q1
         }"},
-        &expect!["Qubit_1"],
+        &expect!["Qubit1"],
     );
 }
 
@@ -298,7 +298,7 @@ fn block_qubit_use_reuse_expr() {
             use q = Qubit();
             q
         }"},
-        &expect!["Qubit_0"],
+        &expect!["Qubit0"],
     );
 }
 
@@ -312,7 +312,7 @@ fn block_qubit_use_scope_reuse_expr() {
             use q = Qubit();
             q
         }"},
-        &expect!["Qubit_0"],
+        &expect!["Qubit0"],
     );
 }
 
@@ -324,7 +324,7 @@ fn block_qubit_use_array_expr() {
             use q = Qubit[3];
             q
         }"},
-        &expect!["[Qubit_0, Qubit_1, Qubit_2]"],
+        &expect!["[Qubit0, Qubit1, Qubit2]"],
     );
 }
 
@@ -377,7 +377,7 @@ fn block_qubit_use_tuple_expr() {
             use q = (Qubit[3], Qubit(), Qubit());
             q
         }"},
-        &expect!["([Qubit_0, Qubit_1, Qubit_2], Qubit_3, Qubit_4)"],
+        &expect!["([Qubit0, Qubit1, Qubit2], Qubit3, Qubit4)"],
     );
 }
 
@@ -389,7 +389,7 @@ fn block_qubit_use_nested_tuple_expr() {
             use q = (Qubit[3], (Qubit(), Qubit()));
             q
         }"},
-        &expect!["([Qubit_0, Qubit_1, Qubit_2], (Qubit_3, Qubit_4))"],
+        &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
     );
 }
 

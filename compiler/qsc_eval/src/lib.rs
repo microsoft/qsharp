@@ -19,7 +19,7 @@ use miette::Diagnostic;
 use qir_backend::{Pauli, __quantum__rt__qubit_allocate};
 use qsc_ast::ast::{
     self, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability, NodeId, Pat,
-    PatKind, QubitInit, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
+    PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
@@ -349,7 +349,7 @@ impl<'a> Evaluator<'a> {
 
     fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {
         match &qubit_init.kind {
-            ast::QubitInitKind::Array(count) => {
+            QubitInitKind::Array(count) => {
                 let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
                 let count: usize = match count_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
@@ -358,16 +358,14 @@ impl<'a> Evaluator<'a> {
                     }
                 }?;
                 let mut arr = vec![];
-                for _ in 0..count {
-                    arr.push(Value::Qubit(__quantum__rt__qubit_allocate()));
-                }
+                arr.resize_with(count, || Value::Qubit(__quantum__rt__qubit_allocate()));
                 ControlFlow::Continue(Value::Array(arr))
             }
-            ast::QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
-            ast::QubitInitKind::Single => {
+            QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
+            QubitInitKind::Single => {
                 ControlFlow::Continue(Value::Qubit(__quantum__rt__qubit_allocate()))
             }
-            ast::QubitInitKind::Tuple(tup) => {
+            QubitInitKind::Tuple(tup) => {
                 let mut tup_vec = vec![];
                 for init in tup {
                     tup_vec.push(self.eval_qubit_init(init)?);
@@ -523,7 +521,7 @@ impl<'a> Evaluator<'a> {
     }
 
     fn leave_scope(&mut self) {
-        for (_, mut var) in self
+        for (_, var) in self
             .scopes
             .pop()
             .expect("Cannot leave scope without entering")
