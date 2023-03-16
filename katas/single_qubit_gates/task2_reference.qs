@@ -2,18 +2,15 @@
 // Licensed under the MIT License.
 
 namespace Quantum.Kata.SingleQubitGates {
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
 
-    operation GlobalPhaseI_Reference (q : Qubit) : Unit is Adj+Ctl {
-        body (...) {
+    operation GlobalPhaseIReference(q : Qubit) : Unit is Adj + Ctl {
+        body ... {
             X(q);
             Z(q);
             Y(q);
         }
-        adjoint (...) {
+        adjoint ... {
             Y(q);
             Z(q);
             X(q);
@@ -22,14 +19,14 @@ namespace Quantum.Kata.SingleQubitGates {
 
     operation VerifyTask2() : Bool {
         let task = GlobalPhaseI;
-        let task_ref = GlobalPhaseI_Reference;
+        let taskRef = GlobalPhaseIReference;
 
         use (aux, target) = (Qubit(), Qubit());
         H(aux);
         CNOT(aux, target);
 
         task(target);
-        Adjoint task_ref(target);
+        Adjoint taskRef(target);
 
         CNOT(aux, target);
         H(aux);
@@ -49,10 +46,10 @@ namespace Quantum.Kata.SingleQubitGates {
         task(target);
         DumpMachine();
         Reset(target);
-        task_ref(target);
+        taskRef(target);
         DumpMachine();
 
-        return false;
+        false
     }
 
 }

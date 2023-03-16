@@ -5,7 +5,7 @@ namespace Quantum.Kata.SingleQubitGates {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
 
-    operation ThreeQuatersPiPhase (q : Qubit) : Unit is Adj + Ctl {
+    operation ThreeQuartersPiPhase(q : Qubit) : Unit is Adj + Ctl {
         // ...
 
     }

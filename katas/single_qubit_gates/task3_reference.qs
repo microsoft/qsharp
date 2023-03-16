@@ -2,13 +2,10 @@
 // Licensed under the MIT License.
 
 namespace Quantum.Kata.SingleQubitGates {
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
 
-    operation SignFlipOnZero_Reference (q : Qubit) : Unit is Adj+Ctl {
-        body (...) {
+    operation SignFlipOnZeroReference(q : Qubit) : Unit is Adj + Ctl {
+        body ... {
             X(q);
             Z(q);
             X(q);
@@ -18,14 +15,14 @@ namespace Quantum.Kata.SingleQubitGates {
 
     operation VerifyTask3() : Bool {
         let task = SignFlipOnZero;
-        let task_ref = SignFlipOnZero_Reference;
+        let taskRef = SignFlipOnZeroReference;
 
         use (aux, target) = (Qubit(), Qubit());
         H(aux);
         CNOT(aux, target);
 
         task(target);
-        Adjoint task_ref(target);
+        Adjoint taskRef(target);
 
         CNOT(aux, target);
         H(aux);
@@ -45,10 +42,10 @@ namespace Quantum.Kata.SingleQubitGates {
         task(target);
         DumpMachine();
         Reset(target);
-        task_ref(target);
+        taskRef(target);
         DumpMachine();
 
-        return false;
+        false
     }
 
 }
