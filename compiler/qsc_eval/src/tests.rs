@@ -38,16 +38,14 @@ fn array_repeat_type_error_expr() {
         "",
         "[4, size = true]",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Int",
+                "Bool",
+                Span {
                     lo: 11,
                     hi: 15,
                 },
-                kind: Type(
-                    "Int",
-                    "Bool",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -115,16 +113,14 @@ fn block_let_bind_tuple_arity_error_expr() {
             let (x, y, z) = (0, 1);
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            TupleArity(
+                3,
+                2,
+                Span {
                     lo: 10,
                     hi: 19,
                 },
-                kind: TupleArity(
-                    3,
-                    2,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -203,16 +199,14 @@ fn block_mutable_update_tuple_arity_error_expr() {
             x
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            TupleArity(
+                2,
+                3,
+                Span {
                     lo: 39,
                     hi: 45,
                 },
-                kind: TupleArity(
-                    2,
-                    3,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -258,13 +252,12 @@ fn block_mutable_immutable_expr() {
             set x = 1;
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            Mutability(
+                Span {
                     lo: 25,
                     hi: 26,
                 },
-                kind: Mutability,
-            }
+            )
         "#]],
     );
 }
@@ -275,13 +268,12 @@ fn assign_invalid_expr() {
         "",
         "set 0 = 1",
         &expect![[r#"
-            Error {
-                span: Span {
+            Unassignable(
+                Span {
                     lo: 4,
                     hi: 5,
                 },
-                kind: Unassignable,
-            }
+            )
         "#]],
     );
 }
@@ -292,15 +284,13 @@ fn fail_expr() {
         "",
         r#"fail "This is a failure""#,
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "This is a failure",
+                Span {
                     lo: 0,
                     hi: 24,
                 },
-                kind: UserFail(
-                    "This is a failure",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -311,15 +301,13 @@ fn fail_shortcut_expr() {
         "",
         r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "Got Here!",
+                Span {
                     lo: 2,
                     hi: 18,
                 },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -400,14 +388,13 @@ fn array_slice_step_zero_expr() {
         "",
         "[1, 2, 3, 4, 5][...0...]",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 16,
-                hi: 23,
-            },
-            kind: RangeStepZero,
-        }
-    "#]],
+            RangeStepZero(
+                Span {
+                    lo: 16,
+                    hi: 23,
+                },
+            )
+        "#]],
     );
 }
 
@@ -417,16 +404,14 @@ fn array_slice_out_of_range_expr() {
         "",
         "[1, 2, 3, 4, 5][0..7]",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 16,
-                hi: 20,
-            },
-            kind: OutOfRange(
+            OutOfRange(
                 5,
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 16,
+                    hi: 20,
+                },
+            )
+        "#]],
     );
 }
 
@@ -436,15 +421,13 @@ fn array_index_negative_expr() {
         "",
         "[1, 2, 3][-2]",
         &expect![[r#"
-            Error {
-                span: Span {
+            IndexVal(
+                -2,
+                Span {
                     lo: 10,
                     hi: 12,
                 },
-                kind: IndexVal(
-                    -2,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -455,15 +438,13 @@ fn array_index_out_of_range_expr() {
         "",
         "[1, 2, 3][4]",
         &expect![[r#"
-            Error {
-                span: Span {
+            OutOfRange(
+                4,
+                Span {
                     lo: 10,
                     hi: 11,
                 },
-                kind: OutOfRange(
-                    4,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -474,16 +455,14 @@ fn array_index_type_error_expr() {
         "",
         "[1, 2, 3][false]",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Int or Range",
+                "Bool",
+                Span {
                     lo: 10,
                     hi: 15,
                 },
-                kind: Type(
-                    "Int or Range",
-                    "Bool",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -640,16 +619,14 @@ fn unop_bitwise_not_bool_expr() {
         "",
         "~~~(false)",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Int or BigInt",
+                "Bool",
+                Span {
                     lo: 3,
                     hi: 10,
                 },
-                kind: Type(
-                    "Int or BigInt",
-                    "Bool",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -674,17 +651,15 @@ fn unop_negate_bool_expr() {
         "",
         "-(false)",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 1,
-                hi: 8,
-            },
-            kind: Type(
+            Type(
                 "Int, BigInt, or Double",
                 "Bool",
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 1,
+                    hi: 8,
+                },
+            )
+        "#]],
     );
 }
 
@@ -723,17 +698,15 @@ fn unop_not_int_expr() {
         "",
         "not 0",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 4,
-                hi: 5,
-            },
-            kind: Type(
+            Type(
                 "Bool",
                 "Int",
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 4,
+                    hi: 5,
+                },
+            )
+        "#]],
     );
 }
 
@@ -752,17 +725,15 @@ fn unop_positive_bool_expr() {
         "",
         "+(false)",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 1,
-                hi: 8,
-            },
-            kind: Type(
+            Type(
                 "Int, BigInt, or Double",
                 "Bool",
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 1,
+                    hi: 8,
+                },
+            )
+        "#]],
     );
 }
 
@@ -884,16 +855,14 @@ fn if_type_error_expr() {
         "",
         "if 4 { 3 }",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Bool",
+                "Int",
+                Span {
                     lo: 3,
                     hi: 4,
                 },
-                kind: Type(
-                    "Bool",
-                    "Int",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -1088,15 +1057,13 @@ fn call_adjoint_expr() {
         "#},
         "Adjoint Test.Foo()",
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "Adjoint Implementation",
+                Span {
                     lo: 166,
                     hi: 195,
                 },
-                kind: UserFail(
-                    "Adjoint Implementation",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -1124,15 +1091,13 @@ fn call_adjoint_adjoint_expr() {
         "#},
         "Adjoint Adjoint Test.Foo()",
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "Body Implementation",
+                Span {
                     lo: 92,
                     hi: 118,
                 },
-                kind: UserFail(
-                    "Body Implementation",
-                ),
-            }
+            )
         "#]],
     );
 }
