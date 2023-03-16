@@ -27,32 +27,49 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
-    #[error("uh oh")]
-    Count(i64, #[label("that ain't right")] Span),
-    #[error("uh oh")]
-    EmptyExpr(#[label("that ain't right")] Span),
-    #[error("uh oh")]
+    #[error("invalid array length: {0}")]
+    Count(i64, #[label("cannot be used as a length")] Span),
+
+    #[error("nothing to evaluate; entry expression is empty")]
+    EmptyExpr,
+
+    #[error("integer-to-index conversion failed")]
     IndexVal(i64, #[label("that ain't right")] Span),
-    #[error("uh oh")]
-    IntegerSize(#[label("that ain't right")] Span),
-    #[error("uh oh")]
-    Mutability(#[label("that ain't right")] Span),
-    #[error("uh oh")]
-    OutOfRange(i64, #[label("that ain't right")] Span),
-    #[error("uh oh")]
-    RangeStepZero(#[label("that ain't right")] Span),
+
+    #[error("integer-to-integer conversion failed")]
+    IntegerSize(#[label] Span),
+
+    #[error("reassigning immutable variable")]
+    Mutability(#[label("variable declared as immutable")] Span),
+
+    #[error("index out of range: {0}")]
+    OutOfRange(i64, #[label("out of range")] Span),
+
+    #[error("range with step size of zero")]
+    RangeStepZero(#[label("invalid range")] Span),
+
     #[error("mismatched types")]
     Type(
         &'static str,
         &'static str,
         #[label("expected `{0}`, found `{1}`")] Span,
     ),
-    #[error("uh oh")]
-    TupleArity(usize, usize, #[label("that ain't right")] Span),
-    #[error("uh oh")]
-    Unassignable(#[label("that ain't right")] Span),
+
+    #[error("mismatched tuples")]
+    TupleArity(
+        usize,
+        usize,
+        #[label("expected {0}-tuple, found {1}-tuple")] Span,
+    ),
+
+    #[error("invalid left-hand side of assignment")]
+    #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
+    Unassignable(#[label("not assignable")] Span),
+
     #[error("not implemented")]
-    Unimplemented(#[label] Span),
+    #[diagnostic(help("this is an internal compiler error, not a bug in your program"))]
+    Unimplemented(#[label("cannot evaluate this expression")] Span),
+
     #[error("program failed: {0}")]
     UserFail(String, #[label("explicit fail")] Span),
 }
@@ -168,7 +185,7 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Break(Reason::Error(error)) => Err(error),
             }
         } else {
-            Err(Error::EmptyExpr(Span { lo: 0, hi: 0 }))
+            Err(Error::EmptyExpr)
         }
     }
 
