@@ -73,7 +73,7 @@ impl Context {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SourceIndex(pub usize);
 
 #[derive(Clone, Debug, Diagnostic, Error)]
