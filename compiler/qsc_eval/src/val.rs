@@ -7,10 +7,9 @@ use std::{
     iter,
 };
 
-use num_bigint::BigInt;
-use qir_backend::Pauli;
-
 use crate::globals::GlobalId;
+use num_bigint::BigInt;
+use qir_backend::{Pauli, __quantum__rt__qubit_release};
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -78,7 +77,7 @@ impl Display for Value {
                 Pauli::Z => write!(f, "PauliZ"),
                 Pauli::Y => write!(f, "PauliY"),
             },
-            Value::Qubit(v) => write!(f, "{}", (*v as usize)),
+            Value::Qubit(v) => write!(f, "Qubit{}", (*v as usize)),
             Value::Range(start, step, end) => match (start, step, end) {
                 (Some(start), Some(step), Some(end)) => write!(f, "{start}..{step}..{end}"),
                 (Some(start), Some(step), None) => write!(f, "{start}..{step}..."),
@@ -158,6 +157,8 @@ impl TryFrom<Value> for String {
 }
 
 impl Value {
+    pub const UNIT: Self = Self::Tuple(Vec::new());
+
     /// Convert the [Value] into an array of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Array`].
@@ -183,6 +184,12 @@ impl Value {
                 expected: "Tuple",
                 actual: self.type_name(),
             })
+        }
+    }
+
+    pub fn release(&self) {
+        if let Value::Qubit(q) = self {
+            __quantum__rt__qubit_release(*q);
         }
     }
 
