@@ -27,6 +27,40 @@ struct Cli {
     entry: String,
 }
 
+struct ErrorReporter<'a> {
+    context: &'a Context,
+    paths: Vec<PathBuf>,
+    sources: Vec<Arc<String>>,
+    entry: Arc<String>,
+}
+
+impl<'a> ErrorReporter<'a> {
+    fn new(cli: Cli, sources: Vec<String>, context: &'a Context) -> Self {
+        Self {
+            context,
+            paths: cli.sources,
+            sources: sources.into_iter().map(Arc::new).collect(),
+            entry: Arc::new(cli.entry),
+        }
+    }
+
+    fn report(&self, diagnostic: impl Diagnostic + Send + Sync + 'static) -> Report {
+        let Some(first_label) = diagnostic.labels().and_then(|mut ls| ls.next()) else {
+            return Report::new(diagnostic);
+        };
+
+        // Use the offset of the first labeled span to find which source code to include in the report.
+        let (index, offset) = self.context.source(first_label.offset());
+        let name = source_name(&self.paths, index);
+        let source = self.sources.get(index.0).unwrap_or(&self.entry).clone();
+        let source = NamedSource::new(name, source);
+
+        // Adjust all spans in the error to be relative to the start of this source.
+        let offset = -isize::try_from(offset).unwrap();
+        Report::new(OffsetError::new(diagnostic, offset)).with_source_code(source)
+    }
+}
+
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
     let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
@@ -40,21 +74,13 @@ fn main() -> miette::Result<ExitCode> {
                 println!("{value}");
                 Ok(ExitCode::SUCCESS)
             }
-            Err(error) => {
-                let sources: Vec<_> = sources.into_iter().map(Arc::new).collect();
-                let entry = Arc::new(cli.entry);
-                let report = error_report(&cli.sources, &sources, &entry, &unit.context, error);
-                Err(report)
-            }
+            Err(error) => Err(ErrorReporter::new(cli, sources, &unit.context).report(error)),
         }
     } else {
-        let sources: Vec<_> = sources.into_iter().map(Arc::new).collect();
-        let entry = Arc::new(cli.entry);
+        let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {
-            let report = error_report(&cli.sources, &sources, &entry, &unit.context, error.clone());
-            eprintln!("{report:?}");
+            eprintln!("{:?}", reporter.report(error.clone()));
         }
-
         Ok(ExitCode::FAILURE)
     }
 }
@@ -65,28 +91,6 @@ fn read_source(path: impl AsRef<Path>) -> String {
     } else {
         fs::read_to_string(path).unwrap()
     }
-}
-
-fn error_report(
-    paths: &[PathBuf],
-    sources: &[Arc<String>],
-    entry: &Arc<String>,
-    context: &Context,
-    error: impl Diagnostic + Send + Sync + 'static,
-) -> Report {
-    let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
-        return Report::new(error);
-    };
-
-    // Use the offset of the first labeled span to find which source code to include in the report.
-    let (index, offset) = context.source(first_label.offset());
-    let name = source_name(paths, index);
-    let source = sources.get(index.0).unwrap_or(entry).clone();
-    let source = NamedSource::new(name, source);
-
-    // Adjust all spans in the error to be relative to the start of this source.
-    let offset = -isize::try_from(offset).unwrap();
-    Report::new(OffsetError::new(error, offset)).with_source_code(source)
 }
 
 fn source_name(paths: &[PathBuf], index: SourceIndex) -> &str {
