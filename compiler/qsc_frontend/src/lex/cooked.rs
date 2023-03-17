@@ -290,7 +290,7 @@ impl<'a> Lexer<'a> {
                 let c = self.input[token.offset..]
                     .chars()
                     .next()
-                    .expect("Token offset should be the start of a character.");
+                    .expect("token offset should be the start of a character");
                 let span = Span {
                     lo: token.offset,
                     hi: self.offset(),
