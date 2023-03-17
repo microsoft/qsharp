@@ -15,5 +15,16 @@ repository = "https://github.com/microsoft/qsharp"
 edition = "2021"
 license = "MIT"
 
+[workspace.dependencies]
+clap = { version = "4.1.8", features = ["derive"] }
+criterion = { version = "0.4.0", default-features = false, features = ["cargo_bench_support"] }
+enum-iterator = "1.2.0"
+expect-test = "1.4.0"
+indoc = "2.0.0"
+miette = { version = "5.6.0", features = ["fancy"] }
+thiserror = "1.0.39"
+num-bigint = "0.4.3"
+num-traits = "0.2.15"
+
 [profile.release]
 debug = 1
