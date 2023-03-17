@@ -213,6 +213,14 @@ impl<'a> Evaluator<'a> {
         self.scopes.push(HashMap::new());
     }
 
+    pub fn add_global_callable(&mut self, decl: &'a CallableDecl) {
+        let id = GlobalId {
+            package: self.current_id,
+            node: decl.name.id,
+        };
+        self.globals.insert(id, decl);
+    }
+
     fn eval_expr(&mut self, resolutions: &Resolutions, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {

@@ -73,6 +73,18 @@ impl<'a> Resolver<'a> {
         self.locals.push(HashMap::new());
     }
 
+    pub fn add_global_callable(&mut self, decl: &'a CallableDecl) {
+        let id = DefId {
+            package: PackageSrc::Local,
+            node: decl.name.id,
+        };
+        self.resolutions.insert(decl.name.id, id);
+        self.terms
+            .entry(self.namespace)
+            .or_default()
+            .insert(&decl.name.name, id);
+    }
+
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
         (self.resolutions, self.errors)
     }
@@ -228,6 +240,19 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
         }
 
         match &item.kind {
+            ItemKind::Callable(decl) => {
+                let id = DefId {
+                    package: self.package,
+                    node: decl.name.id,
+                };
+                if self.package == PackageSrc::Local {
+                    self.resolutions.insert(decl.name.id, id);
+                }
+                self.terms
+                    .entry(self.namespace)
+                    .or_default()
+                    .insert(&decl.name.name, id);
+            }
             ItemKind::Ty(name, _) => {
                 let id = DefId {
                     package: self.package,
@@ -245,20 +270,7 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
                     .or_default()
                     .insert(&name.name, id);
             }
-            ItemKind::Callable(decl) => {
-                let id = DefId {
-                    package: self.package,
-                    node: decl.name.id,
-                };
-                if self.package == PackageSrc::Local {
-                    self.resolutions.insert(decl.name.id, id);
-                }
-                self.terms
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&decl.name.name, id);
-            }
-            ItemKind::Open(..) => {}
+            ItemKind::Err | ItemKind::Open(..) => {}
         }
     }
 }

@@ -129,7 +129,7 @@ pub struct Namespace {
 }
 
 /// An item.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Item {
     /// The ID.
     pub id: NodeId,
@@ -142,14 +142,16 @@ pub struct Item {
 }
 
 /// An item kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum ItemKind {
+    /// A `function` or `operation` declaration.
+    Callable(CallableDecl),
+    #[default]
+    Err,
     /// An `open` item for a namespace with an optional alias.
     Open(Ident, Option<Ident>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
-    /// A `function` or `operation` declaration.
-    Callable(CallableDecl),
 }
 
 /// Metadata for an item.

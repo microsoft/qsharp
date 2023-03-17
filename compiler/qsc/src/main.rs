@@ -5,7 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_ast::{mut_visit::MutVisitor, visit::Visitor};
+use qsc_ast::{ast::ItemKind, mut_visit::MutVisitor, visit::Visitor};
 use qsc_eval::Evaluator;
 use qsc_frontend::{
     compile::{self, compile, Context, PackageStore, SourceIndex},
@@ -124,14 +124,27 @@ fn repl() -> io::Result<()> {
             break Ok(());
         }
 
-        let (mut stmt, errors) = parse::stmt(&line);
-        assert!(errors.is_empty(), "parsing failed");
-        assigner.visit_stmt(&mut stmt);
-        let stmt = Box::leak(Box::new(stmt));
-        resolver.visit_stmt(stmt);
-        assert!(resolver.errors().is_empty(), "resolution failed");
-        let value = evaluator.repl(resolver.resolutions(), stmt).unwrap();
-        println!("{value}");
+        let (item, errors) = parse::item(&line);
+        match item.kind {
+            ItemKind::Callable(mut decl) if errors.is_empty() => {
+                assigner.visit_callable_decl(&mut decl);
+                let decl = Box::leak(Box::new(decl));
+                resolver.add_global_callable(decl);
+                resolver.visit_callable_decl(decl);
+                assert!(resolver.errors().is_empty(), "resolution failed");
+                evaluator.add_global_callable(decl);
+            }
+            _ => {
+                let (mut stmt, errors) = parse::stmt(&line);
+                assert!(errors.is_empty(), "parsing failed");
+                assigner.visit_stmt(&mut stmt);
+                let stmt = Box::leak(Box::new(stmt));
+                resolver.visit_stmt(stmt);
+                assert!(resolver.errors().is_empty(), "resolution failed");
+                let value = evaluator.repl(resolver.resolutions(), stmt).unwrap();
+                println!("{value}");
+            }
+        }
     }
 }
 
