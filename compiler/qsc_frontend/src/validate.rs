@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use qsc_ast::{
-    ast::{CallableDecl, CallableKind, Expr, ExprKind, TyKind},
+    ast::{CallableDecl, CallableKind, Expr, ExprKind, Pat, Ty, TyKind},
     visit::{walk_expr, Visitor},
 };
 
@@ -18,6 +18,8 @@ impl<'a> Visitor<'a> for Validator {
                 }
             }
         }
+
+        validate_params(&decl.input);
     }
 
     fn visit_expr(&mut self, expr: &'a Expr) {
@@ -41,5 +43,30 @@ fn has_hole(expr: &Expr) -> bool {
         ExprKind::Paren(sub_expr) => has_hole(sub_expr),
         ExprKind::Tuple(sub_exprs) => sub_exprs.iter().any(has_hole),
         _ => false,
+    }
+}
+
+fn validate_params(params: &Pat) {
+    match &params.kind {
+        qsc_ast::ast::PatKind::Bind(_, ty) => match &ty {
+            None => panic!("Callable parameters must be type annotated."),
+            Some(t) => validate_type(t),
+        },
+        qsc_ast::ast::PatKind::Paren(item) => validate_params(item),
+        qsc_ast::ast::PatKind::Tuple(items) => items.iter().for_each(validate_params),
+        _ => {}
+    }
+}
+
+fn validate_type(ty: &Ty) {
+    match &ty.kind {
+        TyKind::App(ty, tys) => {
+            validate_type(ty);
+            tys.iter().for_each(validate_type);
+        }
+        TyKind::Arrow(_, _, _, _) => panic!("Callables as parameters are not currently supported."),
+        TyKind::Paren(ty) => validate_type(ty),
+        TyKind::Tuple(tys) => tys.iter().for_each(validate_type),
+        _ => {}
     }
 }
