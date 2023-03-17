@@ -25,7 +25,7 @@ use thiserror::Error;
 pub(super) use keyword::Keyword;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
-pub enum Error {
+pub(super) enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),
@@ -59,7 +59,7 @@ pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     }
 }
 
-pub fn item(input: &str) -> (Item, Vec<Error>) {
+pub(super) fn item(input: &str) -> (Item, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match top::item(&mut scanner) {
         Ok(item) => (item, scanner.errors()),
@@ -72,7 +72,7 @@ pub fn item(input: &str) -> (Item, Vec<Error>) {
 }
 
 #[must_use]
-pub fn stmt(input: &str) -> (Stmt, Vec<Error>) {
+pub(super) fn stmt(input: &str) -> (Stmt, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match stmt::stmt(&mut scanner) {
         Ok(stmt) => (stmt, scanner.errors()),

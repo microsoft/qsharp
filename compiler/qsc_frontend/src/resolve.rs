@@ -13,7 +13,10 @@ use qsc_ast::{
     },
     visit::{self, Visitor},
 };
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    mem,
+};
 use thiserror::Error;
 
 const PRELUDE: &[&str] = &[
@@ -37,7 +40,7 @@ pub enum PackageSrc {
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-pub enum Error {
+pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
     NotFound(String, #[label("not found")] Span),
 
@@ -50,7 +53,7 @@ pub enum Error {
     ),
 }
 
-pub struct Resolver<'a> {
+pub(super) struct Resolver<'a> {
     resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
@@ -61,19 +64,15 @@ pub struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn resolutions(&self) -> &Resolutions {
+    pub(super) fn resolutions(&self) -> &Resolutions {
         &self.resolutions
     }
 
-    pub fn errors(&self) -> &[Error] {
+    pub(super) fn errors(&self) -> &[Error] {
         &self.errors
     }
 
-    pub fn push_scope(&mut self) {
-        self.locals.push(HashMap::new());
-    }
-
-    pub fn add_global_callable(&mut self, decl: &'a CallableDecl) {
+    pub(super) fn add_global_callable(&mut self, decl: &'a CallableDecl) {
         let id = DefId {
             package: PackageSrc::Local,
             node: decl.name.id,
@@ -107,13 +106,23 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
+    fn with_pat(&mut self, pat: &'a Pat, f: impl FnOnce(&mut Self)) {
         let mut env = HashMap::new();
-        pat.into_iter()
-            .for_each(|p| bind(&mut self.resolutions, &mut env, p));
-        self.locals.push(env);
+        bind(&mut self.resolutions, &mut env, pat);
+        self.with_scope(&mut env, f);
+    }
+
+    pub(super) fn with_scope(
+        &mut self,
+        scope: &mut HashMap<&'a str, DefId>,
+        f: impl FnOnce(&mut Self),
+    ) {
+        self.locals.push(mem::take(scope));
         f(self);
-        self.locals.pop();
+        *scope = self
+            .locals
+            .pop()
+            .expect("scope symmetry should be preserved");
     }
 }
 
@@ -132,17 +141,18 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         }
 
         visit::walk_namespace(self, namespace);
+        self.namespace = "";
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        self.with_scope(Some(&decl.input), |resolver| {
+        self.with_pat(&decl.input, |resolver| {
             visit::walk_callable_decl(resolver, decl);
         });
     }
 
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
         if let SpecBody::Impl(input, block) = &decl.body {
-            self.with_scope(Some(input), |resolver| resolver.visit_block(block));
+            self.with_pat(input, |resolver| resolver.visit_block(block));
         } else {
             visit::walk_spec_decl(self, decl);
         }
@@ -157,7 +167,9 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 
     fn visit_block(&mut self, block: &'a Block) {
-        self.with_scope(None, |resolver| visit::walk_block(resolver, block));
+        self.with_scope(&mut HashMap::new(), |resolver| {
+            visit::walk_block(resolver, block);
+        });
     }
 
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
@@ -179,10 +191,10 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         match &expr.kind {
             ExprKind::For(pat, iter, block) => {
                 self.visit_expr(iter);
-                self.with_scope(Some(pat), |resolver| resolver.visit_block(block));
+                self.with_pat(pat, |resolver| resolver.visit_block(block));
             }
             ExprKind::Lambda(_, input, output) => {
-                self.with_scope(Some(input), |resolver| resolver.visit_expr(output));
+                self.with_pat(input, |resolver| resolver.visit_expr(output));
             }
             ExprKind::Path(path) => self.resolve_term(path),
             _ => visit::walk_expr(self, expr),
@@ -190,7 +202,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 }
 
-pub struct GlobalTable<'a> {
+pub(super) struct GlobalTable<'a> {
     resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
@@ -199,7 +211,7 @@ pub struct GlobalTable<'a> {
 }
 
 impl<'a> GlobalTable<'a> {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             resolutions: Resolutions::new(),
             tys: HashMap::new(),
@@ -209,11 +221,11 @@ impl<'a> GlobalTable<'a> {
         }
     }
 
-    pub fn set_package(&mut self, package: PackageId) {
+    pub(super) fn set_package(&mut self, package: PackageId) {
         self.package = PackageSrc::Extern(package);
     }
 
-    pub fn into_resolver(self) -> Resolver<'a> {
+    pub(super) fn into_resolver(self) -> Resolver<'a> {
         Resolver {
             resolutions: self.resolutions,
             tys: self.tys,

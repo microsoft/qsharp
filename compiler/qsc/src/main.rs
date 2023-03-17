@@ -5,14 +5,11 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_ast::{ast::ItemKind, mut_visit::MutVisitor, visit::Visitor};
 use qsc_eval::Evaluator;
 use qsc_frontend::{
     compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
-    id::Assigner,
-    parse,
-    resolve::GlobalTable,
+    incremental::{Compiler, Fragment},
 };
 use std::{
     fs,
@@ -106,12 +103,7 @@ fn repl() -> io::Result<()> {
     let std = store.insert(compile::std());
     let sources: [&str; 0] = [];
     let user = store.insert(compile(&store, [], sources, ""));
-    let mut globals = GlobalTable::new();
-    globals.set_package(std);
-    globals.visit_package(&store.get(std).unwrap().package);
-    let mut resolver = globals.into_resolver();
-    resolver.push_scope();
-    let mut assigner = Assigner::new();
+    let mut compiler = Compiler::new(&store, [std]);
     let mut evaluator = Evaluator::new(&store, user);
     evaluator.push_scope();
 
@@ -124,26 +116,12 @@ fn repl() -> io::Result<()> {
             break Ok(());
         }
 
-        let (item, errors) = parse::item(&line);
-        match item.kind {
-            ItemKind::Callable(mut decl) if errors.is_empty() => {
-                assigner.visit_callable_decl(&mut decl);
-                let decl = Box::leak(Box::new(decl));
-                resolver.add_global_callable(decl);
-                resolver.visit_callable_decl(decl);
-                assert!(resolver.errors().is_empty(), "resolution failed");
-                evaluator.add_global_callable(decl);
-            }
-            _ => {
-                let (mut stmt, errors) = parse::stmt(&line);
-                assert!(errors.is_empty(), "parsing failed");
-                assigner.visit_stmt(&mut stmt);
-                let stmt = Box::leak(Box::new(stmt));
-                resolver.visit_stmt(stmt);
-                assert!(resolver.errors().is_empty(), "resolution failed");
-                let value = evaluator.repl(resolver.resolutions(), stmt).unwrap();
+        match compiler.compile_fragment(&line) {
+            Fragment::Stmt(stmt) => {
+                let value = evaluator.repl(compiler.resolutions(), stmt).unwrap();
                 println!("{value}");
             }
+            Fragment::Callable(decl) => evaluator.add_global_callable(decl),
         }
     }
 }
