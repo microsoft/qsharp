@@ -524,7 +524,7 @@ impl<'a> Evaluator<'a> {
         for (_, var) in self
             .scopes
             .pop()
-            .expect("Cannot leave scope without entering")
+            .expect("scope should be entered first before leaving")
             .drain()
         {
             var.value.release();
