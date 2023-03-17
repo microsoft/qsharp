@@ -15,7 +15,7 @@ pub struct Assigner {
 }
 
 impl Assigner {
-    pub(super) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             next_id: NodeId::zero(),
         }

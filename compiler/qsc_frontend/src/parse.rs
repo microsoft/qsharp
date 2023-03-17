@@ -17,7 +17,7 @@ mod ty;
 
 use crate::lex::{self, TokenKind};
 use miette::Diagnostic;
-use qsc_ast::ast::{Expr, Namespace, Span};
+use qsc_ast::ast::{Expr, Namespace, Span, Stmt};
 use scan::Scanner;
 use std::result;
 use thiserror::Error;
@@ -25,7 +25,7 @@ use thiserror::Error;
 pub(super) use keyword::Keyword;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
-pub(super) enum Error {
+pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),
@@ -55,6 +55,19 @@ pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
             let mut errors = scanner.errors();
             errors.push(err);
             (Vec::new(), errors)
+        }
+    }
+}
+
+#[must_use]
+pub fn stmt(input: &str) -> (Stmt, Vec<Error>) {
+    let mut scanner = Scanner::new(input);
+    match stmt::stmt(&mut scanner) {
+        Ok(stmt) => (stmt, scanner.errors()),
+        Err(err) => {
+            let mut errors = scanner.errors();
+            errors.push(err);
+            (Stmt::default(), errors)
         }
     }
 }

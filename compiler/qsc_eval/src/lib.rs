@@ -23,7 +23,7 @@ use qsc_ast::ast::{
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
-    resolve::{DefId, PackageSrc},
+    resolve::{DefId, PackageSrc, Resolutions},
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -171,7 +171,6 @@ impl Range {
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
-    current_unit: &'a CompileUnit,
     current_id: PackageId,
     scopes: Vec<HashMap<GlobalId, Variable>>,
     globals: HashMap<GlobalId, &'a CallableDecl>,
@@ -182,9 +181,6 @@ impl<'a> Evaluator<'a> {
     pub fn new(store: &'a PackageStore, entry_id: PackageId) -> Self {
         Self {
             store,
-            current_unit: store
-                .get(entry_id)
-                .expect("entry package should be added to store before evaluation"),
             current_id: entry_id,
             scopes: vec![],
             globals: extract_callables(store),
@@ -195,28 +191,43 @@ impl<'a> Evaluator<'a> {
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.current_unit.package.entry {
-            match self.eval_expr(expr) {
-                ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
-                ControlFlow::Break(Reason::Error(error)) => Err(error),
-            }
-        } else {
-            Err(Error::EmptyExpr)
+        todo!()
+        // if let Some(expr) = &self.current_unit.package.entry {
+        //     match self.eval_expr(expr) {
+        //         ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
+        //         ControlFlow::Break(Reason::Error(error)) => Err(error),
+        //     }
+        // } else {
+        //     Err(Error::EmptyExpr)
+        // }
+    }
+
+    pub fn repl(&mut self, resolutions: &Resolutions, stmt: &Stmt) -> Result<Value, Error> {
+        match self.eval_stmt(resolutions, stmt) {
+            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
+            ControlFlow::Break(Reason::Error(error)) => Err(error),
         }
     }
 
-    fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
+    pub fn push_scope(&mut self) {
+        self.scopes.push(HashMap::new());
+    }
+
+    fn eval_expr(&mut self, resolutions: &Resolutions, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
                 let mut val_arr = vec![];
                 for expr in arr {
-                    val_arr.push(self.eval_expr(expr)?);
+                    val_arr.push(self.eval_expr(resolutions, expr)?);
                 }
                 ControlFlow::Continue(Value::Array(val_arr))
             }
             ExprKind::ArrayRepeat(item, size) => {
-                let item_val = self.eval_expr(item)?;
-                let size_val: i64 = self.eval_expr(size)?.try_into().with_span(size.span)?;
+                let item_val = self.eval_expr(resolutions, item)?;
+                let size_val: i64 = self
+                    .eval_expr(resolutions, size)?
+                    .try_into()
+                    .with_span(size.span)?;
                 let s = match size_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => ControlFlow::Break(Reason::Error(Error::Count(size_val, size.span))),
@@ -224,27 +235,36 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::Array(vec![item_val; s]))
             }
             ExprKind::Assign(lhs, rhs) => {
-                let val = self.eval_expr(rhs)?;
-                self.update_binding(lhs, val)
+                let val = self.eval_expr(resolutions, rhs)?;
+                self.update_binding(resolutions, lhs, val)
             }
-            ExprKind::Block(block) => self.eval_block(block),
-            ExprKind::Call(call, args) => self.eval_call(call, args),
+            ExprKind::Block(block) => self.eval_block(resolutions, block),
+            ExprKind::Call(call, args) => self.eval_call(resolutions, call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
-                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
+                self.eval_expr(resolutions, msg)?
+                    .try_into()
+                    .with_span(msg.span)?,
                 expr.span,
             ))),
             ExprKind::If(cond, then, els) => {
-                if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
-                    self.eval_block(then)
+                if self
+                    .eval_expr(resolutions, cond)?
+                    .try_into()
+                    .with_span(cond.span)?
+                {
+                    self.eval_block(resolutions, then)
                 } else if let Some(els) = els {
-                    self.eval_expr(els)
+                    self.eval_expr(resolutions, els)
                 } else {
                     ControlFlow::Continue(Value::UNIT)
                 }
             }
             ExprKind::Index(arr, index_expr) => {
-                let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
-                let index_val = self.eval_expr(index_expr)?;
+                let arr = self
+                    .eval_expr(resolutions, arr)?
+                    .try_into_array()
+                    .with_span(arr.span)?;
+                let index_val = self.eval_expr(resolutions, index_expr)?;
                 match &index_val {
                     Value::Int(index) => index_array(&arr, *index, index_expr.span),
                     Value::Range(start, step, end) => {
@@ -258,18 +278,22 @@ impl<'a> Evaluator<'a> {
                 }
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
-            ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
-            ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
-            ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
+            ExprKind::Paren(expr) => self.eval_expr(resolutions, expr),
+            ExprKind::Path(path) => {
+                ControlFlow::Continue(self.resolve_binding(resolutions, path.id))
+            }
+            ExprKind::Range(start, step, end) => self.eval_range(resolutions, start, step, end),
+            ExprKind::Return(expr) => {
+                ControlFlow::Break(Reason::Return(self.eval_expr(resolutions, expr)?))
+            }
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
-                    val_tup.push(self.eval_expr(expr)?);
+                    val_tup.push(self.eval_expr(resolutions, expr)?);
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
-            ExprKind::UnOp(op, rhs) => self.eval_unary_op_expr(expr, *op, rhs),
+            ExprKind::UnOp(op, rhs) => self.eval_unary_op_expr(resolutions, expr, *op, rhs),
             ExprKind::AssignOp(..)
             | ExprKind::AssignUpdate(..)
             | ExprKind::BinOp(..)
@@ -289,14 +313,17 @@ impl<'a> Evaluator<'a> {
 
     fn eval_range(
         &mut self,
+        resolutions: &Resolutions,
         start: &Option<Box<Expr>>,
         step: &Option<Box<Expr>>,
         end: &Option<Box<Expr>>,
     ) -> ControlFlow<Reason, Value> {
         let mut to_opt_i64 = |e: &Option<Box<Expr>>| match e {
-            Some(expr) => {
-                ControlFlow::Continue(Some(self.eval_expr(expr)?.try_into().with_span(expr.span)?))
-            }
+            Some(expr) => ControlFlow::Continue(Some(
+                self.eval_expr(resolutions, expr)?
+                    .try_into()
+                    .with_span(expr.span)?,
+            )),
             None => ControlFlow::Continue(None),
         };
         ControlFlow::Continue(Value::Range(
@@ -306,13 +333,17 @@ impl<'a> Evaluator<'a> {
         ))
     }
 
-    fn eval_block(&mut self, block: &Block) -> ControlFlow<Reason, Value> {
+    fn eval_block(
+        &mut self,
+        resolutions: &Resolutions,
+        block: &Block,
+    ) -> ControlFlow<Reason, Value> {
         self.enter_scope();
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
-                let _ = self.eval_stmt(stmt)?;
+                let _ = self.eval_stmt(resolutions, stmt)?;
             }
-            self.eval_stmt(last)
+            self.eval_stmt(resolutions, last)
         } else {
             ControlFlow::Continue(Value::UNIT)
         };
@@ -320,37 +351,45 @@ impl<'a> Evaluator<'a> {
         result
     }
 
-    fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
+    fn eval_stmt(&mut self, resolutions: &Resolutions, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
-            StmtKind::Expr(expr) => self.eval_expr(expr),
+            StmtKind::Empty => ControlFlow::Continue(Value::UNIT),
+            StmtKind::Expr(expr) => self.eval_expr(resolutions, expr),
             StmtKind::Local(mutability, pat, expr) => {
-                let val = self.eval_expr(expr)?;
-                self.bind_value(pat, val, expr.span, *mutability)?;
+                let val = self.eval_expr(resolutions, expr)?;
+                self.bind_value(resolutions, pat, val, expr.span, *mutability)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Semi(expr) => {
-                let _ = self.eval_expr(expr)?;
+                let _ = self.eval_expr(resolutions, expr)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
-                let qubits = self.eval_qubit_init(qubit_init)?;
+                let qubits = self.eval_qubit_init(resolutions, qubit_init)?;
                 if let Some(block) = block {
                     self.enter_scope();
-                    self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
-                    let _ = self.eval_block(block)?;
+                    self.bind_value(resolutions, pat, qubits, stmt.span, Mutability::Immutable)?;
+                    let _ = self.eval_block(resolutions, block)?;
                     self.leave_scope();
                 } else {
-                    self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
+                    self.bind_value(resolutions, pat, qubits, stmt.span, Mutability::Immutable)?;
                 }
                 ControlFlow::Continue(Value::UNIT)
             }
         }
     }
 
-    fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {
+    fn eval_qubit_init(
+        &mut self,
+        resolutions: &Resolutions,
+        qubit_init: &QubitInit,
+    ) -> ControlFlow<Reason, Value> {
         match &qubit_init.kind {
             QubitInitKind::Array(count) => {
-                let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
+                let count_val: i64 = self
+                    .eval_expr(resolutions, count)?
+                    .try_into()
+                    .with_span(count.span)?;
                 let count: usize = match count_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => {
@@ -361,26 +400,31 @@ impl<'a> Evaluator<'a> {
                 arr.resize_with(count, || Value::Qubit(__quantum__rt__qubit_allocate()));
                 ControlFlow::Continue(Value::Array(arr))
             }
-            QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
+            QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(resolutions, qubit_init),
             QubitInitKind::Single => {
                 ControlFlow::Continue(Value::Qubit(__quantum__rt__qubit_allocate()))
             }
             QubitInitKind::Tuple(tup) => {
                 let mut tup_vec = vec![];
                 for init in tup {
-                    tup_vec.push(self.eval_qubit_init(init)?);
+                    tup_vec.push(self.eval_qubit_init(resolutions, init)?);
                 }
                 ControlFlow::Continue(Value::Tuple(tup_vec))
             }
         }
     }
 
-    fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
-        let call_val = self.eval_expr(call)?;
+    fn eval_call(
+        &mut self,
+        resolutions: &Resolutions,
+        call: &Expr,
+        args: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let call_val = self.eval_expr(resolutions, call)?;
         let call_span = call.span;
         let (call, functor) = value_to_call_id(call_val, call.span)?;
 
-        let args_val = self.eval_expr(args)?;
+        let args_val = self.eval_expr(resolutions, args)?;
 
         let decl = *self
             .globals
@@ -389,19 +433,22 @@ impl<'a> Evaluator<'a> {
 
         let spec = specialization_from_functor_app(&functor);
 
-        let (cached_id, cached_unit) = (self.current_id, self.current_unit);
-        (self.current_id, self.current_unit) = (
-            call.package,
-            self.store
-                .get(call.package)
-                .expect("global value should refer only to stored packages"),
-        );
+        let cached_id = self.current_id;
+        self.current_id = call.package;
+
+        let resolutions = self
+            .store
+            .get(call.package)
+            .expect("global value should refer only to stored packages")
+            .context
+            .resolutions();
 
         self.enter_scope();
-        let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
+        let call_res =
+            self.eval_call_specialization(resolutions, decl, spec, args_val, args.span, call_span);
         self.leave_scope();
 
-        (self.current_id, self.current_unit) = (cached_id, cached_unit);
+        self.current_id = cached_id;
 
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
@@ -411,6 +458,7 @@ impl<'a> Evaluator<'a> {
 
     fn eval_call_specialization(
         &mut self,
+        resolutions: &Resolutions,
         decl: &CallableDecl,
         spec: Spec,
         args_val: Value,
@@ -419,8 +467,14 @@ impl<'a> Evaluator<'a> {
     ) -> ControlFlow<Reason, Value> {
         match (&decl.body, spec) {
             (CallableBody::Block(body_block), Spec::Body) => {
-                self.bind_value(&decl.input, args_val, args_span, Mutability::Immutable)?;
-                self.eval_block(body_block)
+                self.bind_value(
+                    resolutions,
+                    &decl.input,
+                    args_val,
+                    args_span,
+                    Mutability::Immutable,
+                )?;
+                self.eval_block(resolutions, body_block)
             }
             (CallableBody::Specs(spec_decls), spec) => {
                 let spec_decl = spec_decls
@@ -436,12 +490,13 @@ impl<'a> Evaluator<'a> {
                             ControlFlow::Break(Reason::Error(Error::Unimplemented(call_span)))
                         } else {
                             self.bind_value(
+                                resolutions,
                                 &decl.input,
                                 args_val,
                                 args_span,
                                 Mutability::Immutable,
                             )?;
-                            self.eval_block(body_block)
+                            self.eval_block(resolutions, body_block)
                         }
                     }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
@@ -458,11 +513,12 @@ impl<'a> Evaluator<'a> {
 
     fn eval_unary_op_expr(
         &mut self,
+        resolutions: &Resolutions,
         expr: &Expr,
         op: UnOp,
         rhs: &Expr,
     ) -> ControlFlow<Reason, Value> {
-        let val = self.eval_expr(rhs)?;
+        let val = self.eval_expr(resolutions, rhs)?;
         match op {
             UnOp::Neg => match val {
                 Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
@@ -533,6 +589,7 @@ impl<'a> Evaluator<'a> {
 
     fn bind_value(
         &mut self,
+        resolutions: &Resolutions,
         pat: &Pat,
         value: Value,
         span: Span,
@@ -541,9 +598,7 @@ impl<'a> Evaluator<'a> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = self.defid_to_globalid(
-                    self.current_unit
-                        .context
-                        .resolutions()
+                    resolutions
                         .get(&variable.id)
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
@@ -557,12 +612,12 @@ impl<'a> Evaluator<'a> {
             }
             PatKind::Discard(_) => ControlFlow::Continue(()),
             PatKind::Elided => panic!("elision used in binding"),
-            PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
+            PatKind::Paren(pat) => self.bind_value(resolutions, pat, value, span, mutability),
             PatKind::Tuple(tup) => {
                 let val_tup = value.try_into_tuple().with_span(span)?;
                 if val_tup.len() == tup.len() {
                     for (pat, val) in tup.iter().zip(val_tup.into_iter()) {
-                        self.bind_value(pat, val, span, mutability)?;
+                        self.bind_value(resolutions, pat, val, span, mutability)?;
                     }
                     ControlFlow::Continue(())
                 } else {
@@ -576,11 +631,8 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn resolve_binding(&mut self, id: NodeId) -> Value {
-        let id = self
-            .current_unit
-            .context
-            .resolutions()
+    fn resolve_binding(&mut self, resolutions: &Resolutions, id: NodeId) -> Value {
+        let id = resolutions
             .get(&id)
             .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
@@ -597,13 +649,16 @@ impl<'a> Evaluator<'a> {
         local.unwrap_or_else(|| self.resolve_global(global_id))
     }
 
-    fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
+    fn update_binding(
+        &mut self,
+        resolutions: &Resolutions,
+        lhs: &Expr,
+        rhs: Value,
+    ) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
                 let id = self.defid_to_globalid(
-                    self.current_unit
-                        .context
-                        .resolutions()
+                    resolutions
                         .get(&path.id)
                         .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
                 );
@@ -623,11 +678,11 @@ impl<'a> Evaluator<'a> {
                 }
             }
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
-            (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
+            (ExprKind::Paren(expr), rhs) => self.update_binding(resolutions, expr, rhs),
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
                 if var_tup.len() == tup.len() {
                     for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
-                        self.update_binding(expr, val)?;
+                        self.update_binding(resolutions, expr, val)?;
                     }
                     ControlFlow::Continue(Value::UNIT)
                 } else {

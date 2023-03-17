@@ -5,13 +5,18 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
+use qsc_ast::{mut_visit::MutVisitor, visit::Visitor};
 use qsc_eval::Evaluator;
 use qsc_frontend::{
     compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
+    id::Assigner,
+    parse,
+    resolve::GlobalTable,
 };
 use std::{
-    fs, io,
+    fs,
+    io::{self, Write},
     path::{Path, PathBuf},
     process::ExitCode,
     result::Result,
@@ -25,6 +30,8 @@ struct Cli {
     sources: Vec<PathBuf>,
     #[arg(short, long, default_value = "")]
     entry: String,
+    #[arg(short, long, default_value_t = false)]
+    interactive: bool,
 }
 
 struct ErrorReporter<'a> {
@@ -63,6 +70,11 @@ impl<'a> ErrorReporter<'a> {
 
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
+    if cli.interactive {
+        repl().unwrap();
+        return Ok(ExitCode::SUCCESS);
+    }
+
     let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
@@ -86,6 +98,38 @@ fn main() -> miette::Result<ExitCode> {
             eprintln!("{:?}", reporter.report(error.clone()));
         }
         Ok(ExitCode::FAILURE)
+    }
+}
+
+fn repl() -> io::Result<()> {
+    let mut store = PackageStore::new();
+    let std = store.insert(compile::std());
+    let mut globals = GlobalTable::new();
+    globals.set_package(std);
+    globals.visit_package(&store.get(std).unwrap().package);
+    let mut resolver = globals.into_resolver();
+    resolver.push_scope();
+    let mut assigner = Assigner::new();
+    let mut evaluator = Evaluator::new(&store, std);
+    evaluator.push_scope();
+
+    loop {
+        print!("> ");
+        io::stdout().flush().unwrap();
+        let mut line = String::new();
+        if io::stdin().read_line(&mut line)? == 0 {
+            println!();
+            break Ok(());
+        }
+
+        let (mut stmt, errors) = parse::stmt(&line);
+        assert!(errors.is_empty(), "parsing failed");
+        assigner.visit_stmt(&mut stmt);
+        let stmt = Box::leak(Box::new(stmt));
+        resolver.visit_stmt(stmt);
+        assert!(resolver.errors().is_empty(), "resolution failed");
+        let value = evaluator.repl(resolver.resolutions(), stmt).unwrap();
+        println!("{value}");
     }
 }
 

@@ -327,7 +327,7 @@ pub struct Block {
 }
 
 /// A statement.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Stmt {
     /// The node ID.
     pub id: NodeId,
@@ -338,8 +338,10 @@ pub struct Stmt {
 }
 
 /// A statement kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum StmtKind {
+    #[default]
+    Empty,
     /// An expression without a trailing semicolon.
     Expr(Expr),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.

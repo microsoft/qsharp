@@ -7,5 +7,5 @@ pub mod compile;
 pub mod diagnostic;
 pub mod id;
 mod lex;
-mod parse;
+pub mod parse;
 pub mod resolve;

@@ -37,7 +37,7 @@ pub enum PackageSrc {
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-pub(super) enum Error {
+pub enum Error {
     #[error("`{0}` not found in this scope")]
     NotFound(String, #[label("not found")] Span),
 
@@ -50,7 +50,7 @@ pub(super) enum Error {
     ),
 }
 
-pub(super) struct Resolver<'a> {
+pub struct Resolver<'a> {
     resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
@@ -61,6 +61,18 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
+    pub fn resolutions(&self) -> &Resolutions {
+        &self.resolutions
+    }
+
+    pub fn errors(&self) -> &[Error] {
+        &self.errors
+    }
+
+    pub fn push_scope(&mut self) {
+        self.locals.push(HashMap::new());
+    }
+
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
         (self.resolutions, self.errors)
     }
@@ -147,7 +159,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
                     .expect("parent block of statement should have added environment");
                 bind(&mut self.resolutions, env, pat);
             }
-            StmtKind::Expr(..) | StmtKind::Semi(..) => {}
+            StmtKind::Empty | StmtKind::Expr(..) | StmtKind::Semi(..) => {}
         }
     }
 
@@ -166,7 +178,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 }
 
-pub(super) struct GlobalTable<'a> {
+pub struct GlobalTable<'a> {
     resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
     terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
@@ -175,7 +187,7 @@ pub(super) struct GlobalTable<'a> {
 }
 
 impl<'a> GlobalTable<'a> {
-    pub(super) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             resolutions: Resolutions::new(),
             tys: HashMap::new(),
@@ -185,11 +197,11 @@ impl<'a> GlobalTable<'a> {
         }
     }
 
-    pub(super) fn set_package(&mut self, package: PackageId) {
+    pub fn set_package(&mut self, package: PackageId) {
         self.package = PackageSrc::Extern(package);
     }
 
-    pub(super) fn into_resolver(self) -> Resolver<'a> {
+    pub fn into_resolver(self) -> Resolver<'a> {
         Resolver {
             resolutions: self.resolutions,
             tys: self.tys,

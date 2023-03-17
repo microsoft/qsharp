@@ -195,6 +195,7 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
     vis.visit_span(&mut stmt.span);
 
     match &mut stmt.kind {
+        StmtKind::Empty => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(pat);
