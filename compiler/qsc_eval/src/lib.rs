@@ -316,7 +316,7 @@ impl<'a> Evaluator<'a> {
         } else {
             ControlFlow::Continue(Value::UNIT)
         };
-        self.leave_scope();
+        self.leave_scope(true);
         result
     }
 
@@ -338,7 +338,7 @@ impl<'a> Evaluator<'a> {
                     self.enter_scope();
                     self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
                     let _ = self.eval_block(block)?;
-                    self.leave_scope();
+                    self.leave_scope(true);
                 } else {
                     self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
                 }
@@ -399,7 +399,7 @@ impl<'a> Evaluator<'a> {
 
         self.enter_scope();
         let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
-        self.leave_scope();
+        self.leave_scope(false);
 
         (self.current_id, self.current_unit) = (cached_id, cached_unit);
 
@@ -444,6 +444,13 @@ impl<'a> Evaluator<'a> {
                             self.eval_block(body_block)
                         }
                     }
+                    SpecBody::Gen(SpecGen::Slf) => self.eval_call_specialization(
+                        decl,
+                        Spec::Body,
+                        args_val,
+                        args_span,
+                        call_span,
+                    ),
                     SpecBody::Gen(SpecGen::Intrinsic) => {
                         invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
@@ -520,14 +527,18 @@ impl<'a> Evaluator<'a> {
         self.scopes.push(HashMap::default());
     }
 
-    fn leave_scope(&mut self) {
-        for (_, var) in self
-            .scopes
-            .pop()
-            .expect("scope should be entered first before leaving")
-            .drain()
-        {
-            var.value.release();
+    fn leave_scope(&mut self, release: bool) {
+        if release {
+            for (_, var) in self
+                .scopes
+                .pop()
+                .expect("scope should be entered first before leaving")
+                .drain()
+            {
+                var.value.release();
+            }
+        } else {
+            let _ = self.scopes.pop();
         }
     }
 

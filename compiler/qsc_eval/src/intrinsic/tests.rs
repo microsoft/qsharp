@@ -83,6 +83,37 @@ fn int_as_double_precision_loss() {
 }
 
 #[test]
+fn dump_machine() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Diagnostics.DumpMachine()",
+        &expect!["()"],
+    );
+}
+
+#[test]
+fn check_zero() {
+    check_intrinsic(
+        "",
+        "{use q = Qubit(); Microsoft.Quantum.Diagnostics.CheckZero(q)}",
+        &expect!["true"],
+    );
+}
+
+#[test]
+fn check_zero_false() {
+    check_intrinsic(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            QIR.Intrinsic.__quantum__qis__x__body(q);
+            Microsoft.Quantum.Diagnostics.CheckZero(q)
+        }"},
+        &expect!["false"],
+    );
+}
+
+#[test]
 fn unknown_intrinsic() {
     check_intrinsic(
         indoc! {"
