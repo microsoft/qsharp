@@ -38,16 +38,14 @@ fn array_repeat_type_error_expr() {
         "",
         "[4, size = true]",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Int",
+                "Bool",
+                Span {
                     lo: 11,
                     hi: 15,
                 },
-                kind: Type(
-                    "Int",
-                    "Bool",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -115,16 +113,14 @@ fn block_let_bind_tuple_arity_error_expr() {
             let (x, y, z) = (0, 1);
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            TupleArity(
+                3,
+                2,
+                Span {
                     lo: 10,
                     hi: 19,
                 },
-                kind: TupleArity(
-                    3,
-                    2,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -203,16 +199,14 @@ fn block_mutable_update_tuple_arity_error_expr() {
             x
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            TupleArity(
+                2,
+                3,
+                Span {
                     lo: 39,
                     hi: 45,
                 },
-                kind: TupleArity(
-                    2,
-                    3,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -258,13 +252,164 @@ fn block_mutable_immutable_expr() {
             set x = 1;
         }"},
         &expect![[r#"
-            Error {
-                span: Span {
+            Mutability(
+                Span {
                     lo: 25,
                     hi: 26,
                 },
-                kind: Mutability,
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn block_qubit_use_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            q
+        }"},
+        &expect!["Qubit0"],
+    );
+}
+
+#[test]
+fn block_qubit_use_use_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use q1 = Qubit();
+            q1
+        }"},
+        &expect!["Qubit1"],
+    );
+}
+
+#[test]
+fn block_qubit_use_reuse_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            {
+                use q = Qubit();
             }
+            use q = Qubit();
+            q
+        }"},
+        &expect!["Qubit0"],
+    );
+}
+
+#[test]
+fn block_qubit_use_scope_reuse_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit() {
+            }
+            use q = Qubit();
+            q
+        }"},
+        &expect!["Qubit0"],
+    );
+}
+
+#[test]
+fn block_qubit_use_array_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit[3];
+            q
+        }"},
+        &expect!["[Qubit0, Qubit1, Qubit2]"],
+    );
+}
+
+#[test]
+fn block_qubit_use_array_invalid_count_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit[-3];
+            q
+        }"},
+        &expect![[r#"
+            Count(
+                -3,
+                Span {
+                    lo: 20,
+                    hi: 22,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn block_qubit_use_array_invalid_type_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = Qubit[false];
+            q
+        }"},
+        &expect![[r#"
+            Type(
+                "Int",
+                "Bool",
+                Span {
+                    lo: 20,
+                    hi: 25,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn block_qubit_use_tuple_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = (Qubit[3], Qubit(), Qubit());
+            q
+        }"},
+        &expect!["([Qubit0, Qubit1, Qubit2], Qubit3, Qubit4)"],
+    );
+}
+
+#[test]
+fn block_qubit_use_nested_tuple_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use q = (Qubit[3], (Qubit(), Qubit()));
+            q
+        }"},
+        &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
+    );
+}
+
+#[test]
+fn block_qubit_use_tuple_invalid_arity_expr() {
+    check_expression(
+        "",
+        indoc! {"{
+            use (q, q1) = (Qubit[3], Qubit(), Qubit());
+            q
+        }"},
+        &expect![[r#"
+            TupleArity(
+                2,
+                3,
+                Span {
+                    lo: 10,
+                    hi: 17,
+                },
+            )
         "#]],
     );
 }
@@ -275,13 +420,12 @@ fn assign_invalid_expr() {
         "",
         "set 0 = 1",
         &expect![[r#"
-            Error {
-                span: Span {
+            Unassignable(
+                Span {
                     lo: 4,
                     hi: 5,
                 },
-                kind: Unassignable,
-            }
+            )
         "#]],
     );
 }
@@ -292,15 +436,13 @@ fn fail_expr() {
         "",
         r#"fail "This is a failure""#,
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "This is a failure",
+                Span {
                     lo: 0,
                     hi: 24,
                 },
-                kind: UserFail(
-                    "This is a failure",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -311,15 +453,13 @@ fn fail_shortcut_expr() {
         "",
         r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "Got Here!",
+                Span {
                     lo: 2,
                     hi: 18,
                 },
-                kind: UserFail(
-                    "Got Here!",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -400,14 +540,13 @@ fn array_slice_step_zero_expr() {
         "",
         "[1, 2, 3, 4, 5][...0...]",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 16,
-                hi: 23,
-            },
-            kind: RangeStepZero,
-        }
-    "#]],
+            RangeStepZero(
+                Span {
+                    lo: 16,
+                    hi: 23,
+                },
+            )
+        "#]],
     );
 }
 
@@ -417,16 +556,14 @@ fn array_slice_out_of_range_expr() {
         "",
         "[1, 2, 3, 4, 5][0..7]",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 16,
-                hi: 20,
-            },
-            kind: OutOfRange(
+            OutOfRange(
                 5,
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 16,
+                    hi: 20,
+                },
+            )
+        "#]],
     );
 }
 
@@ -436,15 +573,13 @@ fn array_index_negative_expr() {
         "",
         "[1, 2, 3][-2]",
         &expect![[r#"
-            Error {
-                span: Span {
+            IndexVal(
+                -2,
+                Span {
                     lo: 10,
                     hi: 12,
                 },
-                kind: IndexVal(
-                    -2,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -455,15 +590,13 @@ fn array_index_out_of_range_expr() {
         "",
         "[1, 2, 3][4]",
         &expect![[r#"
-            Error {
-                span: Span {
+            OutOfRange(
+                4,
+                Span {
                     lo: 10,
                     hi: 11,
                 },
-                kind: OutOfRange(
-                    4,
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -474,16 +607,14 @@ fn array_index_type_error_expr() {
         "",
         "[1, 2, 3][false]",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Int or Range",
+                "Bool",
+                Span {
                     lo: 10,
                     hi: 15,
                 },
-                kind: Type(
-                    "Int or Range",
-                    "Bool",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -640,16 +771,14 @@ fn unop_bitwise_not_bool_expr() {
         "",
         "~~~(false)",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Int or BigInt",
+                "Bool",
+                Span {
                     lo: 3,
                     hi: 10,
                 },
-                kind: Type(
-                    "Int or BigInt",
-                    "Bool",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -674,17 +803,15 @@ fn unop_negate_bool_expr() {
         "",
         "-(false)",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 1,
-                hi: 8,
-            },
-            kind: Type(
+            Type(
                 "Int, BigInt, or Double",
                 "Bool",
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 1,
+                    hi: 8,
+                },
+            )
+        "#]],
     );
 }
 
@@ -723,17 +850,15 @@ fn unop_not_int_expr() {
         "",
         "not 0",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 4,
-                hi: 5,
-            },
-            kind: Type(
+            Type(
                 "Bool",
                 "Int",
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 4,
+                    hi: 5,
+                },
+            )
+        "#]],
     );
 }
 
@@ -752,17 +877,15 @@ fn unop_positive_bool_expr() {
         "",
         "+(false)",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 1,
-                hi: 8,
-            },
-            kind: Type(
+            Type(
                 "Int, BigInt, or Double",
                 "Bool",
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 1,
+                    hi: 8,
+                },
+            )
+        "#]],
     );
 }
 
@@ -785,9 +908,10 @@ fn unop_adjoint_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Adjoint Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 0 })"]);
+        "},
+        "Adjoint Test.Foo",
+        &expect!["Adjoint <node 5 in package 0>"],
+    );
 }
 
 #[test]
@@ -799,9 +923,10 @@ fn unop_controlled_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Controlled Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 1 })"]);
+        "},
+        "Controlled Test.Foo",
+        &expect!["Controlled <node 5 in package 0>"],
+    );
 }
 
 #[test]
@@ -813,9 +938,10 @@ fn unop_adjoint_adjoint_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Adjoint (Adjoint Test.Foo)", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 0 })"]);
+        "},
+        "Adjoint (Adjoint Test.Foo)",
+        &expect!["<node 5 in package 0>"],
+    );
 }
 
 #[test]
@@ -827,9 +953,10 @@ fn unop_controlled_adjoint_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Controlled Adjoint Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 1 })"]);
+        "},
+        "Controlled Adjoint Test.Foo",
+        &expect!["Controlled Adjoint <node 5 in package 0>"],
+    );
 }
 
 #[test]
@@ -841,9 +968,10 @@ fn unop_adjoint_controlled_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Adjoint Controlled Test.Foo", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: true, controlled: 1 })"]);
+        "},
+        "Adjoint Controlled Test.Foo",
+        &expect!["Controlled Adjoint <node 5 in package 0>"],
+    );
 }
 
 #[test]
@@ -855,9 +983,10 @@ fn unop_controlled_controlled_functor_expr() {
                     body intrinsic;
                 }
             }
-        "}, 
-        "Controlled (Controlled Test.Foo)", 
-        &expect!["GlobalId { package: PackageId(0), node: NodeId(5) }(FunctorApp { adjoint: false, controlled: 2 })"]);
+        "},
+        "Controlled (Controlled Test.Foo)",
+        &expect!["Controlled Controlled <node 5 in package 0>"],
+    );
 }
 
 #[test]
@@ -884,16 +1013,14 @@ fn if_type_error_expr() {
         "",
         "if 4 { 3 }",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Bool",
+                "Int",
+                Span {
                     lo: 3,
                     hi: 4,
                 },
-                kind: Type(
-                    "Bool",
-                    "Int",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -1088,15 +1215,13 @@ fn call_adjoint_expr() {
         "#},
         "Adjoint Test.Foo()",
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "Adjoint Implementation",
+                Span {
                     lo: 166,
                     hi: 195,
                 },
-                kind: UserFail(
-                    "Adjoint Implementation",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -1124,15 +1249,13 @@ fn call_adjoint_adjoint_expr() {
         "#},
         "Adjoint Adjoint Test.Foo()",
         &expect![[r#"
-            Error {
-                span: Span {
+            UserFail(
+                "Body Implementation",
+                Span {
                     lo: 92,
                     hi: 118,
                 },
-                kind: UserFail(
-                    "Body Implementation",
-                ),
-            }
+            )
         "#]],
     );
 }

@@ -34,17 +34,15 @@ fn length_type_err() {
         "",
         "Length((1, 2, 3))",
         &expect![[r#"
-        Error {
-            span: Span {
-                lo: 6,
-                hi: 17,
-            },
-            kind: Type(
+            Type(
                 "Array",
                 "Tuple",
-            ),
-        }
-    "#]],
+                Span {
+                    lo: 6,
+                    hi: 17,
+                },
+            )
+        "#]],
     );
 }
 
@@ -63,16 +61,14 @@ fn int_as_double_type_error() {
         "",
         "Microsoft.Quantum.Convert.IntAsDouble(false)",
         &expect![[r#"
-            Error {
-                span: Span {
+            Type(
+                "Int",
+                "Bool",
+                Span {
                     lo: 37,
                     hi: 44,
                 },
-                kind: Type(
-                    "Int",
-                    "Bool",
-                ),
-            }
+            )
         "#]],
     );
 }
@@ -98,13 +94,12 @@ fn unknown_intrinsic() {
         "},
         "Test.Foo()",
         &expect![[r#"
-            Error {
-                span: Span {
-                    lo: 30,
-                    hi: 33,
+            UnknownIntrinsic(
+                Span {
+                    lo: 76,
+                    hi: 84,
                 },
-                kind: UnknownIntrinsic,
-            }
+            )
         "#]],
     );
 }

@@ -15,7 +15,7 @@ fn error_span(error: &Error) -> Span {
     let label = error
         .labels()
         .and_then(|mut ls| ls.next())
-        .expect("Error should have label.");
+        .expect("error should have at least one label");
 
     let span = label.inner();
     Span {
@@ -177,12 +177,14 @@ fn entry_call_operation() {
     assert!(errors.is_empty(), "{errors:#?}");
     let resolutions = unit.context.resolutions();
     let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
-        panic!("Expected callable item.");
+        panic!("item should be a callable");
     };
-    let id = resolutions.get(&callable.name.id).expect("Should resolve.");
-    let entry = unit.package.entry.expect("Should have entry expression.");
-    let ExprKind::Call(callee, _) = entry.kind else { panic!("Expected call.") };
-    let ExprKind::Path(path) = callee.kind else { panic!("Expected path.") };
+    let id = resolutions
+        .get(&callable.name.id)
+        .expect("callable should resolve");
+    let entry = unit.package.entry.expect("package should have entry");
+    let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
+    let ExprKind::Path(path) = callee.kind else { panic!("callee should be a path") };
     assert_eq!(unit.context.resolutions.get(&path.id), Some(id));
 }
 
@@ -235,9 +237,9 @@ fn replace_node() {
 
     Replacer(unit.context.assigner_mut()).visit_package(&mut unit.package);
     let ItemKind::Callable(callable)= &unit.package.namespaces[0].items[0].kind else {
-        panic!("Expected callable.");
+        panic!("item should be a callable");
     };
-    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
+    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
 
     expect![[r#"
         Block {
@@ -299,7 +301,7 @@ fn package_dependency() {
     let foo = if let ItemKind::Callable(foo) = &unit1.package.namespaces[0].items[0].kind {
         foo.name.id
     } else {
-        panic!("Expected callable.");
+        panic!("item should be a callable");
     };
 
     let package1 = store.insert(unit1);
@@ -317,14 +319,14 @@ fn package_dependency() {
     );
 
     let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
-        panic!("Expected callable.");
+        panic!("item should be a callable");
     };
-    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("Expected expression.") };
-    let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
-    let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
+    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
+    let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
+    let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
     let resolutions = unit2.context.resolutions();
-    let id = resolutions.get(&path.id).expect("Should resolve.");
+    let id = resolutions.get(&path.id).expect("should resolve");
     assert_eq!(id.package, PackageSrc::Extern(package1));
     assert_eq!(id.node, foo);
 }
@@ -360,12 +362,12 @@ fn package_dependency_internal() {
     );
 
     let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
-        panic!("Expected callable.");
+        panic!("item should be a callable");
     };
-    let CallableBody::Block(block) = &callable.body else { panic!("Expected block.") };
-    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("Expected expression.") };
-    let ExprKind::Call(callee, _) = &expr.kind else { panic!("Expected call.") };
-    let ExprKind::Path(path) = &callee.kind else { panic!("Expected path.") };
+    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
+    let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
+    let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
+    let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
     assert!(unit2.context.resolutions.get(&path.id).is_none());
 }
 

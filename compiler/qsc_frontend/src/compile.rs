@@ -67,13 +67,13 @@ impl Context {
             .enumerate()
             .rev()
             .find(|(_, &o)| offset >= o)
-            .expect("Span should match at least one offset.");
+            .expect("offset should match at least one source");
 
         (SourceIndex(index), offset)
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SourceIndex(pub usize);
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -242,7 +242,7 @@ fn resolve_all<'a>(
         globals.set_package(dependency);
         let unit = store
             .get(dependency)
-            .expect("Dependency should be in package store.");
+            .expect("dependency should be added to package store before compilation");
         globals.visit_package(&unit.package);
     }
 
@@ -256,7 +256,7 @@ fn append_errors(
     offset: usize,
     other: Vec<parse::Error>,
 ) {
-    let offset = offset.try_into().expect("Offset should fit into isize.");
+    let offset = offset.try_into().expect("offset should fit into isize");
     for error in other {
         errors.push(OffsetError::new(error, offset));
     }

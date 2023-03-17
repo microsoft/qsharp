@@ -8,7 +8,7 @@ use std::ops::ControlFlow;
 
 use qsc_ast::ast::Span;
 
-use crate::{val::Value, ErrorKind, Reason, WithSpan};
+use crate::{val::Value, Error, Reason, WithSpan};
 
 pub(crate) fn invoke_intrinsic(
     name: &str,
@@ -19,7 +19,7 @@ pub(crate) fn invoke_intrinsic(
     match name {
         "Length" => match args.try_into_array().with_span(args_span)?.len().try_into() {
             Ok(len) => ControlFlow::Continue(Value::Int(len)),
-            Err(_) => ControlFlow::Break(Reason::Error(args_span, ErrorKind::IntegerSize)),
+            Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(args_span))),
         },
 
         #[allow(clippy::cast_precision_loss)]
@@ -28,6 +28,6 @@ pub(crate) fn invoke_intrinsic(
             ControlFlow::Continue(Value::Double(val as f64))
         }
 
-        _ => ControlFlow::Break(Reason::Error(name_span, ErrorKind::UnknownIntrinsic)),
+        _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
     }
 }

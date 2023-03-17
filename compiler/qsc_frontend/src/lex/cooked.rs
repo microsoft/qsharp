@@ -35,7 +35,7 @@ pub(crate) struct Token {
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub(crate) enum Error {
-    #[error("expected `{0}` to complete {1}, but found {2}")]
+    #[error("expected `{0}` to complete {1}, found {2}")]
     Incomplete(
         raw::Single,
         TokenKind,
@@ -43,7 +43,7 @@ pub(crate) enum Error {
         #[label("expected `{0}`")] Span,
     ),
 
-    #[error("expected `{0}` to complete {1}, but found EOF")]
+    #[error("expected `{0}` to complete {1}, found EOF")]
     IncompleteEof(raw::Single, TokenKind, #[label] Span),
 
     #[error("unrecognized character `{0}`")]
@@ -290,7 +290,7 @@ impl<'a> Lexer<'a> {
                 let c = self.input[token.offset..]
                     .chars()
                     .next()
-                    .expect("Token offset should be the start of a character.");
+                    .expect("token offset should be the start of a character");
                 let span = Span {
                     lo: token.offset,
                     hi: self.offset(),
