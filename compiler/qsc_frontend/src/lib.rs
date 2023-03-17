@@ -10,3 +10,6 @@ mod lex;
 mod parse;
 pub mod resolve;
 mod validate;
+
+#[cfg(test)]
+mod tests;

@@ -3,7 +3,7 @@
 
 use qsc_ast::{
     ast::{CallableDecl, CallableKind, Expr, ExprKind, Pat, Ty, TyKind},
-    visit::{walk_expr, Visitor},
+    visit::{walk_callable_decl, walk_expr, Visitor},
 };
 
 pub struct Validator {}
@@ -20,17 +20,18 @@ impl<'a> Visitor<'a> for Validator {
         }
 
         validate_params(&decl.input);
+        walk_callable_decl(self, decl);
     }
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         if let ExprKind::Lambda(_, _, _) = &expr.kind {
-            panic!("Lambdas are not currently supported");
+            panic!("Lambdas are not currently supported.");
         } else {
             walk_expr(self, expr);
             if let ExprKind::Call(_, arg) = &expr.kind {
                 assert!(
                     !has_hole(arg),
-                    "Partial applications are not currently supported"
+                    "Partial applications are not currently supported."
                 );
             }
         }
