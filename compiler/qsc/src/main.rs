@@ -104,13 +104,15 @@ fn main() -> miette::Result<ExitCode> {
 fn repl() -> io::Result<()> {
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
+    let sources: [&str; 0] = [];
+    let user = store.insert(compile(&store, [], sources, ""));
     let mut globals = GlobalTable::new();
     globals.set_package(std);
     globals.visit_package(&store.get(std).unwrap().package);
     let mut resolver = globals.into_resolver();
     resolver.push_scope();
     let mut assigner = Assigner::new();
-    let mut evaluator = Evaluator::new(&store, std);
+    let mut evaluator = Evaluator::new(&store, user);
     evaluator.push_scope();
 
     loop {
