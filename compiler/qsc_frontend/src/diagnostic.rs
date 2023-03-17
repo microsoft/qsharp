@@ -75,6 +75,6 @@ fn offset_span(offset: isize, label: &LabeledSpan) -> LabeledSpan {
     let offset = label
         .offset()
         .checked_add_signed(offset)
-        .expect("Offset shouldn't overflow.");
+        .expect("offset shouldn't overflow");
     LabeledSpan::new(label.label().map(ToString::to_string), offset, label.len())
 }
