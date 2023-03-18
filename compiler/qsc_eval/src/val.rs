@@ -9,9 +9,10 @@ use std::{
 
 use crate::globals::GlobalId;
 use num_bigint::BigInt;
-use qir_backend::{Pauli, __quantum__rt__qubit_release};
+use qir_backend::__quantum__rt__qubit_release;
+use qsc_ast::ast::Pauli;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
