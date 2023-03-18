@@ -27,7 +27,6 @@ use qsc_frontend::{
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
-    mem,
     ops::{ControlFlow, Neg},
 };
 use thiserror::Error;
@@ -409,18 +408,15 @@ impl<'a> Evaluator<'a> {
             .context
             .resolutions();
 
-        self.enter_scope();
         let mut new_self = Self {
-            scopes: mem::take(&mut self.scopes),
+            scopes: Vec::new(),
             package: call.package,
             resolutions,
             ..*self
         };
         let call_res =
             new_self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
-        self.scopes = new_self.scopes;
-        self.leave_scope();
-
+        
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
             ControlFlow::Continue(_) | ControlFlow::Break(_) => call_res,
@@ -435,7 +431,8 @@ impl<'a> Evaluator<'a> {
         args_span: Span,
         call_span: Span,
     ) -> ControlFlow<Reason, Value> {
-        match (&decl.body, spec) {
+        self.enter_scope();
+        let res = match (&decl.body, spec) {
             (CallableBody::Block(body_block), Spec::Body) => {
                 self.bind_value(&decl.input, args_val, args_span, Mutability::Immutable)?;
                 self.eval_block(body_block)
@@ -471,7 +468,9 @@ impl<'a> Evaluator<'a> {
                 }
             }
             _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
-        }
+        };
+        self.leave_scope();
+        res
     }
 
     fn eval_unary_op_expr(
