@@ -6,6 +6,7 @@ members = [
     "compiler/qsc_eval",
     "compiler/qsc_frontend",
     "compiler/qsc_passes",
+    "compiler/qsc_wasm",
 ]
 
 [workspace.package]
@@ -20,11 +21,15 @@ clap = "4.1.8"
 criterion = { version = "0.4.0", default-features = false }
 enum-iterator = "1.2.0"
 expect-test = "1.4.0"
+getrandom = { version = "0.2" }
 indoc = "2.0.0"
 miette = "5.6.0"
 thiserror = "1.0.39"
 num-bigint = "0.4.3"
 num-traits = "0.2.15"
+serde = "1.0"
+serde-wasm-bindgen = "0.5"
+wasm-bindgen = "0.2.84"
 
 [profile.release]
 debug = 1
