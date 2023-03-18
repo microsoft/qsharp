@@ -20,6 +20,7 @@ qsc_frontend = { path = "../qsc_frontend", optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde-wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true  }
+# This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
 getrandom = { workspace = true, features = ["js"], optional = true  }
 
 [features]
