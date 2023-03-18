@@ -41,6 +41,7 @@ if build_wasm:
     wasm_pack_args = ['wasm-pack', 'build',
                     '--target', 'web',
                     '--out-dir', wasm_bld,
-                    ('--release' if args.release else '--dev')]
+                    ('--release' if args.release else '--dev'),
+                    '--features', 'wasm']
     result = subprocess.run(wasm_pack_args, check=True,
                             text=True, cwd=wasm_src)

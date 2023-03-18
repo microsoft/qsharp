@@ -1,5 +1,6 @@
-// Only compile this library for wasm targets
-#![cfg(target_arch = "wasm32")]
+#![cfg(feature = "wasm")]
+
+use qsc_frontend::compile::{compile, PackageStore};
 
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -31,7 +32,7 @@ pub struct CompletionList {
 // It does mean this type decl must be kept up to date with any structural changes.
 #[wasm_bindgen(typescript_custom_section)]
 const ICompletionList: &'static str = r#"
-interface ICompletionList {
+export interface ICompletionList {
     items: Array<{
         label: string;
         kind: number;
@@ -154,4 +155,13 @@ pub fn get_completions() -> Result<JsValue, JsValue> {
         ],
     };
     Ok(serde_wasm_bindgen::to_value(&res)?)
+}
+
+#[wasm_bindgen]
+pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
+    let unit = compile(&PackageStore::new(), [], [code], "");
+
+    // TODO: Failing as errors is not serializable.
+    let _errors = unit.context.errors();
+    Ok(serde_wasm_bindgen::to_value("TODO")?)
 }

@@ -8,14 +8,19 @@ edition.workspace = true
 homepage = "https://github.com/microsoft/qsharp"
 repository = "https://github.com/microsoft/qsharp"
 license = "MIT"
+description = "Wasm module for the qsc compiler"
 
 [lib]
 crate-type = ["rlib", "cdylib"]
 
-# This should only build for wasm32 platforms
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-qsc_eval = { path = "../qsc_eval" }
-serde = { workspace = true, features = ["derive"] }
-serde-wasm-bindgen = { workspace = true }
-wasm-bindgen = { workspace = true }
-getrandom = { workspace = true, features = ["js"] }
+# Make most everything in this crate optional based on the wasm feature being enabled.
+[dependencies]
+qsc_eval = { path = "../qsc_eval", optional = true }
+qsc_frontend = { path = "../qsc_frontend", optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+serde-wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true  }
+getrandom = { workspace = true, features = ["js"], optional = true  }
+
+[features]
+wasm = ["dep:qsc_eval", "dep:qsc_frontend", "dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:getrandom"]

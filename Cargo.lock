@@ -732,6 +732,7 @@ version = "0.0.0"
 dependencies = [
  "getrandom",
  "qsc_eval",
+ "qsc_frontend",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
