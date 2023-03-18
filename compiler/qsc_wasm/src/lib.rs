@@ -1,8 +1,8 @@
 // Only compile this library for wasm targets
 #![cfg(target_arch = "wasm32")]
 
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use serde::{Serialize, Deserialize};
 
 // TODO: Below is an example of how to return typed structures from Rust via Wasm
 // to the consuming JavaScript/TypeScript code. To be replaced with the implementation.
@@ -41,34 +41,117 @@ interface ICompletionList {
 
 #[wasm_bindgen]
 pub fn get_completions() -> Result<JsValue, JsValue> {
-    let res = CompletionList {items: vec![
-        CompletionItem {label: "CCNOT".to_string(),       kind: CompletionKind::Method as i32},
-        CompletionItem {label: "CNOT".to_string(),        kind: CompletionKind::Method as i32},
-        CompletionItem {label: "CZ".to_string(),          kind: CompletionKind::Method as i32},
-        CompletionItem {label: "X".to_string(),           kind: CompletionKind::Method as i32},
-        CompletionItem {label: "Y".to_string(),           kind: CompletionKind::Method as i32},
-        CompletionItem {label: "Z".to_string(),           kind: CompletionKind::Method as i32},
-        CompletionItem {label: "H".to_string(),           kind: CompletionKind::Method as i32},
-        CompletionItem {label: "S".to_string(),           kind: CompletionKind::Method as i32},
-        CompletionItem {label: "T".to_string(),           kind: CompletionKind::Method as i32},
-        CompletionItem {label: "M".to_string(),           kind: CompletionKind::Method as i32},
-        CompletionItem {label: "CheckZero".to_string(),   kind: CompletionKind::Method as i32},
-        CompletionItem {label: "DumpMachine".to_string(), kind: CompletionKind::Method as i32},
-        CompletionItem {label: "Equal".to_string(),       kind: CompletionKind::Method as i32},
-        CompletionItem {label: "Qubit".to_string(),       kind: CompletionKind::Method as i32},
-        CompletionItem {label: "Reset".to_string(),       kind: CompletionKind::Method as i32},
-        CompletionItem {label: "@EntryPoint".to_string(), kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "Adjoint".to_string(),     kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "Controlled".to_string(),  kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "Int".to_string(),         kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "if".to_string(),          kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "else".to_string(),        kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "namespace".to_string(),   kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "open".to_string(),        kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "operation".to_string(),   kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "return".to_string(),      kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "use".to_string(),         kind: CompletionKind::Keyword as i32},
-        CompletionItem {label: "Unit".to_string(),        kind: CompletionKind::Keyword as i32},
-    ]};
+    let res = CompletionList {
+        items: vec![
+            CompletionItem {
+                label: "CCNOT".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "CNOT".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "CZ".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "X".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "Y".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "Z".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "H".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "S".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "T".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "M".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "CheckZero".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "DumpMachine".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "Equal".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "Qubit".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "Reset".to_string(),
+                kind: CompletionKind::Method as i32,
+            },
+            CompletionItem {
+                label: "@EntryPoint".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "Adjoint".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "Controlled".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "Int".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "if".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "else".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "namespace".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "open".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "operation".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "return".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "use".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+            CompletionItem {
+                label: "Unit".to_string(),
+                kind: CompletionKind::Keyword as i32,
+            },
+        ],
+    };
     Ok(serde_wasm_bindgen::to_value(&res)?)
 }
