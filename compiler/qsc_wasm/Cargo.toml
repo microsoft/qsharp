@@ -1,0 +1,21 @@
+[package]
+name = "qsc_wasm"
+version = "0.0.0"
+
+authors.workspace = true
+edition.workspace = true
+# wasm-pack doesn't like the workspace format for the below, so copied in for now.
+homepage = "https://github.com/microsoft/qsharp"
+repository = "https://github.com/microsoft/qsharp"
+license = "MIT"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+# This should only build for wasm32 platforms
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+qsc_eval = { path = "../qsc_eval" }
+serde = { workspace = true, features = ["derive"] }
+serde-wasm-bindgen = { workspace = true }
+wasm-bindgen = { workspace = true }
+getrandom = { workspace = true, features = ["js"] }
