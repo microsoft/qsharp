@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="icon-q.png">
+    <link rel="stylesheet" href="style.css">
+    <title>Q# playground</title>
+    <script>
+      // Need the physics extension for certain constructs
+      // https://docs.mathjax.org/en/latest/input/tex/extensions/physics.html
+      window.MathJax = {
+        loader: {load: ['[tex]/physics']},
+        tex: {packages: {'[+]': ['physics']}}
+      };
+    </script>
+    <script src="libs/mathjax/tex-chtml.js"></script>
+  </head>
+  <body>
+    <h1>Q# playground</h1>
+    <div id="editor"></div>
+    <script src="libs/monaco/vs/loader.js"></script>
+    <script src="libs/app.js"></script>
+  </body>
+</html>

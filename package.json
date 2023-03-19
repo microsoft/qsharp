@@ -1,0 +1,20 @@
+{
+    "name": "qsc-workspace",
+    "workspaces": [
+        "./npm",
+        "./playground"
+    ],
+    "license": "MIT",
+    "engines": {
+        "node": ">=16.19.0"
+    },
+    "private": true,
+    "devDependencies": {
+        "@types/node": "^18.15.3",
+        "esbuild": "^0.17.12",
+        "mathjax": "^3.2.2",
+        "monaco-editor": "^0.36.1",
+        "preact": "^10.13.1",
+        "typescript": "^5.0.2"
+    }
+}
