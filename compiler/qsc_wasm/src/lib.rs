@@ -192,7 +192,7 @@ pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
 
     let mut result: Vec<VSDiagnosic> = vec![];
 
-    for err in  unit.context.errors() {
+    for err in unit.context.errors() {
         let label = err
             .labels()
             .and_then(|mut ls| ls.next())
