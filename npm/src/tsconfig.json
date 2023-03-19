@@ -10,7 +10,7 @@
 		"outDir": "../dist",
 		"declaration": true,
 		"strict": true,   /* enable all strict type-checking options */
-        "isolatedModules": true,
+		"isolatedModules": true,
 		"skipLibCheck": true
 	}
 }

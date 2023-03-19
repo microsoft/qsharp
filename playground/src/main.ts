@@ -1,6 +1,6 @@
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompletions} from "qsharp/browser";
+import {init, getCompletions, checkCode} from "qsharp/browser";
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
 declare var MathJax: {typeset: () => void;};
@@ -14,6 +14,19 @@ async function loaded() {
     let editor = monaco.editor.create(editorDiv);
     let srcModel = monaco.editor.createModel(`// TODO\n`, 'qsharp');
     editor.setModel(srcModel);
+
+    function check() {
+        let code = srcModel.getValue();
+        let errs = checkCode(code);
+        let output = document.querySelector('#errors') as HTMLDivElement;
+        output.innerText = JSON.stringify(errs, null, 2);
+    }
+
+    let currentTimer = setTimeout(check, 1000);
+    srcModel.onDidChangeContent(ev => {
+        clearTimeout(currentTimer);
+        currentTimer = setTimeout(check, 1000);
+    });
     window.addEventListener('resize', _ => editor.layout());
 
     // Example of getting results from a call into the WASM module

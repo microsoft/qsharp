@@ -1,4 +1,7 @@
-import {default as async_init, get_completions, type ICompletionList} from "../lib/web/qsc_wasm.js";
+import {default as async_init, 
+    get_completions, type ICompletionList,
+    check_code, type IDiagnostic
+} from "../lib/web/qsc_wasm.js";
 
 export async function init(wasm_uri: string) {
     let wasmBytes = await fetch(wasm_uri);
@@ -11,4 +14,9 @@ export async function init(wasm_uri: string) {
 export function getCompletions(): ICompletionList {
     let results = get_completions() as ICompletionList;
     return results;
+}
+
+export function checkCode(code: string): IDiagnostic[] {
+    let result = check_code(code) as IDiagnostic[];
+    return result;
 }
