@@ -1,11 +1,11 @@
-import {type ICompletionList, get_completions, check_code} from "../lib/node/qsc_wasm.cjs";
+import {type ICompletionList, get_completions, check_code, IDiagnostic} from "../lib/node/qsc_wasm.cjs";
 
-export function getCompletions() {
+export function getCompletions() : ICompletionList {
     let completions = get_completions() as ICompletionList;
-    console.log(JSON.stringify(completions, null, 2));
+    return completions;
 }
 
-export function checkCode(code: string) {
-    let result = check_code(code);
-    console.log(JSON.stringify(result, null, 2))
+export function checkCode(code: string) : IDiagnostic[] {
+    let result = check_code(code) as IDiagnostic[];
+    return result;
 }

@@ -9,12 +9,8 @@
         "directory": "npm"
     },
     "exports": {
-        ".": {
-            "import": "./dist/index.js"
-        },
-        "./browser": {
-            "import": "./dist/browser.js"
-        }
+        "./node": "./dist/node.js",
+        "./browser": "./dist/browser.js"
     },
     "scripts":{
         "build": "../node_modules/.bin/tsc -p ./src/tsconfig.json"

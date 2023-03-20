@@ -6,7 +6,7 @@
     ],
     "license": "MIT",
     "engines": {
-        "node": ">=16.19.0"
+        "node": ">=16.17.0"
     },
     "private": true,
     "devDependencies": {
