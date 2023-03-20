@@ -9,12 +9,10 @@ use qsc_eval::{evaluate, Scopes};
 use qsc_frontend::{
     compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
-    incremental::{Compiler, Fragment},
 };
-use qsc_passes::globals::{extract_callables, GlobalId};
+use qsc_passes::globals::extract_callables;
 use std::{
-    fs,
-    io::{self, Write},
+    fs, io,
     path::{Path, PathBuf},
     process::ExitCode,
     result::Result,
@@ -28,8 +26,6 @@ struct Cli {
     sources: Vec<PathBuf>,
     #[arg(short, long, default_value = "")]
     entry: String,
-    #[arg(short, long, default_value_t = false)]
-    interactive: bool,
 }
 
 struct ErrorReporter<'a> {
@@ -68,97 +64,47 @@ impl<'a> ErrorReporter<'a> {
 
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
-    if cli.interactive {
-        repl().unwrap();
-        Ok(ExitCode::SUCCESS)
-    } else {
-        let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
-        let mut store = PackageStore::new();
-        let std = store.insert(compile::std());
-        let unit = compile(&store, [std], &sources, &cli.entry);
-
-        if unit.context.errors().is_empty() {
-            if unit.package.entry.is_some() {
-                let user = store.insert(unit);
-                let unit = store
-                    .get(user)
-                    .expect("Compile unit should be in package store");
-                let globals = extract_callables(&store);
-                match evaluate(
-                    unit.package
-                        .entry
-                        .as_ref()
-                        .expect("Entry should be non-empty in if-some branch"),
-                    &store,
-                    &globals,
-                    unit.context.resolutions(),
-                    user,
-                    Scopes::default(),
-                ) {
-                    Ok((value, _)) => {
-                        println!("{value}");
-                        Ok(ExitCode::SUCCESS)
-                    }
-                    Err(error) => {
-                        let unit = store.get(user).expect("store should have compiled package");
-                        Err(ErrorReporter::new(cli, sources, &unit.context).report(error))
-                    }
-                }
-            } else {
-                Ok(ExitCode::SUCCESS)
-            }
-        } else {
-            let reporter = ErrorReporter::new(cli, sources, &unit.context);
-            for error in unit.context.errors() {
-                eprintln!("{:?}", reporter.report(error.clone()));
-            }
-            Ok(ExitCode::FAILURE)
-        }
-    }
-}
-
-fn repl() -> io::Result<()> {
+    let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
-    let sources: [&str; 0] = [];
-    let user = store.insert(compile(&store, [], sources, ""));
-    let mut compiler = Compiler::new(&store, [std]);
-    let mut globals = extract_callables(&store);
-    let mut eval_scopes = Scopes::default();
+    let unit = compile(&store, [std], &sources, &cli.entry);
 
-    loop {
-        print!("> ");
-        io::stdout().flush().unwrap();
-        let mut line = String::new();
-        if io::stdin().read_line(&mut line)? == 0 {
-            println!();
-            break Ok(());
-        }
-
-        match compiler.compile_fragment(&line) {
-            Fragment::Stmt(stmt) => {
-                let (value, new_scopes) = evaluate(
-                    stmt,
-                    &store,
-                    &globals,
-                    compiler.resolutions(),
-                    user,
-                    eval_scopes,
-                )
-                .unwrap();
-                eval_scopes = new_scopes;
-                println!("{value}");
+    if unit.context.errors().is_empty() {
+        if unit.package.entry.is_some() {
+            let user = store.insert(unit);
+            let unit = store
+                .get(user)
+                .expect("Compile unit should be in package store");
+            let globals = extract_callables(&store);
+            match evaluate(
+                unit.package
+                    .entry
+                    .as_ref()
+                    .expect("Entry should be non-empty in if-some branch"),
+                &store,
+                &globals,
+                unit.context.resolutions(),
+                user,
+                Scopes::default(),
+            ) {
+                Ok((value, _)) => {
+                    println!("{value}");
+                    Ok(ExitCode::SUCCESS)
+                }
+                Err(error) => {
+                    let unit = store.get(user).expect("store should have compiled package");
+                    Err(ErrorReporter::new(cli, sources, &unit.context).report(error))
+                }
             }
-            Fragment::Callable(decl) => {
-                globals.insert(
-                    GlobalId {
-                        package: user,
-                        node: decl.name.id,
-                    },
-                    decl,
-                );
-            }
+        } else {
+            Ok(ExitCode::SUCCESS)
         }
+    } else {
+        let reporter = ErrorReporter::new(cli, sources, &unit.context);
+        for error in unit.context.errors() {
+            eprintln!("{:?}", reporter.report(error.clone()));
+        }
+        Ok(ExitCode::FAILURE)
     }
 }
 

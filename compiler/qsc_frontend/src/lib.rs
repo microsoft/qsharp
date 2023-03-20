@@ -6,7 +6,6 @@
 pub mod compile;
 pub mod diagnostic;
 pub mod id;
-pub mod incremental;
 mod lex;
 mod parse;
 pub mod resolve;
