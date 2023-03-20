@@ -167,7 +167,6 @@ impl Range {
 
 pub type Scopes = Vec<HashMap<GlobalId, Variable>>;
 
-#[allow(dead_code)]
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl>,
