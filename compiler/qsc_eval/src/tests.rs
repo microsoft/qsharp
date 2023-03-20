@@ -6,7 +6,7 @@ use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
-use crate::Evaluator;
+use crate::{evaluate, Scopes};
 
 fn check_statement(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -21,7 +21,7 @@ fn check_statement(file: &str, expr: &str, expect: &Expect) {
         .get(id)
         .expect("Compile unit should be in package store");
     let globals = extract_callables(&store);
-    match Evaluator::eval(
+    match evaluate(
         unit.package
             .entry
             .as_ref()
@@ -30,7 +30,7 @@ fn check_statement(file: &str, expr: &str, expect: &Expect) {
         &globals,
         unit.context.resolutions(),
         id,
-        Evaluator::empty_scope(),
+        Scopes::default(),
     ) {
         Ok((result, _)) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),

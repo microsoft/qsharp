@@ -5,7 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_eval::Evaluator;
+use qsc_eval::{evaluate, Scopes};
 use qsc_frontend::{
     compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
@@ -84,7 +84,7 @@ fn main() -> miette::Result<ExitCode> {
                     .get(user)
                     .expect("Compile unit should be in package store");
                 let globals = extract_callables(&store);
-                match Evaluator::eval(
+                match evaluate(
                     unit.package
                         .entry
                         .as_ref()
@@ -93,7 +93,7 @@ fn main() -> miette::Result<ExitCode> {
                     &globals,
                     unit.context.resolutions(),
                     user,
-                    Evaluator::empty_scope(),
+                    Scopes::default(),
                 ) {
                     Ok((value, _)) => {
                         println!("{value}");
@@ -124,7 +124,7 @@ fn repl() -> io::Result<()> {
     let user = store.insert(compile(&store, [], sources, ""));
     let mut compiler = Compiler::new(&store, [std]);
     let mut globals = extract_callables(&store);
-    let mut eval_scopes = Evaluator::empty_scope();
+    let mut eval_scopes = Scopes::default();
 
     loop {
         print!("> ");
@@ -137,7 +137,7 @@ fn repl() -> io::Result<()> {
 
         match compiler.compile_fragment(&line) {
             Fragment::Stmt(stmt) => {
-                let (value, new_scopes) = Evaluator::eval(
+                let (value, new_scopes) = evaluate(
                     stmt,
                     &store,
                     &globals,

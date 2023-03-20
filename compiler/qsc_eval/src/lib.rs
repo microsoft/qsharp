@@ -10,6 +10,7 @@ mod intrinsic;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};
+use ::std::hash::BuildHasher;
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
 use qir_backend::__quantum__rt__qubit_allocate;
@@ -166,48 +167,49 @@ impl Range {
     }
 }
 
-pub type Scopes = Vec<HashMap<GlobalId, Variable>>;
+/// Evaluates the given entry statement with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn evaluate<S: BuildHasher>(
+    stmt: &Stmt,
+    store: &PackageStore,
+    globals: &HashMap<GlobalId, &CallableDecl, S>,
+    resolutions: &Resolutions,
+    package: PackageId,
+    scopes: Scopes,
+) -> Result<(Value, Scopes), Error> {
+    let mut evaluator = Evaluator {
+        store,
+        globals,
+        resolutions,
+        package,
+        scopes,
+    };
+    match evaluator.eval_stmt(stmt) {
+        ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
+            Ok((val, evaluator.scopes))
+        }
+        ControlFlow::Break(Reason::Error(error)) => Err(error),
+    }
+}
 
-pub struct Evaluator<'a> {
+pub struct Scopes(Vec<HashMap<GlobalId, Variable>>);
+
+impl Default for Scopes {
+    fn default() -> Self {
+        Self(vec![HashMap::default()])
+    }
+}
+
+pub struct Evaluator<'a, S: BuildHasher> {
     store: &'a PackageStore,
-    globals: &'a HashMap<GlobalId, &'a CallableDecl>,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
     package: PackageId,
     scopes: Scopes,
 }
 
-impl<'a> Evaluator<'a> {
-    #[must_use]
-    pub fn empty_scope() -> Scopes {
-        vec![HashMap::default()]
-    }
-
-    /// Evaluates the given entry statement with the given context.
-    /// # Errors
-    /// Returns the first error encountered during execution.
-    pub fn eval(
-        stmt: &Stmt,
-        store: &'a PackageStore,
-        globals: &'a HashMap<GlobalId, &'a CallableDecl>,
-        resolutions: &'a Resolutions,
-        package: PackageId,
-        scopes: Scopes,
-    ) -> Result<(Value, Scopes), Error> {
-        let mut evaluator = Self {
-            store,
-            globals,
-            resolutions,
-            package,
-            scopes,
-        };
-        match evaluator.eval_stmt(stmt) {
-            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                Ok((val, evaluator.scopes))
-            }
-            ControlFlow::Break(Reason::Error(error)) => Err(error),
-        }
-    }
-
+impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
@@ -404,7 +406,7 @@ impl<'a> Evaluator<'a> {
         };
 
         let mut new_self = Self {
-            scopes: Vec::new(),
+            scopes: Scopes::default(),
             package: call.package,
             resolutions,
             ..*self
@@ -575,13 +577,14 @@ impl<'a> Evaluator<'a> {
     }
 
     fn enter_scope(&mut self) {
-        self.scopes.push(HashMap::default());
+        self.scopes.0.push(HashMap::default());
     }
 
     fn leave_scope(&mut self, release: bool) {
         if release {
             for (_, var) in self
                 .scopes
+                .0
                 .pop()
                 .expect("scope should be entered first before leaving")
                 .drain()
@@ -589,7 +592,7 @@ impl<'a> Evaluator<'a> {
                 var.value.release();
             }
         } else {
-            let _ = self.scopes.pop();
+            let _ = self.scopes.0.pop();
         }
     }
 
@@ -608,7 +611,11 @@ impl<'a> Evaluator<'a> {
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
 
-                let scope = self.scopes.last_mut().expect("binding should have a scope");
+                let scope = self
+                    .scopes
+                    .0
+                    .last_mut()
+                    .expect("binding should have a scope");
                 match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("duplicate binding: {id}"),
@@ -645,6 +652,7 @@ impl<'a> Evaluator<'a> {
         let global_id = self.defid_to_globalid(id);
         let local = if id.package == PackageSrc::Local {
             self.scopes
+                .0
                 .iter()
                 .rev()
                 .find_map(|s| s.get(&global_id))
@@ -666,6 +674,7 @@ impl<'a> Evaluator<'a> {
 
                 let mut variable = self
                     .scopes
+                    .0
                     .iter_mut()
                     .rev()
                     .find_map(|scope| scope.get_mut(&id))
