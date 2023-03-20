@@ -393,12 +393,15 @@ impl<'a> Evaluator<'a> {
 
         let spec = specialization_from_functor_app(&functor);
 
-        let resolutions = self
-            .store
-            .get(call.package)
-            .expect("global value should refer only to stored packages")
-            .context
-            .resolutions();
+        let resolutions = if call.package == self.package {
+            self.resolutions
+        } else {
+            self.store
+                .get(call.package)
+                .expect("global value should refer only to stored packages")
+                .context
+                .resolutions()
+        };
 
         let mut new_self = Self {
             scopes: Vec::new(),
