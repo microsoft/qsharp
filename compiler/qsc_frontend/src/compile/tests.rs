@@ -183,7 +183,8 @@ fn entry_call_operation() {
         .get(&callable.name.id)
         .expect("callable should resolve");
     let entry = unit.package.entry.expect("package should have entry");
-    let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
+    let StmtKind::Expr(expr) = entry.kind else { panic!("entry should be an expr") };
+    let ExprKind::Call(callee, _) = expr.kind else { panic!("entry should be a call") };
     let ExprKind::Path(path) = callee.kind else { panic!("callee should be a path") };
     assert_eq!(unit.context.resolutions.get(&path.id), Some(id));
 }

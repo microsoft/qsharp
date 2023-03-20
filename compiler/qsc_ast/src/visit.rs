@@ -76,7 +76,7 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
         .namespaces
         .iter()
         .for_each(|n| vis.visit_namespace(n));
-    package.entry.iter().for_each(|e| vis.visit_expr(e));
+    package.entry.iter().for_each(|e| vis.visit_stmt(e));
 }
 
 pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) {

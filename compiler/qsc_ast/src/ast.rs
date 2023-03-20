@@ -99,14 +99,14 @@ pub struct Package {
     pub id: NodeId,
     /// The namespaces in the package.
     pub namespaces: Vec<Namespace>,
-    /// The entry expression for an executable package.
-    pub entry: Option<Expr>,
+    /// The entry statement for an executable package.
+    pub entry: Option<Stmt>,
 }
 
 impl Package {
     /// Creates a new package.
     #[must_use]
-    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
+    pub fn new(namespaces: Vec<Namespace>, entry: Option<Stmt>) -> Self {
         Self {
             id: NodeId::default(),
             namespaces,
@@ -146,6 +146,7 @@ pub struct Item {
 pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
+    /// Default item when nothing has been parsed.
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
@@ -342,6 +343,7 @@ pub struct Stmt {
 /// A statement kind.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum StmtKind {
+    /// An empty statment.
     #[default]
     Empty,
     /// An expression without a trailing semicolon.

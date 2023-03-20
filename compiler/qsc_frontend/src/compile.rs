@@ -141,9 +141,9 @@ pub fn compile(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
-    entry_expr: &str,
+    entry_stmt: &str,
 ) -> CompileUnit {
-    let (mut package, parse_errors, offsets) = parse_all(sources, entry_expr);
+    let (mut package, parse_errors, offsets) = parse_all(sources, entry_stmt);
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
@@ -197,7 +197,7 @@ pub fn std() -> CompileUnit {
 
 fn parse_all(
     sources: impl IntoIterator<Item = impl AsRef<str>>,
-    entry_expr: &str,
+    entry_stmt: &str,
 ) -> (Package, Vec<OffsetError<parse::Error>>, Vec<usize>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
@@ -217,11 +217,11 @@ fn parse_all(
         offset += source.len();
     }
 
-    let entry = if entry_expr.is_empty() {
+    let entry = if entry_stmt.is_empty() {
         None
     } else {
-        let (mut entry, entry_errors) = parse::expr(entry_expr);
-        Offsetter(offset).visit_expr(&mut entry);
+        let (mut entry, entry_errors) = parse::stmt(entry_stmt);
+        Offsetter(offset).visit_stmt(&mut entry);
         append_errors(&mut errors, offset, entry_errors);
         offsets.push(offset);
         Some(entry)

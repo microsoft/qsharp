@@ -675,6 +675,7 @@ dependencies = [
  "qir-stdlib",
  "qsc_ast",
  "qsc_frontend",
+ "qsc_passes",
  "thiserror",
 ]
 

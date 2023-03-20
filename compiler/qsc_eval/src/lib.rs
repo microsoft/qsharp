@@ -6,14 +6,10 @@
 #[cfg(test)]
 mod tests;
 
-mod globals;
 mod intrinsic;
 pub mod val;
 
-use crate::{
-    globals::GlobalId,
-    val::{ConversionError, FunctorApp, Value},
-};
+use crate::val::{ConversionError, FunctorApp, Value};
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
 use qir_backend::{Pauli, __quantum__rt__qubit_allocate};
@@ -25,6 +21,7 @@ use qsc_frontend::{
     compile::{PackageId, PackageStore},
     resolve::{DefId, PackageSrc, Resolutions},
 };
+use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
     ops::{ControlFlow, Neg},
@@ -127,8 +124,8 @@ impl AsIndex for i64 {
 }
 
 #[derive(Debug)]
-struct Variable {
-    value: Value,
+pub struct Variable {
+    pub value: Value,
     mutability: Mutability,
 }
 
@@ -168,50 +165,45 @@ impl Range {
     }
 }
 
+pub type Scopes = Vec<HashMap<GlobalId, Variable>>;
+
 #[allow(dead_code)]
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl>,
     resolutions: &'a Resolutions,
     package: PackageId,
-    scopes: Vec<HashMap<GlobalId, Variable>>,
+    scopes: Scopes,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(
+    pub fn empty_scope() -> Scopes {
+        vec![HashMap::default()]
+    }
+
+    /// Evaluates the given entry statement with the given context.
+    /// # Errors
+    /// Returns the first error encountered during execution.
+    pub fn eval(
+        stmt: &Stmt,
         store: &'a PackageStore,
         globals: &'a HashMap<GlobalId, &'a CallableDecl>,
-        package: PackageId,
         resolutions: &'a Resolutions,
-    ) -> Self {
-        Self {
+        package: PackageId,
+        scopes: Scopes,
+    ) -> Result<(Value, Scopes), Error> {
+        let mut evaluator = Self {
             store,
             globals,
             resolutions,
             package,
-            scopes: Vec::new(),
-        }
-    }
-
-    /// Evaluates the entry expression from the current context.
-    /// # Errors
-    /// Returns the first error encountered during execution.
-    pub fn run(&mut self) -> Result<Value, Error> {
-        todo!()
-        // if let Some(expr) = &self.current_unit.package.entry {
-        //     match self.eval_expr(expr) {
-        //         ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
-        //         ControlFlow::Break(Reason::Error(error)) => Err(error),
-        //     }
-        // } else {
-        //     Err(Error::EmptyExpr)
-        // }
-    }
-
-    pub fn repl(&mut self, stmt: &Stmt) -> Result<Value, Error> {
-        match self.eval_stmt(stmt) {
-            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
+            scopes,
+        };
+        match evaluator.eval_stmt(stmt) {
+            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
+                Ok((val, evaluator.scopes))
+            }
             ControlFlow::Break(Reason::Error(error)) => Err(error),
         }
     }
@@ -416,7 +408,7 @@ impl<'a> Evaluator<'a> {
         };
         let call_res =
             new_self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
-        
+
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
             ControlFlow::Continue(_) | ControlFlow::Break(_) => call_res,
@@ -665,7 +657,7 @@ impl<'a> Evaluator<'a> {
         GlobalId {
             package: match id.package {
                 PackageSrc::Local => self.package,
-                PackageSrc::Extern(p) => p,
+                PackageSrc::Extern(id) => id,
             },
             node: id.node,
         }

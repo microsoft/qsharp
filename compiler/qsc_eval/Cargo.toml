@@ -11,6 +11,7 @@ license.workspace = true
 [dependencies]
 qsc_ast = { path = "../qsc_ast" }
 qsc_frontend = { path = "../qsc_frontend" }
+qsc_passes = { path = "../qsc_passes" }
 qir-backend = { git = "https://github.com/qir-alliance/qir-runner", tag = "v0.1.0" }
 qir-stdlib = { git = "https://github.com/qir-alliance/qir-runner", tag = "v0.1.0" }
 num-bigint = "0.4.3"

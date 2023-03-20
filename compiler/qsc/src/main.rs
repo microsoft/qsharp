@@ -11,6 +11,7 @@ use qsc_frontend::{
     diagnostic::OffsetError,
     incremental::{Compiler, Fragment},
 };
+use qsc_passes::globals::{extract_callables, GlobalId};
 use std::{
     fs,
     io::{self, Write},
@@ -69,32 +70,50 @@ fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
     if cli.interactive {
         repl().unwrap();
-        return Ok(ExitCode::SUCCESS);
-    }
+        Ok(ExitCode::SUCCESS)
+    } else {
+        let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
+        let mut store = PackageStore::new();
+        let std = store.insert(compile::std());
+        let unit = compile(&store, [std], &sources, &cli.entry);
 
-    let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
-    let mut store = PackageStore::new();
-    let std = store.insert(compile::std());
-    let unit = compile(&store, [std], &sources, &cli.entry);
-
-    if unit.context.errors().is_empty() {
-        let user = store.insert(unit);
-        match Evaluator::new(&store, user).run() {
-            Ok(value) => {
-                println!("{value}");
+        if unit.context.errors().is_empty() {
+            if unit.package.entry.is_some() {
+                let user = store.insert(unit);
+                let unit = store
+                    .get(user)
+                    .expect("Compile unit should be in package store");
+                let globals = extract_callables(&store);
+                match Evaluator::eval(
+                    unit.package
+                        .entry
+                        .as_ref()
+                        .expect("Entry should be non-empty in if-some branch"),
+                    &store,
+                    &globals,
+                    unit.context.resolutions(),
+                    user,
+                    Evaluator::empty_scope(),
+                ) {
+                    Ok((value, _)) => {
+                        println!("{value}");
+                        Ok(ExitCode::SUCCESS)
+                    }
+                    Err(error) => {
+                        let unit = store.get(user).expect("store should have compiled package");
+                        Err(ErrorReporter::new(cli, sources, &unit.context).report(error))
+                    }
+                }
+            } else {
                 Ok(ExitCode::SUCCESS)
             }
-            Err(error) => {
-                let unit = store.get(user).expect("store should have compiled package");
-                Err(ErrorReporter::new(cli, sources, &unit.context).report(error))
+        } else {
+            let reporter = ErrorReporter::new(cli, sources, &unit.context);
+            for error in unit.context.errors() {
+                eprintln!("{:?}", reporter.report(error.clone()));
             }
+            Ok(ExitCode::FAILURE)
         }
-    } else {
-        let reporter = ErrorReporter::new(cli, sources, &unit.context);
-        for error in unit.context.errors() {
-            eprintln!("{:?}", reporter.report(error.clone()));
-        }
-        Ok(ExitCode::FAILURE)
     }
 }
 
@@ -104,8 +123,8 @@ fn repl() -> io::Result<()> {
     let sources: [&str; 0] = [];
     let user = store.insert(compile(&store, [], sources, ""));
     let mut compiler = Compiler::new(&store, [std]);
-    let mut evaluator = Evaluator::new(&store, user);
-    evaluator.push_scope();
+    let mut globals = extract_callables(&store);
+    let mut eval_scopes = Evaluator::empty_scope();
 
     loop {
         print!("> ");
@@ -118,10 +137,27 @@ fn repl() -> io::Result<()> {
 
         match compiler.compile_fragment(&line) {
             Fragment::Stmt(stmt) => {
-                let value = evaluator.repl(compiler.resolutions(), stmt).unwrap();
+                let (value, new_scopes) = Evaluator::eval(
+                    stmt,
+                    &store,
+                    &globals,
+                    compiler.resolutions(),
+                    user,
+                    eval_scopes,
+                )
+                .unwrap();
+                eval_scopes = new_scopes;
                 println!("{value}");
             }
-            Fragment::Callable(decl) => evaluator.add_global_callable(decl),
+            Fragment::Callable(decl) => {
+                globals.insert(
+                    GlobalId {
+                        package: user,
+                        node: decl.name.id,
+                    },
+                    decl,
+                );
+            }
         }
     }
 }
