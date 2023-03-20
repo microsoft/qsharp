@@ -446,6 +446,134 @@ fn assign_invalid_expr() {
 }
 
 #[test]
+fn binop_equal_array() {
+    check_statement("", "[1, 2, 3] == [1, 2, 3]", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_array_false_content() {
+    check_statement("", "[1, 2, 3] == [1, 0, 3]", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_array_false_length() {
+    check_statement("", "[1, 2, 3] == [1, 2, 3, 4]", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_bigint() {
+    check_statement("", "18L == 18L", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_bigint_false() {
+    check_statement("", "18L == 8L", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_type() {
+    check_statement(
+        "",
+        "18L == 18",
+        &expect![[r#"
+        Type(
+            "BigInt",
+            "Int",
+            Span {
+                lo: 0,
+                hi: 9,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_equal_bool() {
+    check_statement("", "false == false", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_bool_false() {
+    check_statement("", "false == true", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_double() {
+    check_statement("", "1.254 == 1.254", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_double_false() {
+    check_statement("", "1.254 == 1.25", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_int() {
+    check_statement("", "42 == 42", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_int_false() {
+    check_statement("", "42 == 43", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_pauli() {
+    check_statement("", "PauliX == PauliX", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_pauli_false() {
+    check_statement("", "PauliX == PauliZ", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_range() {
+    check_statement("", "(0..4) == (0..4)", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_range_false() {
+    check_statement("", "(0..2..4) == (0..4)", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_result() {
+    check_statement("", "One == One", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_result_false() {
+    check_statement("", "One == Zero", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_string() {
+    check_statement("", r#""foo" == "foo""#, &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_string_false() {
+    check_statement("", r#""foo" == "bar""#, &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_tuple() {
+    check_statement("", "(1, 2, 3) == (1, 2, 3)", &expect!["true"]);
+}
+
+#[test]
+fn binop_equal_tuple_false_content() {
+    check_statement("", "(1, 2, 3) == (1, Zero, 3)", &expect!["false"]);
+}
+
+#[test]
+fn binop_equal_tuple_false_arity() {
+    check_statement("", "(1, 2, 3) == (1, 2, 3, 4)", &expect!["false"]);
+}
+
+#[test]
 fn fail_expr() {
     check_statement(
         "",

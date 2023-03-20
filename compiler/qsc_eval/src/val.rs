@@ -2,16 +2,17 @@
 // Licensed under the MIT License.
 
 use std::{
-    ffi::c_void,
+    ffi::{c_double, c_void},
     fmt::{self, Display, Formatter},
     iter,
 };
 
 use num_bigint::BigInt;
-use qir_backend::{Pauli, __quantum__rt__qubit_release};
+use qir_backend::__quantum__rt__qubit_release;
+use qsc_ast::ast::Pauli;
 use qsc_passes::globals::GlobalId;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Array(Vec<Value>),
     BigInt(BigInt),
@@ -150,6 +151,36 @@ impl TryFrom<Value> for String {
         } else {
             Err(ConversionError {
                 expected: "String",
+                actual: value.type_name(),
+            })
+        }
+    }
+}
+
+impl TryFrom<Value> for *mut c_void {
+    type Error = ConversionError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::Qubit(q) = value {
+            Ok(q)
+        } else {
+            Err(ConversionError {
+                expected: "Qubit",
+                actual: value.type_name(),
+            })
+        }
+    }
+}
+
+impl TryFrom<Value> for c_double {
+    type Error = ConversionError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::Double(v) = value {
+            Ok(v as c_double)
+        } else {
+            Err(ConversionError {
+                expected: "Qubit",
                 actual: value.type_name(),
             })
         }
