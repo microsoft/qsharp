@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+#[cfg(test)]
+mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
