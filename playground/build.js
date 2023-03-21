@@ -17,7 +17,7 @@ const isRelease = process.argv.includes('--release');
 
 // TODO: Have esbuild rebuild on changes. See https://esbuild.github.io/api/#watch
 
-// Copy the relevant Monaco editor from node_modules into the static site files
+// Copy the relevant external libraries from node_modules into the static site files
 function copyLibs() {
     let monacoBase = join(libsDir, `monaco-editor/${isRelease ? "min" : "dev"}/vs`);
     let monacoDest = join(thisDir, `public/libs/monaco/vs`);

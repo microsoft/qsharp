@@ -161,12 +161,6 @@ pub fn get_completions() -> Result<JsValue, JsValue> {
     Ok(serde_wasm_bindgen::to_value(&res)?)
 }
 
-/*
-VS Code diagnostics expect a Diagnostic[], where Diagnostic has the primary field
-Range has {start: Position, end: Position}
-Position has 0-based {line: number, character: number}
- */
-
 #[wasm_bindgen(typescript_custom_section)]
 const IDiagnostic: &'static str = r#"
 export interface IDiagnostic {
@@ -203,7 +197,6 @@ pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
         let offset = label.offset();
         let len = label.len();
         let severity = err.severity().unwrap_or(Severity::Error);
-        // let msg = err.help().unwrap().to_string();
         let msg = label.label().unwrap();
 
         let diag = VSDiagnosic {

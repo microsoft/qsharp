@@ -10,7 +10,7 @@ export async function init(wasm_uri: string) {
     let wasmBytes = await fetch(wasm_uri);
     await async_init(wasmBytes).then(wasm => {
         // TODO set_panic_hook
-        console.log(`wasm module loaded from ${wasm_uri}`);
+        console.log(`qsharp wasm module loaded from ${wasm_uri}`);
     });    
 }
 

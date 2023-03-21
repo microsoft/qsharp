@@ -3,6 +3,9 @@
     "description": "qsharp language package for quantum development",
     "version": "0.1.0",
     "license": "MIT",
+    "engines": {
+        "node": ">=16.17.0"
+    },
     "repository": {
         "type": "git",
         "url": "https://github.com/microsoft/qsharp",

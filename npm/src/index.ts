@@ -8,8 +8,6 @@ const isNode = !!(process && process.env)
 
 if (isNode) {
     const mod = await import("./node.js");
-    // mod.getCompletions();
-    mod.checkCode(`namespace Foo.Bar []`);
 } else {
     const mod = await import("./browser.js");
 }
