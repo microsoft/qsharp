@@ -231,7 +231,8 @@ impl<'a> Lexer<'a> {
         self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
         if self.next_if_eq('L') {
             Some(Number::BigInt(radix))
-        } else if self.first() == Some('.') && self.second() != Some('.') {
+        } else if radix == Radix::Decimal && self.first() == Some('.') && self.second() != Some('.')
+        {
             self.chars.next();
             self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
             self.exp();
