@@ -9,6 +9,7 @@ use crate::{
     id::Assigner,
     parse,
     resolve::{self, GlobalTable, Resolutions},
+    validate::{self, validate},
 };
 use miette::Diagnostic;
 use qsc_ast::{
@@ -87,6 +88,7 @@ pub struct Error(ErrorKind);
 enum ErrorKind {
     Parse(OffsetError<parse::Error>),
     Resolve(resolve::Error),
+    Validate(validate::Error),
 }
 
 #[derive(Default)]
@@ -144,9 +146,12 @@ pub fn compile(
     entry_expr: &str,
 ) -> CompileUnit {
     let (mut package, parse_errors, offsets) = parse_all(sources, entry_expr);
+
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
+
+    let validation_errors = validate(&package);
 
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(|e| Error(ErrorKind::Parse(e))));
@@ -154,6 +159,11 @@ pub fn compile(
         resolve_errors
             .into_iter()
             .map(|e| Error(ErrorKind::Resolve(e))),
+    );
+    errors.extend(
+        validation_errors
+            .into_iter()
+            .map(|e| Error(ErrorKind::Validate(e))),
     );
 
     CompileUnit {
