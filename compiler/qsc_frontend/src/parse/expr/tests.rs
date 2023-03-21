@@ -456,6 +456,32 @@ fn lit_double_underscore() {
 }
 
 #[test]
+fn lit_double_leading_zero() {
+    check(
+        expr,
+        "0.23",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                    kind: Lit(
+                        Double(
+                            0.23,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn lit_string() {
     check(
         expr,

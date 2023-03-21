@@ -12,6 +12,7 @@ pub mod val;
 use crate::val::{ConversionError, FunctorApp, Value};
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
+use num_bigint::BigInt;
 use qir_backend::__quantum__rt__qubit_allocate;
 use qsc_ast::ast::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
@@ -51,6 +52,9 @@ pub enum Error {
 
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
+
+    #[error("negative integers cannot be used here: {0}")]
+    Negative(i64, #[label("invalid negative integer")] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -259,7 +263,7 @@ impl<'a> Evaluator<'a> {
                 let val = self.eval_expr_impl(rhs)?;
                 self.update_binding(lhs, val)
             }
-            ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(expr, *op, lhs, rhs),
+            ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
@@ -562,48 +566,126 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn eval_binop(
-        &mut self,
-        expr: &Expr,
-        op: BinOp,
-        lhs: &Expr,
-        rhs: &Expr,
-    ) -> ControlFlow<Reason, Value> {
-        let (lhs_val, rhs_val) = (self.eval_expr_impl(lhs)?, self.eval_expr_impl(rhs)?);
+    #[allow(clippy::too_many_lines)]
+    fn eval_binop(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
         match op {
-            BinOp::AndL => ControlFlow::Continue(Value::Bool(
-                lhs_val.try_into().with_span(lhs.span)?
-                    && rhs_val.try_into().with_span(rhs.span)?,
-            )),
-            BinOp::Eq => {
-                if lhs_val.type_name() == rhs_val.type_name() {
-                    ControlFlow::Continue(Value::Bool(lhs_val == rhs_val))
-                } else {
-                    ControlFlow::Break(Reason::Error(Error::Type(
-                        lhs_val.type_name(),
-                        rhs_val.type_name(),
-                        expr.span,
-                    )))
-                }
-            }
-            BinOp::Add
-            | BinOp::AndB
-            | BinOp::Div
-            | BinOp::Exp
-            | BinOp::Gt
-            | BinOp::Gte
-            | BinOp::Lt
-            | BinOp::Lte
-            | BinOp::Mod
-            | BinOp::Mul
-            | BinOp::Neq
-            | BinOp::OrB
-            | BinOp::OrL
-            | BinOp::Shl
-            | BinOp::Shr
-            | BinOp::Sub
-            | BinOp::XorB => ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span))),
+            BinOp::Add => eval_binop_add(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::AndB => eval_binop_andb(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::AndL => self.eval_binop_andl(lhs, rhs),
+            BinOp::Div => eval_binop_div(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Eq => eval_binop_eq(
+                &self.eval_expr_impl(lhs)?,
+                &self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Exp => eval_binop_exp(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Gt => eval_binop_gt(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Gte => eval_binop_gte(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Lt => eval_binop_lt(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Lte => eval_binop_lte(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Mod => eval_binop_mod(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Mul => eval_binop_mul(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Neq => eval_binop_neq(
+                &self.eval_expr_impl(lhs)?,
+                &self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::OrB => eval_binop_orb(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::OrL => self.eval_binop_orl(lhs, rhs),
+            BinOp::Shl => eval_binop_shl(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Shr => eval_binop_shr(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::Sub => eval_binop_sub(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
+            BinOp::XorB => eval_binop_xorb(
+                self.eval_expr_impl(lhs)?,
+                lhs.span,
+                self.eval_expr_impl(rhs)?,
+                rhs.span,
+            ),
         }
+    }
+
+    fn eval_binop_andl(&mut self, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
+        ControlFlow::Continue(Value::Bool(
+            self.eval_expr_impl(lhs)?.try_into().with_span(lhs.span)?
+                && self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
+        ))
+    }
+
+    fn eval_binop_orl(&mut self, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
+        ControlFlow::Continue(Value::Bool(
+            self.eval_expr_impl(lhs)?.try_into().with_span(lhs.span)?
+                || self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
+        ))
     }
 
     fn enter_scope(&mut self) {
@@ -828,5 +910,449 @@ fn update_functor_app(functor: Functor, app: &FunctorApp) -> FunctorApp {
             adjoint: app.adjoint,
             controlled: app.controlled + 1,
         },
+    }
+}
+
+fn eval_binop_add(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::Array(mut arr) => {
+            arr.append(&mut rhs_val.try_into_array().with_span(rhs_span)?);
+            ControlFlow::Continue(Value::Array(arr))
+        }
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val + rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val + rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val + rhs))
+        }
+        Value::String(val) => {
+            let rhs: String = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::String(val + &rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "Array, BigInt, Double, Int, or String",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_andb(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val & rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val & rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_div(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val / rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val / rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val / rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_eq(lhs_val: &Value, rhs_val: &Value, rhs_span: Span) -> ControlFlow<Reason, Value> {
+    if lhs_val.type_name() == rhs_val.type_name() {
+        ControlFlow::Continue(Value::Bool(lhs_val == rhs_val))
+    } else {
+        ControlFlow::Break(Reason::Error(Error::Type(
+            lhs_val.type_name(),
+            rhs_val.type_name(),
+            rhs_span,
+        )))
+    }
+}
+
+fn eval_binop_exp(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs_val <= 0 {
+                ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::BigInt(
+                    val.pow(rhs_val.try_into().expect("Value should not be negative")),
+                ))
+            }
+        }
+        Value::Double(val) => ControlFlow::Continue(Value::Double(
+            val.powf(rhs_val.try_into().with_span(rhs_span)?),
+        )),
+        Value::Int(val) => {
+            let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs_val <= 0 {
+                ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::Int(
+                    val.pow(rhs_val.try_into().expect("Value should not be negative")),
+                ))
+            }
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_gt(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val > rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val > rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val > rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_gte(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val >= rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val >= rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val >= rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_lt(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val < rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val < rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val < rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_lte(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val <= rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val <= rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val <= rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_mod(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val % rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val % rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val % rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_mul(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val * rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val * rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val * rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_neq(lhs_val: &Value, rhs_val: &Value, rhs_span: Span) -> ControlFlow<Reason, Value> {
+    if lhs_val.type_name() == rhs_val.type_name() {
+        ControlFlow::Continue(Value::Bool(lhs_val != rhs_val))
+    } else {
+        ControlFlow::Break(Reason::Error(Error::Type(
+            lhs_val.type_name(),
+            rhs_val.type_name(),
+            rhs_span,
+        )))
+    }
+}
+
+fn eval_binop_orb(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val | rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val | rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_shl(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::BigInt(val << rhs))
+            } else {
+                ControlFlow::Continue(Value::BigInt(val >> rhs.abs()))
+            }
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::Int(val << rhs))
+            } else {
+                ControlFlow::Continue(Value::Int(val >> rhs.abs()))
+            }
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_shr(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::BigInt(val >> rhs))
+            } else {
+                ControlFlow::Continue(Value::BigInt(val << rhs.abs()))
+            }
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::Int(val >> rhs))
+            } else {
+                ControlFlow::Continue(Value::Int(val << rhs.abs()))
+            }
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_sub(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val - rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val - rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val - rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_xorb(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val ^ rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val ^ rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
     }
 }

@@ -127,6 +127,21 @@ impl TryFrom<Value> for i64 {
     }
 }
 
+impl TryFrom<Value> for BigInt {
+    type Error = ConversionError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::BigInt(v) = value {
+            Ok(v)
+        } else {
+            Err(ConversionError {
+                expected: "Int",
+                actual: value.type_name(),
+            })
+        }
+    }
+}
+
 impl TryFrom<Value> for bool {
     type Error = ConversionError;
 
@@ -180,7 +195,7 @@ impl TryFrom<Value> for c_double {
             Ok(v as c_double)
         } else {
             Err(ConversionError {
-                expected: "Qubit",
+                expected: "Double",
                 actual: value.type_name(),
             })
         }
