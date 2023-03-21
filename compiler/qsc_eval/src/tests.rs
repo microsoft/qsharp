@@ -1387,3 +1387,32 @@ fn call_adjoint_adjoint_expr() {
         "#]],
     );
 }
+
+#[test]
+fn call_adjoint_self_expr() {
+    check_expression(
+        indoc! {r#"
+            namespace Test {
+                operation Foo() : Unit is Adj + Ctl {
+                    body (...) {
+                        fail "Body Implementation";
+                    }
+                    adjoint self;
+                    controlled (ctls, ...) {
+                        fail "Controlled Implementation";
+                    }
+                }
+            }
+        "#},
+        "Adjoint Test.Foo()",
+        &expect![[r#"
+            UserFail(
+                "Body Implementation",
+                Span {
+                    lo: 92,
+                    hi: 118,
+                },
+            )
+        "#]],
+    );
+}
