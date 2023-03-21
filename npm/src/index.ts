@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 const isNode = !!(process && process.env)
 
 // Note: Consumers should directly import 'qsharp/browser' or 'qsharp/node', not this

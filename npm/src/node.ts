@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import {type ICompletionList, get_completions, check_code, IDiagnostic} from "../lib/node/qsc_wasm.cjs";
 
 export function getCompletions() : ICompletionList {

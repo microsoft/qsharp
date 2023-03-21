@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import {default as async_init, 
     get_completions, type ICompletionList,
     check_code, type IDiagnostic

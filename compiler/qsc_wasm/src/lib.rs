@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #![cfg(feature = "wasm")]
 
 use qsc_frontend::compile::{compile, PackageStore};
