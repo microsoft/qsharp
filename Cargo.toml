@@ -7,6 +7,7 @@ members = [
     "compiler/qsc_frontend",
     "compiler/qsc_passes",
     "compiler/qsc_wasm",
+    "katas/verify",
 ]
 
 [workspace.package]
