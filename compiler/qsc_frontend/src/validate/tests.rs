@@ -3,6 +3,7 @@
 
 use crate::{parse::namespaces, validate::Validator};
 use expect_test::{expect, Expect};
+use indoc::indoc;
 use qsc_ast::{ast::Namespace, visit::Visitor};
 
 use super::Error;
@@ -163,21 +164,22 @@ fn test_lambda() {
 #[test]
 fn test_partial() {
     check(
-        r#"
-namespace input {
-    operation Foo(x : Int, y : Int) : Unit {}
-    operation Bar() : Unit {
-        let foo = Foo(_, 2);
-        foo(1);
-    }
-}"#,
+        indoc! {"
+            namespace input {
+                operation Foo(x : Int, y : Int) : Unit {}
+                operation Bar() : Unit {
+                    let foo = Foo(_, 2);
+                    foo(1);
+                }
+            }
+        "},
         &expect![[r#"
             [
                 NotCurrentlySupported(
                     "partial applications",
                     Span {
-                        lo: 112,
-                        hi: 121,
+                        lo: 111,
+                        hi: 120,
                     },
                 ),
             ]
@@ -206,20 +208,21 @@ fn test_type_hole_param() {
 #[test]
 fn test_nested_type_hole_param() {
     check(
-        r#"
-namespace input {
-    operation Foo(a : Int, b : (Int, _, Double)) : Unit {
-        let (_, x, _) = b;
-        return x;
-    }
-}"#,
+        indoc! {"
+            namespace input {
+                operation Foo(a : Int, b : (Int, _, Double)) : Unit {
+                    let (_, x, _) = b;
+                    return x;
+                }
+            }
+        "},
         &expect![[r#"
             [
                 NotCurrentlySupported(
                     "type holes",
                     Span {
-                        lo: 56,
-                        hi: 57,
+                        lo: 55,
+                        hi: 56,
                     },
                 ),
             ]
