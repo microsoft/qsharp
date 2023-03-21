@@ -184,3 +184,45 @@ namespace input {
         "#]],
     );
 }
+
+#[test]
+fn test_type_hole_param() {
+    check(
+        "namespace input { operation Foo(a : Int, b : _) : Unit { return b; } }",
+        &expect![[r#"
+            [
+                NotCurrentlySupported(
+                    "type holes",
+                    Span {
+                        lo: 45,
+                        hi: 46,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_nested_type_hole_param() {
+    check(
+        r#"
+namespace input {
+    operation Foo(a : Int, b : (Int, _, Double)) : Unit {
+        let (_, x, _) = b;
+        return x;
+    }
+}"#,
+        &expect![[r#"
+            [
+                NotCurrentlySupported(
+                    "type holes",
+                    Span {
+                        lo: 56,
+                        hi: 57,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

@@ -6,7 +6,7 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{CallableDecl, CallableKind, Expr, ExprKind, Package, Pat, Span, Ty, TyKind},
-    visit::{walk_callable_decl, walk_expr, Visitor},
+    visit::{walk_callable_decl, walk_expr, walk_ty, Visitor},
 };
 use thiserror::Error;
 
@@ -97,6 +97,15 @@ impl<'a> Visitor<'a> for Validator {
             _ => {}
         };
         walk_expr(self, expr);
+    }
+
+    fn visit_ty(&mut self, ty: &'a Ty) {
+        if let TyKind::Hole = ty.kind {
+            self.validation_errors
+                .push(Error::NotCurrentlySupported("type holes", ty.span));
+        }
+
+        walk_ty(self, ty);
     }
 }
 
