@@ -199,6 +199,21 @@ impl<'a> Visitor<'a> for Resolver<'a> {
                 self.visit_expr(iter);
                 self.with_pat(pat, |resolver| resolver.visit_block(block));
             }
+            ExprKind::Repeat(repeat, cond, fixup) => {
+                self.with_scope(&mut HashMap::new(), |resolver| {
+                    repeat
+                        .stmts
+                        .iter()
+                        .for_each(|stmt| resolver.visit_stmt(stmt));
+                    resolver.visit_expr(cond);
+                    if let Some(block) = fixup.as_ref() {
+                        block
+                            .stmts
+                            .iter()
+                            .for_each(|stmt| resolver.visit_stmt(stmt));
+                    }
+                });
+            }
             ExprKind::Lambda(_, input, output) => {
                 self.with_pat(input, |resolver| resolver.visit_expr(output));
             }
