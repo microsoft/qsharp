@@ -1,14 +1,21 @@
-# Project
+# Q# language and tooling:
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+> Under development
 
-As the maintainer of this project, please make a few updates:
+This repository contains Q# tooling, specifically:
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+- **[compiler](./compiler/qsc/)**: command line compiler
+- **[library](./library/)**: standard library
+- **[npm](./npm/)**: Q# npm module
+- **[playground](./playground/)**: simple website for interacting with Q#
+
+## Feedback
+
+If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp/issues/new/choose)!
+
+## Reporting Security Issues
+
+Security issues and bugs should be reported privately following our [security issue documentation](./SECURITY.md#reporting-security-issues).
 
 ## Contributing
 
@@ -24,7 +31,11 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-## Trademarks
+For more details, please see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Legal and Licensing
+
+### Trademarks
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
 trademarks or logos is subject to and must follow 
