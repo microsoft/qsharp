@@ -6,14 +6,12 @@ mod tests;
 
 use qsc_frontend::compile::{self, compile, PackageStore};
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-pub fn verify_reference(reference: &str) {
+pub fn verify_kata(verify_wrapper: &str, implementation: &str) {
     let mut store = PackageStore::new();
     let stdlib = store.insert(compile::std());
-    let unit = compile(&store, [stdlib], [reference], "");
+    // TODO: The expression should probably be "Kata.Verify()"
+    let unit = compile(&store, [stdlib], [verify_wrapper, implementation], "");
+    // TODO (cesarzc): this function should probably return something rather than assert.
     assert!(
         unit.context.errors().is_empty(),
         "Compilation errors: {:?}",

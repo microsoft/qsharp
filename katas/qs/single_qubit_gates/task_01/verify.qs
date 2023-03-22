@@ -1,48 +1,41 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
+operation ApplyYReference(q : Qubit) : Unit is Adj + Ctl {
+    body ... {
+        Y(q);
+    }
+    adjoint self;
+}
 
-namespace Quantum.Kata.SingleQubitGates {
-    open Microsoft.Quantum.Diagnostics;
+operation Verify() : Bool {
+    let task = ApplyY;
+    let taskRef = ApplyYReference;
 
-    operation ApplyYReference(q : Qubit) : Unit is Adj + Ctl {
-        body ... {
-            Y(q);
+    use (aux, target) = (Qubit(), Qubit());
+    H(aux);
+    CNOT(aux, target);
+
+    task(target);
+    Adjoint taskRef(target);
+
+    CNOT(aux, target);
+    H(aux);
+
+    if CheckZero(target) {
+        if CheckZero(aux) {
+            task(target);
+            DumpMachine();
+            return true;
         }
-        adjoint self;
     }
 
-    operation Verify() : Bool {
-        let task = ApplyY;
-        let taskRef = ApplyYReference;
+    Reset(aux);
+    Reset(target);
 
-        use (aux, target) = (Qubit(), Qubit());
-        H(aux);
-        CNOT(aux, target);
+    // Use DumpMachine to display actual vs desired state.
+    task(target);
+    DumpMachine();
+    Reset(target);
+    taskRef(target);
+    DumpMachine();
 
-        task(target);
-        Adjoint taskRef(target);
-
-        CNOT(aux, target);
-        H(aux);
-
-        if CheckZero(target) {
-            if CheckZero(aux) {
-                task(target);
-                DumpMachine();
-                return true;
-            }
-        }
-
-        Reset(aux);
-        Reset(target);
-
-        // Use DumpMachine to display actual vs desired state.
-        task(target);
-        DumpMachine();
-        Reset(target);
-        taskRef(target);
-        DumpMachine();
-
-        return false;
-    }
+    return false;
 }
