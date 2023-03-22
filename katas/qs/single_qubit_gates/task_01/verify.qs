@@ -1,3 +1,6 @@
+open Microsoft.Quantum.Diagnostics;
+open Microsoft.Quantum.Intrinsic;
+
 operation ApplyYReference(q : Qubit) : Unit is Adj + Ctl {
     body ... {
         Y(q);
@@ -27,15 +30,15 @@ operation Verify() : Bool {
         }
     }
 
-    Reset(aux);
-    Reset(target);
+    //Reset(aux);
+    //Reset(target);
 
     // Use DumpMachine to display actual vs desired state.
     task(target);
     DumpMachine();
-    Reset(target);
+    //Reset(target);
     taskRef(target);
-    DumpMachine();
+    //DumpMachine();
 
     return false;
 }
