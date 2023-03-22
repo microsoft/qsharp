@@ -4,17 +4,28 @@
 //use std::fs;
 use indoc::indoc;
 
-//use std::env::current_dir;
+use std::env::current_dir;
 use std::path::Path;
+use std::path::PathBuf;
 //use relative_path::RelativePath;
 
 use crate::{verify_kata};
+
+fn katas_source_dir() -> PathBuf {
+    let current_dir = current_dir().unwrap();
+    let katas_qsharp_source_dir = current_dir.parent().unwrap().join("qs");
+    katas_qsharp_source_dir.to_path_buf()
+}
 
 fn verify_exercise() {
     //let root = current_dir();
     let path = Path::new("../../qs/single_qubit_gates/task_01/reference.qs");
     //let full_path = relative_path.to_path(&root);
-    println!("{}", path.display());
+    //println!("{}: {}", path.canonicalize().expect("Something").display(), path.exists());
+    let katas_source = katas_source_dir();
+    println!("{:?}", katas_source);
+    println!("{:?}", path.canonicalize());
+    println!("{:?}", std::env::current_dir().expect("cesarzc: no-current-dir").canonicalize());
     //let data = fs::read_to_string("../../qs/single_qubit_gates/task_01/reference.qs").expect("Unable to read file");
     //println!("{}", data);
 }
