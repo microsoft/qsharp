@@ -7,15 +7,25 @@ import {copyFileSync, mkdirSync, cpSync}  from "node:fs";
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
 
-import {build} from "esbuild";
+import {build, context} from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const libsDir = join(thisDir, "..", "node_modules");
 
 // Use minified libraries
 const isRelease = process.argv.includes('--release');
+const outfile = join(thisDir, 'public/libs/app.js');
 
-// TODO: Have esbuild rebuild on changes. See https://esbuild.github.io/api/#watch
+/** @type {import("esbuild").BuildOptions} */
+const buildOptions = {
+    entryPoints: [join(thisDir, "src/main.ts")],
+    outfile,
+    bundle: true,
+    target: ['es2020', 'chrome64', 'edge79', 'firefox62' ,'safari11.1'],
+    define: {"import.meta.url": "document.URL"},
+    sourcemap: 'linked',
+    minify: isRelease ? true : false,
+};
 
 // Copy the relevant external libraries from node_modules into the static site files
 function copyLibs() {
@@ -44,18 +54,21 @@ function copyLibs() {
 function buildBundle() {
     console.log("Running esbuild");
 
-    let outfile = join(thisDir, 'public/libs/app.js');
-
-    build({
-        entryPoints: [join(thisDir, "src/main.ts")],
-        outfile,
-        bundle: true,
-        target: ['es2020', 'chrome64', 'edge79', 'firefox62' ,'safari11.1'],
-        define: {"import.meta.url": "document.URL"},
-        sourcemap: 'linked',
-        minify: isRelease ? true : false,
-    }).then(_ => console.log(`Built bundle to ${outfile}`));
+    build(buildOptions).then(_ => console.log(`Built bundle to ${outfile}`));
 }
 
-copyLibs();
-buildBundle();
+// Serve the site or build it?
+if (process.argv.includes('--serve')) {
+    let ctx = await context(buildOptions);
+    const servedir = join(thisDir, "public");
+
+    // See https://esbuild.github.io/api/#serve
+    console.log("Starting the playground on http://localhost:5555");
+    await ctx.serve({
+        port: 5555,
+        servedir: 'public'
+    });
+} else {
+    copyLibs();
+    buildBundle();
+}
