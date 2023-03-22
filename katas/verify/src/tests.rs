@@ -17,7 +17,7 @@ fn katas_qsharp_source_dir() -> PathBuf {
     katas_qsharp_source_dir.to_path_buf()
 }
 
-fn verify_module() {
+fn validate_exercise() {
     let mut exercise_dir = katas_qsharp_source_dir();
     exercise_dir.push("single_qubit_gates");
     exercise_dir.push("task_01");
@@ -40,7 +40,11 @@ fn verify_module() {
     verify_kata(verification_source.as_str(), reference.as_str());
 }
 
+// TODO (cesarzc): implement.
+//fn validate_module() {
+//}
+
 #[test]
 fn verify_single_qubit_gates_kata() {
-    verify_module();
+    validate_exercise();
 }
