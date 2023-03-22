@@ -1,5 +1,5 @@
 [package]
-name = "qsc"
+name = "qtest_tool"
 version = "0.0.0"
 
 authors.workspace = true
@@ -30,5 +30,5 @@ name = "library"
 harness = false
 
 [[bin]]
-name = "qsc"
+name = "qtest_tool"
 bench = false
