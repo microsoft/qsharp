@@ -732,6 +732,7 @@ name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [
  "getrandom",
+ "miette",
  "qsc_eval",
  "qsc_frontend",
  "serde",

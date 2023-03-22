@@ -1,0 +1,25 @@
+/* Copyright (c) Microsoft Corporation.
+   Licensed under the MIT License. */
+
+body {
+    font-family: Helvetica, Arial, Verdana;
+}
+
+#container {
+    display: flex;
+}
+
+#editor {
+    width: 600px;
+    height: 400px;
+    border: 1px solid gray;
+}
+
+#errors {
+    font-family: 'Courier New', Courier, monospace;
+    color: darkred;
+    margin-left: 50px;
+    white-space: pre;
+    width: 600px;
+    height: 400px;
+}

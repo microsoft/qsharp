@@ -105,21 +105,21 @@ fn invoke_quantum_intrinsic(
                     }
                 })*)*
 
-            "__quantum__qis__m__body" => {
-                let res = __quantum__qis__m__body(args.try_into().with_span(args_span)?);
-                ControlFlow::Continue(Value::Result(__quantum__rt__result_equal(
-                    res,
-                    __quantum__rt__result_get_one(),
-                )))
-            }
+                "__quantum__qis__m__body" => {
+                    let res = __quantum__qis__m__body(args.try_into().with_span(args_span)?);
+                    ControlFlow::Continue(Value::Result(__quantum__rt__result_equal(
+                        res,
+                        __quantum__rt__result_get_one(),
+                    )))
+                }
 
-            "__quantum__qis__mresetz__body" => {
-                let res = __quantum__qis__mresetz__body(args.try_into().with_span(args_span)?);
-                ControlFlow::Continue(Value::Result(__quantum__rt__result_equal(
-                    res,
-                    __quantum__rt__result_get_one(),
-                )))
-            }
+                "__quantum__qis__mresetz__body" => {
+                    let res = __quantum__qis__mresetz__body(args.try_into().with_span(args_span)?);
+                    ControlFlow::Continue(Value::Result(__quantum__rt__result_equal(
+                        res,
+                        __quantum__rt__result_get_one(),
+                    )))
+                }
 
                 _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic($chosen_op_span))),
             }
