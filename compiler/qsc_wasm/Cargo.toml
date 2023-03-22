@@ -1,0 +1,28 @@
+[package]
+name = "qsc_wasm"
+version = "0.0.0"
+
+authors.workspace = true
+edition.workspace = true
+# wasm-pack doesn't like the workspace format for the below, so copied in for now.
+homepage = "https://github.com/microsoft/qsharp"
+repository = "https://github.com/microsoft/qsharp"
+license = "MIT"
+description = "Wasm module for the qsc compiler"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+# Make most everything in this crate optional based on the wasm feature being enabled.
+[dependencies]
+qsc_eval = { path = "../qsc_eval", optional = true }
+qsc_frontend = { path = "../qsc_frontend", optional = true }
+miette = { workspace = true, optional = true}
+serde = { workspace = true, features = ["derive"], optional = true }
+serde-wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true  }
+# This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
+getrandom = { workspace = true, features = ["js"], optional = true  }
+
+[features]
+wasm = ["dep:qsc_eval", "dep:qsc_frontend", "dep:miette", "dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:getrandom"]

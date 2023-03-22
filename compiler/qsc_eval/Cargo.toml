@@ -9,15 +9,14 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+qir-backend = { git = "https://github.com/qir-alliance/qir-runner", rev = "dea6a8373cbfc02f1e17ade9399699645ec80014" }
 qsc_ast = { path = "../qsc_ast" }
 qsc_frontend = { path = "../qsc_frontend" }
-qir-backend = { git = "https://github.com/qir-alliance/qir-runner", tag = "v0.1.0" }
-qir-stdlib = { git = "https://github.com/qir-alliance/qir-runner", tag = "v0.1.0" }
-num-bigint = "0.4.3"
-miette = "5.6.0"
-thiserror = "1.0.39"
+qir-stdlib = { git = "https://github.com/qir-alliance/qir-runner", rev = "dea6a8373cbfc02f1e17ade9399699645ec80014" }
+miette = { workspace = true }
+num-bigint = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
-expect-test = "1.4.0"
-indoc = "2.0.0"
-
+expect-test = { workspace = true }
+indoc = { workspace = true }
