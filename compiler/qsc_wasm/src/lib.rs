@@ -166,7 +166,7 @@ const IDiagnostic: &'static str = r#"
 export interface IDiagnostic {
     startPos: number;
     endPos: number;
-    messaage: string;
+    message: string;
     severity: number; // [0, 1, 2] = [error, warning, info]
     code?: { 
         value: number;  // Can also be a string, but number would be preferable
@@ -176,7 +176,7 @@ export interface IDiagnostic {
 "#;
 
 #[derive(Serialize, Deserialize)]
-pub struct VSDiagnosic {
+pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
     pub message: String,
@@ -187,7 +187,7 @@ pub struct VSDiagnosic {
 pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
     let unit = compile(&PackageStore::new(), [], [code], "");
 
-    let mut result: Vec<VSDiagnosic> = vec![];
+    let mut result: Vec<VSDiagnostic> = vec![];
 
     for err in unit.context.errors() {
         let label = err
@@ -199,7 +199,7 @@ pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
         let severity = err.severity().unwrap_or(Severity::Error);
         let msg = label.label().unwrap();
 
-        let diag = VSDiagnosic {
+        let diag = VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
             severity: severity as i32,
