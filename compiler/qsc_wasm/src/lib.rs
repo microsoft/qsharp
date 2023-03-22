@@ -1,7 +1,11 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #![cfg(feature = "wasm")]
 
 use qsc_frontend::compile::{compile, PackageStore};
 
+use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -157,11 +161,52 @@ pub fn get_completions() -> Result<JsValue, JsValue> {
     Ok(serde_wasm_bindgen::to_value(&res)?)
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const IDiagnostic: &'static str = r#"
+export interface IDiagnostic {
+    startPos: number;
+    endPos: number;
+    message: string;
+    severity: number; // [0, 1, 2] = [error, warning, info]
+    code?: { 
+        value: number;  // Can also be a string, but number would be preferable
+        target: string; // URI for more info - could be a custom URI for pretty errors
+    }
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+pub struct VSDiagnostic {
+    pub start_pos: usize,
+    pub end_pos: usize,
+    pub message: String,
+    pub severity: i32,
+}
+
 #[wasm_bindgen]
 pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
     let unit = compile(&PackageStore::new(), [], [code], "");
 
-    // TODO: Failing as errors is not serializable.
-    let _errors = unit.context.errors();
-    Ok(serde_wasm_bindgen::to_value("TODO")?)
+    let mut result: Vec<VSDiagnostic> = vec![];
+
+    for err in unit.context.errors() {
+        let label = err
+            .labels()
+            .and_then(|mut ls| ls.next())
+            .expect("error should have at least one label");
+        let offset = label.offset();
+        let len = label.len();
+        let severity = err.severity().unwrap_or(Severity::Error);
+        let msg = label.label().unwrap();
+
+        let diag = VSDiagnostic {
+            start_pos: offset,
+            end_pos: offset + len,
+            severity: severity as i32,
+            message: msg.to_string(),
+        };
+        result.push(diag);
+    }
+
+    Ok(serde_wasm_bindgen::to_value(&result)?)
 }
