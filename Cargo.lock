@@ -636,8 +636,8 @@ dependencies = [
 
 [[package]]
 name = "qir-backend"
-version = "0.1.0"
-source = "git+https://github.com/qir-alliance/qir-runner?tag=v0.1.0#1c2ed04e968b4aedc4eb9f27a99c807201279ec9"
+version = "0.3.0"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=dea6a8373cbfc02f1e17ade9399699645ec80014#dea6a8373cbfc02f1e17ade9399699645ec80014"
 dependencies = [
  "bitvec",
  "ndarray",
@@ -651,8 +651,8 @@ dependencies = [
 
 [[package]]
 name = "qir-stdlib"
-version = "0.1.0"
-source = "git+https://github.com/qir-alliance/qir-runner?tag=v0.1.0#1c2ed04e968b4aedc4eb9f27a99c807201279ec9"
+version = "0.3.0"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=dea6a8373cbfc02f1e17ade9399699645ec80014#dea6a8373cbfc02f1e17ade9399699645ec80014"
 dependencies = [
  "num-bigint",
  "rand",
@@ -731,6 +731,7 @@ name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [
  "getrandom",
+ "miette",
  "qsc_eval",
  "qsc_frontend",
  "serde",
