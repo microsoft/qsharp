@@ -1977,6 +1977,152 @@ fn while_invalid_type_expr() {
 }
 
 #[test]
+fn ternop_cond_expr() {
+    check_expr("", "true ? 1 | 0", &expect!["1"]);
+}
+
+#[test]
+fn ternop_cond_false_expr() {
+    check_expr("", "false ? 1 | 0", &expect!["0"]);
+}
+
+#[test]
+fn ternop_cond_shortcircuit_expr() {
+    check_expr("", r#"true ? 1 | fail "Shouldn't fail""#, &expect!["1"]);
+}
+
+#[test]
+fn ternop_cond_false_shortcircuit_expr() {
+    check_expr("", r#"false ? fail "Shouldn't fail" | 0"#, &expect!["0"]);
+}
+
+#[test]
+fn ternop_cond_invalid_type_expr() {
+    check_expr(
+        "",
+        "7 ? 1 | 0",
+        &expect![[r#"
+            Type(
+                "Bool",
+                "Int",
+                Span {
+                    lo: 0,
+                    hi: 1,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ternop_update_expr() {
+    check_expr("", "[1, 2, 3] w/ 2 <- 4", &expect!["[1, 2, 4]"]);
+}
+
+#[test]
+fn ternop_update_invalid_target_expr() {
+    check_expr(
+        "",
+        "(1, 2, 3) w/ 2 <- 4",
+        &expect![[r#"
+            Type(
+                "Array",
+                "Tuple",
+                Span {
+                    lo: 0,
+                    hi: 9,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ternop_update_invalid_index_type_expr() {
+    check_expr(
+        "",
+        "[1, 2, 3] w/ false <- 4",
+        &expect![[r#"
+            Type(
+                "Int",
+                "Bool",
+                Span {
+                    lo: 13,
+                    hi: 18,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ternop_update_invalid_index_range_expr() {
+    check_expr(
+        "",
+        "[1, 2, 3] w/ 7 <- 4",
+        &expect![[r#"
+            OutOfRange(
+                7,
+                Span {
+                    lo: 13,
+                    hi: 14,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn ternop_update_invalid_index_negative_expr() {
+    check_expr(
+        "",
+        "[1, 2, 3] w/ -1 <- 4",
+        &expect![[r#"
+            Negative(
+                -1,
+                Span {
+                    lo: 13,
+                    hi: 15,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn assignupdate_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2, 3];
+            set x w/= 2 <- 4;
+            x
+        }"},
+        &expect!["[1, 2, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_immutable_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            let x = [1, 2, 3];
+            set x w/= 2 <- 4;
+            x
+        }"},
+        &expect![[r#"
+            Mutability(
+                Span {
+                    lo: 33,
+                    hi: 34,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn unop_bitwise_not_int_expr() {
     check_expr("", "~~~(13)", &expect!["-14"]);
 }
