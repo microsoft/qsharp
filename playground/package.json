@@ -8,6 +8,6 @@
     "scripts": {
         "build": "node build.js",
         "build:release": "node build.js --release",
-        "start": "npx http-server -c-1"
+        "start": "npx --no http-server -c-1"
     }
 }

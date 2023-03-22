@@ -16,7 +16,7 @@
         "./browser": "./dist/browser.js"
     },
     "scripts":{
-        "build": "../node_modules/.bin/tsc -p ./src/tsconfig.json"
+        "build": "npx --no --package typescript tsc -p ./src/tsconfig.json"
     },
     "type": "module",
     "files": ["dist", "lib"]

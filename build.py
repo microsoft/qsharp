@@ -61,9 +61,9 @@ if build_wasm:
     web_build_args = ['--target', 'web', '--out-dir', wasm_web_dir]
     node_build_args = ['--target', 'nodejs', '--out-dir', wasm_node_dir]
     subprocess.run(wasm_pack_args + web_build_args + cargo_options,
-                   check=True, text=True, cwd=wasm_src)
+                   check=True, text=True, cwd=wasm_src, shell=True)
     subprocess.run(wasm_pack_args + node_build_args + cargo_options,
-                   check=True, text=True, cwd=wasm_src)
+                   check=True, text=True, cwd=wasm_src, shell=True)
 
 if build_npm:
     # Copy the wasm build files over for web and node targets
@@ -84,8 +84,8 @@ if build_npm:
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
     
     npm_args = ['npm', 'run', 'build']
-    result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
+    result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src, shell=True)
 
 if build_play:
     play_args = ['npm', 'run', 'build']
-    result = subprocess.run(play_args, check=True, text=True, cwd=play_src)
+    result = subprocess.run(play_args, check=True, text=True, cwd=play_src, shell=True)

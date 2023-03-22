@@ -12,6 +12,7 @@
     "devDependencies": {
         "@types/node": "^18.15.3",
         "esbuild": "^0.17.12",
+        "http-server": "^14.1.1",
         "mathjax": "^3.2.2",
         "monaco-editor": "^0.36.1",
         "preact": "^10.13.1",
