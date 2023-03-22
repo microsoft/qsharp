@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -97,6 +98,7 @@ build_npm  = build_all or args.npm
 build_play = build_all or args.play
 
 npm_install_needed = build_npm or build_play
+npm_cmd = 'npm.cmd' if platform.system() == 'Windows' else 'npm'
 
 build_type = 'release' if args.release else 'debug'
 
@@ -109,7 +111,7 @@ npm_src  = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
 
 if npm_install_needed:
-    subprocess.run(['npm', 'install'], check=True, text=True, cwd=root_dir)
+    subprocess.run([npm_cmd, 'install'], check=True, text=True, cwd=root_dir)
 
 if build_cli:
     cargo_build_args = ['cargo', 'build']
@@ -150,9 +152,9 @@ if build_npm:
 
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
     
-    npm_args = ['npm', 'run', 'build']
+    npm_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
 
 if build_play:
-    play_args = ['npm', 'run', 'build']
+    play_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(play_args, check=True, text=True, cwd=play_src)
