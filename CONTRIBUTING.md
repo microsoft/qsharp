@@ -8,9 +8,6 @@ Have a question? The `q#` tags on [Stack Overflow](https://stackoverflow.com/que
 You can learn more about our work on the [Q# Development Blog](https://devblogs.microsoft.com/qsharp/) and ask questions in the comments as well.
 Your question will server as resource to others searching for help.
 
-Or maybe you have figured out how that hard-to-understand concept works? Share your knowledge!
-If you are interested in contributing to the documentation around Q# and its libraries, please see the [MicrosoftDocs/quantum-docs](https://github.com/MicrosoftDocs/quantum-docs) repository.
-
 ## Reporting Issues
 
 Have you identified a reproducible problem in the Quantum Development Kit?

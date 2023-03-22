@@ -1,11 +1,13 @@
-# Microsoft Quantum Development Kit:
+# Q# language and tooling:
 
-Welcome to the Microsoft Quantum Development Kit!
+> Under development
 
 This repository contains Q# tooling, specifically:
 
 - **[compiler](./compiler/qsc/)**: command line compiler
 - **[library](./library/)**: standard library
+- **[npm](./npm/)**: Q# npm module
+- **[playground](./playground/)**: simple website for interacting with Q#
 
 ## Feedback
 
@@ -32,17 +34,6 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 For more details, please see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Legal and Licensing
-
-### Telemetry
-
-By default, sending out telemetry is disabled for all code in this repository, but it can be enabled via compilation flag.
-Our shipped extensions that are built based on the code in this repository support collecting telemetry.
-In that case, opt-in or opt-out works via the corresponding setting in Visual Studio and Visual Studio Code,
-and the telemetry we collect falls under the [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement).
-
-### Data Collection
-
-The software may collect information about you and your use of the software and send it to Microsoft. Microsoft may use this information to provide services and improve our products and services. You may turn off the telemetry as described in the repository. There are also some features in the software that may enable you and Microsoft to collect data from users of your applications. If you use these features, you must comply with applicable law, including providing appropriate notices to users of your applications together with a copy of Microsoft's privacy statement. Our privacy statement is located at https://go.microsoft.com/fwlink/?LinkID=824704. You can learn more about data collection and use in the help documentation and our privacy statement. Your use of the software operates as your consent to these practices.
 
 ### Trademarks
 
