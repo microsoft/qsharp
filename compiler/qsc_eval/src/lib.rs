@@ -263,6 +263,10 @@ impl<'a> Evaluator<'a> {
                 let val = self.eval_expr_impl(rhs)?;
                 self.update_binding(lhs, val)
             }
+            ExprKind::AssignOp(op, lhs, rhs) => {
+                let update = self.eval_binop(*op, lhs, rhs)?;
+                self.update_binding(lhs, update)
+            }
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
@@ -312,8 +316,7 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
-            ExprKind::AssignOp(..)
-            | ExprKind::AssignUpdate(..)
+            ExprKind::AssignUpdate(..)
             | ExprKind::Conjugate(..)
             | ExprKind::Err
             | ExprKind::Field(..)

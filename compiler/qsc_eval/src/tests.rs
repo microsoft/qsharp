@@ -1262,6 +1262,87 @@ fn binop_xorb_mismatch() {
 }
 
 #[test]
+fn assignop_add_expr() {
+    check_statement(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            set x += 1;
+            x
+        }"},
+        &expect!["1"],
+    );
+}
+
+#[test]
+fn assignop_sub_expr() {
+    check_statement(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            set x -= 1;
+            x
+        }"},
+        &expect!["-1"],
+    );
+}
+
+#[test]
+fn assignop_orl_expr() {
+    check_statement(
+        "",
+        indoc! {"{
+            mutable x = false;
+            set x or= true;
+            x
+        }"},
+        &expect!["true"],
+    );
+}
+
+#[test]
+fn assignop_mutability_expr() {
+    check_statement(
+        "",
+        indoc! {"{
+            let x = false;
+            set x or= true;
+            x
+        }"},
+        &expect![[r#"
+            Mutability(
+                Span {
+                    lo: 29,
+                    hi: 30,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn assignop_invalid_type_expr() {
+    check_statement(
+        "",
+        indoc! {"{
+            mutable x = false;
+            set x += 1;
+            x
+        }"},
+        &expect![[r#"
+            Type(
+                "Array, BigInt, Double, Int, or String",
+                "Bool",
+                Span {
+                    lo: 33,
+                    hi: 34,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn fail_expr() {
     check_expr(
         "",
