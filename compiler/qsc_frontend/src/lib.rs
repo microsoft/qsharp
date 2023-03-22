@@ -8,5 +8,6 @@ pub mod diagnostic;
 pub mod id;
 mod lex;
 mod parse;
+mod replace_qubit_allocation;
 pub mod resolve;
 mod validate;
