@@ -31,7 +31,7 @@ fn validate_exercise(exercise_dir: &Path) {
     let placeholder_source = read_to_string(placeholder_file_path)
         .expect("Unable to read placeholder source implementation file.");
     let sources = vec![reference_source.clone(), placeholder_source.clone()];
-    for source in sources.iter() {
+    for source in &sources {
         let kata_compilation = compile_kata(verification_source.as_str(), source.as_str());
         let kata_compiles = match kata_compilation {
             Ok((_, _)) => true,

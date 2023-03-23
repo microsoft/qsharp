@@ -36,7 +36,7 @@ pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool
     match compile_kata(verification_source, kata_implementation) {
         Ok((_, _)) => true,
         Err(e) => {
-            println!("{}", e);
+            println!("{e}");
             false
         }
     }
