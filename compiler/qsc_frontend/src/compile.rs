@@ -146,6 +146,7 @@ pub fn compile(
     entry_expr: &str,
 ) -> CompileUnit {
     let (mut package, parse_errors, offsets) = parse_all(sources, entry_expr);
+
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);

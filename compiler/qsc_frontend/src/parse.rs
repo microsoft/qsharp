@@ -59,7 +59,6 @@ pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     }
 }
 
-#[must_use]
 pub(super) fn expr(input: &str) -> (Expr, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match expr::expr(&mut scanner) {
