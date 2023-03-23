@@ -33,12 +33,15 @@ fn validate_exercise(exercise_dir: &Path) {
     let sources = vec![reference_source.clone(), placeholder_source.clone()];
     for source in &sources {
         let kata_compilation = compile_kata(verification_source.as_str(), source.as_str());
-        let kata_compiles = match kata_compilation {
-            Ok((_, _)) => true,
-            Err(_) => false,
+        let kata_errors = match kata_compilation {
+            Ok((_, _)) => None,
+            Err(e) => Some(e),
         };
 
-        assert!(kata_compiles, "Kata does not compile.");
+        assert!(
+            kata_errors.is_none(),
+            "Kata does not compile. {kata_errors:?}"
+        );
     }
 
     // Validate that the reference implementation yields success and the placeholder implementation yields failure.
