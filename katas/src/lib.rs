@@ -37,5 +37,5 @@ pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool
 
     // N.B. Once evaluation works for katas, run the Verify operation.
 
-    return true;
+    true
 }

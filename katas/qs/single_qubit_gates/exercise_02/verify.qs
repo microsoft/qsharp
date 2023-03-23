@@ -14,7 +14,7 @@ operation GlobalPhaseIReference(q : Qubit) : Unit is Adj + Ctl {
     }
 }
 
-operation VerifyTask2() : Bool {
+operation Verify() : Bool {
     let task = GlobalPhaseI;
     let taskRef = GlobalPhaseIReference;
 

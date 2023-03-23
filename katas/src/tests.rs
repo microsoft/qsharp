@@ -9,10 +9,12 @@ use std::path::PathBuf;
 use crate::verify_kata;
 
 fn katas_qsharp_source_dir() -> PathBuf {
-    current_dir().unwrap().join("qs")
+    current_dir()
+        .expect("Unable to get the katas crate current directory")
+        .join("qs")
 }
 
-fn validate_exercise(exercise_dir: PathBuf) {
+fn validate_exercise(exercise_dir: &PathBuf) {
     let mut verification_source_file = exercise_dir.clone();
     verification_source_file.push("verify.qs");
     let verification_source =
@@ -26,13 +28,13 @@ fn validate_exercise(exercise_dir: PathBuf) {
     assert!(is_exercise_valid, "Exercise is invalid.");
 }
 
-fn validate_module(module_dir: PathBuf) {
+fn validate_module(module_dir: &PathBuf) {
     for entry in read_dir(module_dir).expect("Unable to read module dir") {
         let path = entry
             .expect("No path for entry in module directory.")
             .path();
         if path.is_dir() {
-            validate_exercise(path);
+            validate_exercise(&path);
         }
     }
 }
@@ -41,5 +43,5 @@ fn validate_module(module_dir: PathBuf) {
 fn verify_single_qubit_gates_module() {
     let mut module_dir = katas_qsharp_source_dir();
     module_dir.push("single_qubit_gates");
-    validate_module(module_dir.clone());
+    validate_module(&module_dir);
 }
