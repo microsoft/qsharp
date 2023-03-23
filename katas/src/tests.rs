@@ -4,6 +4,7 @@
 use std::env::current_dir;
 use std::fs::read_dir;
 use std::fs::read_to_string;
+use std::path::Path;
 use std::path::PathBuf;
 
 use crate::verify_kata;
@@ -14,14 +15,14 @@ fn katas_qsharp_source_dir() -> PathBuf {
         .join("qs")
 }
 
-fn validate_exercise(exercise_dir: &PathBuf) {
-    let mut verification_source_file = exercise_dir.clone();
+fn validate_exercise(exercise_dir: &Path) {
+    let mut verification_source_file = PathBuf::from(exercise_dir);
     verification_source_file.push("verify.qs");
     let verification_source =
         read_to_string(verification_source_file).expect("Unable to read verification file.");
 
     // Validate that the reference implementation yields success.
-    let mut reference_file = exercise_dir.clone();
+    let mut reference_file = PathBuf::from(exercise_dir);
     reference_file.push("reference.qs");
     let reference = read_to_string(reference_file).expect("Unable to read reference file.");
     let is_exercise_valid = verify_kata(verification_source.as_str(), reference.as_str());

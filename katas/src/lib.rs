@@ -8,6 +8,7 @@ mod tests;
 
 use qsc_frontend::compile::{self, compile, PackageStore};
 
+#[must_use]
 pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool {
     let mut store = PackageStore::new();
     let stdlib = store.insert(compile::std());
