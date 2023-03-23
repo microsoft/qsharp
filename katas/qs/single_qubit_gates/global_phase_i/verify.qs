@@ -37,15 +37,15 @@ namespace Kata {
             }
         }
 
-        //Reset(aux);
-        //Reset(target);
+        Reset(aux);
+        Reset(target);
 
         // Use DumpMachine to display actual vs desired state.
         task(target);
-        //DumpMachine();
-        //Reset(target);
+        DumpMachine();
+        Reset(target);
         taskRef(target);
-        //DumpMachine();
+        DumpMachine();
 
         return false;
     }
