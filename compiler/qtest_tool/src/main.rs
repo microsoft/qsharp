@@ -7,7 +7,7 @@ use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
 use qsc_eval::{evaluate, Scopes};
 use qsc_frontend::{
-    compile::{self, compile, Context, PackageStore, SourceIndex},
+    compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
 use qsc_passes::globals::extract_callables;
@@ -26,6 +26,8 @@ struct Cli {
     sources: Vec<PathBuf>,
     #[arg(short, long, default_value = "")]
     entry: String,
+    #[arg(short, long)]
+    tree: Option<PathBuf>,
 }
 
 struct ErrorReporter<'a> {
@@ -69,6 +71,10 @@ fn main() -> miette::Result<ExitCode> {
     let std = store.insert(compile::std());
     let unit = compile(&store, [std], &sources, &cli.entry);
 
+    if let Some(tree_path) = &cli.tree {
+        print_compilation_unit(&unit, tree_path);
+    }
+
     if unit.context.errors().is_empty() {
         if unit.package.entry.is_some() {
             let user = store.insert(unit);
@@ -105,6 +111,14 @@ fn main() -> miette::Result<ExitCode> {
             eprintln!("{:?}", reporter.report(error.clone()));
         }
         Ok(ExitCode::FAILURE)
+    }
+}
+
+fn print_compilation_unit(unit: &CompileUnit, path: &Path) {
+    if path.as_os_str() == "-" {
+        println!("{unit:#?}");
+    } else {
+        fs::write(path, format!("{unit:#?}")).unwrap();
     }
 }
 
