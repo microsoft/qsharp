@@ -100,18 +100,4 @@ namespace QIR.Intrinsic {
     operation __quantum__qis__mresetz__body(target : Qubit) : Unit {
         body intrinsic;
     }
-
-    // Quantum State Functions
-
-    operation __quantum__qis__dumpmachine__body() : Unit {
-        body intrinsic;
-    }
-
-    operation __quantum__qis__assertzero__body(target : Qubit) : Unit {
-        body intrinsic;
-    }
-
-    operation __quantum__qis__checkzero__body(target : Qubit) : Bool {
-        body intrinsic;
-    }
 }

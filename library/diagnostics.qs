@@ -5,14 +5,10 @@ namespace Microsoft.Quantum.Diagnostics {
     open QIR.Intrinsic;
 
     function DumpMachine() : Unit {
-        __quantum__qis__dumpmachine__body();
-    }
-
-    function AssertZero(qubit : Qubit) : Unit {
-        __quantum__qis__assertzero__body(qubit);
+        body intrinsic;
     }
 
     function CheckZero(qubit : Qubit) : Bool {
-        return __quantum__qis__checkzero__body(qubit);
+        body intrinsic;
     }
 }
