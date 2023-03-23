@@ -9,13 +9,7 @@ use std::path::PathBuf;
 use crate::{verify_kata};
 
 fn katas_qsharp_source_dir() -> PathBuf {
-    let katas_qsharp_source_dir = current_dir()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("qs");
-
-    katas_qsharp_source_dir
+    current_dir().unwrap().join("qs")
 }
 
 fn validate_exercise(exercise_dir: PathBuf) {
