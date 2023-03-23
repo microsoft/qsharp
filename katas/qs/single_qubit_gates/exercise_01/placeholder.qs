@@ -1,4 +1,6 @@
-operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
+namespace Kata {
+    operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
         // ...
 
+    }
 }

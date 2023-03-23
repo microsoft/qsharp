@@ -1,4 +1,6 @@
-operation GlobalPhaseI(q : Qubit) : Unit is Adj + Ctl {
-    // ...
+namespace Kata {
+    operation GlobalPhaseI(q : Qubit) : Unit is Adj + Ctl {
+        // ...
 
+    }
 }
