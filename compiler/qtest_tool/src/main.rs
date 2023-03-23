@@ -5,7 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_eval::{evaluate, Scopes};
+use qsc_eval::{evaluate, Environment};
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
@@ -91,7 +91,7 @@ fn main() -> miette::Result<ExitCode> {
                 &globals,
                 unit.context.resolutions(),
                 user,
-                Scopes::default(),
+                Environment::default(),
             ) {
                 Ok((value, _)) => {
                     println!("{value}");

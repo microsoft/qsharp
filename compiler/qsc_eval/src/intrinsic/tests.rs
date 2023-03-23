@@ -6,7 +6,7 @@ use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
-use crate::{evaluate, Scopes};
+use crate::{evaluate, Environment};
 
 fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -31,7 +31,7 @@ fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
         &globals,
         unit.context.resolutions(),
         id,
-        Scopes::default(),
+        Environment::default(),
     ) {
         Ok((result, _)) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),

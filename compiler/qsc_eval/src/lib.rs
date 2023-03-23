@@ -176,26 +176,26 @@ pub fn evaluate<S: BuildHasher>(
     globals: &HashMap<GlobalId, &CallableDecl, S>,
     resolutions: &Resolutions,
     package: PackageId,
-    scopes: Scopes,
-) -> Result<(Value, Scopes), Error> {
+    environment: Environment,
+) -> Result<(Value, Environment), Error> {
     let mut evaluator = Evaluator {
         store,
         globals,
         resolutions,
         package,
-        scopes,
+        environment,
     };
     match evaluator.eval_stmt(stmt) {
         ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-            Ok((val, evaluator.scopes))
+            Ok((val, evaluator.environment))
         }
         ControlFlow::Break(Reason::Error(error)) => Err(error),
     }
 }
 
-pub struct Scopes(Vec<HashMap<GlobalId, Variable>>);
+pub struct Environment(Vec<HashMap<GlobalId, Variable>>);
 
-impl Default for Scopes {
+impl Default for Environment {
     fn default() -> Self {
         Self(vec![HashMap::default()])
     }
@@ -206,7 +206,7 @@ pub struct Evaluator<'a, S: BuildHasher> {
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
     package: PackageId,
-    scopes: Scopes,
+    environment: Environment,
 }
 
 impl<'a, S: BuildHasher> Evaluator<'a, S> {
@@ -406,7 +406,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         };
 
         let mut new_self = Self {
-            scopes: Scopes::default(),
+            environment: Environment::default(),
             package: call.package,
             resolutions,
             ..*self
@@ -577,13 +577,13 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     }
 
     fn enter_scope(&mut self) {
-        self.scopes.0.push(HashMap::default());
+        self.environment.0.push(HashMap::default());
     }
 
     fn leave_scope(&mut self, release: bool) {
         if release {
             for (_, var) in self
-                .scopes
+                .environment
                 .0
                 .pop()
                 .expect("scope should be entered first before leaving")
@@ -592,7 +592,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 var.value.release();
             }
         } else {
-            let _ = self.scopes.0.pop();
+            let _ = self.environment.0.pop();
         }
     }
 
@@ -612,7 +612,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 );
 
                 let scope = self
-                    .scopes
+                    .environment
                     .0
                     .last_mut()
                     .expect("binding should have a scope");
@@ -651,7 +651,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
 
         let global_id = self.defid_to_globalid(id);
         let local = if id.package == PackageSrc::Local {
-            self.scopes
+            self.environment
                 .0
                 .iter()
                 .rev()
@@ -673,7 +673,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 );
 
                 let mut variable = self
-                    .scopes
+                    .environment
                     .0
                     .iter_mut()
                     .rev()
