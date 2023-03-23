@@ -22,7 +22,12 @@ pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool
 
     // Validate that the code successfully compiles.
     // N.B. Once evaluation works for katas, the expression to compile should be "Kata.Verify()".
-    let unit = compile(&store, [stdlib], [wrapped_verification_source, wrapped_kata_implementation], "");
+    let unit = compile(
+        &store,
+        [stdlib],
+        [wrapped_verification_source, wrapped_kata_implementation],
+        "",
+    );
     if !unit.context.errors().is_empty() {
         println!("Compilation errors: {:?}", unit.context.errors());
         return false;

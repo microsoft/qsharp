@@ -6,7 +6,7 @@ use std::fs::read_dir;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
-use crate::{verify_kata};
+use crate::verify_kata;
 
 fn katas_qsharp_source_dir() -> PathBuf {
     current_dir().unwrap().join("qs")
@@ -15,7 +15,8 @@ fn katas_qsharp_source_dir() -> PathBuf {
 fn validate_exercise(exercise_dir: PathBuf) {
     let mut verification_source_file = exercise_dir.clone();
     verification_source_file.push("verify.qs");
-    let verification_source = read_to_string(verification_source_file).expect("Unable to read verification file.");
+    let verification_source =
+        read_to_string(verification_source_file).expect("Unable to read verification file.");
 
     // Validate that the reference implementation yields success.
     let mut reference_file = exercise_dir.clone();
@@ -27,7 +28,9 @@ fn validate_exercise(exercise_dir: PathBuf) {
 
 fn validate_module(module_dir: PathBuf) {
     for entry in read_dir(module_dir).expect("Unable to read module dir") {
-        let path = entry.expect("No path for entry in module directory.").path();
+        let path = entry
+            .expect("No path for entry in module directory.")
+            .path();
         if path.is_dir() {
             validate_exercise(path);
         }
