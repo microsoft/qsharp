@@ -7,7 +7,7 @@ use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
 use qsc_eval::Evaluator;
 use qsc_frontend::{
-    compile::{self, compile, Context, PackageStore, SourceIndex},
+    compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
 use std::{
@@ -25,6 +25,8 @@ struct Cli {
     sources: Vec<PathBuf>,
     #[arg(short, long, default_value = "")]
     entry: String,
+    #[arg(short, long)]
+    tree: Option<PathBuf>,
 }
 
 struct ErrorReporter<'a> {
@@ -68,6 +70,10 @@ fn main() -> miette::Result<ExitCode> {
     let std = store.insert(compile::std());
     let unit = compile(&store, [std], &sources, &cli.entry);
 
+    if let Some(tree_path) = &cli.tree {
+        print_compilation_unit(&unit, tree_path);
+    }
+
     if unit.context.errors().is_empty() {
         let user = store.insert(unit);
         match Evaluator::new(&store, user).run() {
@@ -86,6 +92,14 @@ fn main() -> miette::Result<ExitCode> {
             eprintln!("{:?}", reporter.report(error.clone()));
         }
         Ok(ExitCode::FAILURE)
+    }
+}
+
+fn print_compilation_unit(unit: &CompileUnit, path: &Path) {
+    if path.as_os_str() == "-" {
+        println!("{unit:#?}");
+    } else {
+        fs::write(path, format!("{unit:#?}")).unwrap();
     }
 }
 
