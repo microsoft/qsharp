@@ -201,7 +201,7 @@ impl Default for Environment {
     }
 }
 
-pub struct Evaluator<'a, S: BuildHasher> {
+struct Evaluator<'a, S: BuildHasher> {
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
