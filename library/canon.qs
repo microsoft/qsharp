@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.Canon {
     /// CNOT(control, target);
     /// ```
     operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl{
-        body (...) {
+        body ... {
             __quantum__qis__cx__body(control, target);
         }
         controlled (ctls, ...) {
@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.Canon {
     /// Controlled Y([control], target);
     /// ```
     operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl{
-        body (...) {
+        body ... {
             __quantum__qis__cy__body(control, target);
         }
         controlled (ctls, ...) {
@@ -110,7 +110,7 @@ namespace Microsoft.Quantum.Canon {
     /// Controlled Z([control], target);
     /// ```
     operation CZ(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
-        body (...) {
+        body ... {
             __quantum__qis__cz__body(control, target);
         }
         controlled (ctls, ...) {

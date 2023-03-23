@@ -28,8 +28,8 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     internal operation ApplyGlobalPhase(theta : Double) : Unit is Ctl + Adj {
-        body (...) {}
-        controlled (ctls, (...)) {
+        body ... {}
+        controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 // Noop
             }
