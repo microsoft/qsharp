@@ -5,8 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_ast::ast::{Stmt, StmtKind};
-use qsc_eval::{evaluate, Environment};
+use qsc_eval::Evaluator;
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
@@ -83,22 +82,12 @@ fn main() -> miette::Result<ExitCode> {
                 .get(user)
                 .expect("Compile unit should be in package store");
             let globals = extract_callables(&store);
-            match evaluate(
-                &Stmt {
-                    kind: StmtKind::Expr(
-                        unit.package
-                            .entry
-                            .as_ref()
-                            .expect("Entry expression should be provided.")
-                            .clone(),
-                    ),
-                    ..Default::default()
-                },
-                &store,
-                &globals,
-                unit.context.resolutions(),
-                user,
-                Environment::default(),
+            let evaluator = Evaluator::from_store(&store, user, &globals);
+            match evaluator.eval_expr(
+                unit.package
+                    .entry
+                    .as_ref()
+                    .expect("entry expression should be present"),
             ) {
                 Ok((value, _)) => {
                     println!("{value}");

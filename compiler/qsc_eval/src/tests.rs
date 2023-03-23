@@ -3,11 +3,10 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::{Stmt, StmtKind};
 use qsc_frontend::compile::{compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
-use crate::{evaluate, Environment};
+use crate::Evaluator;
 
 fn check_statement(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -22,22 +21,12 @@ fn check_statement(file: &str, expr: &str, expect: &Expect) {
         .get(id)
         .expect("Compile unit should be in package store");
     let globals = extract_callables(&store);
-    match evaluate(
-        &Stmt {
-            kind: StmtKind::Expr(
-                unit.package
-                    .entry
-                    .as_ref()
-                    .expect("Entry expression should be provided.")
-                    .clone(),
-            ),
-            ..Default::default()
-        },
-        &store,
-        &globals,
-        unit.context.resolutions(),
-        id,
-        Environment::default(),
+    let evaluator = Evaluator::from_store(&store, id, &globals);
+    match evaluator.eval_expr(
+        unit.package
+            .entry
+            .as_ref()
+            .expect("entry expression should be present"),
     ) {
         Ok((result, _)) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
