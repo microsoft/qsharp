@@ -9,6 +9,24 @@ This repository contains Q# tooling, specifically:
 - **[npm](./npm/)**: Q# npm module
 - **[playground](./playground/)**: simple website for interacting with Q#
 
+
+## Building
+
+To build this repository there are 4 dependencies that need to be installed. These are:
+
+- Python (version 3.11 or later. See <https://python.org>)
+- Rust (version 1.65 or later. See <https://www.rust-lang.org/tools/install>)
+- Node.js (version 16.17 or later. See <https://nodejs.org/>)
+- wasm-pack (version 0.10 or later. See <https://rustwasm.github.io/wasm-pack/installer/>)
+
+The build script will check these dependencies and their versions and fail if not met.
+
+To build, in the root directory run `python ./build.py`. By default this will create a development
+build of each project.
+
+To run the "playground" locally, `cd` into the `playground` directory, and run `npm start`.
+This will launch a local web server and output the URL to visit to the console.
+
 ## Feedback
 
 If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp/issues/new/choose)!
