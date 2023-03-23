@@ -52,6 +52,67 @@ pub(crate) fn invoke_intrinsic(
                 args.try_into().with_span(args_span)?,
             ))),
 
+            "ArcCos" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.acos()))
+            }
+
+            "ArcSin" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.asin()))
+            }
+
+            "ArcTan" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.atan()))
+            }
+
+            "ArcTan2" => {
+                let mut args = args.try_into_tuple().with_span(args_span)?;
+                if args.len() == 2 {
+                    let (a2, a1) = (
+                        args.pop().expect("tuple should have 2 entries"),
+                        args.pop().expect("tuple should have 2 entries"),
+                    );
+                    let val: f64 = a1.try_into().with_span(args_span)?;
+                    ControlFlow::Continue(Value::Double(
+                        val.atan2(a2.try_into().with_span(args_span)?),
+                    ))
+                } else {
+                    ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                }
+            }
+
+            "Cos" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.cos()))
+            }
+
+            "Cosh" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.cosh()))
+            }
+
+            "Sin" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.sin()))
+            }
+
+            "Sinh" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.sinh()))
+            }
+
+            "Tan" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.tan()))
+            }
+
+            "Tanh" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.tanh()))
+            }
+
             _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
         }
     }

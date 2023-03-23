@@ -125,6 +125,96 @@ fn check_zero_false() {
 }
 
 #[test]
+fn arccos() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.ArcCos(0.3)",
+        &expect!["1.2661036727794992"],
+    );
+}
+
+#[test]
+fn arcsin() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.ArcSin(0.3)",
+        &expect!["0.3046926540153975"],
+    );
+}
+
+#[test]
+fn arctan() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.ArcTan(0.3)",
+        &expect!["0.2914567944778671"],
+    );
+}
+
+#[test]
+fn arctan2() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.ArcTan2(0.3, 0.7)",
+        &expect!["0.40489178628508343"],
+    );
+}
+
+#[test]
+fn cos() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.Cos(Microsoft.Quantum.Math.PI())",
+        &expect!["-1.0"],
+    );
+}
+
+#[test]
+fn cosh() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.Cosh(Microsoft.Quantum.Math.PI())",
+        &expect!["11.591953275521519"],
+    );
+}
+
+#[test]
+fn sin() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.Sin(Microsoft.Quantum.Math.PI())",
+        &expect!["0.00000000000000012246467991473532"],
+    );
+}
+
+#[test]
+fn sinh() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.Sinh(Microsoft.Quantum.Math.PI())",
+        &expect!["11.548739357257746"],
+    );
+}
+
+#[test]
+fn tan() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.Tan(Microsoft.Quantum.Math.PI())",
+        &expect!["-0.00000000000000012246467991473532"],
+    );
+}
+
+#[test]
+fn tanh() {
+    check_intrinsic(
+        "",
+        "Microsoft.Quantum.Math.Tanh(Microsoft.Quantum.Math.PI())",
+        &expect!["0.99627207622075"],
+    );
+}
+
+#[test]
 fn ccx() {
     check_intrinsic(
         "",
