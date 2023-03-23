@@ -21,7 +21,7 @@ To build this repository there are 4 dependencies that need to be installed. The
 
 The build script will check these dependencies and their versions and fail if not met.
 
-To build, in the root directory run `python ./build.py`. By default this will create a development
+To build, in the root directory run `python ./build.py`. By default this will run a development
 build of each project.
 
 To run the "playground" locally, `cd` into the `playground` directory, and run `npm start`.
