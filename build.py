@@ -5,8 +5,71 @@
 
 import argparse
 import os
+import platform
+import re
 import shutil
 import subprocess
+import sys
+
+# Check prereqs are installed and the correct version
+
+# Python support for Windows on ARM64 requires v3.11 or later
+if sys.version_info.major != 3 or sys.version_info.minor < 11:
+    print('Python 3.11 or later is required to support all target platforms.')
+    exit(1)
+
+# Ensure Rust version 1.65 or later is installed (needed for 'backtrace' support)
+try:
+    rust_version = subprocess.check_output(['rustc', '--version'])
+except FileNotFoundError:
+    print('Rust compiler version 1.65 or later is required. Install from https://rustup.rs/')
+    exit(1)
+
+version_match = re.search(r'rustc (\d+)\.(\d+).\d+', rust_version.decode())
+if version_match:
+    rust_major = int(version_match.group(1))
+    rust_minor = int(version_match.group(2))
+    if rust_major < 1 or rust_major == 1 and rust_minor < 65:
+        print('Rust v1.65 or later is required. Please update with "rustup update"')
+        exit(1)
+else:
+    raise Exception('Unable to determine the Rust compiler version.')
+
+# Node.js version 16.17 or later is required to support the Node.js 'test' module
+try:
+    node_version = subprocess.check_output(['node', '-v'])
+except FileNotFoundError:
+    print('Node.js v16.17 or later is required. Please install from https://nodejs.org/')
+    exit(1)
+
+version_match = re.search(r'v(\d+)\.(\d+)\.\d+', node_version.decode())
+if version_match:
+    node_major = int(version_match.group(1))
+    node_minor = int(version_match.group(2))
+    if node_major < 16 or node_major == 16 and node_minor < 17:
+        print('Node.js version must be 16.17.0 or later. Please update.')
+        exit(1)
+else:
+    raise Exception('Unable to determine the Node.js version.')
+
+# Check that wasm-pack v0.10 or later is installed
+try:
+    wasm_pack_version = subprocess.check_output(['wasm-pack', '--version'])
+except FileNotFoundError:
+    print('wasm-pack v0.10 or later is required. Please install from https://rustwasm.github.io/wasm-pack/installer/')
+    exit(1)
+
+version_match = re.search(r'wasm-pack (\d+)\.(\d+).\d+', wasm_pack_version.decode())
+if version_match:
+    wasm_major = int(version_match.group(1))
+    wasm_minor = int(version_match.group(2))
+    if wasm_major == 0 and wasm_minor < 10:
+        print('wasm-pack version must be 0.10 or later. Please update.')
+        exit(1)
+else:
+    raise Exception('Unable to determine the wasm-pack version')
+
+# Argument handling
 
 parser = argparse.ArgumentParser(description=
 "Builds all projects in the repo, unless specific projects to build are passed "
@@ -34,6 +97,9 @@ build_wasm = build_all or args.wasm
 build_npm  = build_all or args.npm
 build_play = build_all or args.play
 
+npm_install_needed = build_npm or build_play
+npm_cmd = 'npm.cmd' if platform.system() == 'Windows' else 'npm'
+
 build_type = 'release' if args.release else 'debug'
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +109,9 @@ wasm_web_dir = os.path.join(wasm_bld, 'web')
 wasm_node_dir = os.path.join(wasm_bld, 'node')
 npm_src  = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
+
+if npm_install_needed:
+    subprocess.run([npm_cmd, 'install'], check=True, text=True, cwd=root_dir)
 
 if build_cli:
     cargo_build_args = ['cargo', 'build']
@@ -83,9 +152,9 @@ if build_npm:
 
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
     
-    npm_args = ['npm', 'run', 'build']
+    npm_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
 
 if build_play:
-    play_args = ['npm', 'run', 'build']
+    play_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(play_args, check=True, text=True, cwd=play_src)
