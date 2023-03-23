@@ -229,8 +229,8 @@ fn parse_all(
     let entry = if entry_stmt.is_empty() {
         None
     } else {
-        let (mut entry, entry_errors) = parse::stmt(entry_stmt);
-        Offsetter(offset).visit_stmt(&mut entry);
+        let (mut entry, entry_errors) = parse::expr(entry_stmt);
+        Offsetter(offset).visit_expr(&mut entry);
         append_errors(&mut errors, offset, entry_errors);
         offsets.push(offset);
         Some(entry)

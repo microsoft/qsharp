@@ -99,14 +99,14 @@ pub struct Package {
     pub id: NodeId,
     /// The namespaces in the package.
     pub namespaces: Vec<Namespace>,
-    /// The entry statement for an executable package.
-    pub entry: Option<Stmt>,
+    /// The entry expression for an executable package.
+    pub entry: Option<Expr>,
 }
 
 impl Package {
     /// Creates a new package.
     #[must_use]
-    pub fn new(namespaces: Vec<Namespace>, entry: Option<Stmt>) -> Self {
+    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
         Self {
             id: NodeId::default(),
             namespaces,

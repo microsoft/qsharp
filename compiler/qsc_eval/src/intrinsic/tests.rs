@@ -3,6 +3,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_ast::ast::{Stmt, StmtKind};
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
@@ -23,10 +24,16 @@ fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
         .expect("Compile unit should be in package store");
     let globals = extract_callables(&store);
     match evaluate(
-        unit.package
-            .entry
-            .as_ref()
-            .expect("Entry statement should be provided."),
+        &Stmt {
+            kind: StmtKind::Expr(
+                unit.package
+                    .entry
+                    .as_ref()
+                    .expect("Entry expression should be provided.")
+                    .clone(),
+            ),
+            ..Default::default()
+        },
         &store,
         &globals,
         unit.context.resolutions(),

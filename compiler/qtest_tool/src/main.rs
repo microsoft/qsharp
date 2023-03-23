@@ -5,6 +5,7 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
+use qsc_ast::ast::{Stmt, StmtKind};
 use qsc_eval::{evaluate, Environment};
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
@@ -83,10 +84,16 @@ fn main() -> miette::Result<ExitCode> {
                 .expect("Compile unit should be in package store");
             let globals = extract_callables(&store);
             match evaluate(
-                unit.package
-                    .entry
-                    .as_ref()
-                    .expect("Entry should be non-empty in if-some branch"),
+                &Stmt {
+                    kind: StmtKind::Expr(
+                        unit.package
+                            .entry
+                            .as_ref()
+                            .expect("Entry expression should be provided.")
+                            .clone(),
+                    ),
+                    ..Default::default()
+                },
                 &store,
                 &globals,
                 unit.context.resolutions(),
