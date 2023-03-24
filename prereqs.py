@@ -11,56 +11,59 @@ import sys
 import subprocess
 import tempfile
 
+python_ver    = (3, 11)     # Python support for Windows on ARM64 requires v3.11 or later
+rust_ver      = (1, 65)     # Ensure Rust version 1.65 or later is installed (needed for 'backtrace' support)
+node_ver      = (16, 17)    # Node.js version 16.17 or later is required to support the Node.js 'test' module
+wasmpack_ver  = (0, 11, 0)  # Latest tested wasm-pack version
+
 def check_prereqs(install=False):
-    # Python support for Windows on ARM64 requires v3.11 or later
-    if sys.version_info.major != 3 or sys.version_info.minor < 11:
-        print('Python 3.11 or later is required to support all target platforms.')
+    
+    if sys.version_info.major != python_ver[0] or sys.version_info.minor < python_ver[1]:
+        print(f'Python {python_ver[0]}.{python_ver[1]} or later is required. Please update')
         exit(1)
 
-    # Ensure Rust version 1.65 or later is installed (needed for 'backtrace' support)
     try:
         rust_version = subprocess.check_output(['rustc', '--version'])
         print(f"Detected Rust version: {rust_version.decode()}")
     except FileNotFoundError:
-        print('Rust compiler version 1.65 or later is required. Install from https://rustup.rs/')
+        print('Rust compiler not found. Install from https://rustup.rs/')
         exit(1)
 
     version_match = re.search(r'rustc (\d+)\.(\d+).\d+', rust_version.decode())
     if version_match:
         rust_major = int(version_match.group(1))
         rust_minor = int(version_match.group(2))
-        if rust_major < 1 or rust_major == 1 and rust_minor < 65:
-            print('Rust v1.65 or later is required. Please update with "rustup update"')
+        if rust_major < rust_ver[0] or (rust_major == rust_ver[0] and rust_minor < rust_ver[1]):
+            print(f'Rust v{rust_ver[0]}.{rust_ver[1]} or later is required. Please update with "rustup update"')
             exit(1)
     else:
         raise Exception('Unable to determine the Rust compiler version.')
-
-    # Node.js version 16.17 or later is required to support the Node.js 'test' module
+    
     try:
         node_version = subprocess.check_output(['node', '-v'])
         print(f"Detected node.js version {node_version.decode()}")
     except FileNotFoundError:
-        print('Node.js v16.17 or later is required. Please install from https://nodejs.org/')
+        print('Node.js not found. Please install from https://nodejs.org/')
         exit(1)
 
     version_match = re.search(r'v(\d+)\.(\d+)\.\d+', node_version.decode())
     if version_match:
         node_major = int(version_match.group(1))
         node_minor = int(version_match.group(2))
-        if node_major < 16 or node_major == 16 and node_minor < 17:
-            print('Node.js version must be 16.17.0 or later. Please update.')
+        if node_major < node_ver[0] or (node_major == node_ver[0] and node_minor < node_ver[1]):
+            print('Node.js v{nodejs_ver[0]}.{nodejs_ver[1]} or later is required. Please update.')
             exit(1)
     else:
         raise Exception('Unable to determine the Node.js version.')
 
-    # Check that wasm-pack v0.10 or later is installed
     try:
         wasm_pack_version = subprocess.check_output(['wasm-pack', '--version'])
         print(f"Detected wasm-pack version {wasm_pack_version.decode()}")
     except FileNotFoundError:
         if install == True:
             if platform.system() == 'Windows':
-                with urllib.request.urlopen('https://github.com/rustwasm/wasm-pack/releases/download/v0.11.0/wasm-pack-init.exe') as wasm_exe:
+                ver_str = f'v{wasmpack_ver[0]}.{wasmpack_ver[1]}.{wasmpack_ver[2]}'
+                with urllib.request.urlopen(f'https://github.com/rustwasm/wasm-pack/releases/download/{ver_str}/wasm-pack-init.exe') as wasm_exe:
                     exe_bytes = wasm_exe.read()
                     tmp_dir = os.getenv('RUNNER_TEMP', default=tempfile.gettempdir())
                     file_name = os.path.join(tmp_dir, 'wasm-pack-init.exe')
@@ -80,15 +83,15 @@ def check_prereqs(install=False):
 
             wasm_pack_version = subprocess.check_output(['wasm-pack', '--version'])
         else:
-            print('wasm-pack v0.10 or later is required. Please install from https://rustwasm.github.io/wasm-pack/installer/')
+            print('wasm-pack not found. Please install from https://rustwasm.github.io/wasm-pack/installer/')
             exit(1)
 
     version_match = re.search(r'wasm-pack (\d+)\.(\d+).\d+', wasm_pack_version.decode())
     if version_match:
         wasm_major = int(version_match.group(1))
         wasm_minor = int(version_match.group(2))
-        if wasm_major == 0 and wasm_minor < 10:
-            print('wasm-pack version must be 0.10 or later. Please update.')
+        if wasm_major != wasmpack_ver[0] or wasm_minor < wasmpack_ver[1]:
+            print(f'wasm-pack version must be {wasmpack_ver[0]}.{wasmpack_ver[1]} or later. Please update.')
             exit(1)
     else:
         raise Exception('Unable to determine the wasm-pack version')
