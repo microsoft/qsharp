@@ -74,7 +74,7 @@ if build_wasm:
 
     wasm_pack_args = ['wasm-pack', 'build', build_type]
     web_build_args = ['--target', 'web', '--out-dir', os.path.join(wasm_bld, 'web')]
-    node_build_args = ['--target', 'nodejs', '--out-dir', os.path.join(wasm_bld, 'web')]
+    node_build_args = ['--target', 'nodejs', '--out-dir', os.path.join(wasm_bld, 'node')]
     subprocess.run(wasm_pack_args + web_build_args + cargo_options,
                    check=True, text=True, cwd=wasm_src)
     subprocess.run(wasm_pack_args + node_build_args + cargo_options,
