@@ -135,7 +135,7 @@ impl TryFrom<Value> for BigInt {
             Ok(v)
         } else {
             Err(ConversionError {
-                expected: "Int",
+                expected: "BigInt",
                 actual: value.type_name(),
             })
         }
