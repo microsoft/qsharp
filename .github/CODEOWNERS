@@ -5,3 +5,8 @@
 /library @cesarzc @swernli
 /npm @billti @minestarks
 /playground @billti @minestarks
+
+/Cargo.lock @idavis @samarsha @swernli
+/Cargo.toml @idavis @samarsha @swernli
+/package-lock.json @billti @minestarks
+/package.json @billti @minestarks
