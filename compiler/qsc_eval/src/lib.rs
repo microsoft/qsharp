@@ -92,9 +92,9 @@ pub enum Error {
     #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
     Unassignable(#[label("not assignable")] Span),
 
-    #[error("not implemented")]
+    #[error("{0} support is not implemented")]
     #[diagnostic(help("this language feature is not yet supported"))]
-    Unimplemented(#[label("cannot evaluate this")] Span),
+    Unimplemented(&'static str, #[label("cannot evaluate this")] Span),
 
     #[error("unknown intrinsic")]
     UnknownIntrinsic(#[label("callable has no implementation")] Span),
@@ -256,6 +256,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn eval_expr_impl(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
@@ -347,12 +348,21 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::UNIT)
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
-            ExprKind::Conjugate(..)
-            | ExprKind::Err
-            | ExprKind::Field(..)
-            | ExprKind::Hole
-            | ExprKind::Lambda(..) => {
-                ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
+            ExprKind::Conjugate(..) => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("conjugate", expr.span)))
+            }
+            ExprKind::Err => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("error", expr.span)))
+            }
+            ExprKind::Field(..) => ControlFlow::Break(Reason::Error(Error::Unimplemented(
+                "field access",
+                expr.span,
+            ))),
+            ExprKind::Hole => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("hole", expr.span)))
+            }
+            ExprKind::Lambda(..) => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("lambda", expr.span)))
             }
         }
     }
@@ -545,7 +555,14 @@ impl<'a> Evaluator<'a> {
             resolutions,
             ..*self
         };
-        let call_res = new_self.eval_call_spec(decl, spec, args_val, args.span, call_span);
+        let call_res = new_self.eval_call_spec(
+            decl,
+            spec,
+            args_val,
+            args.span,
+            call_span,
+            functor.controlled,
+        );
 
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
@@ -560,6 +577,7 @@ impl<'a> Evaluator<'a> {
         args_val: Value,
         args_span: Span,
         call_span: Span,
+        ctl_count: u8,
     ) -> ControlFlow<Reason, Value> {
         self.enter_scope();
         let res = match (&decl.body, spec) {
@@ -576,22 +594,22 @@ impl<'a> Evaluator<'a> {
                         |spec_decl| ControlFlow::Continue(&spec_decl.body),
                     )?;
                 match spec_decl {
-                    SpecBody::Impl(_, body_block) => {
-                        if spec == Spec::Ctl || spec == Spec::CtlAdj {
-                            ControlFlow::Break(Reason::Error(Error::Unimplemented(call_span)))
+                    SpecBody::Impl(pat, body_block) => {
+                        self.bind_args_for_spec(&decl.input, pat, args_val, args_span, ctl_count)?;
+                        self.eval_block(body_block)
+                    }
+                    SpecBody::Gen(SpecGen::Slf) => self.eval_call_spec(
+                        decl,
+                        if spec == Spec::Adj {
+                            Spec::Body
                         } else {
-                            self.bind_value(
-                                &decl.input,
-                                args_val,
-                                args_span,
-                                Mutability::Immutable,
-                            )?;
-                            self.eval_block(body_block)
-                        }
-                    }
-                    SpecBody::Gen(SpecGen::Slf) => {
-                        self.eval_call_spec(decl, Spec::Body, args_val, args_span, call_span)
-                    }
+                            Spec::Ctl
+                        },
+                        args_val,
+                        args_span,
+                        call_span,
+                        ctl_count,
+                    ),
                     SpecBody::Gen(SpecGen::Intrinsic) => {
                         invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
@@ -604,6 +622,70 @@ impl<'a> Evaluator<'a> {
         };
         self.leave_scope(false);
         res
+    }
+
+    fn bind_args_for_spec(
+        &mut self,
+        decl_pat: &Pat,
+        spec_pat: &Pat,
+        args_val: Value,
+        args_span: Span,
+        ctl_count: u8,
+    ) -> ControlFlow<Reason, ()> {
+        match &spec_pat.kind {
+            PatKind::Bind(_, _) | PatKind::Discard(_) => {
+                panic!("spec pattern should be elided or elided tuple, found bind/discard")
+            }
+            PatKind::Elided => {
+                self.bind_value(decl_pat, args_val, args_span, Mutability::Immutable)
+            }
+            PatKind::Paren(pat) => {
+                self.bind_args_for_spec(decl_pat, pat, args_val, args_span, ctl_count)
+            }
+            PatKind::Tuple(pats) => {
+                assert_eq!(pats.len(), 2, "spec pattern tuple should have 2 elements");
+                assert!(
+                    ctl_count > 0,
+                    "spec pattern tuple used without controlled functor"
+                );
+
+                let mut tup = args_val;
+                let mut ctls = vec![];
+                let mut count = 0;
+                while count < ctl_count {
+                    let mut tup_nesting = tup.try_into_tuple().with_span(args_span)?;
+                    if tup_nesting.len() != 2 {
+                        return ControlFlow::Break(Reason::Error(Error::TupleArity(
+                            2,
+                            tup_nesting.len(),
+                            args_span,
+                        )));
+                    }
+
+                    let (rest, c) = (
+                        tup_nesting
+                            .pop()
+                            .expect("tuple should have multiple entries"),
+                        tup_nesting
+                            .pop()
+                            .expect("tuple should have multiple entries"),
+                    );
+                    let mut c = c.try_into_array().with_span(args_span)?;
+                    ctls.append(&mut c);
+                    tup = rest;
+
+                    count += 1;
+                }
+
+                self.bind_value(
+                    &pats[0],
+                    Value::Array(ctls),
+                    args_span,
+                    Mutability::Immutable,
+                )?;
+                self.bind_value(decl_pat, tup, args_span, Mutability::Immutable)
+            }
+        }
     }
 
     fn eval_unop(&mut self, expr: &Expr, op: UnOp, rhs: &Expr) -> ControlFlow<Reason, Value> {
@@ -646,7 +728,7 @@ impl<'a> Evaluator<'a> {
             },
             UnOp::Functor(functor) => match val {
                 Value::Closure => {
-                    ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
+                    ControlFlow::Break(Reason::Error(Error::Unimplemented("closure", expr.span)))
                 }
                 Value::Global(id, app) => {
                     ControlFlow::Continue(Value::Global(id, update_functor_app(functor, &app)))
@@ -657,7 +739,9 @@ impl<'a> Evaluator<'a> {
                     rhs.span,
                 ))),
             },
-            UnOp::Unwrap => ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span))),
+            UnOp::Unwrap => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("unwrap", expr.span)))
+            }
         }
     }
 
@@ -884,7 +968,7 @@ fn specialization_from_functor_app(functor: &FunctorApp) -> Spec {
 
 fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
     match val {
-        Value::Closure => ControlFlow::Break(Reason::Error(Error::Unimplemented(span))),
+        Value::Closure => ControlFlow::Break(Reason::Error(Error::Unimplemented("closure", span))),
         Value::Global(global, functor) => ControlFlow::Continue((global, functor)),
         _ => ControlFlow::Break(Reason::Error(Error::Type(
             "Callable",
