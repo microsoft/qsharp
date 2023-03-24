@@ -213,7 +213,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    /// Evaluates the given entry statement with the given context.
+    /// Evaluates the given statement.
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Env), Error> {
@@ -225,7 +225,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    /// Evaluates the given entry expression with the given context.
+    /// Evaluates the given expression.
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn eval_expr(mut self, expr: &Expr) -> Result<(Value, Env), Error> {
@@ -446,8 +446,7 @@ impl<'a> Evaluator<'a> {
             resolutions,
             ..*self
         };
-        let call_res =
-            new_self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
+        let call_res = new_self.eval_call_spec(decl, spec, args_val, args.span, call_span);
 
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
@@ -455,7 +454,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn eval_call_specialization(
+    fn eval_call_spec(
         &mut self,
         decl: &CallableDecl,
         spec: Spec,
@@ -491,13 +490,9 @@ impl<'a> Evaluator<'a> {
                             self.eval_block(body_block)
                         }
                     }
-                    SpecBody::Gen(SpecGen::Slf) => self.eval_call_specialization(
-                        decl,
-                        Spec::Body,
-                        args_val,
-                        args_span,
-                        call_span,
-                    ),
+                    SpecBody::Gen(SpecGen::Slf) => {
+                        self.eval_call_spec(decl, Spec::Body, args_val, args_span, call_span)
+                    }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
                         invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
