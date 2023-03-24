@@ -19,4 +19,6 @@ pub enum Commands {
     Build(qsc::BuildCommand),
     /// check a q# project
     Check(qsc::CheckCommand),
+    /// run a q# program/project using the interpreter
+    Run(qsc::RunCommand),
 }

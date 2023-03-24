@@ -34,6 +34,8 @@ pub enum Commands {
     Build(BuildCommand),
     /// check a q# project
     Check(CheckCommand),
+    /// run a q# program/project using the interpreter
+    Run(RunCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -47,6 +49,14 @@ pub struct BuildCommand {
 #[derive(Debug, Parser)]
 #[command(arg_required_else_help(true))]
 pub struct CheckCommand {
+    pub sources: Vec<PathBuf>,
+    #[arg(short, long, default_value = "")]
+    pub entry: String,
+}
+
+#[derive(Debug, Parser)]
+#[command(arg_required_else_help(true))]
+pub struct RunCommand {
     pub sources: Vec<PathBuf>,
     #[arg(short, long, default_value = "")]
     pub entry: String,
@@ -91,10 +101,11 @@ impl<'a> ErrorReporter<'a> {
     }
 }
 
-pub fn exec(cli: Commands) -> miette::Result<ExitCode> {
-    match cli {
-        Commands::Build(cli) => _exec(cli.sources, cli.entry),
-        Commands::Check(cli) => _exec(cli.sources, cli.entry),
+pub fn exec(command: Commands) -> miette::Result<ExitCode> {
+    match command {
+        Commands::Build(cmd) => _exec(cmd.sources, cmd.entry),
+        Commands::Check(cmd) => _exec(cmd.sources, cmd.entry),
+        Commands::Run(cmd) => _exec(cmd.sources, cmd.entry),
     }
 }
 
