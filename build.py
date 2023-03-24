@@ -5,11 +5,34 @@
 
 import argparse
 import os
+import urllib.request
 import platform
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
+
+parser = argparse.ArgumentParser(description=
+"Builds all projects in the repo, unless specific projects to build are passed "
+"as options, in which case only those projects are built.")
+
+parser.add_argument('--cli', action='store_true',
+                    help='Build the command-line compiler')
+parser.add_argument('--wasm', action='store_true',
+                    help='Build the WebAssembly files')
+parser.add_argument('--npm', action='store_true',
+                    help='Build the npm package')
+parser.add_argument('--play', action='store_true',
+                    help='Build the web playground')
+
+parser.add_argument('--release', action='store_true',
+                    help='Create a release build (default is debug)')
+parser.add_argument('--install-prereqs', action='store_true', 
+                    help='Install prereqs if needed (only for wasm-pack on Mac or Linux currently)')
+parser.add_argument('--test', action='store_true', help='Run the tests')
+
+args = parser.parse_args()
 
 # Check prereqs are installed and the correct version
 
@@ -21,6 +44,7 @@ if sys.version_info.major != 3 or sys.version_info.minor < 11:
 # Ensure Rust version 1.65 or later is installed (needed for 'backtrace' support)
 try:
     rust_version = subprocess.check_output(['rustc', '--version'])
+    print(f"Detected Rust version: {rust_version.decode()}")
 except FileNotFoundError:
     print('Rust compiler version 1.65 or later is required. Install from https://rustup.rs/')
     exit(1)
@@ -38,6 +62,7 @@ else:
 # Node.js version 16.17 or later is required to support the Node.js 'test' module
 try:
     node_version = subprocess.check_output(['node', '-v'])
+    print(f"Detected node.js version {node_version.decode()}")
 except FileNotFoundError:
     print('Node.js v16.17 or later is required. Please install from https://nodejs.org/')
     exit(1)
@@ -55,9 +80,32 @@ else:
 # Check that wasm-pack v0.10 or later is installed
 try:
     wasm_pack_version = subprocess.check_output(['wasm-pack', '--version'])
+    print(f"Detected wasm-pack version {wasm_pack_version.decode()}")
 except FileNotFoundError:
-    print('wasm-pack v0.10 or later is required. Please install from https://rustwasm.github.io/wasm-pack/installer/')
-    exit(1)
+    if args.install_prereqs:
+        if platform.system() == 'Windows':
+            with urllib.request.urlopen('https://github.com/rustwasm/wasm-pack/releases/download/v0.11.0/wasm-pack-init.exe') as wasm_exe:
+                exe_bytes = wasm_exe.read()
+                tmp_dir = os.getenv('RUNNER_TEMP', default=tempfile.gettempdir())
+                file_name = os.path.join(tmp_dir, 'wasm-pack-init.exe')
+                with open(file_name, "wb") as exe_file:
+                    exe_file.write(exe_bytes)
+                print('Attempting to install wasm-pack')
+                subprocess.run([file_name, '/q'], check=True)
+        else:
+            with urllib.request.urlopen('https://rustwasm.github.io/wasm-pack/installer/init.sh') as wasm_script:
+                sh_text = wasm_script.read().decode('utf-8')
+                tmp_dir = os.getenv('RUNNER_TEMP', default=tempfile.gettempdir())
+                file_name = os.path.join(tmp_dir, 'wasm_install.sh')
+                with open(file_name, "w") as file:
+                    file.write(sh_text)
+                print('Attempting to install wasm-pack')
+                subprocess.run(['sh', file_name], check=True)
+
+        wasm_pack_version = subprocess.check_output(['wasm-pack', '--version'])
+    else:
+        print('wasm-pack v0.10 or later is required. Please install from https://rustwasm.github.io/wasm-pack/installer/')
+        exit(1)
 
 version_match = re.search(r'wasm-pack (\d+)\.(\d+).\d+', wasm_pack_version.decode())
 if version_match:
@@ -68,27 +116,6 @@ if version_match:
         exit(1)
 else:
     raise Exception('Unable to determine the wasm-pack version')
-
-# Argument handling
-
-parser = argparse.ArgumentParser(description=
-"Builds all projects in the repo, unless specific projects to build are passed "
-"as options, in which case only those projects are built.")
-
-parser.add_argument('--release', action='store_true',
-                    help='Create a release build (default is debug)')
-
-parser.add_argument('--cli', action='store_true',
-                    help='Build the command-line compiler')
-parser.add_argument('--wasm', action='store_true',
-                    help='Build the WebAssembly files')
-parser.add_argument('--npm', action='store_true',
-                    help='Build the npm package')
-parser.add_argument('--play', action='store_true',
-                    help='Build the web playground')
-# TODO: Add '--test' option
-
-args = parser.parse_args()
 
 # If no specific project given then build all
 build_all  = not args.cli and not args.wasm and not args.npm and not args.play
@@ -101,6 +128,7 @@ npm_install_needed = build_npm or build_play
 npm_cmd = 'npm.cmd' if platform.system() == 'Windows' else 'npm'
 
 build_type = 'release' if args.release else 'debug'
+run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 wasm_src = os.path.join(root_dir, "compiler", "qsc_wasm")
@@ -117,8 +145,13 @@ if build_cli:
     cargo_build_args = ['cargo', 'build']
     if args.release:
         cargo_build_args.append('--release')
-    result = subprocess.run(cargo_build_args, check=True,
-                            text=True, cwd=root_dir)
+    result = subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
+    
+    if run_tests:
+        cargo_test_args = ['cargo', 'test']
+        if args.release:
+            cargo_test_args.append('--release')
+        result = subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
 
 if build_wasm:
     # wasm-pack can't build for web and node in the same build, so need to run twice.
@@ -154,6 +187,10 @@ if build_npm:
     
     npm_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
+
+    if run_tests:
+        npm_test_args = ['node', '--test']
+        result = subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
 
 if build_play:
     play_args = [npm_cmd, 'run', 'build']
