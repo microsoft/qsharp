@@ -1263,7 +1263,7 @@ fn binop_xorb_mismatch() {
 
 #[test]
 fn assignop_add_expr() {
-    check_statement(
+    check_expr(
         "",
         indoc! {"{
             mutable x = 0;
@@ -1276,7 +1276,7 @@ fn assignop_add_expr() {
 
 #[test]
 fn assignop_sub_expr() {
-    check_statement(
+    check_expr(
         "",
         indoc! {"{
             mutable x = 0;
@@ -1289,7 +1289,7 @@ fn assignop_sub_expr() {
 
 #[test]
 fn assignop_orl_expr() {
-    check_statement(
+    check_expr(
         "",
         indoc! {"{
             mutable x = false;
@@ -1302,7 +1302,7 @@ fn assignop_orl_expr() {
 
 #[test]
 fn assignop_mutability_expr() {
-    check_statement(
+    check_expr(
         "",
         indoc! {"{
             let x = false;
@@ -1322,7 +1322,7 @@ fn assignop_mutability_expr() {
 
 #[test]
 fn assignop_invalid_type_expr() {
-    check_statement(
+    check_expr(
         "",
         indoc! {"{
             mutable x = false;
