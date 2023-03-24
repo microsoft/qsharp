@@ -137,17 +137,30 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
-        visit::walk_stmt(self, stmt);
-
         match &stmt.kind {
-            StmtKind::Local(_, pat, _) | StmtKind::Qubit(_, pat, _, _) => {
+            StmtKind::Local(_, pat, _) => {
+                visit::walk_stmt(self, stmt);
+
                 let env = self
                     .locals
                     .last_mut()
                     .expect("parent block of statement should have added environment");
                 bind(&mut self.resolutions, env, pat);
             }
-            StmtKind::Expr(..) | StmtKind::Semi(..) => {}
+            StmtKind::Qubit(_, pat, init, block) => {
+                visit::walk_qubit_init(self, init);
+                let env = self
+                    .locals
+                    .last_mut()
+                    .expect("parent block of statement should have added environment");
+                bind(&mut self.resolutions, env, pat);
+                if let Some(block) = block {
+                    visit::walk_block(self, block);
+                }
+            }
+            StmtKind::Expr(..) | StmtKind::Semi(..) => {
+                visit::walk_stmt(self, stmt);
+            }
         }
     }
 
