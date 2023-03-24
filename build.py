@@ -40,14 +40,16 @@ try:
     node_version = subprocess.check_output(['node', '-v'])
 except FileNotFoundError:
     print('Node.js v16.17 or later is required. Please install from https://nodejs.org/')
+    print('Node.js was not found')
     exit(1)
 
 version_match = re.search(r'v(\d+)\.(\d+)\.\d+', node_version.decode())
 if version_match:
     node_major = int(version_match.group(1))
     node_minor = int(version_match.group(2))
-    if node_major < 16 or node_major == 16 and node_minor < 17:
+    if node_major < 16 or (node_major == 16 and node_minor < 17):
         print('Node.js version must be 16.17.0 or later. Please update.')
+        print(f'Found version: {version_match.group()}')
         exit(1)
 else:
     raise Exception('Unable to determine the Node.js version.')
