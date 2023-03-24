@@ -429,6 +429,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "katas"
+version = "0.0.0"
+dependencies = [
+ "indoc",
+ "qsc_frontend",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -636,8 +644,8 @@ dependencies = [
 
 [[package]]
 name = "qir-backend"
-version = "0.1.0"
-source = "git+https://github.com/qir-alliance/qir-runner?tag=v0.1.0#1c2ed04e968b4aedc4eb9f27a99c807201279ec9"
+version = "0.3.0"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=dea6a8373cbfc02f1e17ade9399699645ec80014#dea6a8373cbfc02f1e17ade9399699645ec80014"
 dependencies = [
  "bitvec",
  "ndarray",
@@ -651,26 +659,11 @@ dependencies = [
 
 [[package]]
 name = "qir-stdlib"
-version = "0.1.0"
-source = "git+https://github.com/qir-alliance/qir-runner?tag=v0.1.0#1c2ed04e968b4aedc4eb9f27a99c807201279ec9"
+version = "0.3.0"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=dea6a8373cbfc02f1e17ade9399699645ec80014#dea6a8373cbfc02f1e17ade9399699645ec80014"
 dependencies = [
  "num-bigint",
  "rand",
-]
-
-[[package]]
-name = "qsc"
-version = "0.0.0"
-dependencies = [
- "clap 4.1.8",
- "criterion",
- "miette",
- "qsc_ast",
- "qsc_codegen",
- "qsc_eval",
- "qsc_frontend",
- "qsc_passes",
- "thiserror",
 ]
 
 [[package]]
@@ -737,6 +730,21 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "qtest_tool"
+version = "0.0.0"
+dependencies = [
+ "clap 4.1.8",
+ "criterion",
+ "miette",
+ "qsc_ast",
+ "qsc_codegen",
+ "qsc_eval",
+ "qsc_frontend",
+ "qsc_passes",
+ "thiserror",
 ]
 
 [[package]]

@@ -1036,3 +1036,61 @@ fn for_loop_var() {
         "#]],
     );
 }
+
+#[test]
+fn use_qubit() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation X(q : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation A() : Unit {
+                    use q = Qubit();
+                    X(q);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                operation _5(_8 : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation _14() : Unit {
+                    use _20 = Qubit();
+                    _5(_20);
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn use_qubit_block() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation X(q : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation A() : Unit {
+                    use q = Qubit() {
+                        X(q);
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                operation _5(_8 : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation _14() : Unit {
+                    use _20 = Qubit() {
+                        _5(_20);
+                    }
+                }
+            }
+        "#]],
+    );
+}

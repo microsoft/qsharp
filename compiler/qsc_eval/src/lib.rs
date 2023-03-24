@@ -16,10 +16,11 @@ use crate::{
 };
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
-use qir_backend::{Pauli, __quantum__rt__qubit_allocate};
+use qir_backend::__quantum__rt__qubit_allocate;
 use qsc_ast::ast::{
-    self, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability, NodeId, Pat,
-    PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind, UnOp,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
+    NodeId, Pat, PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind,
+    UnOp,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageId, PackageStore},
@@ -227,6 +228,7 @@ impl<'a> Evaluator<'a> {
                 let val = self.eval_expr(rhs)?;
                 self.update_binding(lhs, val)
             }
+            ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(expr, *op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
@@ -269,10 +271,9 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
-            ExprKind::UnOp(op, rhs) => self.eval_unary_op_expr(expr, *op, rhs),
+            ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
             ExprKind::AssignOp(..)
             | ExprKind::AssignUpdate(..)
-            | ExprKind::BinOp(..)
             | ExprKind::Conjugate(..)
             | ExprKind::Err
             | ExprKind::Field(..)
@@ -316,7 +317,7 @@ impl<'a> Evaluator<'a> {
         } else {
             ControlFlow::Continue(Value::UNIT)
         };
-        self.leave_scope();
+        self.leave_scope(true);
         result
     }
 
@@ -338,7 +339,7 @@ impl<'a> Evaluator<'a> {
                     self.enter_scope();
                     self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
                     let _ = self.eval_block(block)?;
-                    self.leave_scope();
+                    self.leave_scope(true);
                 } else {
                     self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
                 }
@@ -399,7 +400,7 @@ impl<'a> Evaluator<'a> {
 
         self.enter_scope();
         let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
-        self.leave_scope();
+        self.leave_scope(false);
 
         (self.current_id, self.current_unit) = (cached_id, cached_unit);
 
@@ -444,6 +445,13 @@ impl<'a> Evaluator<'a> {
                             self.eval_block(body_block)
                         }
                     }
+                    SpecBody::Gen(SpecGen::Slf) => self.eval_call_specialization(
+                        decl,
+                        Spec::Body,
+                        args_val,
+                        args_span,
+                        call_span,
+                    ),
                     SpecBody::Gen(SpecGen::Intrinsic) => {
                         invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
@@ -456,12 +464,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn eval_unary_op_expr(
-        &mut self,
-        expr: &Expr,
-        op: UnOp,
-        rhs: &Expr,
-    ) -> ControlFlow<Reason, Value> {
+    fn eval_unop(&mut self, expr: &Expr, op: UnOp, rhs: &Expr) -> ControlFlow<Reason, Value> {
         let val = self.eval_expr(rhs)?;
         match op {
             UnOp::Neg => match val {
@@ -516,18 +519,66 @@ impl<'a> Evaluator<'a> {
         }
     }
 
+    fn eval_binop(
+        &mut self,
+        expr: &Expr,
+        op: BinOp,
+        lhs: &Expr,
+        rhs: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let (lhs_val, rhs_val) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
+        match op {
+            BinOp::AndL => ControlFlow::Continue(Value::Bool(
+                lhs_val.try_into().with_span(lhs.span)?
+                    && rhs_val.try_into().with_span(rhs.span)?,
+            )),
+            BinOp::Eq => {
+                if lhs_val.type_name() == rhs_val.type_name() {
+                    ControlFlow::Continue(Value::Bool(lhs_val == rhs_val))
+                } else {
+                    ControlFlow::Break(Reason::Error(Error::Type(
+                        lhs_val.type_name(),
+                        rhs_val.type_name(),
+                        expr.span,
+                    )))
+                }
+            }
+            BinOp::Add
+            | BinOp::AndB
+            | BinOp::Div
+            | BinOp::Exp
+            | BinOp::Gt
+            | BinOp::Gte
+            | BinOp::Lt
+            | BinOp::Lte
+            | BinOp::Mod
+            | BinOp::Mul
+            | BinOp::Neq
+            | BinOp::OrB
+            | BinOp::OrL
+            | BinOp::Shl
+            | BinOp::Shr
+            | BinOp::Sub
+            | BinOp::XorB => ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span))),
+        }
+    }
+
     fn enter_scope(&mut self) {
         self.scopes.push(HashMap::default());
     }
 
-    fn leave_scope(&mut self) {
-        for (_, var) in self
-            .scopes
-            .pop()
-            .expect("scope should be entered first before leaving")
-            .drain()
-        {
-            var.value.release();
+    fn leave_scope(&mut self, release: bool) {
+        if release {
+            for (_, var) in self
+                .scopes
+                .pop()
+                .expect("scope should be entered first before leaving")
+                .drain()
+            {
+                var.value.release();
+            }
+        } else {
+            let _ = self.scopes.pop();
         }
     }
 
@@ -688,12 +739,7 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Bool(v) => Value::Bool(*v),
         Lit::Double(v) => Value::Double(*v),
         Lit::Int(v) => Value::Int(*v),
-        Lit::Pauli(v) => Value::Pauli(match v {
-            ast::Pauli::I => Pauli::I,
-            ast::Pauli::X => Pauli::X,
-            ast::Pauli::Y => Pauli::Y,
-            ast::Pauli::Z => Pauli::Z,
-        }),
+        Lit::Pauli(v) => Value::Pauli(*v),
         Lit::Result(v) => Value::Result(match v {
             ast::Result::Zero => false,
             ast::Result::One => true,

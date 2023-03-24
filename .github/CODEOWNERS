@@ -1,1 +1,12 @@
-* @idavis @samarsha @swernli
+* @billti @idavis @minestarks @samarsha @swernli
+
+/compiler @idavis @samarsha @swernli
+/katas @cesarzc @swernli
+/library @cesarzc @swernli
+/npm @billti @minestarks
+/playground @billti @minestarks
+
+/Cargo.lock @idavis @samarsha @swernli
+/Cargo.toml @idavis @samarsha @swernli
+/package-lock.json @billti @minestarks
+/package.json @billti @minestarks

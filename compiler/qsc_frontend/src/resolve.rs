@@ -84,12 +84,30 @@ impl<'a> Resolver<'a> {
     }
 
     fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
-        let mut env = HashMap::new();
-        pat.into_iter()
-            .for_each(|p| bind(&mut self.resolutions, &mut env, p));
-        self.locals.push(env);
+        self.locals.push(HashMap::new());
+        pat.into_iter().for_each(|p| self.bind(p));
         f(self);
         self.locals.pop();
+    }
+
+    fn bind(&mut self, pat: &'a Pat) {
+        match &pat.kind {
+            PatKind::Bind(name, _) => {
+                let env = self
+                    .locals
+                    .last_mut()
+                    .expect("binding should have environment");
+                let id = DefId {
+                    package: PackageSrc::Local,
+                    node: name.id,
+                };
+                self.resolutions.insert(name.id, id);
+                env.insert(name.name.as_str(), id);
+            }
+            PatKind::Discard(_) | PatKind::Elided => {}
+            PatKind::Paren(pat) => self.bind(pat),
+            PatKind::Tuple(pats) => pats.iter().for_each(|p| self.bind(p)),
+        }
     }
 }
 
@@ -137,17 +155,21 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
-        visit::walk_stmt(self, stmt);
-
         match &stmt.kind {
-            StmtKind::Local(_, pat, _) | StmtKind::Qubit(_, pat, _, _) => {
-                let env = self
-                    .locals
-                    .last_mut()
-                    .expect("parent block of statement should have added environment");
-                bind(&mut self.resolutions, env, pat);
+            StmtKind::Local(_, pat, _) => {
+                visit::walk_stmt(self, stmt);
+                self.bind(pat);
             }
-            StmtKind::Expr(..) | StmtKind::Semi(..) => {}
+            StmtKind::Qubit(_, pat, init, block) => {
+                visit::walk_qubit_init(self, init);
+                self.bind(pat);
+                if let Some(block) = block {
+                    visit::walk_block(self, block);
+                }
+            }
+            StmtKind::Expr(..) | StmtKind::Semi(..) => {
+                visit::walk_stmt(self, stmt);
+            }
         }
     }
 
@@ -248,22 +270,6 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
             }
             ItemKind::Open(..) => {}
         }
-    }
-}
-
-fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
-    match &pat.kind {
-        PatKind::Bind(name, _) => {
-            let id = DefId {
-                package: PackageSrc::Local,
-                node: name.id,
-            };
-            resolutions.insert(name.id, id);
-            env.insert(name.name.as_str(), id);
-        }
-        PatKind::Discard(_) | PatKind::Elided => {}
-        PatKind::Paren(pat) => bind(resolutions, env, pat),
-        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(resolutions, env, p)),
     }
 }
 
