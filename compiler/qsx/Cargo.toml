@@ -1,0 +1,14 @@
+[package]
+name = "qsx"
+version = "0.0.0"
+
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+clap = { workspace = true }
+qsc = { path = "../qsc" }
+miette = { workspace = true, features = ["fancy"] }

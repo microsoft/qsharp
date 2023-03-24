@@ -659,6 +659,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc"
+version = "0.0.0"
+dependencies = [
+ "clap 4.1.8",
+ "miette",
+ "qsc_ast",
+ "qsc_codegen",
+ "qsc_eval",
+ "qsc_frontend",
+ "qsc_passes",
+ "thiserror",
+]
+
+[[package]]
 name = "qsc_ast"
 version = "0.0.0"
 dependencies = [
@@ -722,6 +736,15 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "qsx"
+version = "0.0.0"
+dependencies = [
+ "clap 4.1.8",
+ "miette",
+ "qsc",
 ]
 
 [[package]]

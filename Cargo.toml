@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "compiler/qsc",
     "compiler/qsc_ast",
     "compiler/qsc_codegen",
     "compiler/qsc_eval",
@@ -7,6 +8,7 @@ members = [
     "compiler/qsc_passes",
     "compiler/qsc_wasm",
     "compiler/qtest_tool",
+    "compiler/qsx",
 ]
 
 [workspace.package]
