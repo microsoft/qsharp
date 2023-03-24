@@ -179,6 +179,23 @@ pub struct Evaluator<'a> {
 
 impl<'a> Evaluator<'a> {
     #[must_use]
+    pub fn new(
+        store: &'a PackageStore,
+        globals: &'a HashMap<GlobalId, &CallableDecl>,
+        resolutions: &'a Resolutions,
+        package: PackageId,
+        env: Env,
+    ) -> Self {
+        Self {
+            store,
+            globals,
+            resolutions,
+            package,
+            env,
+        }
+    }
+
+    #[must_use]
     pub fn from_store(
         store: &'a PackageStore,
         id: PackageId,
