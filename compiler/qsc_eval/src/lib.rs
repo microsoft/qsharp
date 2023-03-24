@@ -125,8 +125,8 @@ impl AsIndex for i64 {
 }
 
 #[derive(Debug)]
-pub struct Variable {
-    pub value: Value,
+struct Variable {
+    value: Value,
     mutability: Mutability,
 }
 
@@ -166,14 +166,15 @@ impl Range {
     }
 }
 
-pub type Environment = Vec<HashMap<GlobalId, Variable>>;
+#[derive(Default)]
+pub struct Env(Vec<HashMap<GlobalId, Variable>>);
 
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl>,
     resolutions: &'a Resolutions,
     package: PackageId,
-    environment: Environment,
+    env: Env,
 }
 
 impl<'a> Evaluator<'a> {
@@ -185,23 +186,23 @@ impl<'a> Evaluator<'a> {
     ) -> Self {
         let unit = store
             .get(id)
-            .expect("Compile unit should be in package store");
+            .expect("compile unit should be in package store");
         Evaluator {
             store,
             globals,
             resolutions: unit.context.resolutions(),
             package: id,
-            environment: Environment::default(),
+            env: Env::default(),
         }
     }
 
     /// Evaluates the given entry statement with the given context.
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Environment), Error> {
+    pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Env), Error> {
         match self.eval_stmt_impl(stmt) {
             ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                Ok((val, self.environment))
+                Ok((val, self.env))
             }
             ControlFlow::Break(Reason::Error(error)) => Err(error),
         }
@@ -210,10 +211,10 @@ impl<'a> Evaluator<'a> {
     /// Evaluates the given entry expression with the given context.
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn eval_expr(mut self, expr: &Expr) -> Result<(Value, Environment), Error> {
+    pub fn eval_expr(mut self, expr: &Expr) -> Result<(Value, Env), Error> {
         match self.eval_expr_impl(expr) {
             ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                Ok((val, self.environment))
+                Ok((val, self.env))
             }
             ControlFlow::Break(Reason::Error(error)) => Err(error),
         }
@@ -423,7 +424,7 @@ impl<'a> Evaluator<'a> {
         };
 
         let mut new_self = Self {
-            environment: Environment::default(),
+            env: Env::default(),
             package: call.package,
             resolutions,
             ..*self
@@ -594,13 +595,14 @@ impl<'a> Evaluator<'a> {
     }
 
     fn enter_scope(&mut self) {
-        self.environment.push(HashMap::default());
+        self.env.0.push(HashMap::default());
     }
 
     fn leave_scope(&mut self, release: bool) {
         if release {
             for (_, var) in self
-                .environment
+                .env
+                .0
                 .pop()
                 .expect("scope should be entered first before leaving")
                 .drain()
@@ -608,7 +610,7 @@ impl<'a> Evaluator<'a> {
                 var.value.release();
             }
         } else {
-            let _ = self.environment.pop();
+            let _ = self.env.0.pop();
         }
     }
 
@@ -627,10 +629,7 @@ impl<'a> Evaluator<'a> {
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
 
-                let scope = self
-                    .environment
-                    .last_mut()
-                    .expect("binding should have a scope");
+                let scope = self.env.0.last_mut().expect("binding should have a scope");
                 match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("duplicate binding: {id}"),
@@ -666,7 +665,8 @@ impl<'a> Evaluator<'a> {
 
         let global_id = self.defid_to_globalid(id);
         let local = if id.package == PackageSrc::Local {
-            self.environment
+            self.env
+                .0
                 .iter()
                 .rev()
                 .find_map(|s| s.get(&global_id))
@@ -674,7 +674,7 @@ impl<'a> Evaluator<'a> {
         } else {
             None
         };
-        local.unwrap_or_else(|| self.resolve_global(global_id))
+        local.unwrap_or_else(|| Value::Global(global_id, FunctorApp::default()))
     }
 
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
@@ -687,7 +687,8 @@ impl<'a> Evaluator<'a> {
                 );
 
                 let mut variable = self
-                    .environment
+                    .env
+                    .0
                     .iter_mut()
                     .rev()
                     .find_map(|scope| scope.get_mut(&id))
@@ -717,14 +718,6 @@ impl<'a> Evaluator<'a> {
                 }
             }
             _ => ControlFlow::Break(Reason::Error(Error::Unassignable(lhs.span))),
-        }
-    }
-
-    fn resolve_global(&mut self, id: GlobalId) -> Value {
-        if self.globals.contains_key(&id) {
-            Value::Global(id, FunctorApp::default())
-        } else {
-            panic!("unknown global: {id}")
         }
     }
 
