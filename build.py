@@ -63,8 +63,7 @@ if build_cli:
         cargo_test_args = ['cargo', 'test']
         if args.release:
             cargo_test_args.append('--release')
-        result = subprocess.run(cargo_test_args + ['--', '--nocapture'], 
-                                check=True, text=True, cwd=root_dir)
+        result = subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
 
 if build_wasm:
     # wasm-pack can't build for web and node in the same build, so need to run twice.
