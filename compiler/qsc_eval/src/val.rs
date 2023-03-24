@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use std::{
-    ffi::{c_double, c_void},
+    ffi::c_void,
     fmt::{self, Display, Formatter},
     iter,
 };
@@ -187,12 +187,12 @@ impl TryFrom<Value> for *mut c_void {
     }
 }
 
-impl TryFrom<Value> for c_double {
+impl TryFrom<Value> for f64 {
     type Error = ConversionError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Double(v) = value {
-            Ok(v as c_double)
+            Ok(v)
         } else {
             Err(ConversionError {
                 expected: "Double",
