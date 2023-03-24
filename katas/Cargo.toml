@@ -1,0 +1,15 @@
+[package]
+name = "katas"
+version = "0.0.0"
+
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+qsc_frontend = { path = "../compiler/qsc_frontend" }
+
+[dev-dependencies]
+indoc = { workspace = true }

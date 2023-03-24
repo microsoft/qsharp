@@ -3,7 +3,7 @@
 
 #![cfg(feature = "wasm")]
 
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{compile, std, PackageStore};
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -185,7 +185,9 @@ pub struct VSDiagnostic {
 
 #[wasm_bindgen]
 pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
-    let unit = compile(&PackageStore::new(), [], [code], "");
+    let mut store = PackageStore::new();
+    let std = store.insert(std());
+    let unit = compile(&store, [std], [code], "");
 
     let mut result: Vec<VSDiagnostic> = vec![];
 
