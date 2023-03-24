@@ -28,7 +28,7 @@ parser.add_argument('--play', action='store_true',
 
 parser.add_argument('--release', action='store_true',
                     help='Create a release build (default is debug)')
-parser.add_argument('--install-prereqs', action='store_true', 
+parser.add_argument('--install-prereqs', action='store_true',
                     help='Install prereqs if needed (only for wasm-pack on Mac or Linux currently)')
 parser.add_argument('--test', action='store_true', help='Run the tests')
 
@@ -146,7 +146,7 @@ if build_cli:
     if args.release:
         cargo_build_args.append('--release')
     result = subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
-    
+
     if run_tests:
         cargo_test_args = ['cargo', 'test']
         if args.release:
