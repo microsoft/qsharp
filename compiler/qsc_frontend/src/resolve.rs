@@ -15,7 +15,6 @@ use qsc_ast::{
 };
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{self, Display, Formatter},
     mem,
 };
 use thiserror::Error;
@@ -38,20 +37,6 @@ pub struct DefId {
 pub enum PackageSrc {
     Local,
     Extern(PackageId),
-}
-
-impl Display for DefId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(
-            f,
-            "<node {} in package {}>",
-            self.node,
-            match self.package {
-                PackageSrc::Local => "Local".to_string(),
-                PackageSrc::Extern(id) => id.to_string(),
-            }
-        )
-    }
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
