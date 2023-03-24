@@ -84,10 +84,8 @@ impl<'a> Resolver<'a> {
     }
 
     fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
-        let mut env = HashMap::new();
-        pat.into_iter()
-            .for_each(|p| bind(&mut self.resolutions, &mut env, p));
-        self.locals.push(env);
+        self.locals.push(HashMap::new());
+        pat.into_iter().for_each(|p| bind(self, p));
         f(self);
         self.locals.pop();
     }
@@ -140,20 +138,11 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         match &stmt.kind {
             StmtKind::Local(_, pat, _) => {
                 visit::walk_stmt(self, stmt);
-
-                let env = self
-                    .locals
-                    .last_mut()
-                    .expect("parent block of statement should have added environment");
-                bind(&mut self.resolutions, env, pat);
+                bind(self, pat);
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 visit::walk_qubit_init(self, init);
-                let env = self
-                    .locals
-                    .last_mut()
-                    .expect("parent block of statement should have added environment");
-                bind(&mut self.resolutions, env, pat);
+                bind(self, pat);
                 if let Some(block) = block {
                     visit::walk_block(self, block);
                 }
@@ -264,19 +253,23 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
     }
 }
 
-fn bind<'a>(resolutions: &mut Resolutions, env: &mut HashMap<&'a str, DefId>, pat: &'a Pat) {
+fn bind<'a>(resolver: &mut Resolver<'a>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name, _) => {
+            let env = resolver
+                .locals
+                .last_mut()
+                .expect("binding should have environment");
             let id = DefId {
                 package: PackageSrc::Local,
                 node: name.id,
             };
-            resolutions.insert(name.id, id);
+            resolver.resolutions.insert(name.id, id);
             env.insert(name.name.as_str(), id);
         }
         PatKind::Discard(_) | PatKind::Elided => {}
-        PatKind::Paren(pat) => bind(resolutions, env, pat),
-        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(resolutions, env, p)),
+        PatKind::Paren(pat) => bind(resolver, pat),
+        PatKind::Tuple(pats) => pats.iter().for_each(|p| bind(resolver, p)),
     }
 }
 
