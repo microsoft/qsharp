@@ -166,13 +166,7 @@ impl Range {
     }
 }
 
-pub struct Environment(Vec<HashMap<GlobalId, Variable>>);
-
-impl Default for Environment {
-    fn default() -> Self {
-        Self(vec![HashMap::default()])
-    }
-}
+pub type Environment = Vec<HashMap<GlobalId, Variable>>;
 
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
@@ -600,14 +594,13 @@ impl<'a> Evaluator<'a> {
     }
 
     fn enter_scope(&mut self) {
-        self.environment.0.push(HashMap::default());
+        self.environment.push(HashMap::default());
     }
 
     fn leave_scope(&mut self, release: bool) {
         if release {
             for (_, var) in self
                 .environment
-                .0
                 .pop()
                 .expect("scope should be entered first before leaving")
                 .drain()
@@ -615,7 +608,7 @@ impl<'a> Evaluator<'a> {
                 var.value.release();
             }
         } else {
-            let _ = self.environment.0.pop();
+            let _ = self.environment.pop();
         }
     }
 
@@ -636,7 +629,6 @@ impl<'a> Evaluator<'a> {
 
                 let scope = self
                     .environment
-                    .0
                     .last_mut()
                     .expect("binding should have a scope");
                 match scope.entry(id) {
@@ -675,7 +667,6 @@ impl<'a> Evaluator<'a> {
         let global_id = self.defid_to_globalid(id);
         let local = if id.package == PackageSrc::Local {
             self.environment
-                .0
                 .iter()
                 .rev()
                 .find_map(|s| s.get(&global_id))
@@ -697,7 +688,6 @@ impl<'a> Evaluator<'a> {
 
                 let mut variable = self
                     .environment
-                    .0
                     .iter_mut()
                     .rev()
                     .find_map(|scope| scope.get_mut(&id))
