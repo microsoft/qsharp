@@ -6,6 +6,7 @@
 #[cfg(test)]
 mod tests;
 
+use qsc_eval::{val::Value, Evaluator};
 use qsc_frontend::compile::{self, compile, PackageId, PackageStore};
 
 fn compile_kata(
@@ -34,7 +35,13 @@ fn compile_kata(
 pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool {
     // N.B. Once evaluation works for katas, run the Verify operation.
     match compile_kata(verification_source, kata_implementation) {
-        Ok((_, _)) => true,
+        Ok((store, id)) => match Evaluator::new(&store, id).run() {
+            Ok(result) => match result {
+                Value::Bool(b) => b,
+                _ => false,
+            },
+            Err(_e) => false,
+        },
         Err(e) => {
             println!("{e}");
             false

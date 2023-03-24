@@ -16,6 +16,13 @@ fn katas_qsharp_source_dir() -> PathBuf {
 }
 
 fn validate_exercise(exercise_dir: &Path) {
+    let exercise_name = format!(
+        "{}",
+        exercise_dir
+            .file_name()
+            .expect("Unable to obtain exercice name.")
+            .to_string_lossy()
+    );
     let mut verification_source_file = PathBuf::from(exercise_dir);
     verification_source_file.push("verify.qs");
     let verification_source =
@@ -40,7 +47,7 @@ fn validate_exercise(exercise_dir: &Path) {
 
         assert!(
             kata_errors.is_none(),
-            "Kata does not compile. {kata_errors:?}"
+            "Kata does not compile for exercise '{exercise_name}'. {kata_errors:?}"
         );
     }
 
@@ -48,13 +55,16 @@ fn validate_exercise(exercise_dir: &Path) {
     let reference_succeeds = verify_kata(verification_source.as_str(), reference_source.as_str());
     assert!(
         reference_succeeds,
-        "Reference implementation expected to succeed but failed."
+        "Reference implementation for exercise '{exercise_name}' expected to succeed but failed."
     );
     let _placeholder_fails =
         !verify_kata(verification_source.as_str(), placeholder_source.as_str());
     // N.B. Since verify_kata is currently not doing evaluation, both the reference and the placeholder implementations
     //      succeed. Uncomment this when doing verify_kata starts doing evaluation.
-    //assert!(_placeholder_fails, "Placeholder implementation expected to fail but succeeded.");
+    //assert!(
+    //    _placeholder_fails,
+    //    "Placeholder implementation for exercise '{exercise_name}' expected to fail but succeeded.",
+    //);
 }
 
 fn validate_module(module_dir: &PathBuf) {
