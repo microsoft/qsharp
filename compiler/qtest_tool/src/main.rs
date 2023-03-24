@@ -76,18 +76,13 @@ fn main() -> miette::Result<ExitCode> {
     }
 
     if unit.context.errors().is_empty() {
-        if unit.package.entry.is_some() {
-            let user = store.insert(unit);
-            let unit = store
-                .get(user)
-                .expect("compile unit should be in package store");
+        let user = store.insert(unit);
+        let unit = store
+            .get(user)
+            .expect("compile unit should be in package store");
+        if let Some(expr) = &unit.package.entry {
             let globals = extract_callables(&store);
             let evaluator = Evaluator::from_store(&store, user, &globals);
-            let expr = unit
-                .package
-                .entry
-                .as_ref()
-                .expect("entry expression should be present");
             match evaluator.eval_expr(expr) {
                 Ok((value, _)) => {
                     println!("{value}");
