@@ -591,12 +591,12 @@ fn binop_div_int() {
 
 #[test]
 fn binop_div_double() {
-    check_expr("", "(1.2) / (0.3)", &expect!["4.0"]);
+    check_expr("", "1.2 / 0.3", &expect!["4.0"]);
 }
 
 #[test]
 fn binop_eq_double() {
-    check_expr("", "(1.2) / (0.3)", &expect!["4.0"]);
+    check_expr("", "1.2 / 0.3", &expect!["4.0"]);
 }
 
 #[test]
