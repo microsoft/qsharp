@@ -7,10 +7,10 @@ use std::{
     iter,
 };
 
-use crate::globals::GlobalId;
 use num_bigint::BigInt;
 use qir_backend::__quantum__rt__qubit_release;
 use qsc_ast::ast::Pauli;
+use qsc_passes::globals::GlobalId;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {

@@ -4,6 +4,7 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_passes::globals::extract_callables;
 
 use crate::Evaluator;
 
@@ -13,12 +14,22 @@ fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
     let unit = compile(&store, [stdlib], [file], expr);
     assert!(
         unit.context.errors().is_empty(),
-        "Compilation errors: {:?}",
+        "compilation errors: {:?}",
         unit.context.errors()
     );
     let id = store.insert(unit);
-    match Evaluator::new(&store, id).run() {
-        Ok(result) => expect.assert_eq(&result.to_string()),
+    let unit = store
+        .get(id)
+        .expect("compile unit should be in package store");
+    let globals = extract_callables(&store);
+    let evaluator = Evaluator::from_store(&store, id, &globals);
+    let expr = unit
+        .package
+        .entry
+        .as_ref()
+        .expect("entry expression should be present");
+    match evaluator.eval_expr(expr) {
+        Ok((result, _)) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
 }

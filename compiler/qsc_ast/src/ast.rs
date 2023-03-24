@@ -129,7 +129,7 @@ pub struct Namespace {
 }
 
 /// An item.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Item {
     /// The ID.
     pub id: NodeId,
@@ -142,14 +142,17 @@ pub struct Item {
 }
 
 /// An item kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum ItemKind {
+    /// A `function` or `operation` declaration.
+    Callable(CallableDecl),
+    /// Default item when nothing has been parsed.
+    #[default]
+    Err,
     /// An `open` item for a namespace with an optional alias.
     Open(Ident, Option<Ident>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
-    /// A `function` or `operation` declaration.
-    Callable(CallableDecl),
 }
 
 /// Metadata for an item.
@@ -327,7 +330,7 @@ pub struct Block {
 }
 
 /// A statement.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Stmt {
     /// The node ID.
     pub id: NodeId,
@@ -338,8 +341,11 @@ pub struct Stmt {
 }
 
 /// A statement kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum StmtKind {
+    /// An empty statment.
+    #[default]
+    Empty,
     /// An expression without a trailing semicolon.
     Expr(Expr),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
