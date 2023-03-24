@@ -80,23 +80,20 @@ fn main() -> miette::Result<ExitCode> {
             let user = store.insert(unit);
             let unit = store
                 .get(user)
-                .expect("Compile unit should be in package store");
+                .expect("compile unit should be in package store");
             let globals = extract_callables(&store);
             let evaluator = Evaluator::from_store(&store, user, &globals);
-            match evaluator.eval_expr(
-                unit.package
-                    .entry
-                    .as_ref()
-                    .expect("entry expression should be present"),
-            ) {
+            let expr = unit
+                .package
+                .entry
+                .as_ref()
+                .expect("entry expression should be present");
+            match evaluator.eval_expr(expr) {
                 Ok((value, _)) => {
                     println!("{value}");
                     Ok(ExitCode::SUCCESS)
                 }
-                Err(error) => {
-                    let unit = store.get(user).expect("store should have compiled package");
-                    Err(ErrorReporter::new(cli, sources, &unit.context).report(error))
-                }
+                Err(error) => Err(ErrorReporter::new(cli, sources, &unit.context).report(error)),
             }
         } else {
             Ok(ExitCode::SUCCESS)

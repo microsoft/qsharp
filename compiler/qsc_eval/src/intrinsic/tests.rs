@@ -14,21 +14,21 @@ fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
     let unit = compile(&store, [stdlib], [file], expr);
     assert!(
         unit.context.errors().is_empty(),
-        "Compilation errors: {:?}",
+        "compilation errors: {:?}",
         unit.context.errors()
     );
     let id = store.insert(unit);
     let unit = store
         .get(id)
-        .expect("Compile unit should be in package store");
+        .expect("compile unit should be in package store");
     let globals = extract_callables(&store);
     let evaluator = Evaluator::from_store(&store, id, &globals);
-    match evaluator.eval_expr(
-        unit.package
-            .entry
-            .as_ref()
-            .expect("entry expression should be present"),
-    ) {
+    let expr = unit
+        .package
+        .entry
+        .as_ref()
+        .expect("entry expression should be present");
+    match evaluator.eval_expr(expr) {
         Ok((result, _)) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
