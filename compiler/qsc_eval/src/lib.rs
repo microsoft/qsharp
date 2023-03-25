@@ -41,6 +41,9 @@ pub enum Error {
     #[error("nothing to evaluate; entry expression is empty")]
     EmptyExpr,
 
+    #[error("{0} type does not support equality comparison")]
+    Equality(&'static str, #[label("does not support comparison")] Span),
+
     #[error("value cannot be used as an index: {0}")]
     IndexVal(i64, #[label("invalid index")] Span),
 
@@ -593,6 +596,7 @@ impl<'a> Evaluator<'a> {
             ),
             BinOp::Eq => eval_binop_eq(
                 &self.eval_expr_impl(lhs)?,
+                lhs.span,
                 &self.eval_expr_impl(rhs)?,
                 rhs.span,
             ),
@@ -640,6 +644,7 @@ impl<'a> Evaluator<'a> {
             ),
             BinOp::Neq => eval_binop_neq(
                 &self.eval_expr_impl(lhs)?,
+                lhs.span,
                 &self.eval_expr_impl(rhs)?,
                 rhs.span,
             ),
@@ -1001,7 +1006,22 @@ fn eval_binop_div(
     }
 }
 
-fn eval_binop_eq(lhs_val: &Value, rhs_val: &Value, rhs_span: Span) -> ControlFlow<Reason, Value> {
+fn supports_eq(val: &Value, val_span: Span) -> ControlFlow<Reason, ()> {
+    match val {
+        Value::Closure | Value::Global(..) => {
+            ControlFlow::Break(Reason::Error(Error::Equality(val.type_name(), val_span)))
+        }
+        _ => ControlFlow::Continue(()),
+    }
+}
+
+fn eval_binop_eq(
+    lhs_val: &Value,
+    lhs_span: Span,
+    rhs_val: &Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    supports_eq(lhs_val, lhs_span)?;
     if lhs_val.type_name() == rhs_val.type_name() {
         ControlFlow::Continue(Value::Bool(lhs_val == rhs_val))
     } else {
@@ -1213,7 +1233,13 @@ fn eval_binop_mul(
     }
 }
 
-fn eval_binop_neq(lhs_val: &Value, rhs_val: &Value, rhs_span: Span) -> ControlFlow<Reason, Value> {
+fn eval_binop_neq(
+    lhs_val: &Value,
+    lhs_span: Span,
+    rhs_val: &Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    supports_eq(lhs_val, lhs_span)?;
     if lhs_val.type_name() == rhs_val.type_name() {
         ControlFlow::Continue(Value::Bool(lhs_val != rhs_val))
     } else {
