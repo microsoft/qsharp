@@ -643,6 +643,28 @@ fn binop_equal_type() {
 }
 
 #[test]
+fn binop_equal_callable() {
+    check_expr(
+        indoc! {"
+            namespace Test {
+                function A() : Unit {}
+                function B() : Unit {}
+            }
+        "},
+        "Test.A == Test.B",
+        &expect![[r#"
+            Equality(
+                "Global",
+                Span {
+                    lo: 73,
+                    hi: 79,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn binop_equal_bool() {
     check_expr("", "false == false", &expect!["true"]);
 }
@@ -746,6 +768,23 @@ fn binop_exp_bigint_negative_exp() {
             },
         )
     "#]],
+    );
+}
+
+#[test]
+fn binop_exp_bigint_too_large() {
+    check_expr(
+        "",
+        "2L^9_223_372_036_854_775_807",
+        &expect![[r#"
+            IntTooLarge(
+                9223372036854775807,
+                Span {
+                    lo: 3,
+                    hi: 28,
+                },
+            )
+        "#]],
     );
 }
 

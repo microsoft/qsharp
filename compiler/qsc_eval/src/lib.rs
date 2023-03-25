@@ -47,6 +47,9 @@ pub enum Error {
     #[error("value cannot be used as an index: {0}")]
     IndexVal(i64, #[label("invalid index")] Span),
 
+    #[error("integer too large for operation")]
+    IntTooLarge(i64, #[label("this value is too large")] Span),
+
     #[error("missing specialization: {0}")]
     MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
 
@@ -572,127 +575,40 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     fn eval_binop(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
+        let lhs_val = self.eval_expr_impl(lhs)?;
         match op {
-            BinOp::Add => eval_binop_add(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::AndB => eval_binop_andb(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::AndL => self.eval_binop_andl(lhs, rhs),
-            BinOp::Div => eval_binop_div(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Eq => eval_binop_eq(
-                &self.eval_expr_impl(lhs)?,
-                lhs.span,
-                &self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Exp => eval_binop_exp(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Gt => eval_binop_gt(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Gte => eval_binop_gte(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Lt => eval_binop_lt(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Lte => eval_binop_lte(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Mod => eval_binop_mod(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Mul => eval_binop_mul(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Neq => eval_binop_neq(
-                &self.eval_expr_impl(lhs)?,
-                lhs.span,
-                &self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::OrB => eval_binop_orb(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::OrL => self.eval_binop_orl(lhs, rhs),
-            BinOp::Shl => eval_binop_shl(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Shr => eval_binop_shr(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::Sub => eval_binop_sub(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
-            BinOp::XorB => eval_binop_xorb(
-                self.eval_expr_impl(lhs)?,
-                lhs.span,
-                self.eval_expr_impl(rhs)?,
-                rhs.span,
-            ),
+            BinOp::Add => eval_binop_add(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::AndB => eval_binop_andb(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::AndL => self.eval_binop_andl(lhs_val.try_into().with_span(lhs.span)?, rhs),
+            BinOp::Div => eval_binop_div(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Eq => eval_binop_eq(&lhs_val, lhs.span, &self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Exp => eval_binop_exp(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Gt => eval_binop_gt(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Gte => eval_binop_gte(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Lt => eval_binop_lt(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Lte => eval_binop_lte(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Mod => eval_binop_mod(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Mul => eval_binop_mul(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Neq => eval_binop_neq(&lhs_val, lhs.span, &self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::OrB => eval_binop_orb(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::OrL => self.eval_binop_orl(lhs_val.try_into().with_span(lhs.span)?, rhs),
+            BinOp::Shl => eval_binop_shl(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Shr => eval_binop_shr(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Sub => eval_binop_sub(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::XorB => eval_binop_xorb(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
         }
     }
 
-    fn eval_binop_andl(&mut self, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
+    fn eval_binop_andl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
         ControlFlow::Continue(Value::Bool(
-            self.eval_expr_impl(lhs)?.try_into().with_span(lhs.span)?
-                && self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
+            lhs && self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
         ))
     }
 
-    fn eval_binop_orl(&mut self, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
+    fn eval_binop_orl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
         ControlFlow::Continue(Value::Bool(
-            self.eval_expr_impl(lhs)?.try_into().with_span(lhs.span)?
-                || self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
+            lhs || self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
         ))
     }
 
@@ -1045,9 +961,13 @@ fn eval_binop_exp(
             if rhs_val <= 0 {
                 ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
             } else {
-                ControlFlow::Continue(Value::BigInt(
-                    val.pow(rhs_val.try_into().expect("Value should not be negative")),
-                ))
+                let rhs_val: u32 = match rhs_val.try_into() {
+                    Ok(v) => ControlFlow::Continue(v),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span)))
+                    }
+                }?;
+                ControlFlow::Continue(Value::BigInt(val.pow(rhs_val)))
             }
         }
         Value::Double(val) => ControlFlow::Continue(Value::Double(
@@ -1058,9 +978,13 @@ fn eval_binop_exp(
             if rhs_val <= 0 {
                 ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
             } else {
-                ControlFlow::Continue(Value::Int(
-                    val.pow(rhs_val.try_into().expect("Value should not be negative")),
-                ))
+                let rhs_val: u32 = match rhs_val.try_into() {
+                    Ok(v) => ControlFlow::Continue(v),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span)))
+                    }
+                }?;
+                ControlFlow::Continue(Value::Int(val.pow(rhs_val)))
             }
         }
         _ => ControlFlow::Break(Reason::Error(Error::Type(
