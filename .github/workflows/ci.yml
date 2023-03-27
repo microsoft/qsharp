@@ -9,8 +9,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: 1.68.1
-  RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
+  RST_TOOLCHAIN_VERSION: 1.68.1
+  RST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
   format:
@@ -23,8 +23,8 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+          toolchain: ${{ env.RST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RST_TOOLCHAIN_COMPONENTS }}
       - name: Check Formatting
         run: cargo fmt -v --all -- --check
 
@@ -38,8 +38,8 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+          toolchain: ${{ env.RST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RST_TOOLCHAIN_COMPONENTS }}
       - name: Clippy Lints
         run: cargo clippy -vv --all-targets --all-features -- -D warnings
 
@@ -53,8 +53,8 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+          toolchain: ${{ env.RST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RST_TOOLCHAIN_COMPONENTS }}
       - name: cargo bench
         run: cargo bench --workspace
 
@@ -73,8 +73,8 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+          toolchain: ${{ env.RST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RST_TOOLCHAIN_COMPONENTS }}
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
