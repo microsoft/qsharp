@@ -3,7 +3,21 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompletions, checkCode} from "qsharp/browser";
+import {init, getCompletions, checkCode, evaluate} from "qsharp/browser";
+
+const sampleCode = `namespace Sample {
+    operation main() : Result {
+        use q1 = Qubit();
+        use q2 = Qubit();
+
+        H(q1);
+        CNOT(q1, q2);
+        let m1 = M(q1);
+        let m2 = M(q2);
+        return [m1, m2];
+    }
+}
+`;
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
 declare var MathJax: {typeset: () => void;};
@@ -12,25 +26,50 @@ declare var MathJax: {typeset: () => void;};
 async function loaded() {
     await init("/libs/qsharp/qsc_wasm_bg.wasm");
 
+    // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
+    let errorsDiv = document.querySelector('#errors') as HTMLDivElement; 
+    let exprInput = document.querySelector('#expr') as HTMLInputElement;
+    let runButton = document.querySelector('#run') as HTMLButtonElement;
+    let outputDiv = document.querySelector('#output') as HTMLDivElement;
 
+    // Create the monaco editor and set some initial code
     let editor = monaco.editor.create(editorDiv);
-    let srcModel = monaco.editor.createModel(`// TODO\n`, 'qsharp');
+    let srcModel = monaco.editor.createModel(sampleCode, 'qsharp');
     editor.setModel(srcModel);
 
+    // As code is edited check it for errors and update the error list
     function check() {
+        diagnosticsFrame = 0;
         let code = srcModel.getValue();
         let errs = checkCode(code);
-        let output = document.querySelector('#errors') as HTMLDivElement;
-        output.innerText = JSON.stringify(errs, null, 2);
+        errorsDiv.innerText = JSON.stringify(errs, null, 2);
     }
 
-    let currentTimer = setTimeout(check, 1000);
+    // While the code is changing, update the diagnostics as fast as the browser will render frames
+    let diagnosticsFrame = requestAnimationFrame(check);
+
     srcModel.onDidChangeContent(ev => {
-        clearTimeout(currentTimer);
-        currentTimer = setTimeout(check, 1000);
+        if (!diagnosticsFrame) {
+            diagnosticsFrame = requestAnimationFrame(check);
+        }
     });
+
+    // If the browser window resizes, tell the editor to update it's layout
     window.addEventListener('resize', _ => editor.layout());
+
+    // Try to evaluate the code when the run button is clicked
+    runButton.addEventListener('click', _ => {
+        let code = srcModel.getValue();
+        let expr = exprInput.value;
+
+        try {
+            let result = evaluate(code, expr);
+            outputDiv.innerHTML = `<h2>Results</h2><p>${result}</p>`;
+        } catch(e: any) {
+            outputDiv.innerHTML = `<h2>Error</h2><p>${e.toString()}</p>`;
+        }
+    });
 
     // Example of getting results from a call into the WASM module
     monaco.languages.registerCompletionItemProvider("qsharp", { 
