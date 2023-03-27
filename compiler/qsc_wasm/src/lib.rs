@@ -167,8 +167,8 @@ pub fn get_completions() -> Result<JsValue, JsValue> {
 #[wasm_bindgen(typescript_custom_section)]
 const IDiagnostic: &'static str = r#"
 export interface IDiagnostic {
-    startPos: number;
-    endPos: number;
+    start_pos: number;
+    end_pos: number;
     message: string;
     severity: number; // [0, 1, 2] = [error, warning, info]
     code?: { 

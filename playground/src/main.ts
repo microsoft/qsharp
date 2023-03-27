@@ -3,7 +3,7 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompletions, checkCode, evaluate} from "qsharp/browser";
+import {init, getCompletions, checkCode, evaluate, IDiagnostic} from "qsharp/browser";
 
 const sampleCode = `namespace Sample {
     operation main() : Result {
@@ -38,12 +38,30 @@ async function loaded() {
     let srcModel = monaco.editor.createModel(sampleCode, 'qsharp');
     editor.setModel(srcModel);
 
+    // Helpers to turn errors into editor squiggles
+    let currentsquiggles: string[] = [];
+    function squiggleDiagnostics(errors: IDiagnostic[]) {
+        let newDecorations = errors.map(err => {
+            let startPos = srcModel.getPositionAt(err.start_pos);
+            let endPos = srcModel.getPositionAt(err.end_pos);
+            let range = monaco.Range.fromPositions(startPos, endPos);
+            let decoration: monaco.editor.IModelDeltaDecoration = {
+                range,
+                options: {className: 'err-span', hoverMessage: {value: err.message}}
+            }
+            return decoration;
+        });
+        currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations);
+    }
+
     // As code is edited check it for errors and update the error list
     function check() {
         diagnosticsFrame = 0;
         let code = srcModel.getValue();
         let errs = checkCode(code);
         errorsDiv.innerText = JSON.stringify(errs, null, 2);
+
+        squiggleDiagnostics(errs);
     }
 
     // While the code is changing, update the diagnostics as fast as the browser will render frames
