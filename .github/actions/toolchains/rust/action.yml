@@ -1,4 +1,4 @@
-name: rst-toolchain
+name: rust-toolchain
 inputs:
   toolchain:
     required: false

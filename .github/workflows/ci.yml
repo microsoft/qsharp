@@ -9,6 +9,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN_VERSION: 1.68
+  RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
   format:
@@ -19,10 +21,10 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rst-toolchain
+        uses: ./.github/actions/toolchains/rust
         with:
-          toolchain: 1.68.1
-          components: rustfmt clippy
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Check Formatting
         run: cargo fmt -v --all -- --check
 
@@ -34,10 +36,10 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rst-toolchain
+        uses: ./.github/actions/toolchains/rust
         with:
-          toolchain: 1.68.1
-          components: rustfmt clippy
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Clippy Lints
         run: cargo clippy -vv --all-targets --all-features -- -D warnings
 
@@ -49,10 +51,10 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rst-toolchain
+        uses: ./.github/actions/toolchains/rust
         with:
-          toolchain: 1.68.1
-          components: rustfmt clippy
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: cargo bench
         run: cargo bench --workspace
 
@@ -69,10 +71,10 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rst-toolchain
+        uses: ./.github/actions/toolchains/rust
         with:
-          toolchain: 1.67
-          components: rustfmt clippy
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
