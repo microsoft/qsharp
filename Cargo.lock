@@ -728,6 +728,7 @@ dependencies = [
  "miette",
  "qsc_eval",
  "qsc_frontend",
+ "qsc_passes",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",

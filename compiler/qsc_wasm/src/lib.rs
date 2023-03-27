@@ -4,6 +4,9 @@
 #![cfg(feature = "wasm")]
 
 use qsc_frontend::compile::{compile, std, PackageStore};
+use qsc_eval::{Evaluator, Error};
+use qsc_eval::val::Value;
+use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -183,8 +186,7 @@ pub struct VSDiagnostic {
     pub severity: i32,
 }
 
-#[wasm_bindgen]
-pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
+fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     let mut store = PackageStore::new();
     let std = store.insert(std());
     let unit = compile(&store, [std], [code], "");
@@ -198,17 +200,77 @@ pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
             .expect("error should have at least one label");
         let offset = label.offset();
         let len = label.len();
+        let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
-        let msg = label.label().unwrap();
 
         let diag = VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
             severity: severity as i32,
-            message: msg.to_string(),
+            message,
         };
         result.push(diag);
     }
+    result
+}
 
+#[wasm_bindgen]
+pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
+    let result = check_code_internal(code);
     Ok(serde_wasm_bindgen::to_value(&result)?)
+}
+
+fn run_internal(code: &str, expr: &str) -> Result<Value, Error> {
+    let mut store = PackageStore::new();
+    let std = store.insert(std());
+    let unit = compile(&store, [std], [code], expr);
+
+    let user = store.insert(unit);
+    let unit = store.get(user).expect("Fail");
+    if let Some(expr) = &unit.package.entry {
+        let globals = extract_callables(&store);
+        let evaluator = Evaluator::from_store(&store, user, &globals);
+        match evaluator.eval_expr(expr) {
+            Ok((value, _)) => Ok(value),
+            Err(_e) => Err(_e)
+        }
+    } else {
+        // TODO Correct error type/message here
+        Err(Error::UserFail("Runtime failure".to_string(), std::default::Default::default() ))
+    }
+}
+
+#[wasm_bindgen]
+pub fn run(code: &str, expr: &str)-> Result<JsValue, JsValue> {
+    let result = run_internal(code, expr);
+    Ok(serde_wasm_bindgen::to_value(&result.unwrap().to_string())?)
+}
+
+#[test]
+fn test_callable() {
+    let code = "namespace input { operation Foo(a : Int -> Int) : Unit {} }";
+    let diag = check_code_internal(code);
+    assert_eq!(diag.len(), 1);
+    let err = diag.first().unwrap();
+    
+    assert_eq!(err.start_pos, 32);
+    assert_eq!(err.end_pos, 46);
+    assert!(err.message.starts_with("callables"));
+}
+
+#[test]
+fn test_run() {
+    let code = "
+namespace Test {
+    function Answer() : Int {
+        return 42;
+    }
+}
+";
+    let expr = "Test.Answer()";
+    let _result = run_internal(code, expr);
+    match _result.unwrap() {
+        Value::Int(x) => assert_eq!(x, 42),
+        _ => panic!("Incorrect value type returned")
+    }
 }
