@@ -6,14 +6,10 @@
 #[cfg(test)]
 mod tests;
 
-mod globals;
 mod intrinsic;
 pub mod val;
 
-use crate::{
-    globals::{extract_callables, GlobalId},
-    val::{ConversionError, FunctorApp, Value},
-};
+use crate::val::{ConversionError, FunctorApp, Value};
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
 use qir_backend::__quantum__rt__qubit_allocate;
@@ -23,9 +19,10 @@ use qsc_ast::ast::{
     UnOp,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageId, PackageStore},
-    resolve::{DefId, PackageSrc},
+    compile::{PackageId, PackageStore},
+    resolve::{DefId, PackageSrc, Resolutions},
 };
+use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
     ops::{ControlFlow, Neg},
@@ -169,55 +166,89 @@ impl Range {
     }
 }
 
-#[allow(dead_code)]
+#[derive(Default)]
+pub struct Env(Vec<HashMap<GlobalId, Variable>>);
+
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
-    current_unit: &'a CompileUnit,
-    current_id: PackageId,
-    scopes: Vec<HashMap<GlobalId, Variable>>,
-    globals: HashMap<GlobalId, &'a CallableDecl>,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl>,
+    resolutions: &'a Resolutions,
+    package: PackageId,
+    env: Env,
 }
 
 impl<'a> Evaluator<'a> {
     #[must_use]
-    pub fn new(store: &'a PackageStore, entry_id: PackageId) -> Self {
+    pub fn new(
+        store: &'a PackageStore,
+        globals: &'a HashMap<GlobalId, &CallableDecl>,
+        resolutions: &'a Resolutions,
+        package: PackageId,
+        env: Env,
+    ) -> Self {
         Self {
             store,
-            current_unit: store
-                .get(entry_id)
-                .expect("entry package should be added to store before evaluation"),
-            current_id: entry_id,
-            scopes: vec![],
-            globals: extract_callables(store),
+            globals,
+            resolutions,
+            package,
+            env,
         }
     }
 
-    /// Evaluates the entry expression from the current context.
+    #[must_use]
+    pub fn from_store(
+        store: &'a PackageStore,
+        id: PackageId,
+        globals: &'a HashMap<GlobalId, &CallableDecl>,
+    ) -> Self {
+        let unit = store
+            .get(id)
+            .expect("compile unit should be in package store");
+        Evaluator {
+            store,
+            globals,
+            resolutions: unit.context.resolutions(),
+            package: id,
+            env: Env::default(),
+        }
+    }
+
+    /// Evaluates the given statement.
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.current_unit.package.entry {
-            match self.eval_expr(expr) {
-                ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
-                ControlFlow::Break(Reason::Error(error)) => Err(error),
+    pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Env), Error> {
+        match self.eval_stmt_impl(stmt) {
+            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
+                Ok((val, self.env))
             }
-        } else {
-            Err(Error::EmptyExpr)
+            ControlFlow::Break(Reason::Error(error)) => Err(error),
         }
     }
 
-    fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
+    /// Evaluates the given expression.
+    /// # Errors
+    /// Returns the first error encountered during execution.
+    pub fn eval_expr(mut self, expr: &Expr) -> Result<(Value, Env), Error> {
+        match self.eval_expr_impl(expr) {
+            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
+                Ok((val, self.env))
+            }
+            ControlFlow::Break(Reason::Error(error)) => Err(error),
+        }
+    }
+
+    fn eval_expr_impl(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
                 let mut val_arr = vec![];
                 for expr in arr {
-                    val_arr.push(self.eval_expr(expr)?);
+                    val_arr.push(self.eval_expr_impl(expr)?);
                 }
                 ControlFlow::Continue(Value::Array(val_arr))
             }
             ExprKind::ArrayRepeat(item, size) => {
-                let item_val = self.eval_expr(item)?;
-                let size_val: i64 = self.eval_expr(size)?.try_into().with_span(size.span)?;
+                let item_val = self.eval_expr_impl(item)?;
+                let size_val: i64 = self.eval_expr_impl(size)?.try_into().with_span(size.span)?;
                 let s = match size_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => ControlFlow::Break(Reason::Error(Error::Count(size_val, size.span))),
@@ -225,28 +256,31 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::Array(vec![item_val; s]))
             }
             ExprKind::Assign(lhs, rhs) => {
-                let val = self.eval_expr(rhs)?;
+                let val = self.eval_expr_impl(rhs)?;
                 self.update_binding(lhs, val)
             }
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(expr, *op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
-                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
+                self.eval_expr_impl(msg)?.try_into().with_span(msg.span)?,
                 expr.span,
             ))),
             ExprKind::If(cond, then, els) => {
-                if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
+                if self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(then)
                 } else if let Some(els) = els {
-                    self.eval_expr(els)
+                    self.eval_expr_impl(els)
                 } else {
                     ControlFlow::Continue(Value::UNIT)
                 }
             }
             ExprKind::Index(arr, index_expr) => {
-                let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
-                let index_val = self.eval_expr(index_expr)?;
+                let arr = self
+                    .eval_expr_impl(arr)?
+                    .try_into_array()
+                    .with_span(arr.span)?;
+                let index_val = self.eval_expr_impl(index_expr)?;
                 match &index_val {
                     Value::Int(index) => index_array(&arr, *index, index_expr.span),
                     Value::Range(start, step, end) => {
@@ -260,14 +294,16 @@ impl<'a> Evaluator<'a> {
                 }
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
-            ExprKind::Paren(expr) => self.eval_expr(expr),
+            ExprKind::Paren(expr) => self.eval_expr_impl(expr),
             ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
-            ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
+            ExprKind::Return(expr) => {
+                ControlFlow::Break(Reason::Return(self.eval_expr_impl(expr)?))
+            }
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
-                    val_tup.push(self.eval_expr(expr)?);
+                    val_tup.push(self.eval_expr_impl(expr)?);
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
@@ -295,9 +331,9 @@ impl<'a> Evaluator<'a> {
         end: &Option<Box<Expr>>,
     ) -> ControlFlow<Reason, Value> {
         let mut to_opt_i64 = |e: &Option<Box<Expr>>| match e {
-            Some(expr) => {
-                ControlFlow::Continue(Some(self.eval_expr(expr)?.try_into().with_span(expr.span)?))
-            }
+            Some(expr) => ControlFlow::Continue(Some(
+                self.eval_expr_impl(expr)?.try_into().with_span(expr.span)?,
+            )),
             None => ControlFlow::Continue(None),
         };
         ControlFlow::Continue(Value::Range(
@@ -311,9 +347,9 @@ impl<'a> Evaluator<'a> {
         self.enter_scope();
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
-                let _ = self.eval_stmt(stmt)?;
+                let _ = self.eval_stmt_impl(stmt)?;
             }
-            self.eval_stmt(last)
+            self.eval_stmt_impl(last)
         } else {
             ControlFlow::Continue(Value::UNIT)
         };
@@ -321,16 +357,17 @@ impl<'a> Evaluator<'a> {
         result
     }
 
-    fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
+    fn eval_stmt_impl(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
-            StmtKind::Expr(expr) => self.eval_expr(expr),
+            StmtKind::Empty => ControlFlow::Continue(Value::UNIT),
+            StmtKind::Expr(expr) => self.eval_expr_impl(expr),
             StmtKind::Local(mutability, pat, expr) => {
-                let val = self.eval_expr(expr)?;
+                let val = self.eval_expr_impl(expr)?;
                 self.bind_value(pat, val, expr.span, *mutability)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Semi(expr) => {
-                let _ = self.eval_expr(expr)?;
+                let _ = self.eval_expr_impl(expr)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
@@ -351,7 +388,10 @@ impl<'a> Evaluator<'a> {
     fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {
         match &qubit_init.kind {
             QubitInitKind::Array(count) => {
-                let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
+                let count_val: i64 = self
+                    .eval_expr_impl(count)?
+                    .try_into()
+                    .with_span(count.span)?;
                 let count: usize = match count_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => {
@@ -377,11 +417,11 @@ impl<'a> Evaluator<'a> {
     }
 
     fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
-        let call_val = self.eval_expr(call)?;
+        let call_val = self.eval_expr_impl(call)?;
         let call_span = call.span;
         let (call, functor) = value_to_call_id(call_val, call.span)?;
 
-        let args_val = self.eval_expr(args)?;
+        let args_val = self.eval_expr_impl(args)?;
 
         let decl = *self
             .globals
@@ -390,19 +430,23 @@ impl<'a> Evaluator<'a> {
 
         let spec = specialization_from_functor_app(&functor);
 
-        let (cached_id, cached_unit) = (self.current_id, self.current_unit);
-        (self.current_id, self.current_unit) = (
-            call.package,
+        let resolutions = if call.package == self.package {
+            self.resolutions
+        } else {
             self.store
                 .get(call.package)
-                .expect("global value should refer only to stored packages"),
-        );
+                .expect("global value should refer only to stored packages")
+                .context
+                .resolutions()
+        };
 
-        self.enter_scope();
-        let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
-        self.leave_scope(false);
-
-        (self.current_id, self.current_unit) = (cached_id, cached_unit);
+        let mut new_self = Self {
+            env: Env::default(),
+            package: call.package,
+            resolutions,
+            ..*self
+        };
+        let call_res = new_self.eval_call_spec(decl, spec, args_val, args.span, call_span);
 
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
@@ -410,7 +454,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn eval_call_specialization(
+    fn eval_call_spec(
         &mut self,
         decl: &CallableDecl,
         spec: Spec,
@@ -418,7 +462,8 @@ impl<'a> Evaluator<'a> {
         args_span: Span,
         call_span: Span,
     ) -> ControlFlow<Reason, Value> {
-        match (&decl.body, spec) {
+        self.enter_scope();
+        let res = match (&decl.body, spec) {
             (CallableBody::Block(body_block), Spec::Body) => {
                 self.bind_value(&decl.input, args_val, args_span, Mutability::Immutable)?;
                 self.eval_block(body_block)
@@ -445,13 +490,9 @@ impl<'a> Evaluator<'a> {
                             self.eval_block(body_block)
                         }
                     }
-                    SpecBody::Gen(SpecGen::Slf) => self.eval_call_specialization(
-                        decl,
-                        Spec::Body,
-                        args_val,
-                        args_span,
-                        call_span,
-                    ),
+                    SpecBody::Gen(SpecGen::Slf) => {
+                        self.eval_call_spec(decl, Spec::Body, args_val, args_span, call_span)
+                    }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
                         invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
@@ -461,11 +502,13 @@ impl<'a> Evaluator<'a> {
                 }
             }
             _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
-        }
+        };
+        self.leave_scope(false);
+        res
     }
 
     fn eval_unop(&mut self, expr: &Expr, op: UnOp, rhs: &Expr) -> ControlFlow<Reason, Value> {
-        let val = self.eval_expr(rhs)?;
+        let val = self.eval_expr_impl(rhs)?;
         match op {
             UnOp::Neg => match val {
                 Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
@@ -526,7 +569,7 @@ impl<'a> Evaluator<'a> {
         lhs: &Expr,
         rhs: &Expr,
     ) -> ControlFlow<Reason, Value> {
-        let (lhs_val, rhs_val) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
+        let (lhs_val, rhs_val) = (self.eval_expr_impl(lhs)?, self.eval_expr_impl(rhs)?);
         match op {
             BinOp::AndL => ControlFlow::Continue(Value::Bool(
                 lhs_val.try_into().with_span(lhs.span)?
@@ -564,13 +607,14 @@ impl<'a> Evaluator<'a> {
     }
 
     fn enter_scope(&mut self) {
-        self.scopes.push(HashMap::default());
+        self.env.0.push(HashMap::default());
     }
 
     fn leave_scope(&mut self, release: bool) {
         if release {
             for (_, var) in self
-                .scopes
+                .env
+                .0
                 .pop()
                 .expect("scope should be entered first before leaving")
                 .drain()
@@ -578,7 +622,7 @@ impl<'a> Evaluator<'a> {
                 var.value.release();
             }
         } else {
-            let _ = self.scopes.pop();
+            let _ = self.env.0.pop();
         }
     }
 
@@ -592,14 +636,12 @@ impl<'a> Evaluator<'a> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = self.defid_to_globalid(
-                    self.current_unit
-                        .context
-                        .resolutions()
+                    self.resolutions
                         .get(&variable.id)
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
 
-                let scope = self.scopes.last_mut().expect("binding should have a scope");
+                let scope = self.env.0.last_mut().expect("binding should have a scope");
                 match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("duplicate binding: {id}"),
@@ -629,15 +671,14 @@ impl<'a> Evaluator<'a> {
 
     fn resolve_binding(&mut self, id: NodeId) -> Value {
         let id = self
-            .current_unit
-            .context
-            .resolutions()
+            .resolutions
             .get(&id)
             .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
         let global_id = self.defid_to_globalid(id);
         let local = if id.package == PackageSrc::Local {
-            self.scopes
+            self.env
+                .0
                 .iter()
                 .rev()
                 .find_map(|s| s.get(&global_id))
@@ -645,22 +686,21 @@ impl<'a> Evaluator<'a> {
         } else {
             None
         };
-        local.unwrap_or_else(|| self.resolve_global(global_id))
+        local.unwrap_or_else(|| Value::Global(global_id, FunctorApp::default()))
     }
 
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
                 let id = self.defid_to_globalid(
-                    self.current_unit
-                        .context
-                        .resolutions()
+                    self.resolutions
                         .get(&path.id)
                         .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
                 );
 
                 let mut variable = self
-                    .scopes
+                    .env
+                    .0
                     .iter_mut()
                     .rev()
                     .find_map(|scope| scope.get_mut(&id))
@@ -693,19 +733,11 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn resolve_global(&mut self, id: GlobalId) -> Value {
-        if self.globals.contains_key(&id) {
-            Value::Global(id, FunctorApp::default())
-        } else {
-            panic!("unknown global: {id}")
-        }
-    }
-
     fn defid_to_globalid(&self, id: &DefId) -> GlobalId {
         GlobalId {
             package: match id.package {
-                PackageSrc::Local => self.current_id,
-                PackageSrc::Extern(p) => p,
+                PackageSrc::Local => self.package,
+                PackageSrc::Extern(id) => id,
             },
             node: id.node,
         }

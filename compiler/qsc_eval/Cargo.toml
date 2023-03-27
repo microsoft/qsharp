@@ -12,6 +12,7 @@ license.workspace = true
 qir-backend = { git = "https://github.com/qir-alliance/qir-runner", rev = "dea6a8373cbfc02f1e17ade9399699645ec80014" }
 qsc_ast = { path = "../qsc_ast" }
 qsc_frontend = { path = "../qsc_frontend" }
+qsc_passes = { path = "../qsc_passes" }
 qir-stdlib = { git = "https://github.com/qir-alliance/qir-runner", rev = "dea6a8373cbfc02f1e17ade9399699645ec80014" }
 miette = { workspace = true }
 num-bigint = { workspace = true }
