@@ -53,6 +53,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/rust-toolchain
+        with:
+          toolchain: 1.68.1
+          components: rustfmt clippy
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
