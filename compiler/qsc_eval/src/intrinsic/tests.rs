@@ -6,9 +6,9 @@ use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
-use crate::Evaluator;
+use crate::{val::Value, Env, Error, Evaluator};
 
-fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
+fn run_expr(file: &str, expr: &str) -> Result<(Value, Env), Error> {
     let mut store = PackageStore::new();
     let stdlib = store.insert(compile::std());
     let unit = compile(&store, [stdlib], [file], expr);
@@ -28,11 +28,24 @@ fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
         .entry
         .as_ref()
         .expect("entry expression should be present");
-    match evaluator.eval_expr(expr) {
+    evaluator.eval_expr(expr)
+}
+
+fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
+    match run_expr(file, expr) {
         Ok((result, _)) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
 }
+
+fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
+    match run_expr(file, expr) {
+        Ok((result, _)) => assert_eq!(&result, val),
+        Err(e) => panic!("{e:?}"),
+    }
+}
+
+const PI: f64 = 3.141_592_653_589_793_238_46;
 
 #[test]
 fn length() {
@@ -126,91 +139,91 @@ fn check_zero_false() {
 
 #[test]
 fn arccos() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.ArcCos(0.3)",
-        &expect!["1.2661036727794992"],
+        &Value::Double((0.3f64).acos()),
     );
 }
 
 #[test]
 fn arcsin() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.ArcSin(0.3)",
-        &expect!["0.3046926540153975"],
+        &Value::Double((0.3f64).asin()),
     );
 }
 
 #[test]
 fn arctan() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.ArcTan(0.3)",
-        &expect!["0.2914567944778671"],
+        &Value::Double((0.3f64).atan()),
     );
 }
 
 #[test]
 fn arctan2() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.ArcTan2(0.3, 0.7)",
-        &expect!["0.40489178628508343"],
+        &Value::Double((0.3f64).atan2(0.7)),
     );
 }
 
 #[test]
 fn cos() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Cos(Microsoft.Quantum.Math.PI())",
-        &expect!["-1.0"],
+        &Value::Double((PI).cos()),
     );
 }
 
 #[test]
 fn cosh() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Cosh(Microsoft.Quantum.Math.PI())",
-        &expect!["11.591953275521519"],
+        &Value::Double((PI).cosh()),
     );
 }
 
 #[test]
 fn sin() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Sin(Microsoft.Quantum.Math.PI())",
-        &expect!["0.00000000000000012246467991473532"],
+        &Value::Double((PI).sin()),
     );
 }
 
 #[test]
 fn sinh() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Sinh(Microsoft.Quantum.Math.PI())",
-        &expect!["11.548739357257746"],
+        &Value::Double((PI).sinh()),
     );
 }
 
 #[test]
 fn tan() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Tan(Microsoft.Quantum.Math.PI())",
-        &expect!["-0.00000000000000012246467991473532"],
+        &Value::Double((PI).tan()),
     );
 }
 
 #[test]
 fn tanh() {
-    check_intrinsic(
+    check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Tanh(Microsoft.Quantum.Math.PI())",
-        &expect!["0.99627207622075"],
+        &Value::Double((PI).tanh()),
     );
 }
 
