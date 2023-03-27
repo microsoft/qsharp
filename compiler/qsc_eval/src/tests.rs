@@ -1823,10 +1823,10 @@ fn repeat_until_expr() {
             repeat {
                 set x = x + 1;
             }
-            until x >= 10;
+            until x >= 3;
             x
         }"},
-        &expect!["10"],
+        &expect!["3"],
     );
 }
 
@@ -1837,13 +1837,13 @@ fn repeat_until_fixup_expr() {
         indoc! {"{
             mutable x = 0;
             repeat {}
-            until x >= 10
+            until x >= 3
             fixup {
                 set x = x + 1;
             }
             x
         }"},
-        &expect!["10"],
+        &expect!["3"],
     );
 }
 
@@ -1856,13 +1856,13 @@ fn repeat_until_fixup_scoping_expr() {
             repeat {
                 let increment = 2;
             }
-            until x >= 10 * increment
+            until x >= 3 * increment
             fixup {
                 set x = x + increment;
             }
             x
         }"},
-        &expect!["20"],
+        &expect!["6"],
     );
 }
 
