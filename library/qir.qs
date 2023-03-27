@@ -101,3 +101,13 @@ namespace QIR.Intrinsic {
         body intrinsic;
     }
 }
+
+namespace QIR.Runtime {
+    function __quantum__rt__qubit_allocate() : Qubit {
+        body intrinsic;
+    }
+
+    function __quantum__rt__qubit_release(q : Qubit) : Unit {
+        body intrinsic;
+    }
+}
