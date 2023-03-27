@@ -28,3 +28,5 @@ export function evaluate(code: string, expr: string) : string{
     let result = run(code, expr) as string;
     return result;
 }
+
+export {IDiagnostic}

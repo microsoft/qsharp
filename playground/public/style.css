@@ -23,3 +23,8 @@ body {
     width: 600px;
     height: 400px;
 }
+
+.err-span {
+    background: transparent!important;
+    border-bottom: 4px double #e47777;
+}
