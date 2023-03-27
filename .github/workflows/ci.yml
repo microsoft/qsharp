@@ -71,7 +71,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.66
+          toolchain: 1.67
           components: rustfmt clippy
       - uses: actions/setup-python@v4
         with:
