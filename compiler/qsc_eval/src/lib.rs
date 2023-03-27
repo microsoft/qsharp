@@ -420,7 +420,7 @@ impl<'a> Evaluator<'a> {
     ) -> ControlFlow<Reason, Value> {
         let iterable = self.eval_expr_impl(expr)?;
         let iterable = match iterable {
-            Value::Array(arr) => arr.into_iter(),
+            Value::Array(arr) => arr,
             Value::Range(start, step, end) => Range::new(
                 start.map_or_else(
                     || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
@@ -432,10 +432,8 @@ impl<'a> Evaluator<'a> {
                     ControlFlow::Continue,
                 )?,
             )
-            .into_iter()
             .map(Value::Int)
-            .collect::<Vec<_>>()
-            .into_iter(),
+            .collect::<Vec<_>>(),
             _ => ControlFlow::Break(Reason::Error(Error::NotIterable(
                 iterable.type_name(),
                 expr.span,
