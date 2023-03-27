@@ -17,7 +17,7 @@ use qir_backend::__quantum__rt__qubit_allocate;
 use qsc_ast::ast::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
     NodeId, Pat, PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind,
-    UnOp,
+    TernOp, UnOp,
 };
 use qsc_frontend::{
     compile::{PackageId, PackageStore},
@@ -282,6 +282,10 @@ impl<'a> Evaluator<'a> {
                 let update = self.eval_binop(*op, lhs, rhs)?;
                 self.update_binding(lhs, update)
             }
+            ExprKind::AssignUpdate(lhs, mid, rhs) => {
+                let update = self.eval_ternop_update(lhs, mid, rhs)?;
+                self.update_binding(lhs, update)
+            }
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
@@ -325,6 +329,10 @@ impl<'a> Evaluator<'a> {
             ExprKind::Return(expr) => {
                 ControlFlow::Break(Reason::Return(self.eval_expr_impl(expr)?))
             }
+            ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
+                TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
+                TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
+            },
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
@@ -339,13 +347,11 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::UNIT)
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
-            ExprKind::AssignUpdate(..)
-            | ExprKind::Conjugate(..)
+            ExprKind::Conjugate(..)
             | ExprKind::Err
             | ExprKind::Field(..)
             | ExprKind::Hole
-            | ExprKind::Lambda(..)
-            | ExprKind::TernOp(..) => {
+            | ExprKind::Lambda(..) => {
                 ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
             }
         }
@@ -690,6 +696,43 @@ impl<'a> Evaluator<'a> {
         ControlFlow::Continue(Value::Bool(
             lhs || self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
         ))
+    }
+
+    fn eval_ternop_cond(
+        &mut self,
+        lhs: &Expr,
+        mid: &Expr,
+        rhs: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        if self.eval_expr_impl(lhs)?.try_into().with_span(lhs.span)? {
+            self.eval_expr_impl(mid)
+        } else {
+            self.eval_expr_impl(rhs)
+        }
+    }
+
+    fn eval_ternop_update(
+        &mut self,
+        lhs: &Expr,
+        mid: &Expr,
+        rhs: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let mut arr = self
+            .eval_expr_impl(lhs)?
+            .try_into_array()
+            .with_span(lhs.span)?;
+        let index: i64 = self.eval_expr_impl(mid)?.try_into().with_span(mid.span)?;
+        if index < 0 {
+            ControlFlow::Break(Reason::Error(Error::Negative(index, mid.span)))
+        } else {
+            match arr.get_mut(index.as_index(mid.span)?) {
+                Some(v) => {
+                    *v = self.eval_expr_impl(rhs)?;
+                    ControlFlow::Continue(Value::Array(arr))
+                }
+                None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, mid.span))),
+            }
+        }
     }
 
     fn enter_scope(&mut self) {
