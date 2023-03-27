@@ -19,7 +19,7 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rust-toolchain
+        uses: ./.github/actions/rst-toolchain
         with:
           toolchain: 1.68.1
           components: rustfmt clippy
@@ -34,7 +34,7 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rust-toolchain
+        uses: ./.github/actions/rst-toolchain
         with:
           toolchain: 1.68.1
           components: rustfmt clippy
@@ -49,7 +49,7 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rust-toolchain
+        uses: ./.github/actions/rst-toolchain
         with:
           toolchain: 1.68.1
           components: rustfmt clippy
@@ -69,7 +69,7 @@ jobs:
         with:
           submodules: "true"
       - name: Setup rust toolchain
-        uses: ./.github/actions/rust-toolchain
+        uses: ./.github/actions/rst-toolchain
         with:
           toolchain: 1.67
           components: rustfmt clippy
