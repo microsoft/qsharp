@@ -53,14 +53,14 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: "true"
-      - name: Build
-        run: cargo build -vv --release
-      - name: Test
-        run: cargo test -vv --release -- --nocapture
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - uses: actions/setup-python@v4
         with:
-          name: ${{matrix.os}}
-          path: |
-            target/release/qsc*
-            !target/release/qsc.d
+          python-version: '3.11'
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.17.1'
+      - uses: Swatinem/rust-cache@v2
+      - name: Prereqs
+        run: python ./prereqs.py --install
+      - name: Build and Test
+        run: python ./build.py --release --test
