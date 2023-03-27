@@ -6,7 +6,7 @@ use std::f64::consts;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
-use qsc_passes::globals::extract_callables;
+use qsc_passes::{globals::extract_callables, run_default_passes};
 
 use crate::{
     eval_expr,
@@ -17,13 +17,16 @@ use crate::{
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
     let mut store = PackageStore::new();
-    let stdlib = store.insert(compile::std());
-    let unit = compile(&store, [stdlib], [file], expr);
+    let mut std = compile::std();
+    run_default_passes(&mut std);
+    let stdlib = store.insert(std);
+    let mut unit = compile(&store, [stdlib], [file], expr);
     assert!(
         unit.context.errors().is_empty(),
         "compilation errors: {:?}",
         unit.context.errors()
     );
+    run_default_passes(&mut unit);
     let id = store.insert(unit);
     let globals = extract_callables(&store);
     let expr = store
