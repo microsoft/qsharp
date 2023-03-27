@@ -59,11 +59,17 @@ pub enum Error {
     #[error("reassigning immutable variable")]
     Mutability(#[label("variable declared as immutable")] Span),
 
+    #[error("iterable ranges cannot be open-ended")]
+    OpenEnded(#[label("open-ended range used as iterator")] Span),
+
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
 
     #[error("negative integers cannot be used here: {0}")]
     Negative(i64, #[label("invalid negative integer")] Span),
+
+    #[error("type {0} is not iterable")]
+    NotIterable(&'static str, #[label("not iterable")] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -283,6 +289,7 @@ impl<'a> Evaluator<'a> {
                 self.eval_expr_impl(msg)?.try_into().with_span(msg.span)?,
                 expr.span,
             ))),
+            ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(then)
@@ -314,6 +321,7 @@ impl<'a> Evaluator<'a> {
             ExprKind::Paren(expr) => self.eval_expr_impl(expr),
             ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
+            ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
             ExprKind::Return(expr) => {
                 ControlFlow::Break(Reason::Return(self.eval_expr_impl(expr)?))
             }
@@ -324,17 +332,20 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
+            ExprKind::While(cond, block) => {
+                while self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
+                    let _ = self.eval_block(block)?;
+                }
+                ControlFlow::Continue(Value::UNIT)
+            }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
             ExprKind::AssignUpdate(..)
             | ExprKind::Conjugate(..)
             | ExprKind::Err
             | ExprKind::Field(..)
-            | ExprKind::For(..)
             | ExprKind::Hole
             | ExprKind::Lambda(..)
-            | ExprKind::Repeat(..)
-            | ExprKind::TernOp(..)
-            | ExprKind::While(..) => {
+            | ExprKind::TernOp(..) => {
                 ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
             }
         }
@@ -399,6 +410,72 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::UNIT)
             }
         }
+    }
+
+    fn eval_for_loop(
+        &mut self,
+        pat: &Pat,
+        expr: &Expr,
+        block: &Block,
+    ) -> ControlFlow<Reason, Value> {
+        let iterable = self.eval_expr_impl(expr)?;
+        let iterable = match iterable {
+            Value::Array(arr) => arr,
+            Value::Range(start, step, end) => Range::new(
+                start.map_or_else(
+                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
+                    ControlFlow::Continue,
+                )?,
+                step.unwrap_or(1),
+                end.map_or_else(
+                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
+                    ControlFlow::Continue,
+                )?,
+            )
+            .map(Value::Int)
+            .collect::<Vec<_>>(),
+            _ => ControlFlow::Break(Reason::Error(Error::NotIterable(
+                iterable.type_name(),
+                expr.span,
+            )))?,
+        };
+
+        for value in iterable {
+            self.enter_scope();
+            self.bind_value(pat, value, expr.span, Mutability::Immutable);
+            let _ = self.eval_block(block)?;
+            self.leave_scope(false);
+        }
+
+        ControlFlow::Continue(Value::UNIT)
+    }
+
+    fn eval_repeat_loop(
+        &mut self,
+        repeat: &Block,
+        cond: &Expr,
+        fixup: &Option<Block>,
+    ) -> ControlFlow<Reason, Value> {
+        self.enter_scope();
+
+        for stmt in &repeat.stmts {
+            self.eval_stmt_impl(stmt)?;
+        }
+        while !self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
+            if let Some(block) = fixup.as_ref() {
+                self.eval_block(block)?;
+            }
+
+            self.leave_scope(true);
+            self.enter_scope();
+
+            for stmt in &repeat.stmts {
+                self.eval_stmt_impl(stmt)?;
+            }
+        }
+
+        self.leave_scope(true);
+        ControlFlow::Continue(Value::UNIT)
     }
 
     fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {

@@ -1464,6 +1464,84 @@ fn fail_shortcut_expr() {
 }
 
 #[test]
+fn for_loop_range_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            for i in 0..10 {
+                set x = x + i;
+            }
+            x
+        }"},
+        &expect!["55"],
+    );
+}
+
+#[test]
+fn for_loop_array_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            for i in [5, size = 5] {
+                set x = x + i;
+            }
+            x
+        }"},
+        &expect!["25"],
+    );
+}
+
+#[test]
+fn for_loop_iterator_immutable_expr() {
+    check_expr(
+        "",
+        "for i in 0..10 { set i = 0; }",
+        &expect![[r#"
+            Mutability(
+                Span {
+                    lo: 21,
+                    hi: 22,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn for_loop_not_iterable_expr() {
+    check_expr(
+        "",
+        "for i in (1, true, One) {}",
+        &expect![[r#"
+            NotIterable(
+                "Tuple",
+                Span {
+                    lo: 9,
+                    hi: 23,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn for_loop_ignore_iterator_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            for _ in [5, size = 5] {
+                set x = x + 1;
+            }
+            x
+        }"},
+        &expect!["5"],
+    );
+}
+
+#[test]
 fn array_index_expr() {
     check_expr("", "[1, 2, 3][1]", &expect!["2"]);
 }
@@ -1737,6 +1815,80 @@ fn range_start_step_end_expr() {
 }
 
 #[test]
+fn repeat_until_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            repeat {
+                set x = x + 1;
+            }
+            until x >= 3;
+            x
+        }"},
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn repeat_until_fixup_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            repeat {}
+            until x >= 3
+            fixup {
+                set x = x + 1;
+            }
+            x
+        }"},
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn repeat_until_fixup_scoping_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            repeat {
+                let increment = 2;
+            }
+            until x >= 3 * increment
+            fixup {
+                set x = x + increment;
+            }
+            x
+        }"},
+        &expect!["6"],
+    );
+}
+
+#[test]
+fn repeat_until_fixup_shadowing_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            mutable y = 0;
+            repeat {
+                let increment = 2;
+            }
+            until x >= 3 * increment
+            fixup {
+                set x = x + increment;
+                set y = 1;
+                let y = 2;
+            }
+            y
+        }"},
+        &expect!["1"],
+    );
+}
+
+#[test]
 fn return_expr() {
     check_expr("", "return 4", &expect!["4"]);
 }
@@ -1775,6 +1927,48 @@ fn unop_bitwise_not_bool_expr() {
                 "Bool",
                 Span {
                     lo: 3,
+                    hi: 10,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn while_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            while x < 10 {
+                set x = x + 1;
+            }
+            x
+        }"},
+        &expect!["10"],
+    );
+}
+
+#[test]
+fn while_false_shortcut_expr() {
+    check_expr(
+        "",
+        r#"while false { fail "Shouldn't fail" }"#,
+        &expect!["()"],
+    );
+}
+
+#[test]
+fn while_invalid_type_expr() {
+    check_expr(
+        "",
+        r#"while Zero { fail "Shouldn't fail" }"#,
+        &expect![[r#"
+            Type(
+                "Bool",
+                "Result",
+                Span {
+                    lo: 6,
                     hi: 10,
                 },
             )
