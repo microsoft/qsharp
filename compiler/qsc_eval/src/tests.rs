@@ -442,6 +442,212 @@ fn assign_invalid_expr() {
 }
 
 #[test]
+fn binop_add_array() {
+    check_expr("", "[1, 2] + [3, 4]", &expect!["[1, 2, 3, 4]"]);
+}
+
+#[test]
+fn binop_add_bigint() {
+    check_expr(
+        "",
+        "2L + 9_223_372_036_854_775_808L",
+        &expect!["9223372036854775810"],
+    );
+}
+
+#[test]
+fn binop_add_double() {
+    check_expr("", "2.8 + 5.4", &expect!["8.2"]);
+}
+
+#[test]
+fn binop_add_int() {
+    check_expr("", "28 + 54", &expect!["82"]);
+}
+
+#[test]
+fn binop_add_string() {
+    check_expr("", r#""Hello," + " World!""#, &expect!["Hello, World!"]);
+}
+
+#[test]
+fn binop_add_invalid() {
+    check_expr(
+        "",
+        "(1, 3) + 5.4",
+        &expect![[r#"
+        Type(
+            "Array, BigInt, Double, Int, or String",
+            "Tuple",
+            Span {
+                lo: 0,
+                hi: 6,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_add_mismatch() {
+    check_expr(
+        "",
+        "1 + 5.4",
+        &expect![[r#"
+        Type(
+            "Int",
+            "Double",
+            Span {
+                lo: 4,
+                hi: 7,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_andb_bigint() {
+    check_expr("", "28L &&& 54L", &expect!["20"]);
+}
+
+#[test]
+fn binop_andb_int() {
+    check_expr("", "28 &&& 54", &expect!["20"]);
+}
+
+#[test]
+fn binop_andb_invalid() {
+    check_expr(
+        "",
+        "2.8 &&& 5.4",
+        &expect![[r#"
+        Type(
+            "BigInt or Int",
+            "Double",
+            Span {
+                lo: 0,
+                hi: 3,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_andb_mismatch() {
+    check_expr(
+        "",
+        "28 &&& 54L",
+        &expect![[r#"
+            Type(
+                "Int",
+                "BigInt",
+                Span {
+                    lo: 7,
+                    hi: 10,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn binop_andl() {
+    check_expr("", "true and true", &expect!["true"]);
+}
+
+#[test]
+fn binop_andl_false() {
+    check_expr("", "true and false", &expect!["false"]);
+}
+
+#[test]
+fn binop_andl_no_shortcut() {
+    check_expr(
+        "",
+        r#"true and (fail "Should Fail")"#,
+        &expect![[r#"
+        UserFail(
+            "Should Fail",
+            Span {
+                lo: 10,
+                hi: 28,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_div_bigint() {
+    check_expr("", "12L / 3L", &expect!["4"]);
+}
+
+#[test]
+fn binop_div_bigint_zero() {
+    check_expr(
+        "",
+        "12L / 0L",
+        &expect![[r#"
+        DivZero(
+            Span {
+                lo: 6,
+                hi: 8,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_div_int() {
+    check_expr("", "12 / 3", &expect!["4"]);
+}
+
+#[test]
+fn binop_div_int_zero() {
+    check_expr(
+        "",
+        "12 / 0",
+        &expect![[r#"
+        DivZero(
+            Span {
+                lo: 5,
+                hi: 6,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_div_double() {
+    check_expr("", "1.2 / 0.3", &expect!["4.0"]);
+}
+
+#[test]
+fn binop_div_double_zero() {
+    check_expr(
+        "",
+        "1.2 / 0.0",
+        &expect![[r#"
+        DivZero(
+            Span {
+                lo: 6,
+                hi: 9,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_eq_double() {
+    check_expr("", "1.2 / 0.3", &expect!["4.0"]);
+}
+
+#[test]
 fn binop_equal_array() {
     check_expr("", "[1, 2, 3] == [1, 2, 3]", &expect!["true"]);
 }
@@ -472,15 +678,37 @@ fn binop_equal_type() {
         "",
         "18L == 18",
         &expect![[r#"
-        Type(
-            "BigInt",
-            "Int",
-            Span {
-                lo: 0,
-                hi: 9,
-            },
-        )
-    "#]],
+            Type(
+                "BigInt",
+                "Int",
+                Span {
+                    lo: 7,
+                    hi: 9,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn binop_equal_callable() {
+    check_expr(
+        indoc! {"
+            namespace Test {
+                function A() : Unit {}
+                function B() : Unit {}
+            }
+        "},
+        "Test.A == Test.B",
+        &expect![[r#"
+            Equality(
+                "Global",
+                Span {
+                    lo: 73,
+                    hi: 79,
+                },
+            )
+        "#]],
     );
 }
 
@@ -567,6 +795,638 @@ fn binop_equal_tuple_false_content() {
 #[test]
 fn binop_equal_tuple_false_arity() {
     check_expr("", "(1, 2, 3) == (1, 2, 3, 4)", &expect!["false"]);
+}
+
+#[test]
+fn binop_exp_bigint() {
+    check_expr("", "2L^3", &expect!["8"]);
+}
+
+#[test]
+fn binop_exp_bigint_negative_exp() {
+    check_expr(
+        "",
+        "2L^-3",
+        &expect![[r#"
+        Negative(
+            -3,
+            Span {
+                lo: 3,
+                hi: 5,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_exp_bigint_too_large() {
+    check_expr(
+        "",
+        "2L^9_223_372_036_854_775_807",
+        &expect![[r#"
+            IntTooLarge(
+                9223372036854775807,
+                Span {
+                    lo: 3,
+                    hi: 28,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn binop_exp_double() {
+    check_expr("", "2.3^3.1", &expect!["13.22380059125472"]);
+}
+
+#[test]
+fn binop_exp_double_negative_exp() {
+    check_expr("", "2.3^-3.1", &expect!["0.07562122501010253"]);
+}
+
+#[test]
+fn binop_exp_int() {
+    check_expr("", "2^3", &expect!["8"]);
+}
+
+#[test]
+fn binop_exp_int_negative_exp() {
+    check_expr(
+        "",
+        "2^-3",
+        &expect![[r#"
+        Negative(
+            -3,
+            Span {
+                lo: 2,
+                hi: 4,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_gt_bigint() {
+    check_expr("", "23L > 3L", &expect!["true"]);
+}
+
+#[test]
+fn binop_gt_bigint_false() {
+    check_expr("", "2L > 3L", &expect!["false"]);
+}
+
+#[test]
+fn binop_gt_int() {
+    check_expr("", "23 > 3", &expect!["true"]);
+}
+
+#[test]
+fn binop_gt_int_false() {
+    check_expr("", "2 > 3", &expect!["false"]);
+}
+
+#[test]
+fn binop_gt_double() {
+    check_expr("", "2.3 > 0.3", &expect!["true"]);
+}
+
+#[test]
+fn binop_gt_double_false() {
+    check_expr("", "0.2 > 0.3", &expect!["false"]);
+}
+
+#[test]
+fn binop_gte_bigint() {
+    check_expr("", "23L >= 3L", &expect!["true"]);
+}
+
+#[test]
+fn binop_gte_bigint_false() {
+    check_expr("", "2L >= 3L", &expect!["false"]);
+}
+
+#[test]
+fn binop_gte_bigint_eq() {
+    check_expr("", "3L >= 3L", &expect!["true"]);
+}
+
+#[test]
+fn binop_gte_int() {
+    check_expr("", "23 >= 3", &expect!["true"]);
+}
+
+#[test]
+fn binop_gte_int_false() {
+    check_expr("", "2 >= 3", &expect!["false"]);
+}
+
+#[test]
+fn binop_gte_int_eq() {
+    check_expr("", "3 >= 3", &expect!["true"]);
+}
+
+#[test]
+fn binop_gte_double() {
+    check_expr("", "2.3 >= 0.3", &expect!["true"]);
+}
+
+#[test]
+fn binop_gte_double_false() {
+    check_expr("", "0.2 >= 0.3", &expect!["false"]);
+}
+
+#[test]
+fn binop_gte_double_eq() {
+    check_expr("", "0.3 >= 0.3", &expect!["true"]);
+}
+
+#[test]
+fn binop_lt_bigint_false() {
+    check_expr("", "23L < 3L", &expect!["false"]);
+}
+
+#[test]
+fn binop_lt_bigint() {
+    check_expr("", "2L < 3L", &expect!["true"]);
+}
+
+#[test]
+fn binop_lt_int_false() {
+    check_expr("", "23 < 3", &expect!["false"]);
+}
+
+#[test]
+fn binop_lt_int() {
+    check_expr("", "2 < 3", &expect!["true"]);
+}
+
+#[test]
+fn binop_lt_double_false() {
+    check_expr("", "2.3 < 0.3", &expect!["false"]);
+}
+
+#[test]
+fn binop_lt_double() {
+    check_expr("", "0.2 < 0.3", &expect!["true"]);
+}
+
+#[test]
+fn binop_lte_bigint_false() {
+    check_expr("", "23L <= 3L", &expect!["false"]);
+}
+
+#[test]
+fn binop_lte_bigint() {
+    check_expr("", "2L <= 3L", &expect!["true"]);
+}
+
+#[test]
+fn binop_lte_bigint_eq() {
+    check_expr("", "3L <= 3L", &expect!["true"]);
+}
+
+#[test]
+fn binop_lte_int_false() {
+    check_expr("", "23 <= 3", &expect!["false"]);
+}
+
+#[test]
+fn binop_lte_int() {
+    check_expr("", "2 <= 3", &expect!["true"]);
+}
+
+#[test]
+fn binop_lte_int_eq() {
+    check_expr("", "3 <= 3", &expect!["true"]);
+}
+
+#[test]
+fn binop_lte_double_false() {
+    check_expr("", "2.3 <= 0.3", &expect!["false"]);
+}
+
+#[test]
+fn binop_lte_double() {
+    check_expr("", "0.2 <= 0.3", &expect!["true"]);
+}
+
+#[test]
+fn binop_lte_double_eq() {
+    check_expr("", "0.3 <= 0.3", &expect!["true"]);
+}
+
+#[test]
+fn binop_mod_bigint() {
+    check_expr("", "8L % 6L", &expect!["2"]);
+}
+
+#[test]
+fn binop_mod_int() {
+    check_expr("", "8 % 6", &expect!["2"]);
+}
+
+#[test]
+fn binop_mod_double() {
+    check_expr("", "8.411 % 6.833", &expect!["1.5779999999999994"]);
+}
+
+#[test]
+fn binop_mul_bigint() {
+    check_expr("", "8L * 6L", &expect!["48"]);
+}
+
+#[test]
+fn binop_mul_int() {
+    check_expr("", "8 * 6", &expect!["48"]);
+}
+
+#[test]
+fn binop_mul_double() {
+    check_expr("", "8.411 * 6.833", &expect!["57.472363"]);
+}
+
+#[test]
+fn binop_neq_array() {
+    check_expr("", "[1, 2, 3] != [1, 2, 3]", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_array_true_content() {
+    check_expr("", "[1, 2, 3] != [1, 0, 3]", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_array_true_length() {
+    check_expr("", "[1, 2, 3] != [1, 2, 3, 4]", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_bigint() {
+    check_expr("", "18L != 18L", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_bigint_true() {
+    check_expr("", "18L != 8L", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_type() {
+    check_expr(
+        "",
+        "18L != 18",
+        &expect![[r#"
+            Type(
+                "BigInt",
+                "Int",
+                Span {
+                    lo: 7,
+                    hi: 9,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn binop_neq_bool() {
+    check_expr("", "false != false", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_bool_true() {
+    check_expr("", "false != true", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_double() {
+    check_expr("", "1.254 != 1.254", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_double_true() {
+    check_expr("", "1.254 != 1.25", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_int() {
+    check_expr("", "42 != 42", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_int_true() {
+    check_expr("", "42 != 43", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_pauli() {
+    check_expr("", "PauliX != PauliX", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_pauli_true() {
+    check_expr("", "PauliX != PauliZ", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_range() {
+    check_expr("", "(0..4) != (0..4)", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_range_true() {
+    check_expr("", "(0..2..4) != (0..4)", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_result() {
+    check_expr("", "One != One", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_result_true() {
+    check_expr("", "One != Zero", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_string() {
+    check_expr("", r#""foo" != "foo""#, &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_string_true() {
+    check_expr("", r#""foo" != "bar""#, &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_tuple() {
+    check_expr("", "(1, 2, 3) != (1, 2, 3)", &expect!["false"]);
+}
+
+#[test]
+fn binop_neq_tuple_true_content() {
+    check_expr("", "(1, 2, 3) != (1, Zero, 3)", &expect!["true"]);
+}
+
+#[test]
+fn binop_neq_tuple_true_arity() {
+    check_expr("", "(1, 2, 3) != (1, 2, 3, 4)", &expect!["true"]);
+}
+
+#[test]
+fn binop_orb_bigint() {
+    check_expr("", "28L ||| 54L", &expect!["62"]);
+}
+
+#[test]
+fn binop_orb_int() {
+    check_expr("", "28 ||| 54", &expect!["62"]);
+}
+
+#[test]
+fn binop_orb_invalid() {
+    check_expr(
+        "",
+        "2.8 ||| 5.4",
+        &expect![[r#"
+        Type(
+            "BigInt or Int",
+            "Double",
+            Span {
+                lo: 0,
+                hi: 3,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_orb_mismatch() {
+    check_expr(
+        "",
+        "28 ||| 54L",
+        &expect![[r#"
+            Type(
+                "Int",
+                "BigInt",
+                Span {
+                    lo: 7,
+                    hi: 10,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn binop_orl() {
+    check_expr("", "true or true", &expect!["true"]);
+}
+
+#[test]
+fn binop_orl_true_lhs() {
+    check_expr("", "true or false", &expect!["true"]);
+}
+
+#[test]
+fn binop_orl_true_rhs() {
+    check_expr("", "false or true", &expect!["true"]);
+}
+
+#[test]
+fn binop_orl_false() {
+    check_expr("", "false or false", &expect!["false"]);
+}
+
+#[test]
+fn binop_orl_shortcut() {
+    check_expr("", r#"true or (fail "Shouldn't Fail")"#, &expect!["true"]);
+}
+
+#[test]
+fn binop_shl_bigint() {
+    check_expr("", "4L <<< 2", &expect!["16"]);
+}
+
+#[test]
+fn binop_shl_bigint_negative() {
+    check_expr("", "4L <<< -2", &expect!["1"]);
+}
+
+#[test]
+fn binop_shl_int() {
+    check_expr("", "4 <<< 2", &expect!["16"]);
+}
+
+#[test]
+fn binop_shl_int_negative() {
+    check_expr("", "4 <<< -2", &expect!["1"]);
+}
+
+#[test]
+fn binop_shr_bigint() {
+    check_expr("", "4L >>> 2", &expect!["1"]);
+}
+
+#[test]
+fn binop_shr_bigint_negative() {
+    check_expr("", "4L >>> -2", &expect!["16"]);
+}
+
+#[test]
+fn binop_shr_int() {
+    check_expr("", "4 >>> 2", &expect!["1"]);
+}
+
+#[test]
+fn binop_shr_int_negative() {
+    check_expr("", "4 >>> -2", &expect!["16"]);
+}
+
+#[test]
+fn binop_sub_bigint() {
+    check_expr("", "4L - 2L", &expect!["2"]);
+}
+
+#[test]
+fn binop_sub_int() {
+    check_expr("", "4 - 2", &expect!["2"]);
+}
+
+#[test]
+fn binop_sub_double() {
+    check_expr("", "4.7 - 2.5", &expect!["2.2"]);
+}
+
+#[test]
+fn binop_xorb_bigint() {
+    check_expr("", "28L ^^^ 54L", &expect!["42"]);
+}
+
+#[test]
+fn binop_xorb_int() {
+    check_expr("", "28 ^^^ 54", &expect!["42"]);
+}
+
+#[test]
+fn binop_xorb_invalid() {
+    check_expr(
+        "",
+        "2.8 ^^^ 5.4",
+        &expect![[r#"
+        Type(
+            "BigInt or Int",
+            "Double",
+            Span {
+                lo: 0,
+                hi: 3,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
+fn binop_xorb_mismatch() {
+    check_expr(
+        "",
+        "28 ^^^ 54L",
+        &expect![[r#"
+            Type(
+                "Int",
+                "BigInt",
+                Span {
+                    lo: 7,
+                    hi: 10,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn assignop_add_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            set x += 1;
+            x
+        }"},
+        &expect!["1"],
+    );
+}
+
+#[test]
+fn assignop_sub_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            set x -= 1;
+            x
+        }"},
+        &expect!["-1"],
+    );
+}
+
+#[test]
+fn assignop_orl_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = false;
+            set x or= true;
+            x
+        }"},
+        &expect!["true"],
+    );
+}
+
+#[test]
+fn assignop_mutability_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            let x = false;
+            set x or= true;
+            x
+        }"},
+        &expect![[r#"
+            Mutability(
+                Span {
+                    lo: 29,
+                    hi: 30,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn assignop_invalid_type_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = false;
+            set x += 1;
+            x
+        }"},
+        &expect![[r#"
+            Type(
+                "Array, BigInt, Double, Int, or String",
+                "Bool",
+                Span {
+                    lo: 33,
+                    hi: 34,
+                },
+            )
+        "#]],
+    );
 }
 
 #[test]

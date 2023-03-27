@@ -231,6 +231,8 @@ impl<'a> Lexer<'a> {
         self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
         if self.next_if_eq('L') {
             Some(Number::BigInt(radix))
+        } else if radix == Radix::Decimal && self.float() {
+            Some(Number::Float)
         } else {
             Some(Number::Int(radix))
         }
@@ -243,18 +245,24 @@ impl<'a> Lexer<'a> {
 
         self.eat_while(|c| c == '_' || c.is_ascii_digit());
 
-        // Watch out for ranges: `0..` should be an integer followed by two dots.
-        if self.first() == Some('.') && self.second() != Some('.') {
-            self.chars.next();
-            self.eat_while(|c| c == '_' || c.is_ascii_digit());
-            self.exp();
-            Some(Number::Float)
-        } else if self.exp() {
+        if self.float() {
             Some(Number::Float)
         } else if self.next_if_eq('L') {
             Some(Number::BigInt(Radix::Decimal))
         } else {
             Some(Number::Int(Radix::Decimal))
+        }
+    }
+
+    fn float(&mut self) -> bool {
+        // Watch out for ranges: `0..` should be an integer followed by two dots.
+        if self.first() == Some('.') && self.second() != Some('.') {
+            self.chars.next();
+            self.eat_while(|c| c == '_' || c.is_ascii_digit());
+            self.exp();
+            true
+        } else {
+            self.exp()
         }
     }
 

@@ -456,6 +456,58 @@ fn lit_double_underscore() {
 }
 
 #[test]
+fn lit_double_leading_zero() {
+    check(
+        expr,
+        "0.23",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                    kind: Lit(
+                        Double(
+                            0.23,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_int_hexadecimal_dot() {
+    check(
+        expr,
+        "0x123.45",
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 5,
+                    },
+                    kind: Lit(
+                        Int(
+                            291,
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn lit_string() {
     check(
         expr,
