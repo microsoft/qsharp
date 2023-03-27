@@ -3,9 +3,9 @@
 
 #![cfg(feature = "wasm")]
 
-use qsc_frontend::compile::{compile, std, PackageStore};
-use qsc_eval::{Evaluator, Error};
 use qsc_eval::val::Value;
+use qsc_eval::{Error, Evaluator};
+use qsc_frontend::compile::{compile, std, PackageStore};
 use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
@@ -232,16 +232,19 @@ fn run_internal(code: &str, expr: &str) -> Result<Value, Error> {
         let evaluator = Evaluator::from_store(&store, user, &globals);
         match evaluator.eval_expr(expr) {
             Ok((value, _)) => Ok(value),
-            Err(_e) => Err(_e)
+            Err(_e) => Err(_e),
         }
     } else {
         // TODO Correct error type/message here
-        Err(Error::UserFail("Runtime failure".to_string(), std::default::Default::default() ))
+        Err(Error::UserFail(
+            "Runtime failure".to_string(),
+            std::default::Default::default(),
+        ))
     }
 }
 
 #[wasm_bindgen]
-pub fn run(code: &str, expr: &str)-> Result<JsValue, JsValue> {
+pub fn run(code: &str, expr: &str) -> Result<JsValue, JsValue> {
     let result = run_internal(code, expr);
     Ok(serde_wasm_bindgen::to_value(&result.unwrap().to_string())?)
 }
@@ -252,7 +255,7 @@ fn test_callable() {
     let diag = check_code_internal(code);
     assert_eq!(diag.len(), 1);
     let err = diag.first().unwrap();
-    
+
     assert_eq!(err.start_pos, 32);
     assert_eq!(err.end_pos, 46);
     assert!(err.message.starts_with("callables"));
@@ -271,6 +274,6 @@ namespace Test {
     let _result = run_internal(code, expr);
     match _result.unwrap() {
         Value::Int(x) => assert_eq!(x, 42),
-        _ => panic!("Incorrect value type returned")
+        _ => panic!("Incorrect value type returned"),
     }
 }
