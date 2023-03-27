@@ -38,6 +38,9 @@ pub enum Error {
     #[error("invalid array length: {0}")]
     Count(i64, #[label("cannot be used as a length")] Span),
 
+    #[error("division by zero")]
+    DivZero(#[label("cannot divide by zero")] Span),
+
     #[error("nothing to evaluate; entry expression is empty")]
     EmptyExpr,
 
@@ -904,15 +907,27 @@ fn eval_binop_div(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val / rhs))
+            if rhs == BigInt::from(0) {
+                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::BigInt(val / rhs))
+            }
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val / rhs))
+            if rhs == 0 {
+                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::Int(val / rhs))
+            }
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Double(val / rhs))
+            if rhs == 0.0 {
+                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::Double(val / rhs))
+            }
         }
         _ => ControlFlow::Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",

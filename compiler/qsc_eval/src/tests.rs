@@ -585,13 +585,61 @@ fn binop_div_bigint() {
 }
 
 #[test]
+fn binop_div_bigint_zero() {
+    check_expr(
+        "",
+        "12L / 0L",
+        &expect![[r#"
+        DivZero(
+            Span {
+                lo: 6,
+                hi: 8,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
 fn binop_div_int() {
     check_expr("", "12 / 3", &expect!["4"]);
 }
 
 #[test]
+fn binop_div_int_zero() {
+    check_expr(
+        "",
+        "12 / 0",
+        &expect![[r#"
+        DivZero(
+            Span {
+                lo: 5,
+                hi: 6,
+            },
+        )
+    "#]],
+    );
+}
+
+#[test]
 fn binop_div_double() {
     check_expr("", "1.2 / 0.3", &expect!["4.0"]);
+}
+
+#[test]
+fn binop_div_double_zero() {
+    check_expr(
+        "",
+        "1.2 / 0.0",
+        &expect![[r#"
+        DivZero(
+            Span {
+                lo: 6,
+                hi: 9,
+            },
+        )
+    "#]],
+    );
 }
 
 #[test]
