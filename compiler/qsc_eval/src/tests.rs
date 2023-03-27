@@ -1867,6 +1867,28 @@ fn repeat_until_fixup_scoping_expr() {
 }
 
 #[test]
+fn repeat_until_fixup_shadowing_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = 0;
+            mutable y = 0;
+            repeat {
+                let increment = 2;
+            }
+            until x >= 3 * increment
+            fixup {
+                set x = x + increment;
+                set y = 1;
+                let y = 2;
+            }
+            y
+        }"},
+        &expect!["1"],
+    );
+}
+
+#[test]
 fn return_expr() {
     check_expr("", "return 4", &expect!["4"]);
 }
