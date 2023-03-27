@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import {default as async_init, 
+import {default as async_init, run,
     get_completions, type ICompletionList,
     check_code, type IDiagnostic
 } from "../lib/web/qsc_wasm.js";
@@ -21,5 +21,10 @@ export function getCompletions(): ICompletionList {
 
 export function checkCode(code: string): IDiagnostic[] {
     let result = check_code(code) as IDiagnostic[];
+    return result;
+}
+
+export function evaluate(code: string, expr: string) : string{
+    let result = run(code, expr) as string;
     return result;
 }
