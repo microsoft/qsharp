@@ -458,22 +458,20 @@ impl<'a> Evaluator<'a> {
     ) -> ControlFlow<Reason, Value> {
         self.enter_scope();
 
-        repeat.stmts.iter().for_each(|stmt| {
-            self.eval_stmt_impl(stmt);
-        });
+        for stmt in &repeat.stmts {
+            self.eval_stmt_impl(stmt)?;
+        }
         while !self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
             if let Some(block) = fixup.as_ref() {
-                block.stmts.iter().for_each(|stmt| {
-                    self.eval_stmt_impl(stmt);
-                });
+                self.eval_block(block)?;
             }
 
             self.leave_scope(true);
             self.enter_scope();
 
-            repeat.stmts.iter().for_each(|stmt| {
-                self.eval_stmt_impl(stmt);
-            });
+            for stmt in &repeat.stmts {
+                self.eval_stmt_impl(stmt)?;
+            }
         }
 
         self.leave_scope(true);
