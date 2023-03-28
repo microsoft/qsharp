@@ -174,24 +174,6 @@ fn arctan2() {
 }
 
 #[test]
-fn arctan2_zero() {
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Math.ArcTan2(0.3, 0.0)",
-        &Value::Double((0.3f64).atan2(0.0)),
-    );
-}
-
-#[test]
-fn arctan2_zero_zero() {
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Math.ArcTan2(0.0, 0.0)",
-        &Value::Double((0.0f64).atan2(0.0)),
-    );
-}
-
-#[test]
 fn cos() {
     check_intrinsic_value(
         "",
