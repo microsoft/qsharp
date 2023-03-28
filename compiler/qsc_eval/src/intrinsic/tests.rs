@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::io;
+
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
 use crate::{
-    output::{GenericReceiver, Receiver, StdoutReceiver},
+    output::{GenericReceiver, Receiver},
     val::Value,
     Env, Error, Evaluator,
 };
@@ -36,7 +38,8 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<(Va
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
-    let mut out = StdoutReceiver::default();
+    let mut stdout = io::stdout();
+    let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
         Ok((result, _)) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
@@ -44,10 +47,12 @@ fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
 }
 
 fn check_intrinsic_output(file: &str, expr: &str, expect: &Expect) {
-    let mut content = String::new();
-    let mut out = GenericReceiver::new(&mut content);
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
-        Ok((_, _)) => expect.assert_eq(&content),
+        Ok((_, _)) => expect.assert_eq(
+            &String::from_utf8(stdout).expect("content should be convertable to string"),
+        ),
         Err(e) => expect.assert_debug_eq(&e),
     }
 }

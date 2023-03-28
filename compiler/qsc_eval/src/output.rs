@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::fmt::Write;
+use std::io::Write;
 
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -19,21 +19,6 @@ pub trait Receiver {
     /// # Errors
     /// This will return an error if handling the output fails.
     fn message(&mut self, msg: String) -> Result<(), Error>;
-}
-
-#[derive(Default)]
-pub struct StdoutReceiver {}
-
-impl Receiver for StdoutReceiver {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), Error> {
-        println!("{state:?}");
-        Ok(())
-    }
-
-    fn message(&mut self, msg: String) -> Result<(), Error> {
-        println!("{msg}");
-        Ok(())
-    }
 }
 
 pub struct GenericReceiver<'a> {
