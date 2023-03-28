@@ -121,7 +121,9 @@ fn dump_machine() {
     check_intrinsic_output(
         "",
         "Microsoft.Quantum.Diagnostics.DumpMachine()",
-        &expect!["[(0, Complex { re: 1.0, im: 0.0 })]"],
+        &expect![[r#"
+            [(0, Complex { re: 1.0, im: 0.0 })]
+        "#]],
     );
 }
 
