@@ -2627,3 +2627,51 @@ fn call_adjoint_self_expr() {
         "#]],
     );
 }
+
+#[test]
+fn check_ctls_count_expr() {
+    check_expr(
+        indoc! {r#"
+            namespace Test {
+                function Length<'T>(a : 'T[]) : Int {
+                    body intrinsic;
+                }
+                operation Foo() : Unit is Adj + Ctl {
+                    body (...) {}
+                    adjoint self;
+                    controlled (ctls, ...) {
+                        if Length(ctls) != 3 {
+                            fail "Incorrect ctls count!";
+                        }
+                    }
+                }
+            }
+        "#},
+        "Controlled Test.Foo([1, 2, 3], ())",
+        &expect!["()"],
+    );
+}
+
+#[test]
+fn check_ctls_count_nested_expr() {
+    check_expr(
+        indoc! {r#"
+            namespace Test {
+                function Length<'T>(a : 'T[]) : Int {
+                    body intrinsic;
+                }
+                operation Foo() : Unit is Adj + Ctl {
+                    body (...) {}
+                    adjoint self;
+                    controlled (ctls, ...) {
+                        if Length(ctls) != 3 {
+                            fail "Incorrect ctls count!";
+                        }
+                    }
+                }
+            }
+        "#},
+        "Controlled Controlled Test.Foo([1, 2], ([3], ()))",
+        &expect!["()"],
+    );
+}
