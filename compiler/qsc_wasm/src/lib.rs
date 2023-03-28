@@ -218,7 +218,19 @@ pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
     Ok(serde_wasm_bindgen::to_value(&result)?)
 }
 
-fn run_internal(code: &str, expr: &str) -> Result<Value, Error> {
+fn run_internal<F>(code: &str, expr: &str, event_cb: F) -> Result<Value, Error>
+where
+    F: Fn(&str),
+{
+    // TODO: DumpMachine mock event data for testing
+    let dump_json = r#"{
+    "type": "DumpMachine",
+    "state": {
+        "|00>": [0.7071, 0.0],
+        "|11>": [0.7071, 0.0]
+    }
+}"#;
+
     let mut store = PackageStore::new();
     let std = store.insert(std());
     let unit = compile(&store, [std], [code], expr);
@@ -228,6 +240,9 @@ fn run_internal(code: &str, expr: &str) -> Result<Value, Error> {
     if let Some(expr) = &unit.package.entry {
         let globals = extract_callables(&store);
         let evaluator = Evaluator::from_store(&store, user, &globals);
+
+        // TODO: Mock simulation of DumpMachine being called during eval.
+        event_cb(dump_json);
         match evaluator.eval_expr(expr) {
             Ok((value, _)) => Ok(value),
             Err(_e) => Err(_e),
@@ -243,22 +258,17 @@ fn run_internal(code: &str, expr: &str) -> Result<Value, Error> {
 
 #[wasm_bindgen]
 pub fn run(code: &str, expr: &str, event_cb: &js_sys::Function) -> Result<JsValue, JsValue> {
-    if event_cb.is_function() {
-        // Mock code for now to fire a 'DumpMachine' event.
-        // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-        let js_this = JsValue::null();
-        let dump_str = r#"{
-            "type": "DumpMachine",
-            "state": {
-                "|00>": [0.7071, 0.0],
-                "|11>": [0.7071, 0.0]
-            }
-        }"#;
-        let js_dump = JsValue::from(dump_str);
-        event_cb.call1(&js_this, &js_dump)?;
-    }
+    let result = if event_cb.is_function() {
+        run_internal(code, expr, |msg: &str| {
+            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+            let js_this = JsValue::null();
+            let js_dump = JsValue::from(msg);
+            let _ = event_cb.call1(&js_this, &js_dump);
+        })
+    } else {
+        run_internal(code, expr, |_msg: &str| ())
+    };
 
-    let result = run_internal(code, expr);
     Ok(serde_wasm_bindgen::to_value(&result.unwrap().to_string())?)
 }
 
@@ -284,7 +294,7 @@ namespace Test {
 }
 ";
     let expr = "Test.Answer()";
-    let _result = run_internal(code, expr);
+    let _result = run_internal(code, expr, |_msg| {});
     match _result.unwrap() {
         Value::Int(x) => assert_eq!(x, 42),
         _ => panic!("Incorrect value type returned"),
