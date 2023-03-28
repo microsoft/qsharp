@@ -598,18 +598,21 @@ impl<'a> Evaluator<'a> {
                         self.bind_args_for_spec(&decl.input, pat, args_val, args_span, ctl_count)?;
                         self.eval_block(body_block)
                     }
-                    SpecBody::Gen(SpecGen::Slf) => self.eval_call_spec(
-                        decl,
-                        if spec == Spec::Adj {
+                    SpecBody::Gen(SpecGen::Slf) => {
+                        let actual_spec = if spec == Spec::Adj {
                             Spec::Body
                         } else {
                             Spec::Ctl
-                        },
-                        args_val,
-                        args_span,
-                        call_span,
-                        ctl_count,
-                    ),
+                        };
+                        self.eval_call_spec(
+                            decl,
+                            actual_spec,
+                            args_val,
+                            args_span,
+                            call_span,
+                            ctl_count,
+                        )
+                    }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
                         invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
                     }
@@ -651,8 +654,7 @@ impl<'a> Evaluator<'a> {
 
                 let mut tup = args_val;
                 let mut ctls = vec![];
-                let mut count = 0;
-                while count < ctl_count {
+                for _ in 0..ctl_count {
                     let mut tup_nesting = tup.try_into_tuple().with_span(args_span)?;
                     if tup_nesting.len() != 2 {
                         return ControlFlow::Break(Reason::Error(Error::TupleArity(
@@ -673,8 +675,6 @@ impl<'a> Evaluator<'a> {
                     let mut c = c.try_into_array().with_span(args_span)?;
                     ctls.append(&mut c);
                     tup = rest;
-
-                    count += 1;
                 }
 
                 self.bind_value(
