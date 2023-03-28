@@ -7,11 +7,13 @@
 mod tests;
 
 mod intrinsic;
+pub mod output;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
+use output::Receiver;
 use qir_backend::__quantum__rt__qubit_allocate;
 use qsc_ast::ast::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
@@ -51,6 +53,9 @@ pub enum Error {
 
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
+
+    #[error("output failure")]
+    Output(#[label("failed to generate output")] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -175,6 +180,7 @@ pub struct Evaluator<'a> {
     resolutions: &'a Resolutions,
     package: PackageId,
     env: Env,
+    out: Option<&'a mut dyn Receiver>,
 }
 
 impl<'a> Evaluator<'a> {
@@ -185,6 +191,7 @@ impl<'a> Evaluator<'a> {
         resolutions: &'a Resolutions,
         package: PackageId,
         env: Env,
+        out: &'a mut dyn Receiver,
     ) -> Self {
         Self {
             store,
@@ -192,6 +199,7 @@ impl<'a> Evaluator<'a> {
             resolutions,
             package,
             env,
+            out: Some(out),
         }
     }
 
@@ -200,6 +208,7 @@ impl<'a> Evaluator<'a> {
         store: &'a PackageStore,
         id: PackageId,
         globals: &'a HashMap<GlobalId, &CallableDecl>,
+        out: &'a mut dyn Receiver,
     ) -> Self {
         let unit = store
             .get(id)
@@ -210,6 +219,7 @@ impl<'a> Evaluator<'a> {
             resolutions: unit.context.resolutions(),
             package: id,
             env: Env::default(),
+            out: Some(out),
         }
     }
 
@@ -444,9 +454,11 @@ impl<'a> Evaluator<'a> {
             env: Env::default(),
             package: call.package,
             resolutions,
+            out: self.out.take(),
             ..*self
         };
         let call_res = new_self.eval_call_spec(decl, spec, args_val, args.span, call_span);
+        self.out = new_self.out.take();
 
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
@@ -493,9 +505,15 @@ impl<'a> Evaluator<'a> {
                     SpecBody::Gen(SpecGen::Slf) => {
                         self.eval_call_spec(decl, Spec::Body, args_val, args_span, call_span)
                     }
-                    SpecBody::Gen(SpecGen::Intrinsic) => {
-                        invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
-                    }
+                    SpecBody::Gen(SpecGen::Intrinsic) => invoke_intrinsic(
+                        &decl.name.name,
+                        call_span,
+                        args_val,
+                        args_span,
+                        self.out
+                            .as_deref_mut()
+                            .expect("output receiver should be set"),
+                    ),
                     SpecBody::Gen(_) => {
                         ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span)))
                     }

@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use num_bigint::BigUint;
+use num_complex::Complex64;
+use qsc_eval::output::Receiver;
 use qsc_eval::val::Value;
-use qsc_eval::{Error, Evaluator};
+use qsc_eval::{output, Error, Evaluator};
 use qsc_frontend::compile::{compile, std, PackageStore};
 use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 // TODO: Below is an example of how to return typed structures from Rust via Wasm
@@ -218,19 +222,55 @@ pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
     Ok(serde_wasm_bindgen::to_value(&result)?)
 }
 
+struct CallbackReceiver<F>
+where
+    F: Fn(&str),
+{
+    event_cb: F,
+}
+
+impl<F> Receiver for CallbackReceiver<F>
+where
+    F: Fn(&str),
+{
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), output::Error> {
+        let mut dump_json = String::new();
+        write!(dump_json, r#"{{"type": "DumpMachine","state": {{"#)
+            .expect("writing to string should succeed");
+        let (last, most) = state
+            .split_last()
+            .expect("state should always have at least one entry");
+        for state in most {
+            write!(
+                dump_json,
+                r#""|{}⟩": [{}, {}],"#,
+                state.0.to_str_radix(2),
+                state.1.re,
+                state.1.im
+            )
+            .expect("writing to string should succeed");
+        }
+        write!(
+            dump_json,
+            r#""|{}⟩": [{}, {}]}}}}"#,
+            last.0.to_str_radix(2),
+            last.1.re,
+            last.1.im
+        )
+        .expect("writing to string should succeed");
+        (self.event_cb)(&dump_json);
+        Ok(())
+    }
+
+    fn message(&mut self, _msg: String) -> Result<(), output::Error> {
+        todo!()
+    }
+}
+
 fn run_internal<F>(code: &str, expr: &str, event_cb: F) -> Result<Value, Error>
 where
     F: Fn(&str),
 {
-    // TODO: DumpMachine mock event data for testing
-    let dump_json = r#"{
-    "type": "DumpMachine",
-    "state": {
-        "|00>": [0.7071, 0.0],
-        "|11>": [0.7071, 0.0]
-    }
-}"#;
-
     let mut store = PackageStore::new();
     let std = store.insert(std());
     let unit = compile(&store, [std], [code], expr);
@@ -239,10 +279,9 @@ where
     let unit = store.get(user).expect("Fail");
     if let Some(expr) = &unit.package.entry {
         let globals = extract_callables(&store);
-        let evaluator = Evaluator::from_store(&store, user, &globals);
+        let mut out = CallbackReceiver { event_cb };
+        let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
 
-        // TODO: Mock simulation of DumpMachine being called during eval.
-        event_cb(dump_json);
         match evaluator.eval_expr(expr) {
             Ok((value, _)) => Ok(value),
             Err(_e) => Err(_e),
