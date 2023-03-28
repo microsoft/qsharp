@@ -42,6 +42,297 @@ where
             TyPrim::String => self.print("String"),
         }
     }
+
+    fn print_bin_op(&mut self, op: BinOp) {
+        match op {
+            BinOp::Add => self.print("+"),
+            BinOp::AndB => self.print("&&&"),
+            BinOp::AndL => self.print("and"),
+            BinOp::Div => self.print("/"),
+            BinOp::Eq => self.print("=="),
+            BinOp::Exp => self.print("^"),
+            BinOp::Gt => self.print(">"),
+            BinOp::Gte => self.print(">="),
+            BinOp::Lt => self.print("<"),
+            BinOp::Lte => self.print("<="),
+            BinOp::Mod => self.print("%"),
+            BinOp::Mul => self.print("*"),
+            BinOp::Neq => self.print("!="),
+            BinOp::OrB => self.print("|||"),
+            BinOp::OrL => self.print("or"),
+            BinOp::Shl => self.print("<<<"),
+            BinOp::Shr => self.print(">>>"),
+            BinOp::Sub => self.print("-"),
+            BinOp::XorB => self.print("^^^"),
+        }
+    }
+
+    fn print_un_op(&mut self, op: UnOp) {
+        match op {
+            UnOp::Functor(f) => match f {
+                Functor::Adj => self.print("Adjoint "),
+                Functor::Ctl => self.print("Controlled "),
+            },
+            UnOp::Neg => self.print("-"),
+            UnOp::NotB => self.print("~~~"),
+            UnOp::NotL => self.print("not "),
+            UnOp::Pos => self.print("+"),
+            UnOp::Unwrap => self.print("!"),
+        }
+    }
+
+    fn print_lit(&mut self, lit: &Lit) {
+        match lit {
+            Lit::BigInt(bi) => self.print(&bi.to_string()),
+            Lit::Bool(b) => {
+                if *b {
+                    self.print("true");
+                } else {
+                    self.print("false");
+                }
+            }
+            Lit::Double(d) => self.print(&d.to_string()),
+            Lit::Int(i) => self.print(&i.to_string()),
+            Lit::Pauli(pauli) => match pauli {
+                Pauli::I => self.print("PauliI"),
+                Pauli::X => self.print("PauliX"),
+                Pauli::Y => self.print("PauliY"),
+                Pauli::Z => self.print("PauliZ"),
+            },
+            Lit::Result(result) => match result {
+                Result::Zero => self.print("Zero"),
+                Result::One => self.print("One"),
+            },
+            Lit::String(s) => self.print(&format!("\"{s}\"")),
+        }
+    }
+
+    fn visit_array(&mut self, exprs: &Vec<Expr>) {
+        self.print("[");
+        let mut is_first = true;
+        for e in exprs {
+            if !is_first {
+                self.print(", ");
+            }
+            self.visit_expr(e);
+            is_first = false;
+        }
+        self.print("]");
+    }
+
+    fn visit_array_repeat(&mut self, item: &Expr, size: &Expr) {
+        self.print("[");
+        self.visit_expr(item);
+        self.print(", size = ");
+        self.visit_expr(size);
+        self.print("]");
+    }
+
+    fn visit_assign(&mut self, lhs: &Expr, rhs: &Expr) {
+        self.print("set ");
+        self.visit_expr(lhs);
+        self.print(" = ");
+        self.visit_expr(rhs);
+    }
+
+    fn visit_assign_op(&mut self, op: &BinOp, lhs: &Expr, rhs: &Expr) {
+        self.print("set ");
+        self.visit_expr(lhs);
+        self.print(" ");
+        self.print_bin_op(*op);
+        self.print("= ");
+        self.visit_expr(rhs);
+    }
+
+    fn visit_assign_update(&mut self, record: &Expr, index: &Expr, value: &Expr) {
+        self.print("set ");
+        self.visit_expr(record);
+        self.print(" w/= ");
+        self.visit_expr(index);
+        self.print(" <- ");
+        self.visit_expr(value);
+    }
+
+    fn visit_bin_op(&mut self, op: &BinOp, lhs: &Expr, rhs: &Expr) {
+        self.visit_expr(lhs);
+        self.print(" ");
+        self.print_bin_op(*op);
+        self.print(" ");
+        self.visit_expr(rhs);
+    }
+
+    fn visit_call(&mut self, callee: &Expr, arg: &Expr) {
+        self.visit_expr(callee);
+        self.visit_expr(arg);
+    }
+
+    fn visit_conjugate(&mut self, within: &Block, apply: &Block) {
+        self.print("within ");
+        self.visit_block(within);
+        self.print(" apply ");
+        self.visit_block(apply);
+    }
+
+    fn visit_err(&mut self) {}
+
+    fn visit_fail(&mut self, msg: &Expr) {
+        self.print("fail ");
+        self.visit_expr(msg);
+    }
+
+    fn visit_field(&mut self, record: &Expr, name: &Ident) {
+        self.visit_expr(record);
+        self.print("::");
+        self.visit_ident(name);
+    }
+
+    fn visit_for(&mut self, pat: &Pat, iter: &Expr, block: &Block) {
+        self.print("for ");
+        self.visit_pat(pat);
+        self.print(" in ");
+        self.visit_expr(iter);
+        self.print(" ");
+        self.visit_block(block);
+    }
+
+    fn visit_hole(&mut self) {
+        self.print("_");
+    }
+
+    fn visit_if(&mut self, cond: &Expr, body: &Block, otherwise: &Option<Box<Expr>>) {
+        self.print("if ");
+        self.visit_expr(cond);
+        self.print(" ");
+        self.visit_block(body);
+        if let Some(e) = otherwise {
+            self.print(" else ");
+            self.visit_expr(e);
+        }
+    }
+
+    fn visit_index(&mut self, array: &Expr, index: &Expr) {
+        self.visit_expr(array);
+        self.print("[");
+        self.visit_expr(index);
+        self.print("]");
+    }
+
+    fn visit_lambda(&mut self, kind: &CallableKind, pat: &Pat, expr: &Expr) {
+        self.visit_pat(pat);
+        match kind {
+            CallableKind::Function => self.print(" -> "),
+            CallableKind::Operation => self.print(" => "),
+        }
+        self.visit_expr(expr);
+    }
+
+    fn visit_lit(&mut self, lit: &Lit) {
+        self.print_lit(lit);
+    }
+
+    fn visit_paren(&mut self, expr: &Expr) {
+        self.print("(");
+        self.visit_expr(expr);
+        self.print(")");
+    }
+
+    fn visit_path(&mut self, path: &Path) {
+        if let Some(ns) = &path.namespace {
+            self.visit_ident(ns);
+            self.print(".");
+        }
+        self.visit_ident(&path.name);
+    }
+
+    fn visit_range(
+        &mut self,
+        start: &Option<Box<Expr>>,
+        step: &Option<Box<Expr>>,
+        end: &Option<Box<Expr>>,
+    ) {
+        if start.is_none() && step.is_none() && end.is_none() {
+            self.print("...");
+        } else {
+            match start {
+                Some(s) => self.visit_expr(s),
+                None => self.print("."),
+            }
+
+            self.print("..");
+
+            if let Some(m) = step {
+                self.visit_expr(m);
+                self.print("..");
+            }
+
+            match end {
+                Some(e) => self.visit_expr(e),
+                None => self.print("."),
+            }
+        }
+    }
+
+    fn visit_repeat(&mut self, body: &Block, until: &Expr, fixup: &Option<Block>) {
+        self.print("repeat ");
+        self.visit_block(body);
+        self.print("\n");
+        self.print_tabs();
+        self.print("until ");
+        self.visit_expr(until);
+        if let Some(f) = fixup {
+            self.print("\n");
+            self.print_tabs();
+            self.print("fixup ");
+            self.visit_block(f);
+        }
+    }
+
+    fn visit_return(&mut self, expr: &Expr) {
+        self.print("return ");
+        self.visit_expr(expr);
+    }
+
+    fn visit_tern_op(&mut self, op: &TernOp, e1: &Expr, e2: &Expr, e3: &Expr) {
+        self.visit_expr(e1);
+        match op {
+            TernOp::Cond => {
+                self.print(" ? ");
+                self.visit_expr(e2);
+                self.print(" | ");
+            }
+            TernOp::Update => {
+                self.print(" w/ ");
+                self.visit_expr(e2);
+                self.print(" <- ");
+            }
+        }
+        self.visit_expr(e3);
+    }
+
+    fn visit_tuple(&mut self, exprs: &Vec<Expr>) {
+        self.print("(");
+        let mut is_first = true;
+        for e in exprs {
+            if !is_first {
+                self.print(", ");
+            }
+            self.visit_expr(e);
+            is_first = false;
+        }
+        self.print(")");
+    }
+
+    fn visit_un_op(&mut self, op: &UnOp, expr: &Expr) {
+        self.print_un_op(*op);
+        self.visit_expr(expr);
+    }
+
+    fn visit_while(&mut self, cond: &Expr, block: &Block) {
+        self.print("while ");
+        self.visit_expr(cond);
+        self.print(" ");
+        self.visit_block(block);
+    }
 }
 
 impl<'a, W> Visitor<'a> for CodePrinter<W>
@@ -231,20 +522,32 @@ where
 
     fn visit_ty(&mut self, ty: &'a Ty) {
         match &ty.kind {
-            // ToDo: this doesn't handle arrays well.
             TyKind::App(ty, tys) => {
-                self.visit_ty(ty);
-                if !tys.is_empty() {
-                    self.print("<");
-                    let mut is_first = true;
-                    for t in tys {
-                        if !is_first {
-                            self.print(", ");
-                        }
+                let mut is_array = false;
+
+                if let TyKind::Prim(p) = ty.kind {
+                    if TyPrim::Array == p {
+                        is_array = true;
+                        let t = tys.first().expect("multiple types for array type");
                         self.visit_ty(t);
-                        is_first = false;
+                        self.print("[]");
                     }
-                    self.print(">");
+                }
+
+                if !is_array {
+                    self.visit_ty(ty);
+                    if !tys.is_empty() {
+                        self.print("<");
+                        let mut is_first = true;
+                        for t in tys {
+                            if !is_first {
+                                self.print(", ");
+                            }
+                            self.visit_ty(t);
+                            is_first = false;
+                        }
+                        self.print(">");
+                    }
                 }
             }
             TyKind::Arrow(kind, lhs, rhs, functors) => {
@@ -308,7 +611,11 @@ where
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
         match &stmt.kind {
             StmtKind::Empty => {}
-            StmtKind::Expr(expr) | StmtKind::Semi(expr) => self.visit_expr(expr),
+            StmtKind::Expr(expr) => self.visit_expr(expr),
+            StmtKind::Semi(expr) => {
+                self.visit_expr(expr);
+                self.print(";");
+            }
             StmtKind::Local(m, pat, value) => {
                 match m {
                     Mutability::Immutable => self.print("let "),
@@ -341,33 +648,35 @@ where
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         match &expr.kind {
-            ExprKind::Array(_) => todo!(),
-            ExprKind::ArrayRepeat(_, _) => todo!(),
-            ExprKind::Assign(_, _) => todo!(),
-            ExprKind::AssignOp(_, _, _) => todo!(),
-            ExprKind::AssignUpdate(_, _, _) => todo!(),
-            ExprKind::BinOp(_, _, _) => todo!(),
-            ExprKind::Block(_) => todo!(),
-            ExprKind::Call(_, _) => todo!(),
-            ExprKind::Conjugate(_, _) => todo!(),
-            ExprKind::Err => todo!(),
-            ExprKind::Fail(_) => todo!(),
-            ExprKind::Field(_, _) => todo!(),
-            ExprKind::For(_, _, _) => todo!(),
-            ExprKind::Hole => todo!(),
-            ExprKind::If(_, _, _) => todo!(),
-            ExprKind::Index(_, _) => todo!(),
-            ExprKind::Lambda(_, _, _) => todo!(),
-            ExprKind::Lit(lit) => todo!(),
-            ExprKind::Paren(_) => todo!(),
-            ExprKind::Path(_) => todo!(),
-            ExprKind::Range(_, _, _) => todo!(),
-            ExprKind::Repeat(_, _, _) => todo!(),
-            ExprKind::Return(_) => todo!(),
-            ExprKind::TernOp(_, _, _, _) => todo!(),
-            ExprKind::Tuple(_) => todo!(),
-            ExprKind::UnOp(_, _) => todo!(),
-            ExprKind::While(_, _) => todo!(),
+            ExprKind::Array(exprs) => self.visit_array(exprs),
+            ExprKind::ArrayRepeat(item, size) => self.visit_array_repeat(item, size),
+            ExprKind::Assign(lhs, rhs) => self.visit_assign(lhs, rhs),
+            ExprKind::AssignOp(op, lhs, rhs) => self.visit_assign_op(op, lhs, rhs),
+            ExprKind::AssignUpdate(record, index, value) => {
+                self.visit_assign_update(record, index, value);
+            }
+            ExprKind::BinOp(op, lhs, rhs) => self.visit_bin_op(op, lhs, rhs),
+            ExprKind::Block(block) => self.visit_block(block),
+            ExprKind::Call(callee, arg) => self.visit_call(callee, arg),
+            ExprKind::Conjugate(within, apply) => self.visit_conjugate(within, apply),
+            ExprKind::Err => self.visit_err(),
+            ExprKind::Fail(msg) => self.visit_fail(msg),
+            ExprKind::Field(record, name) => self.visit_field(record, name),
+            ExprKind::For(pat, iter, block) => self.visit_for(pat, iter, block),
+            ExprKind::Hole => self.visit_hole(),
+            ExprKind::If(cond, body, otherwise) => self.visit_if(cond, body, otherwise),
+            ExprKind::Index(array, index) => self.visit_index(array, index),
+            ExprKind::Lambda(kind, pat, expr) => self.visit_lambda(kind, pat, expr),
+            ExprKind::Lit(lit) => self.visit_lit(lit),
+            ExprKind::Paren(expr) => self.visit_paren(expr),
+            ExprKind::Path(path) => self.visit_path(path),
+            ExprKind::Range(start, step, end) => self.visit_range(start, step, end),
+            ExprKind::Repeat(body, until, fixup) => self.visit_repeat(body, until, fixup),
+            ExprKind::Return(expr) => self.visit_return(expr),
+            ExprKind::TernOp(op, e1, e2, e3) => self.visit_tern_op(op, e1, e2, e3),
+            ExprKind::Tuple(exprs) => self.visit_tuple(exprs),
+            ExprKind::UnOp(op, expr) => self.visit_un_op(op, expr),
+            ExprKind::While(cond, block) => self.visit_while(cond, block),
         }
     }
 

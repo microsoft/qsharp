@@ -343,7 +343,7 @@ pub struct Stmt {
 /// A statement kind.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum StmtKind {
-    /// An empty statment.
+    /// An empty statement.
     #[default]
     Empty,
     /// An expression without a trailing semicolon.
