@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::f64::consts;
+
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
@@ -44,8 +46,6 @@ fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
         Err(e) => panic!("{e:?}"),
     }
 }
-
-const PI: f64 = 3.141_592_653_589_793_238_46;
 
 #[test]
 fn length() {
@@ -178,7 +178,7 @@ fn cos() {
     check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Cos(Microsoft.Quantum.Math.PI())",
-        &Value::Double((PI).cos()),
+        &Value::Double((consts::PI).cos()),
     );
 }
 
@@ -187,7 +187,7 @@ fn cosh() {
     check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Cosh(Microsoft.Quantum.Math.PI())",
-        &Value::Double((PI).cosh()),
+        &Value::Double((consts::PI).cosh()),
     );
 }
 
@@ -196,7 +196,7 @@ fn sin() {
     check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Sin(Microsoft.Quantum.Math.PI())",
-        &Value::Double((PI).sin()),
+        &Value::Double((consts::PI).sin()),
     );
 }
 
@@ -205,7 +205,7 @@ fn sinh() {
     check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Sinh(Microsoft.Quantum.Math.PI())",
-        &Value::Double((PI).sinh()),
+        &Value::Double((consts::PI).sinh()),
     );
 }
 
@@ -214,7 +214,7 @@ fn tan() {
     check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Tan(Microsoft.Quantum.Math.PI())",
-        &Value::Double((PI).tan()),
+        &Value::Double((consts::PI).tan()),
     );
 }
 
@@ -223,7 +223,7 @@ fn tanh() {
     check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Tanh(Microsoft.Quantum.Math.PI())",
-        &Value::Double((PI).tanh()),
+        &Value::Double((consts::PI).tanh()),
     );
 }
 
