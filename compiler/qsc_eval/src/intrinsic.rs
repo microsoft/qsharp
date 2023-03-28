@@ -26,7 +26,7 @@ pub(crate) fn invoke_intrinsic(
     name_span: Span,
     args: Value,
     args_span: Span,
-    out: &dyn Receiver,
+    out: &mut dyn Receiver,
 ) -> ControlFlow<Reason, Value> {
     if name.starts_with("__quantum__qis__") {
         invoke_quantum_intrinsic(name, name_span, args, args_span)
@@ -46,8 +46,10 @@ pub(crate) fn invoke_intrinsic(
             "DumpMachine" => {
                 let mut state = capture_quantum_state();
                 state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-                out.state(state);
-                ControlFlow::Continue(Value::UNIT)
+                match out.state(state) {
+                    Ok(_) => ControlFlow::Continue(Value::UNIT),
+                    Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
+                }
             }
 
             "CheckZero" => ControlFlow::Continue(Value::Bool(qubit_is_zero(
