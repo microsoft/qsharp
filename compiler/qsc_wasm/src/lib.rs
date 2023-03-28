@@ -7,7 +7,6 @@ use qsc_frontend::compile::{compile, std, PackageStore};
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
-use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 // TODO: Below is an example of how to return typed structures from Rust via Wasm
