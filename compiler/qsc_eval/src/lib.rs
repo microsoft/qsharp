@@ -7,11 +7,13 @@
 mod tests;
 
 mod intrinsic;
+pub mod output;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
+use output::Receiver;
 use qir_backend::__quantum__rt__qubit_allocate;
 use qsc_ast::ast::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
@@ -175,6 +177,7 @@ pub struct Evaluator<'a> {
     resolutions: &'a Resolutions,
     package: PackageId,
     env: Env,
+    out: &'a dyn Receiver,
 }
 
 impl<'a> Evaluator<'a> {
@@ -185,6 +188,7 @@ impl<'a> Evaluator<'a> {
         resolutions: &'a Resolutions,
         package: PackageId,
         env: Env,
+        out: &'a dyn Receiver,
     ) -> Self {
         Self {
             store,
@@ -192,6 +196,7 @@ impl<'a> Evaluator<'a> {
             resolutions,
             package,
             env,
+            out,
         }
     }
 
@@ -200,6 +205,7 @@ impl<'a> Evaluator<'a> {
         store: &'a PackageStore,
         id: PackageId,
         globals: &'a HashMap<GlobalId, &CallableDecl>,
+        out: &'a dyn Receiver,
     ) -> Self {
         let unit = store
             .get(id)
@@ -210,6 +216,7 @@ impl<'a> Evaluator<'a> {
             resolutions: unit.context.resolutions(),
             package: id,
             env: Env::default(),
+            out,
         }
     }
 
@@ -494,7 +501,7 @@ impl<'a> Evaluator<'a> {
                         self.eval_call_spec(decl, Spec::Body, args_val, args_span, call_span)
                     }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
-                        invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
+                        invoke_intrinsic(&decl.name.name, call_span, args_val, args_span, self.out)
                     }
                     SpecBody::Gen(_) => {
                         ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span)))

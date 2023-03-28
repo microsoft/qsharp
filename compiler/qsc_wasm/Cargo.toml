@@ -21,6 +21,8 @@ qsc_passes = { path = "../qsc_passes"}
 getrandom = { workspace = true, features = ["js"] }
 js-sys = { workspace = true }
 miette = { workspace = true}
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
 serde = { workspace = true, features = ["derive"]}
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}
