@@ -5,7 +5,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc_eval::output::Receiver;
 use qsc_eval::val::Value;
-use qsc_eval::{Error, Evaluator};
+use qsc_eval::{output, Error, Evaluator};
 use qsc_frontend::compile::{compile, std, PackageStore};
 use qsc_passes::globals::extract_callables;
 
@@ -233,7 +233,7 @@ impl<F> Receiver for CallbackReceiver<F>
 where
     F: Fn(&str),
 {
-    fn state(&self, state: Vec<(BigUint, Complex64)>) {
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), output::Error> {
         let mut dump_json = String::new();
         write!(dump_json, r#"{{"type": "DumpMachine","state": {{"#)
             .expect("writing to string should succeed");
@@ -259,9 +259,10 @@ where
         )
         .expect("writing to string should succeed");
         (self.event_cb)(&dump_json);
+        Ok(())
     }
 
-    fn message(&self, _msg: String) {
+    fn message(&mut self, _msg: String) -> Result<(), output::Error> {
         todo!()
     }
 }
@@ -278,8 +279,8 @@ where
     let unit = store.get(user).expect("Fail");
     if let Some(expr) = &unit.package.entry {
         let globals = extract_callables(&store);
-        let out = CallbackReceiver { event_cb };
-        let evaluator = Evaluator::from_store(&store, user, &globals, &out);
+        let mut out = CallbackReceiver { event_cb };
+        let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
 
         match evaluator.eval_expr(expr) {
             Ok((value, _)) => Ok(value),
