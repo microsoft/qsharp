@@ -3,7 +3,8 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompletions, checkCode, evaluate, IDiagnostic} from "qsharp/browser";
+import {init, getCompletions, checkCode, evaluate, 
+    outputAsDump, renderDump, IDiagnostic} from "qsharp/browser";
 
 const sampleCode = `namespace Sample {
     operation main() : Result {
@@ -81,9 +82,20 @@ async function loaded() {
         let code = srcModel.getValue();
         let expr = exprInput.value;
 
+        let dumpTables = "";
+        let event_cb = (ev: string) => {
+            let dump = outputAsDump(ev);
+            if (dump) {
+                dumpTables += `<table>${renderDump(dump)}</table>`;
+            }
+        }
+
         try {
-            let result = evaluate(code, expr);
+            let result = evaluate(code, expr, event_cb);
             outputDiv.innerHTML = `<h2>Results</h2><p>${result}</p>`;
+            if (dumpTables != "") {
+                outputDiv.innerHTML += `<h3>DumpMachine states</h3>${dumpTables}`;
+            }
         } catch(e: any) {
             outputDiv.innerHTML = `<h2>Error</h2><p>${e.toString()}</p>`;
         }

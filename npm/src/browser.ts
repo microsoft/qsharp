@@ -24,9 +24,11 @@ export function checkCode(code: string): IDiagnostic[] {
     return result;
 }
 
-export function evaluate(code: string, expr: string) : string{
-    let result = run(code, expr) as string;
+export function evaluate(code: string, expr: string, eventCb?: Function) : string{
+    // The last param is optional. Cast to any to supress error.
+    let result = run(code, expr, eventCb as any) as string;
     return result;
 }
 
-export {IDiagnostic}
+export {type IDiagnostic}
+export {renderDump, exampleDump, outputAsDump} from "./state-table.js"

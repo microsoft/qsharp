@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![cfg(feature = "wasm")]
-
 use qsc_eval::val::Value;
 use qsc_eval::{Error, Evaluator};
 use qsc_frontend::compile::{compile, std, PackageStore};
@@ -244,7 +242,22 @@ fn run_internal(code: &str, expr: &str) -> Result<Value, Error> {
 }
 
 #[wasm_bindgen]
-pub fn run(code: &str, expr: &str) -> Result<JsValue, JsValue> {
+pub fn run(code: &str, expr: &str, event_cb: &js_sys::Function) -> Result<JsValue, JsValue> {
+    if event_cb.is_function() {
+        // Mock code for now to fire a 'DumpMachine' event.
+        // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+        let js_this = JsValue::null();
+        let dump_str = r#"{
+            "type": "DumpMachine",
+            "state": {
+                "|00>": [0.7071, 0.0],
+                "|11>": [0.7071, 0.0]
+            }
+        }"#;
+        let js_dump = JsValue::from(dump_str);
+        event_cb.call1(&js_this, &js_dump)?;
+    }
+
     let result = run_internal(code, expr);
     Ok(serde_wasm_bindgen::to_value(&result.unwrap().to_string())?)
 }
