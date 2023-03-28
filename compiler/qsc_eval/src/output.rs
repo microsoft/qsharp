@@ -10,12 +10,12 @@ use num_complex::Complex64;
 pub struct Error;
 
 pub trait Receiver {
-    /// Recieve state output
+    /// Receive state output
     /// # Errors
     /// This will return an error if handling the output fails.
     fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), Error>;
 
-    /// Recieve generic message output
+    /// Receive generic message output
     /// # Errors
     /// This will return an error if handling the output fails.
     fn message(&mut self, msg: String) -> Result<(), Error>;
