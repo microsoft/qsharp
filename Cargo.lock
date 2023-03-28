@@ -728,6 +728,8 @@ dependencies = [
  "getrandom",
  "js-sys",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc_eval",
  "qsc_frontend",
  "qsc_passes",

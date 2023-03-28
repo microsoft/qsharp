@@ -37,6 +37,7 @@ test('basic evaluation', t => {
 test('dump machine output', t => {
     let code = `namespace Test {
         function Answer() : Int {
+            Microsoft.Quantum.Diagnostics.DumpMachine();
             return 42;
         }
     }`;
@@ -46,5 +47,5 @@ test('dump machine output', t => {
     let result = evaluate(code, expr, callback);
     let dump = JSON.parse(dumpText);
     assert(dump.type == "DumpMachine");
-    assert(dump.state["|00>"].length == 2);
+    assert(dump.state["|0⟩"].length == 2);
 });
