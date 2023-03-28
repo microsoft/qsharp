@@ -5,14 +5,16 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
+use qsc_ast::visit::Visitor;
 use qsc_eval::Evaluator;
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
-use qsc_passes::globals::extract_callables;
+use qsc_passes::{globals::extract_callables, print_code::CodePrinter};
 use std::{
-    fs, io,
+    fs::{self, File},
+    io::{self, LineWriter},
     path::{Path, PathBuf},
     process::ExitCode,
     result::Result,
@@ -28,6 +30,8 @@ struct Cli {
     entry: String,
     #[arg(short, long)]
     tree: Option<PathBuf>,
+    #[arg(short, long)]
+    code: Option<PathBuf>,
 }
 
 struct ErrorReporter<'a> {
@@ -75,6 +79,10 @@ fn main() -> miette::Result<ExitCode> {
         print_compilation_unit(&unit, tree_path);
     }
 
+    if let Some(code_path) = &cli.code {
+        print_code(&unit, code_path);
+    }
+
     if unit.context.errors().is_empty() {
         let user = store.insert(unit);
         let unit = store
@@ -107,6 +115,23 @@ fn print_compilation_unit(unit: &CompileUnit, path: &Path) {
         println!("{unit:#?}");
     } else {
         fs::write(path, format!("{unit:#?}")).unwrap();
+    }
+}
+
+fn print_code(unit: &CompileUnit, path: &Path) {
+    if path.as_os_str() == "-" {
+        let mut writer = CodePrinter {
+            writer: LineWriter::new(std::io::stdout()),
+            indentation: 0,
+        };
+        writer.visit_package(&unit.package);
+    } else {
+        let file = File::create(path).unwrap();
+        let mut writer = CodePrinter {
+            writer: LineWriter::new(file),
+            indentation: 0,
+        };
+        writer.visit_package(&unit.package);
     }
 }
 
