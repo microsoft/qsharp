@@ -28,3 +28,20 @@ body {
     background: transparent!important;
     border-bottom: 4px double #e47777;
 }
+
+table {
+    border-collapse: collapse;
+}
+
+thead tr {
+    background: #f0f0f0;
+}
+
+tbody tr {
+    border-top: 1px solid gray;
+}
+
+td {
+    min-width: 160px;
+    text-align: center;
+}

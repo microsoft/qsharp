@@ -13,7 +13,8 @@ export function checkCode(code: string) : IDiagnostic[] {
     return result;
 }
 
-export function evaluate(code: string, expr: string) : string{
-    let result = run(code, expr) as string;
+export function evaluate(code: string, expr: string, cb?: Function) : string{
+    // Last param is optional. Cast to any to supress error.
+    let result = run(code, expr, cb as any) as string;
     return result;
 }

@@ -33,3 +33,18 @@ test('basic evaluation', t => {
     let result = evaluate(code, expr);
     assert.equal(result, "42");
 });
+
+test('dump machine output', t => {
+    let code = `namespace Test {
+        function Answer() : Int {
+            return 42;
+        }
+    }`;
+    let expr = `Test.Answer()`;
+    let dumpText = ``;
+    let callback = (ev) => dumpText += ev;
+    let result = evaluate(code, expr, callback);
+    let dump = JSON.parse(dumpText);
+    assert(dump.type == "DumpMachine");
+    assert(dump.state["|00>"].length == 2);
+});
