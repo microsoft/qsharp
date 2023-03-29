@@ -4,7 +4,7 @@
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import {init, getCompletions, checkCode, evaluate, 
-    outputAsDump, renderDump, IDiagnostic} from "qsharp/browser";
+    outputAsDump, renderDump, IDiagnostic, Dump } from "qsharp/browser";
 
 import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
 
@@ -30,6 +30,11 @@ const sampleCode = `namespace Sample {
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
 declare var MathJax: {typeset: () => void;};
 
+type ShotResult = {
+    result: string;
+    dumps: Dump[];
+}
+
 // This runs after the Monaco editor is initialized
 async function loaded() {
     await init("/libs/qsharp/qsc_wasm_bg.wasm");
@@ -38,6 +43,7 @@ async function loaded() {
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
     let errorsDiv = document.querySelector('#errors') as HTMLDivElement; 
     let exprInput = document.querySelector('#expr') as HTMLInputElement;
+    let shotCount = document.querySelector('#shot') as HTMLInputElement;
     let runButton = document.querySelector('#run') as HTMLButtonElement;
     let outputDiv = document.querySelector('#output') as HTMLDivElement;
 
@@ -88,24 +94,34 @@ async function loaded() {
     runButton.addEventListener('click', _ => {
         let code = srcModel.getValue();
         let expr = exprInput.value;
+        let shots = parseInt(shotCount.value);
 
-        let dumpTables = "";
+
+
+        let currentShotResult: ShotResult = {
+            "result": "null",
+            "dumps": []
+        };
+        let shotResults: ShotResult[] = [];
+
         let event_cb = (ev: string) => {
             let dump = outputAsDump(ev);
             if (dump) {
-                dumpTables += `<table>${renderDump(dump)}</table>`;
+                currentShotResult.dumps.push(dump);
             }
         }
 
-        try {
-            let result = evaluate(code, expr, event_cb);
-            outputDiv.innerHTML = `<h2>Results</h2><p>${result}</p>`;
-            if (dumpTables != "") {
-                outputDiv.innerHTML += `<h3>DumpMachine states</h3>${dumpTables}`;
+        for(let i = 0; i < shots; ++i) {
+            try {
+                let result = evaluate(code, expr, event_cb);
+                currentShotResult.result = result;
+            } catch(e: any) {
+                currentShotResult.result = "ERROR";
             }
-        } catch(e: any) {
-            outputDiv.innerHTML = `<h2>Error</h2><p>${e.toString()}</p>`;
+            shotResults.push(currentShotResult);
+            currentShotResult = {result: "null", dumps: []};
         }
+        runComplete(shotResults);
     });
 
     // Example of getting results from a call into the WASM module
@@ -127,13 +143,40 @@ async function loaded() {
             return mapped;
         }
     });
-    // showHistogram();
 }
 
-function showHistogram() {
-    let cookedData = generateHistogramData(sampleData);
-    let histogram  = generateHistogramSvg(cookedData);
-    document.body.appendChild(histogram);
+const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/
+function resultToKet(result: string): string {
+    if (reKetResult.test(result)) {
+        // The result is a simple array of Zero and One
+        // The below will return an array of "Zero" or "One" in the order found
+        let matches = result.match(/(One|Zero)/g);
+        matches?.reverse();
+        let ket = "|";
+        matches?.forEach(digit => ket += (digit == "One" ? "1" : "0"));
+        ket += "⟩";
+        return ket;
+    } else {
+        return result;
+    }
+}
+
+function runComplete(results: ShotResult[]) {
+    if (!results.length) return;
+
+    // Get an array of results, preferably in ket form
+    let histogramData = results.map(result => resultToKet(result.result));
+    let bucketData = generateHistogramData(histogramData);
+    let histogram = generateHistogramSvg(bucketData);
+
+    let resultsDiv = document.querySelector('#results')!;
+    resultsDiv.innerHTML = "";
+    resultsDiv.appendChild(histogram);
+    results[0].dumps.forEach(dump => {
+        let table = document.createElement("table");
+        table.innerHTML = renderDump(dump);
+        resultsDiv.appendChild(table);
+    });
 }
 
 // Monaco provides the 'require' global for loading modules.

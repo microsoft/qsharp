@@ -32,3 +32,4 @@ export function evaluate(code: string, expr: string, eventCb?: Function) : strin
 
 export {type IDiagnostic}
 export {renderDump, exampleDump, outputAsDump} from "./state-table.js"
+export {type Dump} from "./runtime-output.js"
