@@ -7,6 +7,9 @@ use std::io::LineWriter;
 
 use qsc_ast::visit::Visitor;
 
+#[cfg(test)]
+mod tests;
+
 pub struct CodePrinter<W: Write> {
     pub writer: LineWriter<W>,
     pub indentation: i32,
