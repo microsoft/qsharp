@@ -297,3 +297,31 @@ fn type_callables() {
     }
     "#});
 }
+
+#[test]
+fn mutable_stmt() {
+    check_without_errors(indoc! { r#"namespace input {
+
+        operation Foo () : Unit {
+            mutable x = 3;
+        }
+    }
+    "#});
+}
+
+#[test]
+fn qubit_allocation_stmts() {
+    check_without_errors(indoc! { r#"namespace input {
+
+        operation Foo () : Unit {
+            use q1 = Qubit();
+            use q2 = Qubit[4];
+            use q3 = (Qubit(), Qubit[2]);
+            use (q4, q5) = (Qubit(), Qubit());
+            use q6 = Qubit() {
+                borrow q7 = Qubit();
+            }
+        }
+    }
+    "#});
+}
