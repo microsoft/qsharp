@@ -188,6 +188,24 @@ pub struct VSDiagnostic {
     pub severity: i32,
 }
 
+fn convert_err_to_diagnostic(err: &impl Diagnostic) -> VSDiagnostic {
+    let label = err
+        .labels()
+        .and_then(|mut ls| ls.next())
+        .expect("error should have at least one label");
+    let offset = label.offset();
+    let len = label.len();
+    let message = err.to_string();
+    let severity = err.severity().unwrap_or(Severity::Error);
+
+    VSDiagnostic {
+        start_pos: offset,
+        end_pos: offset + len,
+        severity: severity as i32,
+        message,
+    } 
+}
+
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     let mut store = PackageStore::new();
     let std = store.insert(std());
@@ -196,22 +214,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     let mut result: Vec<VSDiagnostic> = vec![];
 
     for err in unit.context.errors() {
-        let label = err
-            .labels()
-            .and_then(|mut ls| ls.next())
-            .expect("error should have at least one label");
-        let offset = label.offset();
-        let len = label.len();
-        let message = err.to_string();
-        let severity = err.severity().unwrap_or(Severity::Error);
-
-        let diag = VSDiagnostic {
-            start_pos: offset,
-            end_pos: offset + len,
-            severity: severity as i32,
-            message,
-        };
-        result.push(diag);
+        result.push(convert_err_to_diagnostic(err));
     }
     result
 }
@@ -308,7 +311,24 @@ pub fn run(code: &str, expr: &str, event_cb: &js_sys::Function) -> Result<JsValu
         run_internal(code, expr, |_msg: &str| ())
     };
 
-    Ok(serde_wasm_bindgen::to_value(&result.unwrap().to_string())?)
+    match result {
+        Ok(val) => Ok(serde_wasm_bindgen::to_value(&val.to_string())?),
+        Err(e) => Err(serde_wasm_bindgen::to_value(&convert_err_to_diagnostic(&e))?)
+    }
+}
+
+#[wasm_bindgen]
+pub fn it_will_fail(val: i32) -> Result<JsValue, JsValue> {
+    if val >= 0 {
+        Ok(serde_wasm_bindgen::to_value("When it works")?)
+    } else {
+        Err(serde_wasm_bindgen::to_value(&VSDiagnostic {
+            start_pos: 10,
+            end_pos: 20,
+            severity: 1,
+            message: "Tuple type incorrect".to_string()
+        })?)
+    }
 }
 
 #[test]
@@ -338,4 +358,19 @@ namespace Test {
         Value::Int(x) => assert_eq!(x, 42),
         _ => panic!("Incorrect value type returned"),
     }
+}
+
+#[test]
+fn fail_ry() {
+    let code = "namespace Sample {
+        operation main() : Result {
+            use q1 = Qubit();
+            Ry(q1);
+            let m1 = M(q1);
+            return [m1];
+        }
+    }";
+    let expr = "Sample.main()";
+    let result = run_internal(code, expr,|_msg_| {});
+    assert!(result.is_err());
 }

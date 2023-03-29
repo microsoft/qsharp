@@ -40,7 +40,7 @@ let currentFilter = "";
 // This runs after the Monaco editor is initialized
 async function loaded() {
     await init("/libs/qsharp/qsc_wasm_bg.wasm");
-
+    
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
     let errorsDiv = document.querySelector('#errors') as HTMLDivElement; 
@@ -116,6 +116,12 @@ async function loaded() {
                 currentShotResult.result = result;
             } catch(e: any) {
                 currentShotResult.result = "ERROR";
+                if (typeof e.start_pos === 'number' &&
+                    typeof e.end_pos === 'number' &&
+                    typeof e.message === 'string') {
+                        squiggleDiagnostics([e]);
+                        errorsDiv.innerText = JSON.stringify(e, null, 2);
+                    }
             }
             runResults.push(currentShotResult);
             currentShotResult = {result: "null", dumps: []};

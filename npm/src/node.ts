@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import {type ICompletionList, get_completions, check_code, run, IDiagnostic} from "../lib/node/qsc_wasm.cjs";
+import {type ICompletionList, get_completions, check_code, run, IDiagnostic, it_will_fail} from "../lib/node/qsc_wasm.cjs";
 
 export function getCompletions() : ICompletionList {
     let completions = get_completions() as ICompletionList;
@@ -18,3 +18,5 @@ export function evaluate(code: string, expr: string, cb?: Function) : string{
     let result = run(code, expr, cb as any) as string;
     return result;
 }
+
+export {it_will_fail};
