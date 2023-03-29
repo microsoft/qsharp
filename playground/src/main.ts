@@ -45,7 +45,6 @@ async function loaded() {
     let exprInput = document.querySelector('#expr') as HTMLInputElement;
     let shotCount = document.querySelector('#shot') as HTMLInputElement;
     let runButton = document.querySelector('#run') as HTMLButtonElement;
-    let outputDiv = document.querySelector('#output') as HTMLDivElement;
 
     // Create the monaco editor and set some initial code
     let editor = monaco.editor.create(editorDiv);
@@ -169,13 +168,13 @@ function runComplete(results: ShotResult[]) {
     let bucketData = generateHistogramData(histogramData);
     let histogram = generateHistogramSvg(bucketData);
 
-    let resultsDiv = document.querySelector('#results')!;
-    resultsDiv.innerHTML = "";
-    resultsDiv.appendChild(histogram);
+    let outputDiv = document.querySelector('#output') as HTMLDivElement;
+    outputDiv.innerHTML = "";
+    outputDiv.appendChild(histogram);
     results[0].dumps.forEach(dump => {
         let table = document.createElement("table");
         table.innerHTML = renderDump(dump);
-        resultsDiv.appendChild(table);
+        outputDiv.appendChild(table);
     });
 }
 

@@ -9,6 +9,12 @@ body {
     display: flex;
 }
 
+#output {
+    width: 600px;
+    height: 400px;
+    padding-left: 40px;
+}
+
 #editor {
     width: 600px;
     height: 400px;
@@ -31,6 +37,7 @@ body {
 
 table {
     border-collapse: collapse;
+    margin-top: 25px;
 }
 
 thead tr {
@@ -49,7 +56,7 @@ td {
 .histogram {
     width: 540px;
     height: 300px;
-    border: 1px solid gray;
+    /* border: 1px solid gray; */
 }
 
 .bar {
