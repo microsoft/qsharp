@@ -112,14 +112,13 @@ where
 
     fn visit_array(&mut self, exprs: &Vec<Expr>) {
         self.print("[");
-        let mut is_first = true;
-        for e in exprs {
-            if !is_first {
+        exprs.iter().fold(true, |first, e| {
+            if !first {
                 self.print(", ");
             }
             self.visit_expr(e);
-            is_first = false;
-        }
+            false
+        });
         self.print("]");
     }
 
@@ -314,14 +313,13 @@ where
 
     fn visit_tuple(&mut self, exprs: &Vec<Expr>) {
         self.print("(");
-        let mut is_first = true;
-        for e in exprs {
-            if !is_first {
+        exprs.iter().fold(true, |first, e| {
+            if !first {
                 self.print(", ");
             }
             self.visit_expr(e);
-            is_first = false;
-        }
+            false
+        });
         self.print(")");
     }
 
@@ -343,14 +341,13 @@ where
     W: Write,
 {
     fn visit_package(&mut self, package: &'a Package) {
-        let mut is_first = true;
-        for n in &package.namespaces {
-            if !is_first {
+        package.namespaces.iter().fold(true, |first, n| {
+            if !first {
                 self.print("\n");
             }
             self.visit_namespace(n);
-            is_first = false;
-        }
+            false
+        });
     }
 
     fn visit_namespace(&mut self, namespace: &'a Namespace) {
@@ -359,8 +356,6 @@ where
         self.print(" {\n");
         self.indentation += 1;
         for i in &namespace.items {
-            self.print("\n");
-            self.print_tabs();
             self.visit_item(i);
         }
         self.indentation -= 1;
@@ -369,25 +364,33 @@ where
     }
 
     fn visit_item(&mut self, item: &'a Item) {
-        item.meta.attrs.iter().for_each(|a| self.visit_attr(a));
         match &item.kind {
-            ItemKind::Callable(decl) => self.visit_callable_decl(decl),
+            ItemKind::Callable(decl) => {
+                self.print("\n");
+                self.print_tabs();
+                item.meta.attrs.iter().for_each(|a| self.visit_attr(a));
+                self.visit_callable_decl(decl);
+            }
             ItemKind::Err => {}
             ItemKind::Open(ns, alias) => {
+                self.print_tabs();
                 self.print("open ");
                 self.visit_ident(ns);
                 if let Some(a) = alias {
                     self.print(" as ");
                     self.visit_ident(a);
                 }
-                self.print(";");
+                self.print(";\n");
             }
             ItemKind::Ty(ident, def) => {
+                self.print("\n");
+                self.print_tabs();
+                item.meta.attrs.iter().for_each(|a| self.visit_attr(a));
                 self.print("newtype ");
                 self.visit_ident(ident);
                 self.print(" = ");
                 self.visit_ty_def(def);
-                self.print(";");
+                self.print(";\n");
             }
         }
     }
@@ -396,6 +399,8 @@ where
         self.print("@ ");
         self.visit_path(&attr.name);
         self.visit_expr(&attr.arg);
+        self.print("\n");
+        self.print_tabs();
     }
 
     fn visit_ty_def(&mut self, def: &'a TyDef) {
@@ -414,14 +419,13 @@ where
             }
             TyDefKind::Tuple(defs) => {
                 self.print("(");
-                let mut is_first = true;
-                for d in defs {
-                    if !is_first {
+                defs.iter().fold(true, |first, d| {
+                    if !first {
                         self.print(", ");
                     }
                     self.visit_ty_def(d);
-                    is_first = false;
-                }
+                    false
+                });
                 self.print(")");
             }
         }
@@ -435,15 +439,14 @@ where
         self.visit_ident(&decl.name);
         if !decl.ty_params.is_empty() {
             self.print("<");
-            let mut is_first = true;
-            for ty in &decl.ty_params {
-                if !is_first {
+            decl.ty_params.iter().fold(true, |first, ty| {
+                if !first {
                     self.print(", ");
                 }
                 self.print("'");
                 self.visit_ident(ty);
-                is_first = false;
-            }
+                false
+            });
             self.print(">");
         }
         self.print(" ");
@@ -462,11 +465,14 @@ where
                 self.print("{\n");
                 self.indentation += 1;
 
-                for s in specs {
-                    self.print("\n");
+                specs.iter().fold(true, |first, s| {
+                    if !first {
+                        self.print("\n");
+                    }
                     self.print_tabs();
                     self.visit_spec_decl(s);
-                }
+                    false
+                });
 
                 self.indentation -= 1;
                 self.print_tabs();
@@ -541,14 +547,13 @@ where
                     self.visit_ty(ty);
                     if !tys.is_empty() {
                         self.print("<");
-                        let mut is_first = true;
-                        for t in tys {
-                            if !is_first {
+                        tys.iter().fold(true, |first, t| {
+                            if !first {
                                 self.print(", ");
                             }
                             self.visit_ty(t);
-                            is_first = false;
-                        }
+                            false
+                        });
                         self.print(">");
                     }
                 }
@@ -578,14 +583,13 @@ where
                     self.print("Unit");
                 } else {
                     self.print("(");
-                    let mut is_first = true;
-                    for t in tys {
-                        if !is_first {
+                    tys.iter().fold(true, |first, t| {
+                        if !first {
                             self.print(", ");
                         }
                         self.visit_ty(t);
-                        is_first = false;
-                    }
+                        false
+                    });
                     self.print(")");
                 }
             }
@@ -707,14 +711,13 @@ where
             }
             PatKind::Tuple(pats) => {
                 self.print("(");
-                let mut is_first = true;
-                for p in pats {
-                    if !is_first {
+                pats.iter().fold(true, |first, p| {
+                    if !first {
                         self.print(", ");
                     }
                     self.visit_pat(p);
-                    is_first = false;
-                }
+                    false
+                });
                 self.print(")");
             }
         }
@@ -743,14 +746,13 @@ where
             QubitInitKind::Single => self.print("Qubit()"),
             QubitInitKind::Tuple(inits) => {
                 self.print("(");
-                let mut is_first = true;
-                for i in inits {
-                    if !is_first {
+                inits.iter().fold(true, |first, i| {
+                    if !first {
                         self.print(", ");
                     }
                     self.visit_qubit_init(i);
-                    is_first = false;
-                }
+                    false
+                });
                 self.print(")");
             }
         }
