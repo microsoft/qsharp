@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
-use miette::Result;
+use miette::{IntoDiagnostic, Result};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
@@ -30,7 +30,7 @@ struct Cli {
 }
 
 fn main() -> Result<ExitCode> {
-    let cli = Cli::parse();
+    let cli = Cli::try_parse().into_diagnostic()?;
     println!("{cli:?}");
     Ok(ExitCode::SUCCESS)
 }
