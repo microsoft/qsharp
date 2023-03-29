@@ -31,6 +31,6 @@ struct Cli {
 
 fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
-    println!("{:?}", cli);
+    println!("{cli:?}");
     Ok(ExitCode::SUCCESS)
 }

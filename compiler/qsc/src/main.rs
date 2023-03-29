@@ -9,12 +9,12 @@ use std::process::ExitCode;
 use clap::error::ErrorKind;
 use clap::Parser;
 use clap::ValueEnum;
-use miette::{IntoDiagnostic, Result, WrapErr};
+use miette::{IntoDiagnostic, Result};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Emit {
     /// Abstract syntax tree
-    AST,
+    Ast,
 }
 
 #[derive(Debug, Parser)]
@@ -40,8 +40,8 @@ struct Cli {
     input: Vec<PathBuf>,
 }
 
-fn validate_input(v: Vec<PathBuf>) -> Result<(), clap::Error> {
-    if v.len() == 0 {
+fn validate_input(v: &[PathBuf]) -> Result<(), clap::Error> {
+    if v.is_empty() {
         let msg = "No input files specified";
         let err = clap::Error::raw(ErrorKind::ValueValidation, msg);
         Err(err)
@@ -49,7 +49,7 @@ fn validate_input(v: Vec<PathBuf>) -> Result<(), clap::Error> {
         Ok(())
     } else {
         if v.iter()
-            .any(|path| path.display().to_string() == "-".to_string())
+            .any(|path| path.display().to_string() == *"-")
         {
             let msg = "Specifying stdin `-` is not allowed with file inputs";
             let err = clap::Error::raw(ErrorKind::ValueValidation, msg);
@@ -62,7 +62,7 @@ fn validate_input(v: Vec<PathBuf>) -> Result<(), clap::Error> {
 
 fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
-    validate_input(cli.input.clone()).into_diagnostic()?;
-    println!("{:?}", cli);
+    validate_input(&cli.input).into_diagnostic()?;
+    println!("{cli:?}");
     Ok(ExitCode::SUCCESS)
 }
