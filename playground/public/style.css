@@ -45,3 +45,41 @@ td {
     min-width: 160px;
     text-align: center;
 }
+
+.histogram {
+    width: 540px;
+    height: 300px;
+    border: 1px solid gray;
+}
+
+.bar {
+    fill: steelblue;
+}
+
+.bar-label {
+    font-family: Verdana;
+    font-size: 3pt;
+    fill: #404040;
+    text-anchor: middle;
+}
+
+.bar:hover {
+    fill: lightblue;
+}
+
+.bar-selected {
+    stroke: #ffc080;
+}
+
+#histo-label {
+    font-family: Verdana;
+    font-size: 4pt;
+    fill: gray;
+}
+
+#hover-text {
+    font-family: Verdana;
+    font-size: 4pt;
+    fill: gray;
+    text-anchor: middle;
+}

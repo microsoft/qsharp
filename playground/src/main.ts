@@ -6,15 +6,22 @@
 import {init, getCompletions, checkCode, evaluate, 
     outputAsDump, renderDump, IDiagnostic} from "qsharp/browser";
 
+import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
+
 const sampleCode = `namespace Sample {
+    open Microsoft.Quantum.Diagnostics;
+
     operation main() : Result {
         use q1 = Qubit();
         use q2 = Qubit();
 
         H(q1);
         CNOT(q1, q2);
+        DumpMachine();
+
         let m1 = M(q1);
         let m2 = M(q2);
+
         return [m1, m2];
     }
 }
@@ -120,6 +127,13 @@ async function loaded() {
             return mapped;
         }
     });
+    // showHistogram();
+}
+
+function showHistogram() {
+    let cookedData = generateHistogramData(sampleData);
+    let histogram  = generateHistogramSvg(cookedData);
+    document.body.appendChild(histogram);
 }
 
 // Monaco provides the 'require' global for loading modules.
