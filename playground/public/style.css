@@ -90,3 +90,6 @@ td {
     fill: gray;
     text-anchor: middle;
 }
+ button {
+    margin: 2px;
+ }

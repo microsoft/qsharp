@@ -34,6 +34,8 @@ type ShotResult = {
     result: string;
     dumps: Dump[];
 }
+let runResults: ShotResult[] = [];
+let currentFilter = "";
 
 // This runs after the Monaco editor is initialized
 async function loaded() {
@@ -95,13 +97,11 @@ async function loaded() {
         let expr = exprInput.value;
         let shots = parseInt(shotCount.value);
 
-
-
         let currentShotResult: ShotResult = {
             "result": "null",
             "dumps": []
         };
-        let shotResults: ShotResult[] = [];
+        runResults = [];
 
         let event_cb = (ev: string) => {
             let dump = outputAsDump(ev);
@@ -117,10 +117,10 @@ async function loaded() {
             } catch(e: any) {
                 currentShotResult.result = "ERROR";
             }
-            shotResults.push(currentShotResult);
+            runResults.push(currentShotResult);
             currentShotResult = {result: "null", dumps: []};
         }
-        runComplete(shotResults);
+        runComplete();
     });
 
     // Example of getting results from a call into the WASM module
@@ -160,22 +160,74 @@ function resultToKet(result: string): string {
     }
 }
 
-function runComplete(results: ShotResult[]) {
-    if (!results.length) return;
+function renderOutputs(container: HTMLDivElement) {
+    container.innerHTML = "";
+    let mappedResults = runResults.map(result => ({
+        result: resultToKet(result.result),
+        dumps: result.dumps
+    }));
 
-    // Get an array of results, preferably in ket form
-    let histogramData = results.map(result => resultToKet(result.result));
-    let bucketData = generateHistogramData(histogramData);
-    let histogram = generateHistogramSvg(bucketData);
+    let filteredResults = currentFilter == "" ? mappedResults :
+            mappedResults.filter(entry => entry.result === currentFilter);
+    
+    if (filteredResults.length === 0) return;
 
+    // Show the current result and navigation.
+    let header = document.createElement("div");
+    let prev = document.createElement("button");
+    prev.textContent = "Prev";
+    let next = document.createElement("button");
+    next.textContent = "Next";
+    let title = document.createElement("h3");
+    let dumpTables = document.createElement("div");
+
+    header.appendChild(prev);
+    header.appendChild(next);
+    header.appendChild(title);
+
+    container.appendChild(header);
+    container.appendChild(dumpTables);
+
+    let currentIndex = 0;
+    function showDump(move: number) {
+        currentIndex += move;
+        if (currentIndex < 0) currentIndex = 0;
+        if (currentIndex >= filteredResults.length) currentIndex = filteredResults.length - 1;
+
+        let current = filteredResults[currentIndex];
+        title.innerText = `Result: ${filteredResults[currentIndex].result} - #${currentIndex + 1} of ${filteredResults.length}`;
+        dumpTables.innerHTML = "";
+
+        filteredResults[currentIndex].dumps.forEach(dump => {
+            let table = document.createElement("table");
+            table.innerHTML = renderDump(dump);
+            dumpTables.appendChild(table);
+        });
+    }
+
+    prev.addEventListener('click', _ => showDump(-1));
+    next.addEventListener('click', _ => showDump(1));
+    showDump(0);
+}
+
+function runComplete() {
     let outputDiv = document.querySelector('#output') as HTMLDivElement;
     outputDiv.innerHTML = "";
-    outputDiv.appendChild(histogram);
-    results[0].dumps.forEach(dump => {
-        let table = document.createElement("table");
-        table.innerHTML = renderDump(dump);
-        outputDiv.appendChild(table);
+    currentFilter = "";
+    if (!runResults.length) return;
+
+    // Get an array of results, preferably in ket form
+    let histogramData = runResults.map(result => resultToKet(result.result));
+    let bucketData = generateHistogramData(histogramData);
+    let histogram = generateHistogramSvg(bucketData, (label) => {
+        currentFilter = label;
+        renderOutputs(outputContainer);
     });
+    outputDiv.appendChild(histogram);
+
+    let outputContainer = document.createElement("div");
+    outputDiv.appendChild(outputContainer);
+    renderOutputs(outputContainer);
 }
 
 // Monaco provides the 'require' global for loading modules.

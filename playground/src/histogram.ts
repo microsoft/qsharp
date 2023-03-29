@@ -27,7 +27,7 @@ export function generateHistogramData(input: string[]): HistogramData {
     return arrData;
 }
 
-export function generateHistogramSvg(data: HistogramData) : SVGSVGElement {
+export function generateHistogramSvg(data: HistogramData, onFilter: (filter:string) => void) : SVGSVGElement {
     const xmlns = "http://www.w3.org/2000/svg";
     let svgElem = document.createElementNS(xmlns, "svg") as SVGSVGElement;
     svgElem.classList.add("histogram");
@@ -87,7 +87,6 @@ export function generateHistogramSvg(data: HistogramData) : SVGSVGElement {
         text.setAttributeNS(null, "x", `${x + barWidth / 2}`);
         text.setAttributeNS(null, "y", `${y - 3}`);
         text.textContent = entry.label;
-        // text.setAttributeNS(null, "content", entry.label);
         g.appendChild(text);
     });
 
@@ -101,7 +100,7 @@ export function generateHistogramSvg(data: HistogramData) : SVGSVGElement {
                 if (targetElem == currentSelected) {
                     currentSelected = null;
                     histoLabel.textContent = "";
-                    // TODO: Fire filter cleared event
+                    onFilter("");
                     return;
                 }
 
@@ -109,7 +108,10 @@ export function generateHistogramSvg(data: HistogramData) : SVGSVGElement {
                 currentSelected = targetElem;
                 histoLabel.textContent =
                     "Filter: " + targetElem.querySelector('title')!.textContent;
-                // TODO: Fire filter set event
+
+                    // Filter is the text of the sibling text node (the bar label)
+                    let textNode = targetElem.nextSibling;
+                    onFilter(textNode?.textContent || "");
             }
         }
     });
