@@ -1,0 +1,33 @@
+# qsc - Q# command-line compiler
+
+```console
+Usage: qsc [OPTIONS] [INPUT]...
+
+Arguments:
+  [INPUT]...
+          Q# source files to compile, or `-` to read from stdin
+
+Options:
+      --nostdlib
+          Disable automatic inclusion of the standard library
+
+      --emit <EMIT>
+          Emit the compilation unit in the specified format
+
+          Possible values:
+          - ast:     Abstract syntax tree
+
+      --outdir <DIR>
+          Write output to compiler-chosen filename in <dir>
+
+  -v, --verbose
+          Enable verbose output
+
+  -e, --entry <ENTRY>
+          Entry expression to execute as the main operation
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+```
