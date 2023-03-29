@@ -47,14 +47,12 @@ fn validate_input(v: &[PathBuf]) -> Result<(), clap::Error> {
         Err(err)
     } else if v.len() == 1 {
         Ok(())
+    } else if v.iter().any(|path| path.display().to_string() == *"-") {
+        let msg = "Specifying stdin `-` is not allowed with file inputs";
+        let err = clap::Error::raw(ErrorKind::ValueValidation, msg);
+        Err(err)
     } else {
-        if v.iter().any(|path| path.display().to_string() == *"-") {
-            let msg = "Specifying stdin `-` is not allowed with file inputs";
-            let err = clap::Error::raw(ErrorKind::ValueValidation, msg);
-            Err(err)
-        } else {
-            Ok(())
-        }
+        Ok(())
     }
 }
 
