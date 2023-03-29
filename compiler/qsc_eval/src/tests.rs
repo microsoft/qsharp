@@ -6,7 +6,7 @@ use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
-use crate::Evaluator;
+use crate::{output::GenericReceiver, Evaluator};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -21,7 +21,9 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         .get(id)
         .expect("compile unit should be in package store");
     let globals = extract_callables(&store);
-    let evaluator = Evaluator::from_store(&store, id, &globals);
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
+    let evaluator = Evaluator::from_store(&store, id, &globals, &mut out);
     let expr = unit
         .package
         .entry
