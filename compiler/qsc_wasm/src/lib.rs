@@ -288,7 +288,7 @@ where
         let globals = extract_callables(&store);
         let mut out = CallbackReceiver { event_cb };
         let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
-
+        Evaluator::init();
         match evaluator.eval_expr(expr) {
             Ok((value, _)) => Ok(value),
             Err(_e) => Err(_e),
