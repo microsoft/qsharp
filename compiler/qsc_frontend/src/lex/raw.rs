@@ -182,6 +182,10 @@ impl<'a> Lexer<'a> {
         chars.next().map(|i| i.1)
     }
 
+    fn eof(&mut self) -> bool {
+        self.chars.peek().is_none()
+    }
+
     fn whitespace(&mut self, c: char) -> bool {
         if c.is_whitespace() {
             self.eat_while(char::is_whitespace);
@@ -285,6 +289,9 @@ impl<'a> Lexer<'a> {
             self.eat_while(|c| c != '\\' && c != '"');
             if self.next_if_eq('\\') {
                 self.next_if_eq('"');
+            }
+            if self.eof() {
+                return false;
             }
         }
 

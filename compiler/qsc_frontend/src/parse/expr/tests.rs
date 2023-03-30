@@ -560,6 +560,26 @@ fn lit_string_escape_quote() {
 }
 
 #[test]
+fn lit_string_unmatched_quote() {
+    check(
+        expr,
+        r#""Uh oh.."#,
+        &expect![[r#"
+        Err(
+            Rule(
+                "expression",
+                Eof,
+                Span {
+                    lo: 8,
+                    hi: 8,
+                },
+            ),
+        )
+    "#]],
+    );
+}
+
+#[test]
 fn lit_false() {
     check(
         expr,
