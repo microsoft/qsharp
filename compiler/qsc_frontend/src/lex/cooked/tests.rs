@@ -954,7 +954,7 @@ fn string_missing_quote() {
                     UnterminatedString(
                         Span {
                             lo: 0,
-                            hi: 9,
+                            hi: 0,
                         },
                     ),
                 ),
