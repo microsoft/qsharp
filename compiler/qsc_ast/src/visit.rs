@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, Ty, TyDef, TyDefKind, TyKind,
+    Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FunctorExpr,
+    FunctorExprKind, Ident, Item, ItemKind, Lit, Namespace, Package, Pat, PatKind, Path, QubitInit,
+    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, TernOp, Ty, TyDef, TyDefKind, TyKind, UnOp,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -69,6 +69,111 @@ pub trait Visitor<'a>: Sized {
     }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
+
+    fn visit_array(&mut self, exprs: &'a Vec<Expr>) {
+        walk_array(self, exprs);
+    }
+
+    fn visit_array_repeat(&mut self, item: &'a Expr, size: &'a Expr) {
+        walk_array_repeat(self, item, size);
+    }
+
+    fn visit_assign(&mut self, lhs: &'a Expr, rhs: &'a Expr) {
+        walk_assign(self, lhs, rhs);
+    }
+
+    fn visit_assign_op(&mut self, op: &'a BinOp, lhs: &'a Expr, rhs: &'a Expr) {
+        walk_assign_op(self, op, lhs, rhs);
+    }
+
+    fn visit_assign_update(&mut self, record: &'a Expr, index: &'a Expr, value: &'a Expr) {
+        walk_assign_update(self, record, index, value);
+    }
+
+    fn visit_bin_op(&mut self, op: &'a BinOp, lhs: &'a Expr, rhs: &'a Expr) {
+        walk_bin_op(self, op, lhs, rhs);
+    }
+
+    fn visit_call(&mut self, callee: &'a Expr, arg: &'a Expr) {
+        walk_call(self, callee, arg);
+    }
+
+    fn visit_conjugate(&mut self, within: &'a Block, apply: &'a Block) {
+        walk_conjugate(self, within, apply);
+    }
+
+    fn visit_err(&mut self) {
+        walk_err(self);
+    }
+
+    fn visit_fail(&mut self, msg: &'a Expr) {
+        walk_fail(self, msg);
+    }
+
+    fn visit_field(&mut self, record: &'a Expr, name: &'a Ident) {
+        walk_field(self, record, name);
+    }
+
+    fn visit_for(&mut self, pat: &'a Pat, iter: &'a Expr, block: &'a Block) {
+        walk_for(self, pat, iter, block);
+    }
+
+    fn visit_hole(&mut self) {
+        walk_hole(self);
+    }
+
+    fn visit_if(&mut self, cond: &'a Expr, body: &'a Block, otherwise: &'a Option<Box<Expr>>) {
+        walk_if(self, cond, body, otherwise);
+    }
+
+    fn visit_index(&mut self, array: &'a Expr, index: &'a Expr) {
+        walk_index(self, array, index);
+    }
+
+    fn visit_lambda(&mut self, kind: &'a CallableKind, pat: &'a Pat, expr: &'a Expr) {
+        walk_lambda(self, kind, pat, expr);
+    }
+
+    fn visit_lit(&mut self, lit: &'a Lit) {
+        walk_lit(self, lit);
+    }
+
+    fn visit_paren(&mut self, expr: &'a Expr) {
+        walk_paren(self, expr);
+    }
+
+    fn visit_range(
+        &mut self,
+        start: &'a Option<Box<Expr>>,
+        step: &'a Option<Box<Expr>>,
+        end: &'a Option<Box<Expr>>,
+    ) {
+        walk_range(self, start, step, end);
+    }
+
+    fn visit_repeat(&mut self, body: &'a Block, until: &'a Expr, fixup: &'a Option<Block>) {
+        walk_repeat(self, body, until, fixup);
+    }
+
+    fn visit_return(&mut self, expr: &'a Expr) {
+        walk_return(self, expr);
+    }
+
+    fn visit_tern_op(&mut self, op: &'a TernOp, e1: &'a Expr, e2: &'a Expr, e3: &'a Expr) {
+        walk_tern_op(self, op, e1, e2, e3);
+    }
+
+    fn visit_tuple(&mut self, exprs: &'a Vec<Expr>) {
+        walk_tuple(self, exprs);
+    }
+
+    fn visit_un_op(&mut self, op: &'a UnOp, expr: &'a Expr) {
+        walk_un_op(self, op, expr);
+    }
+
+    fn visis_while(&mut self, cond: &'a Expr, block: &'a Block) {
+        walk_while(self, cond, block);
+    }
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -290,4 +395,163 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
 pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
     path.namespace.iter().for_each(|n| vis.visit_ident(n));
     vis.visit_ident(&path.name);
+}
+
+fn walk_array<'a>(vis: &mut impl Visitor<'a>, exprs: &'a Vec<Expr>) {
+    exprs.iter().for_each(|e| vis.visit_expr(e));
+}
+
+fn walk_array_repeat<'a>(vis: &mut impl Visitor<'a>, item: &'a Expr, size: &'a Expr) {
+    vis.visit_expr(item);
+    vis.visit_expr(size);
+}
+
+fn walk_assign<'a>(vis: &mut impl Visitor<'a>, lhs: &'a Expr, rhs: &'a Expr) {
+    vis.visit_expr(lhs);
+    vis.visit_expr(rhs);
+}
+
+fn walk_assign_op<'a>(vis: &mut impl Visitor<'a>, op: &'a BinOp, lhs: &'a Expr, rhs: &'a Expr) {
+    vis.visit_expr(lhs);
+    vis.visit_expr(rhs);
+}
+
+fn walk_assign_update<'a>(
+    vis: &mut impl Visitor<'a>,
+    record: &'a Expr,
+    index: &'a Expr,
+    value: &'a Expr,
+) {
+    vis.visit_expr(record);
+    vis.visit_expr(index);
+    vis.visit_expr(value);
+}
+
+fn walk_bin_op<'a>(vis: &mut impl Visitor<'a>, op: &'a BinOp, lhs: &'a Expr, rhs: &'a Expr) {
+    vis.visit_expr(lhs);
+    vis.visit_expr(rhs);
+}
+
+fn walk_call<'a>(vis: &mut impl Visitor<'a>, callee: &'a Expr, arg: &'a Expr) {
+    vis.visit_expr(callee);
+    vis.visit_expr(arg);
+}
+
+fn walk_conjugate<'a>(vis: &mut impl Visitor<'a>, within: &'a Block, apply: &'a Block) {
+    vis.visit_block(within);
+    vis.visit_block(apply);
+}
+
+fn walk_err<'a>(vis: &mut impl Visitor<'a>) {}
+
+fn walk_fail<'a>(vis: &mut impl Visitor<'a>, msg: &'a Expr) {
+    vis.visit_expr(msg);
+}
+
+fn walk_field<'a>(vis: &mut impl Visitor<'a>, record: &'a Expr, name: &'a Ident) {
+    vis.visit_expr(record);
+    vis.visit_ident(name);
+}
+
+fn walk_for<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat, iter: &'a Expr, block: &'a Block) {
+    vis.visit_pat(pat);
+    vis.visit_expr(iter);
+    vis.visit_block(block);
+}
+
+fn walk_hole<'a>(vis: &mut impl Visitor<'a>) {}
+
+fn walk_if<'a>(
+    vis: &mut impl Visitor<'a>,
+    cond: &'a Expr,
+    body: &'a Block,
+    otherwise: &'a Option<Box<Expr>>,
+) {
+    vis.visit_expr(cond);
+    vis.visit_block(body);
+    if let Some(e) = otherwise {
+        vis.visit_expr(e);
+    }
+}
+
+fn walk_index<'a>(vis: &mut impl Visitor<'a>, array: &'a Expr, index: &'a Expr) {
+    vis.visit_expr(array);
+    vis.visit_expr(index);
+}
+
+fn walk_lambda<'a>(
+    vis: &mut impl Visitor<'a>,
+    kind: &'a CallableKind,
+    pat: &'a Pat,
+    expr: &'a Expr,
+) {
+    vis.visit_pat(pat);
+    vis.visit_expr(expr);
+}
+
+fn walk_lit<'a>(vis: &mut impl Visitor<'a>, lit: &'a Lit) {}
+
+fn walk_paren<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
+    vis.visit_expr(expr);
+}
+
+fn walk_range<'a>(
+    vis: &mut impl Visitor<'a>,
+    start: &'a Option<Box<Expr>>,
+    step: &'a Option<Box<Expr>>,
+    end: &'a Option<Box<Expr>>,
+) {
+    if let Some(s) = start {
+        vis.visit_expr(s);
+    }
+
+    if let Some(s) = step {
+        vis.visit_expr(s);
+    }
+
+    if let Some(e) = end {
+        vis.visit_expr(e);
+    }
+}
+
+fn walk_repeat<'a>(
+    vis: &mut impl Visitor<'a>,
+    body: &'a Block,
+    until: &'a Expr,
+    fixup: &'a Option<Block>,
+) {
+    vis.visit_block(body);
+    vis.visit_expr(until);
+    if let Some(f) = fixup {
+        vis.visit_block(f);
+    }
+}
+
+fn walk_return<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
+    vis.visit_expr(expr);
+}
+
+fn walk_tern_op<'a>(
+    vis: &mut impl Visitor<'a>,
+    op: &'a TernOp,
+    e1: &'a Expr,
+    e2: &'a Expr,
+    e3: &'a Expr,
+) {
+    vis.visit_expr(e1);
+    vis.visit_expr(e2);
+    vis.visit_expr(e3);
+}
+
+fn walk_tuple<'a>(vis: &mut impl Visitor<'a>, exprs: &'a Vec<Expr>) {
+    exprs.iter().for_each(|e| vis.visit_expr(e));
+}
+
+fn walk_un_op<'a>(vis: &mut impl Visitor<'a>, op: &'a UnOp, expr: &'a Expr) {
+    vis.visit_expr(expr);
+}
+
+fn walk_while<'a>(vis: &mut impl Visitor<'a>, cond: &'a Expr, block: &'a Block) {
+    vis.visit_expr(cond);
+    vis.visit_block(block);
 }
