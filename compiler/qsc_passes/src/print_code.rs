@@ -1,7 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::ast::*;
+use qsc_ast::ast::{
+    Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
+    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Lit, Mutability, Namespace, Package, Pat,
+    PatKind, Path, Pauli, QubitInit, QubitInitKind, QubitSource, Result, SetOp, Spec, SpecBody,
+    SpecDecl, SpecGen, Stmt, StmtKind, TernOp, Ty, TyDef, TyDefKind, TyKind, TyPrim, TyVar, UnOp,
+};
 use std::io::prelude::*;
 use std::io::LineWriter;
 
@@ -110,7 +115,7 @@ where
         }
     }
 
-    fn visit_array(&mut self, exprs: &Vec<Expr>) {
+    fn visit_array(&mut self, exprs: &[Expr]) {
         self.print("[");
         exprs.iter().fold(true, |first, e| {
             if !first {
@@ -137,11 +142,11 @@ where
         self.visit_expr(rhs);
     }
 
-    fn visit_assign_op(&mut self, op: &BinOp, lhs: &Expr, rhs: &Expr) {
+    fn visit_assign_op(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) {
         self.print("set ");
         self.visit_expr(lhs);
         self.print(" ");
-        self.print_bin_op(*op);
+        self.print_bin_op(op);
         self.print("= ");
         self.visit_expr(rhs);
     }
@@ -155,10 +160,10 @@ where
         self.visit_expr(value);
     }
 
-    fn visit_bin_op(&mut self, op: &BinOp, lhs: &Expr, rhs: &Expr) {
+    fn visit_bin_op(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) {
         self.visit_expr(lhs);
         self.print(" ");
-        self.print_bin_op(*op);
+        self.print_bin_op(op);
         self.print(" ");
         self.visit_expr(rhs);
     }
@@ -174,8 +179,6 @@ where
         self.print(" apply ");
         self.visit_block(apply);
     }
-
-    fn visit_err(&mut self) {}
 
     fn visit_fail(&mut self, msg: &Expr) {
         self.print("fail ");
@@ -219,7 +222,7 @@ where
         self.print("]");
     }
 
-    fn visit_lambda(&mut self, kind: &CallableKind, pat: &Pat, expr: &Expr) {
+    fn visit_lambda(&mut self, kind: CallableKind, pat: &Pat, expr: &Expr) {
         self.visit_pat(pat);
         match kind {
             CallableKind::Function => self.print(" -> "),
@@ -286,7 +289,7 @@ where
         self.visit_expr(expr);
     }
 
-    fn visit_tern_op(&mut self, op: &TernOp, e1: &Expr, e2: &Expr, e3: &Expr) {
+    fn visit_tern_op(&mut self, op: TernOp, e1: &Expr, e2: &Expr, e3: &Expr) {
         self.visit_expr(e1);
         match op {
             TernOp::Cond => {
@@ -303,7 +306,7 @@ where
         self.visit_expr(e3);
     }
 
-    fn visit_tuple(&mut self, exprs: &Vec<Expr>) {
+    fn visit_tuple(&mut self, exprs: &[Expr]) {
         self.print("(");
         exprs.iter().fold(true, |first, e| {
             if !first {
@@ -315,8 +318,8 @@ where
         self.print(")");
     }
 
-    fn visit_un_op(&mut self, op: &UnOp, expr: &Expr) {
-        self.print_un_op(*op);
+    fn visit_un_op(&mut self, op: UnOp, expr: &Expr) {
+        self.print_un_op(op);
         self.visit_expr(expr);
     }
 
@@ -650,31 +653,31 @@ where
             ExprKind::Array(exprs) => self.visit_array(exprs),
             ExprKind::ArrayRepeat(item, size) => self.visit_array_repeat(item, size),
             ExprKind::Assign(lhs, rhs) => self.visit_assign(lhs, rhs),
-            ExprKind::AssignOp(op, lhs, rhs) => self.visit_assign_op(op, lhs, rhs),
+            ExprKind::AssignOp(op, lhs, rhs) => self.visit_assign_op(*op, lhs, rhs),
             ExprKind::AssignUpdate(record, index, value) => {
                 self.visit_assign_update(record, index, value);
             }
-            ExprKind::BinOp(op, lhs, rhs) => self.visit_bin_op(op, lhs, rhs),
+            ExprKind::BinOp(op, lhs, rhs) => self.visit_bin_op(*op, lhs, rhs),
             ExprKind::Block(block) => self.visit_block(block),
             ExprKind::Call(callee, arg) => self.visit_call(callee, arg),
             ExprKind::Conjugate(within, apply) => self.visit_conjugate(within, apply),
-            ExprKind::Err => self.visit_err(),
+            ExprKind::Err => {}
             ExprKind::Fail(msg) => self.visit_fail(msg),
             ExprKind::Field(record, name) => self.visit_field(record, name),
             ExprKind::For(pat, iter, block) => self.visit_for(pat, iter, block),
             ExprKind::Hole => self.visit_hole(),
             ExprKind::If(cond, body, otherwise) => self.visit_if(cond, body, otherwise),
             ExprKind::Index(array, index) => self.visit_index(array, index),
-            ExprKind::Lambda(kind, pat, expr) => self.visit_lambda(kind, pat, expr),
+            ExprKind::Lambda(kind, pat, expr) => self.visit_lambda(*kind, pat, expr),
             ExprKind::Lit(lit) => self.visit_lit(lit),
             ExprKind::Paren(expr) => self.visit_paren(expr),
             ExprKind::Path(path) => self.visit_path(path),
             ExprKind::Range(start, step, end) => self.visit_range(start, step, end),
             ExprKind::Repeat(body, until, fixup) => self.visit_repeat(body, until, fixup),
             ExprKind::Return(expr) => self.visit_return(expr),
-            ExprKind::TernOp(op, e1, e2, e3) => self.visit_tern_op(op, e1, e2, e3),
+            ExprKind::TernOp(op, e1, e2, e3) => self.visit_tern_op(*op, e1, e2, e3),
             ExprKind::Tuple(exprs) => self.visit_tuple(exprs),
-            ExprKind::UnOp(op, expr) => self.visit_un_op(op, expr),
+            ExprKind::UnOp(op, expr) => self.visit_un_op(*op, expr),
             ExprKind::While(cond, block) => self.visit_while(cond, block),
         }
     }
