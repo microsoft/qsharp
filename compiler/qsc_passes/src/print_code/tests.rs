@@ -3,10 +3,9 @@
 
 use std::{io::LineWriter, str::from_utf8};
 
-use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::visit::Visitor;
-use qsc_frontend::compile::{compile, CompileUnit, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore};
 
 use crate::print_code::CodePrinter;
 
