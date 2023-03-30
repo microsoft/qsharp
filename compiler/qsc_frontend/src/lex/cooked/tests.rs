@@ -925,6 +925,45 @@ fn string() {
 }
 
 #[test]
+fn string_empty() {
+    check(
+        r#""""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String,
+                        span: Span {
+                            lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn string_missing_quote() {
+    check(
+        r#""Uh oh..."#,
+        &expect![[r#"
+            [
+                Err(
+                    UnterminatedString(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn unknown() {
     check(
         "##",
