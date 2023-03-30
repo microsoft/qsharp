@@ -38,9 +38,15 @@ pub(crate) enum TokenKind {
     Ident,
     Number(Number),
     Single(Single),
-    String,
+    String(Terminator),
     Unknown,
     Whitespace,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(crate) enum Terminator {
+    Quote,
+    Eof,
 }
 
 impl Display for TokenKind {
@@ -52,7 +58,7 @@ impl Display for TokenKind {
             TokenKind::Number(Number::Float) => f.write_str("float"),
             TokenKind::Number(Number::Int(_)) => f.write_str("integer"),
             TokenKind::Single(single) => write!(f, "`{single}`"),
-            TokenKind::String => f.write_str("string"),
+            TokenKind::String(_) => f.write_str("string"),
             TokenKind::Unknown => f.write_str("unknown"),
             TokenKind::Whitespace => f.write_str("whitespace"),
         }
@@ -98,8 +104,6 @@ pub(crate) enum Single {
     Plus,
     /// `?`
     Question,
-    /// `"`
-    Quote,
     /// `;`
     Semi,
     /// `/`
@@ -135,7 +139,6 @@ impl Display for Single {
             Single::Percent => '%',
             Single::Plus => '+',
             Single::Question => '?',
-            Single::Quote => '"',
             Single::Semi => ';',
             Single::Slash => '/',
             Single::Star => '*',
@@ -154,14 +157,12 @@ pub(crate) enum Number {
 #[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
-    in_string: bool,
 }
 
 impl<'a> Lexer<'a> {
     pub(super) fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
-            in_string: false,
         }
     }
 
@@ -281,13 +282,24 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn eat_string(&mut self) {
+    fn string(&mut self, c: char) -> Option<TokenKind> {
+        if c != '"' {
+            return None;
+        }
+
         while self.first().is_some() && self.first() != Some('"') {
             self.eat_while(|c| c != '\\' && c != '"');
             if self.next_if_eq('\\') {
                 self.next_if_eq('"');
             }
         }
+
+        let terminator = if self.next_if_eq('"') {
+            Terminator::Quote
+        } else {
+            Terminator::Eof
+        };
+        Some(TokenKind::String(terminator))
     }
 }
 
@@ -296,13 +308,7 @@ impl Iterator for Lexer<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let (offset, c) = self.chars.next()?;
-        let kind = if matches!(single(c), Some(Single::Quote)) {
-            self.in_string = !self.in_string;
-            TokenKind::Single(Single::Quote)
-        } else if self.in_string {
-            self.eat_string();
-            TokenKind::String
-        } else if self.comment(c) {
+        let kind = if self.comment(c) {
             TokenKind::Comment
         } else if self.whitespace(c) {
             TokenKind::Whitespace
@@ -312,6 +318,7 @@ impl Iterator for Lexer<'_> {
             self.number(c)
                 .map(TokenKind::Number)
                 .or_else(|| single(c).map(TokenKind::Single))
+                .or_else(|| self.string(c))
                 .unwrap_or(TokenKind::Unknown)
         };
         Some(Token { kind, offset })
@@ -346,7 +353,6 @@ fn single(c: char) -> Option<Single> {
         '>' => Some(Single::Gt),
         '|' => Some(Single::Bar),
         '~' => Some(Single::Tilde),
-        '"' => Some(Single::Quote),
         _ => None,
     }
 }

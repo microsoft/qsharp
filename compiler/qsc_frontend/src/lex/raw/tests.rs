@@ -122,20 +122,10 @@ fn string() {
         &expect![[r#"
             [
                 Token {
-                    kind: Single(
+                    kind: String(
                         Quote,
                     ),
                     offset: 0,
-                },
-                Token {
-                    kind: String,
-                    offset: 1,
-                },
-                Token {
-                    kind: Single(
-                        Quote,
-                    ),
-                    offset: 7,
                 },
             ]
         "#]],
@@ -149,20 +139,10 @@ fn string_escape_quote() {
         &expect![[r#"
             [
                 Token {
-                    kind: Single(
+                    kind: String(
                         Quote,
                     ),
                     offset: 0,
-                },
-                Token {
-                    kind: String,
-                    offset: 1,
-                },
-                Token {
-                    kind: Single(
-                        Quote,
-                    ),
-                    offset: 9,
                 },
             ]
         "#]],
@@ -176,14 +156,10 @@ fn string_missing_quote() {
         &expect![[r#"
             [
                 Token {
-                    kind: Single(
-                        Quote,
+                    kind: String(
+                        Eof,
                     ),
                     offset: 0,
-                },
-                Token {
-                    kind: String,
-                    offset: 1,
                 },
             ]
         "#]],

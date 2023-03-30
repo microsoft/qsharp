@@ -951,11 +951,9 @@ fn string_missing_quote() {
         &expect![[r#"
             [
                 Err(
-                    IncompleteEof(
-                        Quote,
-                        String,
+                    UnterminatedString(
                         Span {
-                            lo: 9,
+                            lo: 0,
                             hi: 9,
                         },
                     ),
