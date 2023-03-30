@@ -40,6 +40,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - uses: Swatinem/rust-cache@v2
       - name: Clippy Lints
         run: cargo clippy -vv --all-targets --all-features -- -D warnings
 
@@ -55,6 +56,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - uses: Swatinem/rust-cache@v2
       - name: cargo bench
         run: cargo bench --workspace
 
