@@ -33,6 +33,9 @@ fn compile_kata(
     Ok((store, id))
 }
 
+/// # Panics
+///
+/// Will panic if Kata.Verify() does not return a Bool as result.
 #[must_use]
 pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool {
     // Compile and run the kata.
@@ -60,7 +63,7 @@ pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool
     match verification_result {
         Ok((result, _)) => match result {
             Value::Bool(b) => b,
-            _ => false,
+            _ => panic!("Verification result is not a Bool."),
         },
         Err(_e) => false,
     }
