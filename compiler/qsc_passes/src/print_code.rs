@@ -238,14 +238,6 @@ where
         self.print(")");
     }
 
-    fn visit_path(&mut self, path: &Path) {
-        if let Some(ns) = &path.namespace {
-            self.visit_ident(ns);
-            self.print(".");
-        }
-        self.visit_ident(&path.name);
-    }
-
     fn visit_range(
         &mut self,
         start: &Option<Box<Expr>>,
