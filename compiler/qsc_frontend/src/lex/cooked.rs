@@ -291,7 +291,7 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::String(Terminator::Quote) => Ok(Some(TokenKind::String)),
             raw::TokenKind::String(Terminator::Eof) => Err(Error::UnterminatedString(Span {
                 lo: token.offset,
-                hi: self.offset(),
+                hi: token.offset,
             })),
             raw::TokenKind::Unknown => {
                 let c = self.input[token.offset..]
