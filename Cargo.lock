@@ -435,6 +435,7 @@ dependencies = [
  "indoc",
  "qsc_eval",
  "qsc_frontend",
+ "qsc_passes",
 ]
 
 [[package]]

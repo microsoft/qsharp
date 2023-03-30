@@ -11,6 +11,7 @@ license.workspace = true
 [dependencies]
 qsc_frontend = { path = "../compiler/qsc_frontend" }
 qsc_eval = { path = "../compiler/qsc_eval" }
+qsc_passes = { path = "../compiler/qsc_passes" }
 
 [dev-dependencies]
 indoc = { workspace = true }
