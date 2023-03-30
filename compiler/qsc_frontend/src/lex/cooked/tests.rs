@@ -643,6 +643,26 @@ fn trailing_point() {
 }
 
 #[test]
+fn leading_zero_float() {
+    check(
+        "0.42",
+        &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Float,
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]],
+    );
+}
+
+#[test]
 fn dot_dot_int() {
     check(
         "..1",

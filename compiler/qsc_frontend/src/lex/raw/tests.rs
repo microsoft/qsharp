@@ -595,6 +595,57 @@ fn leading_point_exp() {
 }
 
 #[test]
+fn leading_zero_point() {
+    check(
+        "0.25",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_zero_zero_point() {
+    check(
+        "00.25",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_zero_exp() {
+    check(
+        "0.25e2",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn unknown() {
     check(
         "##",

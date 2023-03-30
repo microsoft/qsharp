@@ -1,4 +1,4 @@
-# Q# language and tooling:
+# Q# language and tooling
 
 > Under development
 
@@ -9,17 +9,17 @@ This repository contains Q# tooling, specifically:
 - **[npm](./npm/)**: Q# npm module
 - **[playground](./playground/)**: simple website for interacting with Q#
 
-
 ## Building
 
 To build this repository there are 4 dependencies that need to be installed. These are:
 
-- Python (version 3.11 or later. See <https://python.org>)
-- Rust (version 1.65 or later. See <https://www.rust-lang.org/tools/install>)
-- Node.js (version 16.17 or later. See <https://nodejs.org/>)
-- wasm-pack (version 0.10 or later. See <https://rustwasm.github.io/wasm-pack/installer/>)
+- Python (<https://python.org>)
+- Rust (<https://www.rust-lang.org/tools/install>)
+- Node.js (<https://nodejs.org/>)
+- wasm-pack (<https://rustwasm.github.io/wasm-pack/installer/>)
 
-The build script will check these dependencies and their versions and fail if not met.
+The build script will check these dependencies and their versions and fail if not met. (Or run
+`python ./prereqs.py` directly to check if the minimum required versions are installed).
 
 To build, in the root directory run `python ./build.py`. By default this will run a development
 build of each project.
@@ -39,7 +39,7 @@ Security issues and bugs should be reported privately following our [security is
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>.
 
 When you submit a pull request, a CLA bot will automatically determine whether you need to provide
 a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
@@ -55,8 +55,9 @@ For more details, please see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ### Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
+trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion
+or imply Microsoft sponsorship.  Any use of third-party trademarks or logos are subject to those
+third-party's policies.
