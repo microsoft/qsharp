@@ -35,9 +35,9 @@ fn compile_kata(
 
 #[must_use]
 pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool {
-    let verification_result = compile_kata(verification_source, kata_implementation)
-        .map_err(|_| false)
-        .and_then(|(store, id)| {
+    // Compile and run the kata.
+    let verification_result =
+        compile_kata(verification_source, kata_implementation).and_then(|(store, id)| {
             let globals = extract_callables(&store);
             let mut stdout = io::stdout();
             let mut out = GenericReceiver::new(&mut stdout);
@@ -50,8 +50,13 @@ pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool
                 .entry
                 .as_ref()
                 .expect("Entry expression should be present");
-            evaluator.eval_expr(expr).map_err(|_| false)
+            evaluator
+                .eval_expr(expr)
+                .map_err(|_| String::from("Runtime error"))
         });
+
+    // Return false if compilation or evaluation failed.
+    // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
     match verification_result {
         Ok((result, _)) => match result {
             Value::Bool(b) => b,
