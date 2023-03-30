@@ -35,23 +35,24 @@ fn compile_kata(
 
 #[must_use]
 pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool {
-    let compilation_result = compile_kata(verification_source, kata_implementation);
-    let (store, id) = compilation_result.unwrap();
-    let globals = extract_callables(&store);
-    let mut stdout = io::stdout();
-    let mut out = GenericReceiver::new(&mut stdout);
-    let evaluator = Evaluator::from_store(&store, id, &globals, &mut out);
-    let unit = store
-        .get(id)
-        .expect("Compile unit should be in package store");
-    let expr = unit
-        .package
-        .entry
-        .as_ref()
-        .expect("Entry expression should be present");
-    let evaluation_result = evaluator.eval_expr(expr);
-    // N.B. Once evaluation works for katas, run the Verify operation.
-    match evaluation_result {
+    let verification_result = compile_kata(verification_source, kata_implementation)
+        .map_err(|_| false)
+        .and_then(|(store, id)| {
+            let globals = extract_callables(&store);
+            let mut stdout = io::stdout();
+            let mut out = GenericReceiver::new(&mut stdout);
+            let evaluator = Evaluator::from_store(&store, id, &globals, &mut out);
+            let unit = store
+                .get(id)
+                .expect("Compile unit should be in package store");
+            let expr = unit
+                .package
+                .entry
+                .as_ref()
+                .expect("Entry expression should be present");
+            evaluator.eval_expr(expr).map_err(|_| false)
+        });
+    match verification_result {
         Ok((result, _)) => match result {
             Value::Bool(b) => b,
             _ => false,
