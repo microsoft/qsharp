@@ -281,10 +281,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn quote(&mut self, c: char) -> bool {
-        c == '"'
-    }
-
     fn eat_string(&mut self) {
         while self.first().is_some() && self.first() != Some('"') {
             self.eat_while(|c| c != '\\' && c != '"');
@@ -300,7 +296,7 @@ impl Iterator for Lexer<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let (offset, c) = self.chars.next()?;
-        let kind = if self.quote(c) {
+        let kind = if matches!(single(c), Some(Single::Quote)) {
             self.in_string = !self.in_string;
             TokenKind::Single(Single::Quote)
         } else if self.in_string {
