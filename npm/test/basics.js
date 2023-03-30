@@ -85,3 +85,23 @@ test('runtime error position', t => {
     }
     assert.fail('Runtime error should have a position');
 });
+
+test('message output', t => {
+    let code = `namespace Sample {
+        operation main() : Unit {
+            Message("hello qsharp");
+            return ();
+        }
+    }`;
+    let expr = 'Sample.main()';
+    let output = null;
+    let called = 0;
+    let result = evaluate(code, expr, (msg) => {
+        ++called;
+        output = msg;
+    });
+    assert.equal(called, 1);
+    let msg_obj = JSON.parse(output || "");
+    assert(msg_obj.type === "Message");
+    assert(msg_obj.message == "hello qsharp");
+});

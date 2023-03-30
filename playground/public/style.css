@@ -93,3 +93,23 @@ td {
  button {
     margin: 2px;
  }
+
+ .result-header {
+    font-size: 16px;
+    font-weight: 400;
+    margin-left: 16px;
+ }
+
+ .message-output {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 16pt;
+    background-color: #635858;
+    color:#f0f0f0;
+    border: 1px solid blue;
+    margin: 10px;
+    width: 520px;
+ }
+
+ .message-output::before {
+    content: "> ";
+ }

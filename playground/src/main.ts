@@ -4,7 +4,7 @@
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import {init, getCompletions, checkCode, evaluate, 
-    outputAsDump, renderDump, IDiagnostic, Dump } from "qsharp/browser";
+    outputAsDump, outputAsMessage, renderDump, IDiagnostic, Dump } from "qsharp/browser";
 
 import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
 
@@ -32,7 +32,7 @@ declare var MathJax: {typeset: () => void;};
 
 type ShotResult = {
     result: string;
-    dumps: Dump[];
+    output: Array<Dump | string>;
 }
 let runResults: ShotResult[] = [];
 let currentFilter = "";
@@ -99,14 +99,20 @@ async function loaded() {
 
         let currentShotResult: ShotResult = {
             "result": "null",
-            "dumps": []
+            "output": []
         };
         runResults = [];
 
         let event_cb = (ev: string) => {
+            // See if we got a DumpMachine or a Message output and save it.
             let dump = outputAsDump(ev);
             if (dump) {
-                currentShotResult.dumps.push(dump);
+                currentShotResult.output.push(dump);
+            } else {
+                let msg = outputAsMessage(ev);
+                if (msg) {
+                    currentShotResult.output.push(msg);
+                }
             }
         }
 
@@ -124,7 +130,7 @@ async function loaded() {
                     }
             }
             runResults.push(currentShotResult);
-            currentShotResult = {result: "null", dumps: []};
+            currentShotResult = {result: "null", output: []};
         }
         runComplete();
     });
@@ -170,7 +176,7 @@ function renderOutputs(container: HTMLDivElement) {
     container.innerHTML = "";
     let mappedResults = runResults.map(result => ({
         result: resultToKet(result.result),
-        dumps: result.dumps
+        output: result.output
     }));
 
     let filteredResults = currentFilter == "" ? mappedResults :
@@ -184,7 +190,8 @@ function renderOutputs(container: HTMLDivElement) {
     prev.textContent = "Prev";
     let next = document.createElement("button");
     next.textContent = "Next";
-    let title = document.createElement("h3");
+    let title = document.createElement("span");
+    title.className = "result-header";
     let dumpTables = document.createElement("div");
 
     header.appendChild(prev);
@@ -204,10 +211,20 @@ function renderOutputs(container: HTMLDivElement) {
         title.innerText = `Result: ${filteredResults[currentIndex].result} - #${currentIndex + 1} of ${filteredResults.length}`;
         dumpTables.innerHTML = "";
 
-        filteredResults[currentIndex].dumps.forEach(dump => {
-            let table = document.createElement("table");
-            table.innerHTML = renderDump(dump);
-            dumpTables.appendChild(table);
+        filteredResults[currentIndex].output.forEach(output => {
+            if (typeof output === 'string') {
+                // A Message output
+                let div = document.createElement("div");
+                div.className = "message-output";
+                div.innerText = output;
+                dumpTables.appendChild(div);
+
+            } else {
+                // A DumpMachine output
+                let table = document.createElement("table");
+                table.innerHTML = renderDump(output);
+                dumpTables.appendChild(table);
+            }
         });
     }
 

@@ -1,4 +1,4 @@
-import {Dump} from "./runtime-output.js"
+import {Dump} from "./common.js";
 
 export const exampleDump: Dump = {
         "|0⟩": [
@@ -19,17 +19,7 @@ export const exampleDump: Dump = {
         ]
 };
 
-export function outputAsDump(msg: string) : Dump | null {
-    try {
-        let obj = JSON.parse(msg);
-        if (obj?.type == "DumpMachine" && typeof obj.state == "object") {
-            return obj.state as Dump;
-        }
-    } catch {
-        return null;
-    }
-    return null;
-}
+
 
 // Takes the output of DumpMachine as a "Dump" object and renders the inner HTML of a
 // table as a string. To use in a page you could use something like the below:

@@ -265,8 +265,12 @@ where
         Ok(())
     }
 
-    fn message(&mut self, _msg: String) -> Result<(), output::Error> {
-        todo!()
+    fn message(&mut self, msg: String) -> Result<(), output::Error> {
+        let mut msg_str = String::new();
+        write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
+            .expect("Writing to a string should succeed");
+        (self.event_cb)(&msg_str);
+        Ok(())
     }
 }
 
@@ -300,6 +304,7 @@ where
 
 #[wasm_bindgen]
 pub fn run(code: &str, expr: &str, event_cb: &js_sys::Function) -> Result<JsValue, JsValue> {
+    // Passing the callback function for output is optional.
     let result = if event_cb.is_function() {
         run_internal(code, expr, |msg: &str| {
             // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
@@ -373,4 +378,21 @@ fn fail_ry() {
     let expr = "Sample.main()";
     let result = run_internal(code, expr,|_msg_| {});
     assert!(result.is_err());
+}
+
+#[test]
+fn test_message() {
+    let code = r#"namespace Sample {
+        open Microsoft.Quantum.Diagnostics;
+    
+        operation main() : Unit {
+            Message("hi");
+            return ();
+        }
+    }"#;
+    let expr = "Sample.main()";
+    let result = run_internal(code, expr,|_msg_| {
+        assert!(_msg_.contains("hi"));
+    });
+    assert!(result.is_ok()); 
 }
