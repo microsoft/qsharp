@@ -203,7 +203,7 @@ fn convert_err_to_diagnostic(err: &impl Diagnostic) -> VSDiagnostic {
         end_pos: offset + len,
         severity: severity as i32,
         message,
-    } 
+    }
 }
 
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
@@ -318,7 +318,9 @@ pub fn run(code: &str, expr: &str, event_cb: &js_sys::Function) -> Result<JsValu
 
     match result {
         Ok(val) => Ok(serde_wasm_bindgen::to_value(&val.to_string())?),
-        Err(e) => Err(serde_wasm_bindgen::to_value(&convert_err_to_diagnostic(&e))?)
+        Err(e) => Err(serde_wasm_bindgen::to_value(&convert_err_to_diagnostic(
+            &e,
+        ))?),
     }
 }
 
@@ -331,7 +333,7 @@ pub fn it_will_fail(val: i32) -> Result<JsValue, JsValue> {
             start_pos: 10,
             end_pos: 20,
             severity: 1,
-            message: "Tuple type incorrect".to_string()
+            message: "Tuple type incorrect".to_string(),
         })?)
     }
 }
@@ -376,7 +378,7 @@ fn fail_ry() {
         }
     }";
     let expr = "Sample.main()";
-    let result = run_internal(code, expr,|_msg_| {});
+    let result = run_internal(code, expr, |_msg_| {});
     assert!(result.is_err());
 }
 
@@ -391,8 +393,8 @@ fn test_message() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = run_internal(code, expr,|_msg_| {
+    let result = run_internal(code, expr, |_msg_| {
         assert!(_msg_.contains("hi"));
     });
-    assert!(result.is_ok()); 
+    assert!(result.is_ok());
 }
