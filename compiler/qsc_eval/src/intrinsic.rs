@@ -4,28 +4,29 @@
 #[cfg(test)]
 mod tests;
 
-use std::{ops::ControlFlow, ptr::null_mut};
+use std::ops::ControlFlow;
 
 use qir_backend::{
     __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body,
-    __quantum__qis__cz__body, __quantum__qis__dumpmachine__body, __quantum__qis__h__body,
-    __quantum__qis__m__body, __quantum__qis__mresetz__body, __quantum__qis__reset__body,
-    __quantum__qis__rx__body, __quantum__qis__rxx__body, __quantum__qis__ry__body,
-    __quantum__qis__ryy__body, __quantum__qis__rz__body, __quantum__qis__rzz__body,
-    __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__swap__body,
-    __quantum__qis__t__adj, __quantum__qis__t__body, __quantum__qis__x__body,
-    __quantum__qis__y__body, __quantum__qis__z__body, qubit_is_zero,
+    __quantum__qis__cz__body, __quantum__qis__h__body, __quantum__qis__m__body,
+    __quantum__qis__mresetz__body, __quantum__qis__reset__body, __quantum__qis__rx__body,
+    __quantum__qis__rxx__body, __quantum__qis__ry__body, __quantum__qis__ryy__body,
+    __quantum__qis__rz__body, __quantum__qis__rzz__body, __quantum__qis__s__adj,
+    __quantum__qis__s__body, __quantum__qis__swap__body, __quantum__qis__t__adj,
+    __quantum__qis__t__body, __quantum__qis__x__body, __quantum__qis__y__body,
+    __quantum__qis__z__body, capture_quantum_state, qubit_is_zero,
     result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
 };
 use qsc_ast::ast::Span;
 
-use crate::{val::Value, Error, Reason, WithSpan};
+use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
 
 pub(crate) fn invoke_intrinsic(
     name: &str,
     name_span: Span,
     args: Value,
     args_span: Span,
+    out: &mut dyn Receiver,
 ) -> ControlFlow<Reason, Value> {
     if name.starts_with("__quantum__qis__") {
         invoke_quantum_intrinsic(name, name_span, args, args_span)
@@ -43,14 +44,85 @@ pub(crate) fn invoke_intrinsic(
             }
 
             "DumpMachine" => {
-                // TODO(swernli): Replace with Rust state dump call when added to qir-backend.
-                __quantum__qis__dumpmachine__body(null_mut());
-                ControlFlow::Continue(Value::UNIT)
+                let mut state = capture_quantum_state();
+                state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+                match out.state(state) {
+                    Ok(_) => ControlFlow::Continue(Value::UNIT),
+                    Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
+                }
             }
+
+            "Message" => match out.message(args.try_into().with_span(args_span)?) {
+                Ok(_) => ControlFlow::Continue(Value::UNIT),
+                Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
+            },
+
+            "ToString" => ControlFlow::Continue(Value::String(args.to_string())),
 
             "CheckZero" => ControlFlow::Continue(Value::Bool(qubit_is_zero(
                 args.try_into().with_span(args_span)?,
             ))),
+
+            "ArcCos" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.acos()))
+            }
+
+            "ArcSin" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.asin()))
+            }
+
+            "ArcTan" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.atan()))
+            }
+
+            "ArcTan2" => {
+                let mut args = args.try_into_tuple().with_span(args_span)?;
+                if args.len() == 2 {
+                    let (a2, a1) = (
+                        args.pop().expect("tuple should have 2 entries"),
+                        args.pop().expect("tuple should have 2 entries"),
+                    );
+                    let val: f64 = a1.try_into().with_span(args_span)?;
+                    ControlFlow::Continue(Value::Double(
+                        val.atan2(a2.try_into().with_span(args_span)?),
+                    ))
+                } else {
+                    ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                }
+            }
+
+            "Cos" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.cos()))
+            }
+
+            "Cosh" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.cosh()))
+            }
+
+            "Sin" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.sin()))
+            }
+
+            "Sinh" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.sinh()))
+            }
+
+            "Tan" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.tan()))
+            }
+
+            "Tanh" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                ControlFlow::Continue(Value::Double(val.tanh()))
+            }
 
             _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
         }

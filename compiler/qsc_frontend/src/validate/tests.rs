@@ -229,3 +229,51 @@ fn test_nested_type_hole_param() {
         "#]],
     );
 }
+
+#[test]
+fn test_elided_required() {
+    check(
+        indoc! {"
+            namespace input {
+                operation Foo(a : Int) : Unit is Adj + Ctl {
+                    body a {}
+                    controlled (ctls, ...) {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                ElidedRequired(
+                    Span {
+                        lo: 80,
+                        hi: 81,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_elided_tuple_required() {
+    check(
+        indoc! {"
+            namespace input {
+                operation Foo(a : Int) : Unit is Adj + Ctl {
+                    body ... {}
+                    controlled ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                ElidedTupleRequired(
+                    Span {
+                        lo: 106,
+                        hi: 109,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

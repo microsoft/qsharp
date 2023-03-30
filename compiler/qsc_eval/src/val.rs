@@ -2,15 +2,15 @@
 // Licensed under the MIT License.
 
 use std::{
-    ffi::{c_double, c_void},
+    ffi::c_void,
     fmt::{self, Display, Formatter},
     iter,
 };
 
-use crate::globals::GlobalId;
 use num_bigint::BigInt;
 use qir_backend::__quantum__rt__qubit_release;
 use qsc_ast::ast::Pauli;
+use qsc_passes::globals::GlobalId;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -127,6 +127,21 @@ impl TryFrom<Value> for i64 {
     }
 }
 
+impl TryFrom<Value> for BigInt {
+    type Error = ConversionError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        if let Value::BigInt(v) = value {
+            Ok(v)
+        } else {
+            Err(ConversionError {
+                expected: "BigInt",
+                actual: value.type_name(),
+            })
+        }
+    }
+}
+
 impl TryFrom<Value> for bool {
     type Error = ConversionError;
 
@@ -172,15 +187,15 @@ impl TryFrom<Value> for *mut c_void {
     }
 }
 
-impl TryFrom<Value> for c_double {
+impl TryFrom<Value> for f64 {
     type Error = ConversionError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Double(v) = value {
-            Ok(v as c_double)
+            Ok(v)
         } else {
             Err(ConversionError {
-                expected: "Qubit",
+                expected: "Double",
                 actual: value.type_name(),
             })
         }

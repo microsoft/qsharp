@@ -1,0 +1,16 @@
+name: rust-toolchain
+inputs:
+  toolchain:
+    required: false
+  components:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: pwsh
+      run: |
+        rustup override set ${{ inputs.toolchain || 'stable' }}
+        ${{ inputs.components && format('rustup component add {0}', inputs.components) }}
+        cargo --version
+        rustc --version

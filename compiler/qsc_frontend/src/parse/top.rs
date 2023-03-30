@@ -41,7 +41,7 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
     })
 }
 
-fn item(s: &mut Scanner) -> Result<Item> {
+pub(super) fn item(s: &mut Scanner) -> Result<Item> {
     let lo = s.peek().span.lo;
     let meta = opt(s, item_meta)?.unwrap_or_default();
     let kind = if let Some(open) = opt(s, item_open)? {

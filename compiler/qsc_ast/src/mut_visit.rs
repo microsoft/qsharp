@@ -94,6 +94,8 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
     item.meta.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
 
     match &mut item.kind {
+        ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
+        ItemKind::Err => {}
         ItemKind::Open(ns, alias) => {
             vis.visit_ident(ns);
             alias.iter_mut().for_each(|a| vis.visit_ident(a));
@@ -102,7 +104,6 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
-        ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
     }
 }
 
@@ -195,6 +196,7 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
     vis.visit_span(&mut stmt.span);
 
     match &mut stmt.kind {
+        StmtKind::Empty => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(pat);

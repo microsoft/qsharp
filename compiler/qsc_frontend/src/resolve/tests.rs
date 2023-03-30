@@ -1036,3 +1036,115 @@ fn for_loop_var() {
         "#]],
     );
 }
+
+#[test]
+fn repeat_until() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation A() : Unit {
+                    repeat {
+                        let cond = true;
+                    } until cond;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                operation _5() : Unit {
+                    repeat {
+                        let _14 = true;
+                    } until _14;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn repeat_until_fixup() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation A() : Unit {
+                    repeat {
+                        mutable cond = false;
+                    } until cond
+                    fixup {
+                        set cond = true;
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                operation _5() : Unit {
+                    repeat {
+                        mutable _14 = false;
+                    } until _14
+                    fixup {
+                        set _14 = true;
+                    }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn use_qubit() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation X(q : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation A() : Unit {
+                    use q = Qubit();
+                    X(q);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                operation _5(_8 : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation _14() : Unit {
+                    use _20 = Qubit();
+                    _5(_20);
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn use_qubit_block() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation X(q : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation A() : Unit {
+                    use q = Qubit() {
+                        X(q);
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace Foo {
+                operation _5(_8 : Qubit) : Unit {
+                    body intrinsic;
+                }
+                operation _14() : Unit {
+                    use _20 = Qubit() {
+                        _5(_20);
+                    }
+                }
+            }
+        "#]],
+    );
+}
