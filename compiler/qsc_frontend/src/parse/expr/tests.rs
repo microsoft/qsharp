@@ -580,6 +580,32 @@ fn lit_string_unmatched_quote() {
 }
 
 #[test]
+fn lit_string_empty() {
+    check(
+        expr,
+        r#""""#,
+        &expect![[r#"
+            Ok(
+                Expr {
+                    id: NodeId(
+                        4294967295,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 2,
+                    },
+                    kind: Lit(
+                        String(
+                            "",
+                        ),
+                    ),
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn lit_false() {
     check(
         expr,

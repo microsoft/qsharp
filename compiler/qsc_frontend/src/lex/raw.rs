@@ -98,6 +98,8 @@ pub(crate) enum Single {
     Plus,
     /// `?`
     Question,
+    /// `"`
+    Quote,
     /// `;`
     Semi,
     /// `/`
@@ -133,6 +135,7 @@ impl Display for Single {
             Single::Percent => '%',
             Single::Plus => '+',
             Single::Question => '?',
+            Single::Quote => '"',
             Single::Semi => ';',
             Single::Slash => '/',
             Single::Star => '*',
@@ -151,12 +154,14 @@ pub(crate) enum Number {
 #[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
+    in_string: bool,
 }
 
 impl<'a> Lexer<'a> {
     pub(super) fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
+            in_string: false,
         }
     }
 
@@ -180,10 +185,6 @@ impl<'a> Lexer<'a> {
         let mut chars = self.chars.clone();
         chars.next();
         chars.next().map(|i| i.1)
-    }
-
-    fn eof(&mut self) -> bool {
-        self.chars.peek().is_none()
     }
 
     fn whitespace(&mut self, c: char) -> bool {
@@ -280,22 +281,17 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn string(&mut self, c: char) -> bool {
-        if c != '"' {
-            return false;
-        }
+    fn quote(&mut self, c: char) -> bool {
+        c == '"'
+    }
 
-        while !self.next_if_eq('"') {
+    fn eat_string(&mut self) {
+        while self.first().is_some() && self.first() != Some('"') {
             self.eat_while(|c| c != '\\' && c != '"');
             if self.next_if_eq('\\') {
                 self.next_if_eq('"');
             }
-            if self.eof() {
-                return false;
-            }
         }
-
-        true
     }
 }
 
@@ -304,14 +300,18 @@ impl Iterator for Lexer<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let (offset, c) = self.chars.next()?;
-        let kind = if self.comment(c) {
+        let kind = if self.quote(c) {
+            self.in_string = !self.in_string;
+            TokenKind::Single(Single::Quote)
+        } else if self.in_string {
+            self.eat_string();
+            TokenKind::String
+        } else if self.comment(c) {
             TokenKind::Comment
         } else if self.whitespace(c) {
             TokenKind::Whitespace
         } else if self.ident(c) {
             TokenKind::Ident
-        } else if self.string(c) {
-            TokenKind::String
         } else {
             self.number(c)
                 .map(TokenKind::Number)
@@ -350,6 +350,7 @@ fn single(c: char) -> Option<Single> {
         '>' => Some(Single::Gt),
         '|' => Some(Single::Bar),
         '~' => Some(Single::Tilde),
+        '"' => Some(Single::Quote),
         _ => None,
     }
 }

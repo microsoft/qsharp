@@ -284,8 +284,9 @@ impl<'a> Lexer<'a> {
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
+            raw::TokenKind::Single(Single::Quote) => Ok(Some(self.string()?)),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String => Ok(Some(TokenKind::String)),
+            raw::TokenKind::String => unreachable!(),
             raw::TokenKind::Unknown => {
                 let c = self.input[token.offset..]
                     .chars()
@@ -408,6 +409,7 @@ impl<'a> Lexer<'a> {
             Single::Percent => Ok(self.closed_bin_op(ClosedBinOp::Percent)),
             Single::Plus => Ok(self.closed_bin_op(ClosedBinOp::Plus)),
             Single::Question => Ok(TokenKind::Question),
+            Single::Quote => unreachable!(),
             Single::Semi => Ok(TokenKind::Semi),
             Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),
             Single::Star => Ok(self.closed_bin_op(ClosedBinOp::Star)),
@@ -418,6 +420,12 @@ impl<'a> Lexer<'a> {
                 Ok(complete)
             }
         }
+    }
+
+    fn string(&mut self) -> Result<TokenKind, Error> {
+        self.tokens.next_if(|t| t.kind == raw::TokenKind::String);
+        self.expect(Single::Quote, TokenKind::String)?;
+        Ok(TokenKind::String)
     }
 
     fn closed_bin_op(&mut self, op: ClosedBinOp) -> TokenKind {
