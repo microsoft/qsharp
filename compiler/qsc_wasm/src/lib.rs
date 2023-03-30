@@ -324,20 +324,6 @@ pub fn run(code: &str, expr: &str, event_cb: &js_sys::Function) -> Result<JsValu
     }
 }
 
-#[wasm_bindgen]
-pub fn it_will_fail(val: i32) -> Result<JsValue, JsValue> {
-    if val >= 0 {
-        Ok(serde_wasm_bindgen::to_value("When it works")?)
-    } else {
-        Err(serde_wasm_bindgen::to_value(&VSDiagnostic {
-            start_pos: 10,
-            end_pos: 20,
-            severity: 1,
-            message: "Tuple type incorrect".to_string(),
-        })?)
-    }
-}
-
 #[test]
 fn test_callable() {
     let code = "namespace input { operation Foo(a : Int -> Int) : Unit {} }";
@@ -386,7 +372,7 @@ fn fail_ry() {
 fn test_message() {
     let code = r#"namespace Sample {
         open Microsoft.Quantum.Diagnostics;
-    
+
         operation main() : Unit {
             Message("hi");
             return ();

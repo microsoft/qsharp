@@ -5,7 +5,7 @@
 
 import assert from "node:assert";
 import {test} from "node:test";
-import {checkCode, getCompletions, evaluate, it_will_fail} from "../dist/node.js"
+import {checkCode, getCompletions, evaluate} from "../dist/node.js"
 
 test('no syntax errors', t => {
     let result = checkCode('namespace Foo { operation Main() : Unit {} }')
@@ -50,24 +50,8 @@ test('dump machine output', t => {
     assert(dump.state["|0⟩"].length == 2);
 });
 
-test('error types', t => {
-    try {
-        let ok_result = it_will_fail(5);
-    }
-    catch(e)
-    {
-        assert(false, "Should have worked!");
-    }
-    try {
-        let err_result = it_will_fail(-1);
-    } catch(e) {
-        assert(e.start_pos != undefined);
-        return;
-    }
-    assert.fail("Didn't throw an exception as expected");
-});
-
 test('runtime error position', t => {
+    // TODO: The below should be a compile-time check and the test will fail when fixed.
     let code = `namespace Sample {
         operation main() : Result {
             use q1 = Qubit();
