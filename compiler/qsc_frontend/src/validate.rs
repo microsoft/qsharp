@@ -46,11 +46,9 @@ struct Validator {
 impl Validator {
     fn validate_params(&mut self, params: &Pat) {
         match &params.kind {
-            PatKind::Bind(id, ty) => {
-                if ty.is_none() {
-                    self.validation_errors
-                        .push(Error::ParameterNotTyped(id.name.clone(), params.span));
-                }
+            PatKind::Bind(id, None) => {
+                self.validation_errors
+                    .push(Error::ParameterNotTyped(id.name.clone(), params.span));
             }
             PatKind::Paren(item) => self.validate_params(item),
             PatKind::Tuple(items) => {
