@@ -14,7 +14,7 @@ use qsc_frontend::{
 use qsc_passes::{globals::extract_callables, print_code::CodePrinter};
 use std::{
     fs::{self, File},
-    io::{self, LineWriter},
+    io,
     path::{Path, PathBuf},
     process::ExitCode,
     result::Result,
@@ -122,17 +122,11 @@ fn print_compilation_unit(unit: &CompileUnit, path: &Path) {
 
 fn print_code(unit: &CompileUnit, path: &Path) {
     if path.as_os_str() == "-" {
-        let mut writer = CodePrinter {
-            writer: LineWriter::new(std::io::stdout()),
-            indentation: 0,
-        };
+        let mut writer = CodePrinter::new(io::stdout());
         writer.visit_package(&unit.package);
     } else {
         let file = File::create(path).unwrap();
-        let mut writer = CodePrinter {
-            writer: LineWriter::new(file),
-            indentation: 0,
-        };
+        let mut writer = CodePrinter::new(file);
         writer.visit_package(&unit.package);
     }
 }

@@ -16,14 +16,21 @@ use qsc_ast::visit::Visitor;
 mod tests;
 
 pub struct CodePrinter<W: Write> {
-    pub writer: LineWriter<W>,
-    pub indentation: i32,
+    writer: LineWriter<W>,
+    indentation: i32,
 }
 
 impl<W> CodePrinter<W>
 where
     W: Write,
 {
+    pub fn new(writer: W) -> CodePrinter<W> {
+        CodePrinter {
+            writer: LineWriter::new(writer),
+            indentation: 0,
+        }
+    }
+
     fn print(&mut self, s: &str) {
         self.writer
             .write_all(s.as_bytes())

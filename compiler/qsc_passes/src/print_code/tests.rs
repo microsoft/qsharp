@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{io::LineWriter, str::from_utf8};
+use std::str::from_utf8;
 
 use indoc::indoc;
 use qsc_ast::visit::Visitor;
@@ -27,10 +27,7 @@ fn __check(input: &str, expected: &str, ignore_errors: bool, just_expr: bool) {
 
     let mut output = Vec::new();
     {
-        let mut printer = CodePrinter {
-            writer: LineWriter::new(&mut output),
-            indentation: 0,
-        };
+        let mut printer = CodePrinter::new(&mut output);
         if just_expr {
             printer.visit_expr(&unit.package.entry.expect("expected an entry expression"));
         } else {
