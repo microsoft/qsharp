@@ -150,14 +150,14 @@ fn message() {
 
 #[test]
 fn to_string() {
-    check_intrinsic_result("", "ToString(One)", &expect![["One"]]);
+    check_intrinsic_result("", "AsString(One)", &expect![["One"]]);
 }
 
 #[test]
 fn to_string_message() {
     check_intrinsic_output(
         "",
-        r#"Message(ToString(PauliX))"#,
+        r#"Message(AsString(PauliX))"#,
         &expect![[r#"
             PauliX
         "#]],
