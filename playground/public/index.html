@@ -21,14 +21,17 @@
   <body>
     <h1>Q# playground</h1>
     <div id="container">
+      <div>
       <div id="editor"></div>
+      <p>
+        <input id="expr" value="Sample.main()"/>
+        <input id="shot" type="number" value="100" max="1000" min="1"/>
+        <button id="run">Run</button>
+      </p>
+      </div>
       <div id="output"></div>
     </div>
-    <p>
-      <input id="expr" value="Sample.main()"/>
-      <input id="shot" type="number" value="100" max="1000" min="1"/>
-      <button id="run">Run</button>
-    </p>
+
     <div id="errors"></div>
     <script src="libs/monaco/vs/loader.js"></script>
     <script src="libs/app.js"></script>

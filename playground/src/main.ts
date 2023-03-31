@@ -3,8 +3,8 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompletions, checkCode, evaluate, 
-    outputAsDump, outputAsMessage, renderDump, IDiagnostic, Dump } from "qsharp/browser";
+import {init, getCompletions, checkCode, evaluate, eventStringToMsg,
+    renderDump, IDiagnostic, ShotResult } from "qsharp/browser";
 
 import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
 
@@ -30,12 +30,26 @@ const sampleCode = `namespace Sample {
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
 declare var MathJax: {typeset: () => void;};
 
-type ShotResult = {
-    result: string;
-    output: Array<Dump | string>;
-}
 let runResults: ShotResult[] = [];
 let currentFilter = "";
+let editor: monaco.editor.IStandaloneCodeEditor;
+
+// Helpers to turn errors into editor squiggles
+let currentsquiggles: string[] = [];
+function squiggleDiagnostics(errors: IDiagnostic[]) {
+    let srcModel = editor.getModel()!;
+    let newDecorations = errors.map(err => {
+        let startPos = srcModel.getPositionAt(err.start_pos);
+        let endPos = srcModel.getPositionAt(err.end_pos);
+        let range = monaco.Range.fromPositions(startPos, endPos);
+        let decoration: monaco.editor.IModelDeltaDecoration = {
+            range,
+            options: {className: 'err-span', hoverMessage: {value: err.message}}
+        }
+        return decoration;
+    });
+    currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations);
+}
 
 // This runs after the Monaco editor is initialized
 async function loaded() {
@@ -49,25 +63,9 @@ async function loaded() {
     let runButton = document.querySelector('#run') as HTMLButtonElement;
 
     // Create the monaco editor and set some initial code
-    let editor = monaco.editor.create(editorDiv);
+    editor = monaco.editor.create(editorDiv);
     let srcModel = monaco.editor.createModel(sampleCode, 'qsharp');
     editor.setModel(srcModel);
-
-    // Helpers to turn errors into editor squiggles
-    let currentsquiggles: string[] = [];
-    function squiggleDiagnostics(errors: IDiagnostic[]) {
-        let newDecorations = errors.map(err => {
-            let startPos = srcModel.getPositionAt(err.start_pos);
-            let endPos = srcModel.getPositionAt(err.end_pos);
-            let range = monaco.Range.fromPositions(startPos, endPos);
-            let decoration: monaco.editor.IModelDeltaDecoration = {
-                range,
-                options: {className: 'err-span', hoverMessage: {value: err.message}}
-            }
-            return decoration;
-        });
-        currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations);
-    }
 
     // As code is edited check it for errors and update the error list
     function check() {
@@ -77,6 +75,8 @@ async function loaded() {
         errorsDiv.innerText = JSON.stringify(errs, null, 2);
 
         squiggleDiagnostics(errs);
+        errs.length ? 
+            runButton.setAttribute("disabled", "true") : runButton.removeAttribute("disabled");
     }
 
     // While the code is changing, update the diagnostics as fast as the browser will render frames
@@ -97,41 +97,49 @@ async function loaded() {
         let expr = exprInput.value;
         let shots = parseInt(shotCount.value);
 
+        // State for tracking as shot results are reported
         let currentShotResult: ShotResult = {
-            "result": "null",
-            "output": []
+            success: false,
+            result: "pending",
+            events: []
         };
         runResults = [];
 
         let event_cb = (ev: string) => {
-            // See if we got a DumpMachine or a Message output and save it.
-            let dump = outputAsDump(ev);
-            if (dump) {
-                currentShotResult.output.push(dump);
-            } else {
-                let msg = outputAsMessage(ev);
-                if (msg) {
-                    currentShotResult.output.push(msg);
-                }
+            let result = eventStringToMsg(ev);
+            if (!result) {
+                console.error("Unrecognized message: " + ev);
+                return;
+            }
+            switch (result.type) {
+                case "Result":
+                    currentShotResult.success = result.success;
+                    currentShotResult.result = result.result;
+                    // TODO: Maybe squiggle the error on failure results
+
+                    // Push this result and prep for the next
+                    runResults.push(currentShotResult);
+                    currentShotResult = {success: false, result: "pending", events: []};
+                    break;
+                case "Message":
+                    currentShotResult.events.push(result);
+                    break;
+                case "DumpMachine":
+                    currentShotResult.events.push(result);
+                    break;
             }
         }
 
-        for(let i = 0; i < shots; ++i) {
-            try {
-                let result = evaluate(code, expr, event_cb);
-                currentShotResult.result = result;
-            } catch(e: any) {
-                currentShotResult.result = "ERROR";
-                if (typeof e.start_pos === 'number' &&
-                    typeof e.end_pos === 'number' &&
-                    typeof e.message === 'string') {
-                        squiggleDiagnostics([e]);
-                        errorsDiv.innerText = JSON.stringify(e, null, 2);
-                    }
-            }
-            runResults.push(currentShotResult);
-            currentShotResult = {result: "null", output: []};
+        try {
+            performance.mark("start-shots");
+            let result = evaluate(code, expr, event_cb, shots);
+        } catch(e: any) {
+            // TODO: Should only happen on crash. Telmetry?
+            
         }
+        performance.mark("end-shots");
+        let measure = performance.measure("shots-duration", "start-shots", "end-shots");
+        console.info(`Ran ${shots} shots in ${measure.duration}ms`);
         runComplete();
     });
 
@@ -157,7 +165,9 @@ async function loaded() {
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/
-function resultToKet(result: string): string {
+function resultToKet(result: string | IDiagnostic): string {
+    if (typeof result !== 'string') return "ERROR";
+
     if (reKetResult.test(result)) {
         // The result is a simple array of Zero and One
         // The below will return an array of "Zero" or "One" in the order found
@@ -176,7 +186,8 @@ function renderOutputs(container: HTMLDivElement) {
     container.innerHTML = "";
     let mappedResults = runResults.map(result => ({
         result: resultToKet(result.result),
-        output: result.output
+        events: result.events,
+        error: (typeof result.result === 'string') ? undefined : result.result
     }));
 
     let filteredResults = currentFilter == "" ? mappedResults :
@@ -202,35 +213,46 @@ function renderOutputs(container: HTMLDivElement) {
     container.appendChild(dumpTables);
 
     let currentIndex = 0;
-    function showDump(move: number) {
+    function showOutput(move: number) {
         currentIndex += move;
         if (currentIndex < 0) currentIndex = 0;
         if (currentIndex >= filteredResults.length) currentIndex = filteredResults.length - 1;
 
         let current = filteredResults[currentIndex];
-        title.innerText = `Result: ${filteredResults[currentIndex].result} - #${currentIndex + 1} of ${filteredResults.length}`;
-        dumpTables.innerHTML = "";
+        title.innerText = `Output for shot #${currentIndex + 1} of ${filteredResults.length}`;
 
-        filteredResults[currentIndex].output.forEach(output => {
-            if (typeof output === 'string') {
-                // A Message output
-                let div = document.createElement("div");
-                div.className = "message-output";
-                div.innerText = output;
-                dumpTables.appendChild(div);
+        let resultHeader = `<p><b>Result:</b> ${current.result}`;
+        if (current.error) {
+            let pos = editor.getModel()?.getPositionAt(current.error.start_pos);
+            resultHeader += ` - "${current.error.message}" at line ${pos?.lineNumber}, col ${pos?.column}`;
+            squiggleDiagnostics([current.error]);
+        } else {
+            squiggleDiagnostics([]);
+        }
+        resultHeader += "</p>";
+        dumpTables.innerHTML = resultHeader;
 
-            } else {
-                // A DumpMachine output
-                let table = document.createElement("table");
-                table.innerHTML = renderDump(output);
-                dumpTables.appendChild(table);
+        filteredResults[currentIndex].events.forEach(event => {
+            switch (event.type) {
+                case "Message":
+                    // A Message output
+                    let div = document.createElement("div");
+                    div.className = "message-output";
+                    div.innerText = event.message
+                    dumpTables.appendChild(div);
+                    break;
+                case "DumpMachine":
+                    // A DumpMachine output
+                    let table = document.createElement("table");
+                    table.innerHTML = renderDump(event.state);
+                    dumpTables.appendChild(table);
             }
         });
     }
 
-    prev.addEventListener('click', _ => showDump(-1));
-    next.addEventListener('click', _ => showDump(1));
-    showDump(0);
+    prev.addEventListener('click', _ => showOutput(-1));
+    next.addEventListener('click', _ => showOutput(1));
+    showOutput(0);
 }
 
 function runComplete() {

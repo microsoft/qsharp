@@ -10,14 +10,13 @@ body {
 }
 
 #output {
-    width: 600px;
-    height: 400px;
+    width: 540px;
     padding-left: 40px;
 }
 
 #editor {
     width: 600px;
-    height: 400px;
+    height: 480px;
     border: 1px solid gray;
 }
 
@@ -51,12 +50,6 @@ tbody tr {
 td {
     min-width: 160px;
     text-align: center;
-}
-
-.histogram {
-    width: 540px;
-    height: 300px;
-    /* border: 1px solid gray; */
 }
 
 .bar {
@@ -96,8 +89,9 @@ td {
 
  .result-header {
     font-size: 16px;
-    font-weight: 400;
+    font-weight: 600;
     margin-left: 16px;
+    margin-top: 16px;
  }
 
  .message-output {

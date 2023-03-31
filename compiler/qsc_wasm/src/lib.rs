@@ -4,7 +4,6 @@
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc_eval::output::Receiver;
-use qsc_eval::val::Value;
 use qsc_eval::{output, Error, Evaluator};
 use qsc_frontend::compile::{compile, std, PackageStore};
 use qsc_passes::globals::extract_callables;
@@ -188,6 +187,21 @@ pub struct VSDiagnostic {
     pub severity: i32,
 }
 
+impl std::fmt::Display for VSDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            r#"{{
+    "message": "{}",
+    "severity": {},
+    "start_pos": {},
+    "end_pos": {}
+}}"#,
+            self.message, self.severity, self.start_pos, self.end_pos
+        )
+    }
+}
+
 fn convert_err_to_diagnostic(err: &impl Diagnostic) -> VSDiagnostic {
     let label = err
         .labels()
@@ -274,25 +288,39 @@ where
     }
 }
 
-fn run_internal<F>(code: &str, expr: &str, event_cb: F) -> Result<Value, Error>
+fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), Error>
 where
     F: Fn(&str),
 {
     let mut store = PackageStore::new();
     let std = store.insert(std());
     let unit = compile(&store, [std], [code], expr);
+    // TODO: Fail here with diagnostics if compile failed
 
     let user = store.insert(unit);
     let unit = store.get(user).expect("Fail");
     if let Some(expr) = &unit.package.entry {
         let globals = extract_callables(&store);
         let mut out = CallbackReceiver { event_cb };
-        let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
-        Evaluator::init();
-        match evaluator.eval_expr(expr) {
-            Ok((value, _)) => Ok(value),
-            Err(_e) => Err(_e),
+        for _i in 0..shots {
+            let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
+            Evaluator::init();
+            let mut success = true;
+            let result: String;
+            match evaluator.eval_expr(expr) {
+                Ok((val, _)) => {
+                    result = format!(r#""{}""#, val);
+                }
+                Err(e) => {
+                    success = false;
+                    result = convert_err_to_diagnostic(&e).to_string();
+                }
+            }
+            let msg_string =
+                format!(r#"{{"type": "Result", "success": {success}, "result": {result}}}"#);
+            (out.event_cb)(&msg_string);
         }
+        Ok(())
     } else {
         // TODO Correct error type/message here
         Err(Error::UserFail(
@@ -303,24 +331,27 @@ where
 }
 
 #[wasm_bindgen]
-pub fn run(code: &str, expr: &str, event_cb: &js_sys::Function) -> Result<JsValue, JsValue> {
-    // Passing the callback function for output is optional.
-    let result = if event_cb.is_function() {
-        run_internal(code, expr, |msg: &str| {
-            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-            let js_this = JsValue::null();
-            let js_dump = JsValue::from(msg);
-            let _ = event_cb.call1(&js_this, &js_dump);
-        })
-    } else {
-        run_internal(code, expr, |_msg: &str| ())
-    };
+pub fn run(
+    code: &str,
+    expr: &str,
+    event_cb: &js_sys::Function,
+    shots: u32,
+) -> Result<JsValue, JsValue> {
+    if !event_cb.is_function() {
+        return Err(JsError::new("Events callback function must be provided").into());
+    }
 
-    match result {
-        Ok(val) => Ok(serde_wasm_bindgen::to_value(&val.to_string())?),
-        Err(e) => Err(serde_wasm_bindgen::to_value(&convert_err_to_diagnostic(
-            &e,
-        ))?),
+    match run_internal(
+        code,
+        expr,
+        |msg: &str| {
+            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+        },
+        shots,
+    ) {
+        Ok(()) => Ok(JsValue::TRUE),
+        Err(e) => Err(JsError::from(e).into()),
     }
 }
 
@@ -337,7 +368,7 @@ fn test_callable() {
 }
 
 #[test]
-fn test_run() {
+fn test_run_two_shots() {
     let code = "
 namespace Test {
     function Answer() : Int {
@@ -346,11 +377,18 @@ namespace Test {
 }
 ";
     let expr = "Test.Answer()";
-    let _result = run_internal(code, expr, |_msg| {});
-    match _result.unwrap() {
-        Value::Int(x) => assert_eq!(x, 42),
-        _ => panic!("Incorrect value type returned"),
-    }
+    let count = std::cell::Cell::new(0);
+
+    let _result = run_internal(
+        code,
+        expr,
+        |_msg| {
+            assert!(_msg.contains("42"));
+            count.set(count.get() + 1);
+        },
+        2,
+    );
+    assert_eq!(count.get(), 2);
 }
 
 #[test]
@@ -364,8 +402,17 @@ fn fail_ry() {
         }
     }";
     let expr = "Sample.main()";
-    let result = run_internal(code, expr, |_msg_| {});
-    assert!(result.is_err());
+    let result = run_internal(
+        code,
+        expr,
+        |_msg_| {
+            assert!(_msg_.contains(r#""type": "Result", "success": false"#));
+            assert!(_msg_.contains(r#""message": "mismatched types""#));
+            assert!(_msg_.contains(r#""start_pos": 99"#));
+        },
+        1,
+    );
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -379,8 +426,13 @@ fn test_message() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = run_internal(code, expr, |_msg_| {
-        assert!(_msg_.contains("hi"));
-    });
+    let result = run_internal(
+        code,
+        expr,
+        |_msg_| {
+            assert!(_msg_.contains("hi") || _msg_.contains("result"));
+        },
+        1,
+    );
     assert!(result.is_ok());
 }

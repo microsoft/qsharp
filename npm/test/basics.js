@@ -5,7 +5,7 @@
 
 import assert from "node:assert";
 import {test} from "node:test";
-import {checkCode, getCompletions, evaluate} from "../dist/node.js"
+import {checkCode, getCompletions, evaluate, run_shot} from "../dist/node.js"
 
 test('no syntax errors', t => {
     let result = checkCode('namespace Foo { operation Main() : Unit {} }')
@@ -30,8 +30,9 @@ test('basic evaluation', t => {
         }
     }`;
     let expr = `Test.Answer()`;
-    let result = evaluate(code, expr);
-    assert.equal(result, "42");
+    let result = run_shot(code, expr);
+    assert(result.success);
+    assert.equal(result.result, "42");
 });
 
 test('dump machine output', t => {
@@ -42,12 +43,11 @@ test('dump machine output', t => {
         }
     }`;
     let expr = `Test.Answer()`;
-    let dumpText = ``;
-    let callback = (ev) => dumpText += ev;
-    let result = evaluate(code, expr, callback);
-    let dump = JSON.parse(dumpText);
-    assert(dump.type == "DumpMachine");
-    assert(dump.state["|0⟩"].length == 2);
+    let result = run_shot(code, expr);
+    assert(result.success);
+    assert(result.events.length == 1);
+    assert(result.events[0].type == "DumpMachine");
+    assert(result.events[0].state["|0⟩"].length == 2);
 });
 
 test('runtime error position', t => {
@@ -61,13 +61,16 @@ test('runtime error position', t => {
         }
     }`;
     let expr = 'Sample.main()';
-    try {
-        let result = evaluate(code, expr);
-    } catch(e) {
-        assert(e.start_pos);
-        return;
+    let shot_result = run_shot(code, expr);
+    // TODO: Error positions should be returned
+    assert(!shot_result.success);
+    if (typeof shot_result.result != "object") {
+        assert.fail("Wrong result type");
+    } else {
+        assert(shot_result.result.start_pos == 99);
+        assert(shot_result.result.end_pos == 103);
+        assert(shot_result.result.message == "mismatched types");
     }
-    assert.fail('Runtime error should have a position');
 });
 
 test('message output', t => {
@@ -78,14 +81,9 @@ test('message output', t => {
         }
     }`;
     let expr = 'Sample.main()';
-    let output = null;
-    let called = 0;
-    let result = evaluate(code, expr, (msg) => {
-        ++called;
-        output = msg;
-    });
-    assert.equal(called, 1);
-    let msg_obj = JSON.parse(output || "");
-    assert(msg_obj.type === "Message");
-    assert(msg_obj.message == "hello qsharp");
+    let result = run_shot(code, expr);
+    assert(result.success);
+    assert(result.events.length == 1);
+    assert(result.events[0].type == "Message");
+    assert(result.events[0].message === "hello qsharp");
 });
