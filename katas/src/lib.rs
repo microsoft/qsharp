@@ -6,10 +6,9 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_eval::{output::GenericReceiver, val::Value, Evaluator};
+use qsc_eval::{output::Receiver, val::Value, Evaluator};
 use qsc_frontend::compile::{self, compile, PackageId, PackageStore};
 use qsc_passes::globals::extract_callables;
-use std::io;
 
 fn compile_kata(
     verification_source: &str,
@@ -37,14 +36,16 @@ fn compile_kata(
 ///
 /// Will panic if Kata.Verify() does not return a Bool as result.
 #[must_use]
-pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool {
+pub fn verify_kata(
+    verification_source: &str,
+    kata_implementation: &str,
+    recv: &mut impl Receiver,
+) -> bool {
     // Compile and run the kata.
     let verification_result =
         compile_kata(verification_source, kata_implementation).and_then(|(store, id)| {
             let globals = extract_callables(&store);
-            let mut stdout = io::stdout();
-            let mut out = GenericReceiver::new(&mut stdout);
-            let evaluator = Evaluator::from_store(&store, id, &globals, &mut out);
+            let evaluator = Evaluator::from_store(&store, id, &globals, recv);
             let unit = store
                 .get(id)
                 .expect("Compile unit should be in package store");

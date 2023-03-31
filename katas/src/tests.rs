@@ -4,10 +4,12 @@
 use std::env::current_dir;
 use std::fs::read_dir;
 use std::fs::read_to_string;
+use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
 use crate::{compile_kata, verify_kata};
+use qsc_eval::output::GenericReceiver;
 
 fn katas_qsharp_source_dir() -> PathBuf {
     current_dir()
@@ -52,13 +54,22 @@ fn validate_exercise(exercise_dir: &Path) {
     }
 
     // Validate that the reference implementation yields success and the placeholder implementation yields failure.
-    let reference_succeeds = verify_kata(verification_source.as_str(), reference_source.as_str());
+    let mut stdout = io::stdout();
+    let mut out = GenericReceiver::new(&mut stdout);
+    let reference_succeeds = verify_kata(
+        verification_source.as_str(),
+        reference_source.as_str(),
+        &mut out,
+    );
     assert!(
         reference_succeeds,
         "Reference implementation for exercise '{exercise_name}' expected to succeed but failed."
     );
-    let _placeholder_fails =
-        !verify_kata(verification_source.as_str(), placeholder_source.as_str());
+    let _placeholder_fails = !verify_kata(
+        verification_source.as_str(),
+        placeholder_source.as_str(),
+        &mut out,
+    );
     // N.B. Since verify_kata is doing evaluation, but it is not possible to determine correctness of some katas until
     //      the controlled functor is supported.
     //assert!(
