@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use std::f64::consts;
-use std::io;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -39,7 +38,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<(Va
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
-    let mut stdout = io::stdout();
+    let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
         Ok((result, _)) => expect.assert_eq(&result.to_string()),
@@ -59,7 +58,7 @@ fn check_intrinsic_output(file: &str, expr: &str, expect: &Expect) {
 }
 
 fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
-    let mut stdout = io::stdout();
+    let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
         Ok((result, _)) => assert_eq!(&result, val),
