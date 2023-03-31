@@ -2677,3 +2677,25 @@ fn check_ctls_count_nested_expr() {
         &expect!["()"],
     );
 }
+
+#[test]
+fn global_callable_as_arg() {
+    check_expr(
+        indoc! {"
+            namespace Test {
+                function PlusOne(x : Int) : Int {
+                    x + 1
+                }
+                function ApplyToIntArray(f : (Int -> Int)) : Int[] {
+                    mutable arr = [1, size = 3];
+                    for i in 0..2 {
+                        set arr w/= i <- f(arr[i]);
+                    }
+                    arr
+                }
+            }
+        "},
+        "Test.ApplyToIntArray(Test.PlusOne)",
+        &expect!["[2, 2, 2]"],
+    );
+}
