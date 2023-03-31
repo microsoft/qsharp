@@ -2,29 +2,38 @@
      Licensed under the MIT License. -->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAACDvAxdbn9YZSTVntx1qcAADs=">
-    <link rel="stylesheet" href="style.css">
-    <title>Q# playground</title>
-    <script>
-      // Need the physics extension for certain constructs
-      // https://docs.mathjax.org/en/latest/input/tex/extensions/physics.html
-      window.MathJax = {
-        loader: {load: ['[tex]/physics']},
-        tex: {packages: {'[+]': ['physics']}}
-      };
-    </script>
-    <script src="libs/mathjax/tex-chtml.js"></script>
-  </head>
-  <body>
-    <h1>Q# playground</h1>
-    <div id="container">
-    <div id="editor"></div>
-    <div id="errors"></div>
-    </div> 
-    <script src="libs/monaco/vs/loader.js"></script>
-    <script src="libs/app.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAACDvAxdbn9YZSTVntx1qcAADs=">
+  <link rel="stylesheet" href="style.css">
+  <title>Q# playground</title>
+  <script>
+    // Need the physics extension for certain constructs
+    // https://docs.mathjax.org/en/latest/input/tex/extensions/physics.html
+    window.MathJax = {
+      loader: { load: ['[tex]/physics'] },
+      tex: { packages: { '[+]': ['physics'] } }
+    };
+  </script>
+  <script src="libs/mathjax/tex-chtml.js"></script>
+</head>
+<body>
+  <h1>Q# playground</h1>
+  <div id="container">
+    <div>
+      <div id="editor"></div>
+      <p>
+        <input id="expr" value="Sample.main()" />
+        <input id="shot" type="number" value="100" max="1000" min="1" />
+        <button id="run">Run</button>
+      </p>
+    </div>
+    <div id="output"></div>
+  </div>
+
+  <div id="errors"></div>
+  <script src="libs/monaco/vs/loader.js"></script>
+  <script src="libs/app.js"></script>
+</body>
 </html>
