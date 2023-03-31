@@ -31,13 +31,13 @@ export function generateHistogramSvg(data: HistogramData, onFilter: (filter:stri
     const xmlns = "http://www.w3.org/2000/svg";
     let svgElem = document.createElementNS(xmlns, "svg") as SVGSVGElement;
     svgElem.classList.add("histogram");
-    svgElem.setAttributeNS(null, "viewBox", "0 0 160 100");
+    svgElem.setAttributeNS(null, "viewBox", "0 0 165 100");
 
     if (!data.length) return svgElem;
 
     // Add the initial child elements
     const g = document.createElementNS(xmlns, "g");
-    g.setAttributeNS(null, "transform", "translate(0, 5)");
+    g.setAttributeNS(null, "transform", "translate(3, 5)");
     svgElem.appendChild(g);
 
     const histoLabel = document.createElementNS(xmlns, "text");
