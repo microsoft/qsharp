@@ -202,21 +202,26 @@ impl std::fmt::Display for VSDiagnostic {
     }
 }
 
-fn convert_err_to_diagnostic(err: &impl Diagnostic) -> VSDiagnostic {
-    let label = err
-        .labels()
-        .and_then(|mut ls| ls.next())
-        .expect("error should have at least one label");
-    let offset = label.offset();
-    let len = label.len();
-    let message = err.to_string();
-    let severity = err.severity().unwrap_or(Severity::Error);
+impl<T> From<&T> for VSDiagnostic
+where
+    T: Diagnostic,
+{
+    fn from(err: &T) -> Self {
+        let label = err
+            .labels()
+            .and_then(|mut ls| ls.next())
+            .expect("error should have at least one label");
+        let offset = label.offset();
+        let len = label.len();
+        let message = err.to_string();
+        let severity = err.severity().unwrap_or(Severity::Error);
 
-    VSDiagnostic {
-        start_pos: offset,
-        end_pos: offset + len,
-        severity: severity as i32,
-        message,
+        VSDiagnostic {
+            start_pos: offset,
+            end_pos: offset + len,
+            severity: severity as i32,
+            message,
+        }
     }
 }
 
@@ -228,7 +233,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     let mut result: Vec<VSDiagnostic> = vec![];
 
     for err in unit.context.errors() {
-        result.push(convert_err_to_diagnostic(err));
+        result.push(err.into());
     }
     result
 }
@@ -302,18 +307,19 @@ where
     if let Some(expr) = &unit.package.entry {
         let globals = extract_callables(&store);
         let mut out = CallbackReceiver { event_cb };
-        for _i in 0..shots {
+        for _ in 0..shots {
             let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
             Evaluator::init();
             let mut success = true;
             let result: String;
-            match evaluator.eval_expr(expr) {
+            match &evaluator.eval_expr(expr) {
                 Ok((val, _)) => {
                     result = format!(r#""{}""#, val);
                 }
                 Err(e) => {
                     success = false;
-                    result = convert_err_to_diagnostic(&e).to_string();
+                    let diag: VSDiagnostic = e.into();
+                    result = diag.to_string();
                 }
             }
             let msg_string =
@@ -322,11 +328,7 @@ where
         }
         Ok(())
     } else {
-        // TODO Correct error type/message here
-        Err(Error::UserFail(
-            "Runtime failure".to_string(),
-            std::default::Default::default(),
-        ))
+        Err(Error::EmptyExpr)
     }
 }
 
@@ -355,45 +357,47 @@ pub fn run(
     }
 }
 
-#[test]
-fn test_callable() {
-    let code = "namespace input { operation Foo(a : Int -> Int) : Unit {} }";
-    let diag = check_code_internal(code);
-    assert_eq!(diag.len(), 1);
-    let err = diag.first().unwrap();
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_callable() {
+        let code = "namespace input { operation Foo(a : Int -> Int) : Unit {} }";
+        let diag = crate::check_code_internal(code);
+        assert_eq!(diag.len(), 1);
+        let err = diag.first().unwrap();
 
-    assert_eq!(err.start_pos, 32);
-    assert_eq!(err.end_pos, 46);
-    assert!(err.message.starts_with("callables"));
-}
+        assert_eq!(err.start_pos, 32);
+        assert_eq!(err.end_pos, 46);
+        assert!(err.message.starts_with("callables"));
+    }
 
-#[test]
-fn test_run_two_shots() {
-    let code = "
+    #[test]
+    fn test_run_two_shots() {
+        let code = "
 namespace Test {
     function Answer() : Int {
         return 42;
     }
 }
 ";
-    let expr = "Test.Answer()";
-    let count = std::cell::Cell::new(0);
+        let expr = "Test.Answer()";
+        let count = std::cell::Cell::new(0);
 
-    let _result = run_internal(
-        code,
-        expr,
-        |_msg| {
-            assert!(_msg.contains("42"));
-            count.set(count.get() + 1);
-        },
-        2,
-    );
-    assert_eq!(count.get(), 2);
-}
+        let _result = crate::run_internal(
+            code,
+            expr,
+            |_msg| {
+                assert!(_msg.contains("42"));
+                count.set(count.get() + 1);
+            },
+            2,
+        );
+        assert_eq!(count.get(), 2);
+    }
 
-#[test]
-fn fail_ry() {
-    let code = "namespace Sample {
+    #[test]
+    fn fail_ry() {
+        let code = "namespace Sample {
         operation main() : Result {
             use q1 = Qubit();
             Ry(q1);
@@ -401,23 +405,23 @@ fn fail_ry() {
             return [m1];
         }
     }";
-    let expr = "Sample.main()";
-    let result = run_internal(
-        code,
-        expr,
-        |_msg_| {
-            assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-            assert!(_msg_.contains(r#""message": "mismatched types""#));
-            assert!(_msg_.contains(r#""start_pos": 99"#));
-        },
-        1,
-    );
-    assert!(result.is_ok());
-}
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
+                assert!(_msg_.contains(r#""message": "mismatched types""#));
+                assert!(_msg_.contains(r#""start_pos": 99"#));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
 
-#[test]
-fn test_message() {
-    let code = r#"namespace Sample {
+    #[test]
+    fn test_message() {
+        let code = r#"namespace Sample {
         open Microsoft.Quantum.Diagnostics;
 
         operation main() : Unit {
@@ -425,14 +429,15 @@ fn test_message() {
             return ();
         }
     }"#;
-    let expr = "Sample.main()";
-    let result = run_internal(
-        code,
-        expr,
-        |_msg_| {
-            assert!(_msg_.contains("hi") || _msg_.contains("result"));
-        },
-        1,
-    );
-    assert!(result.is_ok());
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
 }
