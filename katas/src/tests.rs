@@ -59,8 +59,8 @@ fn validate_exercise(exercise_dir: &Path) {
     );
     let _placeholder_fails =
         !verify_kata(verification_source.as_str(), placeholder_source.as_str());
-    // N.B. Since verify_kata is currently not doing evaluation, both the reference and the placeholder implementations
-    //      succeed. Uncomment this when doing verify_kata starts doing evaluation.
+    // N.B. Since verify_kata is doing evaluation, but it is not possible to determine correctness of some katas until
+    //      the controlled functor is supported.
     //assert!(
     //    _placeholder_fails,
     //    "Placeholder implementation for exercise '{exercise_name}' expected to fail but succeeded.",
