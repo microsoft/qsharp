@@ -15,7 +15,7 @@
 mod tests;
 
 use super::{
-    raw::{self, Number, Single},
+    raw::{self, Number, Single, Terminator},
     Delim, Radix,
 };
 use enum_iterator::Sequence;
@@ -45,6 +45,9 @@ pub(crate) enum Error {
 
     #[error("expected `{0}` to complete {1}, found EOF")]
     IncompleteEof(raw::Single, TokenKind, #[label] Span),
+
+    #[error("unterminated string literal")]
+    UnterminatedString(#[label] Span),
 
     #[error("unrecognized character `{0}`")]
     Unknown(char, #[label("unrecognized character")] Span),
@@ -285,7 +288,11 @@ impl<'a> Lexer<'a> {
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String => Ok(Some(TokenKind::String)),
+            raw::TokenKind::String(Terminator::Quote) => Ok(Some(TokenKind::String)),
+            raw::TokenKind::String(Terminator::Eof) => Err(Error::UnterminatedString(Span {
+                lo: token.offset,
+                hi: token.offset,
+            })),
             raw::TokenKind::Unknown => {
                 let c = self.input[token.offset..]
                     .chars()
