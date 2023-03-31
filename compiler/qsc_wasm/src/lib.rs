@@ -212,7 +212,7 @@ where
             .and_then(|mut ls| ls.next())
             .expect("error should have at least one label");
         let offset = label.offset();
-        let len = label.len();
+        let len = label.len().max(1);
         let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
 
