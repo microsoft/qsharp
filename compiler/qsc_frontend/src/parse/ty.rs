@@ -13,7 +13,6 @@ use super::{
 use crate::lex::{ClosedBinOp, Delim, TokenKind};
 use qsc_ast::ast::{
     CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind, TyPrim,
-    TyVar,
 };
 
 pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
@@ -95,8 +94,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         Ok(TyKind::Prim(TyPrim::String))
     } else if keyword(s, Keyword::Unit).is_ok() {
         Ok(TyKind::Tuple(Vec::new()))
-    } else if let Some(var) = opt(s, var)? {
-        Ok(TyKind::Var(TyVar::Name(var.name)))
+    } else if let Some(ident) = opt(s, var)? {
+        Ok(TyKind::Var(ident))
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {

@@ -315,7 +315,7 @@ pub enum TyKind {
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A type variable.
-    Var(TyVar),
+    Var(Ident),
 }
 
 /// A sequenced block of statements.
@@ -565,15 +565,6 @@ pub enum TyPrim {
     Result,
     /// The string type.
     String,
-}
-
-/// A type variable.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum TyVar {
-    /// A named variable.
-    Name(String),
-    /// A numeric variable.
-    Id(u32),
 }
 
 /// A literal.
