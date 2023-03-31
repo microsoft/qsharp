@@ -101,14 +101,6 @@ let funcLambda = x -> x + 1;
 let opLambda = q => H(q);
 ```
 
-### Callables as Arguments
-
-```qsharp
-operation TakesCalls(op : (Qubit => Unit), func: (Int -> Int)) {
-    // ...
-}
-```
-
 ## Supported Features
 
 - Literals for `Int`, `BigInt`, `Double`, `Bool`, `Pauli`, `Result`, and `String`
@@ -122,10 +114,12 @@ operation TakesCalls(op : (Qubit => Unit), func: (Int -> Int)) {
 - User failure expressions (`fail "This failed";`)
 - For-loops, while-loops, and repeat-until-success loops
 - Conditional control flow in if-expressions and conditional ternary expressions (`cond ? thenVal | elseVal`)
-- Invoking of callables and return expressions
+- Invoking of callables
+- Return expressions
 - Functor application for `Adjoint` and `Controlled` with nesting
 - Qubit use- and borrow-statements
 - Explicitly declared specializations (ie: `body`, `adjoint`, `controlled`, and `controlled adjoint`)
 - Self-adjoint generator (`adjoint self`)
 - Body intrinsic callables (`body intrinsic`) (*Limitation:* only specific intrinsic callables are
 supported by the evaluator, matching the callables present in the standard library)
+- Callables as arguments to other callables (ie: `operation ApplyToEach(op : (Qubit => Unit), q : Qubit) : Unit {}`)
