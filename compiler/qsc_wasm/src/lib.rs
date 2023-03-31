@@ -360,15 +360,15 @@ pub fn run(
 #[cfg(test)]
 mod test {
     #[test]
-    fn test_callable() {
-        let code = "namespace input { operation Foo(a : Int -> Int) : Unit {} }";
+    fn test_missing_type() {
+        let code = "namespace input { operation Foo(a) : Unit {} }";
         let diag = crate::check_code_internal(code);
         assert_eq!(diag.len(), 1);
         let err = diag.first().unwrap();
 
         assert_eq!(err.start_pos, 32);
-        assert_eq!(err.end_pos, 46);
-        assert!(err.message.starts_with("callables"));
+        assert_eq!(err.end_pos, 33);
+        assert!(err.message.starts_with("callable parameter"));
     }
 
     #[test]
