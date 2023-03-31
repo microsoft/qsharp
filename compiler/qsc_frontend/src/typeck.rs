@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::resolve::DefId;
+use crate::resolve::{DefId, PackageSrc, Resolutions};
 use qsc_ast::ast::{
     BinOp, Block, CallableKind, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, TernOp,
     TyPrim, UnOp,
@@ -68,13 +68,15 @@ enum Class {
     },
 }
 
-struct Inferrer {
+struct Inferrer<'a> {
+    resolutions: &'a Resolutions,
+    globals: HashMap<DefId, Ty>,
     constraints: Vec<Constraint>,
     tys: HashMap<NodeId, Ty>,
     next_var: u32,
 }
 
-impl Inferrer {
+impl Inferrer<'_> {
     #[allow(clippy::too_many_lines)]
     fn infer_expr(&mut self, expr: &Expr) -> Ty {
         let ty = match &expr.kind {
@@ -105,7 +107,10 @@ impl Inferrer {
                 self.infer_binop(*op, lhs, rhs);
                 Ty::Tuple(Vec::new())
             }
-            ExprKind::AssignUpdate(_, _, _) => todo!(),
+            ExprKind::AssignUpdate(container, index, item) => {
+                self.infer_update(container, index, item);
+                Ty::Tuple(Vec::new())
+            }
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
@@ -185,7 +190,23 @@ impl Inferrer {
             ExprKind::Lit(Lit::Result(_)) => Ty::Prim(TyPrim::Result),
             ExprKind::Lit(Lit::String(_)) => Ty::Prim(TyPrim::String),
             ExprKind::Paren(expr) => self.infer_expr(expr),
-            ExprKind::Path(_) => todo!(),
+            ExprKind::Path(path) => {
+                let def = self
+                    .resolutions
+                    .get(&path.id)
+                    .expect("path should be resolved");
+
+                if let Some(ty) = self.globals.get(def) {
+                    ty.clone()
+                } else if def.package == PackageSrc::Local {
+                    self.tys
+                        .get(&def.node)
+                        .expect("local variable should have inferred type")
+                        .clone()
+                } else {
+                    panic!("path resolves to external package, but definition not found in globals")
+                }
+            }
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
                     let ty = self.infer_expr(expr);
@@ -216,7 +237,9 @@ impl Inferrer {
                 self.unify(&if_true, &if_false);
                 if_true
             }
-            ExprKind::TernOp(TernOp::Update, _, _, _) => todo!(),
+            ExprKind::TernOp(TernOp::Update, container, index, item) => {
+                self.infer_update(container, index, item)
+            }
             ExprKind::Tuple(items) => {
                 let items = items.iter().map(|e| self.infer_expr(e)).collect();
                 Ty::Tuple(items)
@@ -248,6 +271,10 @@ impl Inferrer {
     }
 
     fn infer_binop(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) -> Ty {
+        todo!()
+    }
+
+    fn infer_update(&mut self, container: &Expr, index: &Expr, item: &Expr) -> Ty {
         todo!()
     }
 
