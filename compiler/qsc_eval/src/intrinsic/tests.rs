@@ -782,3 +782,24 @@ fn unknown_intrinsic() {
         "#]],
     );
 }
+
+#[test]
+fn single_arg_for_tuple() {
+    check_intrinsic_result(
+        "",
+        indoc! {r#"{
+            use q = Qubit();
+            Ry(q);
+        }"#},
+        &expect![[r#"
+            Type(
+                "Tuple",
+                "Qubit",
+                Span {
+                    lo: 29,
+                    hi: 32,
+                },
+            )
+        "#]],
+    );
+}
