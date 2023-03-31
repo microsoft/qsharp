@@ -263,9 +263,16 @@ fn ty_var() {
                         hi: 2,
                     },
                     kind: Var(
-                        Name(
-                            "T",
-                        ),
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 1,
+                                hi: 2,
+                            },
+                            name: "T",
+                        },
                     ),
                 },
             )
