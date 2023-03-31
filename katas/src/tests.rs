@@ -4,10 +4,12 @@
 use std::env::current_dir;
 use std::fs::read_dir;
 use std::fs::read_to_string;
+use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
 use crate::{compile_kata, verify_kata};
+use qsc_eval::output::GenericReceiver;
 
 fn katas_qsharp_source_dir() -> PathBuf {
     current_dir()
@@ -16,6 +18,13 @@ fn katas_qsharp_source_dir() -> PathBuf {
 }
 
 fn validate_exercise(exercise_dir: &Path) {
+    let exercise_name = format!(
+        "{}",
+        exercise_dir
+            .file_name()
+            .expect("Unable to obtain exercice name.")
+            .to_string_lossy()
+    );
     let mut verification_source_file = PathBuf::from(exercise_dir);
     verification_source_file.push("verify.qs");
     let verification_source =
@@ -40,21 +49,33 @@ fn validate_exercise(exercise_dir: &Path) {
 
         assert!(
             kata_errors.is_none(),
-            "Kata does not compile. {kata_errors:?}"
+            "Kata does not compile for exercise '{exercise_name}'. {kata_errors:?}"
         );
     }
 
     // Validate that the reference implementation yields success and the placeholder implementation yields failure.
-    let reference_succeeds = verify_kata(verification_source.as_str(), reference_source.as_str());
+    let mut stdout = io::stdout();
+    let mut out = GenericReceiver::new(&mut stdout);
+    let reference_succeeds = verify_kata(
+        verification_source.as_str(),
+        reference_source.as_str(),
+        &mut out,
+    );
     assert!(
         reference_succeeds,
-        "Reference implementation expected to succeed but failed."
+        "Reference implementation for exercise '{exercise_name}' expected to succeed but failed."
     );
-    let _placeholder_fails =
-        !verify_kata(verification_source.as_str(), placeholder_source.as_str());
-    // N.B. Since verify_kata is currently not doing evaluation, both the reference and the placeholder implementations
-    //      succeed. Uncomment this when doing verify_kata starts doing evaluation.
-    //assert!(_placeholder_fails, "Placeholder implementation expected to fail but succeeded.");
+    let _placeholder_fails = !verify_kata(
+        verification_source.as_str(),
+        placeholder_source.as_str(),
+        &mut out,
+    );
+    // N.B. Since verify_kata is doing evaluation, but it is not possible to determine correctness of some katas until
+    //      the controlled functor is supported.
+    //assert!(
+    //    _placeholder_fails,
+    //    "Placeholder implementation for exercise '{exercise_name}' expected to fail but succeeded.",
+    //);
 }
 
 fn validate_module(module_dir: &PathBuf) {
