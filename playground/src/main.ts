@@ -115,7 +115,6 @@ async function loaded() {
                 case "Result":
                     currentShotResult.success = result.success;
                     currentShotResult.result = result.result;
-                    // TODO: Maybe squiggle the error on failure results
 
                     // Push this result and prep for the next
                     runResults.push(currentShotResult);
