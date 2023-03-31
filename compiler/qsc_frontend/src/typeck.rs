@@ -85,7 +85,7 @@ impl Inferrer<'_> {
                     let first = self.infer_expr(first);
                     for item in rest {
                         let item = self.infer_expr(item);
-                        self.unify(&first, &item);
+                        self.constrain(Constraint::Eq(first.clone(), item));
                     }
                     Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![first])
                 }
@@ -94,13 +94,13 @@ impl Inferrer<'_> {
             ExprKind::ArrayRepeat(item, size) => {
                 let item = self.infer_expr(item);
                 let size = self.infer_expr(size);
-                self.unify(&size, &Ty::Prim(TyPrim::Int));
+                self.constrain(Constraint::Eq(size, Ty::Prim(TyPrim::Int)));
                 Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![item])
             }
             ExprKind::Assign(lhs, rhs) => {
                 let lhs = self.infer_expr(lhs);
                 let rhs = self.infer_expr(rhs);
-                self.unify(&lhs, &rhs);
+                self.constrain(Constraint::Eq(lhs, rhs));
                 Ty::Tuple(Vec::new())
             }
             ExprKind::AssignOp(op, lhs, rhs) => {
@@ -117,7 +117,7 @@ impl Inferrer<'_> {
                 let callee = self.infer_expr(callee);
                 let input = self.infer_expr(input);
                 let output = self.fresh();
-                self.constraints.push(Constraint::Class(Class::Call {
+                self.constrain(Constraint::Class(Class::Call {
                     callee,
                     input,
                     output: output.clone(),
@@ -127,19 +127,18 @@ impl Inferrer<'_> {
             ExprKind::Conjugate(within, apply) => {
                 let within = self.infer_block(within);
                 let apply = self.infer_block(apply);
-                self.unify(&within, &Ty::Tuple(Vec::new()));
+                self.constrain(Constraint::Eq(within, Ty::Tuple(Vec::new())));
                 apply
             }
-            ExprKind::Err => Ty::Void,
             ExprKind::Fail(message) => {
                 let message = self.infer_expr(message);
-                self.unify(&message, &Ty::Prim(TyPrim::String));
+                self.constrain(Constraint::Eq(message, Ty::Prim(TyPrim::String)));
                 Ty::Void
             }
             ExprKind::Field(record, name) => {
                 let record = self.infer_expr(record);
                 let item = self.fresh();
-                self.constraints.push(Constraint::Class(Class::HasField {
+                self.constrain(Constraint::Class(Class::HasField {
                     record,
                     name: name.name.clone(),
                     item: item.clone(),
@@ -149,28 +148,26 @@ impl Inferrer<'_> {
             ExprKind::For(item, container, body) => {
                 let item = self.infer_pat(item);
                 let container = self.infer_expr(container);
-                self.constraints
-                    .push(Constraint::Class(Class::Iterable { container, item }));
+                self.constrain(Constraint::Class(Class::Iterable { container, item }));
                 let body = self.infer_block(body);
-                self.unify(&body, &Ty::Tuple(Vec::new()));
+                self.constrain(Constraint::Eq(body, Ty::Tuple(Vec::new())));
                 Ty::Tuple(Vec::new())
             }
-            ExprKind::Hole => Ty::Void,
             ExprKind::If(cond, if_true, if_false) => {
                 let cond = self.infer_expr(cond);
-                self.unify(&cond, &Ty::Prim(TyPrim::Bool));
+                self.constrain(Constraint::Eq(cond, Ty::Prim(TyPrim::Bool)));
                 let if_true = self.infer_block(if_true);
                 let if_false = if_false
                     .as_ref()
                     .map_or(Ty::Tuple(Vec::new()), |e| self.infer_expr(e));
-                self.unify(&if_true, &if_false);
+                self.constrain(Constraint::Eq(if_true.clone(), if_false));
                 if_true
             }
             ExprKind::Index(container, index) => {
                 let container = self.infer_expr(container);
                 let index = self.infer_expr(index);
                 let item = self.fresh();
-                self.constraints.push(Constraint::Class(Class::HasIndex {
+                self.constrain(Constraint::Class(Class::HasIndex {
                     container,
                     index,
                     item: item.clone(),
@@ -210,19 +207,20 @@ impl Inferrer<'_> {
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
                     let ty = self.infer_expr(expr);
-                    self.unify(&ty, &Ty::Prim(TyPrim::Int));
+                    self.constrain(Constraint::Eq(ty, Ty::Prim(TyPrim::Int)));
                 }
                 Ty::Prim(TyPrim::Range)
             }
             ExprKind::Repeat(body, until, fixup) => {
                 let body = self.infer_block(body);
-                self.unify(&body, &Ty::Tuple(Vec::new()));
+                self.constrain(Constraint::Eq(body, Ty::Tuple(Vec::new())));
                 let until = self.infer_expr(until);
-                self.unify(&until, &Ty::Prim(TyPrim::Bool));
+                self.constrain(Constraint::Eq(until, Ty::Prim(TyPrim::Bool)));
                 if let Some(fixup) = fixup {
                     let fixup = self.infer_block(fixup);
-                    self.unify(&fixup, &Ty::Tuple(Vec::new()));
+                    self.constrain(Constraint::Eq(fixup, Ty::Tuple(Vec::new())));
                 }
+
                 Ty::Tuple(Vec::new())
             }
             ExprKind::Return(expr) => {
@@ -231,10 +229,10 @@ impl Inferrer<'_> {
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond = self.infer_expr(cond);
-                self.unify(&cond, &Ty::Prim(TyPrim::Bool));
+                self.constrain(Constraint::Eq(cond, Ty::Prim(TyPrim::Bool)));
                 let if_true = self.infer_expr(if_true);
                 let if_false = self.infer_expr(if_false);
-                self.unify(&if_true, &if_false);
+                self.constrain(Constraint::Eq(if_true.clone(), if_false));
                 if_true
             }
             ExprKind::TernOp(TernOp::Update, container, index, item) => {
@@ -247,11 +245,12 @@ impl Inferrer<'_> {
             ExprKind::UnOp(op, expr) => self.infer_unop(*op, expr),
             ExprKind::While(cond, body) => {
                 let cond = self.infer_expr(cond);
-                self.unify(&cond, &Ty::Prim(TyPrim::Bool));
+                self.constrain(Constraint::Eq(cond, Ty::Prim(TyPrim::Bool)));
                 let body = self.infer_block(body);
-                self.unify(&body, &Ty::Tuple(Vec::new()));
+                self.constrain(Constraint::Eq(body, Ty::Tuple(Vec::new())));
                 Ty::Tuple(Vec::new())
             }
+            ExprKind::Err | ExprKind::Hole => Ty::Void,
         };
 
         self.tys.insert(expr.id, ty.clone());
@@ -278,13 +277,17 @@ impl Inferrer<'_> {
         todo!()
     }
 
-    fn unify(&mut self, lhs: &Ty, rhs: &Ty) {
-        todo!()
-    }
-
     fn fresh(&mut self) -> Ty {
         let var = self.next_var;
         self.next_var += 1;
         Ty::Var(var)
+    }
+
+    fn constrain(&mut self, constraint: Constraint) {
+        self.constraints.push(constraint);
+    }
+
+    fn solve(self) -> HashMap<NodeId, Ty> {
+        todo!()
     }
 }
