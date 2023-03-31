@@ -9,9 +9,14 @@ body {
     display: flex;
 }
 
+#output {
+    width: 540px;
+    padding-left: 40px;
+}
+
 #editor {
     width: 600px;
-    height: 400px;
+    height: 480px;
     border: 1px solid gray;
 }
 
@@ -23,3 +28,82 @@ body {
     width: 600px;
     height: 400px;
 }
+
+.err-span {
+    background: transparent!important;
+    border-bottom: 4px double #e47777;
+}
+
+table {
+    border-collapse: collapse;
+    margin-top: 25px;
+}
+
+thead tr {
+    background: #f0f0f0;
+}
+
+tbody tr {
+    border-top: 1px solid gray;
+}
+
+td {
+    min-width: 160px;
+    text-align: center;
+}
+
+.bar {
+    fill: steelblue;
+}
+
+.bar-label {
+    font-family: Verdana;
+    font-size: 3pt;
+    fill: #404040;
+    text-anchor: middle;
+}
+
+.bar:hover {
+    fill: lightblue;
+}
+
+.bar-selected {
+    stroke: #ffc080;
+}
+
+#histo-label {
+    font-family: Verdana;
+    font-size: 4pt;
+    fill: gray;
+}
+
+#hover-text {
+    font-family: Verdana;
+    font-size: 4pt;
+    fill: gray;
+    text-anchor: middle;
+}
+ button {
+    margin: 2px;
+ }
+
+ .result-header {
+    font-size: 16px;
+    font-weight: 600;
+    margin-left: 16px;
+    margin-top: 16px;
+ }
+
+ .message-output {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14pt;
+    background-color: #635858;
+    color:#f0f0f0;
+    border: 1px solid blue;
+    margin: 10px;
+    width: 520px;
+ }
+
+ .message-output::before {
+    content: "> ";
+ }

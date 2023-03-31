@@ -433,7 +433,9 @@ name = "katas"
 version = "0.0.0"
 dependencies = [
  "indoc",
+ "qsc_eval",
  "qsc_frontend",
+ "qsc_passes",
 ]
 
 [[package]]
@@ -726,9 +728,13 @@ name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [
  "getrandom",
+ "js-sys",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc_eval",
  "qsc_frontend",
+ "qsc_passes",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
