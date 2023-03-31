@@ -65,6 +65,6 @@ pub fn verify_kata(verification_source: &str, kata_implementation: &str) -> bool
             Value::Bool(b) => b,
             _ => panic!("Verification result is not a Bool."),
         },
-        Err(_e) => false,
+        Err(_) => false,
     }
 }
