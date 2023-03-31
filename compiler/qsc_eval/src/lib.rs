@@ -15,7 +15,7 @@ use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
-use qir_backend::__quantum__rt__qubit_allocate;
+use qir_backend::{__quantum__rt__initialize, __quantum__rt__qubit_allocate};
 use qsc_ast::ast::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
     NodeId, Pat, PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind,
@@ -29,6 +29,7 @@ use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
     ops::{ControlFlow, Neg},
+    ptr::null_mut,
 };
 use thiserror::Error;
 
@@ -240,6 +241,10 @@ impl<'a> Evaluator<'a> {
             env: Env::default(),
             out: Some(out),
         }
+    }
+
+    pub fn init() {
+        __quantum__rt__initialize(null_mut());
     }
 
     /// Evaluates the given statement.

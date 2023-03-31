@@ -24,6 +24,7 @@ enum-iterator = "1.2.0"
 expect-test = "1.4.0"
 getrandom = { version = "0.2" }
 indoc = "2.0.0"
+js-sys = "0.3.61"
 miette = "5.6.0"
 thiserror = "1.0.39"
 num-bigint = "0.4.3"
