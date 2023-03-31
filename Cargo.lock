@@ -677,9 +677,7 @@ dependencies = [
  "miette",
  "qsc_ast",
  "qsc_codegen",
- "qsc_eval",
  "qsc_frontend",
- "qsc_passes",
  "thiserror",
 ]
 
@@ -762,8 +760,6 @@ version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
  "miette",
- "qsc_ast",
- "qsc_codegen",
  "qsc_eval",
  "qsc_frontend",
  "qsc_passes",
