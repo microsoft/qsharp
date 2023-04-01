@@ -203,7 +203,7 @@ pub fn evaluate<'a>(
     env: Env,
     out: &'a mut dyn Receiver,
 ) -> Result<(Value, Env), Error> {
-    let mut evaluator = Evaluator {
+    let evaluator = Evaluator {
         store,
         globals,
         resolutions,

@@ -91,29 +91,31 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     let mut stdout = io::stdout();
     let mut out = GenericReceiver::new(&mut stdout);
 
-    match compiler.compile_fragment(&cli.entry.unwrap_or_default()) {
-        Fragment::Stmt(stmt) => {
-            let (value, new_env) = evaluate(
-                stmt,
-                &store,
-                &globals,
-                compiler.resolutions(),
-                user,
-                env,
-                &mut out,
-            )?;
+    if cli.entry.is_some() {
+        match compiler.compile_fragment(&cli.entry.unwrap_or_default()) {
+            Fragment::Stmt(stmt) => {
+                let (value, new_env) = evaluate(
+                    stmt,
+                    &store,
+                    &globals,
+                    compiler.resolutions(),
+                    user,
+                    env,
+                    &mut out,
+                )?;
 
-            env = new_env;
-            println!("{value}");
-        }
-        Fragment::Callable(decl) => {
-            globals.insert(
-                GlobalId {
-                    package: user,
-                    node: decl.name.id,
-                },
-                decl,
-            );
+                env = new_env;
+                println!("{value}");
+            }
+            Fragment::Callable(decl) => {
+                globals.insert(
+                    GlobalId {
+                        package: user,
+                        node: decl.name.id,
+                    },
+                    decl,
+                );
+            }
         }
     }
 
