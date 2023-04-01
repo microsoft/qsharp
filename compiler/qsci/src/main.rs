@@ -65,26 +65,8 @@ fn repl(cli: Cli) -> Result<ExitCode> {
         vec![store.insert(compile::std())]
     };
 
-    let unit = compile(
-        &store,
-        deps,
-        &sources,
-        &cli.entry.clone().unwrap_or_default(),
-    );
-
-    if !unit.context.errors().is_empty() {
-        let reporter = ErrorReporter::new(cli, sources, &unit.context);
-        for error in unit.context.errors() {
-            eprintln!("{:?}", reporter.report(error.clone()));
-        }
-        return Ok(ExitCode::FAILURE);
-    }
-
-    let mut store = PackageStore::new();
-    let std = store.insert(compile::std());
-    let sources: [&str; 0] = [];
     let user = store.insert(compile(&store, [], sources, ""));
-    let mut compiler = Compiler::new(&store, [std]);
+    let mut compiler = Compiler::new(&store, deps);
     let mut globals = extract_callables(&store);
     let mut env = Env::empty();
 
