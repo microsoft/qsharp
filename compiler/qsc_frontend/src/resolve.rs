@@ -64,6 +64,26 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
+    pub(super) fn resolutions(&self) -> &Resolutions {
+        &self.resolutions
+    }
+
+    pub(super) fn errors(&self) -> &[Error] {
+        &self.errors
+    }
+
+    pub(super) fn add_global_callable(&mut self, decl: &'a CallableDecl) {
+        let id = DefId {
+            package: PackageSrc::Local,
+            node: decl.name.id,
+        };
+        self.resolutions.insert(decl.name.id, id);
+        self.terms
+            .entry(self.namespace)
+            .or_default()
+            .insert(&decl.name.name, id);
+    }
+
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
         (self.resolutions, self.errors)
     }

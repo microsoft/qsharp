@@ -3,22 +3,28 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use std::{
-    path::{Path, PathBuf},
-    process::ExitCode,
-};
+use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
-use miette::Result;
 
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_eval::{output::GenericReceiver, Evaluator};
 use qsc_frontend::{
-    compile::{self, compile, Context, PackageStore, SourceIndex},
+    compile::{Context, SourceIndex},
     diagnostic::OffsetError,
 };
+use std::{string::String, sync::Arc};
+
+use miette::{IntoDiagnostic, Result};
+use qsc_eval::evaluate;
+use qsc_eval::Env;
+use qsc_passes::globals::GlobalId;
+
+use qsc_eval::output::GenericReceiver;
+use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_frontend::incremental::{Compiler, Fragment};
 use qsc_passes::globals::extract_callables;
-use std::{fs, io, string::String, sync::Arc};
+use std::io::Write;
+use std::{fs, io};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, next_line_help = true)]
@@ -42,15 +48,17 @@ struct Cli {
 
 fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
-    if cli.exec {
-        unimplemented!("exec mode not yet implemented");
-    }
     if !cli.open.is_empty() {
         unimplemented!("specifying open not yet implemented");
     }
 
-    let sources: Vec<_> = cli.sources.iter().map(read_source).collect();
+    repl(cli)
+}
+
+fn repl(cli: Cli) -> Result<ExitCode> {
+    let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
     let mut store = PackageStore::new();
+
     let deps = if cli.nostdlib {
         vec![]
     } else {
@@ -64,33 +72,95 @@ fn main() -> Result<ExitCode> {
         &cli.entry.clone().unwrap_or_default(),
     );
 
-    if unit.context.errors().is_empty() {
-        let user = store.insert(unit);
-        let unit = store
-            .get(user)
-            .expect("compile unit should be in package store");
-        if let Some(expr) = &unit.package.entry {
-            let globals = extract_callables(&store);
-            let mut stdout = io::stdout();
-            let mut out = GenericReceiver::new(&mut stdout);
-            let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
-            match evaluator.eval_expr(expr) {
-                Ok((value, _)) => {
-                    println!("{value}");
-                    Ok(ExitCode::SUCCESS)
-                }
-                Err(error) => Err(ErrorReporter::new(cli, sources, &unit.context).report(error)),
-            }
-        } else {
-            Ok(ExitCode::SUCCESS)
-        }
-    } else {
+    if !unit.context.errors().is_empty() {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {
             eprintln!("{:?}", reporter.report(error.clone()));
         }
-        Ok(ExitCode::FAILURE)
+        return Ok(ExitCode::FAILURE);
     }
+
+    let mut store = PackageStore::new();
+    let std = store.insert(compile::std());
+    let sources: [&str; 0] = [];
+    let user = store.insert(compile(&store, [], sources, ""));
+    let mut compiler = Compiler::new(&store, [std]);
+    let mut globals = extract_callables(&store);
+    let mut env = Env::empty();
+
+    let mut stdout = io::stdout();
+    let mut out = GenericReceiver::new(&mut stdout);
+
+    match compiler.compile_fragment(&cli.entry.unwrap_or_default()) {
+        Fragment::Stmt(stmt) => {
+            let (value, new_env) = evaluate(
+                stmt,
+                &store,
+                &globals,
+                compiler.resolutions(),
+                user,
+                env,
+                &mut out,
+            )?;
+
+            env = new_env;
+            println!("{value}");
+        }
+        Fragment::Callable(decl) => {
+            globals.insert(
+                GlobalId {
+                    package: user,
+                    node: decl.name.id,
+                },
+                decl,
+            );
+        }
+    }
+
+    if cli.exec {
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    loop {
+        print!("> ");
+        io::stdout().flush().unwrap();
+        let mut line = String::new();
+
+        if io::stdin().read_line(&mut line).into_diagnostic()? == 0 {
+            println!();
+            break Ok(ExitCode::SUCCESS);
+        }
+
+        match compiler.compile_fragment(&line) {
+            Fragment::Stmt(stmt) => {
+                let (value, new_env) = evaluate(
+                    stmt,
+                    &store,
+                    &globals,
+                    compiler.resolutions(),
+                    user,
+                    env,
+                    &mut out,
+                )?;
+
+                env = new_env;
+                println!("{value}");
+            }
+            Fragment::Callable(decl) => {
+                globals.insert(
+                    GlobalId {
+                        package: user,
+                        node: decl.name.id,
+                    },
+                    decl,
+                );
+            }
+        }
+    }
+}
+
+fn read_source(paths: &[PathBuf]) -> io::Result<Vec<String>> {
+    paths.iter().map(fs::read_to_string).collect()
 }
 
 struct ErrorReporter<'a> {
@@ -125,10 +195,6 @@ impl<'a> ErrorReporter<'a> {
         let offset = -isize::try_from(offset).unwrap();
         Report::new(OffsetError::new(diagnostic, offset)).with_source_code(source)
     }
-}
-
-fn read_source(path: impl AsRef<Path>) -> String {
-    fs::read_to_string(path).unwrap()
 }
 
 fn source_name(paths: &[PathBuf], index: SourceIndex) -> &str {

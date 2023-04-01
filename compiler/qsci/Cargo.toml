@@ -10,6 +10,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+qsc_ast = { path = "../qsc_ast" }
 qsc_eval = { path = "../qsc_eval" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_passes = { path = "../qsc_passes" }

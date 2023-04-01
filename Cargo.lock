@@ -760,6 +760,7 @@ version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
  "miette",
+ "qsc_ast",
  "qsc_eval",
  "qsc_frontend",
  "qsc_passes",

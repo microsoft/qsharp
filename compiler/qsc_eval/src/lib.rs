@@ -191,8 +191,38 @@ impl Range {
     }
 }
 
+/// Evaluates the given entry statement with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn evaluate<'a>(
+    stmt: &Stmt,
+    store: &'a PackageStore,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl>,
+    resolutions: &'a Resolutions,
+    package: PackageId,
+    env: Env,
+    out: &'a mut dyn Receiver,
+) -> Result<(Value, Env), Error> {
+    let mut evaluator = Evaluator {
+        store,
+        globals,
+        resolutions,
+        package,
+        env,
+        out: Some(out),
+    };
+    evaluator.eval_stmt(stmt)
+}
+
 #[derive(Default)]
 pub struct Env(Vec<HashMap<GlobalId, Variable>>);
+
+impl Env {
+    #[must_use]
+    pub fn empty() -> Self {
+        Self(vec![HashMap::new()])
+    }
+}
 
 pub struct Evaluator<'a> {
     store: &'a PackageStore,
