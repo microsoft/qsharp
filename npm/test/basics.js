@@ -53,7 +53,7 @@ test('dump machine output', t => {
 test('runtime error position', t => {
     // TODO: The below should be a compile-time check and the test will fail when fixed.
     let code = `namespace Sample {
-        operation main() : Result {
+        operation main() : Result[] {
             use q1 = Qubit();
             Ry(q1);
             let m1 = M(q1);
@@ -67,8 +67,8 @@ test('runtime error position', t => {
     if (typeof shot_result.result != "object") {
         assert.fail("Wrong result type");
     } else {
-        assert(shot_result.result.start_pos == 99);
-        assert(shot_result.result.end_pos == 103);
+        assert(shot_result.result.start_pos == 101);
+        assert(shot_result.result.end_pos == 105);
         assert(shot_result.result.message == "mismatched types");
     }
 });

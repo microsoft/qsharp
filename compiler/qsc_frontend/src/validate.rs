@@ -6,8 +6,8 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
-        CallableDecl, CallableKind, Expr, ExprKind, Package, Pat, PatKind, Span, Spec, SpecBody,
-        SpecDecl, Ty, TyKind,
+        CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Package, Pat, PatKind, Span,
+        Spec, SpecBody, SpecDecl, Ty, TyKind,
     },
     visit::{walk_callable_decl, walk_expr, walk_ty, Visitor},
 };
@@ -15,11 +15,21 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
+    #[error("duplicate `main`")]
+    #[diagnostic(help("only one callable should be defined with the name `main`"))]
+    DuplicateMain(#[label("duplicate `main` definition")] Span),
+
     #[error("callable specialization pattern requires elided pattern `...`")]
     ElidedRequired(#[label("should be `...`")] Span),
 
     #[error("callable specialization pattern requires elided tuple `(ident, ...)`")]
     ElidedTupleRequired(#[label("should be `(ident, ...)`")] Span),
+
+    #[error("`main` should not have arguments")]
+    MainArgs(#[label("declaration should not include arguments")] Span),
+
+    #[error("`main` should have single body block")]
+    MainSpecDecl(#[label("cannot have specialization declarations")] Span),
 
     #[error("callable parameter `{0}` must be type annotated")]
     ParameterNotTyped(String, #[label("missing type annotation")] Span),
@@ -34,6 +44,7 @@ pub(super) enum Error {
 pub(super) fn validate(package: &Package) -> Vec<Error> {
     let mut validator = Validator {
         validation_errors: Vec::new(),
+        has_main: false,
     };
     validator.visit_package(package);
     validator.validation_errors
@@ -41,6 +52,7 @@ pub(super) fn validate(package: &Package) -> Vec<Error> {
 
 struct Validator {
     validation_errors: Vec<Error>,
+    has_main: bool,
 }
 
 impl Validator {
@@ -57,10 +69,33 @@ impl Validator {
             _ => {}
         }
     }
+
+    fn validate_main(&mut self, decl: &CallableDecl) {
+        if self.has_main {
+            self.validation_errors
+                .push(Error::DuplicateMain(decl.name.span));
+        }
+        if matches!(&decl.body, CallableBody::Specs(..)) {
+            self.validation_errors.push(Error::MainSpecDecl(decl.span));
+        }
+        let args_present = if let PatKind::Tuple(args) = &decl.input.kind {
+            !args.is_empty()
+        } else {
+            true
+        };
+        if args_present {
+            self.validation_errors
+                .push(Error::MainArgs(decl.input.span));
+        }
+    }
 }
 
 impl<'a> Visitor<'a> for Validator {
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
+        if decl.name.name == "main" {
+            self.validate_main(decl);
+            self.has_main = true;
+        }
         if CallableKind::Operation == decl.kind && decl.functors.is_some() {
             match &decl.output.kind {
                 TyKind::Tuple(items) if items.is_empty() => {}

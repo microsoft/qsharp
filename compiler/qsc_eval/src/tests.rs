@@ -35,6 +35,25 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     }
 }
 
+fn check_main(file: &str, expect: &Expect) {
+    let mut store = PackageStore::new();
+    let unit = compile(&store, [], [file], "");
+    assert!(
+        unit.context.errors().is_empty(),
+        "Compilation errors: {:?}",
+        unit.context.errors()
+    );
+    let id = store.insert(unit);
+    let globals = extract_callables(&store);
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
+    let evaluator = Evaluator::from_store(&store, id, &globals, &mut out);
+    match evaluator.eval_main() {
+        Ok((result, _)) => expect.assert_eq(&result.to_string()),
+        Err(e) => expect.assert_debug_eq(&e),
+    }
+}
+
 #[test]
 fn array_expr() {
     check_expr("", "[1, 2, 3]", &expect!["[1, 2, 3]"]);
@@ -2697,5 +2716,46 @@ fn global_callable_as_arg() {
         "},
         "Test.ApplyToIntArray(Test.PlusOne)",
         &expect!["[2, 2, 2]"],
+    );
+}
+
+#[test]
+fn run_main() {
+    check_main(
+        indoc! {"
+            namespace test {
+                operation main() : Int {
+                    AddOne(41)
+                }
+                function AddOne(x : Int) : Int {
+                    x + 1
+                }
+            }
+        "},
+        &expect!["42"],
+    );
+}
+
+#[test]
+fn run_main_missing() {
+    check_main(
+        indoc! {"
+            namespace test {
+                operation NotMain() : Int {
+                    AddOne(41)
+                }
+                function AddOne(x : Int) : Int {
+                    x + 1
+                }
+            }
+        "},
+        &expect![[r#"
+            MissingMain(
+                Span {
+                    lo: 0,
+                    hi: 0,
+                },
+            )
+        "#]],
     );
 }

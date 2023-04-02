@@ -44,9 +44,6 @@ pub enum Error {
     #[error("division by zero")]
     DivZero(#[label("cannot divide by zero")] Span),
 
-    #[error("nothing to evaluate; entry expression is empty")]
-    EmptyExpr,
-
     #[error("{0} type does not support equality comparison")]
     Equality(&'static str, #[label("does not support comparison")] Span),
 
@@ -55,6 +52,10 @@ pub enum Error {
 
     #[error("integer too large for operation")]
     IntTooLarge(i64, #[label("this value is too large")] Span),
+
+    #[error("missing `main`")]
+    #[diagnostic(help("one callable named `main` should be defined when not providing an explicit entry expression"))]
+    MissingMain(#[label("callable `main` not found")] Span),
 
     #[error("missing specialization: {0}")]
     MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
@@ -247,11 +248,8 @@ impl<'a> Evaluator<'a> {
         __quantum__rt__initialize(null_mut());
     }
 
-    /// Evaluates the given statement.
-    /// # Errors
-    /// Returns the first error encountered during execution.
-    pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Env), Error> {
-        match self.eval_stmt_impl(stmt) {
+    fn controlflow_as_result(self, cf: ControlFlow<Reason, Value>) -> Result<(Value, Env), Error> {
+        match cf {
             ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
                 Ok((val, self.env))
             }
@@ -259,16 +257,30 @@ impl<'a> Evaluator<'a> {
         }
     }
 
+    /// Evaluates the callable `main` if it defined in any namespace.
+    /// # Errors
+    /// Returns the first error encountered during execution.
+    /// Returns an error if there is not exactly one callable named `main`.
+    pub fn eval_main(mut self) -> Result<(Value, Env), Error> {
+        let main_block = find_main(self.globals)?;
+        let cf = self.eval_block(main_block);
+        self.controlflow_as_result(cf)
+    }
+
+    /// Evaluates the given statement.
+    /// # Errors
+    /// Returns the first error encountered during execution.
+    pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Env), Error> {
+        let cf = self.eval_stmt_impl(stmt);
+        self.controlflow_as_result(cf)
+    }
+
     /// Evaluates the given expression.
     /// # Errors
     /// Returns the first error encountered during execution.
     pub fn eval_expr(mut self, expr: &Expr) -> Result<(Value, Env), Error> {
-        match self.eval_expr_impl(expr) {
-            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                Ok((val, self.env))
-            }
-            ControlFlow::Break(Reason::Error(error)) => Err(error),
-        }
+        let cf = self.eval_expr_impl(expr);
+        self.controlflow_as_result(cf)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -1549,5 +1561,20 @@ fn eval_binop_xorb(
             lhs_val.type_name(),
             lhs_span,
         ))),
+    }
+}
+
+fn find_main<'a>(globals: &'a HashMap<GlobalId, &CallableDecl>) -> Result<&'a Block, Error> {
+    let main = globals
+        .values()
+        .filter(|decl| decl.name.name == "main")
+        .collect::<Vec<_>>();
+    match main.len() {
+        0 => Err(Error::MissingMain(Span { lo: 0, hi: 0 })),
+        1 => match &main[0].body {
+            CallableBody::Block(b) => Ok(b),
+            CallableBody::Specs(..) => panic!("body-only `main` should be enforced by compiler"),
+        },
+        _ => panic!("0 or 1 `main` declaration should be enforced by compiler"),
     }
 }

@@ -1,26 +1,22 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{parse::namespaces, validate::Validator};
+use crate::{parse::namespaces, validate::validate};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::{ast::Namespace, visit::Visitor};
+use qsc_ast::ast::{NodeId, Package};
 
 use super::Error;
 
 fn check(input: &str, expect: &Expect) {
-    let (parsed, errs) = &mut namespaces(input);
+    let (parsed, errs) = namespaces(input);
     assert!(errs.is_empty());
-    let errs: Vec<Error> = parsed.iter().flat_map(validate).collect();
+    let errs: Vec<Error> = validate(&Package {
+        id: NodeId::zero(),
+        namespaces: parsed,
+        entry: None,
+    });
     expect.assert_debug_eq(&errs);
-}
-
-fn validate(ns: &Namespace) -> Vec<Error> {
-    let mut validator = Validator {
-        validation_errors: Vec::new(),
-    };
-    validator.visit_namespace(ns);
-    validator.validation_errors
 }
 
 #[test]
@@ -235,6 +231,118 @@ fn test_elided_tuple_required() {
                     Span {
                         lo: 106,
                         hi: 109,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_main_args_single() {
+    check(
+        indoc! {"
+            namespace test {
+                operation main(a : Int) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            [
+                MainArgs(
+                    Span {
+                        lo: 35,
+                        hi: 44,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_main_args_tuple() {
+    check(
+        indoc! {"
+            namespace test {
+                operation main(a : Int, b : Int) : Unit {}
+            }
+        "},
+        &expect![[r#"
+            [
+                MainArgs(
+                    Span {
+                        lo: 35,
+                        hi: 53,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_main_no_args_allowed() {
+    check(
+        indoc! {"
+            namespace test {
+                operation main() : Unit {}
+            }
+        "},
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn test_main_spec_decl() {
+    check(
+        indoc! {"
+            namespace test {
+                operation main() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                MainSpecDecl(
+                    Span {
+                        lo: 21,
+                        hi: 72,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_duplicate_main() {
+    check(
+        indoc! {"
+            namespace test {
+                operation main() : Unit {}
+            }
+            namespace test2 {
+                operation main() : Unit {}
+            }
+            namespace test3 {
+                operation main() : Unit {}
+            }
+        "},
+        &expect![[r#"
+            [
+                DuplicateMain(
+                    Span {
+                        lo: 82,
+                        hi: 86,
+                    },
+                ),
+                DuplicateMain(
+                    Span {
+                        lo: 133,
+                        hi: 137,
                     },
                 ),
             ]

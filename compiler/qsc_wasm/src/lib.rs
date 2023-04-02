@@ -304,32 +304,33 @@ where
 
     let user = store.insert(unit);
     let unit = store.get(user).expect("Fail");
-    if let Some(expr) = &unit.package.entry {
-        let globals = extract_callables(&store);
-        let mut out = CallbackReceiver { event_cb };
-        for _ in 0..shots {
-            let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
-            Evaluator::init();
-            let mut success = true;
-            let result: String;
-            match &evaluator.eval_expr(expr) {
-                Ok((val, _)) => {
-                    result = format!(r#""{}""#, val);
-                }
-                Err(e) => {
-                    success = false;
-                    let diag: VSDiagnostic = e.into();
-                    result = diag.to_string();
-                }
+    let globals = extract_callables(&store);
+    let mut out = CallbackReceiver { event_cb };
+    for _ in 0..shots {
+        let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
+        Evaluator::init();
+        let mut success = true;
+        let result: String;
+        let eval_res = if let Some(expr) = &unit.package.entry {
+            evaluator.eval_expr(expr)
+        } else {
+            evaluator.eval_main()
+        };
+        match &eval_res {
+            Ok((val, _)) => {
+                result = format!(r#""{}""#, val);
             }
-            let msg_string =
-                format!(r#"{{"type": "Result", "success": {success}, "result": {result}}}"#);
-            (out.event_cb)(&msg_string);
+            Err(e) => {
+                success = false;
+                let diag: VSDiagnostic = e.into();
+                result = diag.to_string();
+            }
         }
-        Ok(())
-    } else {
-        Err(Error::EmptyExpr)
+        let msg_string =
+            format!(r#"{{"type": "Result", "success": {success}, "result": {result}}}"#);
+        (out.event_cb)(&msg_string);
     }
+    Ok(())
 }
 
 #[wasm_bindgen]
@@ -398,7 +399,7 @@ namespace Test {
     #[test]
     fn fail_ry() {
         let code = "namespace Sample {
-        operation main() : Result {
+        operation main() : Result[] {
             use q1 = Qubit();
             Ry(q1);
             let m1 = M(q1);
@@ -412,7 +413,7 @@ namespace Test {
             |_msg_| {
                 assert!(_msg_.contains(r#""type": "Result", "success": false"#));
                 assert!(_msg_.contains(r#""message": "mismatched types""#));
-                assert!(_msg_.contains(r#""start_pos": 99"#));
+                assert!(_msg_.contains(r#""start_pos": 101"#));
             },
             1,
         );
