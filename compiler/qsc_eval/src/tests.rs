@@ -1788,7 +1788,11 @@ fn literal_tuple_singleton_expr() {
 
 #[test]
 fn literal_tuple_mixed_expr() {
-    check_expr("", "(1, One, 1.0, [1, 2, 3])", &expect!["(1, One, 1.0, [1, 2, 3])"]);
+    check_expr(
+        "",
+        "(1, One, 1.0, [1, 2, 3])",
+        &expect!["(1, One, 1.0, [1, 2, 3])"],
+    );
 }
 
 #[test]
