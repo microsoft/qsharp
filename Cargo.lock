@@ -361,6 +361,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
 
 [[package]]
+name = "indenter"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "337a4939ca808cd4b5ce69d80d4bd50747992bcf93a368ac87663aaf74a7b4fc"
+
+[[package]]
 name = "indexmap"
 version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -672,6 +678,7 @@ dependencies = [
 name = "qsc_ast"
 version = "0.0.0"
 dependencies = [
+ "indenter",
  "miette",
  "num-bigint",
 ]
@@ -719,6 +726,8 @@ dependencies = [
 name = "qsc_passes"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
+ "indoc",
  "qsc_ast",
  "qsc_frontend",
 ]

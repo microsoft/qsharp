@@ -5,10 +5,11 @@
 
 #![warn(missing_docs)]
 
+use indenter::{indented, Format};
 use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::{
-    fmt::{self, Display, Formatter},
+    fmt::{self, Display, Formatter, Write},
     ops::{Bound, Index, RangeBounds},
 };
 
@@ -58,6 +59,13 @@ pub struct Span {
     pub lo: usize,
     /// The offset immediately following the last byte.
     pub hi: usize,
+}
+
+impl Display for Span {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "[{}-{}]", self.lo, self.hi)?;
+        Ok(())
+    }
 }
 
 impl Index<Span> for str {
@@ -115,6 +123,34 @@ impl Package {
     }
 }
 
+impl Display for Package {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        write!(indent, "Package {}:", self.id)?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        write!(indent, "\nnamespaces:")?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "        ",
+        });
+        for ns in &self.namespaces {
+            write!(indent, "\n{ns}")?;
+        }
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        if let Some(e) = &self.entry {
+            write!(indent, "\nentry:")?;
+            indent = indent.with_format(Format::Uniform {
+                indentation: "        ",
+            });
+            write!(indent, "\n{e}")?;
+        }
+        Ok(())
+    }
+}
+
 /// A namespace.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Namespace {
@@ -128,6 +164,32 @@ pub struct Namespace {
     pub items: Vec<Item>,
 }
 
+impl Display for Namespace {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        write!(indent, "Namespace {} {}:", self.id, self.span)?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        write!(indent, "\nname:")?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "        ",
+        });
+        write!(indent, "\n{}", self.name)?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        write!(indent, "\nitems")?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "        ",
+        });
+        for i in &self.items {
+            write!(indent, "\n{i}")?;
+        }
+        Ok(())
+    }
+}
+
 /// An item.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Item {
@@ -139,6 +201,14 @@ pub struct Item {
     pub meta: ItemMeta,
     /// The item kind.
     pub kind: ItemKind,
+}
+
+impl Display for Item {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        write!(indent, "Item {} {}:", self.id, self.span)?;
+        Ok(())
+    }
 }
 
 /// An item kind.
@@ -367,6 +437,12 @@ pub struct Expr {
     pub kind: ExprKind,
 }
 
+impl Display for Expr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "This is an expression!")
+    }
+}
+
 /// An expression kind.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum ExprKind {
@@ -503,6 +579,18 @@ pub struct Ident {
     pub span: Span,
     /// The identifier name.
     pub name: String,
+}
+
+impl Display for Ident {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        write!(indent, "Ident {} {}:", self.id, self.span)?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        write!(indent, "\nname: {}", self.name)?;
+        Ok(())
+    }
 }
 
 /// A declaration visibility kind.
