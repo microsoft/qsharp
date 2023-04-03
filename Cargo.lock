@@ -732,6 +732,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
+ "once_cell",
  "qsc_eval",
  "qsc_frontend",
  "qsc_passes",

@@ -3,9 +3,10 @@
 
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use once_cell::sync::OnceCell;
 use qsc_eval::output::Receiver;
 use qsc_eval::{output, Error, Evaluator};
-use qsc_frontend::compile::{compile, std, PackageStore};
+use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
 use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
@@ -226,9 +227,13 @@ where
 }
 
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
-    let mut store = PackageStore::new();
-    let std = store.insert(std());
-    let unit = compile(&store, [std], [code], "");
+    static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
+    let (std, ref store) = STDLIB_STORE.get_or_init(|| {
+        let mut store = PackageStore::new();
+        let std = store.insert(std());
+        (std, store)
+    });
+    let unit = compile(store, [*std], [code], "");
 
     let mut result: Vec<VSDiagnostic> = vec![];
 
