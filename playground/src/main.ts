@@ -7,6 +7,7 @@ import {init, getCompletions, checkCode, evaluate, eventStringToMsg,
     renderDump, IDiagnostic, ShotResult } from "qsharp/browser";
 
 import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
+import {PopulateModules, RenderKatas} from "./katas.js";
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -161,6 +162,10 @@ async function loaded() {
             return mapped;
         }
     });
+
+    // TODO (cesarzc): Comment.
+    PopulateModules();
+
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/

@@ -33,7 +33,19 @@
   </div>
 
   <div id="errors"></div>
-  <div><a href="katas.html">Katas</a></div>
+
+  <div id="katas">
+    <h1>Katas</h1>
+    <div>
+      <select name="modules" id="modules">
+        <option value="single-qubit-gates">Single-Qubit Gates</option>
+        <option value="multi-qubit-gates">Multi-Qubit Gates</option>
+      </select>
+      <div>
+        <button id="verify">Verify</button>
+      </div>
+    </div>
+  </div>
   <script src="libs/monaco/vs/loader.js"></script>
   <script src="libs/app.js"></script>
 </body>
