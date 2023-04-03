@@ -3,9 +3,12 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
+use std::collections::HashMap;
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
+use qsc_ast::ast::CallableDecl;
+use qsc_ast::ast::Stmt;
 
 use std::string::String;
 
@@ -15,7 +18,7 @@ use qsc_eval::Env;
 use qsc_passes::globals::GlobalId;
 
 use qsc_eval::output::GenericReceiver;
-use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_frontend::compile::{self, compile, PackageId, PackageStore};
 use qsc_frontend::incremental::{Compiler, Fragment};
 use qsc_passes::globals::extract_callables;
 use std::io::prelude::BufRead;
@@ -51,7 +54,6 @@ fn main() -> Result<ExitCode> {
     repl(cli)
 }
 
-#[allow(clippy::too_many_lines)]
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
     let mut store = PackageStore::new();
@@ -70,28 +72,30 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     let mut stdout = io::stdout();
     let mut out = GenericReceiver::new(&mut stdout);
 
-    if cli.entry.is_some() {
-        match compiler.compile_fragment(&cli.entry.unwrap_or_default()) {
-            Ok(fragment) => match fragment {
-                Fragment::Stmt(stmt) => {
-                    env = eval(stmt, &store, &globals, &compiler, user, env, &mut out);
-                }
-                Fragment::Callable(decl) => {
-                    globals.insert(
-                        GlobalId {
-                            package: user,
-                            node: decl.name.id,
-                        },
-                        decl,
-                    );
-                }
-            },
-            Err(errors) => {
-                for error in errors {
-                    eprintln!("{error}");
-                }
+    let mut execute_line = |line: String, env: Env| match compiler.compile_fragment(&line) {
+        Ok(fragment) => match fragment {
+            Fragment::Stmt(stmt) => eval(stmt, &store, &globals, &compiler, user, env, &mut out),
+            Fragment::Callable(decl) => {
+                globals.insert(
+                    GlobalId {
+                        package: user,
+                        node: decl.name.id,
+                    },
+                    decl,
+                );
+                env
             }
+        },
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{error}");
+            }
+            env
         }
+    };
+    if cli.entry.is_some() {
+        let line = cli.entry.unwrap_or_default();
+        env = execute_line(line, env);
     }
 
     if cli.exec {
@@ -111,27 +115,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
                 line.push_str(&next);
             }
 
-            match compiler.compile_fragment(&line) {
-                Ok(fragment) => match fragment {
-                    Fragment::Stmt(stmt) => {
-                        env = eval(stmt, &store, &globals, &compiler, user, env, &mut out);
-                    }
-                    Fragment::Callable(decl) => {
-                        globals.insert(
-                            GlobalId {
-                                package: user,
-                                node: decl.name.id,
-                            },
-                            decl,
-                        );
-                    }
-                },
-                Err(errors) => {
-                    for error in errors {
-                        eprintln!("{error}");
-                    }
-                }
-            }
+            env = execute_line(line, env);
 
             print_prompt(false);
         }
@@ -139,17 +123,25 @@ fn repl(cli: Cli) -> Result<ExitCode> {
 }
 
 fn eval(
-    stmt: &qsc_ast::ast::Stmt,
+    stmt: &Stmt,
     store: &PackageStore,
-    globals: &std::collections::HashMap<GlobalId, &qsc_ast::ast::CallableDecl>,
+    globals: &HashMap<GlobalId, &CallableDecl>,
     compiler: &Compiler,
-    user: compile::PackageId,
+    package: PackageId,
     env: Env,
     out: &mut GenericReceiver,
 ) -> Env {
-    let (res, new_env) = evaluate(stmt, store, globals, compiler.resolutions(), user, env, out);
+    let (result, new_env) = evaluate(
+        stmt,
+        store,
+        globals,
+        compiler.resolutions(),
+        package,
+        env,
+        out,
+    );
 
-    match res {
+    match result {
         Ok(value) => {
             println!("{value}");
         }
@@ -163,9 +155,9 @@ fn eval(
 
 fn print_prompt(is_multiline: bool) {
     if is_multiline {
-        print!(">> ");
+        print!("    > ");
     } else {
-        print!("> ");
+        print!("qsci$ ");
     }
     io::stdout().flush().unwrap();
 }
