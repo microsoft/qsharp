@@ -74,24 +74,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
         match compiler.compile_fragment(&cli.entry.unwrap_or_default()) {
             Ok(fragment) => match fragment {
                 Fragment::Stmt(stmt) => {
-                    let (res, new_env) = evaluate(
-                        stmt,
-                        &store,
-                        &globals,
-                        compiler.resolutions(),
-                        user,
-                        env,
-                        &mut out,
-                    );
-                    env = new_env;
-                    match res {
-                        Ok(value) => {
-                            println!("{value}");
-                        }
-                        Err(errors) => {
-                            eprintln!("{errors}");
-                        }
-                    }
+                    env = eval(stmt, &store, &globals, &compiler, user, env, &mut out);
                 }
                 Fragment::Callable(decl) => {
                     globals.insert(
@@ -131,24 +114,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             match compiler.compile_fragment(&line) {
                 Ok(fragment) => match fragment {
                     Fragment::Stmt(stmt) => {
-                        let (res, new_env) = evaluate(
-                            stmt,
-                            &store,
-                            &globals,
-                            compiler.resolutions(),
-                            user,
-                            env,
-                            &mut out,
-                        );
-                        env = new_env;
-                        match res {
-                            Ok(value) => {
-                                println!("{value}");
-                            }
-                            Err(errors) => {
-                                eprintln!("{errors}");
-                            }
-                        }
+                        env = eval(stmt, &store, &globals, &compiler, user, env, &mut out);
                     }
                     Fragment::Callable(decl) => {
                         globals.insert(
@@ -170,6 +136,29 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             print_prompt(false);
         }
     }
+}
+
+fn eval(
+    stmt: &qsc_ast::ast::Stmt,
+    store: &PackageStore,
+    globals: &std::collections::HashMap<GlobalId, &qsc_ast::ast::CallableDecl>,
+    compiler: &Compiler,
+    user: compile::PackageId,
+    env: Env,
+    out: &mut GenericReceiver,
+) -> Env {
+    let (res, new_env) = evaluate(stmt, store, globals, compiler.resolutions(), user, env, out);
+
+    match res {
+        Ok(value) => {
+            println!("{value}");
+        }
+        Err(errors) => {
+            eprintln!("{errors}");
+        }
+    }
+
+    new_env
 }
 
 fn print_prompt(is_multiline: bool) {
