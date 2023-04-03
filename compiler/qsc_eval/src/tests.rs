@@ -1777,6 +1777,21 @@ fn literal_string_expr() {
 }
 
 #[test]
+fn literal_tuple_expr() {
+    check_expr("", "(1, 2, 3)", &expect!["(1, 2, 3)"]);
+}
+
+#[test]
+fn literal_tuple_singleton_expr() {
+    check_expr("", "(1,)", &expect!["(1,)"]);
+}
+
+#[test]
+fn literal_tuple_mixed_expr() {
+    check_expr("", "(1, One, 1.0, [1, 2, 3])", &expect!["(1, One, 1.0, [1, 2, 3])"]);
+}
+
+#[test]
 fn paren_expr() {
     check_expr("", "(42)", &expect!["42"]);
 }
