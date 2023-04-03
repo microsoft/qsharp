@@ -7,12 +7,7 @@ use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
 
-use miette::{Diagnostic, NamedSource, Report};
-use qsc_frontend::{
-    compile::{Context, SourceIndex},
-    diagnostic::OffsetError,
-};
-use std::{string::String, sync::Arc};
+use std::string::String;
 
 use miette::{IntoDiagnostic, Result};
 use qsc_eval::evaluate;

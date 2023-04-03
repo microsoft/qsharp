@@ -3,17 +3,32 @@
 
 use crate::{
     compile::{PackageId, PackageStore},
-    diagnostic::OffsetError,
     id::Assigner,
     parse,
-    resolve::{DefId, GlobalTable, Resolutions, Resolver},
+    resolve::{self, DefId, GlobalTable, Resolutions, Resolver},
 };
+use miette::Diagnostic;
 use qsc_ast::{
     ast::{CallableDecl, ItemKind, Stmt},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
 use std::collections::HashMap;
+
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+#[error(transparent)]
+pub struct Error(ErrorKind);
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+#[error(transparent)]
+enum ErrorKind {
+    Parse(parse::Error),
+    Resolve(resolve::Error),
+}
 
 pub struct Compiler<'a> {
     assigner: Assigner,
@@ -47,12 +62,7 @@ impl<'a> Compiler<'a> {
     /// Compile a single string as either a callable declaration or a statement into a `Fragment`.
     /// # Errors
     /// This will panic if the fragment cannot be compiled due to parsing or symbol resolution errors.
-    /// # Panics
-    /// <>
-    pub fn compile_fragment(
-        &mut self,
-        source: &str,
-    ) -> Result<Fragment<'static>, Vec<crate::compile::Error>> {
+    pub fn compile_fragment(&mut self, source: &str) -> Result<Fragment<'static>, Vec<Error>> {
         self.resolver.reset_errors();
         let (item, errors) = parse::item(source);
 
@@ -65,9 +75,12 @@ impl<'a> Compiler<'a> {
                     .with_scope(&mut self.fragments_scope, |resolver| {
                         resolver.add_global_callable(decl);
                         resolver.visit_callable_decl(decl);
-                        errors.extend(resolver.errors().iter().map(|e| {
-                            crate::compile::Error(crate::compile::ErrorKind::Resolve(e.clone()))
-                        }));
+                        errors.extend(
+                            resolver
+                                .errors()
+                                .iter()
+                                .map(|e| Error(ErrorKind::Resolve(e.clone()))),
+                        );
                     });
                 if !errors.is_empty() {
                     return Err(errors);
@@ -78,11 +91,7 @@ impl<'a> Compiler<'a> {
                 let (mut stmt, errors) = parse::stmt(source);
                 if !errors.is_empty() {
                     let mut parse_errors = vec![];
-                    parse_errors.extend(errors.iter().map(|e| {
-                        crate::compile::Error(crate::compile::ErrorKind::Parse(OffsetError::new(
-                            *e, 0,
-                        )))
-                    }));
+                    parse_errors.extend(errors.iter().map(|e| Error(ErrorKind::Parse(*e))));
                     return Err(parse_errors);
                 }
 
@@ -92,9 +101,12 @@ impl<'a> Compiler<'a> {
                 self.resolver
                     .with_scope(&mut self.fragments_scope, |resolver| {
                         resolver.visit_stmt(stmt);
-                        errors.extend(resolver.errors().iter().map(|e| {
-                            crate::compile::Error(crate::compile::ErrorKind::Resolve(e.clone()))
-                        }));
+                        errors.extend(
+                            resolver
+                                .errors()
+                                .iter()
+                                .map(|e| Error(ErrorKind::Resolve(e.clone()))),
+                        );
                     });
                 if !errors.is_empty() {
                     return Err(errors);
