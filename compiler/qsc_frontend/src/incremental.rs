@@ -3,6 +3,7 @@
 
 use crate::{
     compile::{PackageId, PackageStore},
+    diagnostic::OffsetError,
     id::Assigner,
     parse,
     resolve::{DefId, GlobalTable, Resolutions, Resolver},
@@ -44,34 +45,61 @@ impl<'a> Compiler<'a> {
     }
 
     /// Compile a single string as either a callable declaration or a statement into a `Fragment`.
-    /// # Panics
+    /// # Errors
     /// This will panic if the fragment cannot be compiled due to parsing or symbol resolution errors.
-    pub fn compile_fragment(&mut self, source: &str) -> Fragment<'static> {
+    /// # Panics
+    /// <>
+    pub fn compile_fragment(
+        &mut self,
+        source: &str,
+    ) -> Result<Fragment<'static>, Vec<crate::compile::Error>> {
+        self.resolver.reset_errors();
         let (item, errors) = parse::item(source);
 
         match item.kind {
             ItemKind::Callable(mut decl) if errors.is_empty() => {
                 self.assigner.visit_callable_decl(&mut decl);
                 let decl = Box::leak(Box::new(decl));
+                let mut errors = vec![];
                 self.resolver
                     .with_scope(&mut self.fragments_scope, |resolver| {
                         resolver.add_global_callable(decl);
                         resolver.visit_callable_decl(decl);
-                        assert!(resolver.errors().is_empty(), "resolution failed");
+                        errors.extend(resolver.errors().iter().map(|e| {
+                            crate::compile::Error(crate::compile::ErrorKind::Resolve(e.clone()))
+                        }));
                     });
-                Fragment::Callable(decl)
+                if !errors.is_empty() {
+                    return Err(errors);
+                }
+                Ok(Fragment::Callable(decl))
             }
             _ => {
                 let (mut stmt, errors) = parse::stmt(source);
-                assert!(errors.is_empty(), "parsing failed");
+                if !errors.is_empty() {
+                    let mut parse_errors = vec![];
+                    parse_errors.extend(errors.iter().map(|e| {
+                        crate::compile::Error(crate::compile::ErrorKind::Parse(OffsetError::new(
+                            *e, 0,
+                        )))
+                    }));
+                    return Err(parse_errors);
+                }
+
                 self.assigner.visit_stmt(&mut stmt);
                 let stmt = Box::leak(Box::new(stmt));
+                let mut errors = vec![];
                 self.resolver
                     .with_scope(&mut self.fragments_scope, |resolver| {
                         resolver.visit_stmt(stmt);
-                        assert!(resolver.errors().is_empty(), "resolution failed");
+                        errors.extend(resolver.errors().iter().map(|e| {
+                            crate::compile::Error(crate::compile::ErrorKind::Resolve(e.clone()))
+                        }));
                     });
-                Fragment::Stmt(stmt)
+                if !errors.is_empty() {
+                    return Err(errors);
+                }
+                Ok(Fragment::Stmt(stmt))
             }
         }
     }

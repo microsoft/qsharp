@@ -202,7 +202,7 @@ pub fn evaluate<'a>(
     package: PackageId,
     env: Env,
     out: &'a mut dyn Receiver,
-) -> Result<(Value, Env), Error> {
+) -> (Result<Value, Error>, Env) {
     let evaluator = Evaluator {
         store,
         globals,
@@ -280,12 +280,12 @@ impl<'a> Evaluator<'a> {
     /// Evaluates the given statement.
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Env), Error> {
+    pub fn eval_stmt(mut self, stmt: &Stmt) -> (Result<Value, Error>, Env) {
         match self.eval_stmt_impl(stmt) {
             ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                Ok((val, self.env))
+                (Ok(val), self.env)
             }
-            ControlFlow::Break(Reason::Error(error)) => Err(error),
+            ControlFlow::Break(Reason::Error(error)) => (Err(error), self.env),
         }
     }
 

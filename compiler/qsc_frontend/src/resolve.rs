@@ -72,6 +72,10 @@ impl<'a> Resolver<'a> {
         &self.errors
     }
 
+    pub(super) fn reset_errors(&mut self) {
+        self.errors.clear();
+    }
+
     pub(super) fn add_global_callable(&mut self, decl: &'a CallableDecl) {
         let id = DefId {
             package: PackageSrc::Local,

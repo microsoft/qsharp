@@ -23,6 +23,7 @@ use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_frontend::incremental::{Compiler, Fragment};
 use qsc_passes::globals::extract_callables;
+use std::io::prelude::BufRead;
 use std::io::Write;
 use std::{fs, io};
 
@@ -55,6 +56,7 @@ fn main() -> Result<ExitCode> {
     repl(cli)
 }
 
+#[allow(clippy::too_many_lines)]
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
     let mut store = PackageStore::new();
@@ -75,28 +77,41 @@ fn repl(cli: Cli) -> Result<ExitCode> {
 
     if cli.entry.is_some() {
         match compiler.compile_fragment(&cli.entry.unwrap_or_default()) {
-            Fragment::Stmt(stmt) => {
-                let (value, new_env) = evaluate(
-                    stmt,
-                    &store,
-                    &globals,
-                    compiler.resolutions(),
-                    user,
-                    env,
-                    &mut out,
-                )?;
-
-                env = new_env;
-                println!("{value}");
-            }
-            Fragment::Callable(decl) => {
-                globals.insert(
-                    GlobalId {
-                        package: user,
-                        node: decl.name.id,
-                    },
-                    decl,
-                );
+            Ok(fragment) => match fragment {
+                Fragment::Stmt(stmt) => {
+                    let (res, new_env) = evaluate(
+                        stmt,
+                        &store,
+                        &globals,
+                        compiler.resolutions(),
+                        user,
+                        env,
+                        &mut out,
+                    );
+                    env = new_env;
+                    match res {
+                        Ok(value) => {
+                            println!("{value}");
+                        }
+                        Err(errors) => {
+                            eprintln!("{errors}");
+                        }
+                    }
+                }
+                Fragment::Callable(decl) => {
+                    globals.insert(
+                        GlobalId {
+                            package: user,
+                            node: decl.name.id,
+                        },
+                        decl,
+                    );
+                }
+            },
+            Err(errors) => {
+                for error in errors {
+                    eprintln!("{error}");
+                }
             }
         }
     }
@@ -106,86 +121,71 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 
     loop {
-        print!("> ");
-        io::stdout().flush().unwrap();
-        let mut line = String::new();
+        print_prompt(false);
 
-        if io::stdin().read_line(&mut line).into_diagnostic()? == 0 {
-            println!();
-            break Ok(ExitCode::SUCCESS);
-        }
-
-        match compiler.compile_fragment(&line) {
-            Fragment::Stmt(stmt) => {
-                let (value, new_env) = evaluate(
-                    stmt,
-                    &store,
-                    &globals,
-                    compiler.resolutions(),
-                    user,
-                    env,
-                    &mut out,
-                )?;
-
-                env = new_env;
-                println!("{value}");
+        let stdin = io::BufReader::new(io::stdin());
+        let mut iter = stdin.lines().map(Result::unwrap);
+        while let Some(mut line) = iter.next() {
+            while !line.is_empty() && &line[line.len() - 1..] == "\\" {
+                print_prompt(true);
+                line.pop(); // remove '\' from line
+                let next = iter.next().unwrap();
+                line.push_str(&next);
             }
-            Fragment::Callable(decl) => {
-                globals.insert(
-                    GlobalId {
-                        package: user,
-                        node: decl.name.id,
-                    },
-                    decl,
-                );
+
+            match compiler.compile_fragment(&line) {
+                Ok(fragment) => match fragment {
+                    Fragment::Stmt(stmt) => {
+                        let (res, new_env) = evaluate(
+                            stmt,
+                            &store,
+                            &globals,
+                            compiler.resolutions(),
+                            user,
+                            env,
+                            &mut out,
+                        );
+                        env = new_env;
+                        match res {
+                            Ok(value) => {
+                                println!("{value}");
+                            }
+                            Err(errors) => {
+                                eprintln!("{errors}");
+                            }
+                        }
+                    }
+                    Fragment::Callable(decl) => {
+                        globals.insert(
+                            GlobalId {
+                                package: user,
+                                node: decl.name.id,
+                            },
+                            decl,
+                        );
+                    }
+                },
+                Err(errors) => {
+                    for error in errors {
+                        eprintln!("{error}");
+                    }
+                }
             }
+
+            print_prompt(false);
         }
     }
+}
+
+fn print_prompt(is_multiline: bool) {
+    if is_multiline {
+        print!(">> ");
+    } else {
+        print!("> ");
+    }
+    io::stdout().flush().unwrap();
 }
 
 fn read_source(paths: &[PathBuf]) -> io::Result<Vec<String>> {
     paths.iter().map(fs::read_to_string).collect()
-}
-
-struct ErrorReporter<'a> {
-    context: &'a Context,
-    paths: Vec<PathBuf>,
-    sources: Vec<Arc<String>>,
-    entry: Arc<String>,
-}
-
-impl<'a> ErrorReporter<'a> {
-    fn new(cli: Cli, sources: Vec<String>, context: &'a Context) -> Self {
-        Self {
-            context,
-            paths: cli.sources,
-            sources: sources.into_iter().map(Arc::new).collect(),
-            entry: Arc::new(cli.entry.unwrap_or_default()),
-        }
-    }
-
-    fn report(&self, diagnostic: impl Diagnostic + Send + Sync + 'static) -> Report {
-        let Some(first_label) = diagnostic.labels().and_then(|mut ls| ls.next()) else {
-            return Report::new(diagnostic);
-        };
-
-        // Use the offset of the first labeled span to find which source code to include in the report.
-        let (index, offset) = self.context.source(first_label.offset());
-        let name = source_name(&self.paths, index);
-        let source = self.sources.get(index.0).unwrap_or(&self.entry).clone();
-        let source = NamedSource::new(name, source);
-
-        // Adjust all spans in the error to be relative to the start of this source.
-        let offset = -isize::try_from(offset).unwrap();
-        Report::new(OffsetError::new(diagnostic, offset)).with_source_code(source)
-    }
-}
-
-fn source_name(paths: &[PathBuf], index: SourceIndex) -> &str {
-    paths
-        .get(index.0)
-        .map_or("<unknown>", |p| match p.to_str() {
-            Some(name) => name,
-            None => "<unknown>",
-        })
 }
