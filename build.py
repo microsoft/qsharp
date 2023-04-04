@@ -16,7 +16,16 @@ parser = argparse.ArgumentParser(description=
 "Builds all projects in the repo, unless specific projects to build are passed "
 "as options, in which case only those projects are built.")
 
-parser.add_argument("--py", action="store_true", help="Build the python package")
+parser.add_argument('--cli', action='store_true',
+                    help='Build the command-line compiler')
+parser.add_argument("--py", action="store_true",
+                    help="Build the python package")
+parser.add_argument('--wasm', action='store_true',
+                    help='Build the WebAssembly files')
+parser.add_argument('--npm', action='store_true',
+                    help='Build the npm package')
+parser.add_argument('--play', action='store_true',
+                    help='Build the web playground')
 
 parser.add_argument('--release', action='store_true',
                     help='Create a release build (default is debug)')
