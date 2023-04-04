@@ -9,11 +9,11 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-qir-backend = { git = "https://github.com/qir-alliance/qir-runner", rev = "b438d884c774a67d55bf67081d9ddd1585dd8e97" }
+qir-backend = { git = "https://github.com/qir-alliance/qir-runner", rev = "bd05b59e38b70a162d29ddab7332ca19a5bddbde" }
 qsc_ast = { path = "../qsc_ast" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_passes = { path = "../qsc_passes" }
-qir-stdlib = { git = "https://github.com/qir-alliance/qir-runner", rev = "b438d884c774a67d55bf67081d9ddd1585dd8e97" }
+qir-stdlib = { git = "https://github.com/qir-alliance/qir-runner", rev = "bd05b59e38b70a162d29ddab7332ca19a5bddbde" }
 miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
