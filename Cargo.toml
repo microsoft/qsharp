@@ -11,6 +11,7 @@ members = [
     "compiler/qsc_wasm",
     "compiler/qsi",
     "katas",
+    "qsharp",
 ]
 
 [workspace.package]
