@@ -378,9 +378,9 @@ impl Inferrer<'_> {
         loop {
             for constraint in constraints {
                 match constraint {
-                    Constraint::Eq(mut ty1, mut ty2) => {
-                        substitute(&substs, &mut ty1);
-                        substitute(&substs, &mut ty2);
+                    Constraint::Eq(ty1, ty2) => {
+                        let ty1 = substitute(&substs, ty1);
+                        let ty2 = substitute(&substs, ty2);
                         let new_substs = unify(ty1, ty2);
 
                         for (var, _) in &new_substs {
@@ -399,10 +399,8 @@ impl Inferrer<'_> {
                             .collect();
 
                         if unsolved.is_empty() {
-                            new_constraints.extend(classify(class.map(|mut ty| {
-                                substitute(&substs, &mut ty);
-                                ty
-                            })));
+                            new_constraints
+                                .extend(classify(class.map(|ty| substitute(&substs, ty))));
                         } else {
                             for var in unsolved {
                                 pending_classes.entry(var).or_default().push(class.clone());
@@ -462,23 +460,33 @@ fn classify(class: Class) -> Vec<Constraint> {
     todo!()
 }
 
-fn substitute(substs: &HashMap<u32, Ty>, ty: &mut Ty) {
+fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
     match ty {
-        Ty::App(base, args) => {
-            substitute(substs, base);
-            args.iter_mut().for_each(|arg| substitute(substs, arg));
-        }
-        Ty::Arrow(_, input, output, _) => {
-            substitute(substs, input);
-            substitute(substs, output);
-        }
-        Ty::Tuple(items) => items.iter_mut().for_each(|item| substitute(substs, item)),
-        Ty::Var(var) => {
-            if let Some(new_ty) = substs.get(var) {
-                *ty = new_ty.clone();
-            }
-        }
-        Ty::DefId(_) | Ty::Prim(_) | Ty::Void => {}
+        Ty::App(base, args) => Ty::App(
+            Box::new(substitute(substs, *base)),
+            args.into_iter()
+                .map(|arg| substitute(substs, arg))
+                .collect(),
+        ),
+        Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
+            kind,
+            Box::new(substitute(substs, *input)),
+            Box::new(substitute(substs, *output)),
+            functors,
+        ),
+        Ty::DefId(id) => Ty::DefId(id),
+        Ty::Prim(prim) => Ty::Prim(prim),
+        Ty::Tuple(items) => Ty::Tuple(
+            items
+                .into_iter()
+                .map(|item| substitute(substs, item))
+                .collect(),
+        ),
+        Ty::Var(var) => match substs.get(&var) {
+            Some(new_ty) => new_ty.clone(),
+            None => Ty::Var(var),
+        },
+        Ty::Void => Ty::Void,
     }
 }
 
