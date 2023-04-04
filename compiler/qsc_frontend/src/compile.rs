@@ -184,6 +184,8 @@ pub fn std() -> CompileUnit {
         &PackageStore::new(),
         [],
         [
+            include_str!("../../../library/arithmetic.qs"),
+            include_str!("../../../library/arrays.qs"),
             include_str!("../../../library/canon.qs"),
             include_str!("../../../library/convert.qs"),
             include_str!("../../../library/core.qs"),

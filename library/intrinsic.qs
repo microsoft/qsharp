@@ -243,19 +243,39 @@ namespace Microsoft.Quantum.Intrinsic {
     /// When called with `pauli = PauliI`, this operation applies
     /// a *global phase*. This phase can be significant
     /// when used with the `Controlled` functor.
-    operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
-        if (pauli == PauliX) {
-            Rx(theta, qubit);
+    operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit {
+        // TODO: is Adj + Ctl
+        body ... {
+            if (pauli == PauliX) {
+                Rx(theta, qubit);
+            }
+            elif (pauli == PauliY) {
+                Ry(theta, qubit);
+            }
+            elif (pauli == PauliZ) {
+                Rz(theta, qubit);
+            }
+            else { // PauliI
+                ApplyGlobalPhase( - theta / 2.0 );
+            }
         }
-        elif (pauli == PauliY) {
-            Ry(theta, qubit);
+        controlled (ctls, ...) {
+            // TODO: auto
+            if (pauli == PauliX) {
+                Controlled Rx(ctls, (theta, qubit));
+            }
+            elif (pauli == PauliY) {
+                Controlled Ry(ctls, (theta, qubit));
+            }
+            elif (pauli == PauliZ) {
+                Controlled Rz(ctls, (theta, qubit));
+            }
+            else { // PauliI
+                Controlled ApplyGlobalPhase(ctls, - theta / 2.0 );
+            }
         }
-        elif (pauli == PauliZ) {
-            Rz(theta, qubit);
-        }
-        else { // PauliI
-            ApplyGlobalPhase( - theta / 2.0 );
-        }
+        // TODO: adjoint auto
+        // TODO: controlled adjoint auto
     }
 
     /// # Summary
@@ -334,9 +354,19 @@ namespace Microsoft.Quantum.Intrinsic {
     /// RFrac(PauliZ, -numerator, denominator + 1, qubit);
     /// RFrac(PauliI, numerator, denominator + 1, qubit);
     /// ```
-    operation R1Frac(numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl {
-        RFrac(PauliZ, -numerator, power + 1, qubit);
-        RFrac(PauliI, numerator, power + 1, qubit);
+    operation R1Frac(numerator : Int, power : Int, qubit : Qubit) : Unit {
+        // TODO: is Adj + Ctl
+        body ... {
+            RFrac(PauliZ, -numerator, power + 1, qubit);
+            RFrac(PauliI, numerator, power + 1, qubit);
+        }
+        controlled (ctls, ...) {
+            // TODO: auto
+            Controlled RFrac(ctls, (PauliZ, -numerator, power + 1, qubit));
+            Controlled RFrac(ctls, (PauliI, numerator, power + 1, qubit));
+        }
+        // TODO: adjoint auto
+        // TODO: controlled adjoint auto
     }
 
     /// # Summary
@@ -383,11 +413,23 @@ namespace Microsoft.Quantum.Intrinsic {
     /// // PI() is a Q# function that returns an approximation of π.
     /// R(pauli, -PI() * IntAsDouble(numerator) / IntAsDouble(2 ^ (power - 1)), qubit);
     /// ```
-    operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl {
-        // Note that power must be converted to a double and used with 2.0 instead of 2 to allow for
-        // negative exponents that result in a fractional denominator.
-        let angle = ((-2.0 * PI()) * IntAsDouble(numerator)) / (2.0 ^ IntAsDouble(power));
-        R(pauli, angle, qubit);
+    operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit {
+        // TODO: is Adj + Ctl
+        body ... {
+            // Note that power must be converted to a double and used with 2.0 instead of 2 to allow for
+            // negative exponents that result in a fractional denominator.
+            let angle = ((-2.0 * PI()) * IntAsDouble(numerator)) / (2.0 ^ IntAsDouble(power));
+            R(pauli, angle, qubit);
+        }
+        controlled (ctls, ...) {
+            // TODO: auto
+            // Note that power must be converted to a double and used with 2.0 instead of 2 to allow for
+            // negative exponents that result in a fractional denominator.
+            let angle = ((-2.0 * PI()) * IntAsDouble(numerator)) / (2.0 ^ IntAsDouble(power));
+            Controlled R(ctls, (pauli, angle, qubit));
+        }
+        // TODO: adjoint auto
+        // TODO: controlled adjoint auto
     }
 
     /// # Summary
@@ -790,12 +832,9 @@ namespace Microsoft.Quantum.Intrinsic {
                 __quantum__qis__swap__body(qubit1, qubit2);
             }
             else {
-                within {
-                    CNOT(qubit1, qubit2);
-                }
-                apply {
-                    Controlled CNOT(ctls, (qubit2, qubit1));
-                }
+                CNOT(qubit1, qubit2);
+                Controlled CNOT(ctls, (qubit2, qubit1));
+                Adjoint CNOT(qubit1, qubit2);
             }
         }
     }
