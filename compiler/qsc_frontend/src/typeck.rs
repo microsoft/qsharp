@@ -3,8 +3,8 @@
 
 use crate::resolve::{DefId, PackageSrc, Resolutions};
 use qsc_ast::ast::{
-    BinOp, Block, CallableKind, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, TernOp,
-    TyPrim, UnOp,
+    BinOp, Block, CallableKind, Expr, ExprKind, Functor, FunctorExpr, FunctorExprKind, Lit, NodeId,
+    Pat, SetOp, TernOp, TyPrim, UnOp,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -576,7 +576,21 @@ fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
 }
 
 fn functor_set(expr: Option<&FunctorExpr>) -> HashSet<Functor> {
-    todo!()
+    match expr {
+        None => HashSet::new(),
+        Some(expr) => match &expr.kind {
+            FunctorExprKind::BinOp(op, lhs, rhs) => {
+                let lhs = functor_set(Some(lhs));
+                let rhs = functor_set(Some(rhs));
+                match op {
+                    SetOp::Union => lhs.union(&rhs).copied().collect(),
+                    SetOp::Intersect => lhs.intersection(&rhs).copied().collect(),
+                }
+            }
+            &FunctorExprKind::Lit(functor) => HashSet::from([functor]),
+            FunctorExprKind::Paren(expr) => functor_set(Some(expr)),
+        },
+    }
 }
 
 fn is_unsolved(substs: &HashMap<u32, Ty>, ty: &Ty) -> Option<u32> {
