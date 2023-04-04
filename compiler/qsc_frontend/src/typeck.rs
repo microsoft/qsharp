@@ -417,7 +417,10 @@ impl Inferrer<'_> {
             constraints = mem::take(&mut new_constraints);
         }
 
-        todo!()
+        self.tys
+            .into_iter()
+            .map(|(id, ty)| (id, substitute(&substs, ty)))
+            .collect()
     }
 }
 
