@@ -100,6 +100,9 @@ impl Display for Value {
             Value::Tuple(tup) => {
                 write!(f, "(")?;
                 join(f, tup.iter(), ", ")?;
+                if tup.len() == 1 {
+                    write!(f, ",")?;
+                }
                 write!(f, ")")
             }
             Value::Udt => todo!(),

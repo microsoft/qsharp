@@ -28,6 +28,7 @@ use qsc_frontend::{
 use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
+    hash::BuildHasher,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
 };
@@ -191,23 +192,53 @@ impl Range {
     }
 }
 
+/// Evaluates the given entry statement with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn evaluate<'a, S: BuildHasher>(
+    stmt: &Stmt,
+    store: &'a PackageStore,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
+    resolutions: &'a Resolutions,
+    package: PackageId,
+    env: Env,
+    out: &'a mut dyn Receiver,
+) -> (Result<Value, Error>, Env) {
+    let evaluator = Evaluator {
+        store,
+        globals,
+        resolutions,
+        package,
+        env,
+        out: Some(out),
+    };
+    evaluator.eval_stmt(stmt)
+}
+
 #[derive(Default)]
 pub struct Env(Vec<HashMap<GlobalId, Variable>>);
 
-pub struct Evaluator<'a> {
+impl Env {
+    #[must_use]
+    pub fn empty() -> Self {
+        Self(vec![HashMap::new()])
+    }
+}
+
+pub struct Evaluator<'a, S: BuildHasher> {
     store: &'a PackageStore,
-    globals: &'a HashMap<GlobalId, &'a CallableDecl>,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
     package: PackageId,
     env: Env,
     out: Option<&'a mut dyn Receiver>,
 }
 
-impl<'a> Evaluator<'a> {
+impl<'a, S: BuildHasher> Evaluator<'a, S> {
     #[must_use]
     pub fn new(
         store: &'a PackageStore,
-        globals: &'a HashMap<GlobalId, &CallableDecl>,
+        globals: &'a HashMap<GlobalId, &CallableDecl, S>,
         resolutions: &'a Resolutions,
         package: PackageId,
         env: Env,
@@ -227,7 +258,7 @@ impl<'a> Evaluator<'a> {
     pub fn from_store(
         store: &'a PackageStore,
         id: PackageId,
-        globals: &'a HashMap<GlobalId, &CallableDecl>,
+        globals: &'a HashMap<GlobalId, &CallableDecl, S>,
         out: &'a mut dyn Receiver,
     ) -> Self {
         let unit = store
@@ -250,12 +281,12 @@ impl<'a> Evaluator<'a> {
     /// Evaluates the given statement.
     /// # Errors
     /// Returns the first error encountered during execution.
-    pub fn eval_stmt(mut self, stmt: &Stmt) -> Result<(Value, Env), Error> {
+    pub fn eval_stmt(mut self, stmt: &Stmt) -> (Result<Value, Error>, Env) {
         match self.eval_stmt_impl(stmt) {
             ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                Ok((val, self.env))
+                (Ok(val), self.env)
             }
-            ControlFlow::Break(Reason::Error(error)) => Err(error),
+            ControlFlow::Break(Reason::Error(error)) => (Err(error), self.env),
         }
     }
 

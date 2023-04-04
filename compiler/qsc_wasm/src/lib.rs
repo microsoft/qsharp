@@ -3,13 +3,15 @@
 
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use once_cell::sync::OnceCell;
 use qsc_eval::output::Receiver;
 use qsc_eval::{output, Error, Evaluator};
-use qsc_frontend::compile::{compile, std, PackageStore};
+use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
 use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::RandomState;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
@@ -172,7 +174,7 @@ export interface IDiagnostic {
     end_pos: number;
     message: string;
     severity: number; // [0, 1, 2] = [error, warning, info]
-    code?: { 
+    code?: {
         value: number;  // Can also be a string, but number would be preferable
         target: string; // URI for more info - could be a custom URI for pretty errors
     }
@@ -226,9 +228,13 @@ where
 }
 
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
-    let mut store = PackageStore::new();
-    let std = store.insert(std());
-    let unit = compile(&store, [std], [code], "");
+    static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
+    let (std, ref store) = STDLIB_STORE.get_or_init(|| {
+        let mut store = PackageStore::new();
+        let std = store.insert(std());
+        (std, store)
+    });
+    let unit = compile(store, [*std], [code], "");
 
     let mut result: Vec<VSDiagnostic> = vec![];
 
@@ -309,7 +315,7 @@ where
         let mut out = CallbackReceiver { event_cb };
         for _ in 0..shots {
             let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
-            Evaluator::init();
+            Evaluator::<RandomState>::init();
             let mut success = true;
             let result: String;
             match &evaluator.eval_expr(expr) {

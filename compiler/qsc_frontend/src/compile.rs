@@ -91,12 +91,12 @@ pub struct SourceIndex(pub usize);
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(ErrorKind);
+pub struct Error(pub(crate) ErrorKind);
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-enum ErrorKind {
+pub(crate) enum ErrorKind {
     Parse(OffsetError<parse::Error>),
     Resolve(resolve::Error),
     Validate(validate::Error),

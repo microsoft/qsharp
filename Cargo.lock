@@ -669,6 +669,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc"
+version = "0.0.0"
+dependencies = [
+ "clap 4.1.8",
+ "criterion",
+ "miette",
+ "qsc_ast",
+ "qsc_codegen",
+ "qsc_frontend",
+ "thiserror",
+]
+
+[[package]]
 name = "qsc_ast"
 version = "0.0.0"
 dependencies = [
@@ -732,6 +745,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
+ "once_cell",
  "qsc_eval",
  "qsc_frontend",
  "qsc_passes",
@@ -741,11 +755,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsci"
+version = "0.0.0"
+dependencies = [
+ "clap 4.1.8",
+ "miette",
+ "qsc_ast",
+ "qsc_eval",
+ "qsc_frontend",
+ "qsc_passes",
+ "thiserror",
+]
+
+[[package]]
 name = "qtest_tool"
 version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
- "criterion",
  "miette",
  "qsc_ast",
  "qsc_codegen",
