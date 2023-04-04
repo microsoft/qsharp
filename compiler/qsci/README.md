@@ -8,8 +8,6 @@ Usage: qsci [OPTIONS]
 Options:
       --use <SOURCES>
           Use the given file on startup as initial session input
-      --open <OPEN>
-          Open the given namespace(s) on startup before executing the entry expression or starting the REPL
       --entry <ENTRY>
           Execute the given Q# expression on startup
       --nostdlib

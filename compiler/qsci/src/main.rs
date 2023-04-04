@@ -31,9 +31,6 @@ struct Cli {
     /// Use the given file on startup as initial session input
     #[arg(long = "use")]
     sources: Vec<PathBuf>,
-    /// Open the given namespace(s) on startup before executing the entry expression or starting the REPL
-    #[arg(long)]
-    open: Vec<String>,
     /// Execute the given Q# expression on startup
     #[arg(long)]
     entry: Option<String>,
@@ -47,9 +44,6 @@ struct Cli {
 
 fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
-    if !cli.open.is_empty() {
-        unimplemented!("specifying open not yet implemented");
-    }
 
     repl(cli)
 }
