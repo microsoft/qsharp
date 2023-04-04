@@ -7,8 +7,9 @@ use crate::{
 };
 use qsc_ast::{
     ast::{
-        BinOp, Block, CallableDecl, CallableKind, Expr, ExprKind, Functor, FunctorExpr,
-        FunctorExprKind, Lit, NodeId, Pat, SetOp, TernOp, TyPrim, UnOp,
+        self, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
+        FunctorExpr, FunctorExprKind, Lit, NodeId, Pat, SetOp, SpecBody, TernOp, TyKind, TyPrim,
+        UnOp,
     },
     visit::Visitor,
 };
@@ -25,6 +26,7 @@ pub enum Ty {
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     DefId(DefId),
     Prim(TyPrim),
+    Rigid(String),
     Tuple(Vec<Ty>),
     Var(u32),
     Void,
@@ -44,8 +46,30 @@ impl Checker<'_> {
 
 impl Visitor<'_> for Checker<'_> {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        let inferrer = Inferrer::new(self.resolutions, &self.globals);
-        todo!()
+        // TODO: callable input types
+        match &decl.body {
+            CallableBody::Block(block) => {
+                let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
+                let decl_output = inferrer.convert_ty(&decl.output);
+                let block_output = inferrer.infer_block(block);
+                inferrer.constrain(Constraint::Eq(decl_output, block_output));
+                self.tys.extend(inferrer.solve());
+            }
+            CallableBody::Specs(specs) => {
+                for spec in specs {
+                    match &spec.body {
+                        SpecBody::Gen(_) => {}
+                        SpecBody::Impl(_, block) => {
+                            let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
+                            let decl_output = inferrer.convert_ty(&decl.output);
+                            let block_output = inferrer.infer_block(block);
+                            inferrer.constrain(Constraint::Eq(decl_output, block_output));
+                            self.tys.extend(inferrer.solve());
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -345,6 +369,7 @@ impl<'a> Inferrer<'a> {
                     .expect("path should be resolved");
 
                 if let Some(ty) = self.globals.get(def) {
+                    // TODO: instantiate type parameters
                     ty.clone()
                 } else if def.package == PackageSrc::Local {
                     self.tys
@@ -432,6 +457,34 @@ impl<'a> Inferrer<'a> {
         let var = self.next_var;
         self.next_var += 1;
         Ty::Var(var)
+    }
+
+    fn convert_ty(&mut self, ty: &ast::Ty) -> Ty {
+        match &ty.kind {
+            TyKind::App(base, args) => Ty::App(
+                Box::new(self.convert_ty(base)),
+                args.iter().map(|ty| self.convert_ty(ty)).collect(),
+            ),
+            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
+                *kind,
+                Box::new(self.convert_ty(input)),
+                Box::new(self.convert_ty(output)),
+                functors.clone(),
+            ),
+            TyKind::Hole => self.fresh(),
+            TyKind::Paren(inner) => self.convert_ty(inner),
+            TyKind::Path(path) => Ty::DefId(
+                *self
+                    .resolutions
+                    .get(&path.id)
+                    .expect("path should be resolved"),
+            ),
+            &TyKind::Prim(prim) => Ty::Prim(prim),
+            TyKind::Tuple(items) => {
+                Ty::Tuple(items.iter().map(|item| self.convert_ty(item)).collect())
+            }
+            TyKind::Var(name) => Ty::Rigid(name.name.clone()),
+        }
     }
 
     fn constrain(&mut self, constraint: Constraint) {
@@ -630,6 +683,7 @@ fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
         ),
         Ty::DefId(id) => Ty::DefId(id),
         Ty::Prim(prim) => Ty::Prim(prim),
+        Ty::Rigid(name) => Ty::Rigid(name),
         Ty::Tuple(items) => Ty::Tuple(
             items
                 .into_iter()
