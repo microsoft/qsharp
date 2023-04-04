@@ -70,7 +70,7 @@ enum Class {
 
 struct Inferrer<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<DefId, Ty>,
+    globals: &'a HashMap<DefId, Ty>,
     constraints: Vec<Constraint>,
     tys: HashMap<NodeId, Ty>,
     next_var: u32,
@@ -288,6 +288,75 @@ impl Inferrer<'_> {
     }
 
     fn solve(self) -> HashMap<NodeId, Ty> {
+        let mut substs = HashMap::new();
+        for constraint in self.constraints {
+            match constraint {
+                Constraint::Eq(mut ty1, mut ty2) => {
+                    substitute(&substs, &mut ty1);
+                    substitute(&substs, &mut ty2);
+                    unify(&mut substs, ty1, ty2);
+                }
+                Constraint::Class(class) => todo!(),
+            }
+        }
+
         todo!()
     }
+}
+
+fn unify(substs: &mut HashMap<u32, Ty>, ty1: Ty, ty2: Ty) {
+    match (ty1, ty2) {
+        (Ty::App(base1, args1), Ty::App(base2, args2)) if args1.len() == args2.len() => {
+            unify(substs, *base1, *base2);
+            for (arg1, arg2) in args1.into_iter().zip(args2) {
+                unify(substs, arg1, arg2);
+            }
+        }
+        (
+            Ty::Arrow(kind1, input1, output1, functors1),
+            Ty::Arrow(kind2, input2, output2, functors2),
+        ) if kind1 == kind2
+            && functor_set(functors1.as_ref()) == functor_set(functors2.as_ref()) =>
+        {
+            unify(substs, *input1, *input2);
+            unify(substs, *output1, *output2);
+        }
+        (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => {}
+        (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => {}
+        (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
+            for (item1, item2) in items1.into_iter().zip(items2) {
+                unify(substs, item1, item2);
+            }
+        }
+        (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => {}
+        (Ty::Var(var), ty) | (ty, Ty::Var(var)) => {
+            substs.insert(var, ty);
+        }
+        (Ty::Void, Ty::Void) => {}
+        _ => panic!("types do not unify"),
+    }
+}
+
+fn substitute(substs: &HashMap<u32, Ty>, ty: &mut Ty) {
+    match ty {
+        Ty::App(base, args) => {
+            substitute(substs, base);
+            args.iter_mut().for_each(|arg| substitute(substs, arg));
+        }
+        Ty::Arrow(_, input, output, _) => {
+            substitute(substs, input);
+            substitute(substs, output);
+        }
+        Ty::Tuple(items) => items.iter_mut().for_each(|item| substitute(substs, item)),
+        Ty::Var(var) => {
+            if let Some(new_ty) = substs.get(var) {
+                *ty = new_ty.clone();
+            }
+        }
+        Ty::DefId(_) | Ty::Prim(_) | Ty::Void => {}
+    }
+}
+
+fn functor_set(expr: Option<&FunctorExpr>) -> HashSet<Functor> {
+    todo!()
 }
