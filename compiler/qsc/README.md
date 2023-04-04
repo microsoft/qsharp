@@ -15,7 +15,7 @@ Options:
           Emit the compilation unit in the specified format
 
           Possible values:
-          - ast:     Abstract syntax tree
+          - ast: Abstract syntax tree
 
       --outdir <DIR>
           Write output to compiler-chosen filename in <dir>
@@ -30,4 +30,5 @@ Options:
           Print help (see a summary with '-h')
 
   -V, --version
+          Print version
 ```
