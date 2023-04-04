@@ -11,6 +11,7 @@ use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::RandomState;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
@@ -173,7 +174,7 @@ export interface IDiagnostic {
     end_pos: number;
     message: string;
     severity: number; // [0, 1, 2] = [error, warning, info]
-    code?: { 
+    code?: {
         value: number;  // Can also be a string, but number would be preferable
         target: string; // URI for more info - could be a custom URI for pretty errors
     }
@@ -314,7 +315,7 @@ where
         let mut out = CallbackReceiver { event_cb };
         for _ in 0..shots {
             let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
-            Evaluator::init();
+            Evaluator::<RandomState>::init();
             let mut success = true;
             let result: String;
             match &evaluator.eval_expr(expr) {
