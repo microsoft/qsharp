@@ -77,14 +77,14 @@ fn main() -> Result<ExitCode> {
     let sources: Vec<_> = cli.input.iter().map(read_source).collect();
 
     let mut store = PackageStore::new();
-    let deps = if cli.nostdlib {
+    let dependencies = if cli.nostdlib {
         vec![]
     } else {
         vec![store.insert(compile::std())]
     };
     let unit = compile(
         &store,
-        deps,
+        dependencies,
         &sources,
         &cli.entry.clone().unwrap_or_default(),
     );
@@ -129,9 +129,9 @@ impl<'a> ErrorReporter<'a> {
         }
     }
 
-    fn report(&self, diagnostic: impl Diagnostic + Send + Sync + 'static) -> Report {
-        let Some(first_label) = diagnostic.labels().and_then(|mut ls| ls.next()) else {
-            return Report::new(diagnostic);
+    fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
+        let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
+            return Report::new(error);
         };
 
         // Use the offset of the first labeled span to find which source code to include in the report.
@@ -142,7 +142,7 @@ impl<'a> ErrorReporter<'a> {
 
         // Adjust all spans in the error to be relative to the start of this source.
         let offset = -isize::try_from(offset).unwrap();
-        Report::new(OffsetError::new(diagnostic, offset)).with_source_code(source)
+        Report::new(OffsetError::new(error, offset)).with_source_code(source)
     }
 }
 
