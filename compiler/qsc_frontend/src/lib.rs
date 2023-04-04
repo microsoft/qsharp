@@ -9,5 +9,5 @@ pub mod id;
 mod lex;
 mod parse;
 pub mod resolve;
-mod typeck;
+pub mod typeck;
 mod validate;

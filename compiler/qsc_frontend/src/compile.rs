@@ -8,7 +8,8 @@ use crate::{
     diagnostic::OffsetError,
     id::Assigner,
     parse,
-    resolve::{self, GlobalTable, Resolutions},
+    resolve::{self, Resolutions},
+    typeck::{self, Tys},
     validate::{self, validate},
 };
 use miette::Diagnostic;
@@ -35,6 +36,7 @@ pub struct CompileUnit {
 pub struct Context {
     assigner: Assigner,
     resolutions: Resolutions,
+    tys: Tys,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
@@ -51,6 +53,15 @@ impl Context {
 
     pub fn resolutions_mut(&mut self) -> &mut Resolutions {
         &mut self.resolutions
+    }
+
+    #[must_use]
+    pub fn tys(&self) -> &Tys {
+        &self.tys
+    }
+
+    pub fn tys_mut(&mut self) -> &mut Tys {
+        &mut self.tys
     }
 
     #[must_use]
@@ -146,12 +157,13 @@ pub fn compile(
     entry_expr: &str,
 ) -> CompileUnit {
     let (mut package, parse_errors, offsets) = parse_all(sources, entry_expr);
-
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
-    let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
 
-    let validation_errors = validate(&package);
+    let (resolve_globals, typeck_globals) = scan_globals(store, dependencies, &package);
+    let (resolutions, resolve_errors) = resolve_all(resolve_globals, &package);
+    let tys = typeck_all(typeck_globals, &resolutions, &package);
+    let validate_errors = validate(&package);
 
     let mut errors = Vec::new();
     errors.extend(parse_errors.into_iter().map(|e| Error(ErrorKind::Parse(e))));
@@ -161,7 +173,7 @@ pub fn compile(
             .map(|e| Error(ErrorKind::Resolve(e))),
     );
     errors.extend(
-        validation_errors
+        validate_errors
             .into_iter()
             .map(|e| Error(ErrorKind::Validate(e))),
     );
@@ -171,6 +183,7 @@ pub fn compile(
         context: Context {
             assigner,
             resolutions,
+            tys,
             errors,
             offsets,
         },
@@ -240,25 +253,42 @@ fn parse_all(
     (Package::new(namespaces, entry), errors, offsets)
 }
 
-fn resolve_all<'a>(
-    store: &'a PackageStore,
-    dependencies: impl IntoIterator<Item = PackageId>,
-    package: &'a Package,
+fn resolve_all(
+    globals: resolve::GlobalTable,
+    package: &Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
-    let mut globals = GlobalTable::new();
-    globals.visit_package(package);
-
-    for dependency in dependencies {
-        globals.set_package(dependency);
-        let unit = store
-            .get(dependency)
-            .expect("dependency should be added to package store before compilation");
-        globals.visit_package(&unit.package);
-    }
-
     let mut resolver = globals.into_resolver();
     resolver.visit_package(package);
     resolver.into_resolutions()
+}
+
+fn typeck_all(globals: typeck::GlobalTable, resolutions: &Resolutions, package: &Package) -> Tys {
+    let mut checker = globals.into_checker(resolutions);
+    checker.visit_package(package);
+    checker.into_tys()
+}
+
+fn scan_globals<'a>(
+    store: &'a PackageStore,
+    dependencies: impl IntoIterator<Item = PackageId>,
+    package: &'a Package,
+) -> (resolve::GlobalTable<'a>, typeck::GlobalTable) {
+    let mut resolve_globals = resolve::GlobalTable::new();
+    resolve_globals.visit_package(package);
+    let mut typeck_globals = typeck::GlobalTable::new();
+    typeck_globals.visit_package(package);
+
+    for dependency in dependencies {
+        let unit = store
+            .get(dependency)
+            .expect("dependency should be added to package store before compilation");
+        resolve_globals.set_package(dependency);
+        resolve_globals.visit_package(&unit.package);
+        typeck_globals.set_package(dependency);
+        typeck_globals.visit_package(&unit.package);
+    }
+
+    (resolve_globals, typeck_globals)
 }
 
 fn append_errors(

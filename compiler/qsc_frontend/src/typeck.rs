@@ -1,23 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::resolve::{DefId, PackageSrc, Resolutions};
-use qsc_ast::ast::{
-    BinOp, Block, CallableKind, Expr, ExprKind, Functor, FunctorExpr, FunctorExprKind, Lit, NodeId,
-    Pat, SetOp, TernOp, TyPrim, UnOp,
+use crate::{
+    compile::PackageId,
+    resolve::{DefId, PackageSrc, Resolutions},
+};
+use qsc_ast::{
+    ast::{
+        BinOp, Block, CallableDecl, CallableKind, Expr, ExprKind, Functor, FunctorExpr,
+        FunctorExprKind, Lit, NodeId, Pat, SetOp, TernOp, TyPrim, UnOp,
+    },
+    visit::Visitor,
 };
 use std::{
     collections::{HashMap, HashSet},
     mem,
 };
 
-enum Constraint {
-    Eq(Ty, Ty),
-    Class(Class),
-}
+pub type Tys = HashMap<NodeId, Ty>;
 
-#[derive(Clone)]
-enum Ty {
+#[derive(Clone, Debug)]
+pub enum Ty {
     App(Box<Ty>, Vec<Ty>),
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     DefId(DefId),
@@ -25,6 +28,62 @@ enum Ty {
     Tuple(Vec<Ty>),
     Var(u32),
     Void,
+}
+
+pub(super) struct Checker<'a> {
+    resolutions: &'a Resolutions,
+    globals: HashMap<DefId, Ty>,
+    tys: Tys,
+}
+
+impl Checker<'_> {
+    pub(super) fn into_tys(self) -> Tys {
+        self.tys
+    }
+}
+
+impl Visitor<'_> for Checker<'_> {
+    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+        let inferrer = Inferrer::new(self.resolutions, &self.globals);
+        todo!()
+    }
+}
+
+pub(super) struct GlobalTable {
+    globals: HashMap<DefId, Ty>,
+    package: PackageSrc,
+}
+
+impl GlobalTable {
+    pub(super) fn new() -> Self {
+        Self {
+            globals: HashMap::new(),
+            package: PackageSrc::Local,
+        }
+    }
+
+    pub(super) fn set_package(&mut self, package: PackageId) {
+        self.package = PackageSrc::Extern(package);
+    }
+
+    pub(super) fn into_checker(self, resolutions: &Resolutions) -> Checker {
+        Checker {
+            resolutions,
+            globals: self.globals,
+            tys: Tys::new(),
+        }
+    }
+}
+
+impl Visitor<'_> for GlobalTable {
+    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+        todo!()
+    }
+}
+
+enum Constraint {
+    Eq(Ty, Ty),
+    Class(Class),
 }
 
 #[derive(Clone)]
@@ -154,11 +213,21 @@ struct Inferrer<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<DefId, Ty>,
     constraints: Vec<Constraint>,
-    tys: HashMap<NodeId, Ty>,
+    tys: Tys,
     next_var: u32,
 }
 
-impl Inferrer<'_> {
+impl<'a> Inferrer<'a> {
+    fn new(resolutions: &'a Resolutions, globals: &'a HashMap<DefId, Ty>) -> Self {
+        Self {
+            resolutions,
+            globals,
+            constraints: Vec::new(),
+            tys: Tys::new(),
+            next_var: 0,
+        }
+    }
+
     #[allow(clippy::too_many_lines)]
     fn infer_expr(&mut self, expr: &Expr) -> Ty {
         let ty = match &expr.kind {
@@ -369,7 +438,7 @@ impl Inferrer<'_> {
         self.constraints.push(constraint);
     }
 
-    fn solve(self) -> HashMap<NodeId, Ty> {
+    fn solve(self) -> Tys {
         let mut substs = HashMap::new();
         let mut pending_classes: HashMap<_, Vec<_>> = HashMap::new();
         let mut constraints = self.constraints;
