@@ -460,7 +460,89 @@ fn unify(ty1: Ty, ty2: Ty) -> Vec<(u32, Ty)> {
 }
 
 fn classify(class: Class) -> Vec<Constraint> {
-    todo!()
+    match class {
+        Class::Eq(Ty::Prim(
+            TyPrim::BigInt
+            | TyPrim::Bool
+            | TyPrim::Double
+            | TyPrim::Int
+            | TyPrim::Qubit
+            | TyPrim::Result
+            | TyPrim::String
+            | TyPrim::Pauli,
+        ))
+        | Class::Integral(Ty::Prim(TyPrim::BigInt | TyPrim::Int))
+        | Class::Num(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int)) => Vec::new(),
+        Class::Add(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String)) => {
+            Vec::new()
+        }
+        Class::Add(Ty::App(base, _)) if matches!(*base, Ty::Prim(TyPrim::Array)) => Vec::new(),
+        Class::Adj(Ty::Arrow(_, _, _, functors))
+            if functor_set(functors.as_ref()).contains(&Functor::Adj) =>
+        {
+            Vec::new()
+        }
+        Class::Call {
+            callee: Ty::Arrow(_, callee_input, callee_output, _),
+            input,
+            output,
+        } => vec![
+            Constraint::Eq(input, *callee_input),
+            Constraint::Eq(output, *callee_output),
+        ],
+        Class::Ctl {
+            op: Ty::Arrow(kind, input, output, functors),
+            with_ctls,
+        } if functor_set(functors.as_ref()).contains(&Functor::Ctl) => {
+            let qubit_array = Ty::App(
+                Box::new(Ty::Prim(TyPrim::Array)),
+                vec![Ty::Prim(TyPrim::Qubit)],
+            );
+            let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
+            vec![Constraint::Eq(
+                with_ctls,
+                Ty::Arrow(kind, ctl_input, output, functors),
+            )]
+        }
+        Class::HasField { .. } => todo!("user-defined types not supported"),
+        Class::HasFunctorsIfOp { callee, functors } => match callee {
+            Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
+                if functor_set(callee_functors.as_ref()).is_superset(&functors) =>
+            {
+                Vec::new()
+            }
+            Ty::Arrow(CallableKind::Operation, _, _, _) => panic!("operation is missing functors"),
+            _ => Vec::new(),
+        },
+        Class::HasIndex {
+            container: Ty::App(base, mut args),
+            index,
+            item,
+        } if matches!(*base, Ty::Prim(TyPrim::Array)) && args.len() == 1 => match index {
+            Ty::Prim(TyPrim::Int) => vec![Constraint::Eq(
+                args.pop().expect("type arguments should not be empty"),
+                item,
+            )],
+            Ty::Prim(TyPrim::Range) => vec![Constraint::Eq(Ty::App(base, args), item)],
+            _ => panic!("invalid index for array"),
+        },
+        Class::HasPartialApp { .. } => todo!("partial application not supported"),
+        Class::Iterable {
+            container: Ty::Prim(TyPrim::Range),
+            item,
+        } => vec![Constraint::Eq(Ty::Prim(TyPrim::Int), item)],
+        Class::Iterable {
+            container: Ty::App(base, mut args),
+            item,
+        } if matches!(*base, Ty::Prim(TyPrim::Array)) => {
+            vec![Constraint::Eq(
+                args.pop().expect("type arguments should not be empty"),
+                item,
+            )]
+        }
+        Class::Unwrap { .. } => todo!("user-defined types not supported"),
+        _ => panic!("falsified class"),
+    }
 }
 
 fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
