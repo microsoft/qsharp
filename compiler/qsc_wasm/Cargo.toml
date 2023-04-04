@@ -17,6 +17,7 @@ crate-type = ["rlib", "cdylib"]
 qsc_eval = { path = "../qsc_eval"}
 qsc_frontend = { path = "../qsc_frontend"}
 qsc_passes = { path = "../qsc_passes"}
+katas = { path = "../../katas"}
 # This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
 getrandom = { workspace = true, features = ["js"] }
 js-sys = { workspace = true }

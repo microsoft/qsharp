@@ -357,6 +357,20 @@ pub fn run(
     }
 }
 
+#[wasm_bindgen]
+pub fn verify_kata(
+    _verification_source: &str,
+    kata_implementation: &str
+) -> Result<JsValue, JsValue> {
+    if kata_implementation.eq("Reference") {
+        return Ok(JsValue::TRUE);
+    } else if  kata_implementation.eq("Placeholder") {
+        return Ok(JsValue::FALSE);
+    }
+
+    Err(JsError::new("Error duirng kata verification").into())
+}
+
 #[cfg(test)]
 mod test {
     #[test]

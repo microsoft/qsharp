@@ -1,8 +1,31 @@
-import {getKataModule, queryKataModules, type KataExercise, type KataModule} from "qsharp/browser";
+import {getKataModule, queryKataModules, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
+
+// TODO (cesarzc): should probably be in the npm package.
+type CompilationError = {
+    error: string;
+}
+
+type RuntimeError = {
+    error: string;
+}
+
+type VerificationError = {};
+
+type UnexpectedError = {
+    error: string;
+}
+
+type KataError = CompilationError | RuntimeError | VerificationError | UnexpectedError;
+
+function renderKataError(error: KataError) : HTMLDivElement {
+    let errorDiv = document.createElement("div");
+    // TODO (cesarzc): Complete.
+    return errorDiv;
+}
 
 function renderExercise(exercise: KataExercise) : HTMLDivElement {
     let exerciseDiv = document.createElement("div");
-    exerciseDiv.id = "kata-exercise";
+    exerciseDiv.className = "kata-exercise";
     let exerciseHeader = document.createElement("h3");
     exerciseHeader.textContent = exercise.title;
     exerciseDiv.append(exerciseHeader);
@@ -10,14 +33,32 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
     exerciseParagraph.textContent = exercise.description;
     exerciseDiv.append(exerciseParagraph);
     let sourceCodeArea = document.createElement("textarea");
-    sourceCodeArea.textContent = exercise.placeholderImplementation;
+    sourceCodeArea.id = `source_${exercise.id}`;
+    sourceCodeArea.value = exercise.placeholderImplementation;
     exerciseDiv.append(sourceCodeArea);
     let verifyButton = document.createElement("button");
     verifyButton.textContent = "Verify";
-    verifyButton.id = `verify-${exercise.id}`;
+    verifyButton.id = `verify_${exercise.id}`;
     let verifyDiv = document.createElement("div");
+    verifyDiv.id = `result_${exercise.id}`;
     verifyDiv.append(verifyButton);
     exerciseDiv.append(verifyDiv);
+
+    //
+    verifyButton.addEventListener('click', _ => {
+        let kataImplementation = sourceCodeArea.value;
+        try {
+            let result = verifyKata(exercise.id, kataImplementation);
+            alert(`${exercise.id}: ${kataImplementation} : ${result}`);
+        } catch(e)
+        {
+            if (e instanceof Error) {
+                console.log(`Error: ${e.message} | ${e.name}`);
+            }
+        }
+        
+    });
+
     return exerciseDiv;
 }
 
