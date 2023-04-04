@@ -5,11 +5,11 @@
 
 #![warn(missing_docs)]
 
-use indenter::{indented, Format};
+use indenter::{indented, Format, Indented};
 use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::{
-    fmt::{self, Display, Formatter, Write},
+    fmt::{self, write, Display, Formatter, Write},
     ops::{Bound, Index, RangeBounds},
 };
 
@@ -100,6 +100,18 @@ impl From<Span> for SourceSpan {
     }
 }
 
+// fn set_indentation(mut indent: &mut Indented<Formatter>, level: usize) {
+//     let s = "    ".repeat(level);
+//     indent = &mut indent.with_format(Format::Custom {
+//         inserter: Box::new(|i, f| {
+//             for i in 0..level {
+//                 write!(f, "****");
+//             }
+//             Ok(())
+//         }),
+//     });
+// }
+
 /// The root node of an AST.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
@@ -130,22 +142,11 @@ impl Display for Package {
         indent = indent.with_format(Format::Uniform {
             indentation: "    ",
         });
-        write!(indent, "\nnamespaces:")?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "        ",
-        });
+        if let Some(e) = &self.entry {
+            write!(indent, "\nentry expression: {e}")?;
+        }
         for ns in &self.namespaces {
             write!(indent, "\n{ns}")?;
-        }
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
-        if let Some(e) = &self.entry {
-            write!(indent, "\nentry:")?;
-            indent = indent.with_format(Format::Uniform {
-                indentation: "        ",
-            });
-            write!(indent, "\n{e}")?;
         }
         Ok(())
     }
@@ -167,21 +168,13 @@ pub struct Namespace {
 impl Display for Namespace {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
-        write!(indent, "Namespace {} {}:", self.id, self.span)?;
+        write!(
+            indent,
+            "Namespace {} {} ({}):",
+            self.id, self.span, self.name
+        )?;
         indent = indent.with_format(Format::Uniform {
             indentation: "    ",
-        });
-        write!(indent, "\nname:")?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "        ",
-        });
-        write!(indent, "\n{}", self.name)?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
-        write!(indent, "\nitems")?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "        ",
         });
         for i in &self.items {
             write!(indent, "\n{i}")?;
@@ -207,6 +200,22 @@ impl Display for Item {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
         write!(indent, "Item {} {}:", self.id, self.span)?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        if self.meta.attrs.is_empty() && self.meta.visibility.is_none() {
+            write!(indent, "\nmeta: <none>")?;
+        } else {
+            write!(indent, "\nmeta:")?;
+            indent = indent.with_format(Format::Uniform {
+                indentation: "        ",
+            });
+            write!(indent, "{}", self.meta)?;
+            indent = indent.with_format(Format::Uniform {
+                indentation: "    ",
+            });
+        }
+        write!(indent, "\n{}", self.kind)?;
         Ok(())
     }
 }
@@ -225,6 +234,21 @@ pub enum ItemKind {
     Ty(Ident, TyDef),
 }
 
+impl Display for ItemKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match &self {
+            ItemKind::Callable(decl) => write!(f, "{decl}")?,
+            ItemKind::Err => write!(f, "Err")?,
+            ItemKind::Open(name, alias) => match alias {
+                Some(a) => write!(f, "Open ({name}) ({a})")?,
+                None => write!(f, "Open ({name})")?,
+            },
+            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+        }
+        Ok(())
+    }
+}
+
 /// Metadata for an item.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ItemMeta {
@@ -232,6 +256,18 @@ pub struct ItemMeta {
     pub attrs: Vec<Attr>,
     /// The visibility.
     pub visibility: Option<Visibility>,
+}
+
+impl Display for ItemMeta {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for a in &self.attrs {
+            write!(f, "\n{a}")?;
+        }
+        if let Some(v) = &self.visibility {
+            write!(f, "\n{v}")?;
+        }
+        Ok(())
+    }
 }
 
 /// A visibility modifier.
@@ -243,6 +279,12 @@ pub struct Visibility {
     pub span: Span,
     /// The visibility kind.
     pub kind: VisibilityKind,
+}
+
+impl Display for Visibility {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Visibility {} {} ({:?})", self.id, self.span, self.kind)
+    }
 }
 
 /// An attribute.
@@ -258,6 +300,18 @@ pub struct Attr {
     pub arg: Expr,
 }
 
+impl Display for Attr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        write!(indent, "Attr {} {} ({}):", self.id, self.span, self.name)?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        write!(indent, "\n{}", self.arg)?;
+        Ok(())
+    }
+}
+
 /// A type definition.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TyDef {
@@ -269,6 +323,12 @@ pub struct TyDef {
     pub kind: TyDefKind,
 }
 
+impl Display for TyDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
+    }
+}
+
 /// A type definition kind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum TyDefKind {
@@ -278,6 +338,45 @@ pub enum TyDefKind {
     Paren(Box<TyDef>),
     /// A tuple.
     Tuple(Vec<TyDef>),
+}
+
+impl Display for TyDefKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        match &self {
+            TyDefKind::Field(name, t) => {
+                write!(indent, "Field:")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                if let Some(n) = name {
+                    write!(indent, "\n{n}")?;
+                }
+                write!(indent, "\n{t}")?;
+            }
+            TyDefKind::Paren(t) => {
+                write!(indent, "Paren:")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                write!(indent, "\n{t}")?;
+            }
+            TyDefKind::Tuple(ts) => {
+                if ts.is_empty() {
+                    write!(indent, "Unit")?;
+                } else {
+                    write!(indent, "Tuple:")?;
+                    indent = indent.with_format(Format::Uniform {
+                        indentation: "    ",
+                    });
+                    for t in ts {
+                        write!(indent, "\n{t}")?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 /// A callable declaration header.
@@ -303,6 +402,42 @@ pub struct CallableDecl {
     pub body: CallableBody,
 }
 
+impl Display for CallableDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        write!(
+            indent,
+            "Callable {} {} ({:?}):",
+            self.id, self.span, self.kind
+        )?;
+        indent = indent.with_format(Format::Uniform {
+            indentation: "    ",
+        });
+        write!(indent, "\nname: {}", self.name)?;
+        if self.ty_params.is_empty() {
+            write!(indent, "\ntype params: <none>")?;
+        } else {
+            write!(indent, "\ntype params:")?;
+            indent = indent.with_format(Format::Uniform {
+                indentation: "        ",
+            });
+            for t in &self.ty_params {
+                write!(indent, "\n{t}")?;
+            }
+            indent = indent.with_format(Format::Uniform {
+                indentation: "    ",
+            });
+        }
+        write!(indent, "\ninput: {}", self.input)?;
+        write!(indent, "\noutput: {}", self.output)?;
+        if let Some(f) = &self.functors {
+            write!(indent, "\nfunctors: {f}")?;
+        }
+        write!(indent, "\nbody: {}", self.body)?;
+        Ok(())
+    }
+}
+
 /// The body of a callable.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CallableBody {
@@ -310,6 +445,12 @@ pub enum CallableBody {
     Block(Block),
     /// One or more explicit specializations.
     Specs(Vec<SpecDecl>),
+}
+
+impl Display for CallableBody {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "This is a callable body!")
+    }
 }
 
 /// A specialization declaration.
@@ -345,6 +486,12 @@ pub struct FunctorExpr {
     pub kind: FunctorExprKind,
 }
 
+impl Display for FunctorExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Functor Expr {} {}: {}", self.id, self.span, self.kind)
+    }
+}
+
 /// A functor expression kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum FunctorExprKind {
@@ -354,6 +501,24 @@ pub enum FunctorExprKind {
     Lit(Functor),
     /// A parenthesized group.
     Paren(Box<FunctorExpr>),
+}
+impl Display for FunctorExprKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        match self {
+            FunctorExprKind::BinOp(op, l, r) => {
+                write!(indent, "BinOp ({op:?})")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                write!(indent, "\n{l}")?;
+                write!(indent, "\n{r}")?;
+            }
+            FunctorExprKind::Lit(f) => write!(indent, "Lit ({f:?})")?,
+            FunctorExprKind::Paren(f) => write!(indent, "Paren: {f}")?,
+        }
+        Ok(())
+    }
 }
 
 /// A type.
@@ -365,6 +530,12 @@ pub struct Ty {
     pub span: Span,
     /// The type kind.
     pub kind: TyKind,
+}
+
+impl Display for Ty {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Type {} {}: {}", self.id, self.span, self.kind)
+    }
 }
 
 /// A type kind.
@@ -386,6 +557,61 @@ pub enum TyKind {
     Tuple(Vec<Ty>),
     /// A type variable.
     Var(TyVar),
+}
+
+impl Display for TyKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        match &self {
+            TyKind::App(base, args) => {
+                write!(indent, "App:")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                write!(indent, "\nbase type: {base}")?;
+                write!(indent, "\narg types:")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "        ",
+                });
+                for a in args {
+                    write!(indent, "\n{a}")?;
+                }
+            }
+            TyKind::Arrow(ck, param, rtrn, functors) => {
+                write!(indent, "Arrow ({ck:?}):")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                write!(indent, "\nparam: {param}")?;
+                write!(indent, "\nreturn: {rtrn}")?;
+                if let Some(f) = functors {
+                    write!(indent, "\nfunctors: {f}")?;
+                }
+            }
+            TyKind::Hole => write!(indent, "Hole")?,
+            TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
+            TyKind::Path(p) => write!(indent, "Path: {p}")?,
+            TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
+            TyKind::Tuple(ts) => {
+                if ts.is_empty() {
+                    write!(indent, "Unit")?;
+                } else {
+                    write!(indent, "Tuple:")?;
+                    indent = indent.with_format(Format::Uniform {
+                        indentation: "    ",
+                    });
+                    for t in ts {
+                        write!(indent, "\n{t}")?;
+                    }
+                }
+            }
+            TyKind::Var(t) => match t {
+                TyVar::Name(n) => write!(indent, "\nType Var {n}")?,
+                TyVar::Id(id) => write!(indent, "\nType Var {id}")?,
+            },
+        }
+        Ok(())
+    }
 }
 
 /// A sequenced block of statements.
@@ -413,7 +639,7 @@ pub struct Stmt {
 /// A statement kind.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum StmtKind {
-    /// An empty statment.
+    /// An empty statement.
     #[default]
     Empty,
     /// An expression without a trailing semicolon.
@@ -518,6 +744,12 @@ pub struct Pat {
     pub kind: PatKind,
 }
 
+impl Display for Pat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Pat {} {}: {}", self.id, self.span, self.kind)
+    }
+}
+
 /// A pattern kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum PatKind {
@@ -531,6 +763,52 @@ pub enum PatKind {
     Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
+}
+
+impl Display for PatKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        match self {
+            PatKind::Bind(id, ty) => {
+                write!(indent, "Bind:")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                write!(indent, "\n{id}")?;
+                if let Some(t) = ty {
+                    write!(indent, "\n{t}")?;
+                }
+            }
+            PatKind::Discard(d) => match d {
+                Some(t) => {
+                    write!(indent, "Discard:")?;
+                    indent = indent.with_format(Format::Uniform {
+                        indentation: "    ",
+                    });
+                    write!(indent, "\n{t}")?;
+                }
+                None => write!(indent, "Discard")?,
+            },
+            PatKind::Elided => write!(indent, "Elided")?,
+            PatKind::Paren(p) => {
+                write!(indent, "Paren:")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                write!(indent, "\n{p}")?;
+            }
+            PatKind::Tuple(ps) => {
+                write!(indent, "Tuple:")?;
+                indent = indent.with_format(Format::Uniform {
+                    indentation: "    ",
+                });
+                for p in ps {
+                    write!(indent, "\n{p}")?;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 /// A qubit initializer.
@@ -570,6 +848,17 @@ pub struct Path {
     pub name: Ident,
 }
 
+impl Display for Path {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if let Some(ns) = &self.namespace {
+            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
+        } else {
+            write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
+        }
+        Ok(())
+    }
+}
+
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
@@ -583,13 +872,7 @@ pub struct Ident {
 
 impl Display for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
-        write!(indent, "Ident {} {}:", self.id, self.span)?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
-        write!(indent, "\nname: {}", self.name)?;
-        Ok(())
+        write!(f, "Ident {} {} \"{}\"", self.id, self.span, self.name)
     }
 }
 
