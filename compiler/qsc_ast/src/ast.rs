@@ -5,11 +5,11 @@
 
 #![warn(missing_docs)]
 
-use indenter::{indented, Format, Indented};
+use indenter::{indented, Format};
 use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::{
-    fmt::{self, write, Display, Formatter, Write},
+    fmt::{self, Display, Formatter, Write},
     ops::{Bound, Index, RangeBounds},
 };
 
