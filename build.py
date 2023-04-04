@@ -78,6 +78,8 @@ if build_py:
     if run_tests:
         pip_install_args = ["pip", "install", "-e", "."]
         subprocess.run(pip_install_args, check=True, text=True, cwd=py_src)
+        pip_install_args = ["pip", "install", "-r", "test_requirements.txt"]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir)
         pytest_args = ["pytest"]
         result = subprocess.run(pytest_args, check=True, text=True, cwd=py_src)
 
