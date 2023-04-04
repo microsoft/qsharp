@@ -165,7 +165,11 @@ async function loaded() {
 
     // TODO (cesarzc): Comment.
     PopulateModules();
-
+    RenderKatas();
+    let modulesSelect = document.querySelector('#modules') as HTMLSelectElement;
+    modulesSelect.addEventListener('change', _ => {
+        RenderKatas();
+    });
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/

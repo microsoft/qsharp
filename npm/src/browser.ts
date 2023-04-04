@@ -6,6 +6,7 @@ import {default as async_init, run, get_completions, check_code,
 } from "../lib/web/qsc_wasm.js";
 
 import { eventStringToMsg, run_shot_internal, type ShotResult } from "./common.js";
+import { type KataModule } from "./katas.js";
 
 export async function init(wasm_uri: string) {
     let wasmBytes = await fetch(wasm_uri);
@@ -39,3 +40,4 @@ export function run_shot(code: string, expr: string) : ShotResult {
 export {type IDiagnostic}
 export {renderDump, exampleDump} from "./state-table.js"
 export {outputAsDump, outputAsMessage, outputAsResult, eventStringToMsg, type Dump, type ShotResult} from "./common.js";
+export {getKataModule, queryKataModules, type KataExercise, type KataModule} from "./katas.js";
