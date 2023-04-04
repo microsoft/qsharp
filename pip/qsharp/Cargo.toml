@@ -11,10 +11,10 @@ license = "MIT"
 [dependencies]
 pyo3 = { version = "0.18", features = ["abi3-py37", "extension-module"] }
 
-qsc_ast = { path = "../compiler/qsc_ast" }
-qsc_eval = { path = "../compiler/qsc_eval" }
-qsc_frontend = { path = "../compiler/qsc_frontend" }
-qsc_passes = { path = "../compiler/qsc_passes" }
+qsc_ast = { path = "../../compiler/qsc_ast" }
+qsc_eval = { path = "../../compiler/qsc_eval" }
+qsc_frontend = { path = "../../compiler/qsc_frontend" }
+qsc_passes = { path = "../../compiler/qsc_passes" }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 

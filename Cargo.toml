@@ -10,7 +10,7 @@ members = [
     "compiler/qsci",
     "compiler/qtest_tool",
     "katas",
-    "qsharp",
+    "pip/qsharp",
 ]
 
 [workspace.package]

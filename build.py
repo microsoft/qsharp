@@ -54,7 +54,9 @@ wasm_src = os.path.join(root_dir, "compiler", "qsc_wasm")
 wasm_bld = os.path.join(root_dir, 'target', 'wasm32', build_type)
 npm_src  = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
-py_src = os.path.join(root_dir, "qsharp")
+pip_dir = os.path.join(root_dir, "pip")
+wheels_dir = os.path.join(root_dir, "target", "wheels")
+py_src = os.path.join(pip_dir, "qsharp")
 
 if npm_install_needed:
     subprocess.run([npm_cmd, 'install'], check=True, text=True, cwd=root_dir)
@@ -72,8 +74,8 @@ if build_cli:
         result = subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
 
 if build_py:
-    pip_build_args = ["pip", "wheel", "--wheel-dir", "target/wheels", "./qsharp"]
-    result = subprocess.run(pip_build_args, check=True, text=True, cwd=root_dir)
+    pip_build_args = ["pip", "wheel", "--wheel-dir", wheels_dir, py_src]
+    result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
 
     if run_tests:
         pip_install_args = ["pip", "install", "-e", "."]
