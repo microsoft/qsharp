@@ -27,7 +27,11 @@ use qsc_frontend::{
 };
 use qsc_passes::globals::GlobalId;
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{
+        hash_map::{Entry, RandomState},
+        HashMap,
+    },
+    hash::BuildHasher,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
 };
@@ -194,10 +198,10 @@ impl Range {
 /// Evaluates the given entry statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn evaluate<'a>(
+pub fn evaluate<'a, S: BuildHasher>(
     stmt: &Stmt,
     store: &'a PackageStore,
-    globals: &'a HashMap<GlobalId, &'a CallableDecl>,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
     package: PackageId,
     env: Env,
@@ -224,20 +228,20 @@ impl Env {
     }
 }
 
-pub struct Evaluator<'a> {
+pub struct Evaluator<'a, S: BuildHasher> {
     store: &'a PackageStore,
-    globals: &'a HashMap<GlobalId, &'a CallableDecl>,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
     package: PackageId,
     env: Env,
     out: Option<&'a mut dyn Receiver>,
 }
 
-impl<'a> Evaluator<'a> {
+impl<'a, S: BuildHasher> Evaluator<'a, S> {
     #[must_use]
     pub fn new(
         store: &'a PackageStore,
-        globals: &'a HashMap<GlobalId, &CallableDecl>,
+        globals: &'a HashMap<GlobalId, &CallableDecl, S>,
         resolutions: &'a Resolutions,
         package: PackageId,
         env: Env,
@@ -257,7 +261,7 @@ impl<'a> Evaluator<'a> {
     pub fn from_store(
         store: &'a PackageStore,
         id: PackageId,
-        globals: &'a HashMap<GlobalId, &CallableDecl>,
+        globals: &'a HashMap<GlobalId, &CallableDecl, S>,
         out: &'a mut dyn Receiver,
     ) -> Self {
         let unit = store
