@@ -27,10 +27,7 @@ use qsc_frontend::{
 };
 use qsc_passes::globals::GlobalId;
 use std::{
-    collections::{
-        hash_map::{Entry, RandomState},
-        HashMap,
-    },
+    collections::{hash_map::Entry, HashMap},
     hash::BuildHasher,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
