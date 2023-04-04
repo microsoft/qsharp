@@ -2,23 +2,23 @@
 name = "qsharp"
 version = "0.0.0"
 description = "Q# Python Bindings"
-authors = ["Microsoft"]
-homepage = "https://github.com/microsoft/qsharp"
-repository = "https://github.com/microsoft/qsharp"
-edition = "2021"
-license = "MIT"
+
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
-pyo3 = { version = "0.18", features = ["abi3-py37", "extension-module"] }
-
 qsc_ast = { path = "../../compiler/qsc_ast" }
 qsc_eval = { path = "../../compiler/qsc_eval" }
 qsc_frontend = { path = "../../compiler/qsc_frontend" }
 qsc_passes = { path = "../../compiler/qsc_passes" }
+
+pyo3 = { workspace = true }
+ouroboros = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
-
-ouroboros = "0.15.6"
 
 [lib]
 crate-type = ["cdylib"]
