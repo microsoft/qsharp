@@ -1,5 +1,5 @@
 import { Console } from "console";
-import {getKataModule, queryKataModules, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
+import {eventStringToMsg, getKataModule, queryKataModules, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
 
 // TODO (cesarzc): should probably be in the npm package.
 interface VerificationResult {
@@ -73,11 +73,38 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
     verifyButtonDiv.append(verifyButton);
 
     //
+    let kataSimulationCallback = (ev: string) => {
+        let result = eventStringToMsg(ev);
+        if (!result) {
+            console.error("Unrecognized message: " + ev);
+            return;
+        }
+        let paragraph = document.createElement('p') as HTMLParagraphElement;
+        console.log(`Callback invoked: ${result.type}`);
+        switch (result.type) {
+            case "Result":
+                paragraph.textContent = `RESULT: ${result.result}`;
+                break;
+            case "Message":
+                paragraph.textContent = `MESSAGE: ${result.message}`;
+                break;
+            case "DumpMachine":
+                paragraph.textContent = `STATE: ${result.state}`;
+                break;
+            default:
+                paragraph.textContent = `TYPE: ${result.type}`;
+                break;
+        }
+
+        outputDiv.append(paragraph);
+    }
+
+    //
     verifyButton.addEventListener('click', _ => {
         clearDiv(outputDiv);
         let kataImplementation = sourceCodeArea.value;
         try {
-            let result = verifyKata(exercise.id, kataImplementation);
+            let result = verifyKata(exercise.id, kataImplementation, kataSimulationCallback);
             let verificationResult: VerificationResult = {kind: "VerificationResult", result: result};
             let renderedResult = renderKataOutput(verificationResult);
             outputDiv.prepend(renderedResult);

@@ -56,6 +56,7 @@ let modules : KataModule[] = [
                 
                         if CheckZero(target) {
                             if CheckZero(aux) {
+                                Message("SUCCESS");
                                 task(target);
                                 DumpMachine();
                                 return true;
@@ -66,6 +67,7 @@ let modules : KataModule[] = [
                         Reset(target);
                 
                         // Use DumpMachine to display actual vs desired state.
+                        Message("FAILURE");
                         task(target);
                         DumpMachine();
                         Reset(target);
@@ -132,14 +134,11 @@ export function queryKataModules() : KataModule[] {
     return modules;
 }
 
-export function verifyKata(id: string, kataImplementation: string) : boolean
+export function verifyKata(id: string, kataImplementation: string, eventCb: (msg: string) => void) : boolean
 {
     let exercise = getKataExercise(id);
     return verify_kata_implementation(
         exercise.verificationImplementation,
         kataImplementation,
-        (msg:string) => {
-            console.log("Callback");
-            console.log(msg);
-        });
+        eventCb);
 }
