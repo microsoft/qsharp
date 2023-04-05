@@ -7,10 +7,12 @@ use qsc_eval::output::Receiver;
 use qsc_eval::{output, Error, Evaluator};
 use qsc_frontend::compile::{compile, std, PackageStore};
 use qsc_passes::globals::extract_callables;
+use katas::verify_kata;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
+use std::io;
 use wasm_bindgen::prelude::*;
 
 // TODO: Below is an example of how to return typed structures from Rust via Wasm
@@ -358,17 +360,19 @@ pub fn run(
 }
 
 #[wasm_bindgen]
-pub fn verify_kata(
-    _verification_source: &str,
+pub fn verify_kata_implementation(
+    verification_source: &str,
     kata_implementation: &str
 ) -> Result<JsValue, JsValue> {
-    if kata_implementation.eq("Reference") {
-        return Ok(JsValue::TRUE);
-    } else if  kata_implementation.eq("Placeholder") {
-        return Ok(JsValue::FALSE);
-    }
+    let mut stdout = io::stdout();
+    let mut out = output::GenericReceiver::new(&mut stdout);
+    let succeeds = verify_kata(
+        verification_source,
+        kata_implementation,
+        &mut out,
+    );
 
-    Err(JsError::new("Error duirng kata verification").into())
+    Ok(JsValue::from_bool(succeeds))
 }
 
 #[cfg(test)]

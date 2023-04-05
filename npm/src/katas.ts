@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { verify_kata} from "../lib/web/qsc_wasm.js";
+import { verify_kata_implementation} from "../lib/web/qsc_wasm.js";
 
 export type KataExercise = {
     id: string;
@@ -29,7 +29,52 @@ let modules : KataModule[] = [
                 id: "single-qubit-gates_y-gate",
                 title: "Pauli Y Gate",
                 description: "Description for Pauli Y gate",
-                verificationImplementation: "Verification",
+                verificationImplementation: `namespace Kata {
+                    open Microsoft.Quantum.Diagnostics;
+                    open Microsoft.Quantum.Intrinsic;
+                
+                    operation ApplyYReference(q : Qubit) : Unit is Adj + Ctl {
+                        body ... {
+                            Y(q);
+                        }
+                        adjoint self;
+                    }
+                
+                    operation Verify() : Bool {
+                        let task = ApplyY;
+                        let taskRef = ApplyYReference;
+                
+                        use (aux, target) = (Qubit(), Qubit());
+                        H(aux);
+                        CNOT(aux, target);
+                
+                        task(target);
+                        Adjoint taskRef(target);
+                
+                        CNOT(aux, target);
+                        H(aux);
+                
+                        if CheckZero(target) {
+                            if CheckZero(aux) {
+                                task(target);
+                                DumpMachine();
+                                return true;
+                            }
+                        }
+                
+                        Reset(aux);
+                        Reset(target);
+                
+                        // Use DumpMachine to display actual vs desired state.
+                        task(target);
+                        DumpMachine();
+                        Reset(target);
+                        taskRef(target);
+                        DumpMachine();
+                
+                        return false;
+                    }
+                }`,
                 referenceImplementatuon: "Reference",
                 placeholderImplementation: "Placeholder"
             },
@@ -90,5 +135,5 @@ export function queryKataModules() : KataModule[] {
 export function verifyKata(id: string, kataImplementation: string) : boolean
 {
     let exercise = getKataExercise(id);
-    return verify_kata(exercise.verificationImplementation, kataImplementation);
+    return verify_kata_implementation(exercise.verificationImplementation, kataImplementation);
 }
