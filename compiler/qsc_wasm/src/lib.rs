@@ -12,7 +12,6 @@ use katas::verify_kata;
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
-use std::io;
 use wasm_bindgen::prelude::*;
 
 // TODO: Below is an example of how to return typed structures from Rust via Wasm
@@ -359,17 +358,32 @@ pub fn run(
     }
 }
 
-#[wasm_bindgen]
-pub fn verify_kata_implementation(
+fn verify_kata_implementation_internal<F>(
     verification_source: &str,
-    kata_implementation: &str
-) -> Result<JsValue, JsValue> {
-    let mut stdout = io::stdout();
-    let mut out = output::GenericReceiver::new(&mut stdout);
-    let succeeds = verify_kata(
+    kata_implementation: &str,
+    event_cb: F) -> bool
+where
+    F: Fn(&str) {
+    let mut out = CallbackReceiver { event_cb };
+    verify_kata(
         verification_source,
         kata_implementation,
         &mut out,
+    )
+}
+
+#[wasm_bindgen]
+pub fn verify_kata_implementation(
+    verification_source: &str,
+    kata_implementation: &str,
+    event_cb: &js_sys::Function
+) -> Result<JsValue, JsValue> {
+    let succeeds = verify_kata_implementation_internal(
+        verification_source,
+        kata_implementation,
+        |msg: &str| {
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+        }
     );
 
     Ok(JsValue::from_bool(succeeds))

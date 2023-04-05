@@ -135,5 +135,11 @@ export function queryKataModules() : KataModule[] {
 export function verifyKata(id: string, kataImplementation: string) : boolean
 {
     let exercise = getKataExercise(id);
-    return verify_kata_implementation(exercise.verificationImplementation, kataImplementation);
+    return verify_kata_implementation(
+        exercise.verificationImplementation,
+        kataImplementation,
+        (msg:string) => {
+            console.log("Callback");
+            console.log(msg);
+        });
 }
