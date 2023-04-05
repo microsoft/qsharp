@@ -531,7 +531,30 @@ impl<'a> Inferrer<'a> {
     }
 
     fn infer_unop(&mut self, op: UnOp, expr: &Expr) -> Ty {
-        todo!()
+        let ty = self.infer_expr(expr);
+        match op {
+            UnOp::Functor(Functor::Adj) => {
+                self.constrain(Constraint::Class(Class::Adj(ty.clone())));
+                ty
+            }
+            UnOp::Functor(Functor::Ctl) => {
+                let with_ctls = self.fresh();
+                self.constrain(Constraint::Class(Class::Ctl {
+                    op: ty,
+                    with_ctls: with_ctls.clone(),
+                }));
+                with_ctls
+            }
+            UnOp::Neg | UnOp::NotB | UnOp::Pos => {
+                self.constrain(Constraint::Class(Class::Num(ty.clone())));
+                ty
+            }
+            UnOp::NotL => {
+                self.constrain(Constraint::Eq(ty.clone(), Ty::Prim(TyPrim::Bool)));
+                ty
+            }
+            UnOp::Unwrap => todo!("user-defined types not supported"),
+        }
     }
 
     fn infer_binop(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) -> Ty {
