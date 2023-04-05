@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 
-use indenter::{indented, Format};
+use indenter::{indented, Format, Indented};
 use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::{
@@ -112,6 +112,21 @@ impl From<Span> for SourceSpan {
 //     });
 // }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn set_indentation<'a, 'b>(
+    indent: Indented<'a, Formatter<'b>>,
+    level: &'static usize,
+) -> Indented<'a, Formatter<'b>> {
+    indent.with_format(Format::Custom {
+        inserter: Box::new(|_, f| {
+            for _ in 0..*level {
+                write!(f, "    ")?;
+            }
+            Ok(())
+        }),
+    })
+}
+
 /// The root node of an AST.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
@@ -137,11 +152,9 @@ impl Package {
 
 impl Display for Package {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         write!(indent, "Package {}:", self.id)?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
+        indent = set_indentation(indent, &1);
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
@@ -167,15 +180,13 @@ pub struct Namespace {
 
 impl Display for Namespace {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         write!(
             indent,
             "Namespace {} {} ({}):",
             self.id, self.span, self.name
         )?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
+        indent = set_indentation(indent, &1);
         for i in &self.items {
             write!(indent, "\n{i}")?;
         }
@@ -198,22 +209,16 @@ pub struct Item {
 
 impl Display for Item {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
+        indent = set_indentation(indent, &1);
         if self.meta.attrs.is_empty() && self.meta.visibility.is_none() {
             write!(indent, "\nmeta: <none>")?;
         } else {
             write!(indent, "\nmeta:")?;
-            indent = indent.with_format(Format::Uniform {
-                indentation: "        ",
-            });
+            indent = set_indentation(indent, &2);
             write!(indent, "{}", self.meta)?;
-            indent = indent.with_format(Format::Uniform {
-                indentation: "    ",
-            });
+            indent = set_indentation(indent, &1);
         }
         write!(indent, "\n{}", self.kind)?;
         Ok(())
@@ -302,11 +307,9 @@ pub struct Attr {
 
 impl Display for Attr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         write!(indent, "Attr {} {} ({}):", self.id, self.span, self.name)?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
+        indent = set_indentation(indent, &1);
         write!(indent, "\n{}", self.arg)?;
         Ok(())
     }
@@ -342,13 +345,11 @@ pub enum TyDefKind {
 
 impl Display for TyDefKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         match &self {
             TyDefKind::Field(name, t) => {
                 write!(indent, "Field:")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 if let Some(n) = name {
                     write!(indent, "\n{n}")?;
                 }
@@ -356,9 +357,7 @@ impl Display for TyDefKind {
             }
             TyDefKind::Paren(t) => {
                 write!(indent, "Paren:")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 write!(indent, "\n{t}")?;
             }
             TyDefKind::Tuple(ts) => {
@@ -366,9 +365,7 @@ impl Display for TyDefKind {
                     write!(indent, "Unit")?;
                 } else {
                     write!(indent, "Tuple:")?;
-                    indent = indent.with_format(Format::Uniform {
-                        indentation: "    ",
-                    });
+                    indent = set_indentation(indent, &1);
                     for t in ts {
                         write!(indent, "\n{t}")?;
                     }
@@ -404,29 +401,23 @@ pub struct CallableDecl {
 
 impl Display for CallableDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         write!(
             indent,
             "Callable {} {} ({:?}):",
             self.id, self.span, self.kind
         )?;
-        indent = indent.with_format(Format::Uniform {
-            indentation: "    ",
-        });
+        indent = set_indentation(indent, &1);
         write!(indent, "\nname: {}", self.name)?;
         if self.ty_params.is_empty() {
             write!(indent, "\ntype params: <none>")?;
         } else {
             write!(indent, "\ntype params:")?;
-            indent = indent.with_format(Format::Uniform {
-                indentation: "        ",
-            });
+            indent = set_indentation(indent, &2);
             for t in &self.ty_params {
                 write!(indent, "\n{t}")?;
             }
-            indent = indent.with_format(Format::Uniform {
-                indentation: "    ",
-            });
+            indent = set_indentation(indent, &1);
         }
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
@@ -504,13 +495,11 @@ pub enum FunctorExprKind {
 }
 impl Display for FunctorExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         match self {
             FunctorExprKind::BinOp(op, l, r) => {
                 write!(indent, "BinOp ({op:?})")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 write!(indent, "\n{l}")?;
                 write!(indent, "\n{r}")?;
             }
@@ -561,27 +550,21 @@ pub enum TyKind {
 
 impl Display for TyKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         match &self {
             TyKind::App(base, args) => {
                 write!(indent, "App:")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 write!(indent, "\nbase type: {base}")?;
                 write!(indent, "\narg types:")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "        ",
-                });
+                indent = set_indentation(indent, &2);
                 for a in args {
                     write!(indent, "\n{a}")?;
                 }
             }
             TyKind::Arrow(ck, param, rtrn, functors) => {
                 write!(indent, "Arrow ({ck:?}):")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 write!(indent, "\nparam: {param}")?;
                 write!(indent, "\nreturn: {rtrn}")?;
                 if let Some(f) = functors {
@@ -767,13 +750,11 @@ pub enum PatKind {
 
 impl Display for PatKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = indented(f).with_format(Format::Uniform { indentation: "" });
+        let mut indent = set_indentation(indented(f), &0);
         match self {
             PatKind::Bind(id, ty) => {
                 write!(indent, "Bind:")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 write!(indent, "\n{id}")?;
                 if let Some(t) = ty {
                     write!(indent, "\n{t}")?;
@@ -782,9 +763,7 @@ impl Display for PatKind {
             PatKind::Discard(d) => match d {
                 Some(t) => {
                     write!(indent, "Discard:")?;
-                    indent = indent.with_format(Format::Uniform {
-                        indentation: "    ",
-                    });
+                    indent = set_indentation(indent, &1);
                     write!(indent, "\n{t}")?;
                 }
                 None => write!(indent, "Discard")?,
@@ -792,16 +771,12 @@ impl Display for PatKind {
             PatKind::Elided => write!(indent, "Elided")?,
             PatKind::Paren(p) => {
                 write!(indent, "Paren:")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 write!(indent, "\n{p}")?;
             }
             PatKind::Tuple(ps) => {
                 write!(indent, "Tuple:")?;
-                indent = indent.with_format(Format::Uniform {
-                    indentation: "    ",
-                });
+                indent = set_indentation(indent, &1);
                 for p in ps {
                     write!(indent, "\n{p}")?;
                 }
