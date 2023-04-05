@@ -8,8 +8,8 @@ use crate::{
 use qsc_ast::{
     ast::{
         self, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-        FunctorExpr, FunctorExprKind, Lit, NodeId, Pat, PatKind, SetOp, SpecBody, TernOp, TyKind,
-        TyPrim, UnOp,
+        FunctorExpr, FunctorExprKind, Lit, NodeId, Pat, PatKind, QubitInit, QubitInitKind, SetOp,
+        SpecBody, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
     },
     visit::Visitor,
 };
@@ -443,11 +443,91 @@ impl<'a> Inferrer<'a> {
     }
 
     fn infer_block(&mut self, block: &Block) -> Ty {
-        todo!()
+        let mut last = None;
+        for stmt in &block.stmts {
+            last = Some(self.infer_stmt(stmt));
+        }
+
+        let ty = last.unwrap_or(Ty::Tuple(Vec::new()));
+        self.tys.insert(block.id, ty.clone());
+        ty
+    }
+
+    fn infer_stmt(&mut self, stmt: &Stmt) -> Ty {
+        let ty = match &stmt.kind {
+            StmtKind::Empty => Ty::Tuple(Vec::new()),
+            StmtKind::Expr(expr) => self.infer_expr(expr),
+            StmtKind::Local(_, pat, expr) => {
+                let pat_ty = self.infer_pat(pat);
+                let expr_ty = self.infer_expr(expr);
+                self.constrain(Constraint::Eq(pat_ty, expr_ty));
+                Ty::Tuple(Vec::new())
+            }
+            StmtKind::Qubit(_, pat, init, block) => {
+                let pat_ty = self.infer_pat(pat);
+                let init_ty = self.infer_qubit_init(init);
+                self.constrain(Constraint::Eq(pat_ty, init_ty));
+                match block {
+                    None => Ty::Tuple(Vec::new()),
+                    Some(block) => self.infer_block(block),
+                }
+            }
+            StmtKind::Semi(expr) => {
+                self.infer_expr(expr);
+                Ty::Tuple(Vec::new())
+            }
+        };
+
+        self.tys.insert(stmt.id, ty.clone());
+        ty
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
-        todo!()
+        let ty = match &pat.kind {
+            PatKind::Bind(name, None) => {
+                let ty = self.fresh();
+                self.tys.insert(name.id, ty.clone());
+                ty
+            }
+            PatKind::Bind(name, Some(ty)) => {
+                let ty = self.convert_ty(ty);
+                self.tys.insert(name.id, ty.clone());
+                ty
+            }
+            PatKind::Discard(None) | PatKind::Elided => self.fresh(),
+            PatKind::Discard(Some(ty)) => self.convert_ty(ty),
+            PatKind::Paren(inner) => self.infer_pat(inner),
+            PatKind::Tuple(items) => {
+                Ty::Tuple(items.iter().map(|item| self.infer_pat(item)).collect())
+            }
+        };
+
+        self.tys.insert(pat.id, ty.clone());
+        ty
+    }
+
+    fn infer_qubit_init(&mut self, init: &QubitInit) -> Ty {
+        let ty = match &init.kind {
+            QubitInitKind::Array(length) => {
+                let length_ty = self.infer_expr(length);
+                self.constrain(Constraint::Eq(length_ty, Ty::Prim(TyPrim::Int)));
+                Ty::App(
+                    Box::new(Ty::Prim(TyPrim::Array)),
+                    vec![Ty::Prim(TyPrim::Qubit)],
+                )
+            }
+            QubitInitKind::Paren(inner) => self.infer_qubit_init(inner),
+            QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
+            QubitInitKind::Tuple(items) => Ty::Tuple(
+                items
+                    .iter()
+                    .map(|item| self.infer_qubit_init(item))
+                    .collect(),
+            ),
+        };
+
+        self.tys.insert(init.id, ty.clone());
+        ty
     }
 
     fn infer_unop(&mut self, op: UnOp, expr: &Expr) -> Ty {
@@ -459,7 +539,15 @@ impl<'a> Inferrer<'a> {
     }
 
     fn infer_update(&mut self, container: &Expr, index: &Expr, item: &Expr) -> Ty {
-        todo!()
+        let container = self.infer_expr(container);
+        let index = self.infer_expr(index);
+        let item = self.infer_expr(item);
+        self.constrain(Constraint::Class(Class::HasIndex {
+            container: container.clone(),
+            index,
+            item,
+        }));
+        container
     }
 
     fn fresh(&mut self) -> Ty {
