@@ -558,7 +558,30 @@ impl<'a> Inferrer<'a> {
     }
 
     fn infer_binop(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) -> Ty {
-        todo!()
+        let lhs_ty = self.infer_expr(lhs);
+        let rhs_ty = self.infer_expr(rhs);
+        self.constrain(Constraint::Eq(lhs_ty.clone(), rhs_ty));
+        let constraint = match op {
+            BinOp::AndL | BinOp::OrL => Constraint::Eq(lhs_ty.clone(), Ty::Prim(TyPrim::Bool)),
+            BinOp::Eq | BinOp::Neq => Constraint::Class(Class::Eq(lhs_ty.clone())),
+            BinOp::Add => Constraint::Class(Class::Add(lhs_ty.clone())),
+            BinOp::AndB
+            | BinOp::Div
+            | BinOp::Exp
+            | BinOp::Gt
+            | BinOp::Gte
+            | BinOp::Lt
+            | BinOp::Lte
+            | BinOp::Mod
+            | BinOp::Mul
+            | BinOp::OrB
+            | BinOp::Shl
+            | BinOp::Shr
+            | BinOp::Sub
+            | BinOp::XorB => Constraint::Class(Class::Num(lhs_ty.clone())),
+        };
+        self.constrain(constraint);
+        lhs_ty
     }
 
     fn infer_update(&mut self, container: &Expr, index: &Expr, item: &Expr) -> Ty {
