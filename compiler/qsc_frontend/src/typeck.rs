@@ -73,14 +73,16 @@ impl Visitor<'_> for Checker<'_> {
     }
 }
 
-pub(super) struct GlobalTable {
+pub(super) struct GlobalTable<'a> {
+    resolutions: &'a Resolutions,
     globals: HashMap<DefId, Ty>,
     package: PackageSrc,
 }
 
-impl GlobalTable {
-    pub(super) fn new() -> Self {
+impl<'a> GlobalTable<'a> {
+    pub(super) fn new(resolutions: &'a Resolutions) -> Self {
         Self {
+            resolutions,
             globals: HashMap::new(),
             package: PackageSrc::Local,
         }
@@ -90,18 +92,23 @@ impl GlobalTable {
         self.package = PackageSrc::Extern(package);
     }
 
-    pub(super) fn into_checker(self, resolutions: &Resolutions) -> Checker {
+    pub(super) fn into_checker(self) -> Checker<'a> {
         Checker {
-            resolutions,
+            resolutions: self.resolutions,
             globals: self.globals,
             tys: Tys::new(),
         }
     }
 }
 
-impl Visitor<'_> for GlobalTable {
+impl Visitor<'_> for GlobalTable<'_> {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        todo!()
+        let id = DefId {
+            package: self.package,
+            node: decl.name.id,
+        };
+        let ty = callable_ty(self.resolutions, decl).expect("callable should have a valid type");
+        self.globals.insert(id, ty);
     }
 }
 
@@ -720,5 +727,53 @@ fn is_unsolved(substs: &HashMap<u32, Ty>, ty: &Ty) -> Option<u32> {
     match ty {
         &Ty::Var(var) if !substs.contains_key(&var) => Some(var),
         _ => None,
+    }
+}
+
+fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> Option<Ty> {
+    let input = todo!();
+    let output = try_convert_ty(resolutions, &decl.output)?;
+    Some(Ty::Arrow(
+        decl.kind,
+        Box::new(input),
+        Box::new(output),
+        decl.functors.clone(),
+    ))
+}
+
+fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> Option<Ty> {
+    match &ty.kind {
+        TyKind::App(base, args) => {
+            let base = try_convert_ty(resolutions, base)?;
+            let args = args
+                .iter()
+                .map(|arg| try_convert_ty(resolutions, arg))
+                .collect::<Option<_>>()?;
+            Some(Ty::App(Box::new(base), args))
+        }
+        TyKind::Arrow(kind, input, output, functors) => {
+            let input = try_convert_ty(resolutions, input)?;
+            let output = try_convert_ty(resolutions, output)?;
+            Some(Ty::Arrow(
+                *kind,
+                Box::new(input),
+                Box::new(output),
+                functors.clone(),
+            ))
+        }
+        TyKind::Hole => None,
+        TyKind::Paren(inner) => try_convert_ty(resolutions, inner),
+        TyKind::Path(path) => Some(Ty::DefId(
+            *resolutions.get(&path.id).expect("path should be resolved"),
+        )),
+        &TyKind::Prim(prim) => Some(Ty::Prim(prim)),
+        TyKind::Tuple(items) => {
+            let items = items
+                .iter()
+                .map(|item| try_convert_ty(resolutions, item))
+                .collect::<Option<_>>()?;
+            Some(Ty::Tuple(items))
+        }
+        TyKind::Var(name) => Some(Ty::Rigid(name.name.clone())),
     }
 }

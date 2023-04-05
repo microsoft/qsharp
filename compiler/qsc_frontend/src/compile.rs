@@ -160,9 +160,9 @@ pub fn compile(
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
 
-    let (resolve_globals, typeck_globals) = scan_globals(store, dependencies, &package);
-    let (resolutions, resolve_errors) = resolve_all(resolve_globals, &package);
-    let tys = typeck_all(typeck_globals, &resolutions, &package);
+    let dependencies: Vec<_> = dependencies.into_iter().collect();
+    let (resolutions, resolve_errors) = resolve_all(store, dependencies.iter().copied(), &package);
+    let tys = typeck_all(store, dependencies.iter().copied(), &package, &resolutions);
     let validate_errors = validate(&package);
 
     let mut errors = Vec::new();
@@ -254,41 +254,44 @@ fn parse_all(
 }
 
 fn resolve_all(
-    globals: resolve::GlobalTable,
+    store: &PackageStore,
+    dependencies: impl IntoIterator<Item = PackageId>,
     package: &Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
+    let mut globals = resolve::GlobalTable::new();
+    globals.visit_package(package);
+    for dependency in dependencies {
+        let unit = store
+            .get(dependency)
+            .expect("dependency should be in package store before compilation");
+        globals.set_package(dependency);
+        globals.visit_package(&unit.package);
+    }
+
     let mut resolver = globals.into_resolver();
     resolver.visit_package(package);
     resolver.into_resolutions()
 }
 
-fn typeck_all(globals: typeck::GlobalTable, resolutions: &Resolutions, package: &Package) -> Tys {
-    let mut checker = globals.into_checker(resolutions);
-    checker.visit_package(package);
-    checker.into_tys()
-}
-
-fn scan_globals<'a>(
-    store: &'a PackageStore,
+fn typeck_all(
+    store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
-    package: &'a Package,
-) -> (resolve::GlobalTable<'a>, typeck::GlobalTable) {
-    let mut resolve_globals = resolve::GlobalTable::new();
-    resolve_globals.visit_package(package);
-    let mut typeck_globals = typeck::GlobalTable::new();
-    typeck_globals.visit_package(package);
-
+    package: &Package,
+    resolutions: &Resolutions,
+) -> Tys {
+    let mut globals = typeck::GlobalTable::new(resolutions);
+    globals.visit_package(package);
     for dependency in dependencies {
         let unit = store
             .get(dependency)
             .expect("dependency should be added to package store before compilation");
-        resolve_globals.set_package(dependency);
-        resolve_globals.visit_package(&unit.package);
-        typeck_globals.set_package(dependency);
-        typeck_globals.visit_package(&unit.package);
+        globals.set_package(dependency);
+        globals.visit_package(&unit.package);
     }
 
-    (resolve_globals, typeck_globals)
+    let mut checker = globals.into_checker();
+    checker.visit_package(package);
+    checker.into_tys()
 }
 
 fn append_errors(
