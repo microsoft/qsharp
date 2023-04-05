@@ -192,7 +192,7 @@ impl Range {
     }
 }
 
-/// Evaluates the given entry statement with the given context.
+/// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
 pub fn evaluate<'a, S: BuildHasher>(
@@ -204,7 +204,7 @@ pub fn evaluate<'a, S: BuildHasher>(
     env: Env,
     out: &'a mut dyn Receiver,
 ) -> (Result<Value, Error>, Env) {
-    let evaluator = Evaluator {
+    let mut eval = Evaluator {
         store,
         globals,
         resolutions,
@@ -212,7 +212,13 @@ pub fn evaluate<'a, S: BuildHasher>(
         env,
         out: Some(out),
     };
-    evaluator.eval_stmt(stmt)
+    (
+        match eval.eval_stmt(stmt) {
+            ControlFlow::Continue(res) | ControlFlow::Break(Reason::Return(res)) => Ok(res),
+            ControlFlow::Break(Reason::Error(error)) => Err(error),
+        },
+        eval.env,
+    )
 }
 
 #[derive(Default)]
@@ -236,25 +242,6 @@ pub struct Evaluator<'a, S: BuildHasher> {
 
 impl<'a, S: BuildHasher> Evaluator<'a, S> {
     #[must_use]
-    pub fn new(
-        store: &'a PackageStore,
-        globals: &'a HashMap<GlobalId, &CallableDecl, S>,
-        resolutions: &'a Resolutions,
-        package: PackageId,
-        env: Env,
-        out: &'a mut dyn Receiver,
-    ) -> Self {
-        Self {
-            store,
-            globals,
-            resolutions,
-            package,
-            env,
-            out: Some(out),
-        }
-    }
-
-    #[must_use]
     pub fn from_store(
         store: &'a PackageStore,
         id: PackageId,
@@ -276,18 +263,6 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
 
     pub fn init() {
         __quantum__rt__initialize(null_mut());
-    }
-
-    /// Evaluates the given statement.
-    /// # Errors
-    /// Returns the first error encountered during execution.
-    pub fn eval_stmt(mut self, stmt: &Stmt) -> (Result<Value, Error>, Env) {
-        match self.eval_stmt_impl(stmt) {
-            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                (Ok(val), self.env)
-            }
-            ControlFlow::Break(Reason::Error(error)) => (Err(error), self.env),
-        }
     }
 
     /// Evaluates the given expression.
@@ -436,9 +411,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         self.enter_scope();
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
-                let _ = self.eval_stmt_impl(stmt)?;
+                let _ = self.eval_stmt(stmt)?;
             }
-            self.eval_stmt_impl(last)
+            self.eval_stmt(last)
         } else {
             ControlFlow::Continue(Value::UNIT)
         };
@@ -446,7 +421,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         result
     }
 
-    fn eval_stmt_impl(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
+    fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
             StmtKind::Empty => ControlFlow::Continue(Value::UNIT),
             StmtKind::Expr(expr) => self.eval_expr_impl(expr),
@@ -521,7 +496,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         self.enter_scope();
 
         for stmt in &repeat.stmts {
-            self.eval_stmt_impl(stmt)?;
+            self.eval_stmt(stmt)?;
         }
         while !self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
             if let Some(block) = fixup.as_ref() {
@@ -532,7 +507,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             self.enter_scope();
 
             for stmt in &repeat.stmts {
-                self.eval_stmt_impl(stmt)?;
+                self.eval_stmt(stmt)?;
             }
         }
 
