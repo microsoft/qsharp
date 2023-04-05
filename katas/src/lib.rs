@@ -6,7 +6,7 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_eval::{output::Receiver, val::Value, Evaluator};
+use qsc_eval::{eval_expr, output::Receiver, val::Value, Env};
 use qsc_frontend::compile::{self, compile, PackageId, PackageStore};
 use qsc_passes::globals::extract_callables;
 
@@ -45,24 +45,28 @@ pub fn verify_kata(
     let verification_result =
         compile_kata(verification_source, kata_implementation).and_then(|(store, id)| {
             let globals = extract_callables(&store);
-            let evaluator = Evaluator::from_store(&store, id, &globals, recv);
-            let unit = store
-                .get(id)
-                .expect("Compile unit should be in package store");
-            let expr = unit
-                .package
-                .entry
-                .as_ref()
-                .expect("Entry expression should be present");
-            evaluator
-                .eval_expr(expr)
-                .map_err(|_| String::from("Runtime error"))
+            let expr = store
+                .get_entry_expr(id)
+                .expect("entry expression shouild be present");
+            let resolutions = store
+                .get_resolutions(id)
+                .expect("package should be present in store");
+            eval_expr(
+                expr,
+                &store,
+                &globals,
+                resolutions,
+                id,
+                &mut Env::default(),
+                recv,
+            )
+            .map_err(|_| String::from("Runtime error"))
         });
 
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
     match verification_result {
-        Ok((result, _)) => match result {
+        Ok(result) => match result {
             Value::Bool(b) => b,
             _ => panic!("Verification result is not a Bool."),
         },

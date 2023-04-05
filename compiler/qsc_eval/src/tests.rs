@@ -6,7 +6,7 @@ use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
-use crate::{output::GenericReceiver, Evaluator};
+use crate::{eval_expr, output::GenericReceiver, Env};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -17,20 +17,25 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         unit.context.errors()
     );
     let id = store.insert(unit);
-    let unit = store
-        .get(id)
-        .expect("compile unit should be in package store");
     let globals = extract_callables(&store);
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
-    let evaluator = Evaluator::from_store(&store, id, &globals, &mut out);
-    let expr = unit
-        .package
-        .entry
-        .as_ref()
-        .expect("entry expression should be present");
-    match evaluator.eval_expr(expr) {
-        Ok((result, _)) => expect.assert_eq(&result.to_string()),
+    let expr = store
+        .get_entry_expr(id)
+        .expect("entry expression shouild be present");
+    let resolutions = store
+        .get_resolutions(id)
+        .expect("package should be present in store");
+    match eval_expr(
+        expr,
+        &store,
+        &globals,
+        resolutions,
+        id,
+        &mut Env::default(),
+        &mut out,
+    ) {
+        Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
 }
