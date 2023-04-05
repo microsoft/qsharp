@@ -24,6 +24,12 @@ interface UnexpectedError {
 
 type KataOutput = VerificationResult | CompilationError | RuntimeError | UnexpectedError;
 
+function clearDiv(div: HTMLDivElement) {
+    while (div.hasChildNodes()) {
+        div.removeChild(div.lastChild!);
+    }
+}
+
 function renderKataOutput(output: KataOutput) : HTMLDivElement {
     let outputDiv = document.createElement("div");
     if (output.kind === "VerificationResult") {
@@ -56,28 +62,31 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
     sourceCodeArea.id = `source_${exercise.id}`;
     sourceCodeArea.value = exercise.placeholderImplementation;
     exerciseDiv.append(sourceCodeArea);
+    let outputDiv = document.createElement("div");
+    outputDiv.id = `ouput_${exercise.id}`;
+    exerciseDiv.append(outputDiv);
+    let verifyButtonDiv = document.createElement("div");
+    exerciseDiv.append(verifyButtonDiv);
     let verifyButton = document.createElement("button");
     verifyButton.textContent = "Verify";
     verifyButton.id = `verify_${exercise.id}`;
-    let verifyDiv = document.createElement("div");
-    verifyDiv.id = `result_${exercise.id}`;
-    verifyDiv.append(verifyButton);
-    exerciseDiv.append(verifyDiv);
+    verifyButtonDiv.append(verifyButton);
 
     //
     verifyButton.addEventListener('click', _ => {
+        clearDiv(outputDiv);
         let kataImplementation = sourceCodeArea.value;
         try {
             let result = verifyKata(exercise.id, kataImplementation);
             let verificationResult: VerificationResult = {kind: "VerificationResult", result: result};
             let renderedResult = renderKataOutput(verificationResult);
-            verifyDiv.prepend(renderedResult);
+            outputDiv.prepend(renderedResult);
         } catch(e)
         {
             if (e instanceof Error) {
                 let unexpectedError: UnexpectedError = {kind: "UnexpectedError", error: e.message};
                 let renderedError = renderKataOutput(unexpectedError);
-                verifyDiv.prepend(renderedError);
+                outputDiv.prepend(renderedError);
             }
         }
         
@@ -112,9 +121,7 @@ export function RenderKatas() {
     let canvasDiv = document.querySelector('#katas-canvas') as HTMLDivElement;
 
     // Clear the katas' canvas every time before re-rendering.
-    while (canvasDiv.hasChildNodes()) {
-        canvasDiv.removeChild(canvasDiv.lastChild!);
-    }
+    clearDiv(canvasDiv);
 
     // Render the selected module.
     let modulesDropdown = document.querySelector('#modules') as HTMLSelectElement;
