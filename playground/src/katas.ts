@@ -1,26 +1,46 @@
+import { Console } from "console";
 import {getKataModule, queryKataModules, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
 
 // TODO (cesarzc): should probably be in the npm package.
-type CompilationError = {
+interface VerificationResult {
+    kind: "VerificationResult";
+    result: boolean;
+}
+
+interface CompilationError {
+    kind: "CompilationError";
     error: string;
 }
 
-type RuntimeError = {
+interface RuntimeError {
+    kind: "RuntimeError";
     error: string;
 }
 
-type VerificationError = {};
-
-type UnexpectedError = {
+interface UnexpectedError {
+    kind: "UnexpectedError";
     error: string;
 }
 
-type KataError = CompilationError | RuntimeError | VerificationError | UnexpectedError;
+type KataOutput = VerificationResult | CompilationError | RuntimeError | UnexpectedError;
 
-function renderKataError(error: KataError) : HTMLDivElement {
-    let errorDiv = document.createElement("div");
-    // TODO (cesarzc): Complete.
-    return errorDiv;
+function renderKataOutput(output: KataOutput) : HTMLDivElement {
+    let outputDiv = document.createElement("div");
+    if (output.kind === "VerificationResult") {
+        console.log("VerificationResult");
+        outputDiv.textContent = `Kata Verification: ${output.result}`;
+    } else if (output.kind === "CompilationError") {
+        console.log("CompilationError");
+        outputDiv.textContent = `${output.kind}: ${output.error}`;
+    } else if (output.kind === "RuntimeError") {
+        console.log("RuntimeError");
+        outputDiv.textContent = `${output.kind}: ${output.error}`;
+    } else if (output.kind === "UnexpectedError") {
+        console.log("UnexpectedError");
+        outputDiv.textContent = `${output.kind}: ${output.error}`;
+    }
+
+    return outputDiv;
 }
 
 function renderExercise(exercise: KataExercise) : HTMLDivElement {
@@ -49,11 +69,15 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
         let kataImplementation = sourceCodeArea.value;
         try {
             let result = verifyKata(exercise.id, kataImplementation);
-            alert(`${exercise.id}: ${kataImplementation} : ${result}`);
+            let verificationResult: VerificationResult = {kind: "VerificationResult", result: result};
+            let renderedResult = renderKataOutput(verificationResult);
+            verifyDiv.prepend(renderedResult);
         } catch(e)
         {
             if (e instanceof Error) {
-                console.log(`Error: ${e.message} | ${e.name}`);
+                let unexpectedError: UnexpectedError = {kind: "UnexpectedError", error: e.message};
+                let renderedError = renderKataOutput(unexpectedError);
+                verifyDiv.prepend(renderedError);
             }
         }
         
