@@ -53,10 +53,7 @@ function squiggleDiagnostics(errors: IDiagnostic[]) {
 
 // This runs after the Monaco editor is initialized
 async function loaded() {
-    // WASM location is relative to page path
-    let pagePath = document.location.pathname;
-    if (!pagePath.endsWith('/')) pagePath += '/';
-    await init(`${pagePath}libs/qsharp/qsc_wasm_bg.wasm`);
+    await init(`libs/qsharp/qsc_wasm_bg.wasm`);
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
