@@ -8,8 +8,8 @@ use crate::{
 use qsc_ast::{
     ast::{
         self, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-        FunctorExpr, FunctorExprKind, Lit, NodeId, Pat, SetOp, SpecBody, TernOp, TyKind, TyPrim,
-        UnOp,
+        FunctorExpr, FunctorExprKind, Lit, NodeId, Pat, PatKind, SetOp, SpecBody, TernOp, TyKind,
+        TyPrim, UnOp,
     },
     visit::Visitor,
 };
@@ -46,10 +46,10 @@ impl Checker<'_> {
 
 impl Visitor<'_> for Checker<'_> {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        // TODO: callable input types
         match &decl.body {
             CallableBody::Block(block) => {
                 let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
+                inferrer.infer_pat(&decl.input);
                 let decl_output = inferrer.convert_ty(&decl.output);
                 let block_output = inferrer.infer_block(block);
                 inferrer.constrain(Constraint::Eq(decl_output, block_output));
@@ -59,8 +59,10 @@ impl Visitor<'_> for Checker<'_> {
                 for spec in specs {
                     match &spec.body {
                         SpecBody::Gen(_) => {}
-                        SpecBody::Impl(_, block) => {
+                        SpecBody::Impl(input, block) => {
                             let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
+                            inferrer.infer_pat(&decl.input);
+                            inferrer.infer_pat(input);
                             let decl_output = inferrer.convert_ty(&decl.output);
                             let block_output = inferrer.infer_block(block);
                             inferrer.constrain(Constraint::Eq(decl_output, block_output));
@@ -731,7 +733,7 @@ fn is_unsolved(substs: &HashMap<u32, Ty>, ty: &Ty) -> Option<u32> {
 }
 
 fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> Option<Ty> {
-    let input = todo!();
+    let input = try_pat_ty(resolutions, &decl.input)?;
     let output = try_convert_ty(resolutions, &decl.output)?;
     Some(Ty::Arrow(
         decl.kind,
@@ -775,5 +777,18 @@ fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> Option<Ty> {
             Some(Ty::Tuple(items))
         }
         TyKind::Var(name) => Some(Ty::Rigid(name.name.clone())),
+    }
+}
+
+fn try_pat_ty(resolutions: &Resolutions, pat: &Pat) -> Option<Ty> {
+    match &pat.kind {
+        PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => None,
+        PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => try_convert_ty(resolutions, ty),
+        PatKind::Paren(inner) => try_pat_ty(resolutions, inner),
+        PatKind::Tuple(items) => items
+            .iter()
+            .map(|item| try_pat_ty(resolutions, item))
+            .collect::<Option<_>>()
+            .map(Ty::Tuple),
     }
 }
