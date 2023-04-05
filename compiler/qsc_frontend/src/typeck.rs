@@ -602,33 +602,30 @@ impl<'a> Inferrer<'a> {
     }
 
     fn instantiate(&mut self, ty: &Ty) -> Ty {
-        fn go(mut fresh: impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
+        fn go(fresh: &mut impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
             match ty {
                 Ty::App(base, args) => Ty::App(
-                    Box::new(go(&mut fresh, vars, base)),
-                    args.iter().map(|arg| go(&mut fresh, vars, arg)).collect(),
+                    Box::new(go(fresh, vars, base)),
+                    args.iter().map(|arg| go(fresh, vars, arg)).collect(),
                 ),
                 Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
                     *kind,
-                    Box::new(go(&mut fresh, vars, input)),
-                    Box::new(go(&mut fresh, vars, output)),
+                    Box::new(go(fresh, vars, input)),
+                    Box::new(go(fresh, vars, output)),
                     functors.clone(),
                 ),
                 &Ty::DefId(id) => Ty::DefId(id),
                 &Ty::Prim(prim) => Ty::Prim(prim),
                 Ty::Rigid(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
-                Ty::Tuple(items) => Ty::Tuple(
-                    items
-                        .iter()
-                        .map(|item| go(&mut fresh, vars, item))
-                        .collect(),
-                ),
+                Ty::Tuple(items) => {
+                    Ty::Tuple(items.iter().map(|item| go(fresh, vars, item)).collect())
+                }
                 &Ty::Var(id) => Ty::Var(id),
                 Ty::Void => Ty::Void,
             }
         }
 
-        go(|| self.fresh(), &mut HashMap::new(), ty)
+        go(&mut || self.fresh(), &mut HashMap::new(), ty)
     }
 
     fn convert_ty(&mut self, ty: &ast::Ty) -> Ty {
