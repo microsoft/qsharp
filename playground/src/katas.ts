@@ -91,9 +91,6 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
             case "DumpMachine":
                 paragraph.textContent = `STATE: ${result.state}`;
                 break;
-            default:
-                paragraph.textContent = `TYPE: ${result.type}`;
-                break;
         }
 
         outputDiv.append(paragraph);
