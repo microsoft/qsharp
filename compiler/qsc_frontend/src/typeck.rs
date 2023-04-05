@@ -378,8 +378,7 @@ impl<'a> Inferrer<'a> {
                     .expect("path should be resolved");
 
                 if let Some(ty) = self.globals.get(def) {
-                    // TODO: instantiate type parameters
-                    ty.clone()
+                    self.instantiate(ty)
                 } else if def.package == PackageSrc::Local {
                     self.tys
                         .get(&def.node)
@@ -600,6 +599,36 @@ impl<'a> Inferrer<'a> {
         let var = self.next_var;
         self.next_var += 1;
         Ty::Var(var)
+    }
+
+    fn instantiate(&mut self, ty: &Ty) -> Ty {
+        fn go(mut fresh: impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
+            match ty {
+                Ty::App(base, args) => Ty::App(
+                    Box::new(go(&mut fresh, vars, base)),
+                    args.iter().map(|arg| go(&mut fresh, vars, arg)).collect(),
+                ),
+                Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
+                    *kind,
+                    Box::new(go(&mut fresh, vars, input)),
+                    Box::new(go(&mut fresh, vars, output)),
+                    functors.clone(),
+                ),
+                &Ty::DefId(id) => Ty::DefId(id),
+                &Ty::Prim(prim) => Ty::Prim(prim),
+                Ty::Rigid(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
+                Ty::Tuple(items) => Ty::Tuple(
+                    items
+                        .iter()
+                        .map(|item| go(&mut fresh, vars, item))
+                        .collect(),
+                ),
+                &Ty::Var(id) => Ty::Var(id),
+                Ty::Void => Ty::Void,
+            }
+        }
+
+        go(|| self.fresh(), &mut HashMap::new(), ty)
     }
 
     fn convert_ty(&mut self, ty: &ast::Ty) -> Ty {
