@@ -13,6 +13,20 @@ use std::{
     ops::{Bound, Index, RangeBounds},
 };
 
+fn set_indentation<'a, 'b>(
+    indent: Indented<'a, Formatter<'b>>,
+    level: usize,
+) -> Indented<'a, Formatter<'b>> {
+    indent.with_format(Format::Custom {
+        inserter: Box::new(move |_, f| {
+            for _ in 0..level {
+                write!(f, "    ")?;
+            }
+            Ok(())
+        }),
+    })
+}
+
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(u32);
@@ -98,20 +112,6 @@ impl From<Span> for SourceSpan {
     fn from(value: Span) -> Self {
         Self::from(value.lo..value.hi)
     }
-}
-
-fn set_indentation<'a, 'b>(
-    indent: Indented<'a, Formatter<'b>>,
-    level: usize,
-) -> Indented<'a, Formatter<'b>> {
-    indent.with_format(Format::Custom {
-        inserter: Box::new(move |_, f| {
-            for _ in 0..level {
-                write!(f, "    ")?;
-            }
-            Ok(())
-        }),
-    })
 }
 
 /// The root node of an AST.
