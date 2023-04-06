@@ -616,6 +616,7 @@ impl<'a> Inferrer<'a> {
             last = Some(self.infer_stmt(stmt));
         }
 
+        // TODO: If all code paths have a return expression, this should be TyKind::Void.
         let ty = last.unwrap_or(Ty {
             span: block.span,
             kind: TyKind::Tuple(Vec::new()),
