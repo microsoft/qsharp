@@ -8,7 +8,6 @@ use std::{
 };
 
 use num_bigint::BigInt;
-use qir_backend::__quantum__rt__qubit_release;
 use qsc_ast::ast::Pauli;
 use qsc_passes::globals::GlobalId;
 
@@ -233,12 +232,6 @@ impl Value {
                 expected: "Tuple",
                 actual: self.type_name(),
             })
-        }
-    }
-
-    pub fn release(&self) {
-        if let Value::Qubit(q) = self {
-            __quantum__rt__qubit_release(*q);
         }
     }
 
