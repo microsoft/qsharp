@@ -99,6 +99,7 @@ pub struct Error(pub(crate) ErrorKind);
 pub(crate) enum ErrorKind {
     Parse(OffsetError<parse::Error>),
     Resolve(resolve::Error),
+    Ty(typeck::Error),
     Validate(validate::Error),
 }
 
@@ -162,7 +163,7 @@ pub fn compile(
 
     let dependencies: Vec<_> = dependencies.into_iter().collect();
     let (resolutions, resolve_errors) = resolve_all(store, dependencies.iter().copied(), &package);
-    let tys = typeck_all(store, dependencies.iter().copied(), &package, &resolutions);
+    let (tys, ty_errors) = typeck_all(store, dependencies.iter().copied(), &package, &resolutions);
     let validate_errors = validate(&package);
 
     let mut errors = Vec::new();
@@ -172,6 +173,7 @@ pub fn compile(
             .into_iter()
             .map(|e| Error(ErrorKind::Resolve(e))),
     );
+    errors.extend(ty_errors.into_iter().map(|e| Error(ErrorKind::Ty(e))));
     errors.extend(
         validate_errors
             .into_iter()
@@ -278,7 +280,7 @@ fn typeck_all(
     dependencies: impl IntoIterator<Item = PackageId>,
     package: &Package,
     resolutions: &Resolutions,
-) -> Tys {
+) -> (Tys, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new(resolutions);
     globals.visit_package(package);
     for dependency in dependencies {

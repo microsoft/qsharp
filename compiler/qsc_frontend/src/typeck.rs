@@ -5,6 +5,7 @@ use crate::{
     compile::PackageId,
     resolve::{DefId, PackageSrc, Resolutions},
 };
+use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         self, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
@@ -15,8 +16,10 @@ use qsc_ast::{
 };
 use std::{
     collections::{HashMap, HashSet},
+    fmt::{self, Debug, Display, Formatter},
     mem,
 };
+use thiserror::Error;
 
 pub type Tys = HashMap<NodeId, Ty>;
 
@@ -25,6 +28,7 @@ pub enum Ty {
     App(Box<Ty>, Vec<Ty>),
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     DefId(DefId),
+    Err,
     Never,
     Param(String),
     Prim(TyPrim),
@@ -32,17 +36,93 @@ pub enum Ty {
     Var(u32),
 }
 
+impl Display for Ty {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Ty::App(base, args) => {
+                Display::fmt(base, f)?;
+                if let Some((first, rest)) = args.split_first() {
+                    f.write_str("<")?;
+                    Display::fmt(first, f)?;
+                    for arg in rest {
+                        f.write_str(", ")?;
+                        Display::fmt(arg, f)?;
+                    }
+                    f.write_str(">")?;
+                }
+                Ok(())
+            }
+            Ty::Arrow(kind, input, output, functors) => {
+                let arrow = match kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
+                write!(f, "({input}) {arrow} ({output})")?;
+                let functors = functor_set(functors.as_ref());
+                if functors.contains(&Functor::Adj) && functors.contains(&Functor::Ctl) {
+                    f.write_str(" is Adj + Ctl")?;
+                } else if functors.contains(&Functor::Adj) {
+                    f.write_str(" is Adj")?;
+                } else if functors.contains(&Functor::Ctl) {
+                    f.write_str(" is Ctl")?;
+                }
+                Ok(())
+            }
+            Ty::DefId(DefId {
+                package: PackageSrc::Local,
+                node,
+            }) => write!(f, "Def<{node}>"),
+            Ty::DefId(DefId {
+                package: PackageSrc::Extern(package),
+                node,
+            }) => write!(f, "Def<{package}, {node}>"),
+            Ty::Err => f.write_str("Err"),
+            Ty::Never => f.write_str("!"),
+            Ty::Param(name) => write!(f, "'{name}"),
+            Ty::Prim(prim) => prim.fmt(f),
+            Ty::Tuple(items) => {
+                f.write_str("(")?;
+                if let Some((first, rest)) = items.split_first() {
+                    Display::fmt(first, f)?;
+                    if rest.is_empty() {
+                        f.write_str(",")?;
+                    } else {
+                        for item in rest {
+                            f.write_str(", ")?;
+                            Display::fmt(item, f)?;
+                        }
+                    }
+                }
+                f.write_str(")")
+            }
+            Ty::Var(id) => write!(f, "?{id}"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[error("cannot unify type `{0}` with type `{1}`")]
+    CannotUnify(Ty, Ty, #[label] Span),
+    #[error("missing type in item signature")]
+    #[diagnostic(help("types cannot be inferred for global declarations"))]
+    MissingItemTy(#[label("explicit type required")] Span),
+}
+
 struct UnifyError(Ty, Ty);
+
+struct MissingTyError(Span);
 
 pub(super) struct Checker<'a> {
     resolutions: &'a Resolutions,
     globals: HashMap<DefId, Ty>,
     tys: Tys,
+    errors: Vec<Error>,
 }
 
 impl Checker<'_> {
-    pub(super) fn into_tys(self) -> Tys {
-        self.tys
+    pub(super) fn into_tys(self) -> (Tys, Vec<Error>) {
+        (self.tys, self.errors)
     }
 }
 
@@ -84,6 +164,7 @@ pub(super) struct GlobalTable<'a> {
     resolutions: &'a Resolutions,
     globals: HashMap<DefId, Ty>,
     package: PackageSrc,
+    errors: Vec<Error>,
 }
 
 impl<'a> GlobalTable<'a> {
@@ -92,6 +173,7 @@ impl<'a> GlobalTable<'a> {
             resolutions,
             globals: HashMap::new(),
             package: PackageSrc::Local,
+            errors: Vec::new(),
         }
     }
 
@@ -104,18 +186,22 @@ impl<'a> GlobalTable<'a> {
             resolutions: self.resolutions,
             globals: self.globals,
             tys: Tys::new(),
+            errors: self.errors,
         }
     }
 }
 
 impl Visitor<'_> for GlobalTable<'_> {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+        let (ty, errors) = callable_ty(self.resolutions, decl);
         let id = DefId {
             package: self.package,
             node: decl.name.id,
         };
-        let ty = callable_ty(self.resolutions, decl).expect("callable should have a valid type");
         self.globals.insert(id, ty);
+        for error in errors {
+            self.errors.push(Error::MissingItemTy(error.0));
+        }
     }
 }
 
@@ -447,7 +533,7 @@ impl<'a> Inferrer<'a> {
                 ty
             }
             ExprKind::Path(path) => match self.resolutions.get(&path.id) {
-                None => self.fresh(),
+                None => Ty::Err,
                 Some(id) => {
                     if let Some(ty) = self.globals.get(id) {
                         self.instantiate(ty)
@@ -814,6 +900,7 @@ impl<'a> Inferrer<'a> {
                     functors.clone(),
                 ),
                 &Ty::DefId(id) => Ty::DefId(id),
+                Ty::Err => Ty::Err,
                 Ty::Never => Ty::Never,
                 Ty::Param(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
                 &Ty::Prim(prim) => Ty::Prim(prim),
@@ -947,6 +1034,8 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(u32, Ty)>, UnifyError> {
             Ok(substs)
         }
         (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
+        // TODO: This isn't sound if Never occurs in a negative position. This probably needs some
+        // logic for automatic coercions.
         (Ty::Never, _) | (_, Ty::Never) => Ok(Vec::new()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
@@ -1085,6 +1174,7 @@ fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
             functors,
         ),
         Ty::DefId(id) => Ty::DefId(id),
+        Ty::Err => Ty::Err,
         Ty::Never => Ty::Never,
         Ty::Param(name) => Ty::Param(name),
         Ty::Prim(prim) => Ty::Prim(prim),
@@ -1126,65 +1216,78 @@ fn try_var_id(ty: &Ty) -> Option<u32> {
     }
 }
 
-fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> Option<Ty> {
-    let input = try_pat_ty(resolutions, &decl.input)?;
-    let output = try_convert_ty(resolutions, &decl.output)?;
-    Some(Ty::Arrow(
+fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> (Ty, Vec<MissingTyError>) {
+    let (input, mut errors) = try_pat_ty(resolutions, &decl.input);
+    let (output, output_errors) = try_convert_ty(resolutions, &decl.output);
+    errors.extend(output_errors);
+    let ty = Ty::Arrow(
         decl.kind,
         Box::new(input),
         Box::new(output),
         decl.functors.clone(),
-    ))
+    );
+    (ty, errors)
 }
 
-fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> Option<Ty> {
+fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
     match &ty.kind {
         TyKind::App(base, args) => {
-            let base = try_convert_ty(resolutions, base)?;
-            let args = args
-                .iter()
-                .map(|arg| try_convert_ty(resolutions, arg))
-                .collect::<Option<_>>()?;
-            Some(Ty::App(Box::new(base), args))
+            let (new_base, mut errors) = try_convert_ty(resolutions, base);
+            let mut new_args = Vec::new();
+            for arg in args {
+                let (new_arg, arg_errors) = try_convert_ty(resolutions, arg);
+                new_args.push(new_arg);
+                errors.extend(arg_errors);
+            }
+            (Ty::App(Box::new(new_base), new_args), errors)
         }
         TyKind::Arrow(kind, input, output, functors) => {
-            let input = try_convert_ty(resolutions, input)?;
-            let output = try_convert_ty(resolutions, output)?;
-            Some(Ty::Arrow(
-                *kind,
-                Box::new(input),
-                Box::new(output),
-                functors.clone(),
-            ))
+            let (input, mut errors) = try_convert_ty(resolutions, input);
+            let (output, output_errors) = try_convert_ty(resolutions, output);
+            errors.extend(output_errors);
+            let ty = Ty::Arrow(*kind, Box::new(input), Box::new(output), functors.clone());
+            (ty, errors)
         }
-        TyKind::Hole => None,
+        TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
         TyKind::Paren(inner) => try_convert_ty(resolutions, inner),
-        TyKind::Path(path) => Some(Ty::DefId(
-            *resolutions.get(&path.id).expect("path should be resolved"),
-        )),
-        &TyKind::Prim(prim) => Some(Ty::Prim(prim)),
+        TyKind::Path(path) => (
+            resolutions
+                .get(&path.id)
+                .copied()
+                .map_or(Ty::Err, Ty::DefId),
+            Vec::new(),
+        ),
+        &TyKind::Prim(prim) => (Ty::Prim(prim), Vec::new()),
         TyKind::Tuple(items) => {
-            let items = items
-                .iter()
-                .map(|item| try_convert_ty(resolutions, item))
-                .collect::<Option<_>>()?;
-            Some(Ty::Tuple(items))
+            let mut new_items = Vec::new();
+            let mut errors = Vec::new();
+            for item in items {
+                let (new_item, item_errors) = try_convert_ty(resolutions, item);
+                new_items.push(new_item);
+                errors.extend(item_errors);
+            }
+            (Ty::Tuple(new_items), errors)
         }
-        TyKind::Var(name) => Some(Ty::Param(name.name.clone())),
+        TyKind::Var(name) => (Ty::Param(name.name.clone()), Vec::new()),
     }
 }
 
-fn try_pat_ty(resolutions: &Resolutions, pat: &Pat) -> Option<Ty> {
+fn try_pat_ty(resolutions: &Resolutions, pat: &Pat) -> (Ty, Vec<MissingTyError>) {
     match &pat.kind {
-        PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => None,
+        PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => {
+            (Ty::Err, vec![MissingTyError(pat.span)])
+        }
         PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => try_convert_ty(resolutions, ty),
         PatKind::Paren(inner) => try_pat_ty(resolutions, inner),
         PatKind::Tuple(items) => {
-            let items = items
-                .iter()
-                .map(|item| try_pat_ty(resolutions, item))
-                .collect::<Option<_>>()?;
-            Some(Ty::Tuple(items))
+            let mut new_items = Vec::new();
+            let mut errors = Vec::new();
+            for item in items {
+                let (new_item, item_errors) = try_pat_ty(resolutions, item);
+                new_items.push(new_item);
+                errors.extend(item_errors);
+            }
+            (Ty::Tuple(new_items), errors)
         }
     }
 }
