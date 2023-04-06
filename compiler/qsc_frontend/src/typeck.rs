@@ -125,7 +125,7 @@ enum Constraint {
     Class(Class),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Class {
     Add(Ty),
     Adj(Ty),
@@ -783,16 +783,29 @@ impl<'a> Inferrer<'a> {
             span,
             kind: lhs_ty.kind,
         };
-        let constraint = match op {
-            BinOp::AndL | BinOp::OrL => Constraint::Eq(
-                ty.clone(),
+
+        match op {
+            BinOp::AndL | BinOp::OrL => {
+                self.constrain(Constraint::Eq(
+                    ty.clone(),
+                    Ty {
+                        span: Span::default(),
+                        kind: TyKind::Prim(TyPrim::Bool),
+                    },
+                ));
+                ty
+            }
+            BinOp::Eq | BinOp::Neq => {
+                self.constrain(Constraint::Class(Class::Eq(ty)));
                 Ty {
-                    span: Span::default(),
+                    span,
                     kind: TyKind::Prim(TyPrim::Bool),
-                },
-            ),
-            BinOp::Eq | BinOp::Neq => Constraint::Class(Class::Eq(ty.clone())),
-            BinOp::Add => Constraint::Class(Class::Add(ty.clone())),
+                }
+            }
+            BinOp::Add => {
+                self.constrain(Constraint::Class(Class::Add(ty.clone())));
+                ty
+            }
             BinOp::AndB
             | BinOp::Div
             | BinOp::Exp
@@ -806,10 +819,11 @@ impl<'a> Inferrer<'a> {
             | BinOp::Shl
             | BinOp::Shr
             | BinOp::Sub
-            | BinOp::XorB => Constraint::Class(Class::Num(ty.clone())),
-        };
-        self.constrain(constraint);
-        ty
+            | BinOp::XorB => {
+                self.constrain(Constraint::Class(Class::Num(ty.clone())));
+                ty
+            }
+        }
     }
 
     fn infer_update(&mut self, container: &Expr, index: &Expr, item: &Expr) -> Ty {
@@ -1171,7 +1185,7 @@ fn classify(class: Class) -> Vec<Constraint> {
             )]
         }
         Class::Unwrap { .. } => todo!("user-defined types not supported"),
-        _ => panic!("falsified class"),
+        class => panic!("falsified class: {class:?}"),
     }
 }
 
