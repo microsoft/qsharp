@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.Canon {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Arrays;
 
     /// # Summary
     /// Applies the controlled-X (CX) gate to a pair of qubits.
@@ -172,24 +173,47 @@ namespace Microsoft.Quantum.Canon {
     /// - [ *D. Coppersmith* arXiv:quant-ph/0201067v1 ](https://arxiv.org/abs/quant-ph/0201067)
     operation ApproximateQFT (a : Int, qs : Qubit[]) : Unit {
         // TODO: is Adj + Ctl
-        let nQubits = Length(qs);
-        Fact(nQubits > 0, "`Length(qs)` must be least 1");
-        Fact(a > 0 and a <= nQubits, "`a` must be positive and less than `Length(qs)`");
+        body (...) {
+            let nQubits = Length(qs);
+            Fact(nQubits > 0, "`Length(qs)` must be least 1");
+            Fact(a > 0 and a <= nQubits, "`a` must be positive and less than `Length(qs)`");
 
-        for i in 0 .. nQubits - 1 {
-            for j in 0 .. i - 1 {
-                if i - j < a {
-                    Controlled R1Frac([qs[i]], (1, i - j, (qs)[j]));
+            for i in 0 .. nQubits - 1 {
+                for j in 0 .. i - 1 {
+                    if i - j < a {
+                        Controlled R1Frac([qs[i]], (1, i - j, (qs)[j]));
+                    }
                 }
+
+                H(qs[i]);
             }
 
-            H(qs[i]);
+            // Apply the bit reversal permutation to the quantum register as
+            // a side effect, such that we enforce the invariants specified
+            // by the BigEndian UDT.
+            SwapReverseRegister(qs);
         }
 
-        // Apply the bit reversal permutation to the quantum register as
-        // a side effect, such that we enforce the invariants specified
-        // by the BigEndian UDT.
-        SwapReverseRegister(qs);
+        adjoint (...) {
+            // TODO: adjoint auto
+            let nQubits = Length(qs);
+            Fact(nQubits > 0, "`Length(qs)` must be least 1");
+            Fact(a > 0 and a <= nQubits, "`a` must be positive and less than `Length(qs)`");
+
+            Adjoint SwapReverseRegister(qs);
+
+
+            for i in nQubits - 1 .. -1 .. 0  {
+                Adjoint H(qs[i]);
+                for j in i - 1 .. -1 .. 0 {
+                    if i - j < a {
+                        Controlled Adjoint R1Frac([qs[i]], (1, i - j, (qs)[j]));
+                    }
+                }
+
+            }
+
+        }
     }
 
     /// # Summary
@@ -208,7 +232,13 @@ namespace Microsoft.Quantum.Canon {
     /// - Microsoft.Quantum.Canon.QFTLE
     internal operation ApplyQuantumFourierTransformBE(qs : Qubit[]) : Unit {
         // TODO: is Adj + Ctl
-        ApproximateQFT(Length(qs), qs);
+        body (...) {
+            ApproximateQFT(Length(qs), qs);
+        }
+        adjoint (...) {
+            // TODO: adjoint auto
+            Adjoint ApproximateQFT(Length(qs), qs);
+        }
     }
 
     /// # Summary
@@ -247,8 +277,10 @@ namespace Microsoft.Quantum.Canon {
         body (...) {
             ApplyQuantumFourierTransformBE(qs);
         }
-
-        // TODO: adjoint invert;
+        adjoint(...) {
+            // TODO: adjoint invert
+            Adjoint ApplyQuantumFourierTransformBE(qs);
+        }
         // TODO: controlled distribute;
         // TODO: controlled adjoint distribute;
     }
@@ -275,6 +307,134 @@ namespace Microsoft.Quantum.Canon {
         // TODO: adjoint invert;
         // TODO: controlled distribute;
         // TODO: controlled adjoint distribute;
+    }
+
+    /// # Summary
+    /// Applies a single-qubit operation to each element in a register.
+    /// The modifier `CA` indicates that the single-qubit operation is controllable
+    /// and adjointable.
+    ///
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each qubit.
+    /// ## register
+    /// Array of qubits on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEachCA(H, register);
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Canon.ApplyToEach
+    operation ApplyToEachCA<'T> (singleElementOperation : ('T => Unit is Adj + Ctl), register : 'T[])
+    : Unit is Adj + Ctl {
+        for idxQubit in IndexRange(register) {
+            singleElementOperation(register[idxQubit]);
+        }
+    }
+
+
+    /// # Summary
+    /// Applies a single-qubit operation to each element in a register.
+    /// The modifier `A` indicates that the single-qubit operation is adjointable.
+    ///
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each qubit.
+    /// ## register
+    /// Array of qubits on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEachA(H, register);
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Canon.ApplyToEach
+    operation ApplyToEachA<'T> (singleElementOperation : ('T => Unit is Adj), register : 'T[])
+    : Unit is Adj {
+        for idxQubit in IndexRange(register) {
+            singleElementOperation(register[idxQubit]);
+        }
+    }
+
+
+    /// # Summary
+    /// Applies a single-qubit operation to each element in a register.
+    /// The modifier `C` indicates that the single-qubit operation is controllable.
+    ///
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each qubit.
+    /// ## register
+    /// Array of qubits on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEachC(H, register);
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Canon.ApplyToEach
+    operation ApplyToEachC<'T> (singleElementOperation : ('T => Unit is Ctl), register : 'T[])
+    : Unit is Ctl {
+        for idxQubit in IndexRange(register) {
+            singleElementOperation(register[idxQubit]);
+        }
+    }
+
+
+    /// # Summary
+    /// Applies a single-qubit operation to each element in a register.
+    ///
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each qubit.
+    /// ## register
+    /// Array of qubits on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEach(H, register);
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Canon.ApplyToEachC
+    /// - Microsoft.Quantum.Canon.ApplyToEachA
+    /// - Microsoft.Quantum.Canon.ApplyToEachCA
+    operation ApplyToEach<'T> (singleElementOperation : ('T => Unit), register : 'T[]) : Unit {
+        for idxQubit in IndexRange(register) {
+            singleElementOperation(register[idxQubit]);
+        }
     }
 
 

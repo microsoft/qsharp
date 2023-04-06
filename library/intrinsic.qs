@@ -365,8 +365,16 @@ namespace Microsoft.Quantum.Intrinsic {
             Controlled RFrac(ctls, (PauliZ, -numerator, power + 1, qubit));
             Controlled RFrac(ctls, (PauliI, numerator, power + 1, qubit));
         }
-        // TODO: adjoint auto
-        // TODO: controlled adjoint auto
+        adjoint  (...) {
+            // TODO: adjoint auto
+            RFrac(PauliI, -numerator, power + 1, qubit);
+            RFrac(PauliZ, numerator, power + 1, qubit);
+        }
+        controlled adjoint (ctls, ...) {
+            // TODO: controlled adjoint auto
+            Controlled RFrac(ctls, (PauliI, -numerator, power + 1, qubit));
+            Controlled RFrac(ctls, (PauliZ, numerator, power + 1, qubit));
+        }        
     }
 
     /// # Summary
@@ -422,9 +430,7 @@ namespace Microsoft.Quantum.Intrinsic {
             R(pauli, angle, qubit);
         }
         controlled (ctls, ...) {
-            // TODO: auto
-            // Note that power must be converted to a double and used with 2.0 instead of 2 to allow for
-            // negative exponents that result in a fractional denominator.
+            // TODO: controlled auto
             let angle = ((-2.0 * PI()) * IntAsDouble(numerator)) / (2.0 ^ IntAsDouble(power));
             Controlled R(ctls, (pauli, angle, qubit));
         }
