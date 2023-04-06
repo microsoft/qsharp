@@ -1,5 +1,5 @@
 import { Console } from "console";
-import {eventStringToMsg, getKataModule, queryKataModules, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
+import {eventStringToMsg, getKataModule, queryKataModules, renderDump, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
 
 // TODO (cesarzc): should probably be in the npm package.
 interface VerificationResult {
@@ -89,7 +89,9 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
                 paragraph.textContent = `MESSAGE: ${result.message}`;
                 break;
             case "DumpMachine":
-                paragraph.textContent = `STATE: ${result.state}`;
+                let table = document.createElement("table");
+                table.innerHTML = renderDump(result.state);
+                paragraph.appendChild(table);
                 break;
         }
 
