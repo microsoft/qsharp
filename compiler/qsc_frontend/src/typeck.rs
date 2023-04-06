@@ -9,7 +9,7 @@ use qsc_ast::{
     ast::{
         self, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
         FunctorExpr, FunctorExprKind, Lit, NodeId, Pat, PatKind, QubitInit, QubitInitKind, SetOp,
-        Span, SpecBody, Stmt, StmtKind, TernOp, TyPrim, UnOp,
+        Span, SpecBody, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
     },
     visit::Visitor,
 };
@@ -21,13 +21,7 @@ use std::{
 pub type Tys = HashMap<NodeId, Ty>;
 
 #[derive(Clone, Debug)]
-pub struct Ty {
-    span: Span,
-    kind: TyKind,
-}
-
-#[derive(Clone, Debug)]
-pub enum TyKind {
+pub enum Ty {
     App(Box<Ty>, Vec<Ty>),
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     DefId(DefId),
@@ -37,6 +31,8 @@ pub enum TyKind {
     Var(u32),
     Void,
 }
+
+struct UnifyError(Ty, Ty);
 
 pub(super) struct Checker<'a> {
     resolutions: &'a Resolutions,
@@ -58,7 +54,7 @@ impl Visitor<'_> for Checker<'_> {
                 inferrer.infer_pat(&decl.input);
                 let decl_output = inferrer.convert_ty(&decl.output);
                 let block_output = inferrer.infer_block(block);
-                inferrer.constrain(Constraint::Eq(decl_output, block_output));
+                inferrer.constrain(block.span, ConstraintKind::Eq(decl_output, block_output));
                 self.tys.extend(inferrer.solve());
             }
             CallableBody::Specs(specs) => {
@@ -71,7 +67,10 @@ impl Visitor<'_> for Checker<'_> {
                             inferrer.infer_pat(input);
                             let decl_output = inferrer.convert_ty(&decl.output);
                             let block_output = inferrer.infer_block(block);
-                            inferrer.constrain(Constraint::Eq(decl_output, block_output));
+                            inferrer.constrain(
+                                block.span,
+                                ConstraintKind::Eq(decl_output, block_output),
+                            );
                             self.tys.extend(inferrer.solve());
                         }
                     }
@@ -120,7 +119,12 @@ impl Visitor<'_> for GlobalTable<'_> {
     }
 }
 
-enum Constraint {
+struct Constraint {
+    span: Span,
+    kind: ConstraintKind,
+}
+
+enum ConstraintKind {
     Eq(Ty, Ty),
     Class(Class),
 }
@@ -269,215 +273,146 @@ impl<'a> Inferrer<'a> {
 
     #[allow(clippy::too_many_lines)]
     fn infer_expr(&mut self, expr: &Expr) -> Ty {
-        let span = expr.span;
         let ty = match &expr.kind {
             ExprKind::Array(items) => match items.split_first() {
                 Some((first, rest)) => {
                     let first = self.infer_expr(first);
                     for item in rest {
-                        let item = self.infer_expr(item);
-                        self.constrain(Constraint::Eq(first.clone(), item));
+                        let item_ty = self.infer_expr(item);
+                        self.constrain(item.span, ConstraintKind::Eq(first.clone(), item_ty));
                     }
 
-                    Ty {
-                        span,
-                        kind: TyKind::App(
-                            Box::new(Ty {
-                                span,
-                                kind: TyKind::Prim(TyPrim::Array),
-                            }),
-                            vec![first],
-                        ),
-                    }
+                    Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![first])
                 }
-                None => Ty {
-                    span,
-                    kind: TyKind::App(
-                        Box::new(Ty {
-                            span,
-                            kind: TyKind::Prim(TyPrim::Array),
-                        }),
-                        vec![self.fresh(span)],
-                    ),
-                },
+                None => Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![self.fresh()]),
             },
             ExprKind::ArrayRepeat(item, size) => {
-                let item = self.infer_expr(item);
-                let size = self.infer_expr(size);
-                self.constrain(Constraint::Eq(
-                    size,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Int),
-                    },
-                ));
-                Ty {
-                    span,
-                    kind: TyKind::App(
-                        Box::new(Ty {
-                            span,
-                            kind: TyKind::Prim(TyPrim::Array),
-                        }),
-                        vec![item],
-                    ),
-                }
+                let item_ty = self.infer_expr(item);
+                let size_ty = self.infer_expr(size);
+                self.constrain(
+                    size.span,
+                    ConstraintKind::Eq(size_ty, Ty::Prim(TyPrim::Int)),
+                );
+                Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![item_ty])
             }
             ExprKind::Assign(lhs, rhs) => {
-                let lhs = self.infer_expr(lhs);
-                let rhs = self.infer_expr(rhs);
-                self.constrain(Constraint::Eq(lhs, rhs));
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                let lhs_ty = self.infer_expr(lhs);
+                let rhs_ty = self.infer_expr(rhs);
+                self.constrain(lhs.span, ConstraintKind::Eq(lhs_ty, rhs_ty));
+                Ty::Tuple(Vec::new())
             }
             ExprKind::AssignOp(op, lhs, rhs) => {
-                self.infer_binop(span, *op, lhs, rhs);
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                self.infer_binop(expr.span, *op, lhs, rhs);
+                Ty::Tuple(Vec::new())
             }
             ExprKind::AssignUpdate(container, index, item) => {
-                self.infer_update(container, index, item);
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                self.infer_update(expr.span, container, index, item);
+                Ty::Tuple(Vec::new())
             }
-            ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(span, *op, lhs, rhs),
+            ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
-                let callee = self.infer_expr(callee);
-                let input = self.infer_expr(input);
-                let output = self.fresh(span);
-                self.constrain(Constraint::Class(Class::Call {
-                    callee,
-                    input,
-                    output: output.clone(),
-                }));
-                output
+                let callee_ty = self.infer_expr(callee);
+                let input_ty = self.infer_expr(input);
+                let output_ty = self.fresh();
+                self.constrain(
+                    expr.span,
+                    ConstraintKind::Class(Class::Call {
+                        callee: callee_ty,
+                        input: input_ty,
+                        output: output_ty.clone(),
+                    }),
+                );
+                output_ty
             }
             ExprKind::Conjugate(within, apply) => {
-                let within = self.infer_block(within);
-                let apply = self.infer_block(apply);
-                self.constrain(Constraint::Eq(
-                    within,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Tuple(Vec::new()),
-                    },
-                ));
-                apply
+                let within_ty = self.infer_block(within);
+                let apply_ty = self.infer_block(apply);
+                self.constrain(
+                    within.span,
+                    ConstraintKind::Eq(within_ty, Ty::Tuple(Vec::new())),
+                );
+                apply_ty
             }
             ExprKind::Fail(message) => {
-                let message = self.infer_expr(message);
-                self.constrain(Constraint::Eq(
-                    message,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::String),
-                    },
-                ));
-                Ty {
-                    span,
-                    kind: TyKind::Void,
-                }
+                let message_ty = self.infer_expr(message);
+                self.constrain(
+                    message.span,
+                    ConstraintKind::Eq(message_ty, Ty::Prim(TyPrim::String)),
+                );
+                Ty::Void
             }
             ExprKind::Field(record, name) => {
-                let record = self.infer_expr(record);
-                let item = self.fresh(span);
-                self.constrain(Constraint::Class(Class::HasField {
-                    record,
-                    name: name.name.clone(),
-                    item: item.clone(),
-                }));
-                item
+                let record_ty = self.infer_expr(record);
+                let item_ty = self.fresh();
+                self.constrain(
+                    expr.span,
+                    ConstraintKind::Class(Class::HasField {
+                        record: record_ty,
+                        name: name.name.clone(),
+                        item: item_ty.clone(),
+                    }),
+                );
+                item_ty
             }
             ExprKind::For(item, container, body) => {
-                let item = self.infer_pat(item);
-                let container = self.infer_expr(container);
-                self.constrain(Constraint::Class(Class::Iterable { container, item }));
-                let body = self.infer_block(body);
-                self.constrain(Constraint::Eq(
-                    body,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Tuple(Vec::new()),
-                    },
-                ));
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                let item_ty = self.infer_pat(item);
+                let container_ty = self.infer_expr(container);
+                self.constrain(
+                    container.span,
+                    ConstraintKind::Class(Class::Iterable {
+                        container: container_ty,
+                        item: item_ty,
+                    }),
+                );
+
+                let body_ty = self.infer_block(body);
+                self.constrain(
+                    body.span,
+                    ConstraintKind::Eq(body_ty, Ty::Tuple(Vec::new())),
+                );
+                Ty::Tuple(Vec::new())
             }
             ExprKind::If(cond, if_true, if_false) => {
-                let cond = self.infer_expr(cond);
-                self.constrain(Constraint::Eq(
-                    cond,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Bool),
-                    },
-                ));
-                let if_true = self.infer_block(if_true);
-                let if_false = if_false.as_ref().map_or(
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Tuple(Vec::new()),
-                    },
-                    |e| self.infer_expr(e),
+                let cond_ty = self.infer_expr(cond);
+                self.constrain(
+                    cond.span,
+                    ConstraintKind::Eq(cond_ty, Ty::Prim(TyPrim::Bool)),
                 );
-                self.constrain(Constraint::Eq(if_true.clone(), if_false));
-                if_true
+
+                let true_ty = self.infer_block(if_true);
+                let false_ty = if_false
+                    .as_ref()
+                    .map_or(Ty::Tuple(Vec::new()), |e| self.infer_expr(e));
+                self.constrain(expr.span, ConstraintKind::Eq(true_ty.clone(), false_ty));
+                true_ty
             }
             ExprKind::Index(container, index) => {
-                let container = self.infer_expr(container);
-                let index = self.infer_expr(index);
-                let item = self.fresh(span);
-                self.constrain(Constraint::Class(Class::HasIndex {
-                    container,
-                    index,
-                    item: item.clone(),
-                }));
-                item
+                let container_ty = self.infer_expr(container);
+                let index_ty = self.infer_expr(index);
+                let item_ty = self.fresh();
+                self.constrain(
+                    expr.span,
+                    ConstraintKind::Class(Class::HasIndex {
+                        container: container_ty,
+                        index: index_ty,
+                        item: item_ty.clone(),
+                    }),
+                );
+                item_ty
             }
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
                 let body = self.infer_expr(body);
-                Ty {
-                    span,
-                    kind: TyKind::Arrow(*kind, Box::new(input), Box::new(body), None),
-                }
+                Ty::Arrow(*kind, Box::new(input), Box::new(body), None)
             }
-            ExprKind::Lit(Lit::BigInt(_)) => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::BigInt),
-            },
-            ExprKind::Lit(Lit::Bool(_)) => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::Bool),
-            },
-            ExprKind::Lit(Lit::Double(_)) => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::Double),
-            },
-            ExprKind::Lit(Lit::Int(_)) => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::Int),
-            },
-            ExprKind::Lit(Lit::Pauli(_)) => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::Pauli),
-            },
-            ExprKind::Lit(Lit::Result(_)) => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::Result),
-            },
-            ExprKind::Lit(Lit::String(_)) => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::String),
-            },
+            ExprKind::Lit(Lit::BigInt(_)) => Ty::Prim(TyPrim::BigInt),
+            ExprKind::Lit(Lit::Bool(_)) => Ty::Prim(TyPrim::Bool),
+            ExprKind::Lit(Lit::Double(_)) => Ty::Prim(TyPrim::Double),
+            ExprKind::Lit(Lit::Int(_)) => Ty::Prim(TyPrim::Int),
+            ExprKind::Lit(Lit::Pauli(_)) => Ty::Prim(TyPrim::Pauli),
+            ExprKind::Lit(Lit::Result(_)) => Ty::Prim(TyPrim::Result),
+            ExprKind::Lit(Lit::String(_)) => Ty::Prim(TyPrim::String),
             ExprKind::Paren(expr) => self.infer_expr(expr),
             ExprKind::Path(path) => {
                 let def = self
@@ -499,111 +434,73 @@ impl<'a> Inferrer<'a> {
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
                     let ty = self.infer_expr(expr);
-                    self.constrain(Constraint::Eq(
-                        ty,
-                        Ty {
-                            span: Span::default(),
-                            kind: TyKind::Prim(TyPrim::Int),
-                        },
-                    ));
+                    self.constrain(expr.span, ConstraintKind::Eq(ty, Ty::Prim(TyPrim::Int)));
                 }
-
-                Ty {
-                    span,
-                    kind: TyKind::Prim(TyPrim::Range),
-                }
+                Ty::Prim(TyPrim::Range)
             }
             ExprKind::Repeat(body, until, fixup) => {
-                let body = self.infer_block(body);
-                self.constrain(Constraint::Eq(
-                    body,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Tuple(Vec::new()),
-                    },
-                ));
-                let until = self.infer_expr(until);
-                self.constrain(Constraint::Eq(
-                    until,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Bool),
-                    },
-                ));
+                let body_ty = self.infer_block(body);
+                self.constrain(
+                    body.span,
+                    ConstraintKind::Eq(body_ty, Ty::Tuple(Vec::new())),
+                );
+
+                let until_ty = self.infer_expr(until);
+                self.constrain(
+                    until.span,
+                    ConstraintKind::Eq(until_ty, Ty::Prim(TyPrim::Bool)),
+                );
+
                 if let Some(fixup) = fixup {
-                    let fixup = self.infer_block(fixup);
-                    self.constrain(Constraint::Eq(
-                        fixup,
-                        Ty {
-                            span: Span::default(),
-                            kind: TyKind::Tuple(Vec::new()),
-                        },
-                    ));
+                    let fixup_ty = self.infer_block(fixup);
+                    self.constrain(
+                        fixup.span,
+                        ConstraintKind::Eq(fixup_ty, Ty::Tuple(Vec::new())),
+                    );
                 }
 
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                Ty::Tuple(Vec::new())
             }
             ExprKind::Return(expr) => {
                 self.infer_expr(expr);
-                Ty {
-                    span,
-                    kind: TyKind::Void,
-                }
+                Ty::Void
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
-                let cond = self.infer_expr(cond);
-                self.constrain(Constraint::Eq(
-                    cond,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Bool),
-                    },
-                ));
-                let if_true = self.infer_expr(if_true);
-                let if_false = self.infer_expr(if_false);
-                self.constrain(Constraint::Eq(if_true.clone(), if_false));
-                if_true
+                let cond_ty = self.infer_expr(cond);
+                self.constrain(
+                    cond.span,
+                    ConstraintKind::Eq(cond_ty, Ty::Prim(TyPrim::Bool)),
+                );
+
+                let true_ty = self.infer_expr(if_true);
+                let false_ty = self.infer_expr(if_false);
+                self.constrain(expr.span, ConstraintKind::Eq(true_ty.clone(), false_ty));
+                true_ty
             }
             ExprKind::TernOp(TernOp::Update, container, index, item) => {
-                self.infer_update(container, index, item)
+                self.infer_update(expr.span, container, index, item)
             }
             ExprKind::Tuple(items) => {
                 let items = items.iter().map(|e| self.infer_expr(e)).collect();
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(items),
-                }
+                Ty::Tuple(items)
             }
-            ExprKind::UnOp(op, expr) => self.infer_unop(span, *op, expr),
+            ExprKind::UnOp(op, expr) => self.infer_unop(*op, expr),
             ExprKind::While(cond, body) => {
-                let cond = self.infer_expr(cond);
-                self.constrain(Constraint::Eq(
-                    cond,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Bool),
-                    },
-                ));
-                let body = self.infer_block(body);
-                self.constrain(Constraint::Eq(
-                    body,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Tuple(Vec::new()),
-                    },
-                ));
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                let cond_ty = self.infer_expr(cond);
+                self.constrain(
+                    cond.span,
+                    ConstraintKind::Eq(cond_ty, Ty::Prim(TyPrim::Bool)),
+                );
+
+                let body_ty = self.infer_block(body);
+                self.constrain(
+                    body.span,
+                    ConstraintKind::Eq(body_ty, Ty::Tuple(Vec::new())),
+                );
+
+                Ty::Tuple(Vec::new())
             }
-            ExprKind::Err | ExprKind::Hole => Ty {
-                span,
-                kind: TyKind::Void,
-            },
+            ExprKind::Err | ExprKind::Hole => Ty::Void,
         };
 
         self.tys.insert(expr.id, ty.clone());
@@ -617,49 +514,33 @@ impl<'a> Inferrer<'a> {
         }
 
         // TODO: If all code paths have a return expression, this should be TyKind::Void.
-        let ty = last.unwrap_or(Ty {
-            span: block.span,
-            kind: TyKind::Tuple(Vec::new()),
-        });
+        let ty = last.unwrap_or(Ty::Tuple(Vec::new()));
         self.tys.insert(block.id, ty.clone());
         ty
     }
 
     fn infer_stmt(&mut self, stmt: &Stmt) -> Ty {
-        let span = stmt.span;
         let ty = match &stmt.kind {
-            StmtKind::Empty => Ty {
-                span,
-                kind: TyKind::Tuple(Vec::new()),
-            },
+            StmtKind::Empty => Ty::Tuple(Vec::new()),
             StmtKind::Expr(expr) => self.infer_expr(expr),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
                 let expr_ty = self.infer_expr(expr);
-                self.constrain(Constraint::Eq(pat_ty, expr_ty));
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                self.constrain(pat.span, ConstraintKind::Eq(pat_ty, expr_ty));
+                Ty::Tuple(Vec::new())
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 let pat_ty = self.infer_pat(pat);
                 let init_ty = self.infer_qubit_init(init);
-                self.constrain(Constraint::Eq(pat_ty, init_ty));
+                self.constrain(pat.span, ConstraintKind::Eq(pat_ty, init_ty));
                 match block {
-                    None => Ty {
-                        span,
-                        kind: TyKind::Tuple(Vec::new()),
-                    },
+                    None => Ty::Tuple(Vec::new()),
                     Some(block) => self.infer_block(block),
                 }
             }
             StmtKind::Semi(expr) => {
                 self.infer_expr(expr);
-                Ty {
-                    span,
-                    kind: TyKind::Tuple(Vec::new()),
-                }
+                Ty::Tuple(Vec::new())
             }
         };
 
@@ -668,10 +549,9 @@ impl<'a> Inferrer<'a> {
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
-        let span = pat.span;
         let ty = match &pat.kind {
             PatKind::Bind(name, None) => {
-                let ty = self.fresh(span);
+                let ty = self.fresh();
                 self.tys.insert(name.id, ty.clone());
                 ty
             }
@@ -680,13 +560,12 @@ impl<'a> Inferrer<'a> {
                 self.tys.insert(name.id, ty.clone());
                 ty
             }
-            PatKind::Discard(None) | PatKind::Elided => self.fresh(span),
+            PatKind::Discard(None) | PatKind::Elided => self.fresh(),
             PatKind::Discard(Some(ty)) => self.convert_ty(ty),
             PatKind::Paren(inner) => self.infer_pat(inner),
-            PatKind::Tuple(items) => Ty {
-                span,
-                kind: TyKind::Tuple(items.iter().map(|item| self.infer_pat(item)).collect()),
-            },
+            PatKind::Tuple(items) => {
+                Ty::Tuple(items.iter().map(|item| self.infer_pat(item)).collect())
+            }
         };
 
         self.tys.insert(pat.id, ty.clone());
@@ -694,82 +573,59 @@ impl<'a> Inferrer<'a> {
     }
 
     fn infer_qubit_init(&mut self, init: &QubitInit) -> Ty {
-        let span = init.span;
         let ty = match &init.kind {
             QubitInitKind::Array(length) => {
                 let length_ty = self.infer_expr(length);
-                self.constrain(Constraint::Eq(
-                    length_ty,
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Int),
-                    },
-                ));
-                Ty {
-                    span,
-                    kind: TyKind::App(
-                        Box::new(Ty {
-                            span,
-                            kind: TyKind::Prim(TyPrim::Array),
-                        }),
-                        vec![Ty {
-                            span,
-                            kind: TyKind::Prim(TyPrim::Qubit),
-                        }],
-                    ),
-                }
+                self.constrain(
+                    length.span,
+                    ConstraintKind::Eq(length_ty, Ty::Prim(TyPrim::Int)),
+                );
+                Ty::App(
+                    Box::new(Ty::Prim(TyPrim::Array)),
+                    vec![Ty::Prim(TyPrim::Qubit)],
+                )
             }
             QubitInitKind::Paren(inner) => self.infer_qubit_init(inner),
-            QubitInitKind::Single => Ty {
-                span,
-                kind: TyKind::Prim(TyPrim::Qubit),
-            },
-            QubitInitKind::Tuple(items) => Ty {
-                span,
-                kind: TyKind::Tuple(
-                    items
-                        .iter()
-                        .map(|item| self.infer_qubit_init(item))
-                        .collect(),
-                ),
-            },
+            QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
+            QubitInitKind::Tuple(items) => Ty::Tuple(
+                items
+                    .iter()
+                    .map(|item| self.infer_qubit_init(item))
+                    .collect(),
+            ),
         };
 
         self.tys.insert(init.id, ty.clone());
         ty
     }
 
-    fn infer_unop(&mut self, span: Span, op: UnOp, expr: &Expr) -> Ty {
-        let ty = Ty {
-            span,
-            kind: self.infer_expr(expr).kind,
-        };
-
+    fn infer_unop(&mut self, op: UnOp, expr: &Expr) -> Ty {
+        let ty = self.infer_expr(expr);
         match op {
             UnOp::Functor(Functor::Adj) => {
-                self.constrain(Constraint::Class(Class::Adj(ty.clone())));
+                self.constrain(expr.span, ConstraintKind::Class(Class::Adj(ty.clone())));
                 ty
             }
             UnOp::Functor(Functor::Ctl) => {
-                let with_ctls = self.fresh(span);
-                self.constrain(Constraint::Class(Class::Ctl {
-                    op: ty,
-                    with_ctls: with_ctls.clone(),
-                }));
+                let with_ctls = self.fresh();
+                self.constrain(
+                    expr.span,
+                    ConstraintKind::Class(Class::Ctl {
+                        op: ty,
+                        with_ctls: with_ctls.clone(),
+                    }),
+                );
                 with_ctls
             }
             UnOp::Neg | UnOp::NotB | UnOp::Pos => {
-                self.constrain(Constraint::Class(Class::Num(ty.clone())));
+                self.constrain(expr.span, ConstraintKind::Class(Class::Num(ty.clone())));
                 ty
             }
             UnOp::NotL => {
-                self.constrain(Constraint::Eq(
-                    ty.clone(),
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Bool),
-                    },
-                ));
+                self.constrain(
+                    expr.span,
+                    ConstraintKind::Eq(ty.clone(), Ty::Prim(TyPrim::Bool)),
+                );
                 ty
             }
             UnOp::Unwrap => todo!("user-defined types not supported"),
@@ -779,33 +635,23 @@ impl<'a> Inferrer<'a> {
     fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Ty {
         let lhs_ty = self.infer_expr(lhs);
         let rhs_ty = self.infer_expr(rhs);
-        self.constrain(Constraint::Eq(lhs_ty.clone(), rhs_ty));
-        let ty = Ty {
-            span,
-            kind: lhs_ty.kind,
-        };
+        self.constrain(span, ConstraintKind::Eq(lhs_ty.clone(), rhs_ty));
 
         match op {
             BinOp::AndL | BinOp::OrL => {
-                self.constrain(Constraint::Eq(
-                    ty.clone(),
-                    Ty {
-                        span: Span::default(),
-                        kind: TyKind::Prim(TyPrim::Bool),
-                    },
-                ));
-                ty
+                self.constrain(
+                    lhs.span,
+                    ConstraintKind::Eq(lhs_ty.clone(), Ty::Prim(TyPrim::Bool)),
+                );
+                lhs_ty
             }
             BinOp::Eq | BinOp::Neq => {
-                self.constrain(Constraint::Class(Class::Eq(ty)));
-                Ty {
-                    span,
-                    kind: TyKind::Prim(TyPrim::Bool),
-                }
+                self.constrain(lhs.span, ConstraintKind::Class(Class::Eq(lhs_ty)));
+                Ty::Prim(TyPrim::Bool)
             }
             BinOp::Add => {
-                self.constrain(Constraint::Class(Class::Add(ty.clone())));
-                ty
+                self.constrain(lhs.span, ConstraintKind::Class(Class::Add(lhs_ty.clone())));
+                lhs_ty
             }
             BinOp::AndB
             | BinOp::Div
@@ -821,130 +667,90 @@ impl<'a> Inferrer<'a> {
             | BinOp::Shr
             | BinOp::Sub
             | BinOp::XorB => {
-                self.constrain(Constraint::Class(Class::Num(ty.clone())));
-                ty
+                self.constrain(lhs.span, ConstraintKind::Class(Class::Num(lhs_ty.clone())));
+                lhs_ty
             }
         }
     }
 
-    fn infer_update(&mut self, container: &Expr, index: &Expr, item: &Expr) -> Ty {
-        let container = self.infer_expr(container);
-        let index = self.infer_expr(index);
-        let item = self.infer_expr(item);
-        self.constrain(Constraint::Class(Class::HasIndex {
-            container: container.clone(),
-            index,
-            item,
-        }));
-        container
+    fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Ty {
+        let container_ty = self.infer_expr(container);
+        let index_ty = self.infer_expr(index);
+        let item_ty = self.infer_expr(item);
+        self.constrain(
+            span,
+            ConstraintKind::Class(Class::HasIndex {
+                container: container_ty.clone(),
+                index: index_ty,
+                item: item_ty,
+            }),
+        );
+        container_ty
     }
 
-    fn fresh(&mut self, span: Span) -> Ty {
+    fn fresh(&mut self) -> Ty {
         let var = self.next_var;
         self.next_var += 1;
-        Ty {
-            span,
-            kind: TyKind::Var(var),
-        }
+        Ty::Var(var)
     }
 
     fn instantiate(&mut self, ty: &Ty) -> Ty {
-        fn go(fresh: &mut impl FnMut(Span) -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
-            let span = ty.span;
-            match &ty.kind {
-                TyKind::App(base, args) => Ty {
-                    span,
-                    kind: TyKind::App(
-                        Box::new(go(fresh, vars, base)),
-                        args.iter().map(|arg| go(fresh, vars, arg)).collect(),
-                    ),
-                },
-                TyKind::Arrow(kind, input, output, functors) => Ty {
-                    span,
-                    kind: TyKind::Arrow(
-                        *kind,
-                        Box::new(go(fresh, vars, input)),
-                        Box::new(go(fresh, vars, output)),
-                        functors.clone(),
-                    ),
-                },
-                &TyKind::DefId(id) => Ty {
-                    span,
-                    kind: TyKind::DefId(id),
-                },
-                &TyKind::Prim(prim) => Ty {
-                    span,
-                    kind: TyKind::Prim(prim),
-                },
-                TyKind::Rigid(name) => vars
-                    .entry(name.clone())
-                    .or_insert_with(|| fresh(span))
-                    .clone(),
-                TyKind::Tuple(items) => Ty {
-                    span,
-                    kind: TyKind::Tuple(items.iter().map(|item| go(fresh, vars, item)).collect()),
-                },
-                &TyKind::Var(id) => Ty {
-                    span,
-                    kind: TyKind::Var(id),
-                },
-                TyKind::Void => Ty {
-                    span,
-                    kind: TyKind::Void,
-                },
+        fn go(fresh: &mut impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
+            match ty {
+                Ty::App(base, args) => Ty::App(
+                    Box::new(go(fresh, vars, base)),
+                    args.iter().map(|arg| go(fresh, vars, arg)).collect(),
+                ),
+                Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
+                    *kind,
+                    Box::new(go(fresh, vars, input)),
+                    Box::new(go(fresh, vars, output)),
+                    functors.clone(),
+                ),
+                &Ty::DefId(id) => Ty::DefId(id),
+                &Ty::Prim(prim) => Ty::Prim(prim),
+                Ty::Rigid(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
+                Ty::Tuple(items) => {
+                    Ty::Tuple(items.iter().map(|item| go(fresh, vars, item)).collect())
+                }
+                &Ty::Var(id) => Ty::Var(id),
+                Ty::Void => Ty::Void,
             }
         }
 
-        go(&mut |span| self.fresh(span), &mut HashMap::new(), ty)
+        go(&mut || self.fresh(), &mut HashMap::new(), ty)
     }
 
     fn convert_ty(&mut self, ty: &ast::Ty) -> Ty {
-        let span = ty.span;
         match &ty.kind {
-            ast::TyKind::App(base, args) => Ty {
-                span,
-                kind: TyKind::App(
-                    Box::new(self.convert_ty(base)),
-                    args.iter().map(|ty| self.convert_ty(ty)).collect(),
-                ),
-            },
-            ast::TyKind::Arrow(kind, input, output, functors) => Ty {
-                span,
-                kind: TyKind::Arrow(
-                    *kind,
-                    Box::new(self.convert_ty(input)),
-                    Box::new(self.convert_ty(output)),
-                    functors.clone(),
-                ),
-            },
-            ast::TyKind::Hole => self.fresh(span),
-            ast::TyKind::Paren(inner) => self.convert_ty(inner),
-            ast::TyKind::Path(path) => Ty {
-                span,
-                kind: TyKind::DefId(
-                    *self
-                        .resolutions
-                        .get(&path.id)
-                        .expect("path should be resolved"),
-                ),
-            },
-            &ast::TyKind::Prim(prim) => Ty {
-                span,
-                kind: TyKind::Prim(prim),
-            },
-            ast::TyKind::Tuple(items) => Ty {
-                span,
-                kind: TyKind::Tuple(items.iter().map(|item| self.convert_ty(item)).collect()),
-            },
-            ast::TyKind::Var(name) => Ty {
-                span,
-                kind: TyKind::Rigid(name.name.clone()),
-            },
+            TyKind::App(base, args) => Ty::App(
+                Box::new(self.convert_ty(base)),
+                args.iter().map(|ty| self.convert_ty(ty)).collect(),
+            ),
+            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
+                *kind,
+                Box::new(self.convert_ty(input)),
+                Box::new(self.convert_ty(output)),
+                functors.clone(),
+            ),
+            TyKind::Hole => self.fresh(),
+            TyKind::Paren(inner) => self.convert_ty(inner),
+            TyKind::Path(path) => Ty::DefId(
+                *self
+                    .resolutions
+                    .get(&path.id)
+                    .expect("path should be resolved"),
+            ),
+            &TyKind::Prim(prim) => Ty::Prim(prim),
+            TyKind::Tuple(items) => {
+                Ty::Tuple(items.iter().map(|item| self.convert_ty(item)).collect())
+            }
+            TyKind::Var(name) => Ty::Rigid(name.name.clone()),
         }
     }
 
-    fn constrain(&mut self, constraint: Constraint) {
-        self.constraints.push(constraint);
+    fn constrain(&mut self, span: Span, kind: ConstraintKind) {
+        self.constraints.push(Constraint { span, kind });
     }
 
     fn solve(self) -> Tys {
@@ -955,21 +761,32 @@ impl<'a> Inferrer<'a> {
 
         loop {
             for constraint in constraints {
-                match constraint {
-                    Constraint::Eq(ty1, ty2) => {
+                match constraint.kind {
+                    ConstraintKind::Eq(ty1, ty2) => {
                         let ty1 = substitute(&substs, ty1);
                         let ty2 = substitute(&substs, ty2);
-                        let new_substs = unify(&ty1, &ty2);
+                        let new_substs = match unify(&ty1, &ty2) {
+                            Ok(new_substs) => new_substs,
+                            Err(UnifyError(ty1, ty2)) => panic!(
+                                "types do not unify at {:?}: {ty1:?} and {ty2:?}",
+                                constraint.span,
+                            ),
+                        };
 
                         for (var, _) in &new_substs {
                             if let Some(classes) = pending_classes.remove(var) {
-                                new_constraints.extend(classes.into_iter().map(Constraint::Class));
+                                new_constraints.extend(classes.into_iter().map(|class| {
+                                    Constraint {
+                                        span: constraint.span,
+                                        kind: ConstraintKind::Class(class),
+                                    }
+                                }));
                             }
                         }
 
                         substs.extend(new_substs);
                     }
-                    Constraint::Class(class) => {
+                    ConstraintKind::Class(class) => {
                         let unsolved: Vec<_> = class
                             .dependencies()
                             .into_iter()
@@ -977,8 +794,10 @@ impl<'a> Inferrer<'a> {
                             .collect();
 
                         if unsolved.is_empty() {
-                            new_constraints
-                                .extend(classify(class.map(|ty| substitute(&substs, ty))));
+                            new_constraints.extend(classify(
+                                constraint.span,
+                                class.map(|ty| substitute(&substs, ty)),
+                            ));
                         } else {
                             for var in unsolved {
                                 pending_classes.entry(var).or_default().push(class.clone());
@@ -1002,188 +821,143 @@ impl<'a> Inferrer<'a> {
     }
 }
 
-fn unify(ty1: &Ty, ty2: &Ty) -> Vec<(u32, Ty)> {
-    match (&ty1.kind, &ty2.kind) {
-        (TyKind::App(base1, args1), TyKind::App(base2, args2)) if args1.len() == args2.len() => {
-            let mut substs = unify(base1, base2);
+fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(u32, Ty)>, UnifyError> {
+    match (ty1, ty2) {
+        (Ty::App(base1, args1), Ty::App(base2, args2)) if args1.len() == args2.len() => {
+            let mut substs = unify(base1, base2)?;
             for (arg1, arg2) in args1.iter().zip(args2) {
-                substs.extend(unify(arg1, arg2));
+                substs.extend(unify(arg1, arg2)?);
             }
-            substs
+            Ok(substs)
         }
         (
-            TyKind::Arrow(kind1, input1, output1, functors1),
-            TyKind::Arrow(kind2, input2, output2, functors2),
+            Ty::Arrow(kind1, input1, output1, functors1),
+            Ty::Arrow(kind2, input2, output2, functors2),
         ) if kind1 == kind2
             && functor_set(functors1.as_ref()) == functor_set(functors2.as_ref()) =>
         {
-            let mut substs = unify(input1, input2);
-            substs.extend(unify(output1, output2));
-            substs
+            let mut substs = unify(input1, input2)?;
+            substs.extend(unify(output1, output2)?);
+            Ok(substs)
         }
-        (TyKind::DefId(def1), TyKind::DefId(def2)) if def1 == def2 => Vec::new(),
-        (TyKind::Prim(prim1), TyKind::Prim(prim2)) if prim1 == prim2 => Vec::new(),
-        (TyKind::Tuple(items1), TyKind::Tuple(items2)) if items1.len() == items2.len() => {
+        (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
+        (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
+        (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
             let mut substs = Vec::new();
             for (item1, item2) in items1.iter().zip(items2) {
-                substs.extend(unify(item1, item2));
+                substs.extend(unify(item1, item2)?);
             }
-            substs
+            Ok(substs)
         }
-        (TyKind::Var(var1), TyKind::Var(var2)) if var1 == var2 => Vec::new(),
-        (&TyKind::Var(var), _) => vec![(var, ty2.clone())],
-        (_, &TyKind::Var(var)) => vec![(var, ty1.clone())],
-        (TyKind::Void, TyKind::Void) => Vec::new(),
-        _ => panic!("types do not unify: {ty1:?} and {ty2:?}"),
+        (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => Ok(Vec::new()),
+        (&Ty::Var(var), _) => Ok(vec![(var, ty2.clone())]),
+        (_, &Ty::Var(var)) => Ok(vec![(var, ty1.clone())]),
+        (Ty::Void, Ty::Void) => Ok(Vec::new()),
+        _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
 }
 
 #[allow(clippy::too_many_lines)]
-fn classify(class: Class) -> Vec<Constraint> {
+fn classify(span: Span, class: Class) -> Vec<Constraint> {
     match class {
-        Class::Eq(Ty {
-            kind:
-                TyKind::Prim(
-                    TyPrim::BigInt
-                    | TyPrim::Bool
-                    | TyPrim::Double
-                    | TyPrim::Int
-                    | TyPrim::Qubit
-                    | TyPrim::Result
-                    | TyPrim::String
-                    | TyPrim::Pauli,
-                ),
-            ..
-        })
-        | Class::Integral(Ty {
-            kind: TyKind::Prim(TyPrim::BigInt | TyPrim::Int),
-            ..
-        })
-        | Class::Num(Ty {
-            kind: TyKind::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int),
-            ..
-        })
-        | Class::Add(Ty {
-            kind: TyKind::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String),
-            ..
-        }) => Vec::new(),
-        Class::Add(Ty {
-            kind: TyKind::App(base, _),
-            ..
-        }) if matches!(base.kind, TyKind::Prim(TyPrim::Array)) => Vec::new(),
-        Class::Adj(Ty {
-            kind: TyKind::Arrow(_, _, _, functors),
-            ..
-        }) if functor_set(functors.as_ref()).contains(&Functor::Adj) => Vec::new(),
+        Class::Eq(Ty::Prim(
+            TyPrim::BigInt
+            | TyPrim::Bool
+            | TyPrim::Double
+            | TyPrim::Int
+            | TyPrim::Qubit
+            | TyPrim::Result
+            | TyPrim::String
+            | TyPrim::Pauli,
+        ))
+        | Class::Integral(Ty::Prim(TyPrim::BigInt | TyPrim::Int))
+        | Class::Num(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int))
+        | Class::Add(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String)) => {
+            Vec::new()
+        }
+        Class::Add(Ty::App(base, _)) if matches!(*base, Ty::Prim(TyPrim::Array)) => Vec::new(),
+        Class::Adj(Ty::Arrow(_, _, _, functors))
+            if functor_set(functors.as_ref()).contains(&Functor::Adj) =>
+        {
+            Vec::new()
+        }
         Class::Call {
-            callee:
-                Ty {
-                    kind: TyKind::Arrow(_, callee_input, callee_output, _),
-                    ..
-                },
+            callee: Ty::Arrow(_, callee_input, callee_output, _),
             input,
             output,
         } => vec![
-            Constraint::Eq(input, *callee_input),
-            Constraint::Eq(output, *callee_output),
+            Constraint {
+                span,
+                kind: ConstraintKind::Eq(input, *callee_input),
+            },
+            Constraint {
+                span,
+                kind: ConstraintKind::Eq(output, *callee_output),
+            },
         ],
         Class::Ctl {
-            op:
-                Ty {
-                    kind: TyKind::Arrow(kind, input, output, functors),
-                    ..
-                },
+            op: Ty::Arrow(kind, input, output, functors),
             with_ctls,
         } if functor_set(functors.as_ref()).contains(&Functor::Ctl) => {
-            let span = with_ctls.span;
-            let qubit_array = Ty {
+            let qubit_array = Ty::App(
+                Box::new(Ty::Prim(TyPrim::Array)),
+                vec![Ty::Prim(TyPrim::Qubit)],
+            );
+            let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
+            vec![Constraint {
                 span,
-                kind: TyKind::App(
-                    Box::new(Ty {
-                        span,
-                        kind: TyKind::Prim(TyPrim::Array),
-                    }),
-                    vec![Ty {
-                        span,
-                        kind: TyKind::Prim(TyPrim::Qubit),
-                    }],
-                ),
-            };
-            let ctl_input = Box::new(Ty {
-                span,
-                kind: TyKind::Tuple(vec![qubit_array, *input]),
-            });
-            vec![Constraint::Eq(
-                with_ctls,
-                Ty {
-                    span,
-                    kind: TyKind::Arrow(kind, ctl_input, output, functors),
-                },
-            )]
+                kind: ConstraintKind::Eq(with_ctls, Ty::Arrow(kind, ctl_input, output, functors)),
+            }]
         }
         Class::HasField { .. } => todo!("user-defined types not supported"),
-        Class::HasFunctorsIfOp { callee, functors } => match &callee.kind {
-            TyKind::Arrow(CallableKind::Operation, _, _, callee_functors)
+        Class::HasFunctorsIfOp { callee, functors } => match callee {
+            Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
                 if functor_set(callee_functors.as_ref()).is_superset(&functors) =>
             {
                 Vec::new()
             }
-            TyKind::Arrow(CallableKind::Operation, _, _, _) => {
+            Ty::Arrow(CallableKind::Operation, _, _, _) => {
                 panic!("operation is missing functors")
             }
             _ => Vec::new(),
         },
         Class::HasIndex {
-            container:
-                Ty {
-                    kind: TyKind::App(base, mut args),
-                    span,
-                },
+            container: Ty::App(base, mut args),
             index,
             item,
-        } if matches!(base.kind, TyKind::Prim(TyPrim::Array)) && args.len() == 1 => {
-            match &index.kind {
-                TyKind::Prim(TyPrim::Int) => vec![Constraint::Eq(
+        } if matches!(*base, Ty::Prim(TyPrim::Array)) && args.len() == 1 => match index {
+            Ty::Prim(TyPrim::Int) => vec![Constraint {
+                span,
+                kind: ConstraintKind::Eq(
                     args.pop().expect("type arguments should not be empty"),
                     item,
-                )],
-                TyKind::Prim(TyPrim::Range) => vec![Constraint::Eq(
-                    Ty {
-                        span,
-                        kind: TyKind::App(base, args),
-                    },
-                    item,
-                )],
-                _ => panic!("invalid index for array"),
-            }
-        }
+                ),
+            }],
+            Ty::Prim(TyPrim::Range) => vec![Constraint {
+                span,
+                kind: ConstraintKind::Eq(Ty::App(base, args), item),
+            }],
+            _ => panic!("invalid index for array"),
+        },
         Class::HasPartialApp { .. } => todo!("partial application not supported"),
         Class::Iterable {
-            container:
-                Ty {
-                    kind: TyKind::Prim(TyPrim::Range),
-                    ..
-                },
+            container: Ty::Prim(TyPrim::Range),
             item,
-        } => vec![Constraint::Eq(
-            Ty {
-                span: Span::default(),
-                kind: TyKind::Prim(TyPrim::Int),
-            },
-            item,
-        )],
+        } => vec![Constraint {
+            span,
+            kind: ConstraintKind::Eq(Ty::Prim(TyPrim::Int), item),
+        }],
         Class::Iterable {
-            container:
-                Ty {
-                    kind: TyKind::App(base, mut args),
-                    ..
-                },
+            container: Ty::App(base, mut args),
             item,
-        } if matches!(base.kind, TyKind::Prim(TyPrim::Array)) => {
-            vec![Constraint::Eq(
-                args.pop().expect("type arguments should not be empty"),
-                item,
-            )]
+        } if matches!(*base, Ty::Prim(TyPrim::Array)) => {
+            vec![Constraint {
+                span,
+                kind: ConstraintKind::Eq(
+                    args.pop().expect("type arguments should not be empty"),
+                    item,
+                ),
+            }]
         }
         Class::Unwrap { .. } => todo!("user-defined types not supported"),
         class => panic!("falsified class: {class:?}"),
@@ -1191,58 +965,33 @@ fn classify(class: Class) -> Vec<Constraint> {
 }
 
 fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
-    let span = ty.span;
-    match ty.kind {
-        TyKind::App(base, args) => Ty {
-            span,
-            kind: TyKind::App(
-                Box::new(substitute(substs, *base)),
-                args.into_iter()
-                    .map(|arg| substitute(substs, arg))
-                    .collect(),
-            ),
-        },
-        TyKind::Arrow(kind, input, output, functors) => Ty {
-            span,
-            kind: TyKind::Arrow(
-                kind,
-                Box::new(substitute(substs, *input)),
-                Box::new(substitute(substs, *output)),
-                functors,
-            ),
-        },
-        TyKind::DefId(id) => Ty {
-            span,
-            kind: TyKind::DefId(id),
-        },
-        TyKind::Prim(prim) => Ty {
-            span,
-            kind: TyKind::Prim(prim),
-        },
-        TyKind::Rigid(name) => Ty {
-            span,
-            kind: TyKind::Rigid(name),
-        },
-        TyKind::Tuple(items) => Ty {
-            span,
-            kind: TyKind::Tuple(
-                items
-                    .into_iter()
-                    .map(|item| substitute(substs, item))
-                    .collect(),
-            ),
-        },
-        TyKind::Var(var) => match substs.get(&var) {
+    match ty {
+        Ty::App(base, args) => Ty::App(
+            Box::new(substitute(substs, *base)),
+            args.into_iter()
+                .map(|arg| substitute(substs, arg))
+                .collect(),
+        ),
+        Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
+            kind,
+            Box::new(substitute(substs, *input)),
+            Box::new(substitute(substs, *output)),
+            functors,
+        ),
+        Ty::DefId(id) => Ty::DefId(id),
+        Ty::Prim(prim) => Ty::Prim(prim),
+        Ty::Rigid(name) => Ty::Rigid(name),
+        Ty::Tuple(items) => Ty::Tuple(
+            items
+                .into_iter()
+                .map(|item| substitute(substs, item))
+                .collect(),
+        ),
+        Ty::Var(var) => match substs.get(&var) {
             Some(new_ty) => substitute(substs, new_ty.clone()),
-            None => Ty {
-                span,
-                kind: TyKind::Var(var),
-            },
+            None => Ty::Var(var),
         },
-        TyKind::Void => Ty {
-            span,
-            kind: TyKind::Void,
-        },
+        Ty::Void => Ty::Void,
     }
 }
 
@@ -1265,8 +1014,8 @@ fn functor_set(expr: Option<&FunctorExpr>) -> HashSet<Functor> {
 }
 
 fn try_var_id(ty: &Ty) -> Option<u32> {
-    match &ty.kind {
-        &TyKind::Var(var) => Some(var),
+    match ty {
+        &Ty::Var(var) => Some(var),
         _ => None,
     }
 }
@@ -1274,63 +1023,48 @@ fn try_var_id(ty: &Ty) -> Option<u32> {
 fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> Option<Ty> {
     let input = try_pat_ty(resolutions, &decl.input)?;
     let output = try_convert_ty(resolutions, &decl.output)?;
-    Some(Ty {
-        span: decl.span,
-        kind: TyKind::Arrow(
-            decl.kind,
-            Box::new(input),
-            Box::new(output),
-            decl.functors.clone(),
-        ),
-    })
+    Some(Ty::Arrow(
+        decl.kind,
+        Box::new(input),
+        Box::new(output),
+        decl.functors.clone(),
+    ))
 }
 
 fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> Option<Ty> {
-    let span = ty.span;
     match &ty.kind {
-        ast::TyKind::App(base, args) => {
+        TyKind::App(base, args) => {
             let base = try_convert_ty(resolutions, base)?;
             let args = args
                 .iter()
                 .map(|arg| try_convert_ty(resolutions, arg))
                 .collect::<Option<_>>()?;
-            Some(Ty {
-                span,
-                kind: TyKind::App(Box::new(base), args),
-            })
+            Some(Ty::App(Box::new(base), args))
         }
-        ast::TyKind::Arrow(kind, input, output, functors) => {
+        TyKind::Arrow(kind, input, output, functors) => {
             let input = try_convert_ty(resolutions, input)?;
             let output = try_convert_ty(resolutions, output)?;
-            Some(Ty {
-                span,
-                kind: TyKind::Arrow(*kind, Box::new(input), Box::new(output), functors.clone()),
-            })
+            Some(Ty::Arrow(
+                *kind,
+                Box::new(input),
+                Box::new(output),
+                functors.clone(),
+            ))
         }
-        ast::TyKind::Hole => None,
-        ast::TyKind::Paren(inner) => try_convert_ty(resolutions, inner),
-        ast::TyKind::Path(path) => Some(Ty {
-            span,
-            kind: TyKind::DefId(*resolutions.get(&path.id).expect("path should be resolved")),
-        }),
-        &ast::TyKind::Prim(prim) => Some(Ty {
-            span,
-            kind: TyKind::Prim(prim),
-        }),
-        ast::TyKind::Tuple(items) => {
+        TyKind::Hole => None,
+        TyKind::Paren(inner) => try_convert_ty(resolutions, inner),
+        TyKind::Path(path) => Some(Ty::DefId(
+            *resolutions.get(&path.id).expect("path should be resolved"),
+        )),
+        &TyKind::Prim(prim) => Some(Ty::Prim(prim)),
+        TyKind::Tuple(items) => {
             let items = items
                 .iter()
                 .map(|item| try_convert_ty(resolutions, item))
                 .collect::<Option<_>>()?;
-            Some(Ty {
-                span,
-                kind: TyKind::Tuple(items),
-            })
+            Some(Ty::Tuple(items))
         }
-        ast::TyKind::Var(name) => Some(Ty {
-            span,
-            kind: TyKind::Rigid(name.name.clone()),
-        }),
+        TyKind::Var(name) => Some(Ty::Rigid(name.name.clone())),
     }
 }
 
@@ -1344,10 +1078,7 @@ fn try_pat_ty(resolutions: &Resolutions, pat: &Pat) -> Option<Ty> {
                 .iter()
                 .map(|item| try_pat_ty(resolutions, item))
                 .collect::<Option<_>>()?;
-            Some(Ty {
-                span: pat.span,
-                kind: TyKind::Tuple(items),
-            })
+            Some(Ty::Tuple(items))
         }
     }
 }
