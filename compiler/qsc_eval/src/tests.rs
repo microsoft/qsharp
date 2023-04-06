@@ -813,7 +813,7 @@ fn binop_exp_bigint() {
 fn binop_exp_bigint_zero_exp() {
     check_expr("", "2L^0", &expect!["1"]);
 }
- 
+
 #[test]
 fn binop_exp_bigint_negative_exp() {
     check_expr(
