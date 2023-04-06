@@ -57,7 +57,7 @@ pub(crate) fn invoke_intrinsic(
                 Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
             },
 
-            "ToString" => ControlFlow::Continue(Value::String(args.to_string())),
+            "AsString" => ControlFlow::Continue(Value::String(args.to_string())),
 
             "CheckZero" => ControlFlow::Continue(Value::Bool(qubit_is_zero(
                 args.try_into().with_span(args_span)?,

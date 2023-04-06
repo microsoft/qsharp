@@ -9,12 +9,13 @@ use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
 use crate::{
+    eval_expr,
     output::{GenericReceiver, Receiver},
     val::Value,
-    Env, Error, Evaluator,
+    Env, Error,
 };
 
-fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<(Value, Env), Error> {
+fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
     let mut store = PackageStore::new();
     let stdlib = store.insert(compile::std());
     let unit = compile(&store, [stdlib], [file], expr);
@@ -24,24 +25,29 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<(Va
         unit.context.errors()
     );
     let id = store.insert(unit);
-    let unit = store
-        .get(id)
-        .expect("compile unit should be in package store");
     let globals = extract_callables(&store);
-    let evaluator = Evaluator::from_store(&store, id, &globals, out);
-    let expr = unit
-        .package
-        .entry
-        .as_ref()
-        .expect("entry expression should be present");
-    evaluator.eval_expr(expr)
+    let expr = store
+        .get_entry_expr(id)
+        .expect("entry expression shouild be present");
+    let resolutions = store
+        .get_resolutions(id)
+        .expect("package should be present in store");
+    eval_expr(
+        expr,
+        &store,
+        &globals,
+        resolutions,
+        id,
+        &mut Env::default(),
+        out,
+    )
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
-        Ok((result, _)) => expect.assert_eq(&result.to_string()),
+        Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
 }
@@ -50,7 +56,7 @@ fn check_intrinsic_output(file: &str, expr: &str, expect: &Expect) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
-        Ok((_, _)) => expect.assert_eq(
+        Ok(..) => expect.assert_eq(
             &String::from_utf8(stdout).expect("content should be convertable to string"),
         ),
         Err(e) => expect.assert_debug_eq(&e),
@@ -61,7 +67,7 @@ fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
-        Ok((result, _)) => assert_eq!(&result, val),
+        Ok(result) => assert_eq!(&result, val),
         Err(e) => panic!("{e:?}"),
     }
 }
@@ -150,14 +156,14 @@ fn message() {
 
 #[test]
 fn to_string() {
-    check_intrinsic_result("", "ToString(One)", &expect![["One"]]);
+    check_intrinsic_result("", "AsString(One)", &expect![["One"]]);
 }
 
 #[test]
 fn to_string_message() {
     check_intrinsic_output(
         "",
-        r#"Message(ToString(PauliX))"#,
+        r#"Message(AsString(PauliX))"#,
         &expect![[r#"
             PauliX
         "#]],
