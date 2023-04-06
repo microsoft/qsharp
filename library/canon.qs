@@ -400,8 +400,16 @@ namespace Microsoft.Quantum.Canon {
     /// - Microsoft.Quantum.Canon.ApplyToEach
     operation ApplyToEachC<'T> (singleElementOperation : ('T => Unit is Ctl), register : 'T[])
     : Unit is Ctl {
-        for idxQubit in IndexRange(register) {
-            singleElementOperation(register[idxQubit]);
+        body (...) {
+            for idxQubit in IndexRange(register) {
+                singleElementOperation(register[idxQubit]);
+            }
+        }
+        controlled (ctls, ...) {
+            // TODO: Auto
+            for idxQubit in IndexRange(register) {
+                Controlled singleElementOperation(ctls, register[idxQubit]);
+            }
         }
     }
 

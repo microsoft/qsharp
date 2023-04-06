@@ -6,14 +6,14 @@ namespace Microsoft.Quantum.Intrinsic {
     open Microsoft.Quantum.Math;
 
     internal operation CH(control : Qubit, target : Qubit) : Unit is Adj {
-        within {
-            S(target);
-            H(target);
-            T(target);
-        }
-        apply {
-            CNOT(control, target);
-        }
+	// TODO: Within-Apply
+        S(target);
+        H(target);
+        T(target);
+        CNOT(control, target);
+        Adjoint T(target);
+        Adjoint H(target);
+        Adjoint S(target);
     }
 
     internal operation CCH(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
