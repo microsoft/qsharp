@@ -972,7 +972,7 @@ impl<'a> Inferrer<'a> {
                         let unsolved: Vec<_> = class
                             .dependencies()
                             .into_iter()
-                            .filter_map(|ty| is_unsolved(&substs, ty))
+                            .filter_map(|ty| try_var_id(&substitute(&substs, ty.clone())))
                             .collect();
 
                         if unsolved.is_empty() {
@@ -1232,7 +1232,7 @@ fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
             ),
         },
         TyKind::Var(var) => match substs.get(&var) {
-            Some(new_ty) => new_ty.clone(),
+            Some(new_ty) => substitute(substs, new_ty.clone()),
             None => Ty {
                 span,
                 kind: TyKind::Var(var),
@@ -1263,9 +1263,9 @@ fn functor_set(expr: Option<&FunctorExpr>) -> HashSet<Functor> {
     }
 }
 
-fn is_unsolved(substs: &HashMap<u32, Ty>, ty: &Ty) -> Option<u32> {
+fn try_var_id(ty: &Ty) -> Option<u32> {
     match &ty.kind {
-        &TyKind::Var(var) if !substs.contains_key(&var) => Some(var),
+        &TyKind::Var(var) => Some(var),
         _ => None,
     }
 }
