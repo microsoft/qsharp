@@ -100,14 +100,13 @@ impl From<Span> for SourceSpan {
     }
 }
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
-    level: &'static usize,
+    level: usize,
 ) -> Indented<'a, Formatter<'b>> {
     indent.with_format(Format::Custom {
-        inserter: Box::new(|_, f| {
-            for _ in 0..*level {
+        inserter: Box::new(move |_, f| {
+            for _ in 0..level {
                 write!(f, "    ")?;
             }
             Ok(())
@@ -140,9 +139,9 @@ impl Package {
 
 impl Display for Package {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Package {}:", self.id)?;
-        indent = set_indentation(indent, &1);
+        indent = set_indentation(indent, 1);
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
@@ -168,13 +167,13 @@ pub struct Namespace {
 
 impl Display for Namespace {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         write!(
             indent,
             "Namespace {} {} ({}):",
             self.id, self.span, self.name
         )?;
-        indent = set_indentation(indent, &1);
+        indent = set_indentation(indent, 1);
         for i in &self.items {
             write!(indent, "\n{i}")?;
         }
@@ -197,16 +196,16 @@ pub struct Item {
 
 impl Display for Item {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
-        indent = set_indentation(indent, &1);
+        indent = set_indentation(indent, 1);
         if self.meta.attrs.is_empty() && self.meta.visibility.is_none() {
             write!(indent, "\nmeta: <none>")?;
         } else {
             write!(indent, "\nmeta:")?;
-            indent = set_indentation(indent, &2);
+            indent = set_indentation(indent, 2);
             write!(indent, "{}", self.meta)?;
-            indent = set_indentation(indent, &1);
+            indent = set_indentation(indent, 1);
         }
         write!(indent, "\n{}", self.kind)?;
         Ok(())
@@ -295,9 +294,9 @@ pub struct Attr {
 
 impl Display for Attr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Attr {} {} ({}):", self.id, self.span, self.name)?;
-        indent = set_indentation(indent, &1);
+        indent = set_indentation(indent, 1);
         write!(indent, "\n{}", self.arg)?;
         Ok(())
     }
@@ -333,11 +332,11 @@ pub enum TyDefKind {
 
 impl Display for TyDefKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match &self {
             TyDefKind::Field(name, t) => {
                 write!(indent, "Field:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 if let Some(n) = name {
                     write!(indent, "\n{n}")?;
                 }
@@ -345,7 +344,7 @@ impl Display for TyDefKind {
             }
             TyDefKind::Paren(t) => {
                 write!(indent, "Paren:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{t}")?;
             }
             TyDefKind::Tuple(ts) => {
@@ -353,7 +352,7 @@ impl Display for TyDefKind {
                     write!(indent, "Unit")?;
                 } else {
                     write!(indent, "Tuple:")?;
-                    indent = set_indentation(indent, &1);
+                    indent = set_indentation(indent, 1);
                     for t in ts {
                         write!(indent, "\n{t}")?;
                     }
@@ -389,23 +388,23 @@ pub struct CallableDecl {
 
 impl Display for CallableDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         write!(
             indent,
             "Callable {} {} ({:?}):",
             self.id, self.span, self.kind
         )?;
-        indent = set_indentation(indent, &1);
+        indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
         if self.ty_params.is_empty() {
             write!(indent, "\ntype params: <none>")?;
         } else {
             write!(indent, "\ntype params:")?;
-            indent = set_indentation(indent, &2);
+            indent = set_indentation(indent, 2);
             for t in &self.ty_params {
                 write!(indent, "\n{t}")?;
             }
-            indent = set_indentation(indent, &1);
+            indent = set_indentation(indent, 1);
         }
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
@@ -431,9 +430,9 @@ impl Display for CallableBody {
         match self {
             CallableBody::Block(body) => write!(f, "Block: {body}")?,
             CallableBody::Specs(specs) => {
-                let mut indent = set_indentation(indented(f), &0);
+                let mut indent = set_indentation(indented(f), 0);
                 write!(indent, "Specializations:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 for spec in specs {
                     write!(indent, "\n{spec}")?;
                 }
@@ -477,12 +476,12 @@ pub enum SpecBody {
 
 impl Display for SpecBody {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match self {
             SpecBody::Gen(sg) => write!(indent, "Gen: {sg:?}")?,
             SpecBody::Impl(p, b) => {
                 write!(indent, "Impl:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{p}")?;
                 write!(indent, "\n{b}")?;
             }
@@ -520,11 +519,11 @@ pub enum FunctorExprKind {
 }
 impl Display for FunctorExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match self {
             FunctorExprKind::BinOp(op, l, r) => {
                 write!(indent, "BinOp ({op:?})")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{l}")?;
                 write!(indent, "\n{r}")?;
             }
@@ -575,21 +574,21 @@ pub enum TyKind {
 
 impl Display for TyKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match &self {
             TyKind::App(base, args) => {
                 write!(indent, "App:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\nbase type: {base}")?;
                 write!(indent, "\narg types:")?;
-                indent = set_indentation(indent, &2);
+                indent = set_indentation(indent, 2);
                 for a in args {
                     write!(indent, "\n{a}")?;
                 }
             }
             TyKind::Arrow(ck, param, rtrn, functors) => {
                 write!(indent, "Arrow ({ck:?}):")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\nparam: {param}")?;
                 write!(indent, "\nreturn: {rtrn}")?;
                 if let Some(f) = functors {
@@ -638,9 +637,9 @@ impl Display for Block {
         if self.stmts.is_empty() {
             write!(f, "Block {} {}: <none>", self.id, self.span)?;
         } else {
-            let mut indent = set_indentation(indented(f), &0);
+            let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Block {} {}:", self.id, self.span)?;
-            indent = set_indentation(indent, &1);
+            indent = set_indentation(indent, 1);
             for s in &self.stmts {
                 write!(indent, "\n{s}")?;
             }
@@ -684,19 +683,19 @@ pub enum StmtKind {
 
 impl Display for StmtKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match self {
             StmtKind::Empty => write!(indent, "Empty")?,
             StmtKind::Expr(e) => write!(indent, "Expr: {e}")?,
             StmtKind::Local(m, lhs, rhs) => {
                 write!(indent, "Local ({m:?}):")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{lhs}")?;
                 write!(indent, "\n{rhs}")?;
             }
             StmtKind::Qubit(s, lhs, rhs, block) => {
                 write!(indent, "Qubit ({s:?})")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{lhs}")?;
                 write!(indent, "\n{rhs}")?;
                 if let Some(b) = block {
@@ -792,7 +791,7 @@ pub enum ExprKind {
 
 impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match self {
             ExprKind::Array(exprs) => display_array(indent, exprs)?,
             ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, val, size)?,
@@ -832,7 +831,7 @@ impl Display for ExprKind {
 
 fn display_array(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Result {
     write!(indent, "Array:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     for e in exprs {
         write!(indent, "\n{e}")?;
     }
@@ -841,7 +840,7 @@ fn display_array(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Res
 
 fn display_array_repeat(mut indent: Indented<Formatter>, val: &Expr, size: &Expr) -> fmt::Result {
     write!(indent, "ArrayRepeat:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{val}")?;
     write!(indent, "\n{size}")?;
     Ok(())
@@ -849,7 +848,7 @@ fn display_array_repeat(mut indent: Indented<Formatter>, val: &Expr, size: &Expr
 
 fn display_assign(mut indent: Indented<Formatter>, lhs: &Expr, rhs: &Expr) -> fmt::Result {
     write!(indent, "Assign:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{lhs}")?;
     write!(indent, "\n{rhs}")?;
     Ok(())
@@ -862,7 +861,7 @@ fn display_assign_op(
     rhs: &Expr,
 ) -> fmt::Result {
     write!(indent, "AssignOp ({op:?}):")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{lhs}")?;
     write!(indent, "\n{rhs}")?;
     Ok(())
@@ -875,7 +874,7 @@ fn display_assign_update(
     val: &Expr,
 ) -> fmt::Result {
     write!(indent, "AssignUpdate:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{container}")?;
     write!(indent, "\n{item}")?;
     write!(indent, "\n{val}")?;
@@ -889,7 +888,7 @@ fn display_bin_op(
     rhs: &Expr,
 ) -> fmt::Result {
     write!(indent, "BinOp ({op:?}):")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{lhs}")?;
     write!(indent, "\n{rhs}")?;
     Ok(())
@@ -897,7 +896,7 @@ fn display_bin_op(
 
 fn display_call(mut indent: Indented<Formatter>, callable: &Expr, arg: &Expr) -> fmt::Result {
     write!(indent, "Call:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{callable}")?;
     write!(indent, "\n{arg}")?;
     Ok(())
@@ -909,7 +908,7 @@ fn display_conjugate(
     apply: &Block,
 ) -> fmt::Result {
     write!(indent, "Conjugate:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{within}")?;
     write!(indent, "\n{apply}")?;
     Ok(())
@@ -917,7 +916,7 @@ fn display_conjugate(
 
 fn display_field(mut indent: Indented<Formatter>, expr: &Expr, id: &Ident) -> fmt::Result {
     write!(indent, "Field:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
     write!(indent, "\n{id}")?;
     Ok(())
@@ -930,7 +929,7 @@ fn display_for(
     body: &Block,
 ) -> fmt::Result {
     write!(indent, "For:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{iter}")?;
     write!(indent, "\n{iterable}")?;
     write!(indent, "\n{body}")?;
@@ -944,7 +943,7 @@ fn display_if(
     els: &Option<Box<Expr>>,
 ) -> fmt::Result {
     write!(indent, "If:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{body}")?;
     if let Some(e) = els {
@@ -955,7 +954,7 @@ fn display_if(
 
 fn display_index(mut indent: Indented<Formatter>, array: &Expr, index: &Expr) -> fmt::Result {
     write!(indent, "Index:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{array}")?;
     write!(indent, "\n{index}")?;
     Ok(())
@@ -968,7 +967,7 @@ fn display_lambda(
     expr: &Expr,
 ) -> fmt::Result {
     write!(indent, "Lambda ({kind:?}):")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{param}")?;
     write!(indent, "\n{expr}")?;
     Ok(())
@@ -981,7 +980,7 @@ fn display_range(
     end: &Option<Box<Expr>>,
 ) -> fmt::Result {
     write!(indent, "Range:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     match start {
         Some(e) => write!(indent, "\n{e}")?,
         None => write!(indent, "<no start>")?,
@@ -1004,7 +1003,7 @@ fn display_repeat(
     fixup: &Option<Block>,
 ) -> fmt::Result {
     write!(indent, "Repeat:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{repeat}")?;
     write!(indent, "\n{until}")?;
     match fixup {
@@ -1022,7 +1021,7 @@ fn display_tern_op(
     expr3: &Expr,
 ) -> fmt::Result {
     write!(indent, "TernOp ({op:?}):")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{expr1}")?;
     write!(indent, "\n{expr2}")?;
     write!(indent, "\n{expr3}")?;
@@ -1031,7 +1030,7 @@ fn display_tern_op(
 
 fn display_tuple(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Result {
     write!(indent, "Tuple:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     for e in exprs {
         write!(indent, "\n{e}")?;
     }
@@ -1040,14 +1039,14 @@ fn display_tuple(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Res
 
 fn display_un_op(mut indent: Indented<Formatter>, op: UnOp, expr: &Expr) -> fmt::Result {
     write!(indent, "UnOp ({op}):")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
     Ok(())
 }
 
 fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) -> fmt::Result {
     write!(indent, "While:")?;
-    indent = set_indentation(indent, &1);
+    indent = set_indentation(indent, 1);
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
@@ -1087,11 +1086,11 @@ pub enum PatKind {
 
 impl Display for PatKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match self {
             PatKind::Bind(id, ty) => {
                 write!(indent, "Bind:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{id}")?;
                 if let Some(t) = ty {
                     write!(indent, "\n{t}")?;
@@ -1100,7 +1099,7 @@ impl Display for PatKind {
             PatKind::Discard(d) => match d {
                 Some(t) => {
                     write!(indent, "Discard:")?;
-                    indent = set_indentation(indent, &1);
+                    indent = set_indentation(indent, 1);
                     write!(indent, "\n{t}")?;
                 }
                 None => write!(indent, "Discard")?,
@@ -1108,12 +1107,12 @@ impl Display for PatKind {
             PatKind::Elided => write!(indent, "Elided")?,
             PatKind::Paren(p) => {
                 write!(indent, "Paren:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{p}")?;
             }
             PatKind::Tuple(ps) => {
                 write!(indent, "Tuple:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 for p in ps {
                     write!(indent, "\n{p}")?;
                 }
@@ -1155,22 +1154,22 @@ pub enum QubitInitKind {
 
 impl Display for QubitInitKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), &0);
+        let mut indent = set_indentation(indented(f), 0);
         match self {
             QubitInitKind::Array(e) => {
                 write!(indent, "Array:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{e}")?;
             }
             QubitInitKind::Paren(qi) => {
                 write!(indent, "Parens:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 write!(indent, "\n{qi}")?;
             }
             QubitInitKind::Single => write!(indent, "Single")?,
             QubitInitKind::Tuple(qis) => {
                 write!(indent, "Tuple:")?;
-                indent = set_indentation(indent, &1);
+                indent = set_indentation(indent, 1);
                 for qi in qis {
                     write!(indent, "\n{qi}")?;
                 }
