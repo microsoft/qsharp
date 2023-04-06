@@ -13,7 +13,7 @@ use qsc_ast::ast::Stmt;
 use std::string::String;
 
 use miette::{IntoDiagnostic, Result};
-use qsc_eval::evaluate;
+use qsc_eval::eval_stmt;
 use qsc_eval::Env;
 use qsc_passes::globals::GlobalId;
 
@@ -66,7 +66,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     let mut stdout = io::stdout();
     let mut out = GenericReceiver::new(&mut stdout);
 
-    let mut execute_line = |line: String, env: Env| match compiler.compile_fragment(&line) {
+    let mut execute_line = |line: String, env: &mut Env| match compiler.compile_fragment(&line) {
         Ok(fragment) => match fragment {
             Fragment::Stmt(stmt) => eval(stmt, &store, &globals, &compiler, user, env, &mut out),
             Fragment::Callable(decl) => {
@@ -77,19 +77,17 @@ fn repl(cli: Cli) -> Result<ExitCode> {
                     },
                     decl,
                 );
-                env
             }
         },
         Err(errors) => {
             for error in errors {
                 eprintln!("{error}");
             }
-            env
         }
     };
     if cli.entry.is_some() {
         let line = cli.entry.unwrap_or_default();
-        env = execute_line(line, env);
+        execute_line(line, &mut env);
     }
 
     if cli.exec {
@@ -113,7 +111,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             // evaluate the first one. We need to evaluate all of them. This
             // will require updates to parsing to read multiple statements
             // followed by the EOF token.
-            env = execute_line(line, env);
+            execute_line(line, &mut env);
 
             print_prompt(false);
         }
@@ -126,10 +124,10 @@ fn eval(
     globals: &HashMap<GlobalId, &CallableDecl>,
     compiler: &Compiler,
     package: PackageId,
-    env: Env,
+    env: &mut Env,
     out: &mut GenericReceiver,
-) -> Env {
-    let (result, new_env) = evaluate(
+) {
+    let result = eval_stmt(
         stmt,
         store,
         globals,
@@ -147,8 +145,6 @@ fn eval(
             eprintln!("{errors}");
         }
     }
-
-    new_env
 }
 
 fn print_prompt(is_multiline: bool) {
