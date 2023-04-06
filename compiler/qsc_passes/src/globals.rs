@@ -24,18 +24,23 @@ impl Display for GlobalId {
     }
 }
 
+#[must_use]
+pub fn extract_callables(store: &PackageStore) -> HashMap<GlobalId, &CallableDecl> {
+    let mut callables = HashMap::default();
+    for (package_id, unit) in store.iter() {
+        let mut visitor = CallableVisitor {
+            callables: &mut callables,
+            package_id: *package_id,
+        };
+        visitor.visit_package(&unit.package);
+    }
+
+    callables
+}
+
 struct CallableVisitor<'a, 'b> {
     callables: &'a mut HashMap<GlobalId, &'b CallableDecl>,
     package_id: PackageId,
-}
-
-impl<'a, 'b> CallableVisitor<'a, 'b> {
-    fn new(package_id: PackageId, callables: &'a mut HashMap<GlobalId, &'b CallableDecl>) -> Self {
-        Self {
-            callables,
-            package_id,
-        }
-    }
 }
 
 impl<'a, 'b> Visitor<'b> for CallableVisitor<'a, 'b> {
@@ -50,15 +55,4 @@ impl<'a, 'b> Visitor<'b> for CallableVisitor<'a, 'b> {
             );
         }
     }
-}
-
-#[must_use]
-pub fn extract_callables(store: &PackageStore) -> HashMap<GlobalId, &CallableDecl> {
-    let mut callables = HashMap::default();
-    for (package_id, unit) in store.iter() {
-        let mut visitor = CallableVisitor::new(*package_id, &mut callables);
-        visitor.visit_package(&unit.package);
-    }
-
-    callables
 }

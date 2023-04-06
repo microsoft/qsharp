@@ -17,6 +17,7 @@ use qsc_frontend::{
     compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
+use qsc_passes::entry_point::extract_entry;
 use std::{fs, io, string::String, sync::Arc};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -102,7 +103,20 @@ fn main() -> Result<ExitCode> {
     }
 
     if unit.context.errors().is_empty() {
-        Ok(ExitCode::SUCCESS)
+        if cli.entry.is_none() {
+            match extract_entry(&unit.package) {
+                Ok(..) => Ok(ExitCode::SUCCESS),
+                Err(errors) => {
+                    let reporter = ErrorReporter::new(cli, sources, &unit.context);
+                    for error in &errors {
+                        eprintln!("{:?}", reporter.report(error.clone()));
+                    }
+                    Ok(ExitCode::FAILURE)
+                }
+            }
+        } else {
+            Ok(ExitCode::SUCCESS)
+        }
     } else {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {

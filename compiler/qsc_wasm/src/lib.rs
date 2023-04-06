@@ -210,12 +210,9 @@ where
     T: Diagnostic,
 {
     fn from(err: &T) -> Self {
-        let label = err
-            .labels()
-            .and_then(|mut ls| ls.next())
-            .expect("error should have at least one label");
-        let offset = label.offset();
-        let len = label.len().max(1);
+        let label = err.labels().and_then(|mut ls| ls.next());
+        let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
+        let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
         let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
 
@@ -242,6 +239,18 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     for err in unit.context.errors() {
         result.push(err.into());
     }
+
+    if unit.context.errors().is_empty() {
+        match qsc_passes::entry_point::extract_entry(&unit.package) {
+            Ok(..) => {}
+            Err(errors) => {
+                for err in &errors {
+                    result.push(err.into());
+                }
+            }
+        }
+    }
+
     result
 }
 
@@ -304,10 +313,6 @@ fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<()
 where
     F: Fn(&str),
 {
-    if expr.is_empty() {
-        return Err(Error::EmptyExpr);
-    }
-
     let mut out = CallbackReceiver { event_cb };
     let context = compile_execution_context(true, expr, [code.to_string()]);
     if let Err(err) = context {
