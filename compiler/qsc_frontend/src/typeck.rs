@@ -1018,12 +1018,12 @@ fn classify(span: Span, class: Class) -> Vec<Constraint> {
         Class::HasField { .. } => todo!("user-defined types not supported"),
         Class::HasFunctorsIfOp { callee, functors } => match callee {
             Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
-                if functor_set(callee_functors.as_ref()).is_superset(&functors) =>
+                if functor_set(callee_functors.as_ref()) == functors =>
             {
                 Vec::new()
             }
             Ty::Arrow(CallableKind::Operation, _, _, _) => {
-                panic!("operation is missing functors")
+                panic!("operation functors mismatch")
             }
             _ => Vec::new(),
         },
