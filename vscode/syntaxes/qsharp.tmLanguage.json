@@ -1,0 +1,128 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "qsharp",
+  "fileTypes": [
+    "qs"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#library"
+    },
+    {
+      "include": "#operations"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#strings"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash",
+          "match": "\\/\\/.*$"
+        },
+        {
+          "name": "comment.documentation",
+          "match": "\\/\\/\\/.*$"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.qsharp",
+          "match": "\\b(use|using|borrow|borrowing|mutable|let|set|if|elif|else|repeat|until|fixup|for|in|while|return|fail|within|apply)\\b"
+        },
+        {
+          "name": "keyword.other.qsharp",
+          "match": "\\b(new|not|and|or|w\/)\\b"
+        },
+        {
+          "comment": "C# reserved words which can't be used in Q#, A-D",
+          "name": "invalid.illegal.ad.qsharp",
+          "match": "\\b(abstract|base|bool|break|byte|case|catch|char|checked|class|const|continue|decimal|default|delegate|do|double)\\b"
+        },
+        {
+          "comment": "C# reserved words which can't be used in Q#, E-L",
+          "name": "invalid.illegal.el.qsharp",
+          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|lock|long)\\b"
+        },
+        {
+          "comment": "C# reserved words which can't be used in Q#, N-S",
+          "name": "invalid.illegal.ns.qsharp",
+          "match": "\\b(null|object|operator|out|override|params|private|protected|public|readonly|ref|sbyte|sealed|short|sizeof|stackalloc)\\b"
+        },
+        {
+          "comment": "C# reserved words which can't be used in Q#, S-V",
+          "name": "invalid.illegal.sv.qsharp",
+          "match": "\\b(static|string|struct|switch|this|throw|try|typeof|unit|ulong|unchecked|unsafe|ushort|virtual|void|volatile)\\b"
+        }
+      ]
+    },
+    "operations": {
+      "patterns": [
+        {
+          "name": "keyword.other.qsharp",
+          "match": "\\b(namespace|open|as|internal|newtype|operation|function|body|(a|A)djoint|(c|C)ontrolled|self|auto|distribute|invert|intrinsic)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.qsharp",
+          "match": "\\b(Int|BigInt|Double|Bool|Qubit|Pauli|Result|Range|String|Unit|Ctl|Adj|is)\\b"
+        }
+      ]
+    },
+    "library": {
+      "patterns": [
+        {
+          "name": "support.function.quantum.qsharp",
+          "match": "\\b(I|X|Y|Z|H|HY|S|T|SWAP|CNOT|CCNOT|MultiX|R|RFrac|Rx|Ry|Rz|R1|R1Frac|Exp|ExpFrac|Measure|M|MultiM)\\b"
+        },
+        {
+          "name": "support.function.builtin.qsharp",
+          "match": "\\b(Message|Length|Floor)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.qsharp",
+          "match": "\\b(true|false|Pauli(I|X|Y|Z)|One|Zero)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.qsharp",
+          "begin": "(\\$|)\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.qsharp",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "scopeName": "source.qsharp"
+}
