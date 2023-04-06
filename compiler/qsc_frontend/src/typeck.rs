@@ -446,23 +446,21 @@ impl<'a> Inferrer<'a> {
                 divergence = divergence || diverges(&ty);
                 ty
             }
-            ExprKind::Path(path) => {
-                let def = self
-                    .resolutions
-                    .get(&path.id)
-                    .expect("path should be resolved");
-
-                if let Some(ty) = self.globals.get(def) {
-                    self.instantiate(ty)
-                } else if def.package == PackageSrc::Local {
-                    self.tys
-                        .get(&def.node)
-                        .expect("local variable should have inferred type")
-                        .clone()
-                } else {
-                    panic!("path resolves to external package, but definition not found in globals")
+            ExprKind::Path(path) => match self.resolutions.get(&path.id) {
+                None => self.fresh(),
+                Some(id) => {
+                    if let Some(ty) = self.globals.get(id) {
+                        self.instantiate(ty)
+                    } else if id.package == PackageSrc::Local {
+                        self.tys
+                            .get(&id.node)
+                            .expect("local variable should have inferred type")
+                            .clone()
+                    } else {
+                        panic!("path resolves to external package, but definition not found in globals")
+                    }
                 }
-            }
+            },
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
                     let ty = self.infer_expr(expr);
