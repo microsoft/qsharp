@@ -25,11 +25,11 @@ pub enum Ty {
     App(Box<Ty>, Vec<Ty>),
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     DefId(DefId),
+    Never,
+    Param(String),
     Prim(TyPrim),
-    Rigid(String),
     Tuple(Vec<Ty>),
     Var(u32),
-    Void,
 }
 
 struct UnifyError(Ty, Ty);
@@ -340,7 +340,7 @@ impl<'a> Inferrer<'a> {
                     message.span,
                     ConstraintKind::Eq(message_ty, Ty::Prim(TyPrim::String)),
                 );
-                Ty::Void
+                Ty::Never
             }
             ExprKind::Field(record, name) => {
                 let record_ty = self.infer_expr(record);
@@ -463,7 +463,7 @@ impl<'a> Inferrer<'a> {
             }
             ExprKind::Return(expr) => {
                 self.infer_expr(expr);
-                Ty::Void
+                Ty::Never
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_ty = self.infer_expr(cond);
@@ -500,7 +500,7 @@ impl<'a> Inferrer<'a> {
 
                 Ty::Tuple(Vec::new())
             }
-            ExprKind::Err | ExprKind::Hole => Ty::Void,
+            ExprKind::Err | ExprKind::Hole => Ty::Never,
         };
 
         self.tys.insert(expr.id, ty.clone());
@@ -708,13 +708,13 @@ impl<'a> Inferrer<'a> {
                     functors.clone(),
                 ),
                 &Ty::DefId(id) => Ty::DefId(id),
+                Ty::Never => Ty::Never,
+                Ty::Param(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
                 &Ty::Prim(prim) => Ty::Prim(prim),
-                Ty::Rigid(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
                 Ty::Tuple(items) => {
                     Ty::Tuple(items.iter().map(|item| go(fresh, vars, item)).collect())
                 }
                 &Ty::Var(id) => Ty::Var(id),
-                Ty::Void => Ty::Void,
             }
         }
 
@@ -745,7 +745,7 @@ impl<'a> Inferrer<'a> {
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.convert_ty(item)).collect())
             }
-            TyKind::Var(name) => Ty::Rigid(name.name.clone()),
+            TyKind::Var(name) => Ty::Param(name.name.clone()),
         }
     }
 
@@ -841,6 +841,7 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(u32, Ty)>, UnifyError> {
             Ok(substs)
         }
         (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
+        (Ty::Never, _) | (_, Ty::Never) => Ok(Vec::new()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
             let mut substs = Vec::new();
@@ -852,7 +853,6 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(u32, Ty)>, UnifyError> {
         (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => Ok(Vec::new()),
         (&Ty::Var(var), _) => Ok(vec![(var, ty2.clone())]),
         (_, &Ty::Var(var)) => Ok(vec![(var, ty1.clone())]),
-        (Ty::Void, Ty::Void) => Ok(Vec::new()),
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
 }
@@ -979,8 +979,9 @@ fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
             functors,
         ),
         Ty::DefId(id) => Ty::DefId(id),
+        Ty::Never => Ty::Never,
+        Ty::Param(name) => Ty::Param(name),
         Ty::Prim(prim) => Ty::Prim(prim),
-        Ty::Rigid(name) => Ty::Rigid(name),
         Ty::Tuple(items) => Ty::Tuple(
             items
                 .into_iter()
@@ -991,7 +992,6 @@ fn substitute(substs: &HashMap<u32, Ty>, ty: Ty) -> Ty {
             Some(new_ty) => substitute(substs, new_ty.clone()),
             None => Ty::Var(var),
         },
-        Ty::Void => Ty::Void,
     }
 }
 
@@ -1064,7 +1064,7 @@ fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> Option<Ty> {
                 .collect::<Option<_>>()?;
             Some(Ty::Tuple(items))
         }
-        TyKind::Var(name) => Some(Ty::Rigid(name.name.clone())),
+        TyKind::Var(name) => Some(Ty::Param(name.name.clone())),
     }
 }
 
