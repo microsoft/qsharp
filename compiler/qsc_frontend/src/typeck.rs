@@ -9,8 +9,8 @@ use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         self, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-        FunctorExpr, FunctorExprKind, Lit, NodeId, Pat, PatKind, QubitInit, QubitInitKind, SetOp,
-        Span, SpecBody, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
+        FunctorExpr, FunctorExprKind, Lit, NodeId, Package, Pat, PatKind, QubitInit, QubitInitKind,
+        SetOp, Span, SpecBody, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
     },
     visit::Visitor,
 };
@@ -20,6 +20,9 @@ use std::{
     mem,
 };
 use thiserror::Error;
+
+#[cfg(test)]
+mod tests;
 
 pub type Tys = HashMap<NodeId, Ty>;
 
@@ -162,10 +165,10 @@ impl Termination {
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
-    #[error("cannot unify type `{0}` with type `{1}`")]
-    CannotUnify(Ty, Ty, #[label] Span),
-    #[error("type class not satisfied: {0}")]
-    ClassNotSatisfied(Class, #[label("class required")] Span),
+    #[error("mismatched types")]
+    TypeMismatch(Ty, Ty, #[label("expected {0}, found {1}")] Span),
+    #[error("missing class instance")]
+    MissingClass(Class, #[label("requires {0}")] Span),
     #[error("missing type in item signature")]
     #[diagnostic(help("types cannot be inferred for global declarations"))]
     MissingItemTy(#[label("explicit type required")] Span),
@@ -191,6 +194,20 @@ impl Checker<'_> {
 }
 
 impl Visitor<'_> for Checker<'_> {
+    fn visit_package(&mut self, package: &Package) {
+        for namespace in &package.namespaces {
+            self.visit_namespace(namespace);
+        }
+
+        if let Some(entry) = &package.entry {
+            let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
+            inferrer.infer_expr(entry);
+            let (tys, errors) = inferrer.solve();
+            self.tys.extend(tys);
+            self.errors.extend(errors);
+        }
+    }
+
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         match &decl.body {
             CallableBody::Block(block) => {
@@ -1081,7 +1098,7 @@ impl<'a> Inferrer<'a> {
                             {
                                 Ok(new) => new_constraints.extend(new),
                                 Err(error) => {
-                                    errors.push(Error::ClassNotSatisfied(error.0, error.1));
+                                    errors.push(Error::MissingClass(error.0, error.1));
                                 }
                             }
                         } else {
@@ -1096,7 +1113,7 @@ impl<'a> Inferrer<'a> {
                         let new_substs = match unify(&ty1, &ty2) {
                             Ok(new_substs) => new_substs,
                             Err(UnifyError(ty1, ty2)) => {
-                                errors.push(Error::CannotUnify(ty1, ty2, constraint.span));
+                                errors.push(Error::TypeMismatch(ty1, ty2, constraint.span));
                                 Vec::new()
                             }
                         };
