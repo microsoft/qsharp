@@ -13,7 +13,10 @@ use qsc_ast::{
     },
     visit::{self, Visitor},
 };
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    mem,
+};
 use thiserror::Error;
 
 const PRELUDE: &[&str] = &[
@@ -61,6 +64,30 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
+    pub(super) fn resolutions(&self) -> &Resolutions {
+        &self.resolutions
+    }
+
+    pub(super) fn errors(&self) -> &[Error] {
+        &self.errors
+    }
+
+    pub(super) fn reset_errors(&mut self) {
+        self.errors.clear();
+    }
+
+    pub(super) fn add_global_callable(&mut self, decl: &'a CallableDecl) {
+        let id = DefId {
+            package: PackageSrc::Local,
+            node: decl.name.id,
+        };
+        self.resolutions.insert(decl.name.id, id);
+        self.terms
+            .entry(self.namespace)
+            .or_default()
+            .insert(&decl.name.name, id);
+    }
+
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
         (self.resolutions, self.errors)
     }
@@ -83,11 +110,25 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn with_scope(&mut self, pat: Option<&'a Pat>, f: impl FnOnce(&mut Self)) {
-        self.locals.push(HashMap::new());
-        pat.into_iter().for_each(|p| self.bind(p));
+    fn with_pat(&mut self, pat: &'a Pat, f: impl FnOnce(&mut Self)) {
+        let mut env = HashMap::new();
+        self.with_scope(&mut env, |resolver| {
+            resolver.bind(pat);
+            f(resolver);
+        });
+    }
+
+    pub(super) fn with_scope(
+        &mut self,
+        scope: &mut HashMap<&'a str, DefId>,
+        f: impl FnOnce(&mut Self),
+    ) {
+        self.locals.push(mem::take(scope));
         f(self);
-        self.locals.pop();
+        *scope = self
+            .locals
+            .pop()
+            .expect("scope symmetry should be preserved");
     }
 
     fn bind(&mut self, pat: &'a Pat) {
@@ -126,17 +167,18 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         }
 
         visit::walk_namespace(self, namespace);
+        self.namespace = "";
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        self.with_scope(Some(&decl.input), |resolver| {
+        self.with_pat(&decl.input, |resolver| {
             visit::walk_callable_decl(resolver, decl);
         });
     }
 
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
         if let SpecBody::Impl(input, block) = &decl.body {
-            self.with_scope(Some(input), |resolver| resolver.visit_block(block));
+            self.with_pat(input, |resolver| resolver.visit_block(block));
         } else {
             visit::walk_spec_decl(self, decl);
         }
@@ -151,7 +193,9 @@ impl<'a> Visitor<'a> for Resolver<'a> {
     }
 
     fn visit_block(&mut self, block: &'a Block) {
-        self.with_scope(None, |resolver| visit::walk_block(resolver, block));
+        self.with_scope(&mut HashMap::new(), |resolver| {
+            visit::walk_block(resolver, block);
+        });
     }
 
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
@@ -167,7 +211,7 @@ impl<'a> Visitor<'a> for Resolver<'a> {
                     visit::walk_block(self, block);
                 }
             }
-            StmtKind::Expr(..) | StmtKind::Semi(..) => {
+            StmtKind::Empty | StmtKind::Expr(..) | StmtKind::Semi(..) => {
                 visit::walk_stmt(self, stmt);
             }
         }
@@ -177,10 +221,25 @@ impl<'a> Visitor<'a> for Resolver<'a> {
         match &expr.kind {
             ExprKind::For(pat, iter, block) => {
                 self.visit_expr(iter);
-                self.with_scope(Some(pat), |resolver| resolver.visit_block(block));
+                self.with_pat(pat, |resolver| resolver.visit_block(block));
+            }
+            ExprKind::Repeat(repeat, cond, fixup) => {
+                self.with_scope(&mut HashMap::new(), |resolver| {
+                    repeat
+                        .stmts
+                        .iter()
+                        .for_each(|stmt| resolver.visit_stmt(stmt));
+                    resolver.visit_expr(cond);
+                    if let Some(block) = fixup.as_ref() {
+                        block
+                            .stmts
+                            .iter()
+                            .for_each(|stmt| resolver.visit_stmt(stmt));
+                    }
+                });
             }
             ExprKind::Lambda(_, input, output) => {
-                self.with_scope(Some(input), |resolver| resolver.visit_expr(output));
+                self.with_pat(input, |resolver| resolver.visit_expr(output));
             }
             ExprKind::Path(path) => self.resolve_term(path),
             _ => visit::walk_expr(self, expr),
@@ -238,6 +297,19 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
         }
 
         match &item.kind {
+            ItemKind::Callable(decl) => {
+                let id = DefId {
+                    package: self.package,
+                    node: decl.name.id,
+                };
+                if self.package == PackageSrc::Local {
+                    self.resolutions.insert(decl.name.id, id);
+                }
+                self.terms
+                    .entry(self.namespace)
+                    .or_default()
+                    .insert(&decl.name.name, id);
+            }
             ItemKind::Ty(name, _) => {
                 let id = DefId {
                     package: self.package,
@@ -255,20 +327,7 @@ impl<'a> Visitor<'a> for GlobalTable<'a> {
                     .or_default()
                     .insert(&name.name, id);
             }
-            ItemKind::Callable(decl) => {
-                let id = DefId {
-                    package: self.package,
-                    node: decl.name.id,
-                };
-                if self.package == PackageSrc::Local {
-                    self.resolutions.insert(decl.name.id, id);
-                }
-                self.terms
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&decl.name.name, id);
-            }
-            ItemKind::Open(..) => {}
+            ItemKind::Err | ItemKind::Open(..) => {}
         }
     }
 }

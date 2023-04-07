@@ -5,11 +5,12 @@
 
 use clap::Parser;
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_eval::Evaluator;
+use qsc_eval::{eval_expr, output::GenericReceiver, Env};
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
+use qsc_passes::globals::extract_callables;
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -75,16 +76,34 @@ fn main() -> miette::Result<ExitCode> {
     }
 
     if unit.context.errors().is_empty() {
-        let user = store.insert(unit);
-        match Evaluator::new(&store, user).run() {
-            Ok(value) => {
-                println!("{value}");
-                Ok(ExitCode::SUCCESS)
+        let id = store.insert(unit);
+        let unit = store
+            .get(id)
+            .expect("compile unit should be in package store");
+        if let Some(expr) = &unit.package.entry {
+            let globals = extract_callables(&store);
+            let mut stdout = io::stdout();
+            let mut out = GenericReceiver::new(&mut stdout);
+            let resolutions = store
+                .get_resolutions(id)
+                .expect("package should be present in store");
+            match eval_expr(
+                expr,
+                &store,
+                &globals,
+                resolutions,
+                id,
+                &mut Env::default(),
+                &mut out,
+            ) {
+                Ok(value) => {
+                    println!("{value}");
+                    Ok(ExitCode::SUCCESS)
+                }
+                Err(error) => Err(ErrorReporter::new(cli, sources, &unit.context).report(error)),
             }
-            Err(error) => {
-                let unit = store.get(user).expect("store should have compiled package");
-                Err(ErrorReporter::new(cli, sources, &unit.context).report(error))
-            }
+        } else {
+            Ok(ExitCode::SUCCESS)
         }
     } else {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);

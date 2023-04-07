@@ -87,6 +87,8 @@ pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.meta.attrs.iter().for_each(|a| vis.visit_attr(a));
     match &item.kind {
+        ItemKind::Err => {}
+        ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Open(ns, alias) => {
             vis.visit_ident(ns);
             alias.iter().for_each(|a| vis.visit_ident(a));
@@ -95,7 +97,6 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
-        ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
     }
 }
 
@@ -172,6 +173,7 @@ pub fn walk_block<'a>(vis: &mut impl Visitor<'a>, block: &'a Block) {
 
 pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
     match &stmt.kind {
+        StmtKind::Empty => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(pat);

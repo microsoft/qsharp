@@ -13,16 +13,17 @@ description = "Wasm module for the qsc compiler"
 [lib]
 crate-type = ["rlib", "cdylib"]
 
-# Make most everything in this crate optional based on the wasm feature being enabled.
 [dependencies]
-qsc_eval = { path = "../qsc_eval", optional = true }
-qsc_frontend = { path = "../qsc_frontend", optional = true }
-miette = { workspace = true, optional = true}
-serde = { workspace = true, features = ["derive"], optional = true }
-serde-wasm-bindgen = { workspace = true, optional = true }
-wasm-bindgen = { workspace = true, optional = true  }
+qsc_eval = { path = "../qsc_eval"}
+qsc_frontend = { path = "../qsc_frontend"}
+qsc_passes = { path = "../qsc_passes"}
 # This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
-getrandom = { workspace = true, features = ["js"], optional = true  }
-
-[features]
-wasm = ["dep:qsc_eval", "dep:qsc_frontend", "dep:miette", "dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen", "dep:getrandom"]
+getrandom = { workspace = true, features = ["js"] }
+js-sys = { workspace = true }
+miette = { workspace = true}
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
+once_cell = { workspace = true }
+serde = { workspace = true, features = ["derive"]}
+serde-wasm-bindgen = { workspace = true}
+wasm-bindgen = { workspace = true}

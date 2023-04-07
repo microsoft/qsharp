@@ -13,7 +13,7 @@ use crate::{
 };
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Package, Span},
+    ast::{Expr, Package, Span},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
@@ -80,12 +80,12 @@ pub struct SourceIndex(pub usize);
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(ErrorKind);
+pub struct Error(pub(crate) ErrorKind);
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-enum ErrorKind {
+pub(crate) enum ErrorKind {
     Parse(OffsetError<parse::Error>),
     Resolve(resolve::Error),
     Validate(validate::Error),
@@ -113,6 +113,16 @@ impl PackageStore {
     #[must_use]
     pub fn get(&self, id: PackageId) -> Option<&CompileUnit> {
         self.units.get(&id)
+    }
+
+    #[must_use]
+    pub fn get_entry_expr(&self, id: PackageId) -> Option<&Expr> {
+        self.get(id).and_then(|unit| unit.package.entry.as_ref())
+    }
+
+    #[must_use]
+    pub fn get_resolutions(&self, id: PackageId) -> Option<&Resolutions> {
+        self.get(id).map(|unit| unit.context.resolutions())
     }
 
     #[must_use]

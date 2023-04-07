@@ -6,6 +6,7 @@
 pub mod compile;
 pub mod diagnostic;
 pub mod id;
+pub mod incremental;
 mod lex;
 mod parse;
 mod replace_qubit_allocation;

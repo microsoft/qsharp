@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::too_many_lines)]
-
 use super::{attr, item, namespaces, spec_decl};
-use crate::parse::tests::check;
+use crate::parse::tests::{check, check_vec};
 use expect_test::expect;
 
 #[test]
@@ -12,23 +10,7 @@ fn body_intrinsic() {
     check(
         spec_decl,
         "body intrinsic;",
-        &expect![[r#"
-            Ok(
-                SpecDecl {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 15,
-                    },
-                    spec: Body,
-                    body: Gen(
-                        Intrinsic,
-                    ),
-                },
-            )
-        "#]],
+        &expect!["SpecDecl _id_ [0-15] (Body): Gen: Intrinsic"],
     );
 }
 
@@ -37,23 +19,7 @@ fn adjoint_self() {
     check(
         spec_decl,
         "adjoint self;",
-        &expect![[r#"
-            Ok(
-                SpecDecl {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 13,
-                    },
-                    spec: Adj,
-                    body: Gen(
-                        Slf,
-                    ),
-                },
-            )
-        "#]],
+        &expect!["SpecDecl _id_ [0-13] (Adj): Gen: Slf"],
     );
 }
 
@@ -62,23 +28,7 @@ fn adjoint_invert() {
     check(
         spec_decl,
         "adjoint invert;",
-        &expect![[r#"
-            Ok(
-                SpecDecl {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 15,
-                    },
-                    spec: Adj,
-                    body: Gen(
-                        Invert,
-                    ),
-                },
-            )
-        "#]],
+        &expect!["SpecDecl _id_ [0-15] (Adj): Gen: Invert"],
     );
 }
 
@@ -87,23 +37,7 @@ fn controlled_distribute() {
     check(
         spec_decl,
         "controlled distribute;",
-        &expect![[r#"
-            Ok(
-                SpecDecl {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 22,
-                    },
-                    spec: Ctl,
-                    body: Gen(
-                        Distribute,
-                    ),
-                },
-            )
-        "#]],
+        &expect!["SpecDecl _id_ [0-22] (Ctl): Gen: Distribute"],
     );
 }
 
@@ -112,23 +46,7 @@ fn controlled_adjoint_auto() {
     check(
         spec_decl,
         "controlled adjoint auto;",
-        &expect![[r#"
-            Ok(
-                SpecDecl {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 24,
-                    },
-                    spec: CtlAdj,
-                    body: Gen(
-                        Auto,
-                    ),
-                },
-            )
-        "#]],
+        &expect!["SpecDecl _id_ [0-24] (CtlAdj): Gen: Auto"],
     );
 }
 
@@ -180,35 +98,8 @@ fn open_no_alias() {
         item,
         "open Foo.Bar.Baz;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 17,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Open(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 5,
-                                hi: 16,
-                            },
-                            name: "Foo.Bar.Baz",
-                        },
-                        None,
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-17]:
+                Open (Ident _id_ [5-16] "Foo.Bar.Baz")"#]],
     );
 }
 
@@ -218,46 +109,8 @@ fn open_alias() {
         item,
         "open Foo.Bar.Baz as Baz;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 24,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Open(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 5,
-                                hi: 16,
-                            },
-                            name: "Foo.Bar.Baz",
-                        },
-                        Some(
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 20,
-                                    hi: 23,
-                                },
-                                name: "Baz",
-                            },
-                        ),
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-24]:
+                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-23] "Baz")"#]],
     );
 }
 
@@ -267,46 +120,8 @@ fn open_alias_dot() {
         item,
         "open Foo.Bar.Baz as Bar.Baz;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 28,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Open(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 5,
-                                hi: 16,
-                            },
-                            name: "Foo.Bar.Baz",
-                        },
-                        Some(
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 20,
-                                    hi: 27,
-                                },
-                                name: "Bar.Baz",
-                            },
-                        ),
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-28]:
+                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-27] "Bar.Baz")"#]],
     );
 }
 
@@ -316,58 +131,9 @@ fn ty_decl() {
         item,
         "newtype Foo = Unit;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 19,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 8,
-                                hi: 11,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 18,
-                            },
-                            kind: Field(
-                                None,
-                                Ty {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 14,
-                                        hi: 18,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-19]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-18]: Field:
+                    Type _id_ [14-18]: Unit"#]],
     );
 }
 
@@ -377,69 +143,10 @@ fn ty_decl_field_name() {
         item,
         "newtype Foo = Bar : Int;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 24,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 8,
-                                hi: 11,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 23,
-                            },
-                            kind: Field(
-                                Some(
-                                    Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 14,
-                                            hi: 17,
-                                        },
-                                        name: "Bar",
-                                    },
-                                ),
-                                Ty {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 20,
-                                        hi: 23,
-                                    },
-                                    kind: Prim(
-                                        Int,
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-24]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-23]: Field:
+                    Ident _id_ [14-17] "Bar"
+                    Type _id_ [20-23]: Prim (Int)"#]],
     );
 }
 
@@ -469,95 +176,12 @@ fn ty_def_tuple() {
         item,
         "newtype Foo = (Int, Int);",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 25,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 8,
-                                hi: 11,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 24,
-                            },
-                            kind: Tuple(
-                                [
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 15,
-                                            hi: 18,
-                                        },
-                                        kind: Field(
-                                            None,
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 15,
-                                                    hi: 18,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 20,
-                                            hi: 23,
-                                        },
-                                        kind: Field(
-                                            None,
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 20,
-                                                    hi: 23,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-25]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-24]: Tuple:
+                    TyDef _id_ [15-18]: Field:
+                        Type _id_ [15-18]: Prim (Int)
+                    TyDef _id_ [20-23]: Field:
+                        Type _id_ [20-23]: Prim (Int)"#]],
     );
 }
 
@@ -567,106 +191,13 @@ fn ty_def_tuple_one_named() {
         item,
         "newtype Foo = (X : Int, Int);",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 29,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 8,
-                                hi: 11,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 28,
-                            },
-                            kind: Tuple(
-                                [
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 15,
-                                            hi: 22,
-                                        },
-                                        kind: Field(
-                                            Some(
-                                                Ident {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 15,
-                                                        hi: 16,
-                                                    },
-                                                    name: "X",
-                                                },
-                                            ),
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 19,
-                                                    hi: 22,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 24,
-                                            hi: 27,
-                                        },
-                                        kind: Field(
-                                            None,
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 24,
-                                                    hi: 27,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-29]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-28]: Tuple:
+                    TyDef _id_ [15-22]: Field:
+                        Ident _id_ [15-16] "X"
+                        Type _id_ [19-22]: Prim (Int)
+                    TyDef _id_ [24-27]: Field:
+                        Type _id_ [24-27]: Prim (Int)"#]],
     );
 }
 
@@ -676,117 +207,14 @@ fn ty_def_tuple_both_named() {
         item,
         "newtype Foo = (X : Int, Y : Int);",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 33,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 8,
-                                hi: 11,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 32,
-                            },
-                            kind: Tuple(
-                                [
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 15,
-                                            hi: 22,
-                                        },
-                                        kind: Field(
-                                            Some(
-                                                Ident {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 15,
-                                                        hi: 16,
-                                                    },
-                                                    name: "X",
-                                                },
-                                            ),
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 19,
-                                                    hi: 22,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 24,
-                                            hi: 31,
-                                        },
-                                        kind: Field(
-                                            Some(
-                                                Ident {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 24,
-                                                        hi: 25,
-                                                    },
-                                                    name: "Y",
-                                                },
-                                            ),
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 28,
-                                                    hi: 31,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-33]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-32]: Tuple:
+                    TyDef _id_ [15-22]: Field:
+                        Ident _id_ [15-16] "X"
+                        Type _id_ [19-22]: Prim (Int)
+                    TyDef _id_ [24-31]: Field:
+                        Ident _id_ [24-25] "Y"
+                        Type _id_ [28-31]: Prim (Int)"#]],
     );
 }
 
@@ -796,165 +224,18 @@ fn ty_def_nested_tuple() {
         item,
         "newtype Foo = ((X : Int, Y : Int), Z : Int);",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 44,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 8,
-                                hi: 11,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 43,
-                            },
-                            kind: Tuple(
-                                [
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 15,
-                                            hi: 33,
-                                        },
-                                        kind: Tuple(
-                                            [
-                                                TyDef {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 16,
-                                                        hi: 23,
-                                                    },
-                                                    kind: Field(
-                                                        Some(
-                                                            Ident {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 16,
-                                                                    hi: 17,
-                                                                },
-                                                                name: "X",
-                                                            },
-                                                        ),
-                                                        Ty {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 20,
-                                                                hi: 23,
-                                                            },
-                                                            kind: Prim(
-                                                                Int,
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                                TyDef {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 25,
-                                                        hi: 32,
-                                                    },
-                                                    kind: Field(
-                                                        Some(
-                                                            Ident {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 25,
-                                                                    hi: 26,
-                                                                },
-                                                                name: "Y",
-                                                            },
-                                                        ),
-                                                        Ty {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 29,
-                                                                hi: 32,
-                                                            },
-                                                            kind: Prim(
-                                                                Int,
-                                                            ),
-                                                        },
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 35,
-                                            hi: 42,
-                                        },
-                                        kind: Field(
-                                            Some(
-                                                Ident {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 35,
-                                                        hi: 36,
-                                                    },
-                                                    name: "Z",
-                                                },
-                                            ),
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 39,
-                                                    hi: 42,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-44]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-43]: Tuple:
+                    TyDef _id_ [15-33]: Tuple:
+                        TyDef _id_ [16-23]: Field:
+                            Ident _id_ [16-17] "X"
+                            Type _id_ [20-23]: Prim (Int)
+                        TyDef _id_ [25-32]: Field:
+                            Ident _id_ [25-26] "Y"
+                            Type _id_ [29-32]: Prim (Int)
+                    TyDef _id_ [35-42]: Field:
+                        Ident _id_ [35-36] "Z"
+                        Type _id_ [39-42]: Prim (Int)"#]],
     );
 }
 
@@ -964,94 +245,12 @@ fn ty_def_tuple_with_name() {
         item,
         "newtype Foo = Pair : (Int, Int);",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 32,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 8,
-                                hi: 11,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 31,
-                            },
-                            kind: Field(
-                                Some(
-                                    Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 14,
-                                            hi: 18,
-                                        },
-                                        name: "Pair",
-                                    },
-                                ),
-                                Ty {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 21,
-                                        hi: 31,
-                                    },
-                                    kind: Tuple(
-                                        [
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 22,
-                                                    hi: 25,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 27,
-                                                    hi: 30,
-                                                },
-                                                kind: Prim(
-                                                    Int,
-                                                ),
-                                            },
-                                        ],
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-32]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-31]: Field:
+                    Ident _id_ [14-18] "Pair"
+                    Type _id_ [21-31]: Tuple:
+                        Type _id_ [22-25]: Prim (Int)
+                        Type _id_ [27-30]: Prim (Int)"#]],
     );
 }
 
@@ -1061,87 +260,13 @@ fn function_decl() {
         item,
         "function Foo() : Unit { body intrinsic; }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 41,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 41,
-                            },
-                            kind: Function,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 9,
-                                    hi: 12,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 12,
-                                    hi: 14,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 17,
-                                    hi: 21,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 24,
-                                            hi: 39,
-                                        },
-                                        spec: Body,
-                                        body: Gen(
-                                            Intrinsic,
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-41]:
+                Callable _id_ [0-41] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-21]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [24-39] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -1151,87 +276,13 @@ fn operation_decl() {
         item,
         "operation Foo() : Unit { body intrinsic; }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 42,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 42,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 10,
-                                    hi: 13,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 13,
-                                    hi: 15,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 18,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 25,
-                                            hi: 40,
-                                        },
-                                        spec: Body,
-                                        body: Gen(
-                                            Intrinsic,
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-42]:
+                Callable _id_ [0-42] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [25-40] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -1241,121 +292,16 @@ fn function_one_param() {
         item,
         "function Foo(x : Int) : Unit { body intrinsic; }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 48,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 48,
-                            },
-                            kind: Function,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 9,
-                                    hi: 12,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 12,
-                                    hi: 21,
-                                },
-                                kind: Paren(
-                                    Pat {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 13,
-                                            hi: 20,
-                                        },
-                                        kind: Bind(
-                                            Ident {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 13,
-                                                    hi: 14,
-                                                },
-                                                name: "x",
-                                            },
-                                            Some(
-                                                Ty {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 17,
-                                                        hi: 20,
-                                                    },
-                                                    kind: Prim(
-                                                        Int,
-                                                    ),
-                                                },
-                                            ),
-                                        ),
-                                    },
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 24,
-                                    hi: 28,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 31,
-                                            hi: 46,
-                                        },
-                                        spec: Body,
-                                        body: Gen(
-                                            Intrinsic,
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-48]:
+                Callable _id_ [0-48] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-21]: Paren:
+                        Pat _id_ [13-20]: Bind:
+                            Ident _id_ [13-14] "x"
+                            Type _id_ [17-20]: Prim (Int)
+                    output: Type _id_ [24-28]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [31-46] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -1365,158 +311,19 @@ fn function_two_params() {
         item,
         "function Foo(x : Int, y : Int) : Unit { body intrinsic; }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 57,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 57,
-                            },
-                            kind: Function,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 9,
-                                    hi: 12,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 12,
-                                    hi: 30,
-                                },
-                                kind: Tuple(
-                                    [
-                                        Pat {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 13,
-                                                hi: 20,
-                                            },
-                                            kind: Bind(
-                                                Ident {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 13,
-                                                        hi: 14,
-                                                    },
-                                                    name: "x",
-                                                },
-                                                Some(
-                                                    Ty {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 17,
-                                                            hi: 20,
-                                                        },
-                                                        kind: Prim(
-                                                            Int,
-                                                        ),
-                                                    },
-                                                ),
-                                            ),
-                                        },
-                                        Pat {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 22,
-                                                hi: 29,
-                                            },
-                                            kind: Bind(
-                                                Ident {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 22,
-                                                        hi: 23,
-                                                    },
-                                                    name: "y",
-                                                },
-                                                Some(
-                                                    Ty {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 26,
-                                                            hi: 29,
-                                                        },
-                                                        kind: Prim(
-                                                            Int,
-                                                        ),
-                                                    },
-                                                ),
-                                            ),
-                                        },
-                                    ],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 33,
-                                    hi: 37,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 40,
-                                            hi: 55,
-                                        },
-                                        spec: Body,
-                                        body: Gen(
-                                            Intrinsic,
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-57]:
+                Callable _id_ [0-57] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-30]: Tuple:
+                        Pat _id_ [13-20]: Bind:
+                            Ident _id_ [13-14] "x"
+                            Type _id_ [17-20]: Prim (Int)
+                        Pat _id_ [22-29]: Bind:
+                            Ident _id_ [22-23] "y"
+                            Type _id_ [26-29]: Prim (Int)
+                    output: Type _id_ [33-37]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [40-55] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -1526,98 +333,15 @@ fn function_one_ty_param() {
         item,
         "function Foo<'T>() : Unit { body intrinsic; }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 45,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 45,
-                            },
-                            kind: Function,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 9,
-                                    hi: 12,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [
-                                Ident {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 14,
-                                        hi: 15,
-                                    },
-                                    name: "T",
-                                },
-                            ],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 16,
-                                    hi: 18,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 21,
-                                    hi: 25,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 28,
-                                            hi: 43,
-                                        },
-                                        spec: Body,
-                                        body: Gen(
-                                            Intrinsic,
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-45]:
+                Callable _id_ [0-45] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    type params:
+                        Ident _id_ [14-15] "T"
+                    input: Pat _id_ [16-18]: Unit
+                    output: Type _id_ [21-25]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [28-43] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -1627,108 +351,16 @@ fn function_two_ty_params() {
         item,
         "function Foo<'T, 'U>() : Unit { body intrinsic; }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 49,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 49,
-                            },
-                            kind: Function,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 9,
-                                    hi: 12,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [
-                                Ident {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 14,
-                                        hi: 15,
-                                    },
-                                    name: "T",
-                                },
-                                Ident {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 18,
-                                        hi: 19,
-                                    },
-                                    name: "U",
-                                },
-                            ],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 20,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 25,
-                                    hi: 29,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 32,
-                                            hi: 47,
-                                        },
-                                        spec: Body,
-                                        body: Gen(
-                                            Intrinsic,
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-49]:
+                Callable _id_ [0-49] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    type params:
+                        Ident _id_ [14-15] "T"
+                        Ident _id_ [18-19] "U"
+                    input: Pat _id_ [20-22]: Unit
+                    output: Type _id_ [25-29]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [32-47] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -1738,224 +370,20 @@ fn function_single_impl() {
         item,
         "function Foo(x : Int) : Int { let y = x; y }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 44,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 44,
-                            },
-                            kind: Function,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 9,
-                                    hi: 12,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 12,
-                                    hi: 21,
-                                },
-                                kind: Paren(
-                                    Pat {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 13,
-                                            hi: 20,
-                                        },
-                                        kind: Bind(
-                                            Ident {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 13,
-                                                    hi: 14,
-                                                },
-                                                name: "x",
-                                            },
-                                            Some(
-                                                Ty {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 17,
-                                                        hi: 20,
-                                                    },
-                                                    kind: Prim(
-                                                        Int,
-                                                    ),
-                                                },
-                                            ),
-                                        ),
-                                    },
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 24,
-                                    hi: 27,
-                                },
-                                kind: Prim(
-                                    Int,
-                                ),
-                            },
-                            functors: None,
-                            body: Block(
-                                Block {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 28,
-                                        hi: 44,
-                                    },
-                                    stmts: [
-                                        Stmt {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 30,
-                                                hi: 40,
-                                            },
-                                            kind: Local(
-                                                Immutable,
-                                                Pat {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 34,
-                                                        hi: 35,
-                                                    },
-                                                    kind: Bind(
-                                                        Ident {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 34,
-                                                                hi: 35,
-                                                            },
-                                                            name: "y",
-                                                        },
-                                                        None,
-                                                    ),
-                                                },
-                                                Expr {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 38,
-                                                        hi: 39,
-                                                    },
-                                                    kind: Path(
-                                                        Path {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 38,
-                                                                hi: 39,
-                                                            },
-                                                            namespace: None,
-                                                            name: Ident {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 38,
-                                                                    hi: 39,
-                                                                },
-                                                                name: "x",
-                                                            },
-                                                        },
-                                                    ),
-                                                },
-                                            ),
-                                        },
-                                        Stmt {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 41,
-                                                hi: 42,
-                                            },
-                                            kind: Expr(
-                                                Expr {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 41,
-                                                        hi: 42,
-                                                    },
-                                                    kind: Path(
-                                                        Path {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 41,
-                                                                hi: 42,
-                                                            },
-                                                            namespace: None,
-                                                            name: Ident {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 41,
-                                                                    hi: 42,
-                                                                },
-                                                                name: "y",
-                                                            },
-                                                        },
-                                                    ),
-                                                },
-                                            ),
-                                        },
-                                    ],
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-44]:
+                Callable _id_ [0-44] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-21]: Paren:
+                        Pat _id_ [13-20]: Bind:
+                            Ident _id_ [13-14] "x"
+                            Type _id_ [17-20]: Prim (Int)
+                    output: Type _id_ [24-27]: Prim (Int)
+                    body: Block: Block _id_ [28-44]:
+                        Stmt _id_ [30-40]: Local (Immutable):
+                            Pat _id_ [34-35]: Bind:
+                                Ident _id_ [34-35] "y"
+                            Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")
+                        Stmt _id_ [41-42]: Expr: Expr _id_ [41-42]: Path: Path _id_ [41-42] (Ident _id_ [41-42] "y")"#]],
     );
 }
 
@@ -1965,160 +393,17 @@ fn operation_body_impl() {
         item,
         "operation Foo() : Unit { body (...) { x } }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 43,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 43,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 10,
-                                    hi: 13,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 13,
-                                    hi: 15,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 18,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 25,
-                                            hi: 41,
-                                        },
-                                        spec: Body,
-                                        body: Impl(
-                                            Pat {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 30,
-                                                    hi: 35,
-                                                },
-                                                kind: Paren(
-                                                    Pat {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 31,
-                                                            hi: 34,
-                                                        },
-                                                        kind: Elided,
-                                                    },
-                                                ),
-                                            },
-                                            Block {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 36,
-                                                    hi: 41,
-                                                },
-                                                stmts: [
-                                                    Stmt {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 38,
-                                                            hi: 39,
-                                                        },
-                                                        kind: Expr(
-                                                            Expr {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 38,
-                                                                    hi: 39,
-                                                                },
-                                                                kind: Path(
-                                                                    Path {
-                                                                        id: NodeId(
-                                                                            4294967295,
-                                                                        ),
-                                                                        span: Span {
-                                                                            lo: 38,
-                                                                            hi: 39,
-                                                                        },
-                                                                        namespace: None,
-                                                                        name: Ident {
-                                                                            id: NodeId(
-                                                                                4294967295,
-                                                                            ),
-                                                                            span: Span {
-                                                                                lo: 38,
-                                                                                hi: 39,
-                                                                            },
-                                                                            name: "x",
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            },
-                                                        ),
-                                                    },
-                                                ],
-                                            },
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-43]:
+                Callable _id_ [0-43] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [25-41] (Body): Impl:
+                            Pat _id_ [30-35]: Paren:
+                                Pat _id_ [31-34]: Elided
+                            Block _id_ [36-41]:
+                                Stmt _id_ [38-39]: Expr: Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")"#]],
     );
 }
 
@@ -2128,270 +413,24 @@ fn operation_body_ctl_impl() {
         item,
         "operation Foo() : Unit { body (...) { x } controlled (cs, ...) { y } }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 70,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 70,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 10,
-                                    hi: 13,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 13,
-                                    hi: 15,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 18,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 25,
-                                            hi: 41,
-                                        },
-                                        spec: Body,
-                                        body: Impl(
-                                            Pat {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 30,
-                                                    hi: 35,
-                                                },
-                                                kind: Paren(
-                                                    Pat {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 31,
-                                                            hi: 34,
-                                                        },
-                                                        kind: Elided,
-                                                    },
-                                                ),
-                                            },
-                                            Block {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 36,
-                                                    hi: 41,
-                                                },
-                                                stmts: [
-                                                    Stmt {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 38,
-                                                            hi: 39,
-                                                        },
-                                                        kind: Expr(
-                                                            Expr {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 38,
-                                                                    hi: 39,
-                                                                },
-                                                                kind: Path(
-                                                                    Path {
-                                                                        id: NodeId(
-                                                                            4294967295,
-                                                                        ),
-                                                                        span: Span {
-                                                                            lo: 38,
-                                                                            hi: 39,
-                                                                        },
-                                                                        namespace: None,
-                                                                        name: Ident {
-                                                                            id: NodeId(
-                                                                                4294967295,
-                                                                            ),
-                                                                            span: Span {
-                                                                                lo: 38,
-                                                                                hi: 39,
-                                                                            },
-                                                                            name: "x",
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            },
-                                                        ),
-                                                    },
-                                                ],
-                                            },
-                                        ),
-                                    },
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 42,
-                                            hi: 68,
-                                        },
-                                        spec: Ctl,
-                                        body: Impl(
-                                            Pat {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 53,
-                                                    hi: 62,
-                                                },
-                                                kind: Tuple(
-                                                    [
-                                                        Pat {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 54,
-                                                                hi: 56,
-                                                            },
-                                                            kind: Bind(
-                                                                Ident {
-                                                                    id: NodeId(
-                                                                        4294967295,
-                                                                    ),
-                                                                    span: Span {
-                                                                        lo: 54,
-                                                                        hi: 56,
-                                                                    },
-                                                                    name: "cs",
-                                                                },
-                                                                None,
-                                                            ),
-                                                        },
-                                                        Pat {
-                                                            id: NodeId(
-                                                                4294967295,
-                                                            ),
-                                                            span: Span {
-                                                                lo: 58,
-                                                                hi: 61,
-                                                            },
-                                                            kind: Elided,
-                                                        },
-                                                    ],
-                                                ),
-                                            },
-                                            Block {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 63,
-                                                    hi: 68,
-                                                },
-                                                stmts: [
-                                                    Stmt {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 65,
-                                                            hi: 66,
-                                                        },
-                                                        kind: Expr(
-                                                            Expr {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 65,
-                                                                    hi: 66,
-                                                                },
-                                                                kind: Path(
-                                                                    Path {
-                                                                        id: NodeId(
-                                                                            4294967295,
-                                                                        ),
-                                                                        span: Span {
-                                                                            lo: 65,
-                                                                            hi: 66,
-                                                                        },
-                                                                        namespace: None,
-                                                                        name: Ident {
-                                                                            id: NodeId(
-                                                                                4294967295,
-                                                                            ),
-                                                                            span: Span {
-                                                                                lo: 65,
-                                                                                hi: 66,
-                                                                            },
-                                                                            name: "y",
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            },
-                                                        ),
-                                                    },
-                                                ],
-                                            },
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-70]:
+                Callable _id_ [0-70] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [25-41] (Body): Impl:
+                            Pat _id_ [30-35]: Paren:
+                                Pat _id_ [31-34]: Elided
+                            Block _id_ [36-41]:
+                                Stmt _id_ [38-39]: Expr: Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")
+                        SpecDecl _id_ [42-68] (Ctl): Impl:
+                            Pat _id_ [53-62]: Tuple:
+                                Pat _id_ [54-56]: Bind:
+                                    Ident _id_ [54-56] "cs"
+                                Pat _id_ [58-61]: Elided
+                            Block _id_ [63-68]:
+                                Stmt _id_ [65-66]: Expr: Expr _id_ [65-66]: Path: Path _id_ [65-66] (Ident _id_ [65-66] "y")"#]],
     );
 }
 
@@ -2401,173 +440,18 @@ fn operation_impl_and_gen() {
         item,
         "operation Foo() : Unit { body (...) { x } adjoint self; }",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 57,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 57,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 10,
-                                    hi: 13,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 13,
-                                    hi: 15,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 18,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Specs(
-                                [
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 25,
-                                            hi: 41,
-                                        },
-                                        spec: Body,
-                                        body: Impl(
-                                            Pat {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 30,
-                                                    hi: 35,
-                                                },
-                                                kind: Paren(
-                                                    Pat {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 31,
-                                                            hi: 34,
-                                                        },
-                                                        kind: Elided,
-                                                    },
-                                                ),
-                                            },
-                                            Block {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 36,
-                                                    hi: 41,
-                                                },
-                                                stmts: [
-                                                    Stmt {
-                                                        id: NodeId(
-                                                            4294967295,
-                                                        ),
-                                                        span: Span {
-                                                            lo: 38,
-                                                            hi: 39,
-                                                        },
-                                                        kind: Expr(
-                                                            Expr {
-                                                                id: NodeId(
-                                                                    4294967295,
-                                                                ),
-                                                                span: Span {
-                                                                    lo: 38,
-                                                                    hi: 39,
-                                                                },
-                                                                kind: Path(
-                                                                    Path {
-                                                                        id: NodeId(
-                                                                            4294967295,
-                                                                        ),
-                                                                        span: Span {
-                                                                            lo: 38,
-                                                                            hi: 39,
-                                                                        },
-                                                                        namespace: None,
-                                                                        name: Ident {
-                                                                            id: NodeId(
-                                                                                4294967295,
-                                                                            ),
-                                                                            span: Span {
-                                                                                lo: 38,
-                                                                                hi: 39,
-                                                                            },
-                                                                            name: "x",
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            },
-                                                        ),
-                                                    },
-                                                ],
-                                            },
-                                        ),
-                                    },
-                                    SpecDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 42,
-                                            hi: 55,
-                                        },
-                                        spec: Adj,
-                                        body: Gen(
-                                            Slf,
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-57]:
+                Callable _id_ [0-57] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    body: Specializations:
+                        SpecDecl _id_ [25-41] (Body): Impl:
+                            Pat _id_ [30-35]: Paren:
+                                Pat _id_ [31-34]: Elided
+                            Block _id_ [36-41]:
+                                Stmt _id_ [38-39]: Expr: Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")
+                        SpecDecl _id_ [42-55] (Adj): Gen: Slf"#]],
     );
 }
 
@@ -2577,95 +461,13 @@ fn operation_is_adj() {
         item,
         "operation Foo() : Unit is Adj {}",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 32,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 32,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 10,
-                                    hi: 13,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 13,
-                                    hi: 15,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 18,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: Some(
-                                FunctorExpr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 26,
-                                        hi: 29,
-                                    },
-                                    kind: Lit(
-                                        Adj,
-                                    ),
-                                },
-                            ),
-                            body: Block(
-                                Block {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 30,
-                                        hi: 32,
-                                    },
-                                    stmts: [],
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-32]:
+                Callable _id_ [0-32] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    functors: Functor Expr _id_ [26-29]: Adj
+                    body: Block: Block _id_ [30-32]: <empty>"#]],
     );
 }
 
@@ -2675,119 +477,13 @@ fn operation_is_adj_ctl() {
         item,
         "operation Foo() : Unit is Adj + Ctl {}",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 38,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 0,
-                                hi: 38,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 10,
-                                    hi: 13,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 13,
-                                    hi: 15,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 18,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: Some(
-                                FunctorExpr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 26,
-                                        hi: 35,
-                                    },
-                                    kind: BinOp(
-                                        Union,
-                                        FunctorExpr {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 26,
-                                                hi: 29,
-                                            },
-                                            kind: Lit(
-                                                Adj,
-                                            ),
-                                        },
-                                        FunctorExpr {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 32,
-                                                hi: 35,
-                                            },
-                                            kind: Lit(
-                                                Ctl,
-                                            ),
-                                        },
-                                    ),
-                                },
-                            ),
-                            body: Block(
-                                Block {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 36,
-                                        hi: 38,
-                                    },
-                                    stmts: [],
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-38]:
+                Callable _id_ [0-38] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    functors: Functor Expr _id_ [26-35]: BinOp Union: (Functor Expr _id_ [26-29]: Adj) (Functor Expr _id_ [32-35]: Ctl)
+                    body: Block: Block _id_ [36-38]: <empty>"#]],
     );
 }
 
@@ -2819,69 +515,11 @@ fn internal_ty() {
         item,
         "internal newtype Foo = Unit;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 28,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: Some(
-                            Visibility {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 8,
-                                },
-                                kind: Internal,
-                            },
-                        ),
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 17,
-                                hi: 20,
-                            },
-                            name: "Foo",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 23,
-                                hi: 27,
-                            },
-                            kind: Field(
-                                None,
-                                Ty {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 23,
-                                        hi: 27,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-28]:
+                meta:
+                    Visibility _id_ [0-8] (Internal)
+                New Type (Ident _id_ [17-20] "Foo"): TyDef _id_ [23-27]: Field:
+                    Type _id_ [23-27]: Unit"#]],
     );
 }
 
@@ -2891,93 +529,14 @@ fn internal_function() {
         item,
         "internal function Foo() : Unit {}",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 33,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: Some(
-                            Visibility {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 8,
-                                },
-                                kind: Internal,
-                            },
-                        ),
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 9,
-                                hi: 33,
-                            },
-                            kind: Function,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 18,
-                                    hi: 21,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 21,
-                                    hi: 23,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 26,
-                                    hi: 30,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Block(
-                                Block {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 31,
-                                        hi: 33,
-                                    },
-                                    stmts: [],
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-33]:
+                meta:
+                    Visibility _id_ [0-8] (Internal)
+                Callable _id_ [9-33] (Function):
+                    name: Ident _id_ [18-21] "Foo"
+                    input: Pat _id_ [21-23]: Unit
+                    output: Type _id_ [26-30]: Unit
+                    body: Block: Block _id_ [31-33]: <empty>"#]],
     );
 }
 
@@ -2987,93 +546,14 @@ fn internal_operation() {
         item,
         "internal operation Foo() : Unit {}",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 34,
-                    },
-                    meta: ItemMeta {
-                        attrs: [],
-                        visibility: Some(
-                            Visibility {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 8,
-                                },
-                                kind: Internal,
-                            },
-                        ),
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 9,
-                                hi: 34,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 19,
-                                    hi: 22,
-                                },
-                                name: "Foo",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 22,
-                                    hi: 24,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 27,
-                                    hi: 31,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Block(
-                                Block {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 32,
-                                        hi: 34,
-                                    },
-                                    stmts: [],
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-34]:
+                meta:
+                    Visibility _id_ [0-8] (Internal)
+                Callable _id_ [9-34] (Operation):
+                    name: Ident _id_ [19-22] "Foo"
+                    input: Pat _id_ [22-24]: Unit
+                    output: Type _id_ [27-31]: Unit
+                    body: Block: Block _id_ [32-34]: <empty>"#]],
     );
 }
 
@@ -3083,50 +563,8 @@ fn attr_no_args() {
         attr,
         "@Foo()",
         &expect![[r#"
-            Ok(
-                Attr {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 6,
-                    },
-                    name: Path {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 1,
-                            hi: 4,
-                        },
-                        namespace: None,
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 1,
-                                hi: 4,
-                            },
-                            name: "Foo",
-                        },
-                    },
-                    arg: Expr {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 4,
-                            hi: 6,
-                        },
-                        kind: Tuple(
-                            [],
-                        ),
-                    },
-                },
-            )
-        "#]],
+            Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                Expr _id_ [4-6]: Unit"#]],
     );
 }
 
@@ -3136,63 +574,8 @@ fn attr_single_arg() {
         attr,
         "@Foo(123)",
         &expect![[r#"
-            Ok(
-                Attr {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 9,
-                    },
-                    name: Path {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 1,
-                            hi: 4,
-                        },
-                        namespace: None,
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 1,
-                                hi: 4,
-                            },
-                            name: "Foo",
-                        },
-                    },
-                    arg: Expr {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 4,
-                            hi: 9,
-                        },
-                        kind: Paren(
-                            Expr {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 5,
-                                    hi: 8,
-                                },
-                                kind: Lit(
-                                    Int(
-                                        123,
-                                    ),
-                                ),
-                            },
-                        ),
-                    },
-                },
-            )
-        "#]],
+            Attr _id_ [0-9] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                Expr _id_ [4-9]: Paren: Expr _id_ [5-8]: Lit: Int(123)"#]],
     );
 }
 
@@ -3202,79 +585,10 @@ fn attr_two_args() {
         attr,
         "@Foo(123, \"bar\")",
         &expect![[r#"
-            Ok(
-                Attr {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 16,
-                    },
-                    name: Path {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 1,
-                            hi: 4,
-                        },
-                        namespace: None,
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 1,
-                                hi: 4,
-                            },
-                            name: "Foo",
-                        },
-                    },
-                    arg: Expr {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 4,
-                            hi: 16,
-                        },
-                        kind: Tuple(
-                            [
-                                Expr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 5,
-                                        hi: 8,
-                                    },
-                                    kind: Lit(
-                                        Int(
-                                            123,
-                                        ),
-                                    ),
-                                },
-                                Expr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 10,
-                                        hi: 15,
-                                    },
-                                    kind: Lit(
-                                        String(
-                                            "bar",
-                                        ),
-                                    ),
-                                },
-                            ],
-                        ),
-                    },
-                },
-            )
-        "#]],
+            Attr _id_ [0-16] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                Expr _id_ [4-16]: Tuple:
+                    Expr _id_ [5-8]: Lit: Int(123)
+                    Expr _id_ [10-15]: Lit: String("bar")"#]],
     );
 }
 
@@ -3284,77 +598,11 @@ fn open_attr() {
         item,
         "@Foo() open Bar;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 16,
-                    },
-                    meta: ItemMeta {
-                        attrs: [
-                            Attr {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 6,
-                                },
-                                name: Path {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 1,
-                                        hi: 4,
-                                    },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 1,
-                                            hi: 4,
-                                        },
-                                        name: "Foo",
-                                    },
-                                },
-                                arg: Expr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 4,
-                                        hi: 6,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            },
-                        ],
-                        visibility: None,
-                    },
-                    kind: Open(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 12,
-                                hi: 15,
-                            },
-                            name: "Bar",
-                        },
-                        None,
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-16]:
+                meta:
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                Open (Ident _id_ [12-15] "Bar")"#]],
     );
 }
 
@@ -3364,100 +612,12 @@ fn newtype_attr() {
         item,
         "@Foo() newtype Bar = Unit;",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 26,
-                    },
-                    meta: ItemMeta {
-                        attrs: [
-                            Attr {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 6,
-                                },
-                                name: Path {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 1,
-                                        hi: 4,
-                                    },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 1,
-                                            hi: 4,
-                                        },
-                                        name: "Foo",
-                                    },
-                                },
-                                arg: Expr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 4,
-                                        hi: 6,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            },
-                        ],
-                        visibility: None,
-                    },
-                    kind: Ty(
-                        Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 15,
-                                hi: 18,
-                            },
-                            name: "Bar",
-                        },
-                        TyDef {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 21,
-                                hi: 25,
-                            },
-                            kind: Field(
-                                None,
-                                Ty {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 21,
-                                        hi: 25,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-26]:
+                meta:
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                New Type (Ident _id_ [15-18] "Bar"): TyDef _id_ [21-25]: Field:
+                    Type _id_ [21-25]: Unit"#]],
     );
 }
 
@@ -3467,124 +627,15 @@ fn operation_one_attr() {
         item,
         "@Foo() operation Bar() : Unit {}",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 32,
-                    },
-                    meta: ItemMeta {
-                        attrs: [
-                            Attr {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 6,
-                                },
-                                name: Path {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 1,
-                                        hi: 4,
-                                    },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 1,
-                                            hi: 4,
-                                        },
-                                        name: "Foo",
-                                    },
-                                },
-                                arg: Expr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 4,
-                                        hi: 6,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            },
-                        ],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 7,
-                                hi: 32,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 17,
-                                    hi: 20,
-                                },
-                                name: "Bar",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 20,
-                                    hi: 22,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 25,
-                                    hi: 29,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Block(
-                                Block {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 30,
-                                        hi: 32,
-                                    },
-                                    stmts: [],
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-32]:
+                meta:
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                Callable _id_ [7-32] (Operation):
+                    name: Ident _id_ [17-20] "Bar"
+                    input: Pat _id_ [20-22]: Unit
+                    output: Type _id_ [25-29]: Unit
+                    body: Block: Block _id_ [30-32]: <empty>"#]],
     );
 }
 
@@ -3594,732 +645,96 @@ fn operation_two_attrs() {
         item,
         "@Foo() @Bar() operation Baz() : Unit {}",
         &expect![[r#"
-            Ok(
-                Item {
-                    id: NodeId(
-                        4294967295,
-                    ),
-                    span: Span {
-                        lo: 0,
-                        hi: 39,
-                    },
-                    meta: ItemMeta {
-                        attrs: [
-                            Attr {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 6,
-                                },
-                                name: Path {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 1,
-                                        hi: 4,
-                                    },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 1,
-                                            hi: 4,
-                                        },
-                                        name: "Foo",
-                                    },
-                                },
-                                arg: Expr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 4,
-                                        hi: 6,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            },
-                            Attr {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 7,
-                                    hi: 13,
-                                },
-                                name: Path {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 8,
-                                        hi: 11,
-                                    },
-                                    namespace: None,
-                                    name: Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 8,
-                                            hi: 11,
-                                        },
-                                        name: "Bar",
-                                    },
-                                },
-                                arg: Expr {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 11,
-                                        hi: 13,
-                                    },
-                                    kind: Tuple(
-                                        [],
-                                    ),
-                                },
-                            },
-                        ],
-                        visibility: None,
-                    },
-                    kind: Callable(
-                        CallableDecl {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 14,
-                                hi: 39,
-                            },
-                            kind: Operation,
-                            name: Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 24,
-                                    hi: 27,
-                                },
-                                name: "Baz",
-                            },
-                            ty_params: [],
-                            input: Pat {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 27,
-                                    hi: 29,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            output: Ty {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 32,
-                                    hi: 36,
-                                },
-                                kind: Tuple(
-                                    [],
-                                ),
-                            },
-                            functors: None,
-                            body: Block(
-                                Block {
-                                    id: NodeId(
-                                        4294967295,
-                                    ),
-                                    span: Span {
-                                        lo: 37,
-                                        hi: 39,
-                                    },
-                                    stmts: [],
-                                },
-                            ),
-                        },
-                    ),
-                },
-            )
-        "#]],
+            Item _id_ [0-39]:
+                meta:
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                    Attr _id_ [7-13] (Path _id_ [8-11] (Ident _id_ [8-11] "Bar")):
+                        Expr _id_ [11-13]: Unit
+                Callable _id_ [14-39] (Operation):
+                    name: Ident _id_ [24-27] "Baz"
+                    input: Pat _id_ [27-29]: Unit
+                    output: Type _id_ [32-36]: Unit
+                    body: Block: Block _id_ [37-39]: <empty>"#]],
     );
 }
 
 #[test]
 fn namespace_function() {
-    check(
+    check_vec(
         namespaces,
         "namespace A { function Foo() : Unit { body intrinsic; } }",
         &expect![[r#"
-            Ok(
-                [
-                    Namespace {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 57,
-                        },
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 10,
-                                hi: 11,
-                            },
-                            name: "A",
-                        },
-                        items: [
-                            Item {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 14,
-                                    hi: 55,
-                                },
-                                meta: ItemMeta {
-                                    attrs: [],
-                                    visibility: None,
-                                },
-                                kind: Callable(
-                                    CallableDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 14,
-                                            hi: 55,
-                                        },
-                                        kind: Function,
-                                        name: Ident {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 23,
-                                                hi: 26,
-                                            },
-                                            name: "Foo",
-                                        },
-                                        ty_params: [],
-                                        input: Pat {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 26,
-                                                hi: 28,
-                                            },
-                                            kind: Tuple(
-                                                [],
-                                            ),
-                                        },
-                                        output: Ty {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 31,
-                                                hi: 35,
-                                            },
-                                            kind: Tuple(
-                                                [],
-                                            ),
-                                        },
-                                        functors: None,
-                                        body: Specs(
-                                            [
-                                                SpecDecl {
-                                                    id: NodeId(
-                                                        4294967295,
-                                                    ),
-                                                    span: Span {
-                                                        lo: 38,
-                                                        hi: 53,
-                                                    },
-                                                    spec: Body,
-                                                    body: Gen(
-                                                        Intrinsic,
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                ),
-                            },
-                        ],
-                    },
-                ],
-            )
-        "#]],
+            Namespace _id_ [0-57] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-55]:
+                    Callable _id_ [14-55] (Function):
+                        name: Ident _id_ [23-26] "Foo"
+                        input: Pat _id_ [26-28]: Unit
+                        output: Type _id_ [31-35]: Unit
+                        body: Specializations:
+                            SpecDecl _id_ [38-53] (Body): Gen: Intrinsic"#]],
     );
 }
 
 #[test]
 fn two_namespaces() {
-    check(
+    check_vec(
         namespaces,
         "namespace A {} namespace B {}",
         &expect![[r#"
-            Ok(
-                [
-                    Namespace {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 14,
-                        },
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 10,
-                                hi: 11,
-                            },
-                            name: "A",
-                        },
-                        items: [],
-                    },
-                    Namespace {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 15,
-                            hi: 29,
-                        },
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 25,
-                                hi: 26,
-                            },
-                            name: "B",
-                        },
-                        items: [],
-                    },
-                ],
-            )
-        "#]],
+            Namespace _id_ [0-14] (Ident _id_ [10-11] "A"):,
+            Namespace _id_ [15-29] (Ident _id_ [25-26] "B"):"#]],
     );
 }
 
 #[test]
 fn two_open_items() {
-    check(
+    check_vec(
         namespaces,
         "namespace A { open B; open C; }",
         &expect![[r#"
-            Ok(
-                [
-                    Namespace {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 31,
-                        },
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 10,
-                                hi: 11,
-                            },
-                            name: "A",
-                        },
-                        items: [
-                            Item {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 14,
-                                    hi: 21,
-                                },
-                                meta: ItemMeta {
-                                    attrs: [],
-                                    visibility: None,
-                                },
-                                kind: Open(
-                                    Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 19,
-                                            hi: 20,
-                                        },
-                                        name: "B",
-                                    },
-                                    None,
-                                ),
-                            },
-                            Item {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 22,
-                                    hi: 29,
-                                },
-                                meta: ItemMeta {
-                                    attrs: [],
-                                    visibility: None,
-                                },
-                                kind: Open(
-                                    Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 27,
-                                            hi: 28,
-                                        },
-                                        name: "C",
-                                    },
-                                    None,
-                                ),
-                            },
-                        ],
-                    },
-                ],
-            )
-        "#]],
+            Namespace _id_ [0-31] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-21]:
+                    Open (Ident _id_ [19-20] "B")
+                Item _id_ [22-29]:
+                    Open (Ident _id_ [27-28] "C")"#]],
     );
 }
 
 #[test]
 fn two_ty_items() {
-    check(
+    check_vec(
         namespaces,
         "namespace A { newtype B = Unit; newtype C = Unit; }",
         &expect![[r#"
-            Ok(
-                [
-                    Namespace {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 51,
-                        },
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 10,
-                                hi: 11,
-                            },
-                            name: "A",
-                        },
-                        items: [
-                            Item {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 14,
-                                    hi: 31,
-                                },
-                                meta: ItemMeta {
-                                    attrs: [],
-                                    visibility: None,
-                                },
-                                kind: Ty(
-                                    Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 22,
-                                            hi: 23,
-                                        },
-                                        name: "B",
-                                    },
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 26,
-                                            hi: 30,
-                                        },
-                                        kind: Field(
-                                            None,
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 26,
-                                                    hi: 30,
-                                                },
-                                                kind: Tuple(
-                                                    [],
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                ),
-                            },
-                            Item {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 32,
-                                    hi: 49,
-                                },
-                                meta: ItemMeta {
-                                    attrs: [],
-                                    visibility: None,
-                                },
-                                kind: Ty(
-                                    Ident {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 40,
-                                            hi: 41,
-                                        },
-                                        name: "C",
-                                    },
-                                    TyDef {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 44,
-                                            hi: 48,
-                                        },
-                                        kind: Field(
-                                            None,
-                                            Ty {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 44,
-                                                    hi: 48,
-                                                },
-                                                kind: Tuple(
-                                                    [],
-                                                ),
-                                            },
-                                        ),
-                                    },
-                                ),
-                            },
-                        ],
-                    },
-                ],
-            )
-        "#]],
+            Namespace _id_ [0-51] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-31]:
+                    New Type (Ident _id_ [22-23] "B"): TyDef _id_ [26-30]: Field:
+                        Type _id_ [26-30]: Unit
+                Item _id_ [32-49]:
+                    New Type (Ident _id_ [40-41] "C"): TyDef _id_ [44-48]: Field:
+                        Type _id_ [44-48]: Unit"#]],
     );
 }
 
 #[test]
 fn two_callable_items() {
-    check(
+    check_vec(
         namespaces,
         "namespace A { operation B() : Unit {} function C() : Unit {} }",
         &expect![[r#"
-            Ok(
-                [
-                    Namespace {
-                        id: NodeId(
-                            4294967295,
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 62,
-                        },
-                        name: Ident {
-                            id: NodeId(
-                                4294967295,
-                            ),
-                            span: Span {
-                                lo: 10,
-                                hi: 11,
-                            },
-                            name: "A",
-                        },
-                        items: [
-                            Item {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 14,
-                                    hi: 37,
-                                },
-                                meta: ItemMeta {
-                                    attrs: [],
-                                    visibility: None,
-                                },
-                                kind: Callable(
-                                    CallableDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 14,
-                                            hi: 37,
-                                        },
-                                        kind: Operation,
-                                        name: Ident {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 24,
-                                                hi: 25,
-                                            },
-                                            name: "B",
-                                        },
-                                        ty_params: [],
-                                        input: Pat {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 25,
-                                                hi: 27,
-                                            },
-                                            kind: Tuple(
-                                                [],
-                                            ),
-                                        },
-                                        output: Ty {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 30,
-                                                hi: 34,
-                                            },
-                                            kind: Tuple(
-                                                [],
-                                            ),
-                                        },
-                                        functors: None,
-                                        body: Block(
-                                            Block {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 35,
-                                                    hi: 37,
-                                                },
-                                                stmts: [],
-                                            },
-                                        ),
-                                    },
-                                ),
-                            },
-                            Item {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 38,
-                                    hi: 60,
-                                },
-                                meta: ItemMeta {
-                                    attrs: [],
-                                    visibility: None,
-                                },
-                                kind: Callable(
-                                    CallableDecl {
-                                        id: NodeId(
-                                            4294967295,
-                                        ),
-                                        span: Span {
-                                            lo: 38,
-                                            hi: 60,
-                                        },
-                                        kind: Function,
-                                        name: Ident {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 47,
-                                                hi: 48,
-                                            },
-                                            name: "C",
-                                        },
-                                        ty_params: [],
-                                        input: Pat {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 48,
-                                                hi: 50,
-                                            },
-                                            kind: Tuple(
-                                                [],
-                                            ),
-                                        },
-                                        output: Ty {
-                                            id: NodeId(
-                                                4294967295,
-                                            ),
-                                            span: Span {
-                                                lo: 53,
-                                                hi: 57,
-                                            },
-                                            kind: Tuple(
-                                                [],
-                                            ),
-                                        },
-                                        functors: None,
-                                        body: Block(
-                                            Block {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 58,
-                                                    hi: 60,
-                                                },
-                                                stmts: [],
-                                            },
-                                        ),
-                                    },
-                                ),
-                            },
-                        ],
-                    },
-                ],
-            )
-        "#]],
+            Namespace _id_ [0-62] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-37]:
+                    Callable _id_ [14-37] (Operation):
+                        name: Ident _id_ [24-25] "B"
+                        input: Pat _id_ [25-27]: Unit
+                        output: Type _id_ [30-34]: Unit
+                        body: Block: Block _id_ [35-37]: <empty>
+                Item _id_ [38-60]:
+                    Callable _id_ [38-60] (Function):
+                        name: Ident _id_ [47-48] "C"
+                        input: Pat _id_ [48-50]: Unit
+                        output: Type _id_ [53-57]: Unit
+                        body: Block: Block _id_ [58-60]: <empty>"#]],
     );
 }

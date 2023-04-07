@@ -1,36 +1,85 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::f64::consts;
+
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_passes::globals::extract_callables;
 
-use crate::Evaluator;
+use crate::{
+    eval_expr,
+    output::{GenericReceiver, Receiver},
+    val::Value,
+    Env, Error,
+};
 
-fn check_intrinsic(file: &str, expr: &str, expect: &Expect) {
+fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
     let mut store = PackageStore::new();
     let stdlib = store.insert(compile::std());
     let unit = compile(&store, [stdlib], [file], expr);
     assert!(
         unit.context.errors().is_empty(),
-        "Compilation errors: {:?}",
+        "compilation errors: {:?}",
         unit.context.errors()
     );
     let id = store.insert(unit);
-    match Evaluator::new(&store, id).run() {
+    let globals = extract_callables(&store);
+    let expr = store
+        .get_entry_expr(id)
+        .expect("entry expression shouild be present");
+    let resolutions = store
+        .get_resolutions(id)
+        .expect("package should be present in store");
+    eval_expr(
+        expr,
+        &store,
+        &globals,
+        resolutions,
+        id,
+        &mut Env::default(),
+        out,
+    )
+}
+
+fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
+    match check_intrinsic(file, expr, &mut out) {
         Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
 }
 
+fn check_intrinsic_output(file: &str, expr: &str, expect: &Expect) {
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
+    match check_intrinsic(file, expr, &mut out) {
+        Ok(..) => expect.assert_eq(
+            &String::from_utf8(stdout).expect("content should be convertable to string"),
+        ),
+        Err(e) => expect.assert_debug_eq(&e),
+    }
+}
+
+fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
+    match check_intrinsic(file, expr, &mut out) {
+        Ok(result) => assert_eq!(&result, val),
+        Err(e) => panic!("{e:?}"),
+    }
+}
+
 #[test]
 fn length() {
-    check_intrinsic("", "Length([1, 2, 3])", &expect!["3"]);
+    check_intrinsic_result("", "Length([1, 2, 3])", &expect!["3"]);
 }
 
 #[test]
 fn length_type_err() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         "Length((1, 2, 3))",
         &expect![[r#"
@@ -48,7 +97,7 @@ fn length_type_err() {
 
 #[test]
 fn int_as_double() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         "Microsoft.Quantum.Convert.IntAsDouble(2)",
         &expect!["2.0"],
@@ -57,7 +106,7 @@ fn int_as_double() {
 
 #[test]
 fn int_as_double_type_error() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         "Microsoft.Quantum.Convert.IntAsDouble(false)",
         &expect![[r#"
@@ -75,7 +124,7 @@ fn int_as_double_type_error() {
 
 #[test]
 fn int_as_double_precision_loss() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         "Microsoft.Quantum.Convert.IntAsDouble(9_223_372_036_854_775_807)",
         &expect!["9223372036854775808.0"],
@@ -84,16 +133,46 @@ fn int_as_double_precision_loss() {
 
 #[test]
 fn dump_machine() {
-    check_intrinsic(
+    check_intrinsic_output(
         "",
         "Microsoft.Quantum.Diagnostics.DumpMachine()",
-        &expect!["()"],
+        &expect![[r#"
+            STATE:
+            |0⟩: 1+0i
+        "#]],
+    );
+}
+
+#[test]
+fn message() {
+    check_intrinsic_output(
+        "",
+        r#"Message("Hello, World!")"#,
+        &expect![[r#"
+            Hello, World!
+        "#]],
+    );
+}
+
+#[test]
+fn to_string() {
+    check_intrinsic_result("", "AsString(One)", &expect![["One"]]);
+}
+
+#[test]
+fn to_string_message() {
+    check_intrinsic_output(
+        "",
+        r#"Message(AsString(PauliX))"#,
+        &expect![[r#"
+            PauliX
+        "#]],
     );
 }
 
 #[test]
 fn check_zero() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         "{use q = Qubit(); Microsoft.Quantum.Diagnostics.CheckZero(q)}",
         &expect!["true"],
@@ -102,7 +181,7 @@ fn check_zero() {
 
 #[test]
 fn check_zero_false() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {"{
             use q = Qubit();
@@ -114,8 +193,98 @@ fn check_zero_false() {
 }
 
 #[test]
+fn arccos() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.ArcCos(0.3)",
+        &Value::Double((0.3f64).acos()),
+    );
+}
+
+#[test]
+fn arcsin() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.ArcSin(0.3)",
+        &Value::Double((0.3f64).asin()),
+    );
+}
+
+#[test]
+fn arctan() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.ArcTan(0.3)",
+        &Value::Double((0.3f64).atan()),
+    );
+}
+
+#[test]
+fn arctan2() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.ArcTan2(0.3, 0.7)",
+        &Value::Double((0.3f64).atan2(0.7)),
+    );
+}
+
+#[test]
+fn cos() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Cos(Microsoft.Quantum.Math.PI())",
+        &Value::Double((consts::PI).cos()),
+    );
+}
+
+#[test]
+fn cosh() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Cosh(Microsoft.Quantum.Math.PI())",
+        &Value::Double((consts::PI).cosh()),
+    );
+}
+
+#[test]
+fn sin() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Sin(Microsoft.Quantum.Math.PI())",
+        &Value::Double((consts::PI).sin()),
+    );
+}
+
+#[test]
+fn sinh() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Sinh(Microsoft.Quantum.Math.PI())",
+        &Value::Double((consts::PI).sinh()),
+    );
+}
+
+#[test]
+fn tan() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Tan(Microsoft.Quantum.Math.PI())",
+        &Value::Double((consts::PI).tan()),
+    );
+}
+
+#[test]
+fn tanh() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Tanh(Microsoft.Quantum.Math.PI())",
+        &Value::Double((consts::PI).tanh()),
+    );
+}
+
+#[test]
 fn ccx() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
@@ -138,7 +307,7 @@ fn ccx() {
 
 #[test]
 fn cx() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2) = (Qubit(), Qubit());
@@ -160,7 +329,7 @@ fn cx() {
 
 #[test]
 fn cy() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2) = (Qubit(), Qubit());
@@ -182,7 +351,7 @@ fn cy() {
 
 #[test]
 fn cz() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2) = (Qubit(), Qubit());
@@ -208,7 +377,7 @@ fn cz() {
 
 #[test]
 fn rx() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -226,7 +395,7 @@ fn rx() {
 
 #[test]
 fn rxx() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2) = (Qubit(), Qubit());
@@ -248,7 +417,7 @@ fn rxx() {
 
 #[test]
 fn ry() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -266,7 +435,7 @@ fn ry() {
 
 #[test]
 fn ryy() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2) = (Qubit(), Qubit());
@@ -288,7 +457,7 @@ fn ryy() {
 
 #[test]
 fn rz() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -310,7 +479,7 @@ fn rz() {
 
 #[test]
 fn rzz() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2) = (Qubit(), Qubit());
@@ -340,7 +509,7 @@ fn rzz() {
 
 #[test]
 fn h() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -357,7 +526,7 @@ fn h() {
 
 #[test]
 fn s() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -380,7 +549,7 @@ fn s() {
 
 #[test]
 fn sadj() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -403,7 +572,7 @@ fn sadj() {
 
 #[test]
 fn t() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -430,7 +599,7 @@ fn t() {
 
 #[test]
 fn tadj() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -457,7 +626,7 @@ fn tadj() {
 
 #[test]
 fn x() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -474,7 +643,7 @@ fn x() {
 
 #[test]
 fn y() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -491,7 +660,7 @@ fn y() {
 
 #[test]
 fn z() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -512,7 +681,7 @@ fn z() {
 
 #[test]
 fn swap() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use (q1, q2) = (Qubit(), Qubit());
@@ -533,7 +702,7 @@ fn swap() {
 
 #[test]
 fn reset() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -551,7 +720,7 @@ fn reset() {
 
 #[test]
 fn m() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -575,7 +744,7 @@ fn m() {
 
 #[test]
 fn mresetz() {
-    check_intrinsic(
+    check_intrinsic_result(
         "",
         indoc! {r#"{
             use q1 = Qubit();
@@ -599,7 +768,7 @@ fn mresetz() {
 
 #[test]
 fn unknown_intrinsic() {
-    check_intrinsic(
+    check_intrinsic_result(
         indoc! {"
             namespace Test {
                 function Foo() : Int {
@@ -613,6 +782,27 @@ fn unknown_intrinsic() {
                 Span {
                     lo: 76,
                     hi: 84,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn single_arg_for_tuple() {
+    check_intrinsic_result(
+        "",
+        indoc! {r#"{
+            use q = Qubit();
+            Ry(q);
+        }"#},
+        &expect![[r#"
+            Type(
+                "Tuple",
+                "Qubit",
+                Span {
+                    lo: 29,
+                    hi: 32,
                 },
             )
         "#]],

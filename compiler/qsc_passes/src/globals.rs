@@ -52,7 +52,8 @@ impl<'a, 'b> Visitor<'b> for CallableVisitor<'a, 'b> {
     }
 }
 
-pub(super) fn extract_callables(store: &PackageStore) -> HashMap<GlobalId, &CallableDecl> {
+#[must_use]
+pub fn extract_callables(store: &PackageStore) -> HashMap<GlobalId, &CallableDecl> {
     let mut callables = HashMap::default();
     for (package_id, unit) in store.iter() {
         let mut visitor = CallableVisitor::new(*package_id, &mut callables);

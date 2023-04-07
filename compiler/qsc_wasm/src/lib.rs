@@ -1,12 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![cfg(feature = "wasm")]
-
-use qsc_frontend::compile::{compile, std, PackageStore};
+use num_bigint::BigUint;
+use num_complex::Complex64;
+use once_cell::sync::OnceCell;
+use qsc_eval::output::Receiver;
+use qsc_eval::{eval_expr, output, Env, Error};
+use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
+use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 // TODO: Below is an example of how to return typed structures from Rust via Wasm
@@ -164,11 +169,11 @@ pub fn get_completions() -> Result<JsValue, JsValue> {
 #[wasm_bindgen(typescript_custom_section)]
 const IDiagnostic: &'static str = r#"
 export interface IDiagnostic {
-    startPos: number;
-    endPos: number;
+    start_pos: number;
+    end_pos: number;
     message: string;
     severity: number; // [0, 1, 2] = [error, warning, info]
-    code?: { 
+    code?: {
         value: number;  // Can also be a string, but number would be preferable
         target: string; // URI for more info - could be a custom URI for pretty errors
     }
@@ -183,32 +188,271 @@ pub struct VSDiagnostic {
     pub severity: i32,
 }
 
-#[wasm_bindgen]
-pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
-    let mut store = PackageStore::new();
-    let std = store.insert(std());
-    let unit = compile(&store, [std], [code], "");
+impl std::fmt::Display for VSDiagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            r#"{{
+    "message": "{}",
+    "severity": {},
+    "start_pos": {},
+    "end_pos": {}
+}}"#,
+            self.message, self.severity, self.start_pos, self.end_pos
+        )
+    }
+}
 
-    let mut result: Vec<VSDiagnostic> = vec![];
-
-    for err in unit.context.errors() {
+impl<T> From<&T> for VSDiagnostic
+where
+    T: Diagnostic,
+{
+    fn from(err: &T) -> Self {
         let label = err
             .labels()
             .and_then(|mut ls| ls.next())
             .expect("error should have at least one label");
         let offset = label.offset();
-        let len = label.len();
+        let len = label.len().max(1);
+        let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
-        let msg = label.label().unwrap();
 
-        let diag = VSDiagnostic {
+        VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
             severity: severity as i32,
-            message: msg.to_string(),
-        };
-        result.push(diag);
+            message,
+        }
+    }
+}
+
+fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
+    static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
+    let (std, ref store) = STDLIB_STORE.get_or_init(|| {
+        let mut store = PackageStore::new();
+        let std = store.insert(std());
+        (std, store)
+    });
+    let unit = compile(store, [*std], [code], "");
+
+    let mut result: Vec<VSDiagnostic> = vec![];
+
+    for err in unit.context.errors() {
+        result.push(err.into());
+    }
+    result
+}
+
+#[wasm_bindgen]
+pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
+    let result = check_code_internal(code);
+    Ok(serde_wasm_bindgen::to_value(&result)?)
+}
+
+struct CallbackReceiver<F>
+where
+    F: Fn(&str),
+{
+    event_cb: F,
+}
+
+impl<F> Receiver for CallbackReceiver<F>
+where
+    F: Fn(&str),
+{
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), output::Error> {
+        let mut dump_json = String::new();
+        write!(dump_json, r#"{{"type": "DumpMachine","state": {{"#)
+            .expect("writing to string should succeed");
+        let (last, most) = state
+            .split_last()
+            .expect("state should always have at least one entry");
+        for state in most {
+            write!(
+                dump_json,
+                r#""|{}⟩": [{}, {}],"#,
+                state.0.to_str_radix(2),
+                state.1.re,
+                state.1.im
+            )
+            .expect("writing to string should succeed");
+        }
+        write!(
+            dump_json,
+            r#""|{}⟩": [{}, {}]}}}}"#,
+            last.0.to_str_radix(2),
+            last.1.re,
+            last.1.im
+        )
+        .expect("writing to string should succeed");
+        (self.event_cb)(&dump_json);
+        Ok(())
     }
 
-    Ok(serde_wasm_bindgen::to_value(&result)?)
+    fn message(&mut self, msg: String) -> Result<(), output::Error> {
+        let mut msg_str = String::new();
+        write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
+            .expect("Writing to a string should succeed");
+        (self.event_cb)(&msg_str);
+        Ok(())
+    }
+}
+
+fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), Error>
+where
+    F: Fn(&str),
+{
+    let mut store = PackageStore::new();
+    let std = store.insert(std());
+    let unit = compile(&store, [std], [code], expr);
+    // TODO: Fail here with diagnostics if compile failed
+
+    let id = store.insert(unit);
+    let unit = store.get(id).expect("Fail");
+    if let Some(expr) = &unit.package.entry {
+        let globals = extract_callables(&store);
+        let mut out = CallbackReceiver { event_cb };
+        for _ in 0..shots {
+            qsc_eval::init();
+            let mut success = true;
+            let result: String;
+            let resolutions = store
+                .get_resolutions(id)
+                .expect("package should be present in store");
+            match &eval_expr(
+                expr,
+                &store,
+                &globals,
+                resolutions,
+                id,
+                &mut Env::default(),
+                &mut out,
+            ) {
+                Ok(val) => {
+                    result = format!(r#""{}""#, val);
+                }
+                Err(e) => {
+                    success = false;
+                    let diag: VSDiagnostic = e.into();
+                    result = diag.to_string();
+                }
+            }
+            let msg_string =
+                format!(r#"{{"type": "Result", "success": {success}, "result": {result}}}"#);
+            (out.event_cb)(&msg_string);
+        }
+        Ok(())
+    } else {
+        Err(Error::EmptyExpr)
+    }
+}
+
+#[wasm_bindgen]
+pub fn run(
+    code: &str,
+    expr: &str,
+    event_cb: &js_sys::Function,
+    shots: u32,
+) -> Result<JsValue, JsValue> {
+    if !event_cb.is_function() {
+        return Err(JsError::new("Events callback function must be provided").into());
+    }
+
+    match run_internal(
+        code,
+        expr,
+        |msg: &str| {
+            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+        },
+        shots,
+    ) {
+        Ok(()) => Ok(JsValue::TRUE),
+        Err(e) => Err(JsError::from(e).into()),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_missing_type() {
+        let code = "namespace input { operation Foo(a) : Unit {} }";
+        let diag = crate::check_code_internal(code);
+        assert_eq!(diag.len(), 1);
+        let err = diag.first().unwrap();
+
+        assert_eq!(err.start_pos, 32);
+        assert_eq!(err.end_pos, 33);
+        assert!(err.message.starts_with("callable parameter"));
+    }
+
+    #[test]
+    fn test_run_two_shots() {
+        let code = "
+namespace Test {
+    function Answer() : Int {
+        return 42;
+    }
+}
+";
+        let expr = "Test.Answer()";
+        let count = std::cell::Cell::new(0);
+
+        let _result = crate::run_internal(
+            code,
+            expr,
+            |_msg| {
+                assert!(_msg.contains("42"));
+                count.set(count.get() + 1);
+            },
+            2,
+        );
+        assert_eq!(count.get(), 2);
+    }
+
+    #[test]
+    fn fail_ry() {
+        let code = "namespace Sample {
+        operation main() : Result {
+            use q1 = Qubit();
+            Ry(q1);
+            let m1 = M(q1);
+            return [m1];
+        }
+    }";
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
+                assert!(_msg_.contains(r#""message": "mismatched types""#));
+                assert!(_msg_.contains(r#""start_pos": 99"#));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_message() {
+        let code = r#"namespace Sample {
+        open Microsoft.Quantum.Diagnostics;
+
+        operation main() : Unit {
+            Message("hi");
+            return ();
+        }
+    }"#;
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
 }

@@ -74,42 +74,6 @@ fn test_untyped_nested_params() {
 }
 
 #[test]
-fn test_callable_params() {
-    check(
-        "namespace input { operation Foo(a : Int -> Int) : Unit {} }",
-        &expect![[r#"
-            [
-                NotCurrentlySupported(
-                    "callables as parameters",
-                    Span {
-                        lo: 32,
-                        hi: 46,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_callable_nested_params() {
-    check(
-        "namespace input { operation Foo(a : Int, (b : Int, c : Int => Int), d : Int) : Unit {} }",
-        &expect![[r#"
-            [
-                NotCurrentlySupported(
-                    "callables as parameters",
-                    Span {
-                        lo: 51,
-                        hi: 65,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn test_adj_return_int() {
     check(
         "namespace input { operation Foo() : Int is Adj {} }",
@@ -223,6 +187,54 @@ fn test_nested_type_hole_param() {
                     Span {
                         lo: 55,
                         hi: 56,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_elided_required() {
+    check(
+        indoc! {"
+            namespace input {
+                operation Foo(a : Int) : Unit is Adj + Ctl {
+                    body a {}
+                    controlled (ctls, ...) {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                ElidedRequired(
+                    Span {
+                        lo: 80,
+                        hi: 81,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_elided_tuple_required() {
+    check(
+        indoc! {"
+            namespace input {
+                operation Foo(a : Int) : Unit is Adj + Ctl {
+                    body ... {}
+                    controlled ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                ElidedTupleRequired(
+                    Span {
+                        lo: 106,
+                        hi: 109,
                     },
                 ),
             ]

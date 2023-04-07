@@ -122,7 +122,9 @@ fn string() {
         &expect![[r#"
             [
                 Token {
-                    kind: String,
+                    kind: String(
+                        Quote,
+                    ),
                     offset: 0,
                 },
             ]
@@ -137,7 +139,26 @@ fn string_escape_quote() {
         &expect![[r#"
             [
                 Token {
-                    kind: String,
+                    kind: String(
+                        Quote,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn string_missing_quote() {
+    check(
+        r#""string"#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String(
+                        Eof,
+                    ),
                     offset: 0,
                 },
             ]
@@ -588,6 +609,57 @@ fn leading_point_exp() {
                         Float,
                     ),
                     offset: 1,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_zero_point() {
+    check(
+        "0.25",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_zero_zero_point() {
+    check(
+        "00.25",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_zero_exp() {
+    check(
+        "0.25e2",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
                 },
             ]
         "#]],

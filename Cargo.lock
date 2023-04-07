@@ -361,6 +361,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
 
 [[package]]
+name = "indenter"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "337a4939ca808cd4b5ce69d80d4bd50747992bcf93a368ac87663aaf74a7b4fc"
+
+[[package]]
 name = "indexmap"
 version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -433,7 +439,9 @@ name = "katas"
 version = "0.0.0"
 dependencies = [
  "indoc",
+ "qsc_eval",
  "qsc_frontend",
+ "qsc_passes",
 ]
 
 [[package]]
@@ -645,7 +653,7 @@ dependencies = [
 [[package]]
 name = "qir-backend"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=dea6a8373cbfc02f1e17ade9399699645ec80014#dea6a8373cbfc02f1e17ade9399699645ec80014"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=b438d884c774a67d55bf67081d9ddd1585dd8e97#b438d884c774a67d55bf67081d9ddd1585dd8e97"
 dependencies = [
  "bitvec",
  "ndarray",
@@ -660,16 +668,30 @@ dependencies = [
 [[package]]
 name = "qir-stdlib"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=dea6a8373cbfc02f1e17ade9399699645ec80014#dea6a8373cbfc02f1e17ade9399699645ec80014"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=b438d884c774a67d55bf67081d9ddd1585dd8e97#b438d884c774a67d55bf67081d9ddd1585dd8e97"
 dependencies = [
  "num-bigint",
  "rand",
 ]
 
 [[package]]
+name = "qsc"
+version = "0.0.0"
+dependencies = [
+ "clap 4.1.8",
+ "criterion",
+ "miette",
+ "qsc_ast",
+ "qsc_codegen",
+ "qsc_frontend",
+ "thiserror",
+]
+
+[[package]]
 name = "qsc_ast"
 version = "0.0.0"
 dependencies = [
+ "indenter",
  "miette",
  "num-bigint",
 ]
@@ -690,10 +712,12 @@ dependencies = [
  "indoc",
  "miette",
  "num-bigint",
+ "num-complex",
  "qir-backend",
  "qir-stdlib",
  "qsc_ast",
  "qsc_frontend",
+ "qsc_passes",
  "thiserror",
 ]
 
@@ -724,12 +748,30 @@ name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [
  "getrandom",
+ "js-sys",
  "miette",
+ "num-bigint",
+ "num-complex",
+ "once_cell",
  "qsc_eval",
  "qsc_frontend",
+ "qsc_passes",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "qsci"
+version = "0.0.0"
+dependencies = [
+ "clap 4.1.8",
+ "miette",
+ "qsc_ast",
+ "qsc_eval",
+ "qsc_frontend",
+ "qsc_passes",
+ "thiserror",
 ]
 
 [[package]]
@@ -737,7 +779,6 @@ name = "qtest_tool"
 version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
- "criterion",
  "miette",
  "qsc_ast",
  "qsc_codegen",

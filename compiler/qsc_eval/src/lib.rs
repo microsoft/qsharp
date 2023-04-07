@@ -6,29 +6,32 @@
 #[cfg(test)]
 mod tests;
 
-mod globals;
 mod intrinsic;
+pub mod output;
 pub mod val;
 
-use crate::{
-    globals::{extract_callables, GlobalId},
-    val::{ConversionError, FunctorApp, Value},
-};
+use crate::val::{ConversionError, FunctorApp, Value};
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
-use qir_backend::__quantum__rt__qubit_allocate;
+use num_bigint::BigInt;
+use output::Receiver;
+use qir_backend::{__quantum__rt__initialize, __quantum__rt__qubit_allocate};
 use qsc_ast::ast::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
     NodeId, Pat, PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind,
-    UnOp,
+    TernOp, UnOp,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageId, PackageStore},
-    resolve::{DefId, PackageSrc},
+    compile::{PackageId, PackageStore},
+    resolve::{DefId, PackageSrc, Resolutions},
 };
+use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
+    hash::BuildHasher,
+    mem::take,
     ops::{ControlFlow, Neg},
+    ptr::null_mut,
 };
 use thiserror::Error;
 
@@ -40,11 +43,20 @@ pub enum Error {
     #[error("invalid array length: {0}")]
     Count(i64, #[label("cannot be used as a length")] Span),
 
+    #[error("division by zero")]
+    DivZero(#[label("cannot divide by zero")] Span),
+
     #[error("nothing to evaluate; entry expression is empty")]
     EmptyExpr,
 
+    #[error("{0} type does not support equality comparison")]
+    Equality(&'static str, #[label("does not support comparison")] Span),
+
     #[error("value cannot be used as an index: {0}")]
     IndexVal(i64, #[label("invalid index")] Span),
+
+    #[error("integer too large for operation")]
+    IntTooLarge(i64, #[label("this value is too large")] Span),
 
     #[error("missing specialization: {0}")]
     MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
@@ -52,8 +64,20 @@ pub enum Error {
     #[error("reassigning immutable variable")]
     Mutability(#[label("variable declared as immutable")] Span),
 
+    #[error("iterable ranges cannot be open-ended")]
+    OpenEnded(#[label("open-ended range used as iterator")] Span),
+
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
+
+    #[error("negative integers cannot be used here: {0}")]
+    Negative(i64, #[label("invalid negative integer")] Span),
+
+    #[error("type {0} is not iterable")]
+    NotIterable(&'static str, #[label("not iterable")] Span),
+
+    #[error("output failure")]
+    Output(#[label("failed to generate output")] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -76,9 +100,9 @@ pub enum Error {
     #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
     Unassignable(#[label("not assignable")] Span),
 
-    #[error("not implemented")]
+    #[error("{0} support is not implemented")]
     #[diagnostic(help("this language feature is not yet supported"))]
-    Unimplemented(#[label("cannot evaluate this")] Span),
+    Unimplemented(&'static str, #[label("cannot evaluate this")] Span),
 
     #[error("unknown intrinsic")]
     UnknownIntrinsic(#[label("callable has no implementation")] Span),
@@ -169,43 +193,87 @@ impl Range {
     }
 }
 
-#[allow(dead_code)]
-pub struct Evaluator<'a> {
+/// Evaluates the given statement with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn eval_stmt<'a, S: BuildHasher>(
+    stmt: &Stmt,
     store: &'a PackageStore,
-    current_unit: &'a CompileUnit,
-    current_id: PackageId,
-    scopes: Vec<HashMap<GlobalId, Variable>>,
-    globals: HashMap<GlobalId, &'a CallableDecl>,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
+    resolutions: &'a Resolutions,
+    package: PackageId,
+    env: &mut Env,
+    out: &'a mut dyn Receiver,
+) -> Result<Value, Error> {
+    let mut eval = Evaluator {
+        store,
+        globals,
+        resolutions,
+        package,
+        env: take(env),
+        out: Some(out),
+    };
+    let res = match eval.eval_stmt(stmt) {
+        ControlFlow::Continue(res) | ControlFlow::Break(Reason::Return(res)) => Ok(res),
+        ControlFlow::Break(Reason::Error(error)) => Err(error),
+    };
+    *env = take(&mut eval.env);
+    res
 }
 
-impl<'a> Evaluator<'a> {
+/// Evaluates the given expression with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn eval_expr<'a, S: BuildHasher>(
+    expr: &Expr,
+    store: &'a PackageStore,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
+    resolutions: &'a Resolutions,
+    package: PackageId,
+    env: &mut Env,
+    out: &'a mut dyn Receiver,
+) -> Result<Value, Error> {
+    let mut eval = Evaluator {
+        store,
+        globals,
+        resolutions,
+        package,
+        env: take(env),
+        out: Some(out),
+    };
+    let res = match eval.eval_expr(expr) {
+        ControlFlow::Continue(res) | ControlFlow::Break(Reason::Return(res)) => Ok(res),
+        ControlFlow::Break(Reason::Error(error)) => Err(error),
+    };
+    *env = take(&mut eval.env);
+    res
+}
+
+pub fn init() {
+    __quantum__rt__initialize(null_mut());
+}
+
+#[derive(Default)]
+pub struct Env(Vec<HashMap<GlobalId, Variable>>);
+
+impl Env {
     #[must_use]
-    pub fn new(store: &'a PackageStore, entry_id: PackageId) -> Self {
-        Self {
-            store,
-            current_unit: store
-                .get(entry_id)
-                .expect("entry package should be added to store before evaluation"),
-            current_id: entry_id,
-            scopes: vec![],
-            globals: extract_callables(store),
-        }
+    pub fn empty() -> Self {
+        Self(vec![HashMap::new()])
     }
+}
 
-    /// Evaluates the entry expression from the current context.
-    /// # Errors
-    /// Returns the first error encountered during execution.
-    pub fn run(&mut self) -> Result<Value, Error> {
-        if let Some(expr) = &self.current_unit.package.entry {
-            match self.eval_expr(expr) {
-                ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => Ok(val),
-                ControlFlow::Break(Reason::Error(error)) => Err(error),
-            }
-        } else {
-            Err(Error::EmptyExpr)
-        }
-    }
+struct Evaluator<'a, S: BuildHasher> {
+    store: &'a PackageStore,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
+    resolutions: &'a Resolutions,
+    package: PackageId,
+    env: Env,
+    out: Option<&'a mut dyn Receiver>,
+}
 
+impl<'a, S: BuildHasher> Evaluator<'a, S> {
+    #[allow(clippy::too_many_lines)]
     fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
@@ -228,13 +296,22 @@ impl<'a> Evaluator<'a> {
                 let val = self.eval_expr(rhs)?;
                 self.update_binding(lhs, val)
             }
-            ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(expr, *op, lhs, rhs),
+            ExprKind::AssignOp(op, lhs, rhs) => {
+                let update = self.eval_binop(*op, lhs, rhs)?;
+                self.update_binding(lhs, update)
+            }
+            ExprKind::AssignUpdate(lhs, mid, rhs) => {
+                let update = self.eval_ternop_update(lhs, mid, rhs)?;
+                self.update_binding(lhs, update)
+            }
+            ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
                 self.eval_expr(msg)?.try_into().with_span(msg.span)?,
                 expr.span,
             ))),
+            ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(then)
@@ -263,7 +340,12 @@ impl<'a> Evaluator<'a> {
             ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
+            ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
             ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
+            ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
+                TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
+                TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
+            },
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
@@ -271,19 +353,28 @@ impl<'a> Evaluator<'a> {
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
+            ExprKind::While(cond, block) => {
+                while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
+                    let _ = self.eval_block(block)?;
+                }
+                ControlFlow::Continue(Value::UNIT)
+            }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
-            ExprKind::AssignOp(..)
-            | ExprKind::AssignUpdate(..)
-            | ExprKind::Conjugate(..)
-            | ExprKind::Err
-            | ExprKind::Field(..)
-            | ExprKind::For(..)
-            | ExprKind::Hole
-            | ExprKind::Lambda(..)
-            | ExprKind::Repeat(..)
-            | ExprKind::TernOp(..)
-            | ExprKind::While(..) => {
-                ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
+            ExprKind::Conjugate(..) => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("conjugate", expr.span)))
+            }
+            ExprKind::Err => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("error", expr.span)))
+            }
+            ExprKind::Field(..) => ControlFlow::Break(Reason::Error(Error::Unimplemented(
+                "field access",
+                expr.span,
+            ))),
+            ExprKind::Hole => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("hole", expr.span)))
+            }
+            ExprKind::Lambda(..) => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("lambda", expr.span)))
             }
         }
     }
@@ -323,6 +414,7 @@ impl<'a> Evaluator<'a> {
 
     fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
+            StmtKind::Empty => ControlFlow::Continue(Value::UNIT),
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;
@@ -346,6 +438,72 @@ impl<'a> Evaluator<'a> {
                 ControlFlow::Continue(Value::UNIT)
             }
         }
+    }
+
+    fn eval_for_loop(
+        &mut self,
+        pat: &Pat,
+        expr: &Expr,
+        block: &Block,
+    ) -> ControlFlow<Reason, Value> {
+        let iterable = self.eval_expr(expr)?;
+        let iterable = match iterable {
+            Value::Array(arr) => arr,
+            Value::Range(start, step, end) => Range::new(
+                start.map_or_else(
+                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
+                    ControlFlow::Continue,
+                )?,
+                step.unwrap_or(1),
+                end.map_or_else(
+                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
+                    ControlFlow::Continue,
+                )?,
+            )
+            .map(Value::Int)
+            .collect::<Vec<_>>(),
+            _ => ControlFlow::Break(Reason::Error(Error::NotIterable(
+                iterable.type_name(),
+                expr.span,
+            )))?,
+        };
+
+        for value in iterable {
+            self.enter_scope();
+            self.bind_value(pat, value, expr.span, Mutability::Immutable);
+            let _ = self.eval_block(block)?;
+            self.leave_scope(false);
+        }
+
+        ControlFlow::Continue(Value::UNIT)
+    }
+
+    fn eval_repeat_loop(
+        &mut self,
+        repeat: &Block,
+        cond: &Expr,
+        fixup: &Option<Block>,
+    ) -> ControlFlow<Reason, Value> {
+        self.enter_scope();
+
+        for stmt in &repeat.stmts {
+            self.eval_stmt(stmt)?;
+        }
+        while !self.eval_expr(cond)?.try_into().with_span(cond.span)? {
+            if let Some(block) = fixup.as_ref() {
+                self.eval_block(block)?;
+            }
+
+            self.leave_scope(true);
+            self.enter_scope();
+
+            for stmt in &repeat.stmts {
+                self.eval_stmt(stmt)?;
+            }
+        }
+
+        self.leave_scope(true);
+        ControlFlow::Continue(Value::UNIT)
     }
 
     fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {
@@ -390,19 +548,32 @@ impl<'a> Evaluator<'a> {
 
         let spec = specialization_from_functor_app(&functor);
 
-        let (cached_id, cached_unit) = (self.current_id, self.current_unit);
-        (self.current_id, self.current_unit) = (
-            call.package,
+        let resolutions = if call.package == self.package {
+            self.resolutions
+        } else {
             self.store
                 .get(call.package)
-                .expect("global value should refer only to stored packages"),
+                .expect("global value should refer only to stored packages")
+                .context
+                .resolutions()
+        };
+
+        let mut new_self = Self {
+            env: Env::default(),
+            package: call.package,
+            resolutions,
+            out: self.out.take(),
+            ..*self
+        };
+        let call_res = new_self.eval_call_spec(
+            decl,
+            spec,
+            args_val,
+            args.span,
+            call_span,
+            functor.controlled,
         );
-
-        self.enter_scope();
-        let call_res = self.eval_call_specialization(decl, spec, args_val, args.span, call_span);
-        self.leave_scope(false);
-
-        (self.current_id, self.current_unit) = (cached_id, cached_unit);
+        self.out = new_self.out.take();
 
         match call_res {
             ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
@@ -410,15 +581,17 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn eval_call_specialization(
+    fn eval_call_spec(
         &mut self,
         decl: &CallableDecl,
         spec: Spec,
         args_val: Value,
         args_span: Span,
         call_span: Span,
+        ctl_count: u8,
     ) -> ControlFlow<Reason, Value> {
-        match (&decl.body, spec) {
+        self.enter_scope();
+        let res = match (&decl.body, spec) {
             (CallableBody::Block(body_block), Spec::Body) => {
                 self.bind_value(&decl.input, args_val, args_span, Mutability::Immutable)?;
                 self.eval_block(body_block)
@@ -432,35 +605,103 @@ impl<'a> Evaluator<'a> {
                         |spec_decl| ControlFlow::Continue(&spec_decl.body),
                     )?;
                 match spec_decl {
-                    SpecBody::Impl(_, body_block) => {
-                        if spec == Spec::Ctl || spec == Spec::CtlAdj {
-                            ControlFlow::Break(Reason::Error(Error::Unimplemented(call_span)))
-                        } else {
-                            self.bind_value(
-                                &decl.input,
-                                args_val,
-                                args_span,
-                                Mutability::Immutable,
-                            )?;
-                            self.eval_block(body_block)
-                        }
+                    SpecBody::Impl(pat, body_block) => {
+                        self.bind_args_for_spec(&decl.input, pat, args_val, args_span, ctl_count)?;
+                        self.eval_block(body_block)
                     }
-                    SpecBody::Gen(SpecGen::Slf) => self.eval_call_specialization(
-                        decl,
-                        Spec::Body,
+                    SpecBody::Gen(SpecGen::Slf) => {
+                        let actual_spec = if spec == Spec::Adj {
+                            Spec::Body
+                        } else {
+                            Spec::Ctl
+                        };
+                        self.eval_call_spec(
+                            decl,
+                            actual_spec,
+                            args_val,
+                            args_span,
+                            call_span,
+                            ctl_count,
+                        )
+                    }
+                    SpecBody::Gen(SpecGen::Intrinsic) => invoke_intrinsic(
+                        &decl.name.name,
+                        call_span,
                         args_val,
                         args_span,
-                        call_span,
+                        self.out
+                            .as_deref_mut()
+                            .expect("output receiver should be set"),
                     ),
-                    SpecBody::Gen(SpecGen::Intrinsic) => {
-                        invoke_intrinsic(&decl.name.name, call_span, args_val, args_span)
-                    }
                     SpecBody::Gen(_) => {
                         ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span)))
                     }
                 }
             }
             _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
+        };
+        self.leave_scope(false);
+        res
+    }
+
+    fn bind_args_for_spec(
+        &mut self,
+        decl_pat: &Pat,
+        spec_pat: &Pat,
+        args_val: Value,
+        args_span: Span,
+        ctl_count: u8,
+    ) -> ControlFlow<Reason, ()> {
+        match &spec_pat.kind {
+            PatKind::Bind(_, _) | PatKind::Discard(_) => {
+                panic!("spec pattern should be elided or elided tuple, found bind/discard")
+            }
+            PatKind::Elided => {
+                self.bind_value(decl_pat, args_val, args_span, Mutability::Immutable)
+            }
+            PatKind::Paren(pat) => {
+                self.bind_args_for_spec(decl_pat, pat, args_val, args_span, ctl_count)
+            }
+            PatKind::Tuple(pats) => {
+                assert_eq!(pats.len(), 2, "spec pattern tuple should have 2 elements");
+                assert!(
+                    ctl_count > 0,
+                    "spec pattern tuple used without controlled functor"
+                );
+
+                let mut tup = args_val;
+                let mut ctls = vec![];
+                for _ in 0..ctl_count {
+                    let mut tup_nesting = tup.try_into_tuple().with_span(args_span)?;
+                    if tup_nesting.len() != 2 {
+                        return ControlFlow::Break(Reason::Error(Error::TupleArity(
+                            2,
+                            tup_nesting.len(),
+                            args_span,
+                        )));
+                    }
+
+                    let (rest, c) = (
+                        tup_nesting
+                            .pop()
+                            .expect("tuple should have multiple entries"),
+                        tup_nesting
+                            .pop()
+                            .expect("tuple should have multiple entries"),
+                    );
+                    let mut c = c.try_into_array().with_span(args_span)?;
+                    ctls.append(&mut c);
+                    tup = rest;
+                }
+
+                self.bind_value(
+                    &pats[0],
+                    Value::Array(ctls),
+                    args_span,
+                    Mutability::Immutable,
+                )?;
+                self.bind_value(decl_pat, tup, args_span, Mutability::Immutable)
+            }
         }
     }
 
@@ -504,7 +745,7 @@ impl<'a> Evaluator<'a> {
             },
             UnOp::Functor(functor) => match val {
                 Value::Closure => {
-                    ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span)))
+                    ControlFlow::Break(Reason::Error(Error::Unimplemented("closure", expr.span)))
                 }
                 Value::Global(id, app) => {
                     ControlFlow::Continue(Value::Global(id, update_functor_app(functor, &app)))
@@ -515,62 +756,92 @@ impl<'a> Evaluator<'a> {
                     rhs.span,
                 ))),
             },
-            UnOp::Unwrap => ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span))),
+            UnOp::Unwrap => {
+                ControlFlow::Break(Reason::Error(Error::Unimplemented("unwrap", expr.span)))
+            }
         }
     }
 
-    fn eval_binop(
+    fn eval_binop(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
+        let lhs_val = self.eval_expr(lhs)?;
+        match op {
+            BinOp::Add => eval_binop_add(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::AndB => eval_binop_andb(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::AndL => self.eval_binop_andl(lhs_val.try_into().with_span(lhs.span)?, rhs),
+            BinOp::Div => eval_binop_div(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Eq => eval_binop_eq(&lhs_val, lhs.span, &self.eval_expr(rhs)?, rhs.span),
+            BinOp::Exp => eval_binop_exp(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Gt => eval_binop_gt(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Gte => eval_binop_gte(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Lt => eval_binop_lt(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Lte => eval_binop_lte(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Mod => eval_binop_mod(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Mul => eval_binop_mul(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Neq => eval_binop_neq(&lhs_val, lhs.span, &self.eval_expr(rhs)?, rhs.span),
+            BinOp::OrB => eval_binop_orb(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::OrL => self.eval_binop_orl(lhs_val.try_into().with_span(lhs.span)?, rhs),
+            BinOp::Shl => eval_binop_shl(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Shr => eval_binop_shr(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Sub => eval_binop_sub(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::XorB => eval_binop_xorb(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+        }
+    }
+
+    fn eval_binop_andl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
+        ControlFlow::Continue(Value::Bool(
+            lhs && self.eval_expr(rhs)?.try_into().with_span(rhs.span)?,
+        ))
+    }
+
+    fn eval_binop_orl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
+        ControlFlow::Continue(Value::Bool(
+            lhs || self.eval_expr(rhs)?.try_into().with_span(rhs.span)?,
+        ))
+    }
+
+    fn eval_ternop_cond(
         &mut self,
-        expr: &Expr,
-        op: BinOp,
         lhs: &Expr,
+        mid: &Expr,
         rhs: &Expr,
     ) -> ControlFlow<Reason, Value> {
-        let (lhs_val, rhs_val) = (self.eval_expr(lhs)?, self.eval_expr(rhs)?);
-        match op {
-            BinOp::AndL => ControlFlow::Continue(Value::Bool(
-                lhs_val.try_into().with_span(lhs.span)?
-                    && rhs_val.try_into().with_span(rhs.span)?,
-            )),
-            BinOp::Eq => {
-                if lhs_val.type_name() == rhs_val.type_name() {
-                    ControlFlow::Continue(Value::Bool(lhs_val == rhs_val))
-                } else {
-                    ControlFlow::Break(Reason::Error(Error::Type(
-                        lhs_val.type_name(),
-                        rhs_val.type_name(),
-                        expr.span,
-                    )))
+        if self.eval_expr(lhs)?.try_into().with_span(lhs.span)? {
+            self.eval_expr(mid)
+        } else {
+            self.eval_expr(rhs)
+        }
+    }
+
+    fn eval_ternop_update(
+        &mut self,
+        lhs: &Expr,
+        mid: &Expr,
+        rhs: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let mut arr = self.eval_expr(lhs)?.try_into_array().with_span(lhs.span)?;
+        let index: i64 = self.eval_expr(mid)?.try_into().with_span(mid.span)?;
+        if index < 0 {
+            ControlFlow::Break(Reason::Error(Error::Negative(index, mid.span)))
+        } else {
+            match arr.get_mut(index.as_index(mid.span)?) {
+                Some(v) => {
+                    *v = self.eval_expr(rhs)?;
+                    ControlFlow::Continue(Value::Array(arr))
                 }
+                None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, mid.span))),
             }
-            BinOp::Add
-            | BinOp::AndB
-            | BinOp::Div
-            | BinOp::Exp
-            | BinOp::Gt
-            | BinOp::Gte
-            | BinOp::Lt
-            | BinOp::Lte
-            | BinOp::Mod
-            | BinOp::Mul
-            | BinOp::Neq
-            | BinOp::OrB
-            | BinOp::OrL
-            | BinOp::Shl
-            | BinOp::Shr
-            | BinOp::Sub
-            | BinOp::XorB => ControlFlow::Break(Reason::Error(Error::Unimplemented(expr.span))),
         }
     }
 
     fn enter_scope(&mut self) {
-        self.scopes.push(HashMap::default());
+        self.env.0.push(HashMap::default());
     }
 
     fn leave_scope(&mut self, release: bool) {
         if release {
             for (_, var) in self
-                .scopes
+                .env
+                .0
                 .pop()
                 .expect("scope should be entered first before leaving")
                 .drain()
@@ -578,7 +849,7 @@ impl<'a> Evaluator<'a> {
                 var.value.release();
             }
         } else {
-            let _ = self.scopes.pop();
+            let _ = self.env.0.pop();
         }
     }
 
@@ -592,14 +863,12 @@ impl<'a> Evaluator<'a> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
                 let id = self.defid_to_globalid(
-                    self.current_unit
-                        .context
-                        .resolutions()
+                    self.resolutions
                         .get(&variable.id)
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
 
-                let scope = self.scopes.last_mut().expect("binding should have a scope");
+                let scope = self.env.0.last_mut().expect("binding should have a scope");
                 match scope.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("duplicate binding: {id}"),
@@ -629,15 +898,14 @@ impl<'a> Evaluator<'a> {
 
     fn resolve_binding(&mut self, id: NodeId) -> Value {
         let id = self
-            .current_unit
-            .context
-            .resolutions()
+            .resolutions
             .get(&id)
             .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
         let global_id = self.defid_to_globalid(id);
         let local = if id.package == PackageSrc::Local {
-            self.scopes
+            self.env
+                .0
                 .iter()
                 .rev()
                 .find_map(|s| s.get(&global_id))
@@ -645,22 +913,21 @@ impl<'a> Evaluator<'a> {
         } else {
             None
         };
-        local.unwrap_or_else(|| self.resolve_global(global_id))
+        local.unwrap_or_else(|| Value::Global(global_id, FunctorApp::default()))
     }
 
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
                 let id = self.defid_to_globalid(
-                    self.current_unit
-                        .context
-                        .resolutions()
+                    self.resolutions
                         .get(&path.id)
                         .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
                 );
 
                 let mut variable = self
-                    .scopes
+                    .env
+                    .0
                     .iter_mut()
                     .rev()
                     .find_map(|scope| scope.get_mut(&id))
@@ -693,19 +960,11 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn resolve_global(&mut self, id: GlobalId) -> Value {
-        if self.globals.contains_key(&id) {
-            Value::Global(id, FunctorApp::default())
-        } else {
-            panic!("unknown global: {id}")
-        }
-    }
-
     fn defid_to_globalid(&self, id: &DefId) -> GlobalId {
         GlobalId {
             package: match id.package {
-                PackageSrc::Local => self.current_id,
-                PackageSrc::Extern(p) => p,
+                PackageSrc::Local => self.package,
+                PackageSrc::Extern(id) => id,
             },
             node: id.node,
         }
@@ -723,7 +982,7 @@ fn specialization_from_functor_app(functor: &FunctorApp) -> Spec {
 
 fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
     match val {
-        Value::Closure => ControlFlow::Break(Reason::Error(Error::Unimplemented(span))),
+        Value::Closure => ControlFlow::Break(Reason::Error(Error::Unimplemented("closure", span))),
         Value::Global(global, functor) => ControlFlow::Continue((global, functor)),
         _ => ControlFlow::Break(Reason::Error(Error::Type(
             "Callable",
@@ -796,5 +1055,490 @@ fn update_functor_app(functor: Functor, app: &FunctorApp) -> FunctorApp {
             adjoint: app.adjoint,
             controlled: app.controlled + 1,
         },
+    }
+}
+
+fn eval_binop_add(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::Array(mut arr) => {
+            arr.append(&mut rhs_val.try_into_array().with_span(rhs_span)?);
+            ControlFlow::Continue(Value::Array(arr))
+        }
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val + rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val + rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val + rhs))
+        }
+        Value::String(val) => {
+            let rhs: String = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::String(val + &rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "Array, BigInt, Double, Int, or String",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_andb(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val & rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val & rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_div(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs == BigInt::from(0) {
+                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::BigInt(val / rhs))
+            }
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs == 0 {
+                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::Int(val / rhs))
+            }
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs == 0.0 {
+                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+            } else {
+                ControlFlow::Continue(Value::Double(val / rhs))
+            }
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn supports_eq(val: &Value, val_span: Span) -> ControlFlow<Reason, ()> {
+    match val {
+        Value::Closure | Value::Global(..) => {
+            ControlFlow::Break(Reason::Error(Error::Equality(val.type_name(), val_span)))
+        }
+        _ => ControlFlow::Continue(()),
+    }
+}
+
+fn eval_binop_eq(
+    lhs_val: &Value,
+    lhs_span: Span,
+    rhs_val: &Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    supports_eq(lhs_val, lhs_span)?;
+    if lhs_val.type_name() == rhs_val.type_name() {
+        ControlFlow::Continue(Value::Bool(lhs_val == rhs_val))
+    } else {
+        ControlFlow::Break(Reason::Error(Error::Type(
+            lhs_val.type_name(),
+            rhs_val.type_name(),
+            rhs_span,
+        )))
+    }
+}
+
+fn eval_binop_exp(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs_val < 0 {
+                ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
+            } else {
+                let rhs_val: u32 = match rhs_val.try_into() {
+                    Ok(v) => ControlFlow::Continue(v),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span)))
+                    }
+                }?;
+                ControlFlow::Continue(Value::BigInt(val.pow(rhs_val)))
+            }
+        }
+        Value::Double(val) => ControlFlow::Continue(Value::Double(
+            val.powf(rhs_val.try_into().with_span(rhs_span)?),
+        )),
+        Value::Int(val) => {
+            let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs_val < 0 {
+                ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
+            } else {
+                let rhs_val: u32 = match rhs_val.try_into() {
+                    Ok(v) => ControlFlow::Continue(v),
+                    Err(_) => {
+                        ControlFlow::Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span)))
+                    }
+                }?;
+                ControlFlow::Continue(Value::Int(val.pow(rhs_val)))
+            }
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_gt(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val > rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val > rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val > rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_gte(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val >= rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val >= rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val >= rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_lt(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val < rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val < rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val < rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_lte(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val <= rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val <= rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Bool(val <= rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_mod(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val % rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val % rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val % rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_mul(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val * rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val * rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val * rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_neq(
+    lhs_val: &Value,
+    lhs_span: Span,
+    rhs_val: &Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    supports_eq(lhs_val, lhs_span)?;
+    if lhs_val.type_name() == rhs_val.type_name() {
+        ControlFlow::Continue(Value::Bool(lhs_val != rhs_val))
+    } else {
+        ControlFlow::Break(Reason::Error(Error::Type(
+            lhs_val.type_name(),
+            rhs_val.type_name(),
+            rhs_span,
+        )))
+    }
+}
+
+fn eval_binop_orb(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val | rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val | rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_shl(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::BigInt(val << rhs))
+            } else {
+                ControlFlow::Continue(Value::BigInt(val >> rhs.abs()))
+            }
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::Int(val << rhs))
+            } else {
+                ControlFlow::Continue(Value::Int(val >> rhs.abs()))
+            }
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_shr(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::BigInt(val >> rhs))
+            } else {
+                ControlFlow::Continue(Value::BigInt(val << rhs.abs()))
+            }
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            if rhs > 0 {
+                ControlFlow::Continue(Value::Int(val >> rhs))
+            } else {
+                ControlFlow::Continue(Value::Int(val << rhs.abs()))
+            }
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_sub(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val - rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val - rhs))
+        }
+        Value::Double(val) => {
+            let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Double(val - rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt, Double, or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
+    }
+}
+
+fn eval_binop_xorb(
+    lhs_val: Value,
+    lhs_span: Span,
+    rhs_val: Value,
+    rhs_span: Span,
+) -> ControlFlow<Reason, Value> {
+    match lhs_val {
+        Value::BigInt(val) => {
+            let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::BigInt(val ^ rhs))
+        }
+        Value::Int(val) => {
+            let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::Int(val ^ rhs))
+        }
+        _ => ControlFlow::Break(Reason::Error(Error::Type(
+            "BigInt or Int",
+            lhs_val.type_name(),
+            lhs_span,
+        ))),
     }
 }

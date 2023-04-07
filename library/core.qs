@@ -17,4 +17,8 @@ namespace Microsoft.Quantum.Core {
         body intrinsic;
     }
 
+    function AsString<'T>(v : 'T) : String {
+        body intrinsic;
+    }
+
 }

@@ -38,9 +38,15 @@ pub(crate) enum TokenKind {
     Ident,
     Number(Number),
     Single(Single),
-    String,
+    String(Terminator),
     Unknown,
     Whitespace,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(crate) enum Terminator {
+    Quote,
+    Eof,
 }
 
 impl Display for TokenKind {
@@ -52,7 +58,7 @@ impl Display for TokenKind {
             TokenKind::Number(Number::Float) => f.write_str("float"),
             TokenKind::Number(Number::Int(_)) => f.write_str("integer"),
             TokenKind::Single(single) => write!(f, "`{single}`"),
-            TokenKind::String => f.write_str("string"),
+            TokenKind::String(_) => f.write_str("string"),
             TokenKind::Unknown => f.write_str("unknown"),
             TokenKind::Whitespace => f.write_str("whitespace"),
         }
@@ -231,6 +237,8 @@ impl<'a> Lexer<'a> {
         self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
         if self.next_if_eq('L') {
             Some(Number::BigInt(radix))
+        } else if radix == Radix::Decimal && self.float() {
+            Some(Number::Float)
         } else {
             Some(Number::Int(radix))
         }
@@ -243,18 +251,24 @@ impl<'a> Lexer<'a> {
 
         self.eat_while(|c| c == '_' || c.is_ascii_digit());
 
-        // Watch out for ranges: `0..` should be an integer followed by two dots.
-        if self.first() == Some('.') && self.second() != Some('.') {
-            self.chars.next();
-            self.eat_while(|c| c == '_' || c.is_ascii_digit());
-            self.exp();
-            Some(Number::Float)
-        } else if self.exp() {
+        if self.float() {
             Some(Number::Float)
         } else if self.next_if_eq('L') {
             Some(Number::BigInt(Radix::Decimal))
         } else {
             Some(Number::Int(Radix::Decimal))
+        }
+    }
+
+    fn float(&mut self) -> bool {
+        // Watch out for ranges: `0..` should be an integer followed by two dots.
+        if self.first() == Some('.') && self.second() != Some('.') {
+            self.chars.next();
+            self.eat_while(|c| c == '_' || c.is_ascii_digit());
+            self.exp();
+            true
+        } else {
+            self.exp()
         }
     }
 
@@ -268,19 +282,24 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn string(&mut self, c: char) -> bool {
+    fn string(&mut self, c: char) -> Option<TokenKind> {
         if c != '"' {
-            return false;
+            return None;
         }
 
-        while !self.next_if_eq('"') {
+        while self.first().is_some() && self.first() != Some('"') {
             self.eat_while(|c| c != '\\' && c != '"');
             if self.next_if_eq('\\') {
                 self.next_if_eq('"');
             }
         }
 
-        true
+        let terminator = if self.next_if_eq('"') {
+            Terminator::Quote
+        } else {
+            Terminator::Eof
+        };
+        Some(TokenKind::String(terminator))
     }
 }
 
@@ -295,12 +314,11 @@ impl Iterator for Lexer<'_> {
             TokenKind::Whitespace
         } else if self.ident(c) {
             TokenKind::Ident
-        } else if self.string(c) {
-            TokenKind::String
         } else {
             self.number(c)
                 .map(TokenKind::Number)
                 .or_else(|| single(c).map(TokenKind::Single))
+                .or_else(|| self.string(c))
                 .unwrap_or(TokenKind::Unknown)
         };
         Some(Token { kind, offset })
