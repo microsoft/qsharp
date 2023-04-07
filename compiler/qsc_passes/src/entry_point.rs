@@ -77,7 +77,7 @@ impl<'a, 'b> Visitor<'b> for EntrypointVisitor<'a, 'b> {
                 .meta
                 .attrs
                 .iter()
-                .any(|attr| attr.name.name.name == "EntryPoint")
+                .any(|attr| attr.name.name == "EntryPoint")
             {
                 self.entry_points.push(decl);
             }
