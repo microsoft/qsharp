@@ -810,6 +810,16 @@ fn binop_exp_bigint() {
 }
 
 #[test]
+fn binop_exp_bigint_zero_exp() {
+    check_expr("", "2L^0", &expect!["1"]);
+}
+
+#[test]
+fn binop_exp_bigint_neg_zero_exp() {
+    check_expr("", "(-2L)^0", &expect!["1"]);
+}
+
+#[test]
 fn binop_exp_bigint_negative_exp() {
     check_expr(
         "",
@@ -856,6 +866,16 @@ fn binop_exp_double_negative_exp() {
 #[test]
 fn binop_exp_int() {
     check_expr("", "2^3", &expect!["8"]);
+}
+
+#[test]
+fn binop_exp_int_zero_exp() {
+    check_expr("", "2^0", &expect!["1"]);
+}
+
+#[test]
+fn binop_exp_int_neg_zero_exp() {
+    check_expr("", "(-2)^0", &expect!["1"]);
 }
 
 #[test]
