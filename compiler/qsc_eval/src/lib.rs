@@ -1191,7 +1191,7 @@ fn eval_binop_exp(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            if rhs_val <= 0 {
+            if rhs_val < 0 {
                 ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
@@ -1208,7 +1208,7 @@ fn eval_binop_exp(
         )),
         Value::Int(val) => {
             let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            if rhs_val <= 0 {
+            if rhs_val < 0 {
                 ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
