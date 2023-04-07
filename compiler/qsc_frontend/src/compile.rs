@@ -197,6 +197,7 @@ pub fn std() -> CompileUnit {
             include_str!("../../../library/arithmetic.qs"),
             include_str!("../../../library/arrays.qs"),
             include_str!("../../../library/canon.qs"),
+            include_str!("../../../library/characterization.qs"),
             include_str!("../../../library/convert.qs"),
             include_str!("../../../library/core.qs"),
             include_str!("../../../library/diagnostics.qs"),
