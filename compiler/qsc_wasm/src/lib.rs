@@ -240,17 +240,6 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
         result.push(err.into());
     }
 
-    if unit.context.errors().is_empty() {
-        match qsc_passes::entry_point::extract_entry(&unit.package) {
-            Ok(..) => {}
-            Err(errors) => {
-                for err in &errors {
-                    result.push(err.into());
-                }
-            }
-        }
-    }
-
     result
 }
 
