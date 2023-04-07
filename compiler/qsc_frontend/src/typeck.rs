@@ -201,7 +201,9 @@ impl Visitor<'_> for Checker<'_> {
                         actual: block_output,
                     },
                 );
-                self.tys.extend(inferrer.solve());
+                let (tys, errors) = inferrer.solve();
+                self.tys.extend(tys);
+                self.errors.extend(errors);
             }
             CallableBody::Specs(specs) => {
                 for spec in specs {
@@ -220,7 +222,9 @@ impl Visitor<'_> for Checker<'_> {
                                     actual: block_output,
                                 },
                             );
-                            self.tys.extend(inferrer.solve());
+                            let (tys, errors) = inferrer.solve();
+                            self.tys.extend(tys);
+                            self.errors.extend(errors);
                         }
                     }
                 }
@@ -1027,11 +1031,12 @@ impl<'a> Inferrer<'a> {
         self.constraints.push(Constraint { span, kind });
     }
 
-    fn solve(self) -> Tys {
+    fn solve(self) -> (Tys, Vec<Error>) {
         let mut substs = HashMap::new();
         let mut pending_classes: HashMap<_, Vec<_>> = HashMap::new();
         let mut constraints = self.constraints;
         let mut new_constraints = Vec::new();
+        let mut errors = Vec::new();
 
         loop {
             for constraint in constraints {
@@ -1059,10 +1064,10 @@ impl<'a> Inferrer<'a> {
                         let ty2 = substitute(&substs, actual);
                         let new_substs = match unify(&ty1, &ty2) {
                             Ok(new_substs) => new_substs,
-                            Err(UnifyError(ty1, ty2)) => panic!(
-                                "types do not unify at {:?}: {ty1:?} and {ty2:?}",
-                                constraint.span,
-                            ),
+                            Err(UnifyError(ty1, ty2)) => {
+                                errors.push(Error::CannotUnify(ty1, ty2, constraint.span));
+                                Vec::new()
+                            }
                         };
 
                         for (var, _) in &new_substs {
@@ -1088,10 +1093,12 @@ impl<'a> Inferrer<'a> {
             constraints = mem::take(&mut new_constraints);
         }
 
-        self.tys
+        let tys = self
+            .tys
             .into_iter()
             .map(|(id, ty)| (id, substitute(&substs, ty)))
-            .collect()
+            .collect();
+        (tys, errors)
     }
 }
 
@@ -1115,6 +1122,7 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
             Ok(substs)
         }
         (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
+        (Ty::Err, _) | (_, Ty::Err) => Ok(Vec::new()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
             let mut substs = Vec::new();
