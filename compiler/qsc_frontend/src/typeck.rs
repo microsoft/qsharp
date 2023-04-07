@@ -29,7 +29,6 @@ pub enum Ty {
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     DefId(DefId),
     Err,
-    Never(Box<Ty>),
     Param(String),
     Prim(TyPrim),
     Tuple(Vec<Ty>),
@@ -77,7 +76,6 @@ impl Display for Ty {
                 node,
             }) => write!(f, "Def<{package}, {node}>"),
             Ty::Err => f.write_str("Err"),
-            Ty::Never(_) => f.write_str("!"),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => prim.fmt(f),
             Ty::Tuple(items) => {
@@ -106,6 +104,59 @@ pub struct Var(u32);
 impl Display for Var {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "?{}", self.0)
+    }
+}
+
+enum Fallible<T> {
+    Convergent(T),
+    Divergent(T),
+}
+
+impl<T> Fallible<T> {
+    fn unwrap(self) -> T {
+        match self {
+            Fallible::Convergent(value) | Fallible::Divergent(value) => value,
+        }
+    }
+}
+
+enum Termination {
+    Converges,
+    Diverges,
+}
+
+impl Termination {
+    fn diverges(&self) -> bool {
+        matches!(self, Self::Diverges)
+    }
+
+    fn wrap<T>(&self, value: T) -> Fallible<T> {
+        match self {
+            Self::Converges => Fallible::Convergent(value),
+            Self::Diverges => Fallible::Divergent(value),
+        }
+    }
+}
+
+impl Termination {
+    fn update<T>(&mut self, fallible: Fallible<T>) -> T {
+        match fallible {
+            Fallible::Convergent(value) => value,
+            Fallible::Divergent(value) => {
+                *self = Termination::Diverges;
+                value
+            }
+        }
+    }
+
+    fn update_and<T>(&mut self, f1: Fallible<T>, f2: Fallible<T>) -> (T, T) {
+        match (f1, f2) {
+            (Fallible::Divergent(v1), Fallible::Divergent(v2)) => {
+                *self = Termination::Diverges;
+                (v1, v2)
+            }
+            (f1, f2) => (f1.unwrap(), f2.unwrap()),
+        }
     }
 }
 
@@ -142,7 +193,7 @@ impl Visitor<'_> for Checker<'_> {
                 let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
                 inferrer.infer_pat(&decl.input);
                 let decl_output = inferrer.convert_ty(&decl.output);
-                let block_output = inferrer.infer_block(block);
+                let block_output = inferrer.infer_block(block).unwrap();
                 inferrer.constrain(
                     block.span,
                     ConstraintKind::Eq {
@@ -161,7 +212,7 @@ impl Visitor<'_> for Checker<'_> {
                             inferrer.infer_pat(&decl.input);
                             inferrer.infer_pat(input);
                             let decl_output = inferrer.convert_ty(&decl.output);
-                            let block_output = inferrer.infer_block(block);
+                            let block_output = inferrer.infer_block(block).unwrap();
                             inferrer.constrain(
                                 block.span,
                                 ConstraintKind::Eq {
@@ -376,16 +427,14 @@ impl<'a> Inferrer<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn infer_expr(&mut self, expr: &Expr) -> Ty {
-        let mut divergence = false;
+    fn infer_expr(&mut self, expr: &Expr) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
         let ty = match &expr.kind {
             ExprKind::Array(items) => match items.split_first() {
                 Some((first, rest)) => {
-                    let first_ty = self.infer_expr(first);
-                    divergence = divergence || diverges(&first_ty);
+                    let first_ty = termination.update(self.infer_expr(first));
                     for item in rest {
-                        let item_ty = self.infer_expr(item);
-                        divergence = divergence || diverges(&item_ty);
+                        let item_ty = termination.update(self.infer_expr(item));
                         self.constrain(
                             item.span,
                             ConstraintKind::Eq {
@@ -400,10 +449,8 @@ impl<'a> Inferrer<'a> {
                 None => Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![self.fresh()]),
             },
             ExprKind::ArrayRepeat(item, size) => {
-                let item_ty = self.infer_expr(item);
-                divergence = divergence || diverges(&item_ty);
-                let size_ty = self.infer_expr(size);
-                divergence = divergence || diverges(&size_ty);
+                let item_ty = termination.update(self.infer_expr(item));
+                let size_ty = termination.update(self.infer_expr(size));
                 self.constrain(
                     size.span,
                     ConstraintKind::Eq {
@@ -414,9 +461,8 @@ impl<'a> Inferrer<'a> {
                 Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![item_ty])
             }
             ExprKind::Assign(lhs, rhs) => {
-                let lhs_ty = self.infer_expr(lhs);
-                let rhs_ty = self.infer_expr(rhs);
-                divergence = divergence || diverges(&rhs_ty);
+                let lhs_ty = self.infer_expr(lhs).unwrap();
+                let rhs_ty = termination.update(self.infer_expr(rhs));
                 self.constrain(
                     lhs.span,
                     ConstraintKind::Eq {
@@ -427,30 +473,20 @@ impl<'a> Inferrer<'a> {
                 Ty::Tuple(Vec::new())
             }
             ExprKind::AssignOp(op, lhs, rhs) => {
-                let ty = self.infer_binop(expr.span, *op, lhs, rhs);
-                divergence = divergence || diverges(&ty);
+                termination.update(self.infer_binop(expr.span, *op, lhs, rhs));
                 Ty::Tuple(Vec::new())
             }
             ExprKind::AssignUpdate(container, index, item) => {
-                let ty = self.infer_update(expr.span, container, index, item);
-                divergence = divergence || diverges(&ty);
+                termination.update(self.infer_update(expr.span, container, index, item));
                 Ty::Tuple(Vec::new())
             }
             ExprKind::BinOp(op, lhs, rhs) => {
-                let ty = self.infer_binop(expr.span, *op, lhs, rhs);
-                divergence = divergence || diverges(&ty);
-                ty
+                termination.update(self.infer_binop(expr.span, *op, lhs, rhs))
             }
-            ExprKind::Block(block) => {
-                let ty = self.infer_block(block);
-                divergence = divergence || diverges(&ty);
-                ty
-            }
+            ExprKind::Block(block) => termination.update(self.infer_block(block)),
             ExprKind::Call(callee, input) => {
-                let callee_ty = self.infer_expr(callee);
-                divergence = divergence || diverges(&callee_ty);
-                let input_ty = self.infer_expr(input);
-                divergence = divergence || diverges(&input_ty);
+                let callee_ty = termination.update(self.infer_expr(callee));
+                let input_ty = termination.update(self.infer_expr(input));
                 let output_ty = self.fresh();
                 self.constrain(
                     expr.span,
@@ -463,14 +499,11 @@ impl<'a> Inferrer<'a> {
                 output_ty
             }
             ExprKind::Conjugate(within, apply) => {
-                let within_ty = self.infer_block(within);
-                divergence = divergence || diverges(&within_ty);
-                let apply_ty = self.infer_block(apply);
-                divergence = divergence || diverges(&apply_ty);
-                apply_ty
+                termination.update(self.infer_block(within));
+                termination.update(self.infer_block(apply))
             }
             ExprKind::Fail(message) => {
-                let message_ty = self.infer_expr(message);
+                let message_ty = self.infer_expr(message).unwrap();
                 self.constrain(
                     message.span,
                     ConstraintKind::Eq {
@@ -478,11 +511,11 @@ impl<'a> Inferrer<'a> {
                         actual: message_ty,
                     },
                 );
-                self.diverge()
+                termination = Termination::Diverges;
+                Ty::Err
             }
             ExprKind::Field(record, name) => {
-                let record_ty = self.infer_expr(record);
-                divergence = divergence || diverges(&record_ty);
+                let record_ty = termination.update(self.infer_expr(record));
                 let item_ty = self.fresh();
                 self.constrain(
                     expr.span,
@@ -496,8 +529,7 @@ impl<'a> Inferrer<'a> {
             }
             ExprKind::For(item, container, body) => {
                 let item_ty = self.infer_pat(item);
-                let container_ty = self.infer_expr(container);
-                divergence = divergence || diverges(&container_ty);
+                let container_ty = termination.update(self.infer_expr(container));
                 self.constrain(
                     container.span,
                     ConstraintKind::Class(Class::Iterable {
@@ -506,13 +538,11 @@ impl<'a> Inferrer<'a> {
                     }),
                 );
 
-                let body_ty = self.infer_block(body);
-                divergence = divergence || diverges(&body_ty);
+                termination.update(self.infer_block(body));
                 Ty::Tuple(Vec::new())
             }
             ExprKind::If(cond, if_true, if_false) => {
-                let cond_ty = self.infer_expr(cond);
-                divergence = divergence || diverges(&cond_ty);
+                let cond_ty = termination.update(self.infer_expr(cond));
                 self.constrain(
                     cond.span,
                     ConstraintKind::Eq {
@@ -524,8 +554,10 @@ impl<'a> Inferrer<'a> {
                 let true_ty = self.infer_block(if_true);
                 let false_ty = if_false
                     .as_ref()
-                    .map_or(Ty::Tuple(Vec::new()), |e| self.infer_expr(e));
-                divergence = divergence || diverges(&true_ty) && diverges(&false_ty);
+                    .map_or(Fallible::Convergent(Ty::Tuple(Vec::new())), |e| {
+                        self.infer_expr(e)
+                    });
+                let (true_ty, false_ty) = termination.update_and(true_ty, false_ty);
                 self.constrain(
                     expr.span,
                     ConstraintKind::Eq {
@@ -536,10 +568,8 @@ impl<'a> Inferrer<'a> {
                 true_ty
             }
             ExprKind::Index(container, index) => {
-                let container_ty = self.infer_expr(container);
-                divergence = divergence || diverges(&container_ty);
-                let index_ty = self.infer_expr(index);
-                divergence = divergence || diverges(&index_ty);
+                let container_ty = termination.update(self.infer_expr(container));
+                let index_ty = termination.update(self.infer_expr(index));
                 let item_ty = self.fresh();
                 self.constrain(
                     expr.span,
@@ -553,7 +583,7 @@ impl<'a> Inferrer<'a> {
             }
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
-                let body = self.infer_expr(body);
+                let body = termination.update(self.infer_expr(body));
                 Ty::Arrow(*kind, Box::new(input), Box::new(body), None)
             }
             ExprKind::Lit(Lit::BigInt(_)) => Ty::Prim(TyPrim::BigInt),
@@ -563,11 +593,7 @@ impl<'a> Inferrer<'a> {
             ExprKind::Lit(Lit::Pauli(_)) => Ty::Prim(TyPrim::Pauli),
             ExprKind::Lit(Lit::Result(_)) => Ty::Prim(TyPrim::Result),
             ExprKind::Lit(Lit::String(_)) => Ty::Prim(TyPrim::String),
-            ExprKind::Paren(expr) => {
-                let ty = self.infer_expr(expr);
-                divergence = divergence || diverges(&ty);
-                ty
-            }
+            ExprKind::Paren(expr) => termination.update(self.infer_expr(expr)),
             ExprKind::Path(path) => match self.resolutions.get(&path.id) {
                 None => Ty::Err,
                 Some(id) => {
@@ -585,8 +611,7 @@ impl<'a> Inferrer<'a> {
             },
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
-                    let ty = self.infer_expr(expr);
-                    divergence = divergence || diverges(&ty);
+                    let ty = termination.update(self.infer_expr(expr));
                     self.constrain(
                         expr.span,
                         ConstraintKind::Eq {
@@ -598,11 +623,8 @@ impl<'a> Inferrer<'a> {
                 Ty::Prim(TyPrim::Range)
             }
             ExprKind::Repeat(body, until, fixup) => {
-                let body_ty = self.infer_block(body);
-                divergence = divergence || diverges(&body_ty);
-
-                let until_ty = self.infer_expr(until);
-                divergence = divergence || diverges(&until_ty);
+                termination.update(self.infer_block(body));
+                let until_ty = termination.update(self.infer_expr(until));
                 self.constrain(
                     until.span,
                     ConstraintKind::Eq {
@@ -612,19 +634,18 @@ impl<'a> Inferrer<'a> {
                 );
 
                 if let Some(fixup) = fixup {
-                    let fixup_ty = self.infer_block(fixup);
-                    divergence = divergence || diverges(&fixup_ty);
+                    termination.update(self.infer_block(fixup));
                 }
 
                 Ty::Tuple(Vec::new())
             }
             ExprKind::Return(expr) => {
                 self.infer_expr(expr);
-                self.diverge()
+                termination = Termination::Diverges;
+                Ty::Err
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
-                let cond_ty = self.infer_expr(cond);
-                divergence = divergence || diverges(&cond_ty);
+                let cond_ty = termination.update(self.infer_expr(cond));
                 self.constrain(
                     cond.span,
                     ConstraintKind::Eq {
@@ -635,7 +656,7 @@ impl<'a> Inferrer<'a> {
 
                 let true_ty = self.infer_expr(if_true);
                 let false_ty = self.infer_expr(if_false);
-                divergence = divergence || diverges(&true_ty) && diverges(&false_ty);
+                let (true_ty, false_ty) = termination.update_and(true_ty, false_ty);
                 self.constrain(
                     expr.span,
                     ConstraintKind::Eq {
@@ -646,27 +667,19 @@ impl<'a> Inferrer<'a> {
                 true_ty
             }
             ExprKind::TernOp(TernOp::Update, container, index, item) => {
-                let ty = self.infer_update(expr.span, container, index, item);
-                divergence = divergence || diverges(&ty);
-                ty
+                termination.update(self.infer_update(expr.span, container, index, item))
             }
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 for item in items {
-                    let ty = self.infer_expr(item);
-                    divergence = divergence || diverges(&ty);
+                    let ty = termination.update(self.infer_expr(item));
                     tys.push(ty);
                 }
                 Ty::Tuple(tys)
             }
-            ExprKind::UnOp(op, expr) => {
-                let ty = self.infer_unop(*op, expr);
-                divergence = divergence || diverges(&ty);
-                ty
-            }
+            ExprKind::UnOp(op, expr) => termination.update(self.infer_unop(*op, expr)),
             ExprKind::While(cond, body) => {
-                let cond_ty = self.infer_expr(cond);
-                divergence = divergence || diverges(&cond_ty);
+                let cond_ty = termination.update(self.infer_expr(cond));
                 self.constrain(
                     cond.span,
                     ConstraintKind::Eq {
@@ -675,49 +688,46 @@ impl<'a> Inferrer<'a> {
                     },
                 );
 
-                let body_ty = self.infer_block(body);
-                divergence = divergence || diverges(&body_ty);
+                termination.update(self.infer_block(body));
                 Ty::Tuple(Vec::new())
             }
             ExprKind::Err | ExprKind::Hole => self.fresh(),
         };
 
-        let ty = if divergence { self.diverge() } else { ty };
+        let ty = if termination.diverges() {
+            self.fresh()
+        } else {
+            ty
+        };
         self.tys.insert(expr.id, ty.clone());
-        ty
+        termination.wrap(ty)
     }
 
-    fn infer_block(&mut self, block: &Block) -> Ty {
-        let mut divergence = false;
+    fn infer_block(&mut self, block: &Block) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
         let mut last = None;
         for stmt in &block.stmts {
-            let ty = self.infer_stmt(stmt);
-            divergence = divergence || diverges(&ty);
+            let ty = termination.update(self.infer_stmt(stmt));
             last = Some(ty);
         }
 
-        let ty = if divergence {
-            self.diverge()
+        let ty = if termination.diverges() {
+            self.fresh()
         } else {
             last.unwrap_or(Ty::Tuple(Vec::new()))
         };
         self.tys.insert(block.id, ty.clone());
-        ty
+        termination.wrap(ty)
     }
 
-    fn infer_stmt(&mut self, stmt: &Stmt) -> Ty {
-        let mut divergence = false;
+    fn infer_stmt(&mut self, stmt: &Stmt) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
         let ty = match &stmt.kind {
             StmtKind::Empty => Ty::Tuple(Vec::new()),
-            StmtKind::Expr(expr) => {
-                let ty = self.infer_expr(expr);
-                divergence = divergence || diverges(&ty);
-                ty
-            }
+            StmtKind::Expr(expr) => termination.update(self.infer_expr(expr)),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
-                let expr_ty = self.infer_expr(expr);
-                divergence = divergence || diverges(&expr_ty);
+                let expr_ty = termination.update(self.infer_expr(expr));
                 self.constrain(
                     pat.span,
                     ConstraintKind::Eq {
@@ -729,8 +739,7 @@ impl<'a> Inferrer<'a> {
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 let pat_ty = self.infer_pat(pat);
-                let init_ty = self.infer_qubit_init(init);
-                divergence = divergence || diverges(&init_ty);
+                let init_ty = termination.update(self.infer_qubit_init(init));
                 self.constrain(
                     pat.span,
                     ConstraintKind::Eq {
@@ -740,23 +749,22 @@ impl<'a> Inferrer<'a> {
                 );
                 match block {
                     None => Ty::Tuple(Vec::new()),
-                    Some(block) => {
-                        let ty = self.infer_block(block);
-                        divergence = divergence || diverges(&ty);
-                        ty
-                    }
+                    Some(block) => termination.update(self.infer_block(block)),
                 }
             }
             StmtKind::Semi(expr) => {
-                let ty = self.infer_expr(expr);
-                divergence = divergence || diverges(&ty);
+                termination.update(self.infer_expr(expr));
                 Ty::Tuple(Vec::new())
             }
         };
 
-        let ty = if divergence { self.diverge() } else { ty };
+        let ty = if termination.diverges() {
+            self.fresh()
+        } else {
+            ty
+        };
         self.tys.insert(stmt.id, ty.clone());
-        ty
+        termination.wrap(ty)
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
@@ -783,12 +791,11 @@ impl<'a> Inferrer<'a> {
         ty
     }
 
-    fn infer_qubit_init(&mut self, init: &QubitInit) -> Ty {
-        let mut divergence = false;
+    fn infer_qubit_init(&mut self, init: &QubitInit) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
         let ty = match &init.kind {
             QubitInitKind::Array(length) => {
-                let length_ty = self.infer_expr(length);
-                divergence = divergence || diverges(&length_ty);
+                let length_ty = termination.update(self.infer_expr(length));
                 self.constrain(
                     length.span,
                     ConstraintKind::Eq {
@@ -801,31 +808,30 @@ impl<'a> Inferrer<'a> {
                     vec![Ty::Prim(TyPrim::Qubit)],
                 )
             }
-            QubitInitKind::Paren(inner) => {
-                let ty = self.infer_qubit_init(inner);
-                divergence = divergence || diverges(&ty);
-                ty
-            }
+            QubitInitKind::Paren(inner) => termination.update(self.infer_qubit_init(inner)),
             QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
             QubitInitKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 for item in items {
-                    let ty = self.infer_qubit_init(item);
-                    divergence = divergence || diverges(&ty);
+                    let ty = termination.update(self.infer_qubit_init(item));
                     tys.push(ty);
                 }
                 Ty::Tuple(tys)
             }
         };
 
-        let ty = if divergence { self.diverge() } else { ty };
+        let ty = if termination.diverges() {
+            self.fresh()
+        } else {
+            ty
+        };
         self.tys.insert(init.id, ty.clone());
-        ty
+        termination.wrap(ty)
     }
 
-    fn infer_unop(&mut self, op: UnOp, expr: &Expr) -> Ty {
-        let operand_ty = self.infer_expr(expr);
-        let divergence = diverges(&operand_ty);
+    fn infer_unop(&mut self, op: UnOp, expr: &Expr) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
+        let operand_ty = termination.update(self.infer_expr(expr));
         let ty = match op {
             UnOp::Functor(Functor::Adj) => {
                 self.constrain(
@@ -865,17 +871,17 @@ impl<'a> Inferrer<'a> {
             UnOp::Unwrap => todo!("user-defined types not supported"),
         };
 
-        if divergence {
-            self.diverge()
+        termination.wrap(if termination.diverges() {
+            self.fresh()
         } else {
             ty
-        }
+        })
     }
 
-    fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Ty {
-        let lhs_ty = self.infer_expr(lhs);
-        let rhs_ty = self.infer_expr(rhs);
-        let divergence = diverges(&lhs_ty) || diverges(&rhs_ty);
+    fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
+        let lhs_ty = termination.update(self.infer_expr(lhs));
+        let rhs_ty = termination.update(self.infer_expr(rhs));
         self.constrain(
             span,
             ConstraintKind::Eq {
@@ -922,18 +928,24 @@ impl<'a> Inferrer<'a> {
             }
         };
 
-        if divergence {
-            self.diverge()
+        termination.wrap(if termination.diverges() {
+            self.fresh()
         } else {
             ty
-        }
+        })
     }
 
-    fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Ty {
-        let container_ty = self.infer_expr(container);
-        let index_ty = self.infer_expr(index);
-        let item_ty = self.infer_expr(item);
-        let divergence = diverges(&container_ty) || diverges(&index_ty) || diverges(&item_ty);
+    fn infer_update(
+        &mut self,
+        span: Span,
+        container: &Expr,
+        index: &Expr,
+        item: &Expr,
+    ) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
+        let container_ty = termination.update(self.infer_expr(container));
+        let index_ty = termination.update(self.infer_expr(index));
+        let item_ty = termination.update(self.infer_expr(item));
         self.constrain(
             span,
             ConstraintKind::Class(Class::HasIndex {
@@ -943,23 +955,17 @@ impl<'a> Inferrer<'a> {
             }),
         );
 
-        if divergence {
-            self.diverge()
+        termination.wrap(if termination.diverges() {
+            self.fresh()
         } else {
             container_ty
-        }
+        })
     }
 
     fn fresh(&mut self) -> Ty {
         let var = self.next_var;
         self.next_var += 1;
         Ty::Var(Var(var))
-    }
-
-    fn diverge(&mut self) -> Ty {
-        // let var = self.next_var;
-        // self.next_var += 1;
-        Ty::Never(Box::new(self.fresh()))
     }
 
     fn instantiate(&mut self, ty: &Ty) -> Ty {
@@ -977,7 +983,6 @@ impl<'a> Inferrer<'a> {
                 ),
                 &Ty::DefId(id) => Ty::DefId(id),
                 Ty::Err => Ty::Err,
-                Ty::Never(inner) => Ty::Never(Box::new(go(fresh, vars, inner))),
                 Ty::Param(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
                 &Ty::Prim(prim) => Ty::Prim(prim),
                 Ty::Tuple(items) => {
@@ -1110,8 +1115,6 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
             Ok(substs)
         }
         (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
-        (Ty::Never(inner), _) => unify(inner, ty2),
-        (_, Ty::Never(inner)) => unify(ty1, inner),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
             let mut substs = Vec::new();
@@ -1265,7 +1268,6 @@ fn substitute(substs: &HashMap<Var, Ty>, ty: Ty) -> Ty {
         ),
         Ty::DefId(id) => Ty::DefId(id),
         Ty::Err => Ty::Err,
-        Ty::Never(var) => Ty::Never(Box::new(substitute(substs, *var))),
         Ty::Param(name) => Ty::Param(name),
         Ty::Prim(prim) => Ty::Prim(prim),
         Ty::Tuple(items) => Ty::Tuple(
@@ -1380,8 +1382,4 @@ fn try_pat_ty(resolutions: &Resolutions, pat: &Pat) -> (Ty, Vec<MissingTyError>)
             (Ty::Tuple(new_items), errors)
         }
     }
-}
-
-fn diverges(ty: &Ty) -> bool {
-    matches!(*ty, Ty::Never(_))
 }
