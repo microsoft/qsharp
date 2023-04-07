@@ -278,18 +278,15 @@ pub fn init() {
 pub struct Env(Vec<Scope>);
 
 #[derive(Default)]
-pub struct Scope {
+struct Scope {
     bindings: HashMap<GlobalId, Variable>,
     qubits: Vec<*mut c_void>,
 }
 
 impl Env {
     #[must_use]
-    pub fn empty() -> Self {
-        Self(vec![Scope {
-            bindings: HashMap::new(),
-            qubits: vec![],
-        }])
+    pub fn new_with_empty_scope() -> Self {
+        Self(vec![Scope::default()])
     }
 }
 
