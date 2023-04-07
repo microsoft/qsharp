@@ -782,3 +782,20 @@ fn unknown_intrinsic() {
         "#]],
     );
 }
+
+#[test]
+fn qubit_nested_bind_not_released() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            {
+                let temp = q;
+                H(temp);
+            }
+            H(q);
+            (q, Microsoft.Quantum.Diagnostics.CheckZero(q))
+        }"},
+        &expect!["(Qubit0, true)"],
+    );
+}
