@@ -68,6 +68,14 @@ impl Index<Span> for str {
     }
 }
 
+impl Index<&Span> for str {
+    type Output = str;
+
+    fn index(&self, index: &Span) -> &Self::Output {
+        &self[index.lo..index.hi]
+    }
+}
+
 impl Index<Span> for String {
     type Output = str;
 
