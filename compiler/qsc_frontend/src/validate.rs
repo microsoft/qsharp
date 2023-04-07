@@ -21,9 +21,6 @@ pub(super) enum Error {
     #[error("callable specialization pattern requires elided tuple `(ident, ...)`")]
     ElidedTupleRequired(#[label("should be `(ident, ...)`")] Span),
 
-    #[error("callable parameter `{0}` must be type annotated")]
-    ParameterNotTyped(String, #[label("missing type annotation")] Span),
-
     #[error("adjointable/controllable operation `{0}` must return Unit")]
     NonUnitReturn(String, #[label("must return Unit")] Span),
 
@@ -43,22 +40,6 @@ struct Validator {
     validation_errors: Vec<Error>,
 }
 
-impl Validator {
-    fn validate_params(&mut self, params: &Pat) {
-        match &params.kind {
-            PatKind::Bind(id, None) => {
-                self.validation_errors
-                    .push(Error::ParameterNotTyped(id.name.clone(), params.span));
-            }
-            PatKind::Paren(item) => self.validate_params(item),
-            PatKind::Tuple(items) => {
-                items.iter().for_each(|i| self.validate_params(i));
-            }
-            _ => {}
-        }
-    }
-}
-
 impl<'a> Visitor<'a> for Validator {
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         if CallableKind::Operation == decl.kind && decl.functors.is_some() {
@@ -73,7 +54,6 @@ impl<'a> Visitor<'a> for Validator {
             }
         }
 
-        self.validate_params(&decl.input);
         walk_callable_decl(self, decl);
     }
 

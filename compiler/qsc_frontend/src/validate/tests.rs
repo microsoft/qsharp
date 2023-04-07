@@ -24,56 +24,6 @@ fn validate(ns: &Namespace) -> Vec<Error> {
 }
 
 #[test]
-fn test_untyped_params() {
-    check(
-        "namespace input { operation Foo(a, b, c) : Unit {} }",
-        &expect![[r#"
-            [
-                ParameterNotTyped(
-                    "a",
-                    Span {
-                        lo: 32,
-                        hi: 33,
-                    },
-                ),
-                ParameterNotTyped(
-                    "b",
-                    Span {
-                        lo: 35,
-                        hi: 36,
-                    },
-                ),
-                ParameterNotTyped(
-                    "c",
-                    Span {
-                        lo: 38,
-                        hi: 39,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_untyped_nested_params() {
-    check(
-        "namespace input { operation Foo(a : Int, (b : Int, c), d : Int) : Unit {} }",
-        &expect![[r#"
-            [
-                ParameterNotTyped(
-                    "c",
-                    Span {
-                        lo: 51,
-                        hi: 52,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn test_adj_return_int() {
     check(
         "namespace input { operation Foo() : Int is Adj {} }",

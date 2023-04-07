@@ -181,7 +181,7 @@ export interface IDiagnostic {
 }
 "#;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
@@ -369,12 +369,12 @@ mod test {
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
         let diag = crate::check_code_internal(code);
-        assert_eq!(diag.len(), 1);
+        assert_eq!(diag.len(), 1, "{diag:#?}");
         let err = diag.first().unwrap();
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert!(err.message.starts_with("callable parameter"));
+        assert_eq!(err.message, "missing type in item signature");
     }
 
     #[test]
