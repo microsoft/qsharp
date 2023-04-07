@@ -624,7 +624,7 @@ pub struct Block {
 impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if self.stmts.is_empty() {
-            write!(f, "Block {} {}: <none>", self.id, self.span)?;
+            write!(f, "Block {} {}: <empty>", self.id, self.span)?;
         } else {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Block {} {}:", self.id, self.span)?;
