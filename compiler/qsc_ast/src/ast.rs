@@ -199,9 +199,7 @@ impl Display for Item {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
         indent = set_indentation(indent, 1);
-        if self.meta.attrs.is_empty() && self.meta.visibility.is_none() {
-            write!(indent, "\nmeta: <none>")?;
-        } else {
+        if !self.meta.attrs.is_empty() || self.meta.visibility.is_some() {
             write!(indent, "\nmeta:")?;
             indent = set_indentation(indent, 2);
             write!(indent, "{}", self.meta)?;
@@ -396,9 +394,7 @@ impl Display for CallableDecl {
         )?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
-        if self.ty_params.is_empty() {
-            write!(indent, "\ntype params: <none>")?;
-        } else {
+        if !self.ty_params.is_empty() {
             write!(indent, "\ntype params:")?;
             indent = set_indentation(indent, 2);
             for t in &self.ty_params {
@@ -519,18 +515,11 @@ pub enum FunctorExprKind {
 }
 impl Display for FunctorExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
         match self {
-            FunctorExprKind::BinOp(op, l, r) => {
-                write!(indent, "BinOp ({op:?})")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{l}")?;
-                write!(indent, "\n{r}")?;
-            }
-            FunctorExprKind::Lit(f) => write!(indent, "{f:?}")?,
-            FunctorExprKind::Paren(f) => write!(indent, "Paren: {f}")?,
+            FunctorExprKind::BinOp(op, l, r) => write!(f, "BinOp {op:?}: ({l}) ({r})"),
+            FunctorExprKind::Lit(func) => write!(f, "{func:?}"),
+            FunctorExprKind::Paren(func) => write!(f, "Paren: {func}"),
         }
-        Ok(())
     }
 }
 
@@ -1029,10 +1018,14 @@ fn display_tern_op(
 }
 
 fn display_tuple(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Result {
-    write!(indent, "Tuple:")?;
-    indent = set_indentation(indent, 1);
-    for e in exprs {
-        write!(indent, "\n{e}")?;
+    if exprs.is_empty() {
+        write!(indent, "Unit")?;
+    } else {
+        write!(indent, "Tuple:")?;
+        indent = set_indentation(indent, 1);
+        for e in exprs {
+            write!(indent, "\n{e}")?;
+        }
     }
     Ok(())
 }
@@ -1111,10 +1104,14 @@ impl Display for PatKind {
                 write!(indent, "\n{p}")?;
             }
             PatKind::Tuple(ps) => {
-                write!(indent, "Tuple:")?;
-                indent = set_indentation(indent, 1);
-                for p in ps {
-                    write!(indent, "\n{p}")?;
+                if ps.is_empty() {
+                    write!(indent, "Unit")?;
+                } else {
+                    write!(indent, "Tuple:")?;
+                    indent = set_indentation(indent, 1);
+                    for p in ps {
+                        write!(indent, "\n{p}")?;
+                    }
                 }
             }
         }
@@ -1168,10 +1165,14 @@ impl Display for QubitInitKind {
             }
             QubitInitKind::Single => write!(indent, "Single")?,
             QubitInitKind::Tuple(qis) => {
-                write!(indent, "Tuple:")?;
-                indent = set_indentation(indent, 1);
-                for qi in qis {
-                    write!(indent, "\n{qi}")?;
+                if qis.is_empty() {
+                    write!(indent, "Unit")?;
+                } else {
+                    write!(indent, "Tuple:")?;
+                    indent = set_indentation(indent, 1);
+                    for qi in qis {
+                        write!(indent, "\n{qi}")?;
+                    }
                 }
             }
         }
