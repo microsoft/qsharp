@@ -29,6 +29,7 @@ use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
     hash::BuildHasher,
+    mem::take,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
 };
@@ -192,27 +193,64 @@ impl Range {
     }
 }
 
-/// Evaluates the given entry statement with the given context.
+/// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn evaluate<'a, S: BuildHasher>(
+pub fn eval_stmt<'a, S: BuildHasher>(
     stmt: &Stmt,
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
     package: PackageId,
-    env: Env,
+    env: &mut Env,
     out: &'a mut dyn Receiver,
-) -> (Result<Value, Error>, Env) {
-    let evaluator = Evaluator {
+) -> Result<Value, Error> {
+    let mut eval = Evaluator {
         store,
         globals,
         resolutions,
         package,
-        env,
+        env: take(env),
         out: Some(out),
     };
-    evaluator.eval_stmt(stmt)
+    let res = match eval.eval_stmt(stmt) {
+        ControlFlow::Continue(res) | ControlFlow::Break(Reason::Return(res)) => Ok(res),
+        ControlFlow::Break(Reason::Error(error)) => Err(error),
+    };
+    *env = take(&mut eval.env);
+    res
+}
+
+/// Evaluates the given expression with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+pub fn eval_expr<'a, S: BuildHasher>(
+    expr: &Expr,
+    store: &'a PackageStore,
+    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
+    resolutions: &'a Resolutions,
+    package: PackageId,
+    env: &mut Env,
+    out: &'a mut dyn Receiver,
+) -> Result<Value, Error> {
+    let mut eval = Evaluator {
+        store,
+        globals,
+        resolutions,
+        package,
+        env: take(env),
+        out: Some(out),
+    };
+    let res = match eval.eval_expr(expr) {
+        ControlFlow::Continue(res) | ControlFlow::Break(Reason::Return(res)) => Ok(res),
+        ControlFlow::Break(Reason::Error(error)) => Err(error),
+    };
+    *env = take(&mut eval.env);
+    res
+}
+
+pub fn init() {
+    __quantum__rt__initialize(null_mut());
 }
 
 #[derive(Default)]
@@ -225,7 +263,7 @@ impl Env {
     }
 }
 
-pub struct Evaluator<'a, S: BuildHasher> {
+struct Evaluator<'a, S: BuildHasher> {
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
     resolutions: &'a Resolutions,
@@ -235,86 +273,19 @@ pub struct Evaluator<'a, S: BuildHasher> {
 }
 
 impl<'a, S: BuildHasher> Evaluator<'a, S> {
-    #[must_use]
-    pub fn new(
-        store: &'a PackageStore,
-        globals: &'a HashMap<GlobalId, &CallableDecl, S>,
-        resolutions: &'a Resolutions,
-        package: PackageId,
-        env: Env,
-        out: &'a mut dyn Receiver,
-    ) -> Self {
-        Self {
-            store,
-            globals,
-            resolutions,
-            package,
-            env,
-            out: Some(out),
-        }
-    }
-
-    #[must_use]
-    pub fn from_store(
-        store: &'a PackageStore,
-        id: PackageId,
-        globals: &'a HashMap<GlobalId, &CallableDecl, S>,
-        out: &'a mut dyn Receiver,
-    ) -> Self {
-        let unit = store
-            .get(id)
-            .expect("compile unit should be in package store");
-        Evaluator {
-            store,
-            globals,
-            resolutions: unit.context.resolutions(),
-            package: id,
-            env: Env::default(),
-            out: Some(out),
-        }
-    }
-
-    pub fn init() {
-        __quantum__rt__initialize(null_mut());
-    }
-
-    /// Evaluates the given statement.
-    /// # Errors
-    /// Returns the first error encountered during execution.
-    pub fn eval_stmt(mut self, stmt: &Stmt) -> (Result<Value, Error>, Env) {
-        match self.eval_stmt_impl(stmt) {
-            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                (Ok(val), self.env)
-            }
-            ControlFlow::Break(Reason::Error(error)) => (Err(error), self.env),
-        }
-    }
-
-    /// Evaluates the given expression.
-    /// # Errors
-    /// Returns the first error encountered during execution.
-    pub fn eval_expr(mut self, expr: &Expr) -> Result<(Value, Env), Error> {
-        match self.eval_expr_impl(expr) {
-            ControlFlow::Continue(val) | ControlFlow::Break(Reason::Return(val)) => {
-                Ok((val, self.env))
-            }
-            ControlFlow::Break(Reason::Error(error)) => Err(error),
-        }
-    }
-
     #[allow(clippy::too_many_lines)]
-    fn eval_expr_impl(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
+    fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
             ExprKind::Array(arr) => {
                 let mut val_arr = vec![];
                 for expr in arr {
-                    val_arr.push(self.eval_expr_impl(expr)?);
+                    val_arr.push(self.eval_expr(expr)?);
                 }
                 ControlFlow::Continue(Value::Array(val_arr))
             }
             ExprKind::ArrayRepeat(item, size) => {
-                let item_val = self.eval_expr_impl(item)?;
-                let size_val: i64 = self.eval_expr_impl(size)?.try_into().with_span(size.span)?;
+                let item_val = self.eval_expr(item)?;
+                let size_val: i64 = self.eval_expr(size)?.try_into().with_span(size.span)?;
                 let s = match size_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => ControlFlow::Break(Reason::Error(Error::Count(size_val, size.span))),
@@ -322,7 +293,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 ControlFlow::Continue(Value::Array(vec![item_val; s]))
             }
             ExprKind::Assign(lhs, rhs) => {
-                let val = self.eval_expr_impl(rhs)?;
+                let val = self.eval_expr(rhs)?;
                 self.update_binding(lhs, val)
             }
             ExprKind::AssignOp(op, lhs, rhs) => {
@@ -337,25 +308,22 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
-                self.eval_expr_impl(msg)?.try_into().with_span(msg.span)?,
+                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
                 expr.span,
             ))),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
-                if self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
+                if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(then)
                 } else if let Some(els) = els {
-                    self.eval_expr_impl(els)
+                    self.eval_expr(els)
                 } else {
                     ControlFlow::Continue(Value::UNIT)
                 }
             }
             ExprKind::Index(arr, index_expr) => {
-                let arr = self
-                    .eval_expr_impl(arr)?
-                    .try_into_array()
-                    .with_span(arr.span)?;
-                let index_val = self.eval_expr_impl(index_expr)?;
+                let arr = self.eval_expr(arr)?.try_into_array().with_span(arr.span)?;
+                let index_val = self.eval_expr(index_expr)?;
                 match &index_val {
                     Value::Int(index) => index_array(&arr, *index, index_expr.span),
                     Value::Range(start, step, end) => {
@@ -369,13 +337,11 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 }
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
-            ExprKind::Paren(expr) => self.eval_expr_impl(expr),
+            ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
-            ExprKind::Return(expr) => {
-                ControlFlow::Break(Reason::Return(self.eval_expr_impl(expr)?))
-            }
+            ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
                 TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
@@ -383,12 +349,12 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
                 for expr in tup {
-                    val_tup.push(self.eval_expr_impl(expr)?);
+                    val_tup.push(self.eval_expr(expr)?);
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
             ExprKind::While(cond, block) => {
-                while self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
+                while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     let _ = self.eval_block(block)?;
                 }
                 ControlFlow::Continue(Value::UNIT)
@@ -420,9 +386,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         end: &Option<Box<Expr>>,
     ) -> ControlFlow<Reason, Value> {
         let mut to_opt_i64 = |e: &Option<Box<Expr>>| match e {
-            Some(expr) => ControlFlow::Continue(Some(
-                self.eval_expr_impl(expr)?.try_into().with_span(expr.span)?,
-            )),
+            Some(expr) => {
+                ControlFlow::Continue(Some(self.eval_expr(expr)?.try_into().with_span(expr.span)?))
+            }
             None => ControlFlow::Continue(None),
         };
         ControlFlow::Continue(Value::Range(
@@ -436,9 +402,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         self.enter_scope();
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
-                let _ = self.eval_stmt_impl(stmt)?;
+                let _ = self.eval_stmt(stmt)?;
             }
-            self.eval_stmt_impl(last)
+            self.eval_stmt(last)
         } else {
             ControlFlow::Continue(Value::UNIT)
         };
@@ -446,17 +412,17 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         result
     }
 
-    fn eval_stmt_impl(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
+    fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
             StmtKind::Empty => ControlFlow::Continue(Value::UNIT),
-            StmtKind::Expr(expr) => self.eval_expr_impl(expr),
+            StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Local(mutability, pat, expr) => {
-                let val = self.eval_expr_impl(expr)?;
+                let val = self.eval_expr(expr)?;
                 self.bind_value(pat, val, expr.span, *mutability)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Semi(expr) => {
-                let _ = self.eval_expr_impl(expr)?;
+                let _ = self.eval_expr(expr)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
@@ -480,7 +446,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         expr: &Expr,
         block: &Block,
     ) -> ControlFlow<Reason, Value> {
-        let iterable = self.eval_expr_impl(expr)?;
+        let iterable = self.eval_expr(expr)?;
         let iterable = match iterable {
             Value::Array(arr) => arr,
             Value::Range(start, step, end) => Range::new(
@@ -521,9 +487,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         self.enter_scope();
 
         for stmt in &repeat.stmts {
-            self.eval_stmt_impl(stmt)?;
+            self.eval_stmt(stmt)?;
         }
-        while !self.eval_expr_impl(cond)?.try_into().with_span(cond.span)? {
+        while !self.eval_expr(cond)?.try_into().with_span(cond.span)? {
             if let Some(block) = fixup.as_ref() {
                 self.eval_block(block)?;
             }
@@ -532,7 +498,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             self.enter_scope();
 
             for stmt in &repeat.stmts {
-                self.eval_stmt_impl(stmt)?;
+                self.eval_stmt(stmt)?;
             }
         }
 
@@ -543,10 +509,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {
         match &qubit_init.kind {
             QubitInitKind::Array(count) => {
-                let count_val: i64 = self
-                    .eval_expr_impl(count)?
-                    .try_into()
-                    .with_span(count.span)?;
+                let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
                 let count: usize = match count_val.try_into() {
                     Ok(i) => ControlFlow::Continue(i),
                     Err(_) => {
@@ -572,11 +535,11 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     }
 
     fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
-        let call_val = self.eval_expr_impl(call)?;
+        let call_val = self.eval_expr(call)?;
         let call_span = call.span;
         let (call, functor) = value_to_call_id(call_val, call.span)?;
 
-        let args_val = self.eval_expr_impl(args)?;
+        let args_val = self.eval_expr(args)?;
 
         let decl = *self
             .globals
@@ -743,7 +706,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     }
 
     fn eval_unop(&mut self, expr: &Expr, op: UnOp, rhs: &Expr) -> ControlFlow<Reason, Value> {
-        let val = self.eval_expr_impl(rhs)?;
+        let val = self.eval_expr(rhs)?;
         match op {
             UnOp::Neg => match val {
                 Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
@@ -800,39 +763,39 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     }
 
     fn eval_binop(&mut self, op: BinOp, lhs: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
-        let lhs_val = self.eval_expr_impl(lhs)?;
+        let lhs_val = self.eval_expr(lhs)?;
         match op {
-            BinOp::Add => eval_binop_add(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::AndB => eval_binop_andb(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Add => eval_binop_add(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::AndB => eval_binop_andb(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
             BinOp::AndL => self.eval_binop_andl(lhs_val.try_into().with_span(lhs.span)?, rhs),
-            BinOp::Div => eval_binop_div(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Eq => eval_binop_eq(&lhs_val, lhs.span, &self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Exp => eval_binop_exp(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Gt => eval_binop_gt(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Gte => eval_binop_gte(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Lt => eval_binop_lt(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Lte => eval_binop_lte(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Mod => eval_binop_mod(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Mul => eval_binop_mul(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Neq => eval_binop_neq(&lhs_val, lhs.span, &self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::OrB => eval_binop_orb(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Div => eval_binop_div(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Eq => eval_binop_eq(&lhs_val, lhs.span, &self.eval_expr(rhs)?, rhs.span),
+            BinOp::Exp => eval_binop_exp(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Gt => eval_binop_gt(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Gte => eval_binop_gte(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Lt => eval_binop_lt(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Lte => eval_binop_lte(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Mod => eval_binop_mod(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Mul => eval_binop_mul(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Neq => eval_binop_neq(&lhs_val, lhs.span, &self.eval_expr(rhs)?, rhs.span),
+            BinOp::OrB => eval_binop_orb(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
             BinOp::OrL => self.eval_binop_orl(lhs_val.try_into().with_span(lhs.span)?, rhs),
-            BinOp::Shl => eval_binop_shl(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Shr => eval_binop_shr(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::Sub => eval_binop_sub(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
-            BinOp::XorB => eval_binop_xorb(lhs_val, lhs.span, self.eval_expr_impl(rhs)?, rhs.span),
+            BinOp::Shl => eval_binop_shl(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Shr => eval_binop_shr(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::Sub => eval_binop_sub(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
+            BinOp::XorB => eval_binop_xorb(lhs_val, lhs.span, self.eval_expr(rhs)?, rhs.span),
         }
     }
 
     fn eval_binop_andl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
         ControlFlow::Continue(Value::Bool(
-            lhs && self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
+            lhs && self.eval_expr(rhs)?.try_into().with_span(rhs.span)?,
         ))
     }
 
     fn eval_binop_orl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
         ControlFlow::Continue(Value::Bool(
-            lhs || self.eval_expr_impl(rhs)?.try_into().with_span(rhs.span)?,
+            lhs || self.eval_expr(rhs)?.try_into().with_span(rhs.span)?,
         ))
     }
 
@@ -842,10 +805,10 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         mid: &Expr,
         rhs: &Expr,
     ) -> ControlFlow<Reason, Value> {
-        if self.eval_expr_impl(lhs)?.try_into().with_span(lhs.span)? {
-            self.eval_expr_impl(mid)
+        if self.eval_expr(lhs)?.try_into().with_span(lhs.span)? {
+            self.eval_expr(mid)
         } else {
-            self.eval_expr_impl(rhs)
+            self.eval_expr(rhs)
         }
     }
 
@@ -855,17 +818,14 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         mid: &Expr,
         rhs: &Expr,
     ) -> ControlFlow<Reason, Value> {
-        let mut arr = self
-            .eval_expr_impl(lhs)?
-            .try_into_array()
-            .with_span(lhs.span)?;
-        let index: i64 = self.eval_expr_impl(mid)?.try_into().with_span(mid.span)?;
+        let mut arr = self.eval_expr(lhs)?.try_into_array().with_span(lhs.span)?;
+        let index: i64 = self.eval_expr(mid)?.try_into().with_span(mid.span)?;
         if index < 0 {
             ControlFlow::Break(Reason::Error(Error::Negative(index, mid.span)))
         } else {
             match arr.get_mut(index.as_index(mid.span)?) {
                 Some(v) => {
-                    *v = self.eval_expr_impl(rhs)?;
+                    *v = self.eval_expr(rhs)?;
                     ControlFlow::Continue(Value::Array(arr))
                 }
                 None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, mid.span))),
