@@ -241,3 +241,70 @@ fn test_elided_tuple_required() {
         "#]],
     );
 }
+
+#[test]
+fn test_entrypoint_attr_allowed() {
+    check(
+        indoc! {"
+            namespace input {
+                @EntryPoint()
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn test_entrypoint_attr_wrong_args() {
+    check(
+        indoc! {r#"
+            namespace input {
+                @EntryPoint("Bar")
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidAttrArgs(
+                    "()",
+                    Span {
+                        lo: 33,
+                        hi: 40,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_unrecognized_attr() {
+    check(
+        indoc! {"
+            namespace input {
+                @Bar()
+                operation Foo() : Unit {
+                    body ... {}
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                UnrecognizedAttr(
+                    "Bar",
+                    Span {
+                        lo: 22,
+                        hi: 28,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

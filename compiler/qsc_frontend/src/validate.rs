@@ -6,10 +6,10 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
-        CallableDecl, CallableKind, Expr, ExprKind, Package, Pat, PatKind, Span, Spec, SpecBody,
-        SpecDecl, Ty, TyKind,
+        Attr, CallableDecl, CallableKind, Expr, ExprKind, Item, Package, Pat, PatKind, Span, Spec,
+        SpecBody, SpecDecl, Ty, TyKind,
     },
-    visit::{walk_callable_decl, walk_expr, walk_ty, Visitor},
+    visit::{walk_callable_decl, walk_expr, walk_item, walk_ty, Visitor},
 };
 use thiserror::Error;
 
@@ -21,6 +21,9 @@ pub(super) enum Error {
     #[error("callable specialization pattern requires elided tuple `(ident, ...)`")]
     ElidedTupleRequired(#[label("should be `(ident, ...)`")] Span),
 
+    #[error("invalid attribute arguments, expected {0}")]
+    InvalidAttrArgs(&'static str, #[label("invalid attribute arguments")] Span),
+
     #[error("callable parameter `{0}` must be type annotated")]
     ParameterNotTyped(String, #[label("missing type annotation")] Span),
 
@@ -29,6 +32,10 @@ pub(super) enum Error {
 
     #[error("{0} are not currently supported")]
     NotCurrentlySupported(&'static str, #[label("not currently supported")] Span),
+
+    #[error("unrecognized attribute {0}")]
+    #[diagnostic(help("supported attributes are: `EntryPoint`"))]
+    UnrecognizedAttr(String, #[label("unrecognized attribute")] Span),
 }
 
 pub(super) fn validate(package: &Package) -> Vec<Error> {
@@ -57,9 +64,30 @@ impl Validator {
             _ => {}
         }
     }
+
+    fn validate_attrs(&mut self, attrs: &[Attr]) {
+        for attr in attrs {
+            match attr.name.name.as_str() {
+                "EntryPoint" => match &attr.arg.kind {
+                    ExprKind::Tuple(args) if args.is_empty() => {}
+                    _ => self
+                        .validation_errors
+                        .push(Error::InvalidAttrArgs("()", attr.arg.span)),
+                },
+                _ => self
+                    .validation_errors
+                    .push(Error::UnrecognizedAttr(attr.name.name.clone(), attr.span)),
+            }
+        }
+    }
 }
 
 impl<'a> Visitor<'a> for Validator {
+    fn visit_item(&mut self, item: &'a Item) {
+        self.validate_attrs(&item.meta.attrs);
+        walk_item(self, item);
+    }
+
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         if CallableKind::Operation == decl.kind && decl.functors.is_some() {
             match &decl.output.kind {
