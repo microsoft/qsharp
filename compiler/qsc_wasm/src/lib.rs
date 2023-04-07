@@ -5,7 +5,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use once_cell::sync::OnceCell;
 use qsc_eval::output::Receiver;
-use qsc_eval::{output, Error, Evaluator};
+use qsc_eval::{eval_expr, output, Env, Error};
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
 use qsc_passes::globals::extract_callables;
 
@@ -173,7 +173,7 @@ export interface IDiagnostic {
     end_pos: number;
     message: string;
     severity: number; // [0, 1, 2] = [error, warning, info]
-    code?: { 
+    code?: {
         value: number;  // Can also be a string, but number would be preferable
         target: string; // URI for more info - could be a custom URI for pretty errors
     }
@@ -307,18 +307,28 @@ where
     let unit = compile(&store, [std], [code], expr);
     // TODO: Fail here with diagnostics if compile failed
 
-    let user = store.insert(unit);
-    let unit = store.get(user).expect("Fail");
+    let id = store.insert(unit);
+    let unit = store.get(id).expect("Fail");
     if let Some(expr) = &unit.package.entry {
         let globals = extract_callables(&store);
         let mut out = CallbackReceiver { event_cb };
         for _ in 0..shots {
-            let evaluator = Evaluator::from_store(&store, user, &globals, &mut out);
-            Evaluator::init();
+            qsc_eval::init();
             let mut success = true;
             let result: String;
-            match &evaluator.eval_expr(expr) {
-                Ok((val, _)) => {
+            let resolutions = store
+                .get_resolutions(id)
+                .expect("package should be present in store");
+            match &eval_expr(
+                expr,
+                &store,
+                &globals,
+                resolutions,
+                id,
+                &mut Env::default(),
+                &mut out,
+            ) {
+                Ok(val) => {
                     result = format!(r#""{}""#, val);
                 }
                 Err(e) => {
