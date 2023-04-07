@@ -61,7 +61,11 @@ impl Default for NodeId {
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        self.0.fmt(f)
+        if self.0 == Self::PLACEHOLDER.0 {
+            write!(f, "_id_")
+        } else {
+            self.0.fmt(f)
+        }
     }
 }
 

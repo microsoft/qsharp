@@ -10,7 +10,7 @@ fn body_intrinsic() {
     check(
         spec_decl,
         "body intrinsic;",
-        &expect!["SpecDecl 4294967295 [0-15] (Body): Gen: Intrinsic"],
+        &expect!["SpecDecl _id_ [0-15] (Body): Gen: Intrinsic"],
     );
 }
 
@@ -19,7 +19,7 @@ fn adjoint_self() {
     check(
         spec_decl,
         "adjoint self;",
-        &expect!["SpecDecl 4294967295 [0-13] (Adj): Gen: Slf"],
+        &expect!["SpecDecl _id_ [0-13] (Adj): Gen: Slf"],
     );
 }
 
@@ -28,7 +28,7 @@ fn adjoint_invert() {
     check(
         spec_decl,
         "adjoint invert;",
-        &expect!["SpecDecl 4294967295 [0-15] (Adj): Gen: Invert"],
+        &expect!["SpecDecl _id_ [0-15] (Adj): Gen: Invert"],
     );
 }
 
@@ -37,7 +37,7 @@ fn controlled_distribute() {
     check(
         spec_decl,
         "controlled distribute;",
-        &expect!["SpecDecl 4294967295 [0-22] (Ctl): Gen: Distribute"],
+        &expect!["SpecDecl _id_ [0-22] (Ctl): Gen: Distribute"],
     );
 }
 
@@ -46,7 +46,7 @@ fn controlled_adjoint_auto() {
     check(
         spec_decl,
         "controlled adjoint auto;",
-        &expect!["SpecDecl 4294967295 [0-24] (CtlAdj): Gen: Auto"],
+        &expect!["SpecDecl _id_ [0-24] (CtlAdj): Gen: Auto"],
     );
 }
 
@@ -98,8 +98,8 @@ fn open_no_alias() {
         item,
         "open Foo.Bar.Baz;",
         &expect![[r#"
-            Item 4294967295 [0-17]:
-                Open (Ident 4294967295 [5-16] "Foo.Bar.Baz")"#]],
+            Item _id_ [0-17]:
+                Open (Ident _id_ [5-16] "Foo.Bar.Baz")"#]],
     );
 }
 
@@ -109,8 +109,8 @@ fn open_alias() {
         item,
         "open Foo.Bar.Baz as Baz;",
         &expect![[r#"
-            Item 4294967295 [0-24]:
-                Open (Ident 4294967295 [5-16] "Foo.Bar.Baz") (Ident 4294967295 [20-23] "Baz")"#]],
+            Item _id_ [0-24]:
+                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-23] "Baz")"#]],
     );
 }
 
@@ -120,8 +120,8 @@ fn open_alias_dot() {
         item,
         "open Foo.Bar.Baz as Bar.Baz;",
         &expect![[r#"
-            Item 4294967295 [0-28]:
-                Open (Ident 4294967295 [5-16] "Foo.Bar.Baz") (Ident 4294967295 [20-27] "Bar.Baz")"#]],
+            Item _id_ [0-28]:
+                Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-27] "Bar.Baz")"#]],
     );
 }
 
@@ -131,9 +131,9 @@ fn ty_decl() {
         item,
         "newtype Foo = Unit;",
         &expect![[r#"
-            Item 4294967295 [0-19]:
-                New Type (Ident 4294967295 [8-11] "Foo"): TyDef 4294967295 [14-18]: Field:
-                    Type 4294967295 [14-18]: Unit"#]],
+            Item _id_ [0-19]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-18]: Field:
+                    Type _id_ [14-18]: Unit"#]],
     );
 }
 
@@ -143,10 +143,10 @@ fn ty_decl_field_name() {
         item,
         "newtype Foo = Bar : Int;",
         &expect![[r#"
-            Item 4294967295 [0-24]:
-                New Type (Ident 4294967295 [8-11] "Foo"): TyDef 4294967295 [14-23]: Field:
-                    Ident 4294967295 [14-17] "Bar"
-                    Type 4294967295 [20-23]: Prim (Int)"#]],
+            Item _id_ [0-24]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-23]: Field:
+                    Ident _id_ [14-17] "Bar"
+                    Type _id_ [20-23]: Prim (Int)"#]],
     );
 }
 
@@ -176,12 +176,12 @@ fn ty_def_tuple() {
         item,
         "newtype Foo = (Int, Int);",
         &expect![[r#"
-            Item 4294967295 [0-25]:
-                New Type (Ident 4294967295 [8-11] "Foo"): TyDef 4294967295 [14-24]: Tuple:
-                    TyDef 4294967295 [15-18]: Field:
-                        Type 4294967295 [15-18]: Prim (Int)
-                    TyDef 4294967295 [20-23]: Field:
-                        Type 4294967295 [20-23]: Prim (Int)"#]],
+            Item _id_ [0-25]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-24]: Tuple:
+                    TyDef _id_ [15-18]: Field:
+                        Type _id_ [15-18]: Prim (Int)
+                    TyDef _id_ [20-23]: Field:
+                        Type _id_ [20-23]: Prim (Int)"#]],
     );
 }
 
@@ -191,13 +191,13 @@ fn ty_def_tuple_one_named() {
         item,
         "newtype Foo = (X : Int, Int);",
         &expect![[r#"
-            Item 4294967295 [0-29]:
-                New Type (Ident 4294967295 [8-11] "Foo"): TyDef 4294967295 [14-28]: Tuple:
-                    TyDef 4294967295 [15-22]: Field:
-                        Ident 4294967295 [15-16] "X"
-                        Type 4294967295 [19-22]: Prim (Int)
-                    TyDef 4294967295 [24-27]: Field:
-                        Type 4294967295 [24-27]: Prim (Int)"#]],
+            Item _id_ [0-29]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-28]: Tuple:
+                    TyDef _id_ [15-22]: Field:
+                        Ident _id_ [15-16] "X"
+                        Type _id_ [19-22]: Prim (Int)
+                    TyDef _id_ [24-27]: Field:
+                        Type _id_ [24-27]: Prim (Int)"#]],
     );
 }
 
@@ -207,14 +207,14 @@ fn ty_def_tuple_both_named() {
         item,
         "newtype Foo = (X : Int, Y : Int);",
         &expect![[r#"
-            Item 4294967295 [0-33]:
-                New Type (Ident 4294967295 [8-11] "Foo"): TyDef 4294967295 [14-32]: Tuple:
-                    TyDef 4294967295 [15-22]: Field:
-                        Ident 4294967295 [15-16] "X"
-                        Type 4294967295 [19-22]: Prim (Int)
-                    TyDef 4294967295 [24-31]: Field:
-                        Ident 4294967295 [24-25] "Y"
-                        Type 4294967295 [28-31]: Prim (Int)"#]],
+            Item _id_ [0-33]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-32]: Tuple:
+                    TyDef _id_ [15-22]: Field:
+                        Ident _id_ [15-16] "X"
+                        Type _id_ [19-22]: Prim (Int)
+                    TyDef _id_ [24-31]: Field:
+                        Ident _id_ [24-25] "Y"
+                        Type _id_ [28-31]: Prim (Int)"#]],
     );
 }
 
@@ -224,18 +224,18 @@ fn ty_def_nested_tuple() {
         item,
         "newtype Foo = ((X : Int, Y : Int), Z : Int);",
         &expect![[r#"
-            Item 4294967295 [0-44]:
-                New Type (Ident 4294967295 [8-11] "Foo"): TyDef 4294967295 [14-43]: Tuple:
-                    TyDef 4294967295 [15-33]: Tuple:
-                        TyDef 4294967295 [16-23]: Field:
-                            Ident 4294967295 [16-17] "X"
-                            Type 4294967295 [20-23]: Prim (Int)
-                        TyDef 4294967295 [25-32]: Field:
-                            Ident 4294967295 [25-26] "Y"
-                            Type 4294967295 [29-32]: Prim (Int)
-                    TyDef 4294967295 [35-42]: Field:
-                        Ident 4294967295 [35-36] "Z"
-                        Type 4294967295 [39-42]: Prim (Int)"#]],
+            Item _id_ [0-44]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-43]: Tuple:
+                    TyDef _id_ [15-33]: Tuple:
+                        TyDef _id_ [16-23]: Field:
+                            Ident _id_ [16-17] "X"
+                            Type _id_ [20-23]: Prim (Int)
+                        TyDef _id_ [25-32]: Field:
+                            Ident _id_ [25-26] "Y"
+                            Type _id_ [29-32]: Prim (Int)
+                    TyDef _id_ [35-42]: Field:
+                        Ident _id_ [35-36] "Z"
+                        Type _id_ [39-42]: Prim (Int)"#]],
     );
 }
 
@@ -245,12 +245,12 @@ fn ty_def_tuple_with_name() {
         item,
         "newtype Foo = Pair : (Int, Int);",
         &expect![[r#"
-            Item 4294967295 [0-32]:
-                New Type (Ident 4294967295 [8-11] "Foo"): TyDef 4294967295 [14-31]: Field:
-                    Ident 4294967295 [14-18] "Pair"
-                    Type 4294967295 [21-31]: Tuple:
-                        Type 4294967295 [22-25]: Prim (Int)
-                        Type 4294967295 [27-30]: Prim (Int)"#]],
+            Item _id_ [0-32]:
+                New Type (Ident _id_ [8-11] "Foo"): TyDef _id_ [14-31]: Field:
+                    Ident _id_ [14-18] "Pair"
+                    Type _id_ [21-31]: Tuple:
+                        Type _id_ [22-25]: Prim (Int)
+                        Type _id_ [27-30]: Prim (Int)"#]],
     );
 }
 
@@ -260,13 +260,13 @@ fn function_decl() {
         item,
         "function Foo() : Unit { body intrinsic; }",
         &expect![[r#"
-            Item 4294967295 [0-41]:
-                Callable 4294967295 [0-41] (Function):
-                    name: Ident 4294967295 [9-12] "Foo"
-                    input: Pat 4294967295 [12-14]: Unit
-                    output: Type 4294967295 [17-21]: Unit
+            Item _id_ [0-41]:
+                Callable _id_ [0-41] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-14]: Unit
+                    output: Type _id_ [17-21]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [24-39] (Body): Gen: Intrinsic"#]],
+                        SpecDecl _id_ [24-39] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -276,13 +276,13 @@ fn operation_decl() {
         item,
         "operation Foo() : Unit { body intrinsic; }",
         &expect![[r#"
-            Item 4294967295 [0-42]:
-                Callable 4294967295 [0-42] (Operation):
-                    name: Ident 4294967295 [10-13] "Foo"
-                    input: Pat 4294967295 [13-15]: Unit
-                    output: Type 4294967295 [18-22]: Unit
+            Item _id_ [0-42]:
+                Callable _id_ [0-42] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [25-40] (Body): Gen: Intrinsic"#]],
+                        SpecDecl _id_ [25-40] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -292,16 +292,16 @@ fn function_one_param() {
         item,
         "function Foo(x : Int) : Unit { body intrinsic; }",
         &expect![[r#"
-            Item 4294967295 [0-48]:
-                Callable 4294967295 [0-48] (Function):
-                    name: Ident 4294967295 [9-12] "Foo"
-                    input: Pat 4294967295 [12-21]: Paren:
-                        Pat 4294967295 [13-20]: Bind:
-                            Ident 4294967295 [13-14] "x"
-                            Type 4294967295 [17-20]: Prim (Int)
-                    output: Type 4294967295 [24-28]: Unit
+            Item _id_ [0-48]:
+                Callable _id_ [0-48] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-21]: Paren:
+                        Pat _id_ [13-20]: Bind:
+                            Ident _id_ [13-14] "x"
+                            Type _id_ [17-20]: Prim (Int)
+                    output: Type _id_ [24-28]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [31-46] (Body): Gen: Intrinsic"#]],
+                        SpecDecl _id_ [31-46] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -311,19 +311,19 @@ fn function_two_params() {
         item,
         "function Foo(x : Int, y : Int) : Unit { body intrinsic; }",
         &expect![[r#"
-            Item 4294967295 [0-57]:
-                Callable 4294967295 [0-57] (Function):
-                    name: Ident 4294967295 [9-12] "Foo"
-                    input: Pat 4294967295 [12-30]: Tuple:
-                        Pat 4294967295 [13-20]: Bind:
-                            Ident 4294967295 [13-14] "x"
-                            Type 4294967295 [17-20]: Prim (Int)
-                        Pat 4294967295 [22-29]: Bind:
-                            Ident 4294967295 [22-23] "y"
-                            Type 4294967295 [26-29]: Prim (Int)
-                    output: Type 4294967295 [33-37]: Unit
+            Item _id_ [0-57]:
+                Callable _id_ [0-57] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-30]: Tuple:
+                        Pat _id_ [13-20]: Bind:
+                            Ident _id_ [13-14] "x"
+                            Type _id_ [17-20]: Prim (Int)
+                        Pat _id_ [22-29]: Bind:
+                            Ident _id_ [22-23] "y"
+                            Type _id_ [26-29]: Prim (Int)
+                    output: Type _id_ [33-37]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [40-55] (Body): Gen: Intrinsic"#]],
+                        SpecDecl _id_ [40-55] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -333,15 +333,15 @@ fn function_one_ty_param() {
         item,
         "function Foo<'T>() : Unit { body intrinsic; }",
         &expect![[r#"
-            Item 4294967295 [0-45]:
-                Callable 4294967295 [0-45] (Function):
-                    name: Ident 4294967295 [9-12] "Foo"
+            Item _id_ [0-45]:
+                Callable _id_ [0-45] (Function):
+                    name: Ident _id_ [9-12] "Foo"
                     type params:
-                        Ident 4294967295 [14-15] "T"
-                    input: Pat 4294967295 [16-18]: Unit
-                    output: Type 4294967295 [21-25]: Unit
+                        Ident _id_ [14-15] "T"
+                    input: Pat _id_ [16-18]: Unit
+                    output: Type _id_ [21-25]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [28-43] (Body): Gen: Intrinsic"#]],
+                        SpecDecl _id_ [28-43] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -351,16 +351,16 @@ fn function_two_ty_params() {
         item,
         "function Foo<'T, 'U>() : Unit { body intrinsic; }",
         &expect![[r#"
-            Item 4294967295 [0-49]:
-                Callable 4294967295 [0-49] (Function):
-                    name: Ident 4294967295 [9-12] "Foo"
+            Item _id_ [0-49]:
+                Callable _id_ [0-49] (Function):
+                    name: Ident _id_ [9-12] "Foo"
                     type params:
-                        Ident 4294967295 [14-15] "T"
-                        Ident 4294967295 [18-19] "U"
-                    input: Pat 4294967295 [20-22]: Unit
-                    output: Type 4294967295 [25-29]: Unit
+                        Ident _id_ [14-15] "T"
+                        Ident _id_ [18-19] "U"
+                    input: Pat _id_ [20-22]: Unit
+                    output: Type _id_ [25-29]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [32-47] (Body): Gen: Intrinsic"#]],
+                        SpecDecl _id_ [32-47] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -370,20 +370,20 @@ fn function_single_impl() {
         item,
         "function Foo(x : Int) : Int { let y = x; y }",
         &expect![[r#"
-            Item 4294967295 [0-44]:
-                Callable 4294967295 [0-44] (Function):
-                    name: Ident 4294967295 [9-12] "Foo"
-                    input: Pat 4294967295 [12-21]: Paren:
-                        Pat 4294967295 [13-20]: Bind:
-                            Ident 4294967295 [13-14] "x"
-                            Type 4294967295 [17-20]: Prim (Int)
-                    output: Type 4294967295 [24-27]: Prim (Int)
-                    body: Block: Block 4294967295 [28-44]:
-                        Stmt 4294967295 [30-40]: Local (Immutable):
-                            Pat 4294967295 [34-35]: Bind:
-                                Ident 4294967295 [34-35] "y"
-                            Expr 4294967295 [38-39]: Path: Path 4294967295 [38-39] (Ident 4294967295 [38-39] "x")
-                        Stmt 4294967295 [41-42]: Expr: Expr 4294967295 [41-42]: Path: Path 4294967295 [41-42] (Ident 4294967295 [41-42] "y")"#]],
+            Item _id_ [0-44]:
+                Callable _id_ [0-44] (Function):
+                    name: Ident _id_ [9-12] "Foo"
+                    input: Pat _id_ [12-21]: Paren:
+                        Pat _id_ [13-20]: Bind:
+                            Ident _id_ [13-14] "x"
+                            Type _id_ [17-20]: Prim (Int)
+                    output: Type _id_ [24-27]: Prim (Int)
+                    body: Block: Block _id_ [28-44]:
+                        Stmt _id_ [30-40]: Local (Immutable):
+                            Pat _id_ [34-35]: Bind:
+                                Ident _id_ [34-35] "y"
+                            Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")
+                        Stmt _id_ [41-42]: Expr: Expr _id_ [41-42]: Path: Path _id_ [41-42] (Ident _id_ [41-42] "y")"#]],
     );
 }
 
@@ -393,17 +393,17 @@ fn operation_body_impl() {
         item,
         "operation Foo() : Unit { body (...) { x } }",
         &expect![[r#"
-            Item 4294967295 [0-43]:
-                Callable 4294967295 [0-43] (Operation):
-                    name: Ident 4294967295 [10-13] "Foo"
-                    input: Pat 4294967295 [13-15]: Unit
-                    output: Type 4294967295 [18-22]: Unit
+            Item _id_ [0-43]:
+                Callable _id_ [0-43] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [25-41] (Body): Impl:
-                            Pat 4294967295 [30-35]: Paren:
-                                Pat 4294967295 [31-34]: Elided
-                            Block 4294967295 [36-41]:
-                                Stmt 4294967295 [38-39]: Expr: Expr 4294967295 [38-39]: Path: Path 4294967295 [38-39] (Ident 4294967295 [38-39] "x")"#]],
+                        SpecDecl _id_ [25-41] (Body): Impl:
+                            Pat _id_ [30-35]: Paren:
+                                Pat _id_ [31-34]: Elided
+                            Block _id_ [36-41]:
+                                Stmt _id_ [38-39]: Expr: Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")"#]],
     );
 }
 
@@ -413,24 +413,24 @@ fn operation_body_ctl_impl() {
         item,
         "operation Foo() : Unit { body (...) { x } controlled (cs, ...) { y } }",
         &expect![[r#"
-            Item 4294967295 [0-70]:
-                Callable 4294967295 [0-70] (Operation):
-                    name: Ident 4294967295 [10-13] "Foo"
-                    input: Pat 4294967295 [13-15]: Unit
-                    output: Type 4294967295 [18-22]: Unit
+            Item _id_ [0-70]:
+                Callable _id_ [0-70] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [25-41] (Body): Impl:
-                            Pat 4294967295 [30-35]: Paren:
-                                Pat 4294967295 [31-34]: Elided
-                            Block 4294967295 [36-41]:
-                                Stmt 4294967295 [38-39]: Expr: Expr 4294967295 [38-39]: Path: Path 4294967295 [38-39] (Ident 4294967295 [38-39] "x")
-                        SpecDecl 4294967295 [42-68] (Ctl): Impl:
-                            Pat 4294967295 [53-62]: Tuple:
-                                Pat 4294967295 [54-56]: Bind:
-                                    Ident 4294967295 [54-56] "cs"
-                                Pat 4294967295 [58-61]: Elided
-                            Block 4294967295 [63-68]:
-                                Stmt 4294967295 [65-66]: Expr: Expr 4294967295 [65-66]: Path: Path 4294967295 [65-66] (Ident 4294967295 [65-66] "y")"#]],
+                        SpecDecl _id_ [25-41] (Body): Impl:
+                            Pat _id_ [30-35]: Paren:
+                                Pat _id_ [31-34]: Elided
+                            Block _id_ [36-41]:
+                                Stmt _id_ [38-39]: Expr: Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")
+                        SpecDecl _id_ [42-68] (Ctl): Impl:
+                            Pat _id_ [53-62]: Tuple:
+                                Pat _id_ [54-56]: Bind:
+                                    Ident _id_ [54-56] "cs"
+                                Pat _id_ [58-61]: Elided
+                            Block _id_ [63-68]:
+                                Stmt _id_ [65-66]: Expr: Expr _id_ [65-66]: Path: Path _id_ [65-66] (Ident _id_ [65-66] "y")"#]],
     );
 }
 
@@ -440,18 +440,18 @@ fn operation_impl_and_gen() {
         item,
         "operation Foo() : Unit { body (...) { x } adjoint self; }",
         &expect![[r#"
-            Item 4294967295 [0-57]:
-                Callable 4294967295 [0-57] (Operation):
-                    name: Ident 4294967295 [10-13] "Foo"
-                    input: Pat 4294967295 [13-15]: Unit
-                    output: Type 4294967295 [18-22]: Unit
+            Item _id_ [0-57]:
+                Callable _id_ [0-57] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
                     body: Specializations:
-                        SpecDecl 4294967295 [25-41] (Body): Impl:
-                            Pat 4294967295 [30-35]: Paren:
-                                Pat 4294967295 [31-34]: Elided
-                            Block 4294967295 [36-41]:
-                                Stmt 4294967295 [38-39]: Expr: Expr 4294967295 [38-39]: Path: Path 4294967295 [38-39] (Ident 4294967295 [38-39] "x")
-                        SpecDecl 4294967295 [42-55] (Adj): Gen: Slf"#]],
+                        SpecDecl _id_ [25-41] (Body): Impl:
+                            Pat _id_ [30-35]: Paren:
+                                Pat _id_ [31-34]: Elided
+                            Block _id_ [36-41]:
+                                Stmt _id_ [38-39]: Expr: Expr _id_ [38-39]: Path: Path _id_ [38-39] (Ident _id_ [38-39] "x")
+                        SpecDecl _id_ [42-55] (Adj): Gen: Slf"#]],
     );
 }
 
@@ -461,13 +461,13 @@ fn operation_is_adj() {
         item,
         "operation Foo() : Unit is Adj {}",
         &expect![[r#"
-            Item 4294967295 [0-32]:
-                Callable 4294967295 [0-32] (Operation):
-                    name: Ident 4294967295 [10-13] "Foo"
-                    input: Pat 4294967295 [13-15]: Unit
-                    output: Type 4294967295 [18-22]: Unit
-                    functors: Functor Expr 4294967295 [26-29]: Adj
-                    body: Block: Block 4294967295 [30-32]: <empty>"#]],
+            Item _id_ [0-32]:
+                Callable _id_ [0-32] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    functors: Functor Expr _id_ [26-29]: Adj
+                    body: Block: Block _id_ [30-32]: <empty>"#]],
     );
 }
 
@@ -477,13 +477,13 @@ fn operation_is_adj_ctl() {
         item,
         "operation Foo() : Unit is Adj + Ctl {}",
         &expect![[r#"
-            Item 4294967295 [0-38]:
-                Callable 4294967295 [0-38] (Operation):
-                    name: Ident 4294967295 [10-13] "Foo"
-                    input: Pat 4294967295 [13-15]: Unit
-                    output: Type 4294967295 [18-22]: Unit
-                    functors: Functor Expr 4294967295 [26-35]: BinOp Union: (Functor Expr 4294967295 [26-29]: Adj) (Functor Expr 4294967295 [32-35]: Ctl)
-                    body: Block: Block 4294967295 [36-38]: <empty>"#]],
+            Item _id_ [0-38]:
+                Callable _id_ [0-38] (Operation):
+                    name: Ident _id_ [10-13] "Foo"
+                    input: Pat _id_ [13-15]: Unit
+                    output: Type _id_ [18-22]: Unit
+                    functors: Functor Expr _id_ [26-35]: BinOp Union: (Functor Expr _id_ [26-29]: Adj) (Functor Expr _id_ [32-35]: Ctl)
+                    body: Block: Block _id_ [36-38]: <empty>"#]],
     );
 }
 
@@ -515,11 +515,11 @@ fn internal_ty() {
         item,
         "internal newtype Foo = Unit;",
         &expect![[r#"
-            Item 4294967295 [0-28]:
+            Item _id_ [0-28]:
                 meta:
-                    Visibility 4294967295 [0-8] (Internal)
-                New Type (Ident 4294967295 [17-20] "Foo"): TyDef 4294967295 [23-27]: Field:
-                    Type 4294967295 [23-27]: Unit"#]],
+                    Visibility _id_ [0-8] (Internal)
+                New Type (Ident _id_ [17-20] "Foo"): TyDef _id_ [23-27]: Field:
+                    Type _id_ [23-27]: Unit"#]],
     );
 }
 
@@ -529,14 +529,14 @@ fn internal_function() {
         item,
         "internal function Foo() : Unit {}",
         &expect![[r#"
-            Item 4294967295 [0-33]:
+            Item _id_ [0-33]:
                 meta:
-                    Visibility 4294967295 [0-8] (Internal)
-                Callable 4294967295 [9-33] (Function):
-                    name: Ident 4294967295 [18-21] "Foo"
-                    input: Pat 4294967295 [21-23]: Unit
-                    output: Type 4294967295 [26-30]: Unit
-                    body: Block: Block 4294967295 [31-33]: <empty>"#]],
+                    Visibility _id_ [0-8] (Internal)
+                Callable _id_ [9-33] (Function):
+                    name: Ident _id_ [18-21] "Foo"
+                    input: Pat _id_ [21-23]: Unit
+                    output: Type _id_ [26-30]: Unit
+                    body: Block: Block _id_ [31-33]: <empty>"#]],
     );
 }
 
@@ -546,14 +546,14 @@ fn internal_operation() {
         item,
         "internal operation Foo() : Unit {}",
         &expect![[r#"
-            Item 4294967295 [0-34]:
+            Item _id_ [0-34]:
                 meta:
-                    Visibility 4294967295 [0-8] (Internal)
-                Callable 4294967295 [9-34] (Operation):
-                    name: Ident 4294967295 [19-22] "Foo"
-                    input: Pat 4294967295 [22-24]: Unit
-                    output: Type 4294967295 [27-31]: Unit
-                    body: Block: Block 4294967295 [32-34]: <empty>"#]],
+                    Visibility _id_ [0-8] (Internal)
+                Callable _id_ [9-34] (Operation):
+                    name: Ident _id_ [19-22] "Foo"
+                    input: Pat _id_ [22-24]: Unit
+                    output: Type _id_ [27-31]: Unit
+                    body: Block: Block _id_ [32-34]: <empty>"#]],
     );
 }
 
@@ -563,8 +563,8 @@ fn attr_no_args() {
         attr,
         "@Foo()",
         &expect![[r#"
-            Attr 4294967295 [0-6] (Path 4294967295 [1-4] (Ident 4294967295 [1-4] "Foo")):
-                Expr 4294967295 [4-6]: Unit"#]],
+            Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                Expr _id_ [4-6]: Unit"#]],
     );
 }
 
@@ -574,8 +574,8 @@ fn attr_single_arg() {
         attr,
         "@Foo(123)",
         &expect![[r#"
-            Attr 4294967295 [0-9] (Path 4294967295 [1-4] (Ident 4294967295 [1-4] "Foo")):
-                Expr 4294967295 [4-9]: Paren: Expr 4294967295 [5-8]: Lit: Int(123)"#]],
+            Attr _id_ [0-9] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                Expr _id_ [4-9]: Paren: Expr _id_ [5-8]: Lit: Int(123)"#]],
     );
 }
 
@@ -585,10 +585,10 @@ fn attr_two_args() {
         attr,
         "@Foo(123, \"bar\")",
         &expect![[r#"
-            Attr 4294967295 [0-16] (Path 4294967295 [1-4] (Ident 4294967295 [1-4] "Foo")):
-                Expr 4294967295 [4-16]: Tuple:
-                    Expr 4294967295 [5-8]: Lit: Int(123)
-                    Expr 4294967295 [10-15]: Lit: String("bar")"#]],
+            Attr _id_ [0-16] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                Expr _id_ [4-16]: Tuple:
+                    Expr _id_ [5-8]: Lit: Int(123)
+                    Expr _id_ [10-15]: Lit: String("bar")"#]],
     );
 }
 
@@ -598,11 +598,11 @@ fn open_attr() {
         item,
         "@Foo() open Bar;",
         &expect![[r#"
-            Item 4294967295 [0-16]:
+            Item _id_ [0-16]:
                 meta:
-                    Attr 4294967295 [0-6] (Path 4294967295 [1-4] (Ident 4294967295 [1-4] "Foo")):
-                        Expr 4294967295 [4-6]: Unit
-                Open (Ident 4294967295 [12-15] "Bar")"#]],
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                Open (Ident _id_ [12-15] "Bar")"#]],
     );
 }
 
@@ -612,12 +612,12 @@ fn newtype_attr() {
         item,
         "@Foo() newtype Bar = Unit;",
         &expect![[r#"
-            Item 4294967295 [0-26]:
+            Item _id_ [0-26]:
                 meta:
-                    Attr 4294967295 [0-6] (Path 4294967295 [1-4] (Ident 4294967295 [1-4] "Foo")):
-                        Expr 4294967295 [4-6]: Unit
-                New Type (Ident 4294967295 [15-18] "Bar"): TyDef 4294967295 [21-25]: Field:
-                    Type 4294967295 [21-25]: Unit"#]],
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                New Type (Ident _id_ [15-18] "Bar"): TyDef _id_ [21-25]: Field:
+                    Type _id_ [21-25]: Unit"#]],
     );
 }
 
@@ -627,15 +627,15 @@ fn operation_one_attr() {
         item,
         "@Foo() operation Bar() : Unit {}",
         &expect![[r#"
-            Item 4294967295 [0-32]:
+            Item _id_ [0-32]:
                 meta:
-                    Attr 4294967295 [0-6] (Path 4294967295 [1-4] (Ident 4294967295 [1-4] "Foo")):
-                        Expr 4294967295 [4-6]: Unit
-                Callable 4294967295 [7-32] (Operation):
-                    name: Ident 4294967295 [17-20] "Bar"
-                    input: Pat 4294967295 [20-22]: Unit
-                    output: Type 4294967295 [25-29]: Unit
-                    body: Block: Block 4294967295 [30-32]: <empty>"#]],
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                Callable _id_ [7-32] (Operation):
+                    name: Ident _id_ [17-20] "Bar"
+                    input: Pat _id_ [20-22]: Unit
+                    output: Type _id_ [25-29]: Unit
+                    body: Block: Block _id_ [30-32]: <empty>"#]],
     );
 }
 
@@ -645,17 +645,17 @@ fn operation_two_attrs() {
         item,
         "@Foo() @Bar() operation Baz() : Unit {}",
         &expect![[r#"
-            Item 4294967295 [0-39]:
+            Item _id_ [0-39]:
                 meta:
-                    Attr 4294967295 [0-6] (Path 4294967295 [1-4] (Ident 4294967295 [1-4] "Foo")):
-                        Expr 4294967295 [4-6]: Unit
-                    Attr 4294967295 [7-13] (Path 4294967295 [8-11] (Ident 4294967295 [8-11] "Bar")):
-                        Expr 4294967295 [11-13]: Unit
-                Callable 4294967295 [14-39] (Operation):
-                    name: Ident 4294967295 [24-27] "Baz"
-                    input: Pat 4294967295 [27-29]: Unit
-                    output: Type 4294967295 [32-36]: Unit
-                    body: Block: Block 4294967295 [37-39]: <empty>"#]],
+                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                        Expr _id_ [4-6]: Unit
+                    Attr _id_ [7-13] (Path _id_ [8-11] (Ident _id_ [8-11] "Bar")):
+                        Expr _id_ [11-13]: Unit
+                Callable _id_ [14-39] (Operation):
+                    name: Ident _id_ [24-27] "Baz"
+                    input: Pat _id_ [27-29]: Unit
+                    output: Type _id_ [32-36]: Unit
+                    body: Block: Block _id_ [37-39]: <empty>"#]],
     );
 }
 
@@ -665,14 +665,14 @@ fn namespace_function() {
         namespaces,
         "namespace A { function Foo() : Unit { body intrinsic; } }",
         &expect![[r#"
-            Namespace 4294967295 [0-57] (Ident 4294967295 [10-11] "A"):
-                Item 4294967295 [14-55]:
-                    Callable 4294967295 [14-55] (Function):
-                        name: Ident 4294967295 [23-26] "Foo"
-                        input: Pat 4294967295 [26-28]: Unit
-                        output: Type 4294967295 [31-35]: Unit
+            Namespace _id_ [0-57] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-55]:
+                    Callable _id_ [14-55] (Function):
+                        name: Ident _id_ [23-26] "Foo"
+                        input: Pat _id_ [26-28]: Unit
+                        output: Type _id_ [31-35]: Unit
                         body: Specializations:
-                            SpecDecl 4294967295 [38-53] (Body): Gen: Intrinsic"#]],
+                            SpecDecl _id_ [38-53] (Body): Gen: Intrinsic"#]],
     );
 }
 
@@ -682,8 +682,8 @@ fn two_namespaces() {
         namespaces,
         "namespace A {} namespace B {}",
         &expect![[r#"
-            Namespace 4294967295 [0-14] (Ident 4294967295 [10-11] "A"):,
-            Namespace 4294967295 [15-29] (Ident 4294967295 [25-26] "B"):"#]],
+            Namespace _id_ [0-14] (Ident _id_ [10-11] "A"):,
+            Namespace _id_ [15-29] (Ident _id_ [25-26] "B"):"#]],
     );
 }
 
@@ -693,11 +693,11 @@ fn two_open_items() {
         namespaces,
         "namespace A { open B; open C; }",
         &expect![[r#"
-            Namespace 4294967295 [0-31] (Ident 4294967295 [10-11] "A"):
-                Item 4294967295 [14-21]:
-                    Open (Ident 4294967295 [19-20] "B")
-                Item 4294967295 [22-29]:
-                    Open (Ident 4294967295 [27-28] "C")"#]],
+            Namespace _id_ [0-31] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-21]:
+                    Open (Ident _id_ [19-20] "B")
+                Item _id_ [22-29]:
+                    Open (Ident _id_ [27-28] "C")"#]],
     );
 }
 
@@ -707,13 +707,13 @@ fn two_ty_items() {
         namespaces,
         "namespace A { newtype B = Unit; newtype C = Unit; }",
         &expect![[r#"
-            Namespace 4294967295 [0-51] (Ident 4294967295 [10-11] "A"):
-                Item 4294967295 [14-31]:
-                    New Type (Ident 4294967295 [22-23] "B"): TyDef 4294967295 [26-30]: Field:
-                        Type 4294967295 [26-30]: Unit
-                Item 4294967295 [32-49]:
-                    New Type (Ident 4294967295 [40-41] "C"): TyDef 4294967295 [44-48]: Field:
-                        Type 4294967295 [44-48]: Unit"#]],
+            Namespace _id_ [0-51] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-31]:
+                    New Type (Ident _id_ [22-23] "B"): TyDef _id_ [26-30]: Field:
+                        Type _id_ [26-30]: Unit
+                Item _id_ [32-49]:
+                    New Type (Ident _id_ [40-41] "C"): TyDef _id_ [44-48]: Field:
+                        Type _id_ [44-48]: Unit"#]],
     );
 }
 
@@ -723,18 +723,18 @@ fn two_callable_items() {
         namespaces,
         "namespace A { operation B() : Unit {} function C() : Unit {} }",
         &expect![[r#"
-            Namespace 4294967295 [0-62] (Ident 4294967295 [10-11] "A"):
-                Item 4294967295 [14-37]:
-                    Callable 4294967295 [14-37] (Operation):
-                        name: Ident 4294967295 [24-25] "B"
-                        input: Pat 4294967295 [25-27]: Unit
-                        output: Type 4294967295 [30-34]: Unit
-                        body: Block: Block 4294967295 [35-37]: <empty>
-                Item 4294967295 [38-60]:
-                    Callable 4294967295 [38-60] (Function):
-                        name: Ident 4294967295 [47-48] "C"
-                        input: Pat 4294967295 [48-50]: Unit
-                        output: Type 4294967295 [53-57]: Unit
-                        body: Block: Block 4294967295 [58-60]: <empty>"#]],
+            Namespace _id_ [0-62] (Ident _id_ [10-11] "A"):
+                Item _id_ [14-37]:
+                    Callable _id_ [14-37] (Operation):
+                        name: Ident _id_ [24-25] "B"
+                        input: Pat _id_ [25-27]: Unit
+                        output: Type _id_ [30-34]: Unit
+                        body: Block: Block _id_ [35-37]: <empty>
+                Item _id_ [38-60]:
+                    Callable _id_ [38-60] (Function):
+                        name: Ident _id_ [47-48] "C"
+                        input: Pat _id_ [48-50]: Unit
+                        output: Type _id_ [53-57]: Unit
+                        body: Block: Block _id_ [58-60]: <empty>"#]],
     );
 }

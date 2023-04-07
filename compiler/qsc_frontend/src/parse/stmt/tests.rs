@@ -11,10 +11,10 @@ fn let_stmt() {
         stmt,
         "let x = 2;",
         &expect![[r#"
-            Stmt 4294967295 [0-10]: Local (Immutable):
-                Pat 4294967295 [4-5]: Bind:
-                    Ident 4294967295 [4-5] "x"
-                Expr 4294967295 [8-9]: Lit: Int(2)"#]],
+            Stmt _id_ [0-10]: Local (Immutable):
+                Pat _id_ [4-5]: Bind:
+                    Ident _id_ [4-5] "x"
+                Expr _id_ [8-9]: Lit: Int(2)"#]],
     );
 }
 
@@ -24,16 +24,16 @@ fn let_pat_match() {
         stmt,
         "let (x, (y, z)) = foo;",
         &expect![[r#"
-            Stmt 4294967295 [0-22]: Local (Immutable):
-                Pat 4294967295 [4-15]: Tuple:
-                    Pat 4294967295 [5-6]: Bind:
-                        Ident 4294967295 [5-6] "x"
-                    Pat 4294967295 [8-14]: Tuple:
-                        Pat 4294967295 [9-10]: Bind:
-                            Ident 4294967295 [9-10] "y"
-                        Pat 4294967295 [12-13]: Bind:
-                            Ident 4294967295 [12-13] "z"
-                Expr 4294967295 [18-21]: Path: Path 4294967295 [18-21] (Ident 4294967295 [18-21] "foo")"#]],
+            Stmt _id_ [0-22]: Local (Immutable):
+                Pat _id_ [4-15]: Tuple:
+                    Pat _id_ [5-6]: Bind:
+                        Ident _id_ [5-6] "x"
+                    Pat _id_ [8-14]: Tuple:
+                        Pat _id_ [9-10]: Bind:
+                            Ident _id_ [9-10] "y"
+                        Pat _id_ [12-13]: Bind:
+                            Ident _id_ [12-13] "z"
+                Expr _id_ [18-21]: Path: Path _id_ [18-21] (Ident _id_ [18-21] "foo")"#]],
     );
 }
 
@@ -43,10 +43,10 @@ fn mutable_stmt() {
         stmt,
         "mutable x = 2;",
         &expect![[r#"
-            Stmt 4294967295 [0-14]: Local (Mutable):
-                Pat 4294967295 [8-9]: Bind:
-                    Ident 4294967295 [8-9] "x"
-                Expr 4294967295 [12-13]: Lit: Int(2)"#]],
+            Stmt _id_ [0-14]: Local (Mutable):
+                Pat _id_ [8-9]: Bind:
+                    Ident _id_ [8-9] "x"
+                Expr _id_ [12-13]: Lit: Int(2)"#]],
     );
 }
 
@@ -56,10 +56,10 @@ fn use_stmt() {
         stmt,
         "use q = Qubit();",
         &expect![[r#"
-            Stmt 4294967295 [0-16]: Qubit (Fresh)
-                Pat 4294967295 [4-5]: Bind:
-                    Ident 4294967295 [4-5] "q"
-                QubitInit 4294967295 [8-15] Single"#]],
+            Stmt _id_ [0-16]: Qubit (Fresh)
+                Pat _id_ [4-5]: Bind:
+                    Ident _id_ [4-5] "q"
+                QubitInit _id_ [8-15] Single"#]],
     );
 }
 
@@ -69,11 +69,11 @@ fn use_qubit_array() {
         stmt,
         "use qs = Qubit[5];",
         &expect![[r#"
-            Stmt 4294967295 [0-18]: Qubit (Fresh)
-                Pat 4294967295 [4-6]: Bind:
-                    Ident 4294967295 [4-6] "qs"
-                QubitInit 4294967295 [9-17] Array:
-                    Expr 4294967295 [15-16]: Lit: Int(5)"#]],
+            Stmt _id_ [0-18]: Qubit (Fresh)
+                Pat _id_ [4-6]: Bind:
+                    Ident _id_ [4-6] "qs"
+                QubitInit _id_ [9-17] Array:
+                    Expr _id_ [15-16]: Lit: Int(5)"#]],
     );
 }
 
@@ -83,15 +83,15 @@ fn use_pat_match() {
         stmt,
         "use (q1, q2) = (Qubit(), Qubit());",
         &expect![[r#"
-            Stmt 4294967295 [0-34]: Qubit (Fresh)
-                Pat 4294967295 [4-12]: Tuple:
-                    Pat 4294967295 [5-7]: Bind:
-                        Ident 4294967295 [5-7] "q1"
-                    Pat 4294967295 [9-11]: Bind:
-                        Ident 4294967295 [9-11] "q2"
-                QubitInit 4294967295 [15-33] Tuple:
-                    QubitInit 4294967295 [16-23] Single
-                    QubitInit 4294967295 [25-32] Single"#]],
+            Stmt _id_ [0-34]: Qubit (Fresh)
+                Pat _id_ [4-12]: Tuple:
+                    Pat _id_ [5-7]: Bind:
+                        Ident _id_ [5-7] "q1"
+                    Pat _id_ [9-11]: Bind:
+                        Ident _id_ [9-11] "q2"
+                QubitInit _id_ [15-33] Tuple:
+                    QubitInit _id_ [16-23] Single
+                    QubitInit _id_ [25-32] Single"#]],
     );
 }
 
@@ -101,11 +101,11 @@ fn use_paren() {
         stmt,
         "use q = (Qubit());",
         &expect![[r#"
-            Stmt 4294967295 [0-18]: Qubit (Fresh)
-                Pat 4294967295 [4-5]: Bind:
-                    Ident 4294967295 [4-5] "q"
-                QubitInit 4294967295 [8-17] Parens:
-                    QubitInit 4294967295 [9-16] Single"#]],
+            Stmt _id_ [0-18]: Qubit (Fresh)
+                Pat _id_ [4-5]: Bind:
+                    Ident _id_ [4-5] "q"
+                QubitInit _id_ [8-17] Parens:
+                    QubitInit _id_ [9-16] Single"#]],
     );
 }
 
@@ -115,12 +115,12 @@ fn use_single_tuple() {
         stmt,
         "use (q,) = (Qubit(),);",
         &expect![[r#"
-            Stmt 4294967295 [0-22]: Qubit (Fresh)
-                Pat 4294967295 [4-8]: Tuple:
-                    Pat 4294967295 [5-6]: Bind:
-                        Ident 4294967295 [5-6] "q"
-                QubitInit 4294967295 [11-21] Tuple:
-                    QubitInit 4294967295 [12-19] Single"#]],
+            Stmt _id_ [0-22]: Qubit (Fresh)
+                Pat _id_ [4-8]: Tuple:
+                    Pat _id_ [5-6]: Bind:
+                        Ident _id_ [5-6] "q"
+                QubitInit _id_ [11-21] Tuple:
+                    QubitInit _id_ [12-19] Single"#]],
     );
 }
 
@@ -130,10 +130,10 @@ fn borrow_stmt() {
         stmt,
         "borrow q = Qubit();",
         &expect![[r#"
-            Stmt 4294967295 [0-19]: Qubit (Dirty)
-                Pat 4294967295 [7-8]: Bind:
-                    Ident 4294967295 [7-8] "q"
-                QubitInit 4294967295 [11-18] Single"#]],
+            Stmt _id_ [0-19]: Qubit (Dirty)
+                Pat _id_ [7-8]: Bind:
+                    Ident _id_ [7-8] "q"
+                QubitInit _id_ [11-18] Single"#]],
     );
 }
 
@@ -143,12 +143,12 @@ fn let_in_block() {
         block,
         "{ let x = 2; x }",
         &expect![[r#"
-            Block 4294967295 [0-16]:
-                Stmt 4294967295 [2-12]: Local (Immutable):
-                    Pat 4294967295 [6-7]: Bind:
-                        Ident 4294967295 [6-7] "x"
-                    Expr 4294967295 [10-11]: Lit: Int(2)
-                Stmt 4294967295 [13-14]: Expr: Expr 4294967295 [13-14]: Path: Path 4294967295 [13-14] (Ident 4294967295 [13-14] "x")"#]],
+            Block _id_ [0-16]:
+                Stmt _id_ [2-12]: Local (Immutable):
+                    Pat _id_ [6-7]: Bind:
+                        Ident _id_ [6-7] "x"
+                    Expr _id_ [10-11]: Lit: Int(2)
+                Stmt _id_ [13-14]: Expr: Expr _id_ [13-14]: Path: Path _id_ [13-14] (Ident _id_ [13-14] "x")"#]],
     );
 }
 
@@ -158,10 +158,10 @@ fn exprs_in_block() {
         block,
         "{ x; y; z }",
         &expect![[r#"
-            Block 4294967295 [0-11]:
-                Stmt 4294967295 [2-4]: Semi: Expr 4294967295 [2-3]: Path: Path 4294967295 [2-3] (Ident 4294967295 [2-3] "x")
-                Stmt 4294967295 [5-7]: Semi: Expr 4294967295 [5-6]: Path: Path 4294967295 [5-6] (Ident 4294967295 [5-6] "y")
-                Stmt 4294967295 [8-9]: Expr: Expr 4294967295 [8-9]: Path: Path 4294967295 [8-9] (Ident 4294967295 [8-9] "z")"#]],
+            Block _id_ [0-11]:
+                Stmt _id_ [2-4]: Semi: Expr _id_ [2-3]: Path: Path _id_ [2-3] (Ident _id_ [2-3] "x")
+                Stmt _id_ [5-7]: Semi: Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")
+                Stmt _id_ [8-9]: Expr: Expr _id_ [8-9]: Path: Path _id_ [8-9] (Ident _id_ [8-9] "z")"#]],
     );
 }
 
@@ -171,10 +171,10 @@ fn trailing_semi_expr() {
         block,
         "{ x; y; z; }",
         &expect![[r#"
-            Block 4294967295 [0-12]:
-                Stmt 4294967295 [2-4]: Semi: Expr 4294967295 [2-3]: Path: Path 4294967295 [2-3] (Ident 4294967295 [2-3] "x")
-                Stmt 4294967295 [5-7]: Semi: Expr 4294967295 [5-6]: Path: Path 4294967295 [5-6] (Ident 4294967295 [5-6] "y")
-                Stmt 4294967295 [8-10]: Semi: Expr 4294967295 [8-9]: Path: Path 4294967295 [8-9] (Ident 4294967295 [8-9] "z")"#]],
+            Block _id_ [0-12]:
+                Stmt _id_ [2-4]: Semi: Expr _id_ [2-3]: Path: Path _id_ [2-3] (Ident _id_ [2-3] "x")
+                Stmt _id_ [5-7]: Semi: Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")
+                Stmt _id_ [8-10]: Semi: Expr _id_ [8-9]: Path: Path _id_ [8-9] (Ident _id_ [8-9] "z")"#]],
     );
 }
 
@@ -204,12 +204,12 @@ fn if_followed_by() {
         block,
         "{ if c { x } return x; }",
         &expect![[r#"
-            Block 4294967295 [0-24]:
-                Stmt 4294967295 [2-12]: Expr: Expr 4294967295 [2-12]: If:
-                    Expr 4294967295 [5-6]: Path: Path 4294967295 [5-6] (Ident 4294967295 [5-6] "c")
-                    Block 4294967295 [7-12]:
-                        Stmt 4294967295 [9-10]: Expr: Expr 4294967295 [9-10]: Path: Path 4294967295 [9-10] (Ident 4294967295 [9-10] "x")
-                Stmt 4294967295 [13-22]: Semi: Expr 4294967295 [13-21]: Return: Expr 4294967295 [20-21]: Path: Path 4294967295 [20-21] (Ident 4294967295 [20-21] "x")"#]],
+            Block _id_ [0-24]:
+                Stmt _id_ [2-12]: Expr: Expr _id_ [2-12]: If:
+                    Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "c")
+                    Block _id_ [7-12]:
+                        Stmt _id_ [9-10]: Expr: Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "x")
+                Stmt _id_ [13-22]: Semi: Expr _id_ [13-21]: Return: Expr _id_ [20-21]: Path: Path _id_ [20-21] (Ident _id_ [20-21] "x")"#]],
     );
 }
 
@@ -219,16 +219,16 @@ fn let_if() {
         block,
         "{ let x = if c { true } else { false }; x }",
         &expect![[r#"
-            Block 4294967295 [0-43]:
-                Stmt 4294967295 [2-39]: Local (Immutable):
-                    Pat 4294967295 [6-7]: Bind:
-                        Ident 4294967295 [6-7] "x"
-                    Expr 4294967295 [10-38]: If:
-                        Expr 4294967295 [13-14]: Path: Path 4294967295 [13-14] (Ident 4294967295 [13-14] "c")
-                        Block 4294967295 [15-23]:
-                            Stmt 4294967295 [17-21]: Expr: Expr 4294967295 [17-21]: Lit: Bool(true)
-                        Expr 4294967295 [24-38]: Expr Block: Block 4294967295 [29-38]:
-                            Stmt 4294967295 [31-36]: Expr: Expr 4294967295 [31-36]: Lit: Bool(false)
-                Stmt 4294967295 [40-41]: Expr: Expr 4294967295 [40-41]: Path: Path 4294967295 [40-41] (Ident 4294967295 [40-41] "x")"#]],
+            Block _id_ [0-43]:
+                Stmt _id_ [2-39]: Local (Immutable):
+                    Pat _id_ [6-7]: Bind:
+                        Ident _id_ [6-7] "x"
+                    Expr _id_ [10-38]: If:
+                        Expr _id_ [13-14]: Path: Path _id_ [13-14] (Ident _id_ [13-14] "c")
+                        Block _id_ [15-23]:
+                            Stmt _id_ [17-21]: Expr: Expr _id_ [17-21]: Lit: Bool(true)
+                        Expr _id_ [24-38]: Expr Block: Block _id_ [29-38]:
+                            Stmt _id_ [31-36]: Expr: Expr _id_ [31-36]: Lit: Bool(false)
+                Stmt _id_ [40-41]: Expr: Expr _id_ [40-41]: Path: Path _id_ [40-41] (Ident _id_ [40-41] "x")"#]],
     );
 }

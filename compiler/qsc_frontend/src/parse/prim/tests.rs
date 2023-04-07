@@ -15,25 +15,17 @@ use qsc_ast::ast::Span;
 
 #[test]
 fn ident_basic() {
-    check(ident, "foo", &expect![[r#"Ident 4294967295 [0-3] "foo""#]]);
+    check(ident, "foo", &expect![[r#"Ident _id_ [0-3] "foo""#]]);
 }
 
 #[test]
 fn ident_num_suffix() {
-    check(
-        ident,
-        "foo2",
-        &expect![[r#"Ident 4294967295 [0-4] "foo2""#]],
-    );
+    check(ident, "foo2", &expect![[r#"Ident _id_ [0-4] "foo2""#]]);
 }
 
 #[test]
 fn ident_underscore_prefix() {
-    check(
-        ident,
-        "_foo",
-        &expect![[r#"Ident 4294967295 [0-4] "_foo""#]],
-    );
+    check(ident, "_foo", &expect![[r#"Ident _id_ [0-4] "_foo""#]]);
 }
 
 #[test]
@@ -85,7 +77,7 @@ fn path_single() {
     check(
         path,
         "Foo",
-        &expect![[r#"Path 4294967295 [0-3] (Ident 4294967295 [0-3] "Foo")"#]],
+        &expect![[r#"Path _id_ [0-3] (Ident _id_ [0-3] "Foo")"#]],
     );
 }
 
@@ -94,9 +86,7 @@ fn path_double() {
     check(
         path,
         "Foo.Bar",
-        &expect![[
-            r#"Path 4294967295 [0-7] (Ident 4294967295 [0-3] "Foo") (Ident 4294967295 [4-7] "Bar")"#
-        ]],
+        &expect![[r#"Path _id_ [0-7] (Ident _id_ [0-3] "Foo") (Ident _id_ [4-7] "Bar")"#]],
     );
 }
 
@@ -105,9 +95,7 @@ fn path_triple() {
     check(
         path,
         "Foo.Bar.Baz",
-        &expect![[
-            r#"Path 4294967295 [0-11] (Ident 4294967295 [0-7] "Foo.Bar") (Ident 4294967295 [8-11] "Baz")"#
-        ]],
+        &expect![[r#"Path _id_ [0-11] (Ident _id_ [0-7] "Foo.Bar") (Ident _id_ [8-11] "Baz")"#]],
     );
 }
 
@@ -137,8 +125,8 @@ fn pat_bind() {
         pat,
         "foo",
         &expect![[r#"
-            Pat 4294967295 [0-3]: Bind:
-                Ident 4294967295 [0-3] "foo""#]],
+            Pat _id_ [0-3]: Bind:
+                Ident _id_ [0-3] "foo""#]],
     );
 }
 
@@ -148,15 +136,15 @@ fn pat_bind_ty() {
         pat,
         "foo : Int",
         &expect![[r#"
-            Pat 4294967295 [0-9]: Bind:
-                Ident 4294967295 [0-3] "foo"
-                Type 4294967295 [6-9]: Prim (Int)"#]],
+            Pat _id_ [0-9]: Bind:
+                Ident _id_ [0-3] "foo"
+                Type _id_ [6-9]: Prim (Int)"#]],
     );
 }
 
 #[test]
 fn pat_bind_discard() {
-    check(pat, "_", &expect!["Pat 4294967295 [0-1]: Discard"]);
+    check(pat, "_", &expect!["Pat _id_ [0-1]: Discard"]);
 }
 
 #[test]
@@ -165,8 +153,8 @@ fn pat_discard_ty() {
         pat,
         "_ : Int",
         &expect![[r#"
-            Pat 4294967295 [0-7]: Discard:
-                Type 4294967295 [4-7]: Prim (Int)"#]],
+            Pat _id_ [0-7]: Discard:
+                Type _id_ [4-7]: Prim (Int)"#]],
     );
 }
 
@@ -176,9 +164,9 @@ fn pat_paren() {
         pat,
         "(foo)",
         &expect![[r#"
-            Pat 4294967295 [0-5]: Paren:
-                Pat 4294967295 [1-4]: Bind:
-                    Ident 4294967295 [1-4] "foo""#]],
+            Pat _id_ [0-5]: Paren:
+                Pat _id_ [1-4]: Bind:
+                    Ident _id_ [1-4] "foo""#]],
     );
 }
 
@@ -188,9 +176,9 @@ fn pat_singleton_tuple() {
         pat,
         "(foo,)",
         &expect![[r#"
-            Pat 4294967295 [0-6]: Tuple:
-                Pat 4294967295 [1-4]: Bind:
-                    Ident 4294967295 [1-4] "foo""#]],
+            Pat _id_ [0-6]: Tuple:
+                Pat _id_ [1-4]: Bind:
+                    Ident _id_ [1-4] "foo""#]],
     );
 }
 
@@ -200,11 +188,11 @@ fn pat_tuple() {
         pat,
         "(foo, bar)",
         &expect![[r#"
-            Pat 4294967295 [0-10]: Tuple:
-                Pat 4294967295 [1-4]: Bind:
-                    Ident 4294967295 [1-4] "foo"
-                Pat 4294967295 [6-9]: Bind:
-                    Ident 4294967295 [6-9] "bar""#]],
+            Pat _id_ [0-10]: Tuple:
+                Pat _id_ [1-4]: Bind:
+                    Ident _id_ [1-4] "foo"
+                Pat _id_ [6-9]: Bind:
+                    Ident _id_ [6-9] "bar""#]],
     );
 }
 
@@ -214,11 +202,11 @@ fn pat_tuple_ty_discard() {
         pat,
         "(foo : Int, _)",
         &expect![[r#"
-            Pat 4294967295 [0-14]: Tuple:
-                Pat 4294967295 [1-10]: Bind:
-                    Ident 4294967295 [1-4] "foo"
-                    Type 4294967295 [7-10]: Prim (Int)
-                Pat 4294967295 [12-13]: Discard"#]],
+            Pat _id_ [0-14]: Tuple:
+                Pat _id_ [1-10]: Bind:
+                    Ident _id_ [1-4] "foo"
+                    Type _id_ [7-10]: Prim (Int)
+                Pat _id_ [12-13]: Discard"#]],
     );
 }
 
@@ -267,9 +255,7 @@ fn opt_succeed() {
     check_opt(
         |s| opt(s, path),
         "Foo.Bar",
-        &expect![[
-            r#"Path 4294967295 [0-7] (Ident 4294967295 [0-3] "Foo") (Ident 4294967295 [4-7] "Bar")"#
-        ]],
+        &expect![[r#"Path _id_ [0-7] (Ident _id_ [0-3] "Foo") (Ident _id_ [4-7] "Bar")"#]],
     );
 }
 
@@ -316,7 +302,7 @@ fn seq_single() {
     check_seq(
         |s| seq(s, ident),
         "foo",
-        &expect![[r#"(Ident 4294967295 [0-3] "foo", Missing)"#]],
+        &expect![[r#"(Ident _id_ [0-3] "foo", Missing)"#]],
     );
 }
 
@@ -326,8 +312,8 @@ fn seq_double() {
         |s| seq(s, ident),
         "foo, bar",
         &expect![[r#"
-            (Ident 4294967295 [0-3] "foo",
-            Ident 4294967295 [5-8] "bar", Missing)"#]],
+            (Ident _id_ [0-3] "foo",
+            Ident _id_ [5-8] "bar", Missing)"#]],
     );
 }
 
@@ -337,8 +323,8 @@ fn seq_trailing() {
         |s| seq(s, ident),
         "foo, bar,",
         &expect![[r#"
-            (Ident 4294967295 [0-3] "foo",
-            Ident 4294967295 [5-8] "bar", Present)"#]],
+            (Ident _id_ [0-3] "foo",
+            Ident _id_ [5-8] "bar", Present)"#]],
     );
 }
 
@@ -347,7 +333,7 @@ fn seq_fail_no_consume() {
     check_seq(
         |s| seq(s, ident),
         "foo, 2",
-        &expect![[r#"(Ident 4294967295 [0-3] "foo", Present)"#]],
+        &expect![[r#"(Ident _id_ [0-3] "foo", Present)"#]],
     );
 }
 
