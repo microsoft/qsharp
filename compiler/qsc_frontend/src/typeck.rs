@@ -41,6 +41,9 @@ pub enum Ty {
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
+            Ty::App(base, args) if matches!(**base, Ty::Prim(TyPrim::Array)) && args.len() == 1 => {
+                write!(f, "({})[]", args[0])
+            }
             Ty::App(base, args) => {
                 Display::fmt(base, f)?;
                 if let Some((first, rest)) = args.split_first() {
