@@ -1171,6 +1171,7 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
         }
         (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
         (Ty::Err, _) | (_, Ty::Err) => Ok(Vec::new()),
+        (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(Vec::new()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
             let mut substs = Vec::new();
