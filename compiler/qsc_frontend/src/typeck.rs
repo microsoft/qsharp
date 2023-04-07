@@ -164,14 +164,18 @@ impl Termination {
 pub enum Error {
     #[error("cannot unify type `{0}` with type `{1}`")]
     CannotUnify(Ty, Ty, #[label] Span),
+    #[error("type class not satisfied: {0}")]
+    ClassNotSatisfied(Class, #[label("class required")] Span),
     #[error("missing type in item signature")]
     #[diagnostic(help("types cannot be inferred for global declarations"))]
     MissingItemTy(#[label("explicit type required")] Span),
 }
 
-struct UnifyError(Ty, Ty);
+struct ClassError(Class, Span);
 
 struct MissingTyError(Span);
+
+struct UnifyError(Ty, Ty);
 
 pub(super) struct Checker<'a> {
     resolutions: &'a Resolutions,
@@ -289,7 +293,7 @@ enum ConstraintKind {
 }
 
 #[derive(Clone, Debug)]
-enum Class {
+pub enum Class {
     Add(Ty),
     Adj(Ty),
     Call {
@@ -407,6 +411,30 @@ impl Class {
                 wrapper: f(wrapper),
                 base: f(base),
             },
+        }
+    }
+}
+
+impl Display for Class {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Class::Add(ty) => write!(f, "Add<{ty}>"),
+            Class::Adj(ty) => write!(f, "Adj<{ty}>"),
+            Class::Call { callee, .. } => write!(f, "Call<{callee}>"),
+            Class::Ctl { op, .. } => write!(f, "Ctl<{op}>"),
+            Class::Eq(ty) => write!(f, "Eq<{ty}>"),
+            Class::HasField { record, name, .. } => write!(f, "HasField<{record}, {name}>"),
+            Class::HasFunctorsIfOp { callee, functors } => {
+                write!(f, "HasFunctorsIfOp<{callee}, {functors:?}>")
+            }
+            Class::HasIndex {
+                container, index, ..
+            } => write!(f, "HasIndex<{container}, {index}>"),
+            Class::HasPartialApp { callee, .. } => write!(f, "HasPartialApp<{callee}>"),
+            Class::Integral(ty) => write!(f, "Integral<{ty}>"),
+            Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
+            Class::Num(ty) => write!(f, "Num<{ty}"),
+            Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
     }
 }
@@ -1049,10 +1077,13 @@ impl<'a> Inferrer<'a> {
                             .collect();
 
                         if unsolved.is_empty() {
-                            new_constraints.extend(classify(
-                                constraint.span,
-                                class.map(|ty| substitute(&substs, ty)),
-                            ));
+                            match classify(constraint.span, class.map(|ty| substitute(&substs, ty)))
+                            {
+                                Ok(new) => new_constraints.extend(new),
+                                Err(error) => {
+                                    errors.push(Error::ClassNotSatisfied(error.0, error.1));
+                                }
+                            }
                         } else {
                             for var in unsolved {
                                 pending_classes.entry(var).or_default().push(class.clone());
@@ -1139,7 +1170,7 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
 }
 
 #[allow(clippy::too_many_lines)]
-fn classify(span: Span, class: Class) -> Vec<Constraint> {
+fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
     match class {
         Class::Eq(Ty::Prim(
             TyPrim::BigInt
@@ -1154,19 +1185,19 @@ fn classify(span: Span, class: Class) -> Vec<Constraint> {
         | Class::Integral(Ty::Prim(TyPrim::BigInt | TyPrim::Int))
         | Class::Num(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int))
         | Class::Add(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String)) => {
-            Vec::new()
+            Ok(Vec::new())
         }
-        Class::Add(Ty::App(base, _)) if matches!(*base, Ty::Prim(TyPrim::Array)) => Vec::new(),
+        Class::Add(Ty::App(base, _)) if matches!(*base, Ty::Prim(TyPrim::Array)) => Ok(Vec::new()),
         Class::Adj(Ty::Arrow(_, _, _, functors))
             if functor_set(functors.as_ref()).contains(&Functor::Adj) =>
         {
-            Vec::new()
+            Ok(Vec::new())
         }
         Class::Call {
             callee: Ty::Arrow(_, callee_input, callee_output, _),
             input,
             output,
-        } => vec![
+        } => Ok(vec![
             Constraint {
                 span,
                 kind: ConstraintKind::Eq {
@@ -1181,7 +1212,7 @@ fn classify(span: Span, class: Class) -> Vec<Constraint> {
                     actual: output,
                 },
             },
-        ],
+        ]),
         Class::Ctl {
             op: Ty::Arrow(kind, input, output, functors),
             with_ctls,
@@ -1191,72 +1222,79 @@ fn classify(span: Span, class: Class) -> Vec<Constraint> {
                 vec![Ty::Prim(TyPrim::Qubit)],
             );
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
-            vec![Constraint {
+            Ok(vec![Constraint {
                 span,
                 kind: ConstraintKind::Eq {
                     expected: Ty::Arrow(kind, ctl_input, output, functors),
                     actual: with_ctls,
                 },
-            }]
+            }])
         }
         Class::HasField { .. } => todo!("user-defined types not supported"),
         Class::HasFunctorsIfOp { callee, functors } => match callee {
             Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
                 if functor_set(callee_functors.as_ref()) == functors =>
             {
-                Vec::new()
+                Ok(Vec::new())
             }
-            Ty::Arrow(CallableKind::Operation, _, _, _) => {
-                panic!("operation functors mismatch")
-            }
-            _ => Vec::new(),
+            Ty::Arrow(CallableKind::Operation, _, _, _) => Err(ClassError(
+                Class::HasFunctorsIfOp { callee, functors },
+                span,
+            )),
+            _ => Ok(Vec::new()),
         },
         Class::HasIndex {
             container: Ty::App(base, mut args),
             index,
             item,
         } if matches!(*base, Ty::Prim(TyPrim::Array)) && args.len() == 1 => match index {
-            Ty::Prim(TyPrim::Int) => vec![Constraint {
+            Ty::Prim(TyPrim::Int) => Ok(vec![Constraint {
                 span,
                 kind: ConstraintKind::Eq {
                     expected: args.pop().expect("type arguments should not be empty"),
                     actual: item,
                 },
-            }],
-            Ty::Prim(TyPrim::Range) => vec![Constraint {
+            }]),
+            Ty::Prim(TyPrim::Range) => Ok(vec![Constraint {
                 span,
                 kind: ConstraintKind::Eq {
                     expected: Ty::App(base, args),
                     actual: item,
                 },
-            }],
-            _ => panic!("invalid index for array"),
+            }]),
+            _ => Err(ClassError(
+                Class::HasIndex {
+                    container: Ty::App(base, args),
+                    index,
+                    item,
+                },
+                span,
+            )),
         },
         Class::HasPartialApp { .. } => todo!("partial application not supported"),
         Class::Iterable {
             container: Ty::Prim(TyPrim::Range),
             item,
-        } => vec![Constraint {
+        } => Ok(vec![Constraint {
             span,
             kind: ConstraintKind::Eq {
                 expected: Ty::Prim(TyPrim::Int),
                 actual: item,
             },
-        }],
+        }]),
         Class::Iterable {
             container: Ty::App(base, mut args),
             item,
-        } if matches!(*base, Ty::Prim(TyPrim::Array)) => {
-            vec![Constraint {
-                span,
-                kind: ConstraintKind::Eq {
-                    expected: args.pop().expect("type arguments should not be empty"),
-                    actual: item,
-                },
-            }]
-        }
+        } if matches!(*base, Ty::Prim(TyPrim::Array)) => Ok(vec![Constraint {
+            span,
+            kind: ConstraintKind::Eq {
+                expected: args.pop().expect("type arguments should not be empty"),
+                actual: item,
+            },
+        }]),
         Class::Unwrap { .. } => todo!("user-defined types not supported"),
-        class => panic!("falsified class: {class:?}"),
+        class if class.dependencies().iter().any(|ty| matches!(ty, Ty::Err)) => Ok(Vec::new()),
+        class => Err(ClassError(class, span)),
     }
 }
 
