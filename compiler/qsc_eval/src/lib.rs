@@ -6,6 +6,7 @@
 #[cfg(test)]
 mod tests;
 
+pub mod interactive;
 mod intrinsic;
 pub mod output;
 pub mod val;

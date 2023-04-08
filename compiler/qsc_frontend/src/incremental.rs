@@ -62,9 +62,12 @@ impl<'a> Compiler<'a> {
     /// Compile a single string as either a callable declaration or a statement into a `Fragment`.
     /// # Errors
     /// This will panic if the fragment cannot be compiled due to parsing or symbol resolution errors.
-    pub fn compile_fragment(&mut self, source: &str) -> Result<Fragment<'static>, Vec<Error>> {
+    pub fn compile_fragment(
+        &mut self,
+        source: impl AsRef<str>,
+    ) -> Result<Fragment<'static>, Vec<Error>> {
         self.resolver.reset_errors();
-        let (item, errors) = parse::item(source);
+        let (item, errors) = parse::item(source.as_ref());
 
         match item.kind {
             ItemKind::Callable(mut decl) if errors.is_empty() => {
@@ -88,7 +91,7 @@ impl<'a> Compiler<'a> {
                 Ok(Fragment::Callable(decl))
             }
             _ => {
-                let (mut stmt, errors) = parse::stmt(source);
+                let (mut stmt, errors) = parse::stmt(source.as_ref());
                 if !errors.is_empty() {
                     let mut parse_errors = vec![];
                     parse_errors.extend(errors.iter().map(|e| Error(ErrorKind::Parse(*e))));
