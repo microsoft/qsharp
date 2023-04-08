@@ -342,7 +342,7 @@ fn add_wrong_types() {
             #9 42-50 "1 + [2];" : ()
             #10 42-49 "1 + [2]" : Int
             #11 42-43 "1" : Int
-            #12 46-49 "[2]" : Array<Int>
+            #12 46-49 "[2]" : (Int)[]
             #13 47-48 "2" : Int
             Error(Ty(TypeMismatch(Prim(Int), App(Prim(Array), [Prim(Int)]), Span { lo: 42, hi: 49 })))
         "##]],
