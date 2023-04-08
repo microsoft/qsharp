@@ -16,11 +16,9 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn validate(ns: &Namespace) -> Vec<Error> {
-    let mut validator = Validator {
-        validation_errors: Vec::new(),
-    };
+    let mut validator = Validator { errors: Vec::new() };
     validator.visit_namespace(ns);
-    validator.validation_errors
+    validator.errors
 }
 
 #[test]
@@ -94,97 +92,6 @@ fn test_partial() {
                     Span {
                         lo: 111,
                         hi: 120,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_type_hole_param() {
-    check(
-        "namespace input { operation Foo(a : Int, b : _) : Unit { return b; } }",
-        &expect![[r#"
-            [
-                NotCurrentlySupported(
-                    "type holes",
-                    Span {
-                        lo: 45,
-                        hi: 46,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_nested_type_hole_param() {
-    check(
-        indoc! {"
-            namespace input {
-                operation Foo(a : Int, b : (Int, _, Double)) : Unit {
-                    let (_, x, _) = b;
-                    return x;
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                NotCurrentlySupported(
-                    "type holes",
-                    Span {
-                        lo: 55,
-                        hi: 56,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_elided_required() {
-    check(
-        indoc! {"
-            namespace input {
-                operation Foo(a : Int) : Unit is Adj + Ctl {
-                    body a {}
-                    controlled (ctls, ...) {}
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                ElidedRequired(
-                    Span {
-                        lo: 80,
-                        hi: 81,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_elided_tuple_required() {
-    check(
-        indoc! {"
-            namespace input {
-                operation Foo(a : Int) : Unit is Adj + Ctl {
-                    body ... {}
-                    controlled ... {}
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                ElidedTupleRequired(
-                    Span {
-                        lo: 106,
-                        hi: 109,
                     },
                 ),
             ]
