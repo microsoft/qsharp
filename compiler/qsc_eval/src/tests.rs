@@ -51,24 +51,6 @@ fn array_repeat_expr() {
 }
 
 #[test]
-fn array_repeat_type_error_expr() {
-    check_expr(
-        "",
-        "[4, size = true]",
-        &expect![[r#"
-            Type(
-                "Int",
-                "Bool",
-                Span {
-                    lo: 11,
-                    hi: 15,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn block_expr() {
     check_expr(
         "",
@@ -478,42 +460,6 @@ fn binop_add_string() {
 }
 
 #[test]
-fn binop_add_invalid() {
-    check_expr(
-        "",
-        "(1, 3) + 5.4",
-        &expect![[r#"
-        Type(
-            "Array, BigInt, Double, Int, or String",
-            "Tuple",
-            Span {
-                lo: 0,
-                hi: 6,
-            },
-        )
-    "#]],
-    );
-}
-
-#[test]
-fn binop_add_mismatch() {
-    check_expr(
-        "",
-        "1 + 5.4",
-        &expect![[r#"
-        Type(
-            "Int",
-            "Double",
-            Span {
-                lo: 4,
-                hi: 7,
-            },
-        )
-    "#]],
-    );
-}
-
-#[test]
 fn binop_andb_bigint() {
     check_expr("", "28L &&& 54L", &expect!["20"]);
 }
@@ -538,24 +484,6 @@ fn binop_andb_invalid() {
             },
         )
     "#]],
-    );
-}
-
-#[test]
-fn binop_andb_mismatch() {
-    check_expr(
-        "",
-        "28 &&& 54L",
-        &expect![[r#"
-            Type(
-                "Int",
-                "BigInt",
-                Span {
-                    lo: 7,
-                    hi: 10,
-                },
-            )
-        "#]],
     );
 }
 
@@ -1435,28 +1363,6 @@ fn assignop_mutability_expr() {
 }
 
 #[test]
-fn assignop_invalid_type_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            mutable x = false;
-            set x += 1;
-            x
-        }"},
-        &expect![[r#"
-            Type(
-                "Array, BigInt, Double, Int, or String",
-                "Bool",
-                Span {
-                    lo: 33,
-                    hi: 34,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn fail_expr() {
     check_expr(
         "",
@@ -1699,24 +1605,6 @@ fn array_index_out_of_range_expr() {
                 Span {
                     lo: 10,
                     hi: 11,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn array_index_type_error_expr() {
-    check_expr(
-        "",
-        "[1, 2, 3][false]",
-        &expect![[r#"
-            Type(
-                "Int or Range",
-                "Bool",
-                Span {
-                    lo: 10,
-                    hi: 15,
                 },
             )
         "#]],

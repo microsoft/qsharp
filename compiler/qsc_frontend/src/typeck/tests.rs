@@ -391,3 +391,109 @@ fn single_arg_for_tuple() {
         "##]],
     );
 }
+
+#[test]
+fn array_index_error() {
+    check(
+        "",
+        "[1, 2, 3][false]",
+        &expect![[r##"
+            #1 0-16 "[1, 2, 3][false]" : ?0
+            #2 0-9 "[1, 2, 3]" : (Int)[]
+            #3 1-2 "1" : Int
+            #4 4-5 "2" : Int
+            #5 7-8 "3" : Int
+            #6 10-15 "false" : Bool
+            Error(Ty(MissingClass(HasIndex { container: App(Prim(Array), [Prim(Int)]), index: Prim(Bool), item: Var(Var(0)) }, Span { lo: 0, hi: 16 })))
+        "##]],
+    );
+}
+
+#[test]
+fn array_repeat_error() {
+    check(
+        "",
+        "[4, size = true]",
+        &expect![[r##"
+            #1 0-16 "[4, size = true]" : (Int)[]
+            #2 1-2 "4" : Int
+            #3 11-15 "true" : Bool
+            Error(Ty(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 11, hi: 15 })))
+        "##]],
+    );
+}
+
+#[test]
+fn assignop_error() {
+    check(
+        "",
+        indoc! {"
+            {
+                mutable x = false;
+                set x += 1;
+                x
+            }
+        "},
+        &expect![[r##"
+            #1 0-48 "{\n    mutable x = false;\n    set x += 1;\n    x\n}" : Bool
+            #2 0-48 "{\n    mutable x = false;\n    set x += 1;\n    x\n}" : Bool
+            #3 6-24 "mutable x = false;" : ()
+            #4 14-15 "x" : Bool
+            #5 14-15 "x" : Bool
+            #6 18-23 "false" : Bool
+            #7 29-40 "set x += 1;" : ()
+            #8 29-39 "set x += 1" : ()
+            #9 33-34 "x" : Bool
+            #12 38-39 "1" : Int
+            #13 45-46 "x" : Bool
+            #14 45-46 "x" : Bool
+            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 })))
+            Error(Ty(MissingClass(Add(Prim(Bool)), Span { lo: 33, hi: 34 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_add_invalid() {
+    check(
+        "",
+        "(1, 3) + 5.4",
+        &expect![[r##"
+            #1 0-12 "(1, 3) + 5.4" : (Int, Int)
+            #2 0-6 "(1, 3)" : (Int, Int)
+            #3 1-2 "1" : Int
+            #4 4-5 "3" : Int
+            #5 9-12 "5.4" : Double
+            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Prim(Double), Span { lo: 0, hi: 12 })))
+            Error(Ty(MissingClass(Add(Tuple([Prim(Int), Prim(Int)])), Span { lo: 0, hi: 6 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_add_mismatch() {
+    check(
+        "",
+        "1 + 5.4",
+        &expect![[r##"
+            #1 0-7 "1 + 5.4" : Int
+            #2 0-1 "1" : Int
+            #3 4-7 "5.4" : Double
+            Error(Ty(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 0, hi: 7 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_andb_mismatch() {
+    check(
+        "",
+        "28 &&& 54L",
+        &expect![[r##"
+            #1 0-10 "28 &&& 54L" : Int
+            #2 0-2 "28" : Int
+            #3 7-10 "54L" : BigInt
+            Error(Ty(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
+        "##]],
+    );
+}
