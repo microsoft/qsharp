@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::Ty;
-use crate::compile::{compile, PackageStore};
+use crate::compile::{self, compile, PackageStore};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -114,21 +114,33 @@ impl Visitor<'_> for SpanCollector {
     }
 }
 
-fn check(input: &str, expect: &Expect) {
-    let store = PackageStore::new();
-    let unit = compile(&store, [], [input], "");
+fn check(source: &str, entry_expr: &str, expect: &Expect) {
+    let mut store = PackageStore::new();
+    let std = store.insert(compile::std());
+    let unit = compile(&store, [std], [source], entry_expr);
     let mut spans = SpanCollector(HashMap::new());
     spans.visit_package(&unit.package);
+
     let mut nodes: Vec<_> = unit
         .context
         .tys()
         .iter()
         .map(|(id, ty)| {
             let span = spans.0.get(id).expect("node should have span");
+            let excerpt = if span.lo < source.len() {
+                &source[span]
+            } else {
+                let span = Span {
+                    lo: span.lo - source.len(),
+                    hi: span.hi - source.len(),
+                };
+                &entry_expr[span]
+            };
+
             TypedNode {
                 id: *id,
                 span: *span,
-                source: &input[span],
+                source: excerpt,
                 ty: ty.clone(),
             }
         })
@@ -153,6 +165,7 @@ fn empty_callable() {
                 function Foo() : Unit {}
             }
         "},
+        "",
         &expect![[r##"
             #6 30-32 "()" : ()
             #8 40-42 "{}" : ()
@@ -168,6 +181,7 @@ fn return_constant() {
                 function Foo() : Int { 4 }
             }
         "},
+        "",
         &expect![[r##"
             #6 30-32 "()" : ()
             #8 39-44 "{ 4 }" : Int
@@ -185,6 +199,7 @@ fn return_wrong_type() {
                 function Foo() : Int { true }
             }
         "},
+        "",
         &expect![[r##"
             #6 30-32 "()" : ()
             #8 39-47 "{ true }" : Bool
@@ -203,6 +218,7 @@ fn return_semi() {
                 function Foo() : Int { 4; }
             }
         "},
+        "",
         &expect![[r##"
             #6 30-32 "()" : ()
             #8 39-45 "{ 4; }" : ()
@@ -224,6 +240,7 @@ fn return_var() {
                 }
             }
         "},
+        "",
         &expect![[r##"
             #6 30-32 "()" : ()
             #8 39-75 "{\n        let x = 4;\n        x\n    }" : Int
@@ -246,6 +263,7 @@ fn call_function() {
                 function Bar() : Int { Foo(4) }
             }
         "},
+        "",
         &expect![[r##"
             #6 30-39 "(x : Int)" : Int
             #7 31-38 "x : Int" : Int
@@ -273,6 +291,7 @@ fn call_generic_function() {
                 function Foo() : Int { Identity(4) }
             }
         "},
+        "",
         &expect![[r##"
             #7 39-47 "(x : 'T)" : 'T
             #8 40-46 "x : 'T" : 'T
@@ -299,6 +318,7 @@ fn add_wrong_types() {
                 function Foo() : Unit { 1 + [2]; }
             }
         "},
+        "",
         &expect![[r##"
             #6 30-32 "()" : ()
             #8 40-52 "{ 1 + [2]; }" : ()
@@ -308,6 +328,21 @@ fn add_wrong_types() {
             #12 46-49 "[2]" : Array<Int>
             #13 47-48 "2" : Int
             Error(Ty(TypeMismatch(Prim(Int), App(Prim(Array), [Prim(Int)]), Span { lo: 42, hi: 49 })))
+        "##]],
+    );
+}
+
+#[test]
+fn int_as_double_error() {
+    check(
+        "",
+        "Microsoft.Quantum.Convert.IntAsDouble(false)",
+        &expect![[r##"
+            #1 0-44 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
+            #2 0-37 "Microsoft.Quantum.Convert.IntAsDouble" : (Int) -> (Double)
+            #6 37-44 "(false)" : Bool
+            #7 38-43 "false" : Bool
+            Error(Ty(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 0, hi: 44 })))
         "##]],
     );
 }

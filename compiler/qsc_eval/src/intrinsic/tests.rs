@@ -105,24 +105,6 @@ fn int_as_double() {
 }
 
 #[test]
-fn int_as_double_type_error() {
-    check_intrinsic_result(
-        "",
-        "Microsoft.Quantum.Convert.IntAsDouble(false)",
-        &expect![[r#"
-            Type(
-                "Int",
-                "Bool",
-                Span {
-                    lo: 37,
-                    hi: 44,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn int_as_double_precision_loss() {
     check_intrinsic_result(
         "",
