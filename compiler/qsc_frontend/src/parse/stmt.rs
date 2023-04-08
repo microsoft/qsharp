@@ -28,6 +28,12 @@ pub(super) fn block(s: &mut Scanner) -> Result<Block> {
     })
 }
 
+pub(super) fn stmts(s: &mut Scanner) -> Result<Vec<Stmt>> {
+    let statements = many(s, stmt)?;
+    token(s, TokenKind::Eof)?;
+    Ok(statements)
+}
+
 pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     let lo = s.peek().span.lo;
     let kind = if let Some(var) = opt(s, var_binding)? {

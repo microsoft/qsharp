@@ -61,11 +61,8 @@ impl<'a> Compiler<'a> {
 
     /// Compile a single string as either a callable declaration or a statement into a `Fragment`.
     /// # Errors
-    /// This will panic if the fragment cannot be compiled due to parsing or symbol resolution errors.
-    pub fn compile_fragment(
-        &mut self,
-        source: impl AsRef<str>,
-    ) -> Result<Fragment<'static>, Vec<Error>> {
+    /// This will Err if the fragment cannot be compiled due to parsing or symbol resolution errors.
+    pub fn compile_fragment(&mut self, source: impl AsRef<str>) -> Vec<Fragment<'static>> {
         self.resolver.reset_errors();
         let (item, errors) = parse::item(source.as_ref());
 
@@ -85,36 +82,42 @@ impl<'a> Compiler<'a> {
                                 .map(|e| Error(ErrorKind::Resolve(e.clone()))),
                         );
                     });
-                if !errors.is_empty() {
-                    return Err(errors);
+                if errors.is_empty() {
+                    vec![Fragment::Callable(decl)]
+                } else {
+                    vec![Fragment::Error(errors)]
                 }
-                Ok(Fragment::Callable(decl))
             }
             _ => {
-                let (mut stmt, errors) = parse::stmt(source.as_ref());
+                let (stmts, errors) = parse::stmts(source.as_ref());
                 if !errors.is_empty() {
                     let mut parse_errors = vec![];
                     parse_errors.extend(errors.iter().map(|e| Error(ErrorKind::Parse(*e))));
-                    return Err(parse_errors);
+                    return vec![Fragment::Error(parse_errors)];
                 }
-
-                self.assigner.visit_stmt(&mut stmt);
-                let stmt = Box::leak(Box::new(stmt));
-                let mut errors = vec![];
-                self.resolver
-                    .with_scope(&mut self.fragments_scope, |resolver| {
-                        resolver.visit_stmt(stmt);
-                        errors.extend(
-                            resolver
-                                .errors()
-                                .iter()
-                                .map(|e| Error(ErrorKind::Resolve(e.clone()))),
-                        );
-                    });
-                if !errors.is_empty() {
-                    return Err(errors);
+                let mut fragments = vec![];
+                for mut stmt in stmts {
+                    self.assigner.visit_stmt(&mut stmt);
+                    let stmt = Box::leak(Box::new(stmt));
+                    let mut errors = vec![];
+                    self.resolver
+                        .with_scope(&mut self.fragments_scope, |resolver| {
+                            resolver.visit_stmt(stmt);
+                            errors.extend(
+                                resolver
+                                    .errors()
+                                    .iter()
+                                    .map(|e| Error(ErrorKind::Resolve(e.clone()))),
+                            );
+                        });
+                    if !errors.is_empty() {
+                        // bail out on first error
+                        fragments.push(Fragment::Error(errors));
+                        return fragments;
+                    }
+                    fragments.push(Fragment::Stmt(stmt));
                 }
-                Ok(Fragment::Stmt(stmt))
+                fragments
             }
         }
     }
@@ -123,4 +126,5 @@ impl<'a> Compiler<'a> {
 pub enum Fragment<'a> {
     Stmt(&'a Stmt),
     Callable(&'a CallableDecl),
+    Error(Vec<Error>),
 }

@@ -43,15 +43,17 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     let mut interpreter = Interpreter::new(cli.nostdlib, sources);
 
     if let Some(line) = cli.entry {
-        let r = interpreter.line(line);
-        if !r.0.is_empty() {
-            println!("{}", r.0);
-        }
-        if !r.1.is_empty() {
-            println!("{}", r.1);
-        }
-        if !r.2.is_empty() {
-            eprintln!("{}", r.2);
+        let results = interpreter.line(line);
+        for result in results {
+            if !result.value.is_empty() {
+                println!("{}", result.value);
+            }
+            if !result.output.is_empty() {
+                println!("{}", result.output);
+            }
+            if !result.errors.is_empty() {
+                eprintln!("{}", result.errors.join("\n"));
+            }
         }
     }
 
@@ -77,15 +79,17 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             // will require updates to parsing to read multiple statements
             // followed by the EOF token.
             if !line.trim().is_empty() {
-                let r = interpreter.line(line);
-                if !r.0.is_empty() {
-                    println!("{}", r.0);
-                }
-                if !r.1.is_empty() {
-                    println!("{}", r.1);
-                }
-                if !r.2.is_empty() {
-                    eprintln!("{}", r.2);
+                let results = interpreter.line(line);
+                for result in results {
+                    if !result.value.is_empty() {
+                        println!("{}", result.value);
+                    }
+                    if !result.output.is_empty() {
+                        println!("{}", result.output);
+                    }
+                    if !result.errors.is_empty() {
+                        eprintln!("{}", result.errors.join("\n"));
+                    }
                 }
             }
 

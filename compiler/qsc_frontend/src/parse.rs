@@ -72,14 +72,14 @@ pub(super) fn item(input: &str) -> (Item, Vec<Error>) {
 }
 
 #[must_use]
-pub(super) fn stmt(input: &str) -> (Stmt, Vec<Error>) {
+pub(super) fn stmts(input: &str) -> (Vec<Stmt>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match stmt::stmt(&mut scanner) {
-        Ok(stmt) => (stmt, scanner.errors()),
+    match stmt::stmts(&mut scanner) {
+        Ok(stmts) => (stmts, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();
             errors.push(err);
-            (Stmt::default(), errors)
+            (vec![], errors)
         }
     }
 }

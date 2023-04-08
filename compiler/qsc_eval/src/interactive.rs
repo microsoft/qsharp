@@ -73,6 +73,23 @@ pub struct ExecutionContext {
     out: CursorReceiver<'this>,
 }
 
+pub struct InterpreterResult {
+    pub output: String,
+    pub value: String,
+    pub errors: Vec<String>,
+}
+
+impl InterpreterResult {
+    #[must_use]
+    pub fn new(value: String, output: String, errors: Vec<String>) -> Self {
+        Self {
+            output,
+            value,
+            errors,
+        }
+    }
+}
+
 pub struct Interpreter {
     context: ExecutionContext,
 }
@@ -109,11 +126,12 @@ impl Interpreter {
         Self { context }
     }
 
-    pub fn line(&mut self, line: impl AsRef<str>) -> (String, String, String) {
+    pub fn line(&mut self, line: impl AsRef<str>) -> Vec<InterpreterResult> {
+        let mut results = vec![];
         self.context.with_mut(|fields| {
-            let fragment = fields.compiler.compile_fragment(line);
-            match fragment {
-                Ok(a) => match a {
+            let fragments = fields.compiler.compile_fragment(line);
+            for fragment in fragments {
+                match fragment {
                     Fragment::Stmt(stmt) => {
                         let mut env = fields.env.take().unwrap_or(Env::empty());
                         let result = eval_stmt(
@@ -129,8 +147,18 @@ impl Interpreter {
                         let output = fields.out.dump();
 
                         match result {
-                            Ok(v) => (format!("{v}"), output, String::new()),
-                            Err(e) => (String::new(), output, format!("{e}")),
+                            Ok(v) => {
+                                results.push(InterpreterResult::new(
+                                    format!("{v}"),
+                                    output,
+                                    vec![],
+                                ));
+                            }
+                            Err(e) => results.push(InterpreterResult::new(
+                                String::new(),
+                                output,
+                                vec![format!("{e}")],
+                            )),
                         }
                     }
                     Fragment::Callable(decl) => {
@@ -139,18 +167,23 @@ impl Interpreter {
                             node: decl.name.id,
                         };
                         fields.globals.insert(id, decl);
-                        (String::new(), String::new(), String::new())
+                        results.push(InterpreterResult::new(String::new(), String::new(), vec![]));
                     }
-                },
-                Err(errors) => {
-                    let e = errors
-                        .iter()
-                        .map(std::string::ToString::to_string)
-                        .collect::<String>();
-                    (String::new(), String::new(), e)
+                    Fragment::Error(errors) => {
+                        let e = errors
+                            .iter()
+                            .map(std::string::ToString::to_string)
+                            .collect::<String>();
+                        results.push(InterpreterResult::new(
+                            String::new(),
+                            String::new(),
+                            vec![e],
+                        ));
+                    }
                 }
             }
-        })
+        });
+        results
     }
 }
 
@@ -173,10 +206,10 @@ mod tests {
             }"#};
 
         let mut interpreter = Interpreter::new(false, [source]);
-        let (value, _, _) = interpreter.line("Test.Hello()");
-        assert_eq!("hello there...", value);
-        let (value, _, _) = interpreter.line("Test.Main()");
-        assert_eq!("hello there...", value);
+        let result = &interpreter.line("Test.Hello()")[0];
+        assert_eq!("hello there...", result.value);
+        let result = &interpreter.line("Test.Main()")[0];
+        assert_eq!("hello there...", result.value);
     }
 
     #[test]
@@ -195,31 +228,31 @@ mod tests {
             }"#};
 
         let mut interpreter = Interpreter::new(false, [source]);
-        let (value, _, _) = interpreter.line("Test.Hello()");
-        assert_eq!("hello there...", value);
-        let (value, _, _) = interpreter.line("Test2.Main()");
-        assert_eq!("hello there...", value);
+        let result = &interpreter.line("Test.Hello()")[0];
+        assert_eq!("hello there...", result.value);
+        let result = &interpreter.line("Test2.Main()")[0];
+        assert_eq!("hello there...", result.value);
     }
 
     #[test]
     fn nostdlib_is_omitted_correctly() {
         let sources: [&str; 0] = [];
         let mut interpreter = Interpreter::new(true, sources);
-        let (value, out, e) = interpreter.line("Message(\"_\")");
+        let result = &interpreter.line("Message(\"_\")")[0];
 
-        assert_eq!("", value);
-        assert_eq!("", out);
-        assert_eq!("`Message` not found in this scope", e);
+        assert_eq!("", result.value);
+        assert_eq!("", result.output);
+        assert_eq!("`Message` not found in this scope", result.errors[0]);
     }
 
     #[test]
     fn nostdlib_is_included_correctly() {
         let sources: [&str; 0] = [];
         let mut interpreter = Interpreter::new(false, sources);
-        let (value, out, e) = interpreter.line("Message(\"_\")");
+        let result = &interpreter.line("Message(\"_\")")[0];
 
-        assert_eq!("()", value);
-        assert_eq!("_", out);
-        assert_eq!("", e);
+        assert_eq!("()", result.value);
+        assert_eq!("_", result.output);
+        assert_eq!(0, result.errors.len());
     }
 }
