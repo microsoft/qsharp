@@ -961,13 +961,13 @@ impl<'a> Inferrer<'a> {
                 self.constrain(lhs.span, ConstraintKind::Class(Class::Add(lhs_ty.clone())));
                 lhs_ty
             }
+            BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
+                self.constrain(lhs.span, ConstraintKind::Class(Class::Num(lhs_ty)));
+                Ty::Prim(TyPrim::Bool)
+            }
             BinOp::AndB
             | BinOp::Div
             | BinOp::Exp
-            | BinOp::Gt
-            | BinOp::Gte
-            | BinOp::Lt
-            | BinOp::Lte
             | BinOp::Mod
             | BinOp::Mul
             | BinOp::OrB
