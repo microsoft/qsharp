@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::Ty;
 use crate::compile::{self, compile, PackageStore};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -12,25 +11,7 @@ use qsc_ast::{
     },
     visit::{self, Visitor},
 };
-use std::fmt::{self, Display, Write};
-use std::{collections::HashMap, fmt::Formatter};
-
-struct TypedNode<'a> {
-    id: NodeId,
-    span: Span,
-    source: &'a str,
-    ty: Ty,
-}
-
-impl Display for TypedNode<'_> {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(
-            f,
-            "#{} {}-{} {:?} : {}",
-            self.id, self.span.lo, self.span.hi, self.source, self.ty
-        )
-    }
-}
+use std::{collections::HashMap, fmt::Write};
 
 struct SpanCollector(HashMap<NodeId, Span>);
 
@@ -121,39 +102,22 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut spans = SpanCollector(HashMap::new());
     spans.visit_package(&unit.package);
 
-    let mut nodes: Vec<_> = unit
-        .context
-        .tys()
-        .iter()
-        .map(|(id, ty)| {
-            let span = spans.0.get(id).expect("node should have span");
-            let excerpt = if span.lo < source.len() {
-                &source[span]
-            } else {
-                let span = Span {
-                    lo: span.lo - source.len(),
-                    hi: span.hi - source.len(),
-                };
-                &entry_expr[span]
-            };
-
-            TypedNode {
-                id: *id,
-                span: *span,
-                source: excerpt,
-                ty: ty.clone(),
-            }
-        })
-        .collect();
-    nodes.sort_by_key(|node| node.id);
-
     let mut actual = String::new();
-    for node in nodes {
-        writeln!(actual, "{node}").expect("writing node to string should succeed");
+    let mut tys: Vec<_> = unit.context.tys().iter().collect();
+    tys.sort_by_key(|&(&id, _)| id);
+
+    for (id, ty) in tys {
+        let span = spans.0.get(id).expect("node should have span");
+        let (index, offset) = unit.context.source(span.lo);
+        let code = &[source, entry_expr][index.0][span.lo - offset..span.hi - offset];
+        writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
+            .expect("writing type to string should succeed");
     }
+
     for error in unit.context.errors() {
         writeln!(actual, "{error:?}").expect("writing error to string should succeed");
     }
+
     expect.assert_eq(&actual);
 }
 
