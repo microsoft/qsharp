@@ -1199,6 +1199,7 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
             | TyPrim::Double
             | TyPrim::Int
             | TyPrim::Qubit
+            | TyPrim::Range
             | TyPrim::Result
             | TyPrim::String
             | TyPrim::Pauli,
@@ -1251,6 +1252,22 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
                 },
             }])
         }
+        Class::Eq(Ty::App(base, mut args))
+            if matches!(*base, Ty::Prim(TyPrim::Array)) && args.len() == 1 =>
+        {
+            let item = args.pop().expect("type arguments should not be empty");
+            Ok(vec![Constraint {
+                span,
+                kind: ConstraintKind::Class(Class::Eq(item)),
+            }])
+        }
+        Class::Eq(Ty::Tuple(items)) => Ok(items
+            .into_iter()
+            .map(|item| Constraint {
+                span,
+                kind: ConstraintKind::Class(Class::Eq(item)),
+            })
+            .collect()),
         Class::HasField { .. } => todo!("user-defined types not supported"),
         Class::HasFunctorsIfOp { callee, functors } => match callee {
             Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
