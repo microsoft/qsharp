@@ -73,11 +73,11 @@ pub struct ExecutionContext {
     out: CursorReceiver<'this>,
 }
 
-pub struct StatefulEvaluator {
+pub struct Interpreter {
     context: ExecutionContext,
 }
 
-impl StatefulEvaluator {
+impl Interpreter {
     #[must_use]
     pub fn new(nostdlib: bool, sources: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
         let mut store = PackageStore::new();
@@ -109,57 +109,48 @@ impl StatefulEvaluator {
         Self { context }
     }
 
-    pub fn eval(&mut self, line: impl AsRef<str>) -> (String, String, String) {
-        let fragment = self
-            .context
-            .with_compiler_mut(|compiler| compiler.compile_fragment(line));
+    pub fn line(&mut self, line: impl AsRef<str>) -> (String, String, String) {
+        self.context.with_mut(|fields| {
+            let fragment = fields.compiler.compile_fragment(line);
+            match fragment {
+                Ok(a) => match a {
+                    Fragment::Stmt(stmt) => {
+                        let mut env = fields.env.take().unwrap_or(Env::empty());
+                        let result = eval_stmt(
+                            stmt,
+                            fields.store,
+                            fields.globals,
+                            fields.compiler.resolutions(),
+                            *fields.package,
+                            &mut env,
+                            fields.out,
+                        );
+                        let _ = fields.env.insert(env);
+                        let output = fields.out.dump();
 
-        if let Err(errors) = fragment {
-            let e = errors
-                .iter()
-                .map(std::string::ToString::to_string)
-                .collect::<String>();
-            return (String::new(), String::new(), e);
-        };
-        let fragment = fragment.unwrap();
-        if let Fragment::Callable(decl) = fragment {
-            let id = GlobalId {
-                package: *self.context.borrow_package(),
-                node: decl.name.id,
-            };
-            self.context.with_globals_mut(|globals| {
-                globals.insert(id, decl);
-            });
-            return (String::new(), String::new(), String::new());
-        };
-
-        if let Fragment::Stmt(stmt) = fragment {
-            let (result, s) = self.context.with_mut(|fields| {
-                let mut env = fields.env.take().unwrap_or(Env::empty());
-                let result = eval_stmt(
-                    stmt,
-                    fields.store,
-                    fields.globals,
-                    fields.compiler.resolutions(),
-                    *fields.package,
-                    &mut env,
-                    fields.out,
-                );
-                let _ = fields.env.insert(env);
-                let output = fields.out.dump();
-                (result, output)
-            });
-            match result {
-                Ok(v) => {
-                    return (format!("{v}"), s, String::new());
-                }
-                Err(e) => {
-                    return (String::new(), s, format!("{e}"));
+                        match result {
+                            Ok(v) => (format!("{v}"), output, String::new()),
+                            Err(e) => (String::new(), output, format!("{e}")),
+                        }
+                    }
+                    Fragment::Callable(decl) => {
+                        let id = GlobalId {
+                            package: *fields.package,
+                            node: decl.name.id,
+                        };
+                        fields.globals.insert(id, decl);
+                        (String::new(), String::new(), String::new())
+                    }
+                },
+                Err(errors) => {
+                    let e = errors
+                        .iter()
+                        .map(std::string::ToString::to_string)
+                        .collect::<String>();
+                    (String::new(), String::new(), e)
                 }
             }
-        };
-
-        unreachable!("Fragment is not callable or statement")
+        })
     }
 }
 
@@ -181,10 +172,10 @@ mod tests {
                 }
             }"#};
 
-        let mut inter = StatefulEvaluator::new(false, [source]);
-        let (value, _, _) = inter.eval("Test.Hello()");
+        let mut interpreter = Interpreter::new(false, [source]);
+        let (value, _, _) = interpreter.line("Test.Hello()");
         assert_eq!("hello there...", value);
-        let (value, _, _) = inter.eval("Test.Main()");
+        let (value, _, _) = interpreter.line("Test.Main()");
         assert_eq!("hello there...", value);
     }
 
@@ -203,10 +194,10 @@ mod tests {
                 }
             }"#};
 
-        let mut inter = StatefulEvaluator::new(false, [source]);
-        let (value, _, _) = inter.eval("Test.Hello()");
+        let mut interpreter = Interpreter::new(false, [source]);
+        let (value, _, _) = interpreter.line("Test.Hello()");
         assert_eq!("hello there...", value);
-        let (value, _, _) = inter.eval("Test2.Main()");
+        let (value, _, _) = interpreter.line("Test2.Main()");
         assert_eq!("hello there...", value);
     }
 }

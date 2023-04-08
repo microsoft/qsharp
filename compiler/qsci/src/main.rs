@@ -6,7 +6,7 @@
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
-use qsc_eval::interactive::StatefulEvaluator;
+use qsc_eval::interactive::Interpreter;
 
 use std::string::String;
 
@@ -40,10 +40,10 @@ fn main() -> Result<ExitCode> {
 
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
-    let mut interpreter = StatefulEvaluator::new(cli.nostdlib, sources);
+    let mut interpreter = Interpreter::new(cli.nostdlib, sources);
 
     if let Some(line) = cli.entry {
-        let r = interpreter.eval(line);
+        let r = interpreter.line(line);
         if !r.0.is_empty() {
             println!("{}", r.0);
         }
@@ -77,7 +77,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             // will require updates to parsing to read multiple statements
             // followed by the EOF token.
             if !line.trim().is_empty() {
-                let r = interpreter.eval(line);
+                let r = interpreter.line(line);
                 if !r.0.is_empty() {
                     println!("{}", r.0);
                 }
