@@ -38,6 +38,10 @@ pub enum Ty {
     Var(Var),
 }
 
+impl Ty {
+    const UNIT: Self = Self::Tuple(Vec::new());
+}
+
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
@@ -212,7 +216,7 @@ impl Visitor<'_> for Checker<'_> {
                     inferrer.constrain(
                         decl.output.span,
                         ConstraintKind::Eq {
-                            expected: Ty::Tuple(Vec::new()),
+                            expected: Ty::UNIT,
                             actual: decl_output.clone(),
                         },
                     );
@@ -259,7 +263,7 @@ impl Visitor<'_> for Checker<'_> {
                                 inferrer.constrain(
                                     decl.output.span,
                                     ConstraintKind::Eq {
-                                        expected: Ty::Tuple(Vec::new()),
+                                        expected: Ty::UNIT,
                                         actual: decl_output.clone(),
                                     },
                                 );
@@ -559,15 +563,15 @@ impl<'a> Inferrer<'a> {
                         actual: rhs_ty,
                     },
                 );
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
             ExprKind::AssignOp(op, lhs, rhs) => {
                 termination.update(self.infer_binop(expr.span, *op, lhs, rhs));
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
             ExprKind::AssignUpdate(container, index, item) => {
                 termination.update(self.infer_update(expr.span, container, index, item));
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
             ExprKind::BinOp(op, lhs, rhs) => {
                 termination.update(self.infer_binop(expr.span, *op, lhs, rhs))
@@ -628,7 +632,7 @@ impl<'a> Inferrer<'a> {
                 );
 
                 termination.update(self.infer_block(body));
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
             ExprKind::If(cond, if_true, if_false) => {
                 let cond_ty = termination.update(self.infer_expr(cond));
@@ -643,9 +647,7 @@ impl<'a> Inferrer<'a> {
                 let true_ty = self.infer_block(if_true);
                 let false_ty = if_false
                     .as_ref()
-                    .map_or(Fallible::Convergent(Ty::Tuple(Vec::new())), |e| {
-                        self.infer_expr(e)
-                    });
+                    .map_or(Fallible::Convergent(Ty::UNIT), |e| self.infer_expr(e));
                 let (true_ty, false_ty) = termination.update_and(true_ty, false_ty);
                 self.constrain(
                     expr.span,
@@ -726,7 +728,7 @@ impl<'a> Inferrer<'a> {
                     termination.update(self.infer_block(fixup));
                 }
 
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
             ExprKind::Return(expr) => {
                 self.infer_expr(expr);
@@ -778,7 +780,7 @@ impl<'a> Inferrer<'a> {
                 );
 
                 termination.update(self.infer_block(body));
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
             ExprKind::Err | ExprKind::Hole => self.fresh(),
         };
@@ -803,7 +805,7 @@ impl<'a> Inferrer<'a> {
         let ty = if termination.diverges() {
             self.fresh()
         } else {
-            last.unwrap_or(Ty::Tuple(Vec::new()))
+            last.unwrap_or(Ty::UNIT)
         };
         self.tys.insert(block.id, ty.clone());
         termination.wrap(ty)
@@ -812,7 +814,7 @@ impl<'a> Inferrer<'a> {
     fn infer_stmt(&mut self, stmt: &Stmt) -> Fallible<Ty> {
         let mut termination = Termination::Converges;
         let ty = match &stmt.kind {
-            StmtKind::Empty => Ty::Tuple(Vec::new()),
+            StmtKind::Empty => Ty::UNIT,
             StmtKind::Expr(expr) => termination.update(self.infer_expr(expr)),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
@@ -824,7 +826,7 @@ impl<'a> Inferrer<'a> {
                         actual: pat_ty,
                     },
                 );
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 let pat_ty = self.infer_pat(pat);
@@ -837,13 +839,13 @@ impl<'a> Inferrer<'a> {
                     },
                 );
                 match block {
-                    None => Ty::Tuple(Vec::new()),
+                    None => Ty::UNIT,
                     Some(block) => termination.update(self.infer_block(block)),
                 }
             }
             StmtKind::Semi(expr) => {
                 termination.update(self.infer_expr(expr));
-                Ty::Tuple(Vec::new())
+                Ty::UNIT
             }
         };
 
