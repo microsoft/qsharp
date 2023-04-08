@@ -533,7 +533,7 @@ fn binop_equal_callable() {
             #15 73-89 "Test.A == Test.B" : Bool
             #16 73-79 "Test.A" : (()) -> (())
             #20 83-89 "Test.B" : (()) -> (())
-            Error(Ty(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), None)), Span { lo: 73, hi: 79 })))
+            Error(Ty(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 })))
         "##]],
     );
 }

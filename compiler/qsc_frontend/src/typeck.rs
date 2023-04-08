@@ -29,7 +29,7 @@ pub type Tys = HashMap<NodeId, Ty>;
 #[derive(Clone, Debug)]
 pub enum Ty {
     Array(Box<Ty>),
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
     DefId(DefId),
     Err,
     Param(String),
@@ -48,7 +48,6 @@ impl Display for Ty {
                     CallableKind::Operation => "=>",
                 };
                 write!(f, "({input}) {arrow} ({output})")?;
-                let functors = functor_set(functors.as_ref());
                 if functors.contains(&Functor::Adj) && functors.contains(&Functor::Ctl) {
                     f.write_str(" is Adj + Ctl")?;
                 } else if functors.contains(&Functor::Adj) {
@@ -647,7 +646,7 @@ impl<'a> Inferrer<'a> {
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
                 let body = termination.update(self.infer_expr(body));
-                Ty::Arrow(*kind, Box::new(input), Box::new(body), None)
+                Ty::Arrow(*kind, Box::new(input), Box::new(body), HashSet::new())
             }
             ExprKind::Lit(Lit::BigInt(_)) => Ty::Prim(TyPrim::BigInt),
             ExprKind::Lit(Lit::Bool(_)) => Ty::Prim(TyPrim::Bool),
@@ -1109,7 +1108,7 @@ impl<'a> Inferrer<'a> {
                 *kind,
                 Box::new(self.convert_ty(input)),
                 Box::new(self.convert_ty(output)),
-                functors.clone(),
+                functor_set(functors.as_ref()),
             ),
             TyKind::Hole => self.fresh(),
             TyKind::Paren(inner) => self.convert_ty(inner),
@@ -1255,9 +1254,7 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
             Ok(Vec::new())
         }
         Class::Add(Ty::Array(_)) => Ok(Vec::new()),
-        Class::Adj(Ty::Arrow(_, _, _, functors))
-            if functor_set(functors.as_ref()).contains(&Functor::Adj) =>
-        {
+        Class::Adj(Ty::Arrow(_, _, _, functors)) if functors.contains(&Functor::Adj) => {
             Ok(Vec::new())
         }
         Class::Call {
@@ -1283,7 +1280,7 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
         Class::Ctl {
             op: Ty::Arrow(kind, input, output, functors),
             with_ctls,
-        } if functor_set(functors.as_ref()).contains(&Functor::Ctl) => {
+        } if functors.contains(&Functor::Ctl) => {
             let qubit_array = Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
             Ok(vec![Constraint {
@@ -1328,7 +1325,7 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
         Class::HasField { .. } => todo!("user-defined types not supported"),
         Class::HasFunctorsIfOp { callee, functors } => match callee {
             Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
-                if functor_set(callee_functors.as_ref()) == functors =>
+                if callee_functors.is_subset(&functors) =>
             {
                 Ok(Vec::new())
             }
@@ -1448,12 +1445,23 @@ fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> (Ty, Vec<Missi
     let (input, mut errors) = try_pat_ty(resolutions, &decl.input);
     let (output, output_errors) = try_convert_ty(resolutions, &decl.output);
     errors.extend(output_errors);
-    let ty = Ty::Arrow(
-        decl.kind,
-        Box::new(input),
-        Box::new(output),
-        decl.functors.clone(),
-    );
+
+    let sig_functors = functor_set(decl.functors.as_ref());
+    let body_functors = match &decl.body {
+        CallableBody::Block(_) => HashSet::new(),
+        CallableBody::Specs(specs) => specs
+            .iter()
+            .flat_map(|spec| match spec.spec {
+                Spec::Body => Vec::new(),
+                Spec::Adj => vec![Functor::Adj],
+                Spec::Ctl => vec![Functor::Ctl],
+                Spec::CtlAdj => vec![Functor::Adj, Functor::Ctl],
+            })
+            .collect(),
+    };
+
+    let functors = sig_functors.union(&body_functors).copied().collect();
+    let ty = Ty::Arrow(decl.kind, Box::new(input), Box::new(output), functors);
     (ty, errors)
 }
 
@@ -1467,7 +1475,12 @@ fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<MissingTy
             let (input, mut errors) = try_convert_ty(resolutions, input);
             let (output, output_errors) = try_convert_ty(resolutions, output);
             errors.extend(output_errors);
-            let ty = Ty::Arrow(*kind, Box::new(input), Box::new(output), functors.clone());
+            let ty = Ty::Arrow(
+                *kind,
+                Box::new(input),
+                Box::new(output),
+                functor_set(functors.as_ref()),
+            );
             (ty, errors)
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
