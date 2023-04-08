@@ -6,15 +6,13 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{CallableDecl, CallableKind, Expr, ExprKind, Package, Span, TyKind},
+    ast::{Expr, ExprKind, Package, Span},
     visit::{self, Visitor},
 };
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
-    #[error("adjointable/controllable operation `{0}` must return Unit")]
-    NonUnitReturn(String, #[label("must return Unit")] Span),
     #[error("{0} are not currently supported")]
     NotCurrentlySupported(&'static str, #[label("not currently supported")] Span),
 }
@@ -30,22 +28,6 @@ struct Validator {
 }
 
 impl Visitor<'_> for Validator {
-    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        if CallableKind::Operation == decl.kind && decl.functors.is_some() {
-            match &decl.output.kind {
-                TyKind::Tuple(items) if items.is_empty() => {}
-                _ => {
-                    self.errors.push(Error::NonUnitReturn(
-                        decl.name.name.clone(),
-                        decl.output.span,
-                    ));
-                }
-            }
-        }
-
-        visit::walk_callable_decl(self, decl);
-    }
-
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Lambda(..) => self

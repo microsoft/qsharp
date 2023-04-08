@@ -196,11 +196,28 @@ impl Visitor<'_> for Checker<'_> {
     }
 
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+        let id = DefId {
+            package: PackageSrc::Local,
+            node: decl.name.id,
+        };
+        let ty = self.globals.get(&id).expect("callable should have type");
+        let Ty::Arrow(_, _, _, functors) = ty else { panic!("callable should have arrow type") };
+
         match &decl.body {
             CallableBody::Block(block) => {
                 let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
                 inferrer.infer_pat(&decl.input);
                 let decl_output = inferrer.convert_ty(&decl.output);
+                if !functors.is_empty() {
+                    inferrer.constrain(
+                        decl.output.span,
+                        ConstraintKind::Eq {
+                            expected: Ty::Tuple(Vec::new()),
+                            actual: decl_output.clone(),
+                        },
+                    );
+                }
+
                 let block_output = inferrer.infer_block(block).unwrap();
                 inferrer.constrain(
                     block.span,
@@ -238,6 +255,16 @@ impl Visitor<'_> for Checker<'_> {
                             );
 
                             let decl_output = inferrer.convert_ty(&decl.output);
+                            if !functors.is_empty() {
+                                inferrer.constrain(
+                                    decl.output.span,
+                                    ConstraintKind::Eq {
+                                        expected: Ty::Tuple(Vec::new()),
+                                        actual: decl_output.clone(),
+                                    },
+                                );
+                            }
+
                             let block_output = inferrer.infer_block(block).unwrap();
                             inferrer.constrain(
                                 block.span,

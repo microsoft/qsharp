@@ -22,42 +22,6 @@ fn validate(ns: &Namespace) -> Vec<Error> {
 }
 
 #[test]
-fn test_adj_return_int() {
-    check(
-        "namespace input { operation Foo() : Int is Adj {} }",
-        &expect![[r#"
-            [
-                NonUnitReturn(
-                    "Foo",
-                    Span {
-                        lo: 36,
-                        hi: 39,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_ctl_return_int() {
-    check(
-        "namespace input { operation Foo() : Int is Ctl {} }",
-        &expect![[r#"
-            [
-                NonUnitReturn(
-                    "Foo",
-                    Span {
-                        lo: 36,
-                        hi: 39,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn test_lambda() {
     check("namespace input { operation Foo() : Int { let lambda = (x, y) -> x + y; return lambda(1, 2); } }",
     &expect![[r#"

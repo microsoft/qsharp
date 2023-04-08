@@ -1131,3 +1131,60 @@ fn call_controlled_error() {
         "##]],
     );
 }
+
+#[test]
+fn adj_requires_unit_return() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo() : Int is Adj { 1 }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 31-33 "()" : ()
+            #9 47-52 "{ 1 }" : Int
+            #10 49-50 "1" : Int
+            #11 49-50 "1" : Int
+            Error(Type(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn ctl_requires_unit_return() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo() : Int is Ctl { 1 }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 31-33 "()" : ()
+            #9 47-52 "{ 1 }" : Int
+            #10 49-50 "1" : Int
+            #11 49-50 "1" : Int
+            Error(Type(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn adj_ctl_requires_unit_return() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo() : Int is Adj + Ctl { 1 }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 31-33 "()" : ()
+            #11 53-58 "{ 1 }" : Int
+            #12 55-56 "1" : Int
+            #13 55-56 "1" : Int
+            Error(Type(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 })))
+        "##]],
+    );
+}
