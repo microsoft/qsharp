@@ -934,16 +934,16 @@ impl<'a> Inferrer<'a> {
         let mut termination = Termination::Converges;
         let lhs_ty = termination.update(self.infer_expr(lhs));
         let rhs_ty = termination.update(self.infer_expr(rhs));
-        self.constrain(
-            span,
-            ConstraintKind::Eq {
-                expected: lhs_ty.clone(),
-                actual: rhs_ty,
-            },
-        );
 
         let ty = match op {
             BinOp::AndL | BinOp::OrL => {
+                self.constrain(
+                    span,
+                    ConstraintKind::Eq {
+                        expected: lhs_ty.clone(),
+                        actual: rhs_ty,
+                    },
+                );
                 self.constrain(
                     lhs.span,
                     ConstraintKind::Eq {
@@ -954,14 +954,35 @@ impl<'a> Inferrer<'a> {
                 lhs_ty
             }
             BinOp::Eq | BinOp::Neq => {
+                self.constrain(
+                    span,
+                    ConstraintKind::Eq {
+                        expected: lhs_ty.clone(),
+                        actual: rhs_ty,
+                    },
+                );
                 self.constrain(lhs.span, ConstraintKind::Class(Class::Eq(lhs_ty)));
                 Ty::Prim(TyPrim::Bool)
             }
             BinOp::Add => {
+                self.constrain(
+                    span,
+                    ConstraintKind::Eq {
+                        expected: lhs_ty.clone(),
+                        actual: rhs_ty,
+                    },
+                );
                 self.constrain(lhs.span, ConstraintKind::Class(Class::Add(lhs_ty.clone())));
                 lhs_ty
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
+                self.constrain(
+                    span,
+                    ConstraintKind::Eq {
+                        expected: lhs_ty.clone(),
+                        actual: rhs_ty,
+                    },
+                );
                 self.constrain(lhs.span, ConstraintKind::Class(Class::Num(lhs_ty)));
                 Ty::Prim(TyPrim::Bool)
             }
@@ -971,11 +992,30 @@ impl<'a> Inferrer<'a> {
             | BinOp::Mod
             | BinOp::Mul
             | BinOp::OrB
-            | BinOp::Shl
-            | BinOp::Shr
             | BinOp::Sub
             | BinOp::XorB => {
+                self.constrain(
+                    span,
+                    ConstraintKind::Eq {
+                        expected: lhs_ty.clone(),
+                        actual: rhs_ty,
+                    },
+                );
                 self.constrain(lhs.span, ConstraintKind::Class(Class::Num(lhs_ty.clone())));
+                lhs_ty
+            }
+            BinOp::Shl | BinOp::Shr => {
+                self.constrain(
+                    lhs.span,
+                    ConstraintKind::Class(Class::Integral(lhs_ty.clone())),
+                );
+                self.constrain(
+                    rhs.span,
+                    ConstraintKind::Eq {
+                        expected: Ty::Prim(TyPrim::Int),
+                        actual: rhs_ty,
+                    },
+                );
                 lhs_ty
             }
         };
