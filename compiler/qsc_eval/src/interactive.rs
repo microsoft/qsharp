@@ -8,18 +8,32 @@ use qsc_passes::globals::GlobalId;
 use std::collections::HashMap;
 use std::string::String;
 
-use qsc_frontend::compile::{self, PackageStore};
+use qsc_frontend::compile::{self, CompileUnit, PackageStore};
 use qsc_frontend::incremental::{Compiler, Fragment};
 use std::io::Cursor;
 use std::io::Write;
 
+use crate::output;
+use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use ouroboros::self_referencing;
 use qsc_frontend::compile::compile;
 use qsc_passes::globals::extract_callables;
+use thiserror::Error;
 
-use crate::output;
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Eval(crate::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Compile(qsc_frontend::compile::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Incremental(qsc_frontend::incremental::Error),
+}
 
 struct CursorReceiver<'a> {
     cursor: &'a mut Cursor<Vec<u8>>,
@@ -76,12 +90,12 @@ pub struct ExecutionContext {
 pub struct InterpreterResult {
     pub output: String,
     pub value: String,
-    pub errors: Vec<String>,
+    pub errors: Vec<Error>,
 }
 
 impl InterpreterResult {
     #[must_use]
-    pub fn new(value: String, output: String, errors: Vec<String>) -> Self {
+    pub fn new(value: String, output: String, errors: Vec<Error>) -> Self {
         Self {
             output,
             value,
@@ -95,7 +109,26 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    #[must_use]
+    pub fn test_input(
+        nostdlib: bool,
+        sources: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> CompileUnit {
+        let mut store = PackageStore::new();
+
+        let mut session_deps: Vec<_> = vec![];
+
+        if !nostdlib {
+            session_deps.push(store.insert(compile::std()));
+        }
+
+        // create a package with all defined dependencies for the session
+        compile(&store, session_deps.clone(), sources, "")
+    }
+
+    /// # Panics
+    /// If the compilation of the standard library fails, an error is returned.
+    /// If the compilation of the sources fails, an error is returned.
+    /// Use `Interpreter::test_input` to test compilation.
     pub fn new(nostdlib: bool, sources: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
         let mut store = PackageStore::new();
 
@@ -106,7 +139,14 @@ impl Interpreter {
         }
 
         // create a package with all defined dependencies for the session
-        let basis_package = store.insert(compile(&store, session_deps.clone(), sources, ""));
+        let unit = compile(&store, session_deps.clone(), sources, "");
+
+        assert!(
+            unit.context.errors().is_empty(),
+            "Compilation failed: {:?}",
+            unit.context.errors()
+        );
+        let basis_package = store.insert(unit);
         session_deps.push(basis_package);
 
         // create a package with no dependencies for the session
@@ -157,7 +197,7 @@ impl Interpreter {
                             Err(e) => results.push(InterpreterResult::new(
                                 String::new(),
                                 output,
-                                vec![format!("{e}")],
+                                vec![crate::interactive::Error::Eval(e)],
                             )),
                         }
                     }
@@ -172,13 +212,9 @@ impl Interpreter {
                     Fragment::Error(errors) => {
                         let e = errors
                             .iter()
-                            .map(std::string::ToString::to_string)
-                            .collect::<String>();
-                        results.push(InterpreterResult::new(
-                            String::new(),
-                            String::new(),
-                            vec![e],
-                        ));
+                            .map(|e| crate::interactive::Error::Incremental(e.clone()))
+                            .collect();
+                        results.push(InterpreterResult::new(String::new(), String::new(), e));
                     }
                 }
             }
@@ -242,7 +278,10 @@ mod tests {
 
         assert_eq!("", result.value);
         assert_eq!("", result.output);
-        assert_eq!("`Message` not found in this scope", result.errors[0]);
+        assert_eq!(
+            "`Message` not found in this scope",
+            result.errors[0].to_string()
+        );
     }
 
     #[test]

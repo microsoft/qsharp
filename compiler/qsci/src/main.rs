@@ -3,17 +3,22 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
+use std::sync::Arc;
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
 use qsc_eval::interactive::Interpreter;
+use qsc_frontend::compile::{Context, SourceIndex};
+use qsc_frontend::diagnostic::OffsetError;
 
 use std::string::String;
 
-use miette::{IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, NamedSource, Result};
 use std::io::prelude::BufRead;
 use std::io::Write;
 use std::{fs, io};
+
+use miette::{Diagnostic, Report};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, next_line_help = true)]
@@ -40,10 +45,19 @@ fn main() -> Result<ExitCode> {
 
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
+    let unit = Interpreter::test_input(cli.nostdlib, sources.clone());
+    if !unit.context.errors().is_empty() {
+        let reporter = ErrorReporter::new(cli, sources, &unit.context);
+        for error in unit.context.errors() {
+            eprintln!("{:?}", reporter.report(error.clone()));
+        }
+        return Ok(ExitCode::FAILURE);
+    }
+
     let mut interpreter = Interpreter::new(cli.nostdlib, sources);
 
     if let Some(line) = cli.entry {
-        let results = interpreter.line(line);
+        let results = interpreter.line(line.clone());
         for result in results {
             if !result.value.is_empty() {
                 println!("{}", result.value);
@@ -52,7 +66,10 @@ fn repl(cli: Cli) -> Result<ExitCode> {
                 println!("{}", result.output);
             }
             if !result.errors.is_empty() {
-                eprintln!("{}", result.errors.join("\n"));
+                let reporter = InteractiveErrorReporter::new(line.clone());
+                for error in result.errors {
+                    eprintln!("{:?}", reporter.report(error.clone()));
+                }
             }
         }
     }
@@ -79,7 +96,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             // will require updates to parsing to read multiple statements
             // followed by the EOF token.
             if !line.trim().is_empty() {
-                let results = interpreter.line(line);
+                let results = interpreter.line(line.clone());
                 for result in results {
                     if !result.value.is_empty() {
                         println!("{}", result.value);
@@ -88,7 +105,10 @@ fn repl(cli: Cli) -> Result<ExitCode> {
                         println!("{}", result.output);
                     }
                     if !result.errors.is_empty() {
-                        eprintln!("{}", result.errors.join("\n"));
+                        let reporter = InteractiveErrorReporter::new(line.clone());
+                        for error in result.errors {
+                            eprintln!("{:?}", reporter.report(error.clone()));
+                        }
                     }
                 }
             }
@@ -109,4 +129,64 @@ fn print_prompt(is_multiline: bool) {
 
 fn read_source(paths: &[PathBuf]) -> io::Result<Vec<String>> {
     paths.iter().map(fs::read_to_string).collect()
+}
+
+struct InteractiveErrorReporter {
+    line: String,
+}
+
+impl InteractiveErrorReporter {
+    fn new(line: impl AsRef<str>) -> Self {
+        Self {
+            line: line.as_ref().to_owned(),
+        }
+    }
+
+    fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
+        Report::new(error).with_source_code(self.line.clone())
+    }
+}
+
+struct ErrorReporter<'a> {
+    context: &'a Context,
+    paths: Vec<PathBuf>,
+    sources: Vec<Arc<String>>,
+    entry: Arc<String>,
+}
+
+impl<'a> ErrorReporter<'a> {
+    fn new(cli: Cli, sources: Vec<String>, context: &'a Context) -> Self {
+        Self {
+            context,
+            paths: cli.sources,
+            sources: sources.into_iter().map(Arc::new).collect(),
+            entry: Arc::new(cli.entry.unwrap_or_default()),
+        }
+    }
+
+    fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
+        let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
+            return Report::new(error);
+        };
+
+        // Use the offset of the first labeled span to find which source code to include in the report.
+        let (index, offset) = self.context.source(first_label.offset());
+        let name = source_name(&self.paths, index);
+        let source = self.sources.get(index.0).unwrap_or(&self.entry).clone();
+        let source = NamedSource::new(name, source);
+
+        // Adjust all spans in the error to be relative to the start of this source.
+        let offset = -isize::try_from(offset).unwrap();
+        Report::new(OffsetError::new(error, offset)).with_source_code(source)
+    }
+}
+
+fn source_name(paths: &[PathBuf], index: SourceIndex) -> &str {
+    paths
+        .get(index.0)
+        .map_or("<unknown>", |p| match p.to_str() {
+            Some("-") => "<stdin>",
+            Some(name) => name,
+            None => "<unknown>",
+        })
 }
