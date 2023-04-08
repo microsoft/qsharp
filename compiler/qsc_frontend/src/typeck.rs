@@ -326,6 +326,10 @@ pub enum Class {
         with_ctls: Ty,
     },
     Eq(Ty),
+    Exp {
+        base: Ty,
+        power: Ty,
+    },
     HasField {
         record: Ty,
         name: String,
@@ -367,6 +371,7 @@ impl Class {
             | Self::HasFunctorsIfOp { callee, .. }
             | Self::HasPartialApp { callee, .. } => vec![callee],
             Self::Ctl { op, .. } => vec![op],
+            Self::Exp { base, .. } => vec![base],
             Self::HasField { record, .. } => vec![record],
             Self::HasIndex {
                 container, index, ..
@@ -394,6 +399,10 @@ impl Class {
                 with_ctls: f(with_ctls),
             },
             Self::Eq(ty) => Self::Eq(f(ty)),
+            Self::Exp { base, power } => Self::Exp {
+                base: f(base),
+                power: f(power),
+            },
             Self::HasField { record, name, item } => Self::HasField {
                 record: f(record),
                 name,
@@ -443,6 +452,7 @@ impl Display for Class {
             Class::Call { callee, .. } => write!(f, "Call<{callee}>"),
             Class::Ctl { op, .. } => write!(f, "Ctl<{op}>"),
             Class::Eq(ty) => write!(f, "Eq<{ty}>"),
+            Class::Exp { base, .. } => write!(f, "Exp<{base}>"),
             Class::HasField { record, name, .. } => write!(f, "HasField<{record}, {name}>"),
             Class::HasFunctorsIfOp { callee, functors } => {
                 write!(f, "HasFunctorsIfOp<{callee}, {functors:?}>")
@@ -930,6 +940,7 @@ impl<'a> Inferrer<'a> {
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Fallible<Ty> {
         let mut termination = Termination::Converges;
         let lhs_ty = termination.update(self.infer_expr(lhs));
@@ -988,7 +999,6 @@ impl<'a> Inferrer<'a> {
             }
             BinOp::AndB
             | BinOp::Div
-            | BinOp::Exp
             | BinOp::Mod
             | BinOp::Mul
             | BinOp::OrB
@@ -1002,6 +1012,16 @@ impl<'a> Inferrer<'a> {
                     },
                 );
                 self.constrain(lhs.span, ConstraintKind::Class(Class::Num(lhs_ty.clone())));
+                lhs_ty
+            }
+            BinOp::Exp => {
+                self.constrain(
+                    span,
+                    ConstraintKind::Class(Class::Exp {
+                        base: lhs_ty.clone(),
+                        power: rhs_ty,
+                    }),
+                );
                 lhs_ty
             }
             BinOp::Shl | BinOp::Shr => {
@@ -1308,6 +1328,26 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
                 kind: ConstraintKind::Class(Class::Eq(item)),
             })
             .collect()),
+        Class::Exp {
+            base: Ty::Prim(TyPrim::BigInt),
+            power,
+        } => Ok(vec![Constraint {
+            span,
+            kind: ConstraintKind::Eq {
+                expected: Ty::Prim(TyPrim::Int),
+                actual: power,
+            },
+        }]),
+        Class::Exp {
+            base: base @ Ty::Prim(TyPrim::Double | TyPrim::Int),
+            power,
+        } => Ok(vec![Constraint {
+            span,
+            kind: ConstraintKind::Eq {
+                expected: base,
+                actual: power,
+            },
+        }]),
         Class::HasField { .. } => todo!("user-defined types not supported"),
         Class::HasFunctorsIfOp { callee, functors } => match callee {
             Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
