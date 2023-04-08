@@ -36,7 +36,7 @@ impl<'a> CursorReceiver<'a> {
             Err(e) => format!("Invalid UTF-8 sequence: {e}"),
         };
         v.clear();
-        s
+        s.trim().to_string()
     }
 }
 
@@ -82,24 +82,24 @@ impl Interpreter {
     pub fn new(nostdlib: bool, sources: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
         let mut store = PackageStore::new();
 
-        let dependencies = if nostdlib {
-            vec![]
-        } else {
-            vec![store.insert(compile::std())]
-        };
+        let mut session_deps: Vec<_> = vec![];
 
-        let mut v: Vec<_> = dependencies.clone();
+        if !nostdlib {
+            session_deps.push(store.insert(compile::std()));
+        }
 
-        let package = store.insert(compile(&store, dependencies, sources, ""));
-        v.push(package);
+        // create a package with all defined dependencies for the session
+        let basis_package = store.insert(compile(&store, session_deps.clone(), sources, ""));
+        session_deps.push(basis_package);
+
+        // create a package with no dependencies for the session
         let sources: [&str; 0] = [];
-
-        let r = store.insert(compile(&store, [], sources, ""));
+        let session_package = store.insert(compile(&store, [], sources, ""));
 
         let context = ExecutionContextBuilder {
             store,
-            package: r,
-            compiler_builder: |store| Compiler::new(store, v),
+            package: session_package,
+            compiler_builder: |store| Compiler::new(store, session_deps),
             globals_builder: extract_callables,
             env: None,
             cursor: Cursor::new(Vec::<u8>::new()),
@@ -199,5 +199,27 @@ mod tests {
         assert_eq!("hello there...", value);
         let (value, _, _) = interpreter.line("Test2.Main()");
         assert_eq!("hello there...", value);
+    }
+
+    #[test]
+    fn nostdlib_is_omitted_correctly() {
+        let sources: [&str; 0] = [];
+        let mut interpreter = Interpreter::new(true, sources);
+        let (value, out, e) = interpreter.line("Message(\"_\")");
+
+        assert_eq!("", value);
+        assert_eq!("", out);
+        assert_eq!("`Message` not found in this scope", e);
+    }
+
+    #[test]
+    fn nostdlib_is_included_correctly() {
+        let sources: [&str; 0] = [];
+        let mut interpreter = Interpreter::new(false, sources);
+        let (value, out, e) = interpreter.line("Message(\"_\")");
+
+        assert_eq!("()", value);
+        assert_eq!("_", out);
+        assert_eq!("", e);
     }
 }
