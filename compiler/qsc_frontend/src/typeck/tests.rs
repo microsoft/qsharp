@@ -658,3 +658,274 @@ fn binop_xorb_mismatch() {
         "##]],
     );
 }
+
+#[test]
+fn let_tuple_arity_error() {
+    check(
+        "",
+        "{ let (x, y, z) = (0, 1); }",
+        &expect![[r##"
+            #1 0-27 "{ let (x, y, z) = (0, 1); }" : ()
+            #2 0-27 "{ let (x, y, z) = (0, 1); }" : ()
+            #3 2-25 "let (x, y, z) = (0, 1);" : ()
+            #4 6-15 "(x, y, z)" : (?0, ?1, ?2)
+            #5 7-8 "x" : ?0
+            #6 7-8 "x" : ?0
+            #7 10-11 "y" : ?1
+            #8 10-11 "y" : ?1
+            #9 13-14 "z" : ?2
+            #10 13-14 "z" : ?2
+            #11 18-24 "(0, 1)" : (Int, Int)
+            #12 19-20 "0" : Int
+            #13 22-23 "1" : Int
+            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Var(Var(0)), Var(Var(1)), Var(Var(2))]), Span { lo: 6, hi: 15 })))
+        "##]],
+    );
+}
+
+#[test]
+fn set_tuple_arity_error() {
+    check(
+        "",
+        indoc! {"
+            {
+                mutable (x, y) = (0, 1);
+                set (x, y) = (1, 2, 3);
+                x
+            }
+        "},
+        &expect![[r##"
+            #1 0-66 "{\n    mutable (x, y) = (0, 1);\n    set (x, y) = (1, 2, 3);\n    x\n}" : Int
+            #2 0-66 "{\n    mutable (x, y) = (0, 1);\n    set (x, y) = (1, 2, 3);\n    x\n}" : Int
+            #3 6-30 "mutable (x, y) = (0, 1);" : ()
+            #4 14-20 "(x, y)" : (Int, Int)
+            #5 15-16 "x" : Int
+            #6 15-16 "x" : Int
+            #7 18-19 "y" : Int
+            #8 18-19 "y" : Int
+            #9 23-29 "(0, 1)" : (Int, Int)
+            #10 24-25 "0" : Int
+            #11 27-28 "1" : Int
+            #12 35-58 "set (x, y) = (1, 2, 3);" : ()
+            #13 35-57 "set (x, y) = (1, 2, 3)" : ()
+            #14 39-45 "(x, y)" : (Int, Int)
+            #15 40-41 "x" : Int
+            #18 43-44 "y" : Int
+            #21 48-57 "(1, 2, 3)" : (Int, Int, Int)
+            #22 49-50 "1" : Int
+            #23 52-53 "2" : Int
+            #24 55-56 "3" : Int
+            #25 63-64 "x" : Int
+            #26 63-64 "x" : Int
+            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 })))
+        "##]],
+    );
+}
+
+#[test]
+fn qubit_array_length_error() {
+    check(
+        "",
+        "{ use q = Qubit[false]; }",
+        &expect![[r##"
+            #1 0-25 "{ use q = Qubit[false]; }" : ()
+            #2 0-25 "{ use q = Qubit[false]; }" : ()
+            #3 2-23 "use q = Qubit[false];" : ()
+            #4 6-7 "q" : (Qubit)[]
+            #5 6-7 "q" : (Qubit)[]
+            #6 10-22 "Qubit[false]" : (Qubit)[]
+            #7 16-21 "false" : Bool
+            Error(Ty(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 16, hi: 21 })))
+        "##]],
+    );
+}
+
+#[test]
+fn qubit_tuple_arity_error() {
+    check(
+        "",
+        "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }",
+        &expect![[r##"
+            #1 0-47 "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }" : ()
+            #2 0-47 "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }" : ()
+            #3 2-45 "use (q, q1) = (Qubit[3], Qubit(), Qubit());" : ()
+            #4 6-13 "(q, q1)" : (?0, ?1)
+            #5 7-8 "q" : ?0
+            #6 7-8 "q" : ?0
+            #7 10-12 "q1" : ?1
+            #8 10-12 "q1" : ?1
+            #9 16-44 "(Qubit[3], Qubit(), Qubit())" : ((Qubit)[], Qubit, Qubit)
+            #10 17-25 "Qubit[3]" : (Qubit)[]
+            #11 23-24 "3" : Int
+            #12 27-34 "Qubit()" : Qubit
+            #13 36-43 "Qubit()" : Qubit
+            Error(Ty(TypeMismatch(Tuple([App(Prim(Array), [Prim(Qubit)]), Prim(Qubit), Prim(Qubit)]), Tuple([Var(Var(0)), Var(Var(1))]), Span { lo: 6, hi: 13 })))
+        "##]],
+    );
+}
+
+#[test]
+fn for_loop_not_iterable() {
+    check(
+        "",
+        "for i in (1, true, One) {}",
+        &expect![[r##"
+            #1 0-26 "for i in (1, true, One) {}" : ()
+            #2 4-5 "i" : ?0
+            #3 4-5 "i" : ?0
+            #4 9-23 "(1, true, One)" : (Int, Bool, Result)
+            #5 10-11 "1" : Int
+            #6 13-17 "true" : Bool
+            #7 19-22 "One" : Result
+            #8 24-26 "{}" : ()
+            Error(Ty(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Var(Var(0)) }, Span { lo: 9, hi: 23 })))
+        "##]],
+    );
+}
+
+#[test]
+fn if_cond_error() {
+    check(
+        "",
+        "if 4 {}",
+        &expect![[r##"
+            #1 0-7 "if 4 {}" : ()
+            #2 3-4 "4" : Int
+            #3 5-7 "{}" : ()
+            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 3, hi: 4 })))
+        "##]],
+    );
+}
+
+#[test]
+fn if_no_else_must_be_unit() {
+    check(
+        "",
+        "if true { 4 }",
+        &expect![[r##"
+            #1 0-13 "if true { 4 }" : Int
+            #2 3-7 "true" : Bool
+            #3 8-13 "{ 4 }" : Int
+            #4 10-11 "4" : Int
+            #5 10-11 "4" : Int
+            Error(Ty(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 })))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_cond_error() {
+    check(
+        "",
+        "7 ? 1 | 0",
+        &expect![[r##"
+            #1 0-9 "7 ? 1 | 0" : Int
+            #2 0-1 "7" : Int
+            #3 4-5 "1" : Int
+            #4 8-9 "0" : Int
+            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 0, hi: 1 })))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_invalid_container() {
+    check(
+        "",
+        "(1, 2, 3) w/ 2 <- 4",
+        &expect![[r##"
+            #1 0-19 "(1, 2, 3) w/ 2 <- 4" : (Int, Int, Int)
+            #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
+            #3 1-2 "1" : Int
+            #4 4-5 "2" : Int
+            #5 7-8 "3" : Int
+            #6 13-14 "2" : Int
+            #7 18-19 "4" : Int
+            Error(Ty(MissingClass(HasIndex { container: Tuple([Prim(Int), Prim(Int), Prim(Int)]), index: Prim(Int), item: Prim(Int) }, Span { lo: 0, hi: 19 })))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_invalid_index() {
+    check(
+        "",
+        "[1, 2, 3] w/ false <- 4",
+        &expect![[r##"
+            #1 0-23 "[1, 2, 3] w/ false <- 4" : (Int)[]
+            #2 0-9 "[1, 2, 3]" : (Int)[]
+            #3 1-2 "1" : Int
+            #4 4-5 "2" : Int
+            #5 7-8 "3" : Int
+            #6 13-18 "false" : Bool
+            #7 22-23 "4" : Int
+            Error(Ty(MissingClass(HasIndex { container: App(Prim(Array), [Prim(Int)]), index: Prim(Bool), item: Prim(Int) }, Span { lo: 0, hi: 23 })))
+        "##]],
+    );
+}
+
+#[test]
+fn unop_bitwise_not_bool() {
+    check(
+        "",
+        "~~~false",
+        &expect![[r##"
+            #1 0-8 "~~~false" : Bool
+            #2 3-8 "false" : Bool
+            Error(Ty(MissingClass(Num(Prim(Bool)), Span { lo: 3, hi: 8 })))
+        "##]],
+    );
+}
+
+#[test]
+fn unop_not_int() {
+    check(
+        "",
+        "not 0",
+        &expect![[r##"
+            #1 0-5 "not 0" : Int
+            #2 4-5 "0" : Int
+            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 4, hi: 5 })))
+        "##]],
+    );
+}
+
+#[test]
+fn unop_neg_bool() {
+    check(
+        "",
+        "-false",
+        &expect![[r##"
+            #1 0-6 "-false" : Bool
+            #2 1-6 "false" : Bool
+            Error(Ty(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 })))
+        "##]],
+    );
+}
+
+#[test]
+fn unop_pos_bool() {
+    check(
+        "",
+        "+false",
+        &expect![[r##"
+            #1 0-6 "+false" : Bool
+            #2 1-6 "false" : Bool
+            Error(Ty(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 })))
+        "##]],
+    );
+}
+
+#[test]
+fn while_cond_error() {
+    check(
+        "",
+        "while Zero {}",
+        &expect![[r##"
+            #1 0-13 "while Zero {}" : ()
+            #2 6-10 "Zero" : Result
+            #3 11-13 "{}" : ()
+            Error(Ty(TypeMismatch(Prim(Bool), Prim(Result), Span { lo: 6, hi: 10 })))
+        "##]],
+    );
+}
