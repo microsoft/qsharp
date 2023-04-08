@@ -21,6 +21,7 @@ use std::{
 use thiserror::Error;
 
 mod infer;
+mod solve;
 #[cfg(test)]
 mod tests;
 
@@ -208,26 +209,7 @@ impl Visitor<'_> for Checker<'_> {
         match &decl.body {
             CallableBody::Block(block) => {
                 let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
-                inferrer.infer_pat(&decl.input);
-                let decl_output = inferrer.convert_ty(&decl.output);
-                if !functors.is_empty() {
-                    inferrer.constrain(
-                        decl.output.span,
-                        ConstraintKind::Eq {
-                            expected: Ty::UNIT,
-                            actual: decl_output.clone(),
-                        },
-                    );
-                }
-
-                let block_output = inferrer.infer_block(block).unwrap();
-                inferrer.constrain(
-                    block.span,
-                    ConstraintKind::Eq {
-                        expected: decl_output,
-                        actual: block_output,
-                    },
-                );
+                inferrer.infer_spec(Spec::Body, &decl.input, None, &decl.output, functors, block);
                 let (tys, errors) = inferrer.solve();
                 self.tys.extend(tys);
                 self.errors.extend(errors);
@@ -238,42 +220,13 @@ impl Visitor<'_> for Checker<'_> {
                         SpecBody::Gen(_) => {}
                         SpecBody::Impl(input, block) => {
                             let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
-
-                            let callable_input_ty = inferrer.infer_pat(&decl.input);
-                            let expected_input_ty = match spec.spec {
-                                Spec::Body | Spec::Adj => callable_input_ty,
-                                Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
-                                    Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
-                                    callable_input_ty,
-                                ]),
-                            };
-                            let actual_input_ty = inferrer.infer_pat(input);
-                            inferrer.constrain(
-                                input.span,
-                                ConstraintKind::Eq {
-                                    expected: expected_input_ty,
-                                    actual: actual_input_ty,
-                                },
-                            );
-
-                            let decl_output = inferrer.convert_ty(&decl.output);
-                            if !functors.is_empty() {
-                                inferrer.constrain(
-                                    decl.output.span,
-                                    ConstraintKind::Eq {
-                                        expected: Ty::UNIT,
-                                        actual: decl_output.clone(),
-                                    },
-                                );
-                            }
-
-                            let block_output = inferrer.infer_block(block).unwrap();
-                            inferrer.constrain(
-                                block.span,
-                                ConstraintKind::Eq {
-                                    expected: decl_output,
-                                    actual: block_output,
-                                },
+                            inferrer.infer_spec(
+                                spec.spec,
+                                &decl.input,
+                                Some(input),
+                                &decl.output,
+                                functors,
+                                block,
                             );
                             let (tys, errors) = inferrer.solve();
                             self.tys.extend(tys);
