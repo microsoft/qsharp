@@ -283,7 +283,7 @@ fn call_function() {
 }
 
 #[test]
-fn call_generic_function() {
+fn call_generic_identity() {
     check(
         indoc! {"
             namespace A {
@@ -306,6 +306,23 @@ fn call_generic_function() {
             #27 86-94 "Identity" : (Int) -> (Int)
             #30 94-97 "(4)" : Int
             #31 95-96 "4" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn call_generic_length() {
+    check(
+        "",
+        "Length([true, false, true])",
+        &expect![[r##"
+            #1 0-27 "Length([true, false, true])" : Int
+            #2 0-6 "Length" : ((Bool)[]) -> (Int)
+            #5 6-27 "([true, false, true])" : (Bool)[]
+            #6 7-26 "[true, false, true]" : (Bool)[]
+            #7 8-12 "true" : Bool
+            #8 14-19 "false" : Bool
+            #9 21-25 "true" : Bool
         "##]],
     );
 }

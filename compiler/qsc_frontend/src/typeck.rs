@@ -10,7 +10,7 @@ use qsc_ast::{
     ast::{
         self, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
         FunctorExpr, FunctorExprKind, Lit, NodeId, Package, Pat, PatKind, QubitInit, QubitInitKind,
-        SetOp, Span, SpecBody, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
+        SetOp, Span, Spec, SpecBody, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
     },
     visit::Visitor,
 };
@@ -235,8 +235,27 @@ impl Visitor<'_> for Checker<'_> {
                         SpecBody::Gen(_) => {}
                         SpecBody::Impl(input, block) => {
                             let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
-                            inferrer.infer_pat(&decl.input);
-                            inferrer.infer_pat(input);
+
+                            let callable_input_ty = inferrer.infer_pat(&decl.input);
+                            let expected_input_ty = match spec.spec {
+                                Spec::Body | Spec::Adj => callable_input_ty,
+                                Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
+                                    Ty::App(
+                                        Box::new(Ty::Prim(TyPrim::Array)),
+                                        vec![Ty::Prim(TyPrim::Qubit)],
+                                    ),
+                                    callable_input_ty,
+                                ]),
+                            };
+                            let actual_input_ty = inferrer.infer_pat(input);
+                            inferrer.constrain(
+                                input.span,
+                                ConstraintKind::Eq {
+                                    expected: expected_input_ty,
+                                    actual: actual_input_ty,
+                                },
+                            );
+
                             let decl_output = inferrer.convert_ty(&decl.output);
                             let block_output = inferrer.infer_block(block).unwrap();
                             inferrer.constrain(
