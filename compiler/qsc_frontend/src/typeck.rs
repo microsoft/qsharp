@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use self::infer::Inferrer;
+use self::infer::SpecImpl;
 use crate::{
     compile::PackageId,
     resolve::{DefId, PackageSrc, Resolutions},
@@ -102,59 +102,6 @@ impl Display for Var {
     }
 }
 
-enum Fallible<T> {
-    Convergent(T),
-    Divergent(T),
-}
-
-impl<T> Fallible<T> {
-    fn unwrap(self) -> T {
-        match self {
-            Fallible::Convergent(value) | Fallible::Divergent(value) => value,
-        }
-    }
-}
-
-enum Termination {
-    Converges,
-    Diverges,
-}
-
-impl Termination {
-    fn diverges(&self) -> bool {
-        matches!(self, Self::Diverges)
-    }
-
-    fn wrap<T>(&self, value: T) -> Fallible<T> {
-        match self {
-            Self::Converges => Fallible::Convergent(value),
-            Self::Diverges => Fallible::Divergent(value),
-        }
-    }
-}
-
-impl Termination {
-    fn update<T>(&mut self, fallible: Fallible<T>) -> T {
-        match fallible {
-            Fallible::Convergent(value) => value,
-            Fallible::Divergent(value) => {
-                *self = Termination::Diverges;
-                value
-            }
-        }
-    }
-
-    fn update_and<T>(&mut self, f1: Fallible<T>, f2: Fallible<T>) -> (T, T) {
-        match (f1, f2) {
-            (Fallible::Divergent(v1), Fallible::Divergent(v2)) => {
-                *self = Termination::Diverges;
-                (v1, v2)
-            }
-            (f1, f2) => (f1.unwrap(), f2.unwrap()),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("mismatched types")]
@@ -190,9 +137,7 @@ impl Visitor<'_> for Checker<'_> {
         }
 
         if let Some(entry) = &package.entry {
-            let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
-            inferrer.infer_expr(entry);
-            let (tys, errors) = inferrer.solve();
+            let (tys, errors) = infer::entry_expr(self.resolutions, &self.globals, entry);
             self.tys.extend(tys);
             self.errors.extend(errors);
         }
@@ -208,9 +153,15 @@ impl Visitor<'_> for Checker<'_> {
 
         match &decl.body {
             CallableBody::Block(block) => {
-                let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
-                inferrer.infer_spec(Spec::Body, &decl.input, None, &decl.output, functors, block);
-                let (tys, errors) = inferrer.solve();
+                let spec = SpecImpl {
+                    kind: Spec::Body,
+                    input: None,
+                    callable_input: &decl.input,
+                    output: &decl.output,
+                    functors,
+                    block,
+                };
+                let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
                 self.tys.extend(tys);
                 self.errors.extend(errors);
             }
@@ -219,16 +170,15 @@ impl Visitor<'_> for Checker<'_> {
                     match &spec.body {
                         SpecBody::Gen(_) => {}
                         SpecBody::Impl(input, block) => {
-                            let mut inferrer = Inferrer::new(self.resolutions, &self.globals);
-                            inferrer.infer_spec(
-                                spec.spec,
-                                &decl.input,
-                                Some(input),
-                                &decl.output,
+                            let spec = SpecImpl {
+                                kind: spec.spec,
+                                input: Some(input),
+                                callable_input: &decl.input,
+                                output: &decl.output,
                                 functors,
                                 block,
-                            );
-                            let (tys, errors) = inferrer.solve();
+                            };
+                            let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
                             self.tys.extend(tys);
                             self.errors.extend(errors);
                         }

@@ -3,7 +3,7 @@
 
 use super::{
     solve::{self, Solver},
-    Class, ConstraintKind, Error, Fallible, Termination, Ty, Tys,
+    Class, ConstraintKind, Error, Ty, Tys,
 };
 use crate::resolve::{DefId, PackageSrc, Resolutions};
 use qsc_ast::ast::{
@@ -12,7 +12,7 @@ use qsc_ast::ast::{
 };
 use std::collections::{HashMap, HashSet};
 
-pub(super) struct Inferrer<'a> {
+struct Inferrer<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<DefId, Ty>,
     tys: Tys,
@@ -20,7 +20,7 @@ pub(super) struct Inferrer<'a> {
 }
 
 impl<'a> Inferrer<'a> {
-    pub(super) fn new(resolutions: &'a Resolutions, globals: &'a HashMap<DefId, Ty>) -> Self {
+    fn new(resolutions: &'a Resolutions, globals: &'a HashMap<DefId, Ty>) -> Self {
         Self {
             resolutions,
             globals,
@@ -29,7 +29,7 @@ impl<'a> Inferrer<'a> {
         }
     }
 
-    pub(super) fn infer_spec(
+    fn infer_spec(
         &mut self,
         spec: Spec,
         call_input: &Pat,
@@ -80,7 +80,7 @@ impl<'a> Inferrer<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub(super) fn infer_expr(&mut self, expr: &Expr) -> Fallible<Ty> {
+    fn infer_expr(&mut self, expr: &Expr) -> Fallible<Ty> {
         let mut termination = Termination::Converges;
         let ty = match &expr.kind {
             ExprKind::Array(items) => match items.split_first() {
@@ -689,7 +689,7 @@ impl<'a> Inferrer<'a> {
         }
     }
 
-    pub(super) fn solve(self) -> (Tys, Vec<Error>) {
+    fn solve(self) -> (Tys, Vec<Error>) {
         let (substs, errors) = self.solver.solve();
         let tys = self
             .tys
@@ -698,4 +698,93 @@ impl<'a> Inferrer<'a> {
             .collect();
         (tys, errors)
     }
+}
+
+enum Fallible<T> {
+    Convergent(T),
+    Divergent(T),
+}
+
+impl<T> Fallible<T> {
+    fn unwrap(self) -> T {
+        match self {
+            Fallible::Convergent(value) | Fallible::Divergent(value) => value,
+        }
+    }
+}
+
+enum Termination {
+    Converges,
+    Diverges,
+}
+
+impl Termination {
+    fn diverges(&self) -> bool {
+        matches!(self, Self::Diverges)
+    }
+
+    fn wrap<T>(&self, value: T) -> Fallible<T> {
+        match self {
+            Self::Converges => Fallible::Convergent(value),
+            Self::Diverges => Fallible::Divergent(value),
+        }
+    }
+}
+
+impl Termination {
+    fn update<T>(&mut self, fallible: Fallible<T>) -> T {
+        match fallible {
+            Fallible::Convergent(value) => value,
+            Fallible::Divergent(value) => {
+                *self = Termination::Diverges;
+                value
+            }
+        }
+    }
+
+    fn update_and<T>(&mut self, f1: Fallible<T>, f2: Fallible<T>) -> (T, T) {
+        match (f1, f2) {
+            (Fallible::Divergent(v1), Fallible::Divergent(v2)) => {
+                *self = Termination::Diverges;
+                (v1, v2)
+            }
+            (f1, f2) => (f1.unwrap(), f2.unwrap()),
+        }
+    }
+}
+
+pub(super) struct SpecImpl<'a> {
+    pub(super) kind: Spec,
+    pub(super) input: Option<&'a Pat>,
+    pub(super) callable_input: &'a Pat,
+    pub(super) output: &'a ast::Ty,
+    pub(super) functors: &'a HashSet<Functor>,
+    pub(super) block: &'a Block,
+}
+
+pub(super) fn entry_expr(
+    resolutions: &Resolutions,
+    globals: &HashMap<DefId, Ty>,
+    entry: &Expr,
+) -> (Tys, Vec<Error>) {
+    let mut inferrer = Inferrer::new(resolutions, globals);
+    inferrer.infer_expr(entry);
+    inferrer.solve()
+}
+
+pub(super) fn spec(
+    resolutions: &Resolutions,
+    globals: &HashMap<DefId, Ty>,
+    spec: SpecImpl,
+) -> (Tys, Vec<Error>) {
+    let mut inferrer = Inferrer::new(resolutions, globals);
+    inferrer.infer_spec(
+        spec.kind,
+        &spec.callable_input,
+        spec.input,
+        &spec.output,
+        &spec.functors,
+        &spec.block,
+    );
+    inferrer.solve()
 }
