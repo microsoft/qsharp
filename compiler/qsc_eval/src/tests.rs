@@ -2214,7 +2214,12 @@ fn check_ctls_count_expr() {
                 }
             }
         "#},
-        "Controlled Test.Foo([1, 2, 3], ())",
+        indoc! {"
+            {
+                use qs = Qubit[3];
+                Controlled Test.Foo(qs, ());
+            }
+        "},
         &expect!["()"],
     );
 }
@@ -2238,7 +2243,13 @@ fn check_ctls_count_nested_expr() {
                 }
             }
         "#},
-        "Controlled Controlled Test.Foo([1, 2], ([3], ()))",
+        indoc! {"
+            {
+                use qs1 = Qubit[1];
+                use qs2 = Qubit[2];
+                Controlled Controlled Test.Foo(qs2, (qs1, ()));
+            }
+        "},
         &expect!["()"],
     );
 }
