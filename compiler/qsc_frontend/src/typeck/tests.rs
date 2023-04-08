@@ -205,7 +205,7 @@ fn return_wrong_type() {
             #8 39-47 "{ true }" : Bool
             #9 41-45 "true" : Bool
             #10 41-45 "true" : Bool
-            Error(Ty(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 39, hi: 47 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 39, hi: 47 })))
         "##]],
     );
 }
@@ -224,7 +224,7 @@ fn return_semi() {
             #8 39-45 "{ 4; }" : ()
             #9 41-43 "4;" : ()
             #10 41-42 "4" : Int
-            Error(Ty(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 45 })))
+            Error(Type(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 45 })))
         "##]],
     );
 }
@@ -344,7 +344,7 @@ fn add_wrong_types() {
             #11 42-43 "1" : Int
             #12 46-49 "[2]" : (Int)[]
             #13 47-48 "2" : Int
-            Error(Ty(TypeMismatch(Prim(Int), Array(Prim(Int)), Span { lo: 42, hi: 49 })))
+            Error(Type(TypeMismatch(Prim(Int), Array(Prim(Int)), Span { lo: 42, hi: 49 })))
         "##]],
     );
 }
@@ -359,7 +359,7 @@ fn int_as_double_error() {
             #2 0-37 "Microsoft.Quantum.Convert.IntAsDouble" : (Int) -> (Double)
             #6 37-44 "(false)" : Bool
             #7 38-43 "false" : Bool
-            Error(Ty(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 0, hi: 44 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 0, hi: 44 })))
         "##]],
     );
 }
@@ -377,7 +377,7 @@ fn length_type_error() {
             #7 8-9 "1" : Int
             #8 11-12 "2" : Int
             #9 14-15 "3" : Int
-            Error(Ty(TypeMismatch(Array(Var(Var(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 })))
+            Error(Type(TypeMismatch(Array(Var(Var(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 })))
         "##]],
     );
 }
@@ -404,7 +404,7 @@ fn single_arg_for_tuple() {
             #9 27-29 "Ry" : ((Double, Qubit)) => (()) is Adj + Ctl
             #12 29-32 "(q)" : Qubit
             #13 30-31 "q" : Qubit
-            Error(Ty(TypeMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 27, hi: 32 })))
+            Error(Type(TypeMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 27, hi: 32 })))
         "##]],
     );
 }
@@ -421,7 +421,7 @@ fn array_index_error() {
             #4 4-5 "2" : Int
             #5 7-8 "3" : Int
             #6 10-15 "false" : Bool
-            Error(Ty(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Var(Var(0)) }, Span { lo: 0, hi: 16 })))
+            Error(Type(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Var(Var(0)) }, Span { lo: 0, hi: 16 })))
         "##]],
     );
 }
@@ -435,7 +435,7 @@ fn array_repeat_error() {
             #1 0-16 "[4, size = true]" : (Int)[]
             #2 1-2 "4" : Int
             #3 11-15 "true" : Bool
-            Error(Ty(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 11, hi: 15 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 11, hi: 15 })))
         "##]],
     );
 }
@@ -464,8 +464,8 @@ fn assignop_error() {
             #12 38-39 "1" : Int
             #13 45-46 "x" : Bool
             #14 45-46 "x" : Bool
-            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 })))
-            Error(Ty(MissingClass(Add(Prim(Bool)), Span { lo: 33, hi: 34 })))
+            Error(Type(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 })))
+            Error(Type(MissingClass(Add(Prim(Bool)), Span { lo: 33, hi: 34 })))
         "##]],
     );
 }
@@ -481,8 +481,8 @@ fn binop_add_invalid() {
             #3 1-2 "1" : Int
             #4 4-5 "3" : Int
             #5 9-12 "5.4" : Double
-            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Prim(Double), Span { lo: 0, hi: 12 })))
-            Error(Ty(MissingClass(Add(Tuple([Prim(Int), Prim(Int)])), Span { lo: 0, hi: 6 })))
+            Error(Type(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Prim(Double), Span { lo: 0, hi: 12 })))
+            Error(Type(MissingClass(Add(Tuple([Prim(Int), Prim(Int)])), Span { lo: 0, hi: 6 })))
         "##]],
     );
 }
@@ -496,7 +496,7 @@ fn binop_add_mismatch() {
             #1 0-7 "1 + 5.4" : Int
             #2 0-1 "1" : Int
             #3 4-7 "5.4" : Double
-            Error(Ty(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 0, hi: 7 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 0, hi: 7 })))
         "##]],
     );
 }
@@ -510,7 +510,7 @@ fn binop_andb_mismatch() {
             #1 0-10 "28 &&& 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Ty(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
         "##]],
     );
 }
@@ -533,7 +533,7 @@ fn binop_equal_callable() {
             #15 73-89 "Test.A == Test.B" : Bool
             #16 73-79 "Test.A" : (()) -> (())
             #20 83-89 "Test.B" : (()) -> (())
-            Error(Ty(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 })))
+            Error(Type(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 })))
         "##]],
     );
 }
@@ -554,7 +554,7 @@ fn binop_equal_tuple_arity_mismatch() {
             #8 17-18 "2" : Int
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
-            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 })))
+            Error(Type(TypeMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 })))
         "##]],
     );
 }
@@ -574,7 +574,7 @@ fn binop_equal_tuple_type_mismatch() {
             #7 14-15 "1" : Int
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
-            Error(Ty(TypeMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 })))
         "##]],
     );
 }
@@ -588,7 +588,7 @@ fn binop_eq_mismatch() {
             #1 0-9 "18L == 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
-            Error(Ty(TypeMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 })))
+            Error(Type(TypeMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 })))
         "##]],
     );
 }
@@ -602,7 +602,7 @@ fn binop_neq_mismatch() {
             #1 0-9 "18L != 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
-            Error(Ty(TypeMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 })))
+            Error(Type(TypeMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 })))
         "##]],
     );
 }
@@ -622,7 +622,7 @@ fn binop_neq_tuple_type_mismatch() {
             #7 14-15 "1" : Int
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
-            Error(Ty(TypeMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 })))
         "##]],
     );
 }
@@ -643,7 +643,7 @@ fn binop_neq_tuple_arity_mismatch() {
             #8 17-18 "2" : Int
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
-            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 })))
+            Error(Type(TypeMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 })))
         "##]],
     );
 }
@@ -657,7 +657,7 @@ fn binop_orb_mismatch() {
             #1 0-10 "28 ||| 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Ty(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
         "##]],
     );
 }
@@ -671,7 +671,7 @@ fn binop_xorb_mismatch() {
             #1 0-10 "28 ^^^ 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Ty(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
         "##]],
     );
 }
@@ -695,7 +695,7 @@ fn let_tuple_arity_error() {
             #11 18-24 "(0, 1)" : (Int, Int)
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
-            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Var(Var(0)), Var(Var(1)), Var(Var(2))]), Span { lo: 6, hi: 15 })))
+            Error(Type(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Var(Var(0)), Var(Var(1)), Var(Var(2))]), Span { lo: 6, hi: 15 })))
         "##]],
     );
 }
@@ -734,7 +734,7 @@ fn set_tuple_arity_error() {
             #24 55-56 "3" : Int
             #25 63-64 "x" : Int
             #26 63-64 "x" : Int
-            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 })))
+            Error(Type(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 })))
         "##]],
     );
 }
@@ -752,7 +752,7 @@ fn qubit_array_length_error() {
             #5 6-7 "q" : (Qubit)[]
             #6 10-22 "Qubit[false]" : (Qubit)[]
             #7 16-21 "false" : Bool
-            Error(Ty(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 16, hi: 21 })))
+            Error(Type(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 16, hi: 21 })))
         "##]],
     );
 }
@@ -776,7 +776,7 @@ fn qubit_tuple_arity_error() {
             #11 23-24 "3" : Int
             #12 27-34 "Qubit()" : Qubit
             #13 36-43 "Qubit()" : Qubit
-            Error(Ty(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Var(Var(0)), Var(Var(1))]), Span { lo: 6, hi: 13 })))
+            Error(Type(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Var(Var(0)), Var(Var(1))]), Span { lo: 6, hi: 13 })))
         "##]],
     );
 }
@@ -795,7 +795,7 @@ fn for_loop_not_iterable() {
             #6 13-17 "true" : Bool
             #7 19-22 "One" : Result
             #8 24-26 "{}" : ()
-            Error(Ty(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Var(Var(0)) }, Span { lo: 9, hi: 23 })))
+            Error(Type(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Var(Var(0)) }, Span { lo: 9, hi: 23 })))
         "##]],
     );
 }
@@ -809,7 +809,7 @@ fn if_cond_error() {
             #1 0-7 "if 4 {}" : ()
             #2 3-4 "4" : Int
             #3 5-7 "{}" : ()
-            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 3, hi: 4 })))
+            Error(Type(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 3, hi: 4 })))
         "##]],
     );
 }
@@ -825,7 +825,7 @@ fn if_no_else_must_be_unit() {
             #3 8-13 "{ 4 }" : Int
             #4 10-11 "4" : Int
             #5 10-11 "4" : Int
-            Error(Ty(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 })))
+            Error(Type(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 })))
         "##]],
     );
 }
@@ -840,7 +840,7 @@ fn ternop_cond_error() {
             #2 0-1 "7" : Int
             #3 4-5 "1" : Int
             #4 8-9 "0" : Int
-            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 0, hi: 1 })))
+            Error(Type(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 0, hi: 1 })))
         "##]],
     );
 }
@@ -858,7 +858,7 @@ fn ternop_update_invalid_container() {
             #5 7-8 "3" : Int
             #6 13-14 "2" : Int
             #7 18-19 "4" : Int
-            Error(Ty(MissingClass(HasIndex { container: Tuple([Prim(Int), Prim(Int), Prim(Int)]), index: Prim(Int), item: Prim(Int) }, Span { lo: 0, hi: 19 })))
+            Error(Type(MissingClass(HasIndex { container: Tuple([Prim(Int), Prim(Int), Prim(Int)]), index: Prim(Int), item: Prim(Int) }, Span { lo: 0, hi: 19 })))
         "##]],
     );
 }
@@ -876,7 +876,7 @@ fn ternop_update_invalid_index() {
             #5 7-8 "3" : Int
             #6 13-18 "false" : Bool
             #7 22-23 "4" : Int
-            Error(Ty(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Prim(Int) }, Span { lo: 0, hi: 23 })))
+            Error(Type(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Prim(Int) }, Span { lo: 0, hi: 23 })))
         "##]],
     );
 }
@@ -889,7 +889,7 @@ fn unop_bitwise_not_bool() {
         &expect![[r##"
             #1 0-8 "~~~false" : Bool
             #2 3-8 "false" : Bool
-            Error(Ty(MissingClass(Num(Prim(Bool)), Span { lo: 3, hi: 8 })))
+            Error(Type(MissingClass(Num(Prim(Bool)), Span { lo: 3, hi: 8 })))
         "##]],
     );
 }
@@ -902,7 +902,7 @@ fn unop_not_int() {
         &expect![[r##"
             #1 0-5 "not 0" : Int
             #2 4-5 "0" : Int
-            Error(Ty(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 4, hi: 5 })))
+            Error(Type(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 4, hi: 5 })))
         "##]],
     );
 }
@@ -915,7 +915,7 @@ fn unop_neg_bool() {
         &expect![[r##"
             #1 0-6 "-false" : Bool
             #2 1-6 "false" : Bool
-            Error(Ty(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 })))
+            Error(Type(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 })))
         "##]],
     );
 }
@@ -928,7 +928,7 @@ fn unop_pos_bool() {
         &expect![[r##"
             #1 0-6 "+false" : Bool
             #2 1-6 "false" : Bool
-            Error(Ty(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 })))
+            Error(Type(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 })))
         "##]],
     );
 }
@@ -942,7 +942,7 @@ fn while_cond_error() {
             #1 0-13 "while Zero {}" : ()
             #2 6-10 "Zero" : Result
             #3 11-13 "{}" : ()
-            Error(Ty(TypeMismatch(Prim(Bool), Prim(Result), Span { lo: 6, hi: 10 })))
+            Error(Type(TypeMismatch(Prim(Bool), Prim(Result), Span { lo: 6, hi: 10 })))
         "##]],
     );
 }
@@ -1127,7 +1127,7 @@ fn call_controlled_error() {
             #35 163-166 "[1]" : (Int)[]
             #36 164-165 "1" : Int
             #37 168-169 "q" : Qubit
-            Error(Ty(TypeMismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 })))
+            Error(Type(TypeMismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 })))
         "##]],
     );
 }

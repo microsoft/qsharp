@@ -99,7 +99,7 @@ pub struct Error(pub(crate) ErrorKind);
 pub(crate) enum ErrorKind {
     Parse(OffsetError<parse::Error>),
     Resolve(resolve::Error),
-    Ty(typeck::Error),
+    Type(typeck::Error),
     Validate(validate::Error),
 }
 
@@ -183,7 +183,7 @@ pub fn compile(
             .into_iter()
             .map(|e| Error(ErrorKind::Resolve(e))),
     );
-    errors.extend(ty_errors.into_iter().map(|e| Error(ErrorKind::Ty(e))));
+    errors.extend(ty_errors.into_iter().map(|e| Error(ErrorKind::Type(e))));
     errors.extend(
         validate_errors
             .into_iter()
