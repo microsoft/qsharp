@@ -450,8 +450,8 @@ fn spec_param() {
         &expect![[r#"
             namespace Foo {
                 operation _5(_8 : Qubit) : (Qubit[], Qubit) {
-                    controlled (_18, ...) {
-                        (_18, _8)
+                    controlled (_17, ...) {
+                        (_17, _8)
                     }
                 }
             }
@@ -477,8 +477,8 @@ fn spec_param_shadow() {
         &expect![[r#"
             namespace Foo {
                 operation _5(_8 : Qubit[]) : Qubit[] {
-                    controlled (_18, ...) {
-                        _18
+                    controlled (_16, ...) {
+                        _16
                     }
                     body ... {
                         _8
@@ -1028,8 +1028,8 @@ fn for_loop_var() {
         &expect![[r#"
             namespace Foo {
                 function _5(_8 : Int[]) : Unit {
-                    for _17 in _8 {
-                        let _ = _17;
+                    for _16 in _8 {
+                        let _ = _16;
                     }
                 }
             }

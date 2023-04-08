@@ -344,7 +344,7 @@ fn add_wrong_types() {
             #11 42-43 "1" : Int
             #12 46-49 "[2]" : (Int)[]
             #13 47-48 "2" : Int
-            Error(Ty(TypeMismatch(Prim(Int), App(Prim(Array), [Prim(Int)]), Span { lo: 42, hi: 49 })))
+            Error(Ty(TypeMismatch(Prim(Int), Array(Prim(Int)), Span { lo: 42, hi: 49 })))
         "##]],
     );
 }
@@ -377,7 +377,7 @@ fn length_type_error() {
             #7 8-9 "1" : Int
             #8 11-12 "2" : Int
             #9 14-15 "3" : Int
-            Error(Ty(TypeMismatch(App(Prim(Array), [Var(Var(0))]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 })))
+            Error(Ty(TypeMismatch(Array(Var(Var(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 })))
         "##]],
     );
 }
@@ -421,7 +421,7 @@ fn array_index_error() {
             #4 4-5 "2" : Int
             #5 7-8 "3" : Int
             #6 10-15 "false" : Bool
-            Error(Ty(MissingClass(HasIndex { container: App(Prim(Array), [Prim(Int)]), index: Prim(Bool), item: Var(Var(0)) }, Span { lo: 0, hi: 16 })))
+            Error(Ty(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Var(Var(0)) }, Span { lo: 0, hi: 16 })))
         "##]],
     );
 }
@@ -776,7 +776,7 @@ fn qubit_tuple_arity_error() {
             #11 23-24 "3" : Int
             #12 27-34 "Qubit()" : Qubit
             #13 36-43 "Qubit()" : Qubit
-            Error(Ty(TypeMismatch(Tuple([App(Prim(Array), [Prim(Qubit)]), Prim(Qubit), Prim(Qubit)]), Tuple([Var(Var(0)), Var(Var(1))]), Span { lo: 6, hi: 13 })))
+            Error(Ty(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Var(Var(0)), Var(Var(1))]), Span { lo: 6, hi: 13 })))
         "##]],
     );
 }
@@ -876,7 +876,7 @@ fn ternop_update_invalid_index() {
             #5 7-8 "3" : Int
             #6 13-18 "false" : Bool
             #7 22-23 "4" : Int
-            Error(Ty(MissingClass(HasIndex { container: App(Prim(Array), [Prim(Int)]), index: Prim(Bool), item: Prim(Int) }, Span { lo: 0, hi: 23 })))
+            Error(Ty(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Prim(Int) }, Span { lo: 0, hi: 23 })))
         "##]],
     );
 }

@@ -555,8 +555,8 @@ impl Display for Ty {
 /// A type kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TyKind {
-    /// One or more type arguments applied to a type constructor.
-    App(Box<Ty>, Vec<Ty>),
+    /// An array type.
+    Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     /// An unspecified type, `_`, which may be inferred.
@@ -576,17 +576,8 @@ pub enum TyKind {
 impl Display for TyKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        match &self {
-            TyKind::App(base, args) => {
-                write!(indent, "App:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\nbase type: {base}")?;
-                write!(indent, "\narg types:")?;
-                indent = set_indentation(indent, 2);
-                for a in args {
-                    write!(indent, "\n{a}")?;
-                }
-            }
+        match self {
+            TyKind::Array(item) => write!(indent, "Array: {item}")?,
             TyKind::Arrow(ck, param, rtrn, functors) => {
                 write!(indent, "Arrow ({ck:?}):")?;
                 indent = set_indentation(indent, 1);
@@ -1270,8 +1261,6 @@ pub enum QubitSource {
 /// A primitive type.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TyPrim {
-    /// The array type.
-    Array,
     /// The big integer type.
     BigInt,
     /// The boolean type.

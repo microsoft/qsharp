@@ -28,7 +28,7 @@ pub type Tys = HashMap<NodeId, Ty>;
 
 #[derive(Clone, Debug)]
 pub enum Ty {
-    App(Box<Ty>, Vec<Ty>),
+    Array(Box<Ty>),
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     DefId(DefId),
     Err,
@@ -41,22 +41,7 @@ pub enum Ty {
 impl Display for Ty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Ty::App(base, args) if matches!(**base, Ty::Prim(TyPrim::Array)) && args.len() == 1 => {
-                write!(f, "({})[]", args[0])
-            }
-            Ty::App(base, args) => {
-                Display::fmt(base, f)?;
-                if let Some((first, rest)) = args.split_first() {
-                    f.write_str("<")?;
-                    Display::fmt(first, f)?;
-                    for arg in rest {
-                        f.write_str(", ")?;
-                        Display::fmt(arg, f)?;
-                    }
-                    f.write_str(">")?;
-                }
-                Ok(())
-            }
+            Ty::Array(item) => write!(f, "({item})[]"),
             Ty::Arrow(kind, input, output, functors) => {
                 let arrow = match kind {
                     CallableKind::Function => "->",
@@ -240,10 +225,7 @@ impl Visitor<'_> for Checker<'_> {
                             let expected_input_ty = match spec.spec {
                                 Spec::Body | Spec::Adj => callable_input_ty,
                                 Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
-                                    Ty::App(
-                                        Box::new(Ty::Prim(TyPrim::Array)),
-                                        vec![Ty::Prim(TyPrim::Qubit)],
-                                    ),
+                                    Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
                                     callable_input_ty,
                                 ]),
                             };
@@ -525,9 +507,9 @@ impl<'a> Inferrer<'a> {
                         );
                     }
 
-                    Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![first_ty])
+                    Ty::Array(Box::new(first_ty))
                 }
-                None => Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![self.fresh()]),
+                None => Ty::Array(Box::new(self.fresh())),
             },
             ExprKind::ArrayRepeat(item, size) => {
                 let item_ty = termination.update(self.infer_expr(item));
@@ -539,7 +521,7 @@ impl<'a> Inferrer<'a> {
                         actual: size_ty,
                     },
                 );
-                Ty::App(Box::new(Ty::Prim(TyPrim::Array)), vec![item_ty])
+                Ty::Array(Box::new(item_ty))
             }
             ExprKind::Assign(lhs, rhs) => {
                 let lhs_ty = self.infer_expr(lhs).unwrap();
@@ -884,10 +866,7 @@ impl<'a> Inferrer<'a> {
                         actual: length_ty,
                     },
                 );
-                Ty::App(
-                    Box::new(Ty::Prim(TyPrim::Array)),
-                    vec![Ty::Prim(TyPrim::Qubit)],
-                )
+                Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)))
             }
             QubitInitKind::Paren(inner) => termination.update(self.infer_qubit_init(inner)),
             QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
@@ -1102,10 +1081,7 @@ impl<'a> Inferrer<'a> {
     fn instantiate(&mut self, ty: &Ty) -> Ty {
         fn go(fresh: &mut impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
             match ty {
-                Ty::App(base, args) => Ty::App(
-                    Box::new(go(fresh, vars, base)),
-                    args.iter().map(|arg| go(fresh, vars, arg)).collect(),
-                ),
+                Ty::Array(item) => Ty::Array(Box::new(go(fresh, vars, item))),
                 Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
                     *kind,
                     Box::new(go(fresh, vars, input)),
@@ -1128,10 +1104,7 @@ impl<'a> Inferrer<'a> {
 
     fn convert_ty(&mut self, ty: &ast::Ty) -> Ty {
         match &ty.kind {
-            TyKind::App(base, args) => Ty::App(
-                Box::new(self.convert_ty(base)),
-                args.iter().map(|ty| self.convert_ty(ty)).collect(),
-            ),
+            TyKind::Array(item) => Ty::Array(Box::new(self.convert_ty(item))),
             TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
                 *kind,
                 Box::new(self.convert_ty(input)),
@@ -1234,13 +1207,7 @@ impl<'a> Inferrer<'a> {
 
 fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
     match (ty1, ty2) {
-        (Ty::App(base1, args1), Ty::App(base2, args2)) if args1.len() == args2.len() => {
-            let mut substs = unify(base1, base2)?;
-            for (arg1, arg2) in args1.iter().zip(args2) {
-                substs.extend(unify(arg1, arg2)?);
-            }
-            Ok(substs)
-        }
+        (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2),
         // TODO: Ignoring functors is unsound, but we don't know which one should be a subset of the
         // other until subtyping is supported.
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
@@ -1287,7 +1254,7 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
         | Class::Add(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String)) => {
             Ok(Vec::new())
         }
-        Class::Add(Ty::App(base, _)) if matches!(*base, Ty::Prim(TyPrim::Array)) => Ok(Vec::new()),
+        Class::Add(Ty::Array(_)) => Ok(Vec::new()),
         Class::Adj(Ty::Arrow(_, _, _, functors))
             if functor_set(functors.as_ref()).contains(&Functor::Adj) =>
         {
@@ -1317,10 +1284,7 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
             op: Ty::Arrow(kind, input, output, functors),
             with_ctls,
         } if functor_set(functors.as_ref()).contains(&Functor::Ctl) => {
-            let qubit_array = Ty::App(
-                Box::new(Ty::Prim(TyPrim::Array)),
-                vec![Ty::Prim(TyPrim::Qubit)],
-            );
+            let qubit_array = Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
             Ok(vec![Constraint {
                 span,
@@ -1330,15 +1294,10 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
                 },
             }])
         }
-        Class::Eq(Ty::App(base, mut args))
-            if matches!(*base, Ty::Prim(TyPrim::Array)) && args.len() == 1 =>
-        {
-            let item = args.pop().expect("type arguments should not be empty");
-            Ok(vec![Constraint {
-                span,
-                kind: ConstraintKind::Class(Class::Eq(item)),
-            }])
-        }
+        Class::Eq(Ty::Array(item)) => Ok(vec![Constraint {
+            span,
+            kind: ConstraintKind::Class(Class::Eq(*item)),
+        }]),
         Class::Eq(Ty::Tuple(items)) => Ok(items
             .into_iter()
             .map(|item| Constraint {
@@ -1380,27 +1339,27 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
             _ => Ok(Vec::new()),
         },
         Class::HasIndex {
-            container: Ty::App(base, mut args),
+            container: Ty::Array(container_item),
             index,
             item,
-        } if matches!(*base, Ty::Prim(TyPrim::Array)) && args.len() == 1 => match index {
+        } => match index {
             Ty::Prim(TyPrim::Int) => Ok(vec![Constraint {
                 span,
                 kind: ConstraintKind::Eq {
-                    expected: args.pop().expect("type arguments should not be empty"),
+                    expected: *container_item,
                     actual: item,
                 },
             }]),
             Ty::Prim(TyPrim::Range) => Ok(vec![Constraint {
                 span,
                 kind: ConstraintKind::Eq {
-                    expected: Ty::App(base, args),
+                    expected: Ty::Array(container_item),
                     actual: item,
                 },
             }]),
             _ => Err(ClassError(
                 Class::HasIndex {
-                    container: Ty::App(base, args),
+                    container: Ty::Array(container_item),
                     index,
                     item,
                 },
@@ -1419,12 +1378,12 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
             },
         }]),
         Class::Iterable {
-            container: Ty::App(base, mut args),
+            container: Ty::Array(container_item),
             item,
-        } if matches!(*base, Ty::Prim(TyPrim::Array)) => Ok(vec![Constraint {
+        } => Ok(vec![Constraint {
             span,
             kind: ConstraintKind::Eq {
-                expected: args.pop().expect("type arguments should not be empty"),
+                expected: *container_item,
                 actual: item,
             },
         }]),
@@ -1436,12 +1395,7 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
 
 fn substitute(substs: &HashMap<Var, Ty>, ty: Ty) -> Ty {
     match ty {
-        Ty::App(base, args) => Ty::App(
-            Box::new(substitute(substs, *base)),
-            args.into_iter()
-                .map(|arg| substitute(substs, arg))
-                .collect(),
-        ),
+        Ty::Array(item) => Ty::Array(Box::new(substitute(substs, *item))),
         Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
             kind,
             Box::new(substitute(substs, *input)),
@@ -1505,15 +1459,9 @@ fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> (Ty, Vec<Missi
 
 fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
     match &ty.kind {
-        TyKind::App(base, args) => {
-            let (new_base, mut errors) = try_convert_ty(resolutions, base);
-            let mut new_args = Vec::new();
-            for arg in args {
-                let (new_arg, arg_errors) = try_convert_ty(resolutions, arg);
-                new_args.push(new_arg);
-                errors.extend(arg_errors);
-            }
-            (Ty::App(Box::new(new_base), new_args), errors)
+        TyKind::Array(item) => {
+            let (new_item, errors) = try_convert_ty(resolutions, item);
+            (Ty::Array(Box::new(new_item)), errors)
         }
         TyKind::Arrow(kind, input, output, functors) => {
             let (input, mut errors) = try_convert_ty(resolutions, input);

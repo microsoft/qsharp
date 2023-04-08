@@ -19,11 +19,11 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
     let mut lhs = base(s)?;
     loop {
-        if let Some(array) = opt(s, array)? {
+        if let Some(()) = opt(s, array)? {
             lhs = Ty {
                 id: NodeId::default(),
                 span: s.span(lo),
-                kind: TyKind::App(Box::new(array), vec![lhs]),
+                kind: TyKind::Array(Box::new(lhs)),
             }
         } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
@@ -49,15 +49,10 @@ pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
     ident(s)
 }
 
-fn array(s: &mut Scanner) -> Result<Ty> {
-    let lo = s.peek().span.lo;
+fn array(s: &mut Scanner) -> Result<()> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(Ty {
-        id: NodeId::default(),
-        span: s.span(lo),
-        kind: TyKind::Prim(TyPrim::Array),
-    })
+    Ok(())
 }
 
 fn arrow(s: &mut Scanner) -> Result<CallableKind> {

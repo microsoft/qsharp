@@ -171,10 +171,7 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
     vis.visit_span(&mut ty.span);
 
     match &mut ty.kind {
-        TyKind::App(ty, tys) => {
-            vis.visit_ty(ty);
-            tys.iter_mut().for_each(|t| vis.visit_ty(t));
-        }
+        TyKind::Array(item) => vis.visit_ty(item),
         TyKind::Arrow(_, lhs, rhs, functors) => {
             vis.visit_ty(lhs);
             vis.visit_ty(rhs);
