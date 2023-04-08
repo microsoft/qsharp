@@ -346,3 +346,48 @@ fn int_as_double_error() {
         "##]],
     );
 }
+
+#[test]
+fn length_type_error() {
+    check(
+        "",
+        "Length((1, 2, 3))",
+        &expect![[r##"
+            #1 0-17 "Length((1, 2, 3))" : Int
+            #2 0-6 "Length" : ((?0)[]) -> (Int)
+            #5 6-17 "((1, 2, 3))" : (Int, Int, Int)
+            #6 7-16 "(1, 2, 3)" : (Int, Int, Int)
+            #7 8-9 "1" : Int
+            #8 11-12 "2" : Int
+            #9 14-15 "3" : Int
+            Error(Ty(TypeMismatch(App(Prim(Array), [Var(Var(0))]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 })))
+        "##]],
+    );
+}
+
+#[test]
+fn single_arg_for_tuple() {
+    check(
+        "",
+        indoc! {"
+            {
+                use q = Qubit();
+                Ry(q);
+            }
+        "},
+        &expect![[r##"
+            #1 0-35 "{\n    use q = Qubit();\n    Ry(q);\n}" : ()
+            #2 0-35 "{\n    use q = Qubit();\n    Ry(q);\n}" : ()
+            #3 6-22 "use q = Qubit();" : ()
+            #4 10-11 "q" : Qubit
+            #5 10-11 "q" : Qubit
+            #6 14-21 "Qubit()" : Qubit
+            #7 27-33 "Ry(q);" : ()
+            #8 27-32 "Ry(q)" : ()
+            #9 27-29 "Ry" : ((Double, Qubit)) => (()) is Adj + Ctl
+            #12 29-32 "(q)" : Qubit
+            #13 30-31 "q" : Qubit
+            Error(Ty(TypeMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 27, hi: 32 })))
+        "##]],
+    );
+}

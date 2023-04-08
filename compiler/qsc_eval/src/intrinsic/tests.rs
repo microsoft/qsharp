@@ -78,24 +78,6 @@ fn length() {
 }
 
 #[test]
-fn length_type_err() {
-    check_intrinsic_result(
-        "",
-        "Length((1, 2, 3))",
-        &expect![[r#"
-            Type(
-                "Array",
-                "Tuple",
-                Span {
-                    lo: 6,
-                    hi: 17,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn int_as_double() {
     check_intrinsic_result(
         "",
@@ -764,27 +746,6 @@ fn unknown_intrinsic() {
                 Span {
                     lo: 76,
                     hi: 84,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn single_arg_for_tuple() {
-    check_intrinsic_result(
-        "",
-        indoc! {r#"{
-            use q = Qubit();
-            Ry(q);
-        }"#},
-        &expect![[r#"
-            Type(
-                "Tuple",
-                "Qubit",
-                Span {
-                    lo: 29,
-                    hi: 32,
                 },
             )
         "#]],
