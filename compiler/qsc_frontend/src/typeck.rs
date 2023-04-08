@@ -1222,11 +1222,10 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
             }
             Ok(substs)
         }
-        (
-            Ty::Arrow(kind1, input1, output1, functors1),
-            Ty::Arrow(kind2, input2, output2, functors2),
-        ) if kind1 == kind2
-            && functor_set(functors1.as_ref()) == functor_set(functors2.as_ref()) =>
+        // TODO: Ignoring functors is unsound, but we don't know which one should be a subset of the
+        // other until subtyping is supported.
+        (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
+            if kind1 == kind2 =>
         {
             let mut substs = unify(input1, input2)?;
             substs.extend(unify(output1, output2)?);
