@@ -45,33 +45,20 @@ fn main() -> Result<ExitCode> {
 
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
-    let unit = Interpreter::test_input(cli.nostdlib, sources.clone());
-    if !unit.context.errors().is_empty() {
+
+    let interpreter = Interpreter::new(cli.nostdlib, sources.clone());
+    if let Err(ref unit) = interpreter {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {
             eprintln!("{:?}", reporter.report(error.clone()));
         }
         return Ok(ExitCode::FAILURE);
     }
-
-    let mut interpreter = Interpreter::new(cli.nostdlib, sources);
+    let mut interpreter = interpreter.unwrap();
 
     if let Some(line) = cli.entry {
         let results = interpreter.line(line.clone());
-        for result in results {
-            if !result.value.is_empty() {
-                println!("{}", result.value);
-            }
-            if !result.output.is_empty() {
-                println!("{}", result.output);
-            }
-            if !result.errors.is_empty() {
-                let reporter = InteractiveErrorReporter::new(line.clone());
-                for error in result.errors {
-                    eprintln!("{:?}", reporter.report(error.clone()));
-                }
-            }
-        }
+        print_results(results, &line);
     }
 
     if cli.exec {
@@ -97,23 +84,27 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             // followed by the EOF token.
             if !line.trim().is_empty() {
                 let results = interpreter.line(line.clone());
-                for result in results {
-                    if !result.value.is_empty() {
-                        println!("{}", result.value);
-                    }
-                    if !result.output.is_empty() {
-                        println!("{}", result.output);
-                    }
-                    if !result.errors.is_empty() {
-                        let reporter = InteractiveErrorReporter::new(line.clone());
-                        for error in result.errors {
-                            eprintln!("{:?}", reporter.report(error.clone()));
-                        }
-                    }
-                }
+                print_results(results, &line);
             }
 
             print_prompt(false);
+        }
+    }
+}
+
+fn print_results(results: Vec<qsc_eval::interactive::InterpreterResult>, line: &str) {
+    for result in results {
+        if !result.value.is_empty() {
+            println!("{}", result.value);
+        }
+        if !result.output.is_empty() {
+            println!("{}", result.output);
+        }
+        if !result.errors.is_empty() {
+            let reporter = InteractiveErrorReporter::new(line);
+            for error in result.errors {
+                eprintln!("{:?}", reporter.report(error.clone()));
+            }
         }
     }
 }

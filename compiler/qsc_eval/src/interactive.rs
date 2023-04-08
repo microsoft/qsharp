@@ -109,27 +109,14 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn test_input(
-        nostdlib: bool,
-        sources: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> CompileUnit {
-        let mut store = PackageStore::new();
-
-        let mut session_deps: Vec<_> = vec![];
-
-        if !nostdlib {
-            session_deps.push(store.insert(compile::std()));
-        }
-
-        // create a package with all defined dependencies for the session
-        compile(&store, session_deps.clone(), sources, "")
-    }
-
-    /// # Panics
+    /// # Errors
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
     /// Use `Interpreter::test_input` to test compilation.
-    pub fn new(nostdlib: bool, sources: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
+    pub fn new(
+        nostdlib: bool,
+        sources: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<Self, CompileUnit> {
         let mut store = PackageStore::new();
 
         let mut session_deps: Vec<_> = vec![];
@@ -140,12 +127,10 @@ impl Interpreter {
 
         // create a package with all defined dependencies for the session
         let unit = compile(&store, session_deps.clone(), sources, "");
+        if !unit.context.errors().is_empty() {
+            return Err(unit);
+        }
 
-        assert!(
-            unit.context.errors().is_empty(),
-            "Compilation failed: {:?}",
-            unit.context.errors()
-        );
         let basis_package = store.insert(unit);
         session_deps.push(basis_package);
 
@@ -163,7 +148,7 @@ impl Interpreter {
             out_builder: |cursor| CursorReceiver::new(cursor),
         }
         .build();
-        Self { context }
+        Ok(Self { context })
     }
 
     pub fn line(&mut self, line: impl AsRef<str>) -> Vec<InterpreterResult> {
@@ -241,7 +226,8 @@ mod tests {
                 }
             }"#};
 
-        let mut interpreter = Interpreter::new(false, [source]);
+        let mut interpreter =
+            Interpreter::new(false, [source]).expect("Failed to compile base environment.");
         let result = &interpreter.line("Test.Hello()")[0];
         assert_eq!("hello there...", result.value);
         let result = &interpreter.line("Test.Main()")[0];
@@ -263,7 +249,8 @@ mod tests {
                 }
             }"#};
 
-        let mut interpreter = Interpreter::new(false, [source]);
+        let mut interpreter =
+            Interpreter::new(false, [source]).expect("Failed to compile base environment.");
         let result = &interpreter.line("Test.Hello()")[0];
         assert_eq!("hello there...", result.value);
         let result = &interpreter.line("Test2.Main()")[0];
@@ -273,7 +260,8 @@ mod tests {
     #[test]
     fn nostdlib_is_omitted_correctly() {
         let sources: [&str; 0] = [];
-        let mut interpreter = Interpreter::new(true, sources);
+        let mut interpreter =
+            Interpreter::new(true, sources).expect("Failed to compile base environment.");
         let result = &interpreter.line("Message(\"_\")")[0];
 
         assert_eq!("", result.value);
@@ -287,7 +275,8 @@ mod tests {
     #[test]
     fn nostdlib_is_included_correctly() {
         let sources: [&str; 0] = [];
-        let mut interpreter = Interpreter::new(false, sources);
+        let mut interpreter =
+            Interpreter::new(false, sources).expect("Failed to compile base environment.");
         let result = &interpreter.line("Message(\"_\")")[0];
 
         assert_eq!("()", result.value);
