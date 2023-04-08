@@ -608,46 +608,6 @@ fn binop_equal_bigint_false() {
 }
 
 #[test]
-fn binop_equal_type() {
-    check_expr(
-        "",
-        "18L == 18",
-        &expect![[r#"
-            Type(
-                "BigInt",
-                "Int",
-                Span {
-                    lo: 7,
-                    hi: 9,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn binop_equal_callable() {
-    check_expr(
-        indoc! {"
-            namespace Test {
-                function A() : Unit {}
-                function B() : Unit {}
-            }
-        "},
-        "Test.A == Test.B",
-        &expect![[r#"
-            Equality(
-                "Global",
-                Span {
-                    lo: 73,
-                    hi: 79,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn binop_equal_bool() {
     check_expr("", "false == false", &expect!["true"]);
 }
@@ -724,12 +684,7 @@ fn binop_equal_tuple() {
 
 #[test]
 fn binop_equal_tuple_false_content() {
-    check_expr("", "(1, 2, 3) == (1, Zero, 3)", &expect!["false"]);
-}
-
-#[test]
-fn binop_equal_tuple_false_arity() {
-    check_expr("", "(1, 2, 3) == (1, 2, 3, 4)", &expect!["false"]);
+    check_expr("", "(1, 2, 3) == (1, -2, 3)", &expect!["false"]);
 }
 
 #[test]
@@ -1029,24 +984,6 @@ fn binop_neq_bigint_true() {
 }
 
 #[test]
-fn binop_neq_type() {
-    check_expr(
-        "",
-        "18L != 18",
-        &expect![[r#"
-            Type(
-                "BigInt",
-                "Int",
-                Span {
-                    lo: 7,
-                    hi: 9,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn binop_neq_bool() {
     check_expr("", "false != false", &expect!["false"]);
 }
@@ -1123,12 +1060,7 @@ fn binop_neq_tuple() {
 
 #[test]
 fn binop_neq_tuple_true_content() {
-    check_expr("", "(1, 2, 3) != (1, Zero, 3)", &expect!["true"]);
-}
-
-#[test]
-fn binop_neq_tuple_true_arity() {
-    check_expr("", "(1, 2, 3) != (1, 2, 3, 4)", &expect!["true"]);
+    check_expr("", "(1, 2, 3) != (1, -2, 3)", &expect!["true"]);
 }
 
 #[test]
@@ -1156,24 +1088,6 @@ fn binop_orb_invalid() {
             },
         )
     "#]],
-    );
-}
-
-#[test]
-fn binop_orb_mismatch() {
-    check_expr(
-        "",
-        "28 ||| 54L",
-        &expect![[r#"
-            Type(
-                "Int",
-                "BigInt",
-                Span {
-                    lo: 7,
-                    hi: 10,
-                },
-            )
-        "#]],
     );
 }
 
@@ -1282,24 +1196,6 @@ fn binop_xorb_invalid() {
             },
         )
     "#]],
-    );
-}
-
-#[test]
-fn binop_xorb_mismatch() {
-    check_expr(
-        "",
-        "28 ^^^ 54L",
-        &expect![[r#"
-            Type(
-                "Int",
-                "BigInt",
-                Span {
-                    lo: 7,
-                    hi: 10,
-                },
-            )
-        "#]],
     );
 }
 

@@ -497,3 +497,164 @@ fn binop_andb_mismatch() {
         "##]],
     );
 }
+
+#[test]
+fn binop_equal_callable() {
+    check(
+        indoc! {"
+            namespace Test {
+                function A() : Unit {}
+                function B() : Unit {}
+            }
+        "},
+        "Test.A == Test.B",
+        &expect![[r##"
+            #6 31-33 "()" : ()
+            #8 41-43 "{}" : ()
+            #12 58-60 "()" : ()
+            #14 68-70 "{}" : ()
+            #15 73-89 "Test.A == Test.B" : Bool
+            #16 73-79 "Test.A" : (()) -> (())
+            #20 83-89 "Test.B" : (()) -> (())
+            Error(Ty(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), None)), Span { lo: 73, hi: 79 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_equal_tuple_arity_mismatch() {
+    check(
+        "",
+        "(1, 2, 3) == (1, 2, 3, 4)",
+        &expect![[r##"
+            #1 0-25 "(1, 2, 3) == (1, 2, 3, 4)" : Bool
+            #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
+            #3 1-2 "1" : Int
+            #4 4-5 "2" : Int
+            #5 7-8 "3" : Int
+            #6 13-25 "(1, 2, 3, 4)" : (Int, Int, Int, Int)
+            #7 14-15 "1" : Int
+            #8 17-18 "2" : Int
+            #9 20-21 "3" : Int
+            #10 23-24 "4" : Int
+            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_equal_tuple_type_mismatch() {
+    check(
+        "",
+        "(1, 2, 3) == (1, Zero, 3)",
+        &expect![[r##"
+            #1 0-25 "(1, 2, 3) == (1, Zero, 3)" : Bool
+            #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
+            #3 1-2 "1" : Int
+            #4 4-5 "2" : Int
+            #5 7-8 "3" : Int
+            #6 13-25 "(1, Zero, 3)" : (Int, Result, Int)
+            #7 14-15 "1" : Int
+            #8 17-21 "Zero" : Result
+            #9 23-24 "3" : Int
+            Error(Ty(TypeMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_eq_mismatch() {
+    check(
+        "",
+        "18L == 18",
+        &expect![[r##"
+            #1 0-9 "18L == 18" : Bool
+            #2 0-3 "18L" : BigInt
+            #3 7-9 "18" : Int
+            Error(Ty(TypeMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_neq_mismatch() {
+    check(
+        "",
+        "18L != 18",
+        &expect![[r##"
+            #1 0-9 "18L != 18" : Bool
+            #2 0-3 "18L" : BigInt
+            #3 7-9 "18" : Int
+            Error(Ty(TypeMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_neq_tuple_type_mismatch() {
+    check(
+        "",
+        "(1, 2, 3) != (1, Zero, 3)",
+        &expect![[r##"
+            #1 0-25 "(1, 2, 3) != (1, Zero, 3)" : Bool
+            #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
+            #3 1-2 "1" : Int
+            #4 4-5 "2" : Int
+            #5 7-8 "3" : Int
+            #6 13-25 "(1, Zero, 3)" : (Int, Result, Int)
+            #7 14-15 "1" : Int
+            #8 17-21 "Zero" : Result
+            #9 23-24 "3" : Int
+            Error(Ty(TypeMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_neq_tuple_arity_mismatch() {
+    check(
+        "",
+        "(1, 2, 3) != (1, 2, 3, 4)",
+        &expect![[r##"
+            #1 0-25 "(1, 2, 3) != (1, 2, 3, 4)" : Bool
+            #2 0-9 "(1, 2, 3)" : (Int, Int, Int)
+            #3 1-2 "1" : Int
+            #4 4-5 "2" : Int
+            #5 7-8 "3" : Int
+            #6 13-25 "(1, 2, 3, 4)" : (Int, Int, Int, Int)
+            #7 14-15 "1" : Int
+            #8 17-18 "2" : Int
+            #9 20-21 "3" : Int
+            #10 23-24 "4" : Int
+            Error(Ty(TypeMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_orb_mismatch() {
+    check(
+        "",
+        "28 ||| 54L",
+        &expect![[r##"
+            #1 0-10 "28 ||| 54L" : Int
+            #2 0-2 "28" : Int
+            #3 7-10 "54L" : BigInt
+            Error(Ty(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_xorb_mismatch() {
+    check(
+        "",
+        "28 ^^^ 54L",
+        &expect![[r##"
+            #1 0-10 "28 ^^^ 54L" : Int
+            #2 0-2 "28" : Int
+            #3 7-10 "54L" : BigInt
+            Error(Ty(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 })))
+        "##]],
+    );
+}
