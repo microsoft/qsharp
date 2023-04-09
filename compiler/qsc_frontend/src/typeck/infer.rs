@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{
-    solve::{self, Class, ConstraintKind, Solver, Ty},
+    solve::{self, Class, Solver, Ty},
     Error, Tys,
 };
 use crate::resolve::{DefId, PackageSrc, Resolutions};
@@ -49,34 +49,17 @@ impl<'a> Inferrer<'a> {
                 ]),
             };
             let actual_input_ty = self.infer_pat(spec_input);
-            self.solver.constrain(
-                spec_input.span,
-                ConstraintKind::Eq {
-                    expected: expected_input_ty,
-                    actual: actual_input_ty,
-                },
-            );
+            self.solver
+                .eq(spec_input.span, expected_input_ty, actual_input_ty);
         }
 
         let output_ty = self.convert_ty(output);
         if !functors.is_empty() {
-            self.solver.constrain(
-                output.span,
-                ConstraintKind::Eq {
-                    expected: Ty::UNIT,
-                    actual: output_ty.clone(),
-                },
-            );
+            self.solver.eq(output.span, Ty::UNIT, output_ty.clone());
         }
 
         let block_ty = self.infer_block(block).unwrap();
-        self.solver.constrain(
-            block.span,
-            ConstraintKind::Eq {
-                expected: output_ty,
-                actual: block_ty,
-            },
-        );
+        self.solver.eq(block.span, output_ty, block_ty);
     }
 
     #[allow(clippy::too_many_lines)]
@@ -88,13 +71,7 @@ impl<'a> Inferrer<'a> {
                     let first_ty = termination.update(self.infer_expr(first));
                     for item in rest {
                         let item_ty = termination.update(self.infer_expr(item));
-                        self.solver.constrain(
-                            item.span,
-                            ConstraintKind::Eq {
-                                expected: first_ty.clone(),
-                                actual: item_ty,
-                            },
-                        );
+                        self.solver.eq(item.span, first_ty.clone(), item_ty);
                     }
 
                     Ty::Array(Box::new(first_ty))
@@ -104,25 +81,13 @@ impl<'a> Inferrer<'a> {
             ExprKind::ArrayRepeat(item, size) => {
                 let item_ty = termination.update(self.infer_expr(item));
                 let size_ty = termination.update(self.infer_expr(size));
-                self.solver.constrain(
-                    size.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Int),
-                        actual: size_ty,
-                    },
-                );
+                self.solver.eq(size.span, Ty::Prim(TyPrim::Int), size_ty);
                 Ty::Array(Box::new(item_ty))
             }
             ExprKind::Assign(lhs, rhs) => {
                 let lhs_ty = self.infer_expr(lhs).unwrap();
                 let rhs_ty = termination.update(self.infer_expr(rhs));
-                self.solver.constrain(
-                    lhs.span,
-                    ConstraintKind::Eq {
-                        expected: lhs_ty,
-                        actual: rhs_ty,
-                    },
-                );
+                self.solver.eq(lhs.span, lhs_ty, rhs_ty);
                 Ty::UNIT
             }
             ExprKind::AssignOp(op, lhs, rhs) => {
@@ -141,13 +106,13 @@ impl<'a> Inferrer<'a> {
                 let callee_ty = termination.update(self.infer_expr(callee));
                 let input_ty = termination.update(self.infer_expr(input));
                 let output_ty = self.solver.fresh();
-                self.solver.constrain(
+                self.solver.class(
                     expr.span,
-                    ConstraintKind::Class(Class::Call {
+                    Class::Call {
                         callee: callee_ty,
                         input: input_ty,
                         output: output_ty.clone(),
-                    }),
+                    },
                 );
                 output_ty
             }
@@ -157,38 +122,33 @@ impl<'a> Inferrer<'a> {
             }
             ExprKind::Fail(message) => {
                 let message_ty = self.infer_expr(message).unwrap();
-                self.solver.constrain(
-                    message.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::String),
-                        actual: message_ty,
-                    },
-                );
+                self.solver
+                    .eq(message.span, Ty::Prim(TyPrim::String), message_ty);
                 termination = Termination::Diverges;
                 Ty::Err
             }
             ExprKind::Field(record, name) => {
                 let record_ty = termination.update(self.infer_expr(record));
                 let item_ty = self.solver.fresh();
-                self.solver.constrain(
+                self.solver.class(
                     expr.span,
-                    ConstraintKind::Class(Class::HasField {
+                    Class::HasField {
                         record: record_ty,
                         name: name.name.clone(),
                         item: item_ty.clone(),
-                    }),
+                    },
                 );
                 item_ty
             }
             ExprKind::For(item, container, body) => {
                 let item_ty = self.infer_pat(item);
                 let container_ty = termination.update(self.infer_expr(container));
-                self.solver.constrain(
+                self.solver.class(
                     container.span,
-                    ConstraintKind::Class(Class::Iterable {
+                    Class::Iterable {
                         container: container_ty,
                         item: item_ty,
-                    }),
+                    },
                 );
 
                 termination.update(self.infer_block(body));
@@ -196,39 +156,26 @@ impl<'a> Inferrer<'a> {
             }
             ExprKind::If(cond, if_true, if_false) => {
                 let cond_ty = termination.update(self.infer_expr(cond));
-                self.solver.constrain(
-                    cond.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Bool),
-                        actual: cond_ty,
-                    },
-                );
-
+                self.solver.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
                 let true_ty = self.infer_block(if_true);
                 let false_ty = if_false
                     .as_ref()
                     .map_or(Fallible::Convergent(Ty::UNIT), |e| self.infer_expr(e));
                 let (true_ty, false_ty) = termination.update_and(true_ty, false_ty);
-                self.solver.constrain(
-                    expr.span,
-                    ConstraintKind::Eq {
-                        expected: true_ty.clone(),
-                        actual: false_ty,
-                    },
-                );
+                self.solver.eq(expr.span, true_ty.clone(), false_ty);
                 true_ty
             }
             ExprKind::Index(container, index) => {
                 let container_ty = termination.update(self.infer_expr(container));
                 let index_ty = termination.update(self.infer_expr(index));
                 let item_ty = self.solver.fresh();
-                self.solver.constrain(
+                self.solver.class(
                     expr.span,
-                    ConstraintKind::Class(Class::HasIndex {
+                    Class::HasIndex {
                         container: container_ty,
                         index: index_ty,
                         item: item_ty.clone(),
-                    }),
+                    },
                 );
                 item_ty
             }
@@ -263,31 +210,17 @@ impl<'a> Inferrer<'a> {
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
                     let ty = termination.update(self.infer_expr(expr));
-                    self.solver.constrain(
-                        expr.span,
-                        ConstraintKind::Eq {
-                            expected: Ty::Prim(TyPrim::Int),
-                            actual: ty,
-                        },
-                    );
+                    self.solver.eq(expr.span, Ty::Prim(TyPrim::Int), ty);
                 }
                 Ty::Prim(TyPrim::Range)
             }
             ExprKind::Repeat(body, until, fixup) => {
                 termination.update(self.infer_block(body));
                 let until_ty = termination.update(self.infer_expr(until));
-                self.solver.constrain(
-                    until.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Bool),
-                        actual: until_ty,
-                    },
-                );
-
+                self.solver.eq(until.span, Ty::Prim(TyPrim::Bool), until_ty);
                 if let Some(fixup) = fixup {
                     termination.update(self.infer_block(fixup));
                 }
-
                 Ty::UNIT
             }
             ExprKind::Return(expr) => {
@@ -297,24 +230,11 @@ impl<'a> Inferrer<'a> {
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_ty = termination.update(self.infer_expr(cond));
-                self.solver.constrain(
-                    cond.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Bool),
-                        actual: cond_ty,
-                    },
-                );
-
+                self.solver.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
                 let true_ty = self.infer_expr(if_true);
                 let false_ty = self.infer_expr(if_false);
                 let (true_ty, false_ty) = termination.update_and(true_ty, false_ty);
-                self.solver.constrain(
-                    expr.span,
-                    ConstraintKind::Eq {
-                        expected: true_ty.clone(),
-                        actual: false_ty,
-                    },
-                );
+                self.solver.eq(expr.span, true_ty.clone(), false_ty);
                 true_ty
             }
             ExprKind::TernOp(TernOp::Update, container, index, item) => {
@@ -331,14 +251,7 @@ impl<'a> Inferrer<'a> {
             ExprKind::UnOp(op, expr) => termination.update(self.infer_unop(*op, expr)),
             ExprKind::While(cond, body) => {
                 let cond_ty = termination.update(self.infer_expr(cond));
-                self.solver.constrain(
-                    cond.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Bool),
-                        actual: cond_ty,
-                    },
-                );
-
+                self.solver.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
                 termination.update(self.infer_block(body));
                 Ty::UNIT
             }
@@ -379,25 +292,13 @@ impl<'a> Inferrer<'a> {
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
                 let expr_ty = termination.update(self.infer_expr(expr));
-                self.solver.constrain(
-                    pat.span,
-                    ConstraintKind::Eq {
-                        expected: expr_ty,
-                        actual: pat_ty,
-                    },
-                );
+                self.solver.eq(pat.span, expr_ty, pat_ty);
                 Ty::UNIT
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 let pat_ty = self.infer_pat(pat);
                 let init_ty = termination.update(self.infer_qubit_init(init));
-                self.solver.constrain(
-                    pat.span,
-                    ConstraintKind::Eq {
-                        expected: init_ty,
-                        actual: pat_ty,
-                    },
-                );
+                self.solver.eq(pat.span, init_ty, pat_ty);
                 match block {
                     None => Ty::UNIT,
                     Some(block) => termination.update(self.infer_block(block)),
@@ -447,13 +348,8 @@ impl<'a> Inferrer<'a> {
         let ty = match &init.kind {
             QubitInitKind::Array(length) => {
                 let length_ty = termination.update(self.infer_expr(length));
-                self.solver.constrain(
-                    length.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Int),
-                        actual: length_ty,
-                    },
-                );
+                self.solver
+                    .eq(length.span, Ty::Prim(TyPrim::Int), length_ty);
                 Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)))
             }
             QubitInitKind::Paren(inner) => termination.update(self.infer_qubit_init(inner)),
@@ -482,38 +378,27 @@ impl<'a> Inferrer<'a> {
         let operand_ty = termination.update(self.infer_expr(expr));
         let ty = match op {
             UnOp::Functor(Functor::Adj) => {
-                self.solver.constrain(
-                    expr.span,
-                    ConstraintKind::Class(Class::Adj(operand_ty.clone())),
-                );
+                self.solver.class(expr.span, Class::Adj(operand_ty.clone()));
                 operand_ty
             }
             UnOp::Functor(Functor::Ctl) => {
                 let with_ctls = self.solver.fresh();
-                self.solver.constrain(
+                self.solver.class(
                     expr.span,
-                    ConstraintKind::Class(Class::Ctl {
+                    Class::Ctl {
                         op: operand_ty,
                         with_ctls: with_ctls.clone(),
-                    }),
+                    },
                 );
                 with_ctls
             }
             UnOp::Neg | UnOp::NotB | UnOp::Pos => {
-                self.solver.constrain(
-                    expr.span,
-                    ConstraintKind::Class(Class::Num(operand_ty.clone())),
-                );
+                self.solver.class(expr.span, Class::Num(operand_ty.clone()));
                 operand_ty
             }
             UnOp::NotL => {
-                self.solver.constrain(
-                    expr.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Bool),
-                        actual: operand_ty.clone(),
-                    },
-                );
+                self.solver
+                    .eq(expr.span, Ty::Prim(TyPrim::Bool), operand_ty.clone());
                 operand_ty
             }
             UnOp::Unwrap => todo!("user-defined types not supported"),
@@ -534,56 +419,24 @@ impl<'a> Inferrer<'a> {
 
         let ty = match op {
             BinOp::AndL | BinOp::OrL => {
-                self.solver.constrain(
-                    span,
-                    ConstraintKind::Eq {
-                        expected: lhs_ty.clone(),
-                        actual: rhs_ty,
-                    },
-                );
-                self.solver.constrain(
-                    lhs.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Bool),
-                        actual: lhs_ty.clone(),
-                    },
-                );
+                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
+                self.solver
+                    .eq(lhs.span, Ty::Prim(TyPrim::Bool), lhs_ty.clone());
                 lhs_ty
             }
             BinOp::Eq | BinOp::Neq => {
-                self.solver.constrain(
-                    span,
-                    ConstraintKind::Eq {
-                        expected: lhs_ty.clone(),
-                        actual: rhs_ty,
-                    },
-                );
-                self.solver
-                    .constrain(lhs.span, ConstraintKind::Class(Class::Eq(lhs_ty)));
+                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
+                self.solver.class(lhs.span, Class::Eq(lhs_ty));
                 Ty::Prim(TyPrim::Bool)
             }
             BinOp::Add => {
-                self.solver.constrain(
-                    span,
-                    ConstraintKind::Eq {
-                        expected: lhs_ty.clone(),
-                        actual: rhs_ty,
-                    },
-                );
-                self.solver
-                    .constrain(lhs.span, ConstraintKind::Class(Class::Add(lhs_ty.clone())));
+                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
+                self.solver.class(lhs.span, Class::Add(lhs_ty.clone()));
                 lhs_ty
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
-                self.solver.constrain(
-                    span,
-                    ConstraintKind::Eq {
-                        expected: lhs_ty.clone(),
-                        actual: rhs_ty,
-                    },
-                );
-                self.solver
-                    .constrain(lhs.span, ConstraintKind::Class(Class::Num(lhs_ty)));
+                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
+                self.solver.class(lhs.span, Class::Num(lhs_ty));
                 Ty::Prim(TyPrim::Bool)
             }
             BinOp::AndB
@@ -593,39 +446,23 @@ impl<'a> Inferrer<'a> {
             | BinOp::OrB
             | BinOp::Sub
             | BinOp::XorB => {
-                self.solver.constrain(
-                    span,
-                    ConstraintKind::Eq {
-                        expected: lhs_ty.clone(),
-                        actual: rhs_ty,
-                    },
-                );
-                self.solver
-                    .constrain(lhs.span, ConstraintKind::Class(Class::Num(lhs_ty.clone())));
+                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
+                self.solver.class(lhs.span, Class::Num(lhs_ty.clone()));
                 lhs_ty
             }
             BinOp::Exp => {
-                self.solver.constrain(
+                self.solver.class(
                     span,
-                    ConstraintKind::Class(Class::Exp {
+                    Class::Exp {
                         base: lhs_ty.clone(),
                         power: rhs_ty,
-                    }),
+                    },
                 );
                 lhs_ty
             }
             BinOp::Shl | BinOp::Shr => {
-                self.solver.constrain(
-                    lhs.span,
-                    ConstraintKind::Class(Class::Integral(lhs_ty.clone())),
-                );
-                self.solver.constrain(
-                    rhs.span,
-                    ConstraintKind::Eq {
-                        expected: Ty::Prim(TyPrim::Int),
-                        actual: rhs_ty,
-                    },
-                );
+                self.solver.class(lhs.span, Class::Integral(lhs_ty.clone()));
+                self.solver.eq(rhs.span, Ty::Prim(TyPrim::Int), rhs_ty);
                 lhs_ty
             }
         };
@@ -648,13 +485,13 @@ impl<'a> Inferrer<'a> {
         let container_ty = termination.update(self.infer_expr(container));
         let index_ty = termination.update(self.infer_expr(index));
         let item_ty = termination.update(self.infer_expr(item));
-        self.solver.constrain(
+        self.solver.class(
             span,
-            ConstraintKind::Class(Class::HasIndex {
+            Class::HasIndex {
                 container: container_ty.clone(),
                 index: index_ty,
                 item: item_ty,
-            }),
+            },
         );
 
         termination.wrap(if termination.diverges() {

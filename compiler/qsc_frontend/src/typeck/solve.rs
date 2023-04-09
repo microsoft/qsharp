@@ -12,6 +12,15 @@ use std::{
 
 pub(super) type Substitutions = HashMap<Var, Ty>;
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Var(u32);
+
+impl Display for Var {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "?{}", self.0)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Ty {
     Array(Box<Ty>),
@@ -76,145 +85,6 @@ impl Display for Ty {
             Ty::Var(id) => Display::fmt(id, f),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Var(u32);
-
-impl Display for Var {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "?{}", self.0)
-    }
-}
-
-pub(super) struct Solver {
-    constraints: Vec<Constraint>,
-    next_var: u32,
-}
-
-impl Solver {
-    pub(super) fn new() -> Self {
-        Self {
-            constraints: Vec::new(),
-            next_var: 0,
-        }
-    }
-
-    pub(super) fn fresh(&mut self) -> Ty {
-        let var = self.next_var;
-        self.next_var += 1;
-        Ty::Var(Var(var))
-    }
-
-    pub(super) fn instantiate(&mut self, ty: &Ty) -> Ty {
-        fn go(fresh: &mut impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
-            match ty {
-                Ty::Array(item) => Ty::Array(Box::new(go(fresh, vars, item))),
-                Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
-                    *kind,
-                    Box::new(go(fresh, vars, input)),
-                    Box::new(go(fresh, vars, output)),
-                    functors.clone(),
-                ),
-                &Ty::DefId(id) => Ty::DefId(id),
-                Ty::Err => Ty::Err,
-                Ty::Param(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
-                &Ty::Prim(prim) => Ty::Prim(prim),
-                Ty::Tuple(items) => {
-                    Ty::Tuple(items.iter().map(|item| go(fresh, vars, item)).collect())
-                }
-                &Ty::Var(var) => Ty::Var(var),
-            }
-        }
-
-        go(&mut || self.fresh(), &mut HashMap::new(), ty)
-    }
-
-    pub(super) fn constrain(&mut self, span: Span, kind: ConstraintKind) {
-        self.constraints.push(Constraint { span, kind });
-    }
-
-    pub(super) fn solve(self) -> (Substitutions, Vec<Error>) {
-        let mut substs = HashMap::new();
-        let mut pending_classes: HashMap<_, Vec<_>> = HashMap::new();
-        let mut constraints = self.constraints;
-        let mut new_constraints = Vec::new();
-        let mut errors = Vec::new();
-
-        loop {
-            for constraint in constraints {
-                match constraint.kind {
-                    ConstraintKind::Class(class) => {
-                        let unsolved: Vec<_> = class
-                            .dependencies()
-                            .into_iter()
-                            .filter_map(|ty| try_var(&substitute(&substs, ty.clone())))
-                            .collect();
-
-                        if unsolved.is_empty() {
-                            match classify(constraint.span, class.map(|ty| substitute(&substs, ty)))
-                            {
-                                Ok(new) => new_constraints.extend(new),
-                                Err(error) => {
-                                    errors.push(Error(ErrorKind::MissingClass(error.0, error.1)));
-                                }
-                            }
-                        } else {
-                            for var in unsolved {
-                                pending_classes.entry(var).or_default().push(class.clone());
-                            }
-                        }
-                    }
-                    ConstraintKind::Eq { expected, actual } => {
-                        let ty1 = substitute(&substs, expected);
-                        let ty2 = substitute(&substs, actual);
-                        let new_substs = match unify(&ty1, &ty2) {
-                            Ok(new_substs) => new_substs,
-                            Err(UnifyError(ty1, ty2)) => {
-                                errors.push(Error(ErrorKind::TypeMismatch(
-                                    ty1,
-                                    ty2,
-                                    constraint.span,
-                                )));
-                                Vec::new()
-                            }
-                        };
-
-                        for (var, _) in &new_substs {
-                            if let Some(classes) = pending_classes.remove(var) {
-                                new_constraints.extend(classes.into_iter().map(|class| {
-                                    Constraint {
-                                        span: constraint.span,
-                                        kind: ConstraintKind::Class(class),
-                                    }
-                                }));
-                            }
-                        }
-
-                        substs.extend(new_substs);
-                    }
-                }
-            }
-
-            if new_constraints.is_empty() {
-                break;
-            }
-
-            constraints = mem::take(&mut new_constraints);
-        }
-
-        (substs, errors)
-    }
-}
-
-pub(super) struct Constraint {
-    pub(super) span: Span,
-    pub(super) kind: ConstraintKind,
-}
-
-pub(super) enum ConstraintKind {
-    Class(Class),
-    Eq { expected: Ty, actual: Ty },
 }
 
 #[derive(Clone, Debug)]
@@ -371,6 +241,142 @@ impl Display for Class {
             Class::Num(ty) => write!(f, "Num<{ty}"),
             Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
+    }
+}
+
+struct Constraint {
+    span: Span,
+    kind: ConstraintKind,
+}
+
+enum ConstraintKind {
+    Class(Class),
+    Eq { expected: Ty, actual: Ty },
+}
+
+pub(super) struct Solver {
+    constraints: Vec<Constraint>,
+    next_var: u32,
+}
+
+impl Solver {
+    pub(super) fn new() -> Self {
+        Self {
+            constraints: Vec::new(),
+            next_var: 0,
+        }
+    }
+
+    pub(super) fn eq(&mut self, span: Span, expected: Ty, actual: Ty) {
+        let kind = ConstraintKind::Eq { expected, actual };
+        self.constraints.push(Constraint { span, kind });
+    }
+
+    pub(super) fn class(&mut self, span: Span, class: Class) {
+        let kind = ConstraintKind::Class(class);
+        self.constraints.push(Constraint { span, kind });
+    }
+
+    pub(super) fn fresh(&mut self) -> Ty {
+        let var = self.next_var;
+        self.next_var += 1;
+        Ty::Var(Var(var))
+    }
+
+    pub(super) fn instantiate(&mut self, ty: &Ty) -> Ty {
+        fn go(fresh: &mut impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
+            match ty {
+                Ty::Array(item) => Ty::Array(Box::new(go(fresh, vars, item))),
+                Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
+                    *kind,
+                    Box::new(go(fresh, vars, input)),
+                    Box::new(go(fresh, vars, output)),
+                    functors.clone(),
+                ),
+                &Ty::DefId(id) => Ty::DefId(id),
+                Ty::Err => Ty::Err,
+                Ty::Param(name) => vars.entry(name.clone()).or_insert_with(fresh).clone(),
+                &Ty::Prim(prim) => Ty::Prim(prim),
+                Ty::Tuple(items) => {
+                    Ty::Tuple(items.iter().map(|item| go(fresh, vars, item)).collect())
+                }
+                &Ty::Var(var) => Ty::Var(var),
+            }
+        }
+
+        go(&mut || self.fresh(), &mut HashMap::new(), ty)
+    }
+
+    pub(super) fn solve(self) -> (Substitutions, Vec<Error>) {
+        let mut substs = HashMap::new();
+        let mut pending_classes: HashMap<_, Vec<_>> = HashMap::new();
+        let mut constraints = self.constraints;
+        let mut new_constraints = Vec::new();
+        let mut errors = Vec::new();
+
+        loop {
+            for constraint in constraints {
+                match constraint.kind {
+                    ConstraintKind::Class(class) => {
+                        let unsolved: Vec<_> = class
+                            .dependencies()
+                            .into_iter()
+                            .filter_map(|ty| try_var(&substitute(&substs, ty.clone())))
+                            .collect();
+
+                        if unsolved.is_empty() {
+                            match classify(constraint.span, class.map(|ty| substitute(&substs, ty)))
+                            {
+                                Ok(new) => new_constraints.extend(new),
+                                Err(error) => {
+                                    errors.push(Error(ErrorKind::MissingClass(error.0, error.1)));
+                                }
+                            }
+                        } else {
+                            for var in unsolved {
+                                pending_classes.entry(var).or_default().push(class.clone());
+                            }
+                        }
+                    }
+                    ConstraintKind::Eq { expected, actual } => {
+                        let ty1 = substitute(&substs, expected);
+                        let ty2 = substitute(&substs, actual);
+                        let new_substs = match unify(&ty1, &ty2) {
+                            Ok(new_substs) => new_substs,
+                            Err(UnifyError(ty1, ty2)) => {
+                                errors.push(Error(ErrorKind::TypeMismatch(
+                                    ty1,
+                                    ty2,
+                                    constraint.span,
+                                )));
+                                Vec::new()
+                            }
+                        };
+
+                        for (var, _) in &new_substs {
+                            if let Some(classes) = pending_classes.remove(var) {
+                                new_constraints.extend(classes.into_iter().map(|class| {
+                                    Constraint {
+                                        span: constraint.span,
+                                        kind: ConstraintKind::Class(class),
+                                    }
+                                }));
+                            }
+                        }
+
+                        substs.extend(new_substs);
+                    }
+                }
+            }
+
+            if new_constraints.is_empty() {
+                break;
+            }
+
+            constraints = mem::take(&mut new_constraints);
+        }
+
+        (substs, errors)
     }
 }
 
