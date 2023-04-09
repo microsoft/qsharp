@@ -9,6 +9,7 @@ use indenter::{indented, Format, Indented};
 use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::{
+    collections::HashSet,
     fmt::{self, Display, Formatter, Write},
     ops::{Bound, Index, RangeBounds},
 };
@@ -509,6 +510,26 @@ pub struct FunctorExpr {
     pub kind: FunctorExprKind,
 }
 
+impl FunctorExpr {
+    /// Evaluates the functor expression.
+    #[must_use]
+    pub fn to_set(&self) -> HashSet<Functor> {
+        match &self.kind {
+            FunctorExprKind::BinOp(op, lhs, rhs) => {
+                let mut functors = lhs.to_set();
+                let rhs_functors = rhs.to_set();
+                match op {
+                    SetOp::Union => functors.extend(rhs_functors),
+                    SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
+                }
+                functors
+            }
+            &FunctorExprKind::Lit(functor) => [functor].into(),
+            FunctorExprKind::Paren(inner) => inner.to_set(),
+        }
+    }
+}
+
 impl Display for FunctorExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Functor Expr {} {}: {}", self.id, self.span, self.kind)
@@ -525,6 +546,7 @@ pub enum FunctorExprKind {
     /// A parenthesized group.
     Paren(Box<FunctorExpr>),
 }
+
 impl Display for FunctorExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

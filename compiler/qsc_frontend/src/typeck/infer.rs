@@ -7,8 +7,8 @@ use super::{
 };
 use crate::resolve::{DefId, PackageSrc, Resolutions};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, Lit, Pat, PatKind, QubitInit, QubitInitKind, Span,
-    Spec, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
+    self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, Pat, PatKind, QubitInit,
+    QubitInitKind, Span, Spec, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -671,7 +671,9 @@ impl<'a> Inferrer<'a> {
                 *kind,
                 Box::new(self.convert_ty(input)),
                 Box::new(self.convert_ty(output)),
-                super::functor_set(functors.as_ref()),
+                functors
+                    .as_ref()
+                    .map_or(HashSet::new(), FunctorExpr::to_set),
             ),
             TyKind::Hole => self.solver.fresh(),
             TyKind::Paren(inner) => self.convert_ty(inner),

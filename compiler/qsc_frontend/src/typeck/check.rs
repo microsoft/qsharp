@@ -12,8 +12,8 @@ use crate::{
 };
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, Functor, Package, Pat, PatKind, Span, Spec, SpecBody,
-        TyKind,
+        self, CallableBody, CallableDecl, Functor, FunctorExpr, Package, Pat, PatKind, Span, Spec,
+        SpecBody, TyKind,
     },
     visit::Visitor,
 };
@@ -143,7 +143,10 @@ fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> (Ty, Vec<Missi
     let (output, output_errors) = try_convert_ty(resolutions, &decl.output);
     errors.extend(output_errors);
 
-    let sig_functors = super::functor_set(decl.functors.as_ref());
+    let sig_functors = decl
+        .functors
+        .as_ref()
+        .map_or(HashSet::new(), FunctorExpr::to_set);
     let body_functors = match &decl.body {
         CallableBody::Block(_) => HashSet::new(),
         CallableBody::Specs(specs) => specs
@@ -172,12 +175,10 @@ fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<MissingTy
             let (input, mut errors) = try_convert_ty(resolutions, input);
             let (output, output_errors) = try_convert_ty(resolutions, output);
             errors.extend(output_errors);
-            let ty = Ty::Arrow(
-                *kind,
-                Box::new(input),
-                Box::new(output),
-                super::functor_set(functors.as_ref()),
-            );
+            let functors = functors
+                .as_ref()
+                .map_or(HashSet::new(), FunctorExpr::to_set);
+            let ty = Ty::Arrow(*kind, Box::new(input), Box::new(output), functors);
             (ty, errors)
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
