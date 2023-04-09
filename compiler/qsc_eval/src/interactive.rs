@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod tests;
+
 use crate::output::Receiver;
 use crate::{eval_stmt, Env};
 use qsc_ast::ast::CallableDecl;
@@ -112,7 +114,6 @@ impl Interpreter {
     /// # Errors
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
-    /// Use `Interpreter::test_input` to test compilation.
     pub fn new(
         nostdlib: bool,
         sources: impl IntoIterator<Item = impl AsRef<str>>,
@@ -205,82 +206,5 @@ impl Interpreter {
             }
         });
         results
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use indoc::indoc;
-
-    #[test]
-    fn members_from_namespaced_sources_are_in_context() {
-        let source = indoc! { r#"
-            namespace Test {
-                function Hello() : String {
-                    "hello there..."
-                }
-
-                operation Main() : String {
-                    Hello()
-                }
-            }"#};
-
-        let mut interpreter =
-            Interpreter::new(false, [source]).expect("Failed to compile base environment.");
-        let result = &interpreter.line("Test.Hello()")[0];
-        assert_eq!("hello there...", result.value);
-        let result = &interpreter.line("Test.Main()")[0];
-        assert_eq!("hello there...", result.value);
-    }
-
-    #[test]
-    fn multiple_namespaces_are_loaded_from_sources_into_eval_context() {
-        let source = indoc! { r#"
-            namespace Test {
-                function Hello() : String {
-                    "hello there..."
-                }
-            }
-            namespace Test2 {
-                open Test;
-                operation Main() : String {
-                    Hello()
-                }
-            }"#};
-
-        let mut interpreter =
-            Interpreter::new(false, [source]).expect("Failed to compile base environment.");
-        let result = &interpreter.line("Test.Hello()")[0];
-        assert_eq!("hello there...", result.value);
-        let result = &interpreter.line("Test2.Main()")[0];
-        assert_eq!("hello there...", result.value);
-    }
-
-    #[test]
-    fn nostdlib_is_omitted_correctly() {
-        let sources: [&str; 0] = [];
-        let mut interpreter =
-            Interpreter::new(true, sources).expect("Failed to compile base environment.");
-        let result = &interpreter.line("Message(\"_\")")[0];
-
-        assert_eq!("", result.value);
-        assert_eq!("", result.output);
-        assert_eq!(
-            "`Message` not found in this scope",
-            result.errors[0].to_string()
-        );
-    }
-
-    #[test]
-    fn nostdlib_is_included_correctly() {
-        let sources: [&str; 0] = [];
-        let mut interpreter =
-            Interpreter::new(false, sources).expect("Failed to compile base environment.");
-        let result = &interpreter.line("Message(\"_\")")[0];
-
-        assert_eq!("()", result.value);
-        assert_eq!("_", result.output);
-        assert_eq!(0, result.errors.len());
     }
 }
