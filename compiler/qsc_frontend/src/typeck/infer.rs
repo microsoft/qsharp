@@ -15,15 +15,21 @@ use std::collections::{HashMap, HashSet};
 struct Inferrer<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<DefId, Ty>,
+    return_ty: Option<Ty>,
     tys: Tys,
     solver: Solver,
 }
 
 impl<'a> Inferrer<'a> {
-    fn new(resolutions: &'a Resolutions, globals: &'a HashMap<DefId, Ty>) -> Self {
+    fn new(
+        resolutions: &'a Resolutions,
+        globals: &'a HashMap<DefId, Ty>,
+        return_ty: Option<Ty>,
+    ) -> Self {
         Self {
             resolutions,
             globals,
+            return_ty,
             tys: Tys::new(),
             solver: Solver::new(),
         }
@@ -191,7 +197,10 @@ impl<'a> Inferrer<'a> {
                 Ty::UNIT
             }
             ExprKind::Return(expr) => {
-                self.infer_expr(expr);
+                let ty = self.infer_expr(expr).unwrap();
+                if let Some(return_ty) = &self.return_ty {
+                    self.solver.eq(expr.span, return_ty.clone(), ty);
+                }
                 termination = Termination::Diverges;
                 Ty::Err
             }
@@ -563,7 +572,8 @@ pub(super) struct SpecImpl<'a> {
     pub(super) kind: Spec,
     pub(super) input: Option<&'a Pat>,
     pub(super) callable_input: &'a Pat,
-    pub(super) output: &'a ast::Ty,
+    pub(super) output: Ty,
+    pub(super) output_span: Span,
     pub(super) functors: &'a HashSet<Functor>,
     pub(super) block: &'a Block,
 }
@@ -573,7 +583,7 @@ pub(super) fn entry_expr(
     globals: &HashMap<DefId, Ty>,
     entry: &Expr,
 ) -> (Tys, Vec<Error>) {
-    let mut inferrer = Inferrer::new(resolutions, globals);
+    let mut inferrer = Inferrer::new(resolutions, globals, None);
     inferrer.infer_expr(entry);
     inferrer.solve()
 }
@@ -583,8 +593,8 @@ pub(super) fn spec(
     globals: &HashMap<DefId, Ty>,
     spec: SpecImpl,
 ) -> (Tys, Vec<Error>) {
-    let mut inferrer = Inferrer::new(resolutions, globals);
-    let callable_input = inferrer.infer_pat(&spec.callable_input);
+    let mut inferrer = Inferrer::new(resolutions, globals, Some(spec.output.clone()));
+    let callable_input = inferrer.infer_pat(spec.callable_input);
     if let Some(input) = spec.input {
         let expected = match spec.kind {
             Spec::Body | Spec::Adj => callable_input,
@@ -597,14 +607,13 @@ pub(super) fn spec(
         inferrer.solver.eq(input.span, expected, actual);
     }
 
-    let output = inferrer.convert_ty(&spec.output);
     if !spec.functors.is_empty() {
         inferrer
             .solver
-            .eq(spec.output.span, Ty::UNIT, output.clone());
+            .eq(spec.output_span, Ty::UNIT, spec.output.clone());
     }
 
-    let block = inferrer.infer_block(&spec.block).unwrap();
-    inferrer.solver.eq(spec.block.span, output, block);
+    let block = inferrer.infer_block(spec.block).unwrap();
+    inferrer.solver.eq(spec.block.span, spec.output, block);
     inferrer.solve()
 }

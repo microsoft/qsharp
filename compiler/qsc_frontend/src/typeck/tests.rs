@@ -1152,3 +1152,130 @@ fn adj_ctl_requires_unit_return() {
         "##]],
     );
 }
+
+#[test]
+fn fail_diverges() {
+    check(
+        "",
+        indoc! {r#"
+            if true {
+                fail "true"
+            } else {
+                4
+            }
+        "#},
+        &expect![[r##"
+            #1 0-42 "if true {\n    fail \"true\"\n} else {\n    4\n}" : Int
+            #2 3-7 "true" : Bool
+            #3 8-27 "{\n    fail \"true\"\n}" : Int
+            #4 14-25 "fail \"true\"" : ?1
+            #5 14-25 "fail \"true\"" : ?0
+            #6 19-25 "\"true\"" : String
+            #7 28-42 "else {\n    4\n}" : Int
+            #8 33-42 "{\n    4\n}" : Int
+            #9 39-40 "4" : Int
+            #10 39-40 "4" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn return_diverges() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Bool) : Int {
+                    let x = if x {
+                        return 1
+                    } else {
+                        true
+                    };
+                    2
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-40 "(x : Bool)" : Bool
+            #7 31-39 "x : Bool" : Bool
+            #8 31-32 "x" : Bool
+            #11 47-153 "{\n        let x = if x {\n            return 1\n        } else {\n            true\n        };\n        2\n    }" : Int
+            #12 57-137 "let x = if x {\n            return 1\n        } else {\n            true\n        };" : ()
+            #13 61-62 "x" : Bool
+            #14 61-62 "x" : Bool
+            #15 65-136 "if x {\n            return 1\n        } else {\n            true\n        }" : Bool
+            #16 68-69 "x" : Bool
+            #19 70-102 "{\n            return 1\n        }" : Bool
+            #20 84-92 "return 1" : ?2
+            #21 84-92 "return 1" : ?1
+            #22 91-92 "1" : Int
+            #23 103-136 "else {\n            true\n        }" : Bool
+            #24 108-136 "{\n            true\n        }" : Bool
+            #25 122-126 "true" : Bool
+            #26 122-126 "true" : Bool
+            #27 146-147 "2" : Int
+            #28 146-147 "2" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn return_diverges_stmt_after() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Bool) : Int {
+                    let x = {
+                        return 1;
+                        true
+                    };
+                    x
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-40 "(x : Bool)" : Bool
+            #7 31-39 "x : Bool" : Bool
+            #8 31-32 "x" : Bool
+            #11 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
+            #12 57-116 "let x = {\n            return 1;\n            true\n        };" : ?5
+            #13 61-62 "x" : ?0
+            #14 61-62 "x" : ?0
+            #15 65-115 "{\n            return 1;\n            true\n        }" : ?0
+            #16 65-115 "{\n            return 1;\n            true\n        }" : ?3
+            #17 79-88 "return 1;" : ?2
+            #18 79-87 "return 1" : ?1
+            #19 86-87 "1" : Int
+            #20 101-105 "true" : Bool
+            #21 101-105 "true" : Bool
+            #22 125-126 "x" : ?0
+            #23 125-126 "x" : ?0
+        "##]],
+    );
+}
+
+// TODO
+#[test]
+fn return_mismatch() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Bool) : Int {
+                    return true;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-40 "(x : Bool)" : Bool
+            #7 31-39 "x : Bool" : Bool
+            #8 31-32 "x" : Bool
+            #11 47-75 "{\n        return true;\n    }" : Int
+            #12 57-69 "return true;" : ?1
+            #13 57-68 "return true" : ?0
+            #14 64-68 "true" : Bool
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
+        "##]],
+    );
+}

@@ -51,7 +51,7 @@ impl Visitor<'_> for Checker<'_> {
             node: decl.name.id,
         };
         let ty = self.globals.get(&id).expect("callable should have type");
-        let Ty::Arrow(_, _, _, functors) = ty else { panic!("callable should have arrow type") };
+        let Ty::Arrow(_, _, output, functors) = ty else { panic!("callable should have arrow type") };
 
         match &decl.body {
             CallableBody::Block(block) => {
@@ -59,7 +59,8 @@ impl Visitor<'_> for Checker<'_> {
                     kind: Spec::Body,
                     input: None,
                     callable_input: &decl.input,
-                    output: &decl.output,
+                    output: (**output).clone(),
+                    output_span: decl.output.span,
                     functors,
                     block,
                 };
@@ -76,7 +77,8 @@ impl Visitor<'_> for Checker<'_> {
                                 kind: spec.spec,
                                 input: Some(input),
                                 callable_input: &decl.input,
-                                output: &decl.output,
+                                output: (**output).clone(),
+                                output_span: decl.output.span,
                                 functors,
                                 block,
                             };
