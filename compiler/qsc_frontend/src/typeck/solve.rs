@@ -46,15 +46,18 @@ impl Display for Ty {
                     CallableKind::Function => "->",
                     CallableKind::Operation => "=>",
                 };
-                write!(f, "({input}) {arrow} ({output})")?;
-                if functors.contains(&Functor::Adj) && functors.contains(&Functor::Ctl) {
-                    f.write_str(" is Adj + Ctl")?;
+
+                let is = if functors.contains(&Functor::Adj) && functors.contains(&Functor::Ctl) {
+                    " is Adj + Ctl"
                 } else if functors.contains(&Functor::Adj) {
-                    f.write_str(" is Adj")?;
+                    " is Adj"
                 } else if functors.contains(&Functor::Ctl) {
-                    f.write_str(" is Ctl")?;
-                }
-                Ok(())
+                    " is Ctl"
+                } else {
+                    ""
+                };
+
+                write!(f, "({input}) {arrow} ({output}){is}")
             }
             Ty::DefId(DefId {
                 package: PackageSrc::Local,
@@ -64,7 +67,7 @@ impl Display for Ty {
                 package: PackageSrc::Extern(package),
                 node,
             }) => write!(f, "Def<{package}, {node}>"),
-            Ty::Err => f.write_str("Err"),
+            Ty::Err => f.write_str("?"),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => prim.fmt(f),
             Ty::Tuple(items) => {
@@ -80,6 +83,7 @@ impl Display for Ty {
                         }
                     }
                 }
+
                 f.write_str(")")
             }
             Ty::Var(id) => Display::fmt(id, f),
@@ -244,14 +248,13 @@ impl Display for Class {
     }
 }
 
-struct Constraint {
-    span: Span,
-    kind: ConstraintKind,
-}
-
-enum ConstraintKind {
-    Class(Class),
-    Eq { expected: Ty, actual: Ty },
+enum Constraint {
+    Class(Class, Span),
+    Eq {
+        expected: Ty,
+        actual: Ty,
+        span: Span,
+    },
 }
 
 pub(super) struct Solver {
@@ -268,13 +271,15 @@ impl Solver {
     }
 
     pub(super) fn eq(&mut self, span: Span, expected: Ty, actual: Ty) {
-        let kind = ConstraintKind::Eq { expected, actual };
-        self.constraints.push(Constraint { span, kind });
+        self.constraints.push(Constraint::Eq {
+            expected,
+            actual,
+            span,
+        });
     }
 
     pub(super) fn class(&mut self, span: Span, class: Class) {
-        let kind = ConstraintKind::Class(class);
-        self.constraints.push(Constraint { span, kind });
+        self.constraints.push(Constraint::Class(class, span));
     }
 
     pub(super) fn fresh(&mut self) -> Ty {
@@ -316,8 +321,8 @@ impl Solver {
 
         loop {
             for constraint in constraints {
-                match constraint.kind {
-                    ConstraintKind::Class(class) => {
+                match constraint {
+                    Constraint::Class(class, span) => {
                         let unsolved: Vec<_> = class
                             .dependencies()
                             .into_iter()
@@ -325,8 +330,7 @@ impl Solver {
                             .collect();
 
                         if unsolved.is_empty() {
-                            match classify(constraint.span, class.map(|ty| substitute(&substs, ty)))
-                            {
+                            match classify(span, class.map(|ty| substitute(&substs, ty))) {
                                 Ok(new) => new_constraints.extend(new),
                                 Err(error) => {
                                     errors.push(Error(ErrorKind::MissingClass(error.0, error.1)));
@@ -338,29 +342,28 @@ impl Solver {
                             }
                         }
                     }
-                    ConstraintKind::Eq { expected, actual } => {
+                    Constraint::Eq {
+                        expected,
+                        actual,
+                        span,
+                    } => {
                         let ty1 = substitute(&substs, expected);
                         let ty2 = substitute(&substs, actual);
                         let new_substs = match unify(&ty1, &ty2) {
                             Ok(new_substs) => new_substs,
                             Err(UnifyError(ty1, ty2)) => {
-                                errors.push(Error(ErrorKind::TypeMismatch(
-                                    ty1,
-                                    ty2,
-                                    constraint.span,
-                                )));
+                                errors.push(Error(ErrorKind::TypeMismatch(ty1, ty2, span)));
                                 Vec::new()
                             }
                         };
 
                         for (var, _) in &new_substs {
                             if let Some(classes) = pending_classes.remove(var) {
-                                new_constraints.extend(classes.into_iter().map(|class| {
-                                    Constraint {
-                                        span: constraint.span,
-                                        kind: ConstraintKind::Class(class),
-                                    }
-                                }));
+                                new_constraints.extend(
+                                    classes
+                                        .into_iter()
+                                        .map(|class| Constraint::Class(class, span)),
+                                );
                             }
                         }
 
@@ -475,19 +478,15 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
             input,
             output,
         } => Ok(vec![
-            Constraint {
+            Constraint::Eq {
+                expected: *callee_input,
+                actual: input,
                 span,
-                kind: ConstraintKind::Eq {
-                    expected: *callee_input,
-                    actual: input,
-                },
             },
-            Constraint {
+            Constraint::Eq {
+                expected: *callee_output,
+                actual: output,
                 span,
-                kind: ConstraintKind::Eq {
-                    expected: *callee_output,
-                    actual: output,
-                },
             },
         ]),
         Class::Ctl {
@@ -496,44 +495,32 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
         } if functors.contains(&Functor::Ctl) => {
             let qubit_array = Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
-            Ok(vec![Constraint {
+            Ok(vec![Constraint::Eq {
+                expected: Ty::Arrow(kind, ctl_input, output, functors),
+                actual: with_ctls,
                 span,
-                kind: ConstraintKind::Eq {
-                    expected: Ty::Arrow(kind, ctl_input, output, functors),
-                    actual: with_ctls,
-                },
             }])
         }
-        Class::Eq(Ty::Array(item)) => Ok(vec![Constraint {
-            span,
-            kind: ConstraintKind::Class(Class::Eq(*item)),
-        }]),
+        Class::Eq(Ty::Array(item)) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
         Class::Eq(Ty::Tuple(items)) => Ok(items
             .into_iter()
-            .map(|item| Constraint {
-                span,
-                kind: ConstraintKind::Class(Class::Eq(item)),
-            })
+            .map(|item| Constraint::Class(Class::Eq(item), span))
             .collect()),
         Class::Exp {
             base: Ty::Prim(TyPrim::BigInt),
             power,
-        } => Ok(vec![Constraint {
+        } => Ok(vec![Constraint::Eq {
+            expected: Ty::Prim(TyPrim::Int),
+            actual: power,
             span,
-            kind: ConstraintKind::Eq {
-                expected: Ty::Prim(TyPrim::Int),
-                actual: power,
-            },
         }]),
         Class::Exp {
             base: base @ Ty::Prim(TyPrim::Double | TyPrim::Int),
             power,
-        } => Ok(vec![Constraint {
+        } => Ok(vec![Constraint::Eq {
+            expected: base,
+            actual: power,
             span,
-            kind: ConstraintKind::Eq {
-                expected: base,
-                actual: power,
-            },
         }]),
         Class::HasFunctorsIfOp { callee, functors } => match callee {
             Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
@@ -552,19 +539,15 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
             index,
             item,
         } => match index {
-            Ty::Prim(TyPrim::Int) => Ok(vec![Constraint {
+            Ty::Prim(TyPrim::Int) => Ok(vec![Constraint::Eq {
+                expected: *container_item,
+                actual: item,
                 span,
-                kind: ConstraintKind::Eq {
-                    expected: *container_item,
-                    actual: item,
-                },
             }]),
-            Ty::Prim(TyPrim::Range) => Ok(vec![Constraint {
+            Ty::Prim(TyPrim::Range) => Ok(vec![Constraint::Eq {
+                expected: Ty::Array(container_item),
+                actual: item,
                 span,
-                kind: ConstraintKind::Eq {
-                    expected: Ty::Array(container_item),
-                    actual: item,
-                },
             }]),
             _ => Err(ClassError(
                 Class::HasIndex {
@@ -578,22 +561,18 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
         Class::Iterable {
             container: Ty::Prim(TyPrim::Range),
             item,
-        } => Ok(vec![Constraint {
+        } => Ok(vec![Constraint::Eq {
+            expected: Ty::Prim(TyPrim::Int),
+            actual: item,
             span,
-            kind: ConstraintKind::Eq {
-                expected: Ty::Prim(TyPrim::Int),
-                actual: item,
-            },
         }]),
         Class::Iterable {
             container: Ty::Array(container_item),
             item,
-        } => Ok(vec![Constraint {
+        } => Ok(vec![Constraint::Eq {
+            expected: *container_item,
+            actual: item,
             span,
-            kind: ConstraintKind::Eq {
-                expected: *container_item,
-                actual: item,
-            },
         }]),
         class if class.dependencies().iter().any(|ty| matches!(ty, Ty::Err)) => Ok(Vec::new()),
         class => Err(ClassError(class, span)),
