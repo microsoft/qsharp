@@ -147,7 +147,7 @@ fn dump_machine() {
 fn dump_machine_qubit_count() {
     check_intrinsic_output(
         "",
-        indoc!{"{
+        indoc! {"{
             use qs = Qubit[4];
             Microsoft.Quantum.Diagnostics.DumpMachine();
         }"},
@@ -162,7 +162,7 @@ fn dump_machine_qubit_count() {
 fn dump_machine_endianness() {
     check_intrinsic_output(
         "",
-        indoc!{"{
+        indoc! {"{
             use qs = Qubit[4];
             X(qs[1]);
             Microsoft.Quantum.Diagnostics.DumpMachine();
