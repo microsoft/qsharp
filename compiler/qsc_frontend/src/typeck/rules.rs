@@ -208,6 +208,7 @@ impl<'a> Context<'a> {
             ExprKind::BinOp(op, lhs, rhs) => term.then(self.infer_binop(expr.span, *op, lhs, rhs)),
             ExprKind::Block(block) => term.then(self.infer_block(block)),
             ExprKind::Call(callee, input) => {
+                // TODO: Require that the callee has functors needed for generated specializations.
                 let callee_ty = term.then(self.infer_expr(callee));
                 let input_ty = term.then(self.infer_expr(input));
                 let output_ty = self.inferrer.fresh();

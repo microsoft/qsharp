@@ -238,7 +238,7 @@ impl Class {
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
             Class::HasField { record, name, item } => {
-                // TODO
+                // TODO: If the record type is a user-defined type, look up its fields.
                 Err(ClassError(Class::HasField { record, name, item }, span))
             }
             Class::HasFunctorsIfOp { callee, functors } => {
@@ -259,7 +259,8 @@ impl Class {
                 missing,
                 with_app,
             } => {
-                // TODO
+                // TODO: Constrain `with_app` to be the callee type minus the applied arguments in
+                // `missing`.
                 Err(ClassError(
                     Class::HasPartialApp {
                         callee,
@@ -279,7 +280,7 @@ impl Class {
                 .then_some(Vec::new())
                 .ok_or(ClassError(Class::Num(ty), span)),
             Class::Unwrap { wrapper, base } => {
-                // TODO
+                // TODO: If the wrapper type is a user-defined type, look up its underlying type.
                 Err(ClassError(Class::Unwrap { wrapper, base }, span))
             }
         }
