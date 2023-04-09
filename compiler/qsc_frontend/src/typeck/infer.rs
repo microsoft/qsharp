@@ -12,19 +12,19 @@ use qsc_ast::ast::{
 };
 use std::collections::{HashMap, HashSet};
 
-struct Inferrer<'a> {
+struct Context<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<DefId, Ty>,
-    return_ty: Option<Ty>,
+    return_ty: Option<&'a Ty>,
     tys: Tys,
     solver: Solver,
 }
 
-impl<'a> Inferrer<'a> {
+impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions,
         globals: &'a HashMap<DefId, Ty>,
-        return_ty: Option<Ty>,
+        return_ty: Option<&'a Ty>,
     ) -> Self {
         Self {
             resolutions,
@@ -199,7 +199,7 @@ impl<'a> Inferrer<'a> {
             ExprKind::Return(expr) => {
                 let ty = self.infer_expr(expr).unwrap();
                 if let Some(return_ty) = &self.return_ty {
-                    self.solver.eq(expr.span, return_ty.clone(), ty);
+                    self.solver.eq(expr.span, (*return_ty).clone(), ty);
                 }
                 termination = Termination::Diverges;
                 Ty::Err
@@ -572,7 +572,7 @@ pub(super) struct SpecImpl<'a> {
     pub(super) kind: Spec,
     pub(super) input: Option<&'a Pat>,
     pub(super) callable_input: &'a Pat,
-    pub(super) output: Ty,
+    pub(super) output: &'a Ty,
     pub(super) output_span: Span,
     pub(super) functors: &'a HashSet<Functor>,
     pub(super) block: &'a Block,
@@ -583,9 +583,9 @@ pub(super) fn entry_expr(
     globals: &HashMap<DefId, Ty>,
     entry: &Expr,
 ) -> (Tys, Vec<Error>) {
-    let mut inferrer = Inferrer::new(resolutions, globals, None);
-    inferrer.infer_expr(entry);
-    inferrer.solve()
+    let mut context = Context::new(resolutions, globals, None);
+    context.infer_expr(entry);
+    context.solve()
 }
 
 pub(super) fn spec(
@@ -593,8 +593,8 @@ pub(super) fn spec(
     globals: &HashMap<DefId, Ty>,
     spec: SpecImpl,
 ) -> (Tys, Vec<Error>) {
-    let mut inferrer = Inferrer::new(resolutions, globals, Some(spec.output.clone()));
-    let callable_input = inferrer.infer_pat(spec.callable_input);
+    let mut context = Context::new(resolutions, globals, Some(spec.output));
+    let callable_input = context.infer_pat(spec.callable_input);
     if let Some(input) = spec.input {
         let expected = match spec.kind {
             Spec::Body | Spec::Adj => callable_input,
@@ -603,17 +603,19 @@ pub(super) fn spec(
                 callable_input,
             ]),
         };
-        let actual = inferrer.infer_pat(input);
-        inferrer.solver.eq(input.span, expected, actual);
+        let actual = context.infer_pat(input);
+        context.solver.eq(input.span, expected, actual);
     }
 
     if !spec.functors.is_empty() {
-        inferrer
+        context
             .solver
             .eq(spec.output_span, Ty::UNIT, spec.output.clone());
     }
 
-    let block = inferrer.infer_block(spec.block).unwrap();
-    inferrer.solver.eq(spec.block.span, spec.output, block);
-    inferrer.solve()
+    let block = context.infer_block(spec.block).unwrap();
+    context
+        .solver
+        .eq(spec.block.span, spec.output.clone(), block);
+    context.solve()
 }
