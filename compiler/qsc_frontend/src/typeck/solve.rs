@@ -535,7 +535,6 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
                 actual: power,
             },
         }]),
-        Class::HasField { .. } => todo!("user-defined types not supported"),
         Class::HasFunctorsIfOp { callee, functors } => match callee {
             Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
                 if callee_functors.is_subset(&functors) =>
@@ -576,7 +575,6 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
                 span,
             )),
         },
-        Class::HasPartialApp { .. } => todo!("partial application not supported"),
         Class::Iterable {
             container: Ty::Prim(TyPrim::Range),
             item,
@@ -597,7 +595,6 @@ fn classify(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
                 actual: item,
             },
         }]),
-        Class::Unwrap { .. } => todo!("user-defined types not supported"),
         class if class.dependencies().iter().any(|ty| matches!(ty, Ty::Err)) => Ok(Vec::new()),
         class => Err(ClassError(class, span)),
     }

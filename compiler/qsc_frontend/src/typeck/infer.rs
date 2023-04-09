@@ -409,7 +409,17 @@ impl<'a> Context<'a> {
                     .eq(expr.span, Ty::Prim(TyPrim::Bool), operand_ty.clone());
                 operand_ty
             }
-            UnOp::Unwrap => todo!("user-defined types not supported"),
+            UnOp::Unwrap => {
+                let base = self.solver.fresh();
+                self.solver.class(
+                    expr.span,
+                    Class::Unwrap {
+                        wrapper: operand_ty,
+                        base: base.clone(),
+                    },
+                );
+                base
+            }
         };
 
         term.with(self.diverge_or(term, ty))
