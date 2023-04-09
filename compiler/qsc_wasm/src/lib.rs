@@ -260,7 +260,11 @@ impl<F> Receiver for CallbackReceiver<F>
 where
     F: Fn(&str),
 {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), output::Error> {
+    fn state(
+        &mut self,
+        state: Vec<(BigUint, Complex64)>,
+        qubit_count: usize,
+    ) -> Result<(), output::Error> {
         let mut dump_json = String::new();
         write!(dump_json, r#"{{"type": "DumpMachine","state": {{"#)
             .expect("writing to string should succeed");
@@ -270,8 +274,8 @@ where
         for state in most {
             write!(
                 dump_json,
-                r#""|{}⟩": [{}, {}],"#,
-                state.0.to_str_radix(2),
+                r#""|{:0<qubit_count$}⟩": [{}, {}],"#,
+                state.0.to_str_radix(2).chars().rev().collect::<String>(),
                 state.1.re,
                 state.1.im
             )
@@ -279,7 +283,7 @@ where
         }
         write!(
             dump_json,
-            r#""|{}⟩": [{}, {}]}}}}"#,
+            r#""|{:0<qubit_count$}⟩": [{}, {}]}}}}"#,
             last.0.to_str_radix(2),
             last.1.re,
             last.1.im
