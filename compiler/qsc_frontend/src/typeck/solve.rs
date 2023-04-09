@@ -221,6 +221,70 @@ impl Class {
             },
         }
     }
+
+    fn check(self, span: Span) -> Result<Vec<Constraint>, ClassError> {
+        match self {
+            Class::Add(ty) => check_add(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Add(ty), span)),
+            Class::Adj(ty) => check_adj(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Adj(ty), span)),
+            Class::Call {
+                callee,
+                input,
+                output,
+            } => check_call(callee, input, output, span),
+            Class::Ctl { op, with_ctls } => check_ctl(op, with_ctls, span).map(|c| vec![c]),
+            Class::Eq(ty) => check_eq(ty, span),
+            Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
+            Class::HasField { record, name, item } => {
+                // TODO
+                Err(ClassError(Class::HasField { record, name, item }, span))
+            }
+            Class::HasFunctorsIfOp { callee, functors } => {
+                check_has_functors_if_op(&callee, &functors)
+                    .then_some(Vec::new())
+                    .ok_or(ClassError(
+                        Class::HasFunctorsIfOp { callee, functors },
+                        span,
+                    ))
+            }
+            Class::HasIndex {
+                container,
+                index,
+                item,
+            } => check_has_index(container, index, item, span).map(|c| vec![c]),
+            Class::HasPartialApp {
+                callee,
+                missing,
+                with_app,
+            } => {
+                // TODO
+                Err(ClassError(
+                    Class::HasPartialApp {
+                        callee,
+                        missing,
+                        with_app,
+                    },
+                    span,
+                ))
+            }
+            Class::Integral(ty) => check_integral(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Integral(ty), span)),
+            Class::Iterable { container, item } => {
+                check_iterable(container, item, span).map(|c| vec![c])
+            }
+            Class::Num(ty) => check_num(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Num(ty), span)),
+            Class::Unwrap { wrapper, base } => {
+                // TODO
+                Err(ClassError(Class::Unwrap { wrapper, base }, span))
+            }
+        }
+    }
 }
 
 impl Display for Class {
@@ -343,7 +407,7 @@ impl Solver {
                             .collect();
 
                         if unsolved.is_empty() {
-                            match check_class(span, class.map(|ty| substitute(&substs, ty))) {
+                            match class.map(|ty| substitute(&substs, ty)).check(span) {
                                 Ok(new) => new_constraints.extend(new),
                                 Err(error) => {
                                     errors.push(Error(ErrorKind::MissingClass(error.0, error.1)));
@@ -435,7 +499,6 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
             Ok(substs)
         }
         (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
-        (Ty::Err, _) | (_, Ty::Err) => Ok(Vec::new()),
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(Vec::new()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
@@ -452,34 +515,28 @@ fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
     }
 }
 
-#[allow(clippy::too_many_lines)]
-fn check_class(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> {
-    match class {
-        Class::Eq(Ty::Prim(
-            TyPrim::BigInt
-            | TyPrim::Bool
-            | TyPrim::Double
-            | TyPrim::Int
-            | TyPrim::Qubit
-            | TyPrim::Range
-            | TyPrim::Result
-            | TyPrim::String
-            | TyPrim::Pauli,
-        ))
-        | Class::Integral(Ty::Prim(TyPrim::BigInt | TyPrim::Int))
-        | Class::Num(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int))
-        | Class::Add(Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String)) => {
-            Ok(Vec::new())
-        }
-        Class::Add(Ty::Array(_)) => Ok(Vec::new()),
-        Class::Adj(Ty::Arrow(_, _, _, functors)) if functors.contains(&Functor::Adj) => {
-            Ok(Vec::new())
-        }
-        Class::Call {
-            callee: Ty::Arrow(_, callee_input, callee_output, _),
-            input,
-            output,
-        } => Ok(vec![
+fn check_add(ty: &Ty) -> bool {
+    matches!(
+        ty,
+        Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String) | Ty::Array(_)
+    )
+}
+
+fn check_adj(ty: &Ty) -> bool {
+    match ty {
+        Ty::Arrow(_, _, _, functors) => functors.contains(&Functor::Adj),
+        _ => false,
+    }
+}
+
+fn check_call(
+    callee: Ty,
+    input: Ty,
+    output: Ty,
+    span: Span,
+) -> Result<Vec<Constraint>, ClassError> {
+    match callee {
+        Ty::Arrow(_, callee_input, callee_output, _) => Ok(vec![
             Constraint::Eq {
                 expected: *callee_input,
                 actual: input,
@@ -491,92 +548,127 @@ fn check_class(span: Span, class: Class) -> Result<Vec<Constraint>, ClassError> 
                 span,
             },
         ]),
-        Class::Ctl {
-            op: Ty::Arrow(kind, input, output, functors),
-            with_ctls,
-        } if functors.contains(&Functor::Ctl) => {
+        _ => Err(ClassError(
+            Class::Call {
+                callee,
+                input,
+                output,
+            },
+            span,
+        )),
+    }
+}
+
+fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError> {
+    match op {
+        Ty::Arrow(kind, input, output, functors) if functors.contains(&Functor::Ctl) => {
             let qubit_array = Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
-            Ok(vec![Constraint::Eq {
+            Ok(Constraint::Eq {
                 expected: Ty::Arrow(kind, ctl_input, output, functors),
                 actual: with_ctls,
                 span,
-            }])
+            })
         }
-        Class::Eq(Ty::Array(item)) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
-        Class::Eq(Ty::Tuple(items)) => Ok(items
+        _ => Err(ClassError(Class::Ctl { op, with_ctls }, span)),
+    }
+}
+
+fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
+    match ty {
+        Ty::Prim(
+            TyPrim::BigInt
+            | TyPrim::Bool
+            | TyPrim::Double
+            | TyPrim::Int
+            | TyPrim::Qubit
+            | TyPrim::Range
+            | TyPrim::Result
+            | TyPrim::String
+            | TyPrim::Pauli,
+        ) => Ok(Vec::new()),
+        Ty::Array(item) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
+        Ty::Tuple(items) => Ok(items
             .into_iter()
             .map(|item| Constraint::Class(Class::Eq(item), span))
             .collect()),
-        Class::Exp {
-            base: Ty::Prim(TyPrim::BigInt),
-            power,
-        } => Ok(vec![Constraint::Eq {
+        _ => Err(ClassError(Class::Eq(ty), span)),
+    }
+}
+
+fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> {
+    match base {
+        Ty::Prim(TyPrim::BigInt) => Ok(Constraint::Eq {
             expected: Ty::Prim(TyPrim::Int),
             actual: power,
             span,
-        }]),
-        Class::Exp {
-            base: base @ Ty::Prim(TyPrim::Double | TyPrim::Int),
-            power,
-        } => Ok(vec![Constraint::Eq {
+        }),
+        Ty::Prim(TyPrim::Double | TyPrim::Int) => Ok(Constraint::Eq {
             expected: base,
             actual: power,
             span,
-        }]),
-        Class::HasFunctorsIfOp { callee, functors } => match callee {
-            Ty::Arrow(CallableKind::Operation, _, _, callee_functors)
-                if callee_functors.is_subset(&functors) =>
-            {
-                Ok(Vec::new())
-            }
-            Ty::Arrow(CallableKind::Operation, _, _, _) => Err(ClassError(
-                Class::HasFunctorsIfOp { callee, functors },
-                span,
-            )),
-            _ => Ok(Vec::new()),
-        },
-        Class::HasIndex {
-            container: Ty::Array(container_item),
-            index,
-            item,
-        } => match index {
-            Ty::Prim(TyPrim::Int) => Ok(vec![Constraint::Eq {
-                expected: *container_item,
-                actual: item,
-                span,
-            }]),
-            Ty::Prim(TyPrim::Range) => Ok(vec![Constraint::Eq {
-                expected: Ty::Array(container_item),
-                actual: item,
-                span,
-            }]),
-            _ => Err(ClassError(
-                Class::HasIndex {
-                    container: Ty::Array(container_item),
-                    index,
-                    item,
-                },
-                span,
-            )),
-        },
-        Class::Iterable {
-            container: Ty::Prim(TyPrim::Range),
-            item,
-        } => Ok(vec![Constraint::Eq {
-            expected: Ty::Prim(TyPrim::Int),
-            actual: item,
-            span,
-        }]),
-        Class::Iterable {
-            container: Ty::Array(container_item),
-            item,
-        } => Ok(vec![Constraint::Eq {
+        }),
+        _ => Err(ClassError(Class::Exp { base, power }, span)),
+    }
+}
+
+fn check_has_functors_if_op(callee: &Ty, functors: &HashSet<Functor>) -> bool {
+    match callee {
+        Ty::Arrow(CallableKind::Operation, _, _, callee_functors) => {
+            callee_functors.is_subset(functors)
+        }
+        _ => true,
+    }
+}
+
+fn check_has_index(
+    container: Ty,
+    index: Ty,
+    item: Ty,
+    span: Span,
+) -> Result<Constraint, ClassError> {
+    match (container, index) {
+        (Ty::Array(container_item), Ty::Prim(TyPrim::Int)) => Ok(Constraint::Eq {
             expected: *container_item,
             actual: item,
             span,
-        }]),
-        class if class.dependencies().iter().any(|ty| matches!(ty, Ty::Err)) => Ok(Vec::new()),
-        class => Err(ClassError(class, span)),
+        }),
+        (container @ Ty::Array(_), Ty::Prim(TyPrim::Range)) => Ok(Constraint::Eq {
+            expected: container,
+            actual: item,
+            span,
+        }),
+        (container, index) => Err(ClassError(
+            Class::HasIndex {
+                container,
+                index,
+                item,
+            },
+            span,
+        )),
     }
+}
+
+fn check_integral(ty: &Ty) -> bool {
+    matches!(ty, Ty::Prim(TyPrim::BigInt | TyPrim::Int))
+}
+
+fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, ClassError> {
+    match container {
+        Ty::Prim(TyPrim::Range) => Ok(Constraint::Eq {
+            expected: Ty::Prim(TyPrim::Int),
+            actual: item,
+            span,
+        }),
+        Ty::Array(container_item) => Ok(Constraint::Eq {
+            expected: *container_item,
+            actual: item,
+            span,
+        }),
+        _ => Err(ClassError(Class::Iterable { container, item }, span)),
+    }
+}
+
+fn check_num(ty: &Ty) -> bool {
+    matches!(ty, Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int))
 }

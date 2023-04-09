@@ -1,40 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Context, Error, PackageStore, SourceIndex};
+use super::{compile, PackageStore};
 use crate::{id::Assigner, resolve::PackageSrc};
 use expect_test::expect;
 use indoc::indoc;
-use miette::Diagnostic;
 use qsc_ast::{
-    ast::{CallableBody, Expr, ExprKind, ItemKind, Lit, Span, StmtKind},
+    ast::{CallableBody, Expr, ExprKind, ItemKind, Lit, StmtKind},
     mut_visit::MutVisitor,
 };
-
-fn error_span(error: &Error) -> Span {
-    let label = error
-        .labels()
-        .and_then(|mut ls| ls.next())
-        .expect("error should have at least one label");
-
-    let span = label.inner();
-    Span {
-        lo: span.offset(),
-        hi: span.offset() + span.len(),
-    }
-}
-
-fn source_span(context: &Context, error: &Error) -> (SourceIndex, Span) {
-    let span = error_span(error);
-    let (index, offset) = context.source(span.lo);
-    (
-        index,
-        Span {
-            lo: span.lo - offset,
-            hi: span.hi - offset,
-        },
-    )
-}
 
 #[test]
 fn one_file_no_entry() {
@@ -70,11 +44,38 @@ fn one_file_error() {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(0));
-    assert_eq!(span, Span { lo: 50, hi: 51 });
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    NotFound(
+                        "x",
+                        Span {
+                            lo: 50,
+                            hi: 51,
+                        },
+                    ),
+                ),
+            ),
+            Error(
+                Type(
+                    Error(
+                        TypeMismatch(
+                            Tuple(
+                                [],
+                            ),
+                            Err,
+                            Span {
+                                lo: 40,
+                                hi: 57,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.context.errors());
 }
 
 #[test]
@@ -153,11 +154,45 @@ fn two_files_error() {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(1));
-    assert_eq!(span, Span { lo: 50, hi: 51 });
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    NotFound(
+                        "C",
+                        Span {
+                            lo: 95,
+                            hi: 96,
+                        },
+                    ),
+                ),
+            ),
+            Error(
+                Type(
+                    Error(
+                        MissingClass(
+                            Call {
+                                callee: Err,
+                                input: Tuple(
+                                    [],
+                                ),
+                                output: Var(
+                                    Var(
+                                        0,
+                                    ),
+                                ),
+                            },
+                            Span {
+                                lo: 95,
+                                hi: 98,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.context.errors());
 }
 
 #[test]
@@ -201,11 +236,45 @@ fn entry_error() {
         "Foo.B()",
     );
 
-    let errors = unit.context.errors();
-    assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(1));
-    assert_eq!(span, Span { lo: 0, hi: 5 });
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    NotFound(
+                        "B",
+                        Span {
+                            lo: 46,
+                            hi: 51,
+                        },
+                    ),
+                ),
+            ),
+            Error(
+                Type(
+                    Error(
+                        MissingClass(
+                            Call {
+                                callee: Err,
+                                input: Tuple(
+                                    [],
+                                ),
+                                output: Var(
+                                    Var(
+                                        0,
+                                    ),
+                                ),
+                            },
+                            Span {
+                                lo: 46,
+                                hi: 53,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.context.errors());
 }
 
 #[test]
