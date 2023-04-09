@@ -387,6 +387,9 @@ impl Inferrer {
     }
 
     pub(super) fn solve(mut self) -> (Substitutions, Vec<Error>) {
+        // TODO: Variables that don't have a substitution should cause errors for ambiguous types.
+        // However, if an unsolved variable is the result of a divergent expression, it may be OK to
+        // leave it or substitute it with a concrete uninhabited type.
         let mut solver = Solver::new();
         while let Some(constraint) = self.constraints.pop_front() {
             self.constraints.extend(solver.solve_constraint(constraint));
