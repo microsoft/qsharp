@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use super::{
-    infer::{self, SpecImpl},
-    solve::Ty,
+    infer::Ty,
+    rules::{self, SpecImpl},
     Error, ErrorKind, Tys,
 };
 use crate::{
@@ -89,13 +89,13 @@ impl Checker<'_> {
     }
 
     fn check_spec(&mut self, spec: SpecImpl) {
-        let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
+        let (tys, errors) = rules::spec(self.resolutions, &self.globals, spec);
         self.tys.extend(tys);
         self.errors.extend(errors);
     }
 
-    fn check_entry(&mut self, entry: &Expr) {
-        let (tys, errors) = infer::entry(self.resolutions, &self.globals, entry);
+    fn check_entry_expr(&mut self, entry: &Expr) {
+        let (tys, errors) = rules::entry_expr(self.resolutions, &self.globals, entry);
         self.tys.extend(tys);
         self.errors.extend(errors);
     }
@@ -107,7 +107,7 @@ impl Visitor<'_> for Checker<'_> {
             self.visit_namespace(namespace);
         }
         if let Some(entry) = &package.entry {
-            self.check_entry(entry);
+            self.check_entry_expr(entry);
         }
     }
 

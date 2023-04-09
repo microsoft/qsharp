@@ -3,18 +3,18 @@
 
 mod check;
 mod infer;
-mod solve;
+mod rules;
 #[cfg(test)]
 mod tests;
 
-use self::solve::Class;
+use self::infer::Class;
 use miette::Diagnostic;
 use qsc_ast::ast::{NodeId, Span};
 use std::{collections::HashMap, fmt::Debug};
 use thiserror::Error;
 
 pub(super) use check::GlobalTable;
-pub use solve::Ty;
+pub use infer::Ty;
 
 pub type Tys = HashMap<NodeId, Ty>;
 

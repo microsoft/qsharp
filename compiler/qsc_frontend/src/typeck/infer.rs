@@ -1,594 +1,674 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{
-    solve::{self, Class, Solver, Ty},
-    Error, Tys,
+use super::{Error, ErrorKind};
+use crate::resolve::{DefId, PackageSrc};
+use qsc_ast::ast::{CallableKind, Functor, Span, TyPrim};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{self, Debug, Display, Formatter},
+    mem,
 };
-use crate::resolve::{DefId, PackageSrc, Resolutions};
-use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, Pat, PatKind, QubitInit,
-    QubitInitKind, Span, Spec, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
-};
-use std::collections::{HashMap, HashSet};
 
-struct Fallible<T> {
-    term: Termination,
-    value: T,
-}
+pub(super) type Substitutions = HashMap<Var, Ty>;
 
-impl<T> Fallible<T> {
-    fn and<U>(self, other: Fallible<U>) -> Fallible<(T, U)> {
-        Fallible {
-            term: self.term.and(other.term),
-            value: (self.value, other.value),
-        }
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Var(u32);
+
+impl Display for Var {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "?{}", self.0)
     }
 }
 
-#[derive(Clone, Copy, Default, Eq, PartialEq)]
-enum Termination {
-    #[default]
-    Convergent,
-    Divergent,
+#[derive(Clone, Debug)]
+pub enum Ty {
+    Array(Box<Ty>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    DefId(DefId),
+    Err,
+    Param(String),
+    Prim(TyPrim),
+    Tuple(Vec<Ty>),
+    Var(Var),
 }
 
-impl Termination {
-    fn and(self, other: Self) -> Self {
-        match (self, other) {
-            (Self::Divergent, Self::Divergent) => Self::Divergent,
-            _ => Self::Convergent,
-        }
-    }
-
-    fn or(self, other: Self) -> Self {
-        match (self, other) {
-            (Self::Divergent, _) | (_, Self::Divergent) => Self::Divergent,
-            _ => Self::Convergent,
-        }
-    }
-
-    fn with<T>(self, value: T) -> Fallible<T> {
-        Fallible { term: self, value }
-    }
-
-    fn then<T>(&mut self, fallible: Fallible<T>) -> T {
-        *self = self.or(fallible.term);
-        fallible.value
-    }
+impl Ty {
+    pub(super) const UNIT: Self = Self::Tuple(Vec::new());
 }
 
-struct Context<'a> {
-    resolutions: &'a Resolutions,
-    globals: &'a HashMap<DefId, Ty>,
-    return_ty: Option<&'a Ty>,
-    tys: Tys,
-    solver: Solver,
-}
+impl Display for Ty {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Ty::Array(item) => write!(f, "({item})[]"),
+            Ty::Arrow(kind, input, output, functors) => {
+                let arrow = match kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
 
-impl<'a> Context<'a> {
-    fn new(resolutions: &'a Resolutions, globals: &'a HashMap<DefId, Ty>) -> Self {
-        Self {
-            resolutions,
-            globals,
-            return_ty: None,
-            tys: Tys::new(),
-            solver: Solver::new(),
-        }
-    }
+                let is = if functors.contains(&Functor::Adj) && functors.contains(&Functor::Ctl) {
+                    " is Adj + Ctl"
+                } else if functors.contains(&Functor::Adj) {
+                    " is Adj"
+                } else if functors.contains(&Functor::Ctl) {
+                    " is Ctl"
+                } else {
+                    ""
+                };
 
-    fn infer_spec(&mut self, spec: SpecImpl<'a>) {
-        let callable_input = self.infer_pat(spec.callable_input);
-        if let Some(input) = spec.spec_input {
-            let expected = match spec.spec {
-                Spec::Body | Spec::Adj => callable_input,
-                Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
-                    Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
-                    callable_input,
-                ]),
-            };
-            let actual = self.infer_pat(input);
-            self.solver.eq(input.span, expected, actual);
-        }
-
-        self.return_ty = Some(spec.output);
-        let block = self.infer_block(spec.block).value;
-        if let Some(return_ty) = self.return_ty {
-            self.solver.eq(spec.block.span, return_ty.clone(), block);
-        }
-
-        self.return_ty = None;
-    }
-
-    fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
-        match &ty.kind {
-            TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
-            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
-                *kind,
-                Box::new(self.infer_ty(input)),
-                Box::new(self.infer_ty(output)),
-                functors
-                    .as_ref()
-                    .map_or(HashSet::new(), FunctorExpr::to_set),
-            ),
-            TyKind::Hole => self.solver.fresh(),
-            TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(path) => Ty::DefId(
-                *self
-                    .resolutions
-                    .get(&path.id)
-                    .expect("path should be resolved"),
-            ),
-            &TyKind::Prim(prim) => Ty::Prim(prim),
-            TyKind::Tuple(items) => {
-                Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
+                write!(f, "({input}) {arrow} ({output}){is}")
             }
-            TyKind::Var(name) => Ty::Param(name.name.clone()),
-        }
-    }
-
-    fn infer_block(&mut self, block: &Block) -> Fallible<Ty> {
-        let mut term = Termination::default();
-        let mut last = None;
-        for stmt in &block.stmts {
-            last = Some(term.then(self.infer_stmt(stmt)));
-        }
-
-        let ty = self.diverge_or(term, last.unwrap_or(Ty::UNIT));
-        self.tys.insert(block.id, ty.clone());
-        term.with(ty)
-    }
-
-    fn infer_stmt(&mut self, stmt: &Stmt) -> Fallible<Ty> {
-        let mut term = Termination::default();
-        let ty = match &stmt.kind {
-            StmtKind::Empty => Ty::UNIT,
-            StmtKind::Expr(expr) => term.then(self.infer_expr(expr)),
-            StmtKind::Local(_, pat, expr) => {
-                let pat_ty = self.infer_pat(pat);
-                let expr_ty = term.then(self.infer_expr(expr));
-                self.solver.eq(pat.span, expr_ty, pat_ty);
-                Ty::UNIT
-            }
-            StmtKind::Qubit(_, pat, init, block) => {
-                let pat_ty = self.infer_pat(pat);
-                let init_ty = term.then(self.infer_qubit_init(init));
-                self.solver.eq(pat.span, init_ty, pat_ty);
-                match block {
-                    None => Ty::UNIT,
-                    Some(block) => term.then(self.infer_block(block)),
-                }
-            }
-            StmtKind::Semi(expr) => {
-                term.then(self.infer_expr(expr));
-                Ty::UNIT
-            }
-        };
-
-        let ty = self.diverge_or(term, ty);
-        self.tys.insert(stmt.id, ty.clone());
-        term.with(ty)
-    }
-
-    #[allow(clippy::too_many_lines)]
-    fn infer_expr(&mut self, expr: &Expr) -> Fallible<Ty> {
-        let mut term = Termination::default();
-        let ty = match &expr.kind {
-            ExprKind::Array(items) => match items.split_first() {
-                Some((first, rest)) => {
-                    let first_ty = term.then(self.infer_expr(first));
-                    for item in rest {
-                        let item_ty = term.then(self.infer_expr(item));
-                        self.solver.eq(item.span, first_ty.clone(), item_ty);
+            Ty::DefId(DefId {
+                package: PackageSrc::Local,
+                node,
+            }) => write!(f, "Def<{node}>"),
+            Ty::DefId(DefId {
+                package: PackageSrc::Extern(package),
+                node,
+            }) => write!(f, "Def<{package}, {node}>"),
+            Ty::Err => f.write_str("?"),
+            Ty::Param(name) => write!(f, "'{name}"),
+            Ty::Prim(prim) => prim.fmt(f),
+            Ty::Tuple(items) => {
+                f.write_str("(")?;
+                if let Some((first, rest)) = items.split_first() {
+                    Display::fmt(first, f)?;
+                    if rest.is_empty() {
+                        f.write_str(",")?;
+                    } else {
+                        for item in rest {
+                            f.write_str(", ")?;
+                            Display::fmt(item, f)?;
+                        }
                     }
-                    Ty::Array(Box::new(first_ty))
                 }
-                None => Ty::Array(Box::new(self.solver.fresh())),
-            },
-            ExprKind::ArrayRepeat(item, size) => {
-                let item_ty = term.then(self.infer_expr(item));
-                let size_ty = term.then(self.infer_expr(size));
-                self.solver.eq(size.span, Ty::Prim(TyPrim::Int), size_ty);
-                Ty::Array(Box::new(item_ty))
-            }
-            ExprKind::Assign(lhs, rhs) => {
-                let lhs_ty = term.then(self.infer_expr(lhs));
-                let rhs_ty = term.then(self.infer_expr(rhs));
-                self.solver.eq(lhs.span, lhs_ty, rhs_ty);
-                Ty::UNIT
-            }
-            ExprKind::AssignOp(op, lhs, rhs) => {
-                term.then(self.infer_binop(expr.span, *op, lhs, rhs));
-                Ty::UNIT
-            }
-            ExprKind::AssignUpdate(container, index, item) => {
-                term.then(self.infer_update(expr.span, container, index, item));
-                Ty::UNIT
-            }
-            ExprKind::BinOp(op, lhs, rhs) => term.then(self.infer_binop(expr.span, *op, lhs, rhs)),
-            ExprKind::Block(block) => term.then(self.infer_block(block)),
-            ExprKind::Call(callee, input) => {
-                let callee_ty = term.then(self.infer_expr(callee));
-                let input_ty = term.then(self.infer_expr(input));
-                let output_ty = self.solver.fresh();
-                self.solver.class(
-                    expr.span,
-                    Class::Call {
-                        callee: callee_ty,
-                        input: input_ty,
-                        output: output_ty.clone(),
-                    },
-                );
-                output_ty
-            }
-            ExprKind::Conjugate(within, apply) => {
-                term.then(self.infer_block(within));
-                term.then(self.infer_block(apply))
-            }
-            ExprKind::Fail(message) => {
-                let message_ty = self.infer_expr(message).value;
-                self.solver
-                    .eq(message.span, Ty::Prim(TyPrim::String), message_ty);
-                term = Termination::Divergent;
-                Ty::Err
-            }
-            ExprKind::Field(record, name) => {
-                let record_ty = term.then(self.infer_expr(record));
-                let item_ty = self.solver.fresh();
-                self.solver.class(
-                    expr.span,
-                    Class::HasField {
-                        record: record_ty,
-                        name: name.name.clone(),
-                        item: item_ty.clone(),
-                    },
-                );
-                item_ty
-            }
-            ExprKind::For(item, container, body) => {
-                let item_ty = self.infer_pat(item);
-                let container_ty = term.then(self.infer_expr(container));
-                self.solver.class(
-                    container.span,
-                    Class::Iterable {
-                        container: container_ty,
-                        item: item_ty,
-                    },
-                );
-                term.then(self.infer_block(body));
-                Ty::UNIT
-            }
-            ExprKind::If(cond, if_true, if_false) => {
-                let cond_ty = term.then(self.infer_expr(cond));
-                self.solver.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
-                let true_ty = self.infer_block(if_true);
-                let false_ty = if_false.as_ref().map_or_else(
-                    || Termination::default().with(Ty::UNIT),
-                    |e| self.infer_expr(e),
-                );
-                let (true_ty, false_ty) = term.then(true_ty.and(false_ty));
-                self.solver.eq(expr.span, true_ty.clone(), false_ty);
-                true_ty
-            }
-            ExprKind::Index(container, index) => {
-                let container_ty = term.then(self.infer_expr(container));
-                let index_ty = term.then(self.infer_expr(index));
-                let item_ty = self.solver.fresh();
-                self.solver.class(
-                    expr.span,
-                    Class::HasIndex {
-                        container: container_ty,
-                        index: index_ty,
-                        item: item_ty.clone(),
-                    },
-                );
-                item_ty
-            }
-            ExprKind::Lambda(kind, input, body) => {
-                let input = self.infer_pat(input);
-                let body = term.then(self.infer_expr(body));
-                Ty::Arrow(*kind, Box::new(input), Box::new(body), HashSet::new())
-            }
-            ExprKind::Lit(Lit::BigInt(_)) => Ty::Prim(TyPrim::BigInt),
-            ExprKind::Lit(Lit::Bool(_)) => Ty::Prim(TyPrim::Bool),
-            ExprKind::Lit(Lit::Double(_)) => Ty::Prim(TyPrim::Double),
-            ExprKind::Lit(Lit::Int(_)) => Ty::Prim(TyPrim::Int),
-            ExprKind::Lit(Lit::Pauli(_)) => Ty::Prim(TyPrim::Pauli),
-            ExprKind::Lit(Lit::Result(_)) => Ty::Prim(TyPrim::Result),
-            ExprKind::Lit(Lit::String(_)) => Ty::Prim(TyPrim::String),
-            ExprKind::Paren(expr) => term.then(self.infer_expr(expr)),
-            ExprKind::Path(path) => match self.resolutions.get(&path.id) {
-                None => Ty::Err,
-                Some(id) => match self.globals.get(id) {
-                    Some(ty) => self.solver.freshen(ty),
-                    None if id.package == PackageSrc::Local => self
-                        .tys
-                        .get(&id.node)
-                        .expect("local variable should have inferred type")
-                        .clone(),
-                    None => panic!("path resolves to external package but definition not found"),
-                },
-            },
-            ExprKind::Range(start, step, end) => {
-                for expr in start.iter().chain(step).chain(end) {
-                    let ty = term.then(self.infer_expr(expr));
-                    self.solver.eq(expr.span, Ty::Prim(TyPrim::Int), ty);
-                }
-                Ty::Prim(TyPrim::Range)
-            }
-            ExprKind::Repeat(body, until, fixup) => {
-                term.then(self.infer_block(body));
-                let until_ty = term.then(self.infer_expr(until));
-                self.solver.eq(until.span, Ty::Prim(TyPrim::Bool), until_ty);
-                if let Some(fixup) = fixup {
-                    term.then(self.infer_block(fixup));
-                }
-                Ty::UNIT
-            }
-            ExprKind::Return(expr) => {
-                let ty = self.infer_expr(expr).value;
-                if let Some(return_ty) = &self.return_ty {
-                    self.solver.eq(expr.span, (*return_ty).clone(), ty);
-                }
-                term = Termination::Divergent;
-                Ty::Err
-            }
-            ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
-                let cond_ty = term.then(self.infer_expr(cond));
-                self.solver.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
-                let true_ty = self.infer_expr(if_true);
-                let false_ty = self.infer_expr(if_false);
-                let (true_ty, false_ty) = term.then(true_ty.and(false_ty));
-                self.solver.eq(expr.span, true_ty.clone(), false_ty);
-                true_ty
-            }
-            ExprKind::TernOp(TernOp::Update, container, index, item) => {
-                term.then(self.infer_update(expr.span, container, index, item))
-            }
-            ExprKind::Tuple(items) => {
-                let mut tys = Vec::new();
-                for item in items {
-                    let ty = term.then(self.infer_expr(item));
-                    tys.push(ty);
-                }
-                Ty::Tuple(tys)
-            }
-            ExprKind::UnOp(op, expr) => term.then(self.infer_unop(*op, expr)),
-            ExprKind::While(cond, body) => {
-                let cond_ty = term.then(self.infer_expr(cond));
-                self.solver.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
-                term.then(self.infer_block(body));
-                Ty::UNIT
-            }
-            ExprKind::Err | ExprKind::Hole => self.solver.fresh(),
-        };
 
-        let ty = self.diverge_or(term, ty);
-        self.tys.insert(expr.id, ty.clone());
-        term.with(ty)
+                f.write_str(")")
+            }
+            Ty::Var(id) => Display::fmt(id, f),
+        }
     }
+}
 
-    fn infer_unop(&mut self, op: UnOp, operand: &Expr) -> Fallible<Ty> {
-        let Fallible {
-            term,
-            value: operand_ty,
-        } = self.infer_expr(operand);
+#[derive(Clone, Debug)]
+pub(super) enum Class {
+    Add(Ty),
+    Adj(Ty),
+    Call {
+        callee: Ty,
+        input: Ty,
+        output: Ty,
+    },
+    Ctl {
+        op: Ty,
+        with_ctls: Ty,
+    },
+    Eq(Ty),
+    Exp {
+        base: Ty,
+        power: Ty,
+    },
+    HasField {
+        record: Ty,
+        name: String,
+        item: Ty,
+    },
+    HasFunctorsIfOp {
+        callee: Ty,
+        functors: HashSet<Functor>,
+    },
+    HasIndex {
+        container: Ty,
+        index: Ty,
+        item: Ty,
+    },
+    HasPartialApp {
+        callee: Ty,
+        missing: Ty,
+        with_app: Ty,
+    },
+    Integral(Ty),
+    Iterable {
+        container: Ty,
+        item: Ty,
+    },
+    Num(Ty),
+    Unwrap {
+        wrapper: Ty,
+        base: Ty,
+    },
+}
 
-        let ty = match op {
-            UnOp::Functor(Functor::Adj) => {
-                self.solver
-                    .class(operand.span, Class::Adj(operand_ty.clone()));
-                operand_ty
+impl Class {
+    fn dependencies(&self) -> Vec<&Ty> {
+        match self {
+            Self::Add(ty) | Self::Adj(ty) | Self::Eq(ty) | Self::Integral(ty) | Self::Num(ty) => {
+                vec![ty]
             }
-            UnOp::Functor(Functor::Ctl) => {
-                let with_ctls = self.solver.fresh();
-                self.solver.class(
-                    operand.span,
-                    Class::Ctl {
-                        op: operand_ty,
-                        with_ctls: with_ctls.clone(),
-                    },
-                );
-                with_ctls
-            }
-            UnOp::Neg | UnOp::NotB | UnOp::Pos => {
-                self.solver
-                    .class(operand.span, Class::Num(operand_ty.clone()));
-                operand_ty
-            }
-            UnOp::NotL => {
-                self.solver
-                    .eq(operand.span, Ty::Prim(TyPrim::Bool), operand_ty.clone());
-                operand_ty
-            }
-            UnOp::Unwrap => {
-                let base = self.solver.fresh();
-                self.solver.class(
-                    operand.span,
-                    Class::Unwrap {
-                        wrapper: operand_ty,
-                        base: base.clone(),
-                    },
-                );
-                base
-            }
-        };
-
-        term.with(self.diverge_or(term, ty))
-    }
-
-    fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Fallible<Ty> {
-        let mut term = Termination::default();
-        let lhs_ty = term.then(self.infer_expr(lhs));
-        let rhs_ty = term.then(self.infer_expr(rhs));
-
-        let ty = match op {
-            BinOp::AndL | BinOp::OrL => {
-                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
-                self.solver
-                    .eq(lhs.span, Ty::Prim(TyPrim::Bool), lhs_ty.clone());
-                lhs_ty
-            }
-            BinOp::Eq | BinOp::Neq => {
-                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
-                self.solver.class(lhs.span, Class::Eq(lhs_ty));
-                Ty::Prim(TyPrim::Bool)
-            }
-            BinOp::Add => {
-                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
-                self.solver.class(lhs.span, Class::Add(lhs_ty.clone()));
-                lhs_ty
-            }
-            BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
-                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
-                self.solver.class(lhs.span, Class::Num(lhs_ty));
-                Ty::Prim(TyPrim::Bool)
-            }
-            BinOp::AndB
-            | BinOp::Div
-            | BinOp::Mod
-            | BinOp::Mul
-            | BinOp::OrB
-            | BinOp::Sub
-            | BinOp::XorB => {
-                self.solver.eq(span, lhs_ty.clone(), rhs_ty);
-                self.solver.class(lhs.span, Class::Num(lhs_ty.clone()));
-                lhs_ty
-            }
-            BinOp::Exp => {
-                self.solver.class(
-                    span,
-                    Class::Exp {
-                        base: lhs_ty.clone(),
-                        power: rhs_ty,
-                    },
-                );
-                lhs_ty
-            }
-            BinOp::Shl | BinOp::Shr => {
-                self.solver.class(lhs.span, Class::Integral(lhs_ty.clone()));
-                self.solver.eq(rhs.span, Ty::Prim(TyPrim::Int), rhs_ty);
-                lhs_ty
-            }
-        };
-
-        term.with(self.diverge_or(term, ty))
-    }
-
-    fn infer_update(
-        &mut self,
-        span: Span,
-        container: &Expr,
-        index: &Expr,
-        item: &Expr,
-    ) -> Fallible<Ty> {
-        let mut term = Termination::default();
-        let container_ty = term.then(self.infer_expr(container));
-        let index_ty = term.then(self.infer_expr(index));
-        let item_ty = term.then(self.infer_expr(item));
-        self.solver.class(
-            span,
-            Class::HasIndex {
-                container: container_ty.clone(),
-                index: index_ty,
-                item: item_ty,
-            },
-        );
-        term.with(self.diverge_or(term, container_ty))
-    }
-
-    fn infer_pat(&mut self, pat: &Pat) -> Ty {
-        let ty = match &pat.kind {
-            PatKind::Bind(name, None) => {
-                let ty = self.solver.fresh();
-                self.tys.insert(name.id, ty.clone());
-                ty
-            }
-            PatKind::Bind(name, Some(ty)) => {
-                let ty = self.infer_ty(ty);
-                self.tys.insert(name.id, ty.clone());
-                ty
-            }
-            PatKind::Discard(None) | PatKind::Elided => self.solver.fresh(),
-            PatKind::Discard(Some(ty)) => self.infer_ty(ty),
-            PatKind::Paren(inner) => self.infer_pat(inner),
-            PatKind::Tuple(items) => {
-                Ty::Tuple(items.iter().map(|item| self.infer_pat(item)).collect())
-            }
-        };
-
-        self.tys.insert(pat.id, ty.clone());
-        ty
-    }
-
-    fn infer_qubit_init(&mut self, init: &QubitInit) -> Fallible<Ty> {
-        let mut term = Termination::default();
-        let ty = match &init.kind {
-            QubitInitKind::Array(length) => {
-                let length_ty = term.then(self.infer_expr(length));
-                self.solver
-                    .eq(length.span, Ty::Prim(TyPrim::Int), length_ty);
-                Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)))
-            }
-            QubitInitKind::Paren(inner) => term.then(self.infer_qubit_init(inner)),
-            QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
-            QubitInitKind::Tuple(items) => {
-                let mut tys = Vec::new();
-                for item in items {
-                    tys.push(term.then(self.infer_qubit_init(item)));
-                }
-                Ty::Tuple(tys)
-            }
-        };
-
-        let ty = self.diverge_or(term, ty);
-        self.tys.insert(init.id, ty.clone());
-        term.with(ty)
-    }
-
-    fn diverge_or(&mut self, term: Termination, default: Ty) -> Ty {
-        match term {
-            Termination::Convergent => default,
-            Termination::Divergent => self.solver.fresh(),
+            Self::Call { callee, .. }
+            | Self::HasFunctorsIfOp { callee, .. }
+            | Self::HasPartialApp { callee, .. } => vec![callee],
+            Self::Ctl { op, .. } => vec![op],
+            Self::Exp { base, .. } => vec![base],
+            Self::HasField { record, .. } => vec![record],
+            Self::HasIndex {
+                container, index, ..
+            } => vec![container, index],
+            Self::Iterable { container, .. } => vec![container],
+            Self::Unwrap { wrapper, .. } => vec![wrapper],
         }
     }
 
-    fn solve(self) -> (Tys, Vec<Error>) {
-        let (substs, errors) = self.solver.solve();
-        let tys = self
-            .tys
-            .into_iter()
-            .map(|(id, ty)| (id, solve::substitute(&substs, ty)))
-            .collect();
-        (tys, errors)
+    fn map(self, mut f: impl FnMut(Ty) -> Ty) -> Self {
+        match self {
+            Self::Add(ty) => Self::Add(f(ty)),
+            Self::Adj(ty) => Self::Adj(f(ty)),
+            Self::Call {
+                callee,
+                input,
+                output,
+            } => Self::Call {
+                callee: f(callee),
+                input: f(input),
+                output: f(output),
+            },
+            Self::Ctl { op, with_ctls } => Self::Ctl {
+                op: f(op),
+                with_ctls: f(with_ctls),
+            },
+            Self::Eq(ty) => Self::Eq(f(ty)),
+            Self::Exp { base, power } => Self::Exp {
+                base: f(base),
+                power: f(power),
+            },
+            Self::HasField { record, name, item } => Self::HasField {
+                record: f(record),
+                name,
+                item: f(item),
+            },
+            Self::HasFunctorsIfOp { callee, functors } => Self::HasFunctorsIfOp {
+                callee: f(callee),
+                functors,
+            },
+            Self::HasIndex {
+                container,
+                index,
+                item,
+            } => Self::HasIndex {
+                container: f(container),
+                index: f(index),
+                item: f(item),
+            },
+            Self::HasPartialApp {
+                callee,
+                missing,
+                with_app,
+            } => Self::HasPartialApp {
+                callee: f(callee),
+                missing: f(missing),
+                with_app: f(with_app),
+            },
+            Self::Integral(ty) => Self::Integral(f(ty)),
+            Self::Iterable { container, item } => Self::Iterable {
+                container: f(container),
+                item: f(item),
+            },
+            Self::Num(ty) => Self::Num(f(ty)),
+            Self::Unwrap { wrapper, base } => Self::Unwrap {
+                wrapper: f(wrapper),
+                base: f(base),
+            },
+        }
+    }
+
+    fn check(self, span: Span) -> Result<Vec<Constraint>, ClassError> {
+        match self {
+            Class::Add(ty) => check_add(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Add(ty), span)),
+            Class::Adj(ty) => check_adj(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Adj(ty), span)),
+            Class::Call {
+                callee,
+                input,
+                output,
+            } => check_call(callee, input, output, span),
+            Class::Ctl { op, with_ctls } => check_ctl(op, with_ctls, span).map(|c| vec![c]),
+            Class::Eq(ty) => check_eq(ty, span),
+            Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
+            Class::HasField { record, name, item } => {
+                // TODO
+                Err(ClassError(Class::HasField { record, name, item }, span))
+            }
+            Class::HasFunctorsIfOp { callee, functors } => {
+                check_has_functors_if_op(&callee, &functors)
+                    .then_some(Vec::new())
+                    .ok_or(ClassError(
+                        Class::HasFunctorsIfOp { callee, functors },
+                        span,
+                    ))
+            }
+            Class::HasIndex {
+                container,
+                index,
+                item,
+            } => check_has_index(container, index, item, span).map(|c| vec![c]),
+            Class::HasPartialApp {
+                callee,
+                missing,
+                with_app,
+            } => {
+                // TODO
+                Err(ClassError(
+                    Class::HasPartialApp {
+                        callee,
+                        missing,
+                        with_app,
+                    },
+                    span,
+                ))
+            }
+            Class::Integral(ty) => check_integral(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Integral(ty), span)),
+            Class::Iterable { container, item } => {
+                check_iterable(container, item, span).map(|c| vec![c])
+            }
+            Class::Num(ty) => check_num(&ty)
+                .then_some(Vec::new())
+                .ok_or(ClassError(Class::Num(ty), span)),
+            Class::Unwrap { wrapper, base } => {
+                // TODO
+                Err(ClassError(Class::Unwrap { wrapper, base }, span))
+            }
+        }
     }
 }
 
-#[derive(Clone, Copy)]
-pub(super) struct SpecImpl<'a> {
-    pub(super) spec: Spec,
-    pub(super) callable_input: &'a Pat,
-    pub(super) spec_input: Option<&'a Pat>,
-    pub(super) output: &'a Ty,
-    pub(super) block: &'a Block,
+impl Display for Class {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Class::Add(ty) => write!(f, "Add<{ty}>"),
+            Class::Adj(ty) => write!(f, "Adj<{ty}>"),
+            Class::Call { callee, .. } => write!(f, "Call<{callee}>"),
+            Class::Ctl { op, .. } => write!(f, "Ctl<{op}>"),
+            Class::Eq(ty) => write!(f, "Eq<{ty}>"),
+            Class::Exp { base, .. } => write!(f, "Exp<{base}>"),
+            Class::HasField { record, name, .. } => write!(f, "HasField<{record}, {name}>"),
+            Class::HasFunctorsIfOp { callee, functors } => {
+                write!(f, "HasFunctorsIfOp<{callee}, {functors:?}>")
+            }
+            Class::HasIndex {
+                container, index, ..
+            } => write!(f, "HasIndex<{container}, {index}>"),
+            Class::HasPartialApp { callee, .. } => write!(f, "HasPartialApp<{callee}>"),
+            Class::Integral(ty) => write!(f, "Integral<{ty}>"),
+            Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
+            Class::Num(ty) => write!(f, "Num<{ty}"),
+            Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
+        }
+    }
 }
 
-pub(super) fn entry(
-    resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
-    entry: &Expr,
-) -> (Tys, Vec<Error>) {
-    let mut context = Context::new(resolutions, globals);
-    context.infer_expr(entry);
-    context.solve()
+enum Constraint {
+    Class(Class, Span),
+    Eq {
+        expected: Ty,
+        actual: Ty,
+        span: Span,
+    },
 }
 
-pub(super) fn spec(
-    resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
-    spec: SpecImpl,
-) -> (Tys, Vec<Error>) {
-    let mut context = Context::new(resolutions, globals);
-    context.infer_spec(spec);
-    context.solve()
+struct ClassError(Class, Span);
+
+struct UnifyError(Ty, Ty);
+
+pub(super) struct Inferrer {
+    constraints: Vec<Constraint>,
+    next_var: Var,
+}
+
+impl Inferrer {
+    pub(super) fn new() -> Self {
+        Self {
+            constraints: Vec::new(),
+            next_var: Var(0),
+        }
+    }
+
+    pub(super) fn eq(&mut self, span: Span, expected: Ty, actual: Ty) {
+        self.constraints.push(Constraint::Eq {
+            expected,
+            actual,
+            span,
+        });
+    }
+
+    pub(super) fn class(&mut self, span: Span, class: Class) {
+        self.constraints.push(Constraint::Class(class, span));
+    }
+
+    pub(super) fn fresh(&mut self) -> Ty {
+        let var = self.next_var;
+        self.next_var = Var(var.0 + 1);
+        Ty::Var(var)
+    }
+
+    pub(super) fn freshen(&mut self, ty: &Ty) -> Ty {
+        fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
+            match ty {
+                Ty::Array(item) => Ty::Array(Box::new(freshen(solver, params, item))),
+                Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
+                    *kind,
+                    Box::new(freshen(solver, params, input)),
+                    Box::new(freshen(solver, params, output)),
+                    functors.clone(),
+                ),
+                &Ty::DefId(id) => Ty::DefId(id),
+                Ty::Err => Ty::Err,
+                Ty::Param(name) => params
+                    .entry(name.clone())
+                    .or_insert_with(|| solver.fresh())
+                    .clone(),
+                &Ty::Prim(prim) => Ty::Prim(prim),
+                Ty::Tuple(items) => Ty::Tuple(
+                    items
+                        .iter()
+                        .map(|item| freshen(solver, params, item))
+                        .collect(),
+                ),
+                &Ty::Var(var) => Ty::Var(var),
+            }
+        }
+
+        freshen(self, &mut HashMap::new(), ty)
+    }
+
+    pub(super) fn solve(self) -> (Substitutions, Vec<Error>) {
+        let mut substs = HashMap::new();
+        let mut pending_classes: HashMap<_, Vec<_>> = HashMap::new();
+        let mut constraints = self.constraints;
+        let mut errors = Vec::new();
+
+        loop {
+            let mut new_constraints = Vec::new();
+            for constraint in constraints {
+                match constraint {
+                    Constraint::Class(class, span) => {
+                        let unsolved: Vec<_> = class
+                            .dependencies()
+                            .into_iter()
+                            .filter_map(|ty| match substitute(&substs, ty.clone()) {
+                                Ty::Var(var) => Some(var),
+                                _ => None,
+                            })
+                            .collect();
+
+                        if unsolved.is_empty() {
+                            match class.map(|ty| substitute(&substs, ty)).check(span) {
+                                Ok(new) => new_constraints.extend(new),
+                                Err(error) => {
+                                    errors.push(Error(ErrorKind::MissingClass(error.0, error.1)));
+                                }
+                            }
+                        } else {
+                            for var in unsolved {
+                                pending_classes.entry(var).or_default().push(class.clone());
+                            }
+                        }
+                    }
+                    Constraint::Eq {
+                        expected,
+                        actual,
+                        span,
+                    } => {
+                        let ty1 = substitute(&substs, expected);
+                        let ty2 = substitute(&substs, actual);
+                        let new_substs = match unify(&ty1, &ty2) {
+                            Ok(new_substs) => new_substs,
+                            Err(UnifyError(ty1, ty2)) => {
+                                errors.push(Error(ErrorKind::TypeMismatch(ty1, ty2, span)));
+                                Vec::new()
+                            }
+                        };
+
+                        for (var, _) in &new_substs {
+                            if let Some(classes) = pending_classes.remove(var) {
+                                new_constraints.extend(
+                                    classes
+                                        .into_iter()
+                                        .map(|class| Constraint::Class(class, span)),
+                                );
+                            }
+                        }
+
+                        substs.extend(new_substs);
+                    }
+                }
+            }
+
+            if new_constraints.is_empty() {
+                break;
+            }
+
+            constraints = mem::take(&mut new_constraints);
+        }
+
+        (substs, errors)
+    }
+}
+
+pub(super) fn substitute(substs: &Substitutions, ty: Ty) -> Ty {
+    match ty {
+        Ty::Array(item) => Ty::Array(Box::new(substitute(substs, *item))),
+        Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
+            kind,
+            Box::new(substitute(substs, *input)),
+            Box::new(substitute(substs, *output)),
+            functors,
+        ),
+        Ty::DefId(id) => Ty::DefId(id),
+        Ty::Err => Ty::Err,
+        Ty::Param(name) => Ty::Param(name),
+        Ty::Prim(prim) => Ty::Prim(prim),
+        Ty::Tuple(items) => Ty::Tuple(
+            items
+                .into_iter()
+                .map(|item| substitute(substs, item))
+                .collect(),
+        ),
+        Ty::Var(var) => match substs.get(&var) {
+            Some(new_ty) => substitute(substs, new_ty.clone()),
+            None => Ty::Var(var),
+        },
+    }
+}
+
+fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
+    match (ty1, ty2) {
+        (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2),
+        (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
+            if kind1 == kind2 =>
+        {
+            // TODO: We ignore functors until subtyping is supported. This is unsound, but the
+            // alternative is disallowing valid programs.
+            let mut substs = unify(input1, input2)?;
+            substs.extend(unify(output1, output2)?);
+            Ok(substs)
+        }
+        (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
+        (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(Vec::new()),
+        (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
+        (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
+            let mut substs = Vec::new();
+            for (item1, item2) in items1.iter().zip(items2) {
+                substs.extend(unify(item1, item2)?);
+            }
+            Ok(substs)
+        }
+        (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => Ok(Vec::new()),
+        (&Ty::Var(var), _) => Ok(vec![(var, ty2.clone())]),
+        (_, &Ty::Var(var)) => Ok(vec![(var, ty1.clone())]),
+        _ => Err(UnifyError(ty1.clone(), ty2.clone())),
+    }
+}
+
+fn check_add(ty: &Ty) -> bool {
+    matches!(
+        ty,
+        Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String) | Ty::Array(_)
+    )
+}
+
+fn check_adj(ty: &Ty) -> bool {
+    match ty {
+        Ty::Arrow(_, _, _, functors) => functors.contains(&Functor::Adj),
+        _ => false,
+    }
+}
+
+fn check_call(
+    callee: Ty,
+    input: Ty,
+    output: Ty,
+    span: Span,
+) -> Result<Vec<Constraint>, ClassError> {
+    match callee {
+        Ty::Arrow(_, callee_input, callee_output, _) => Ok(vec![
+            Constraint::Eq {
+                expected: *callee_input,
+                actual: input,
+                span,
+            },
+            Constraint::Eq {
+                expected: *callee_output,
+                actual: output,
+                span,
+            },
+        ]),
+        _ => Err(ClassError(
+            Class::Call {
+                callee,
+                input,
+                output,
+            },
+            span,
+        )),
+    }
+}
+
+fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError> {
+    match op {
+        Ty::Arrow(kind, input, output, functors) if functors.contains(&Functor::Ctl) => {
+            let qubit_array = Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)));
+            let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
+            Ok(Constraint::Eq {
+                expected: Ty::Arrow(kind, ctl_input, output, functors),
+                actual: with_ctls,
+                span,
+            })
+        }
+        _ => Err(ClassError(Class::Ctl { op, with_ctls }, span)),
+    }
+}
+
+fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
+    match ty {
+        Ty::Prim(
+            TyPrim::BigInt
+            | TyPrim::Bool
+            | TyPrim::Double
+            | TyPrim::Int
+            | TyPrim::Qubit
+            | TyPrim::Range
+            | TyPrim::Result
+            | TyPrim::String
+            | TyPrim::Pauli,
+        ) => Ok(Vec::new()),
+        Ty::Array(item) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
+        Ty::Tuple(items) => Ok(items
+            .into_iter()
+            .map(|item| Constraint::Class(Class::Eq(item), span))
+            .collect()),
+        _ => Err(ClassError(Class::Eq(ty), span)),
+    }
+}
+
+fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> {
+    match base {
+        Ty::Prim(TyPrim::BigInt) => Ok(Constraint::Eq {
+            expected: Ty::Prim(TyPrim::Int),
+            actual: power,
+            span,
+        }),
+        Ty::Prim(TyPrim::Double | TyPrim::Int) => Ok(Constraint::Eq {
+            expected: base,
+            actual: power,
+            span,
+        }),
+        _ => Err(ClassError(Class::Exp { base, power }, span)),
+    }
+}
+
+fn check_has_functors_if_op(callee: &Ty, functors: &HashSet<Functor>) -> bool {
+    match callee {
+        Ty::Arrow(CallableKind::Operation, _, _, callee_functors) => {
+            callee_functors.is_subset(functors)
+        }
+        _ => true,
+    }
+}
+
+fn check_has_index(
+    container: Ty,
+    index: Ty,
+    item: Ty,
+    span: Span,
+) -> Result<Constraint, ClassError> {
+    match (container, index) {
+        (Ty::Array(container_item), Ty::Prim(TyPrim::Int)) => Ok(Constraint::Eq {
+            expected: *container_item,
+            actual: item,
+            span,
+        }),
+        (container @ Ty::Array(_), Ty::Prim(TyPrim::Range)) => Ok(Constraint::Eq {
+            expected: container,
+            actual: item,
+            span,
+        }),
+        (container, index) => Err(ClassError(
+            Class::HasIndex {
+                container,
+                index,
+                item,
+            },
+            span,
+        )),
+    }
+}
+
+fn check_integral(ty: &Ty) -> bool {
+    matches!(ty, Ty::Prim(TyPrim::BigInt | TyPrim::Int))
+}
+
+fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, ClassError> {
+    match container {
+        Ty::Prim(TyPrim::Range) => Ok(Constraint::Eq {
+            expected: Ty::Prim(TyPrim::Int),
+            actual: item,
+            span,
+        }),
+        Ty::Array(container_item) => Ok(Constraint::Eq {
+            expected: *container_item,
+            actual: item,
+            span,
+        }),
+        _ => Err(ClassError(Class::Iterable { container, item }, span)),
+    }
+}
+
+fn check_num(ty: &Ty) -> bool {
+    matches!(ty, Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int))
 }
