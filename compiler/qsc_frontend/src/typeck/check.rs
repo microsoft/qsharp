@@ -3,7 +3,8 @@
 
 use super::{
     infer::{self, SpecImpl},
-    Error, ErrorKind, Ty, Tys,
+    solve::Ty,
+    Error, ErrorKind, Tys,
 };
 use crate::{
     compile::PackageId,

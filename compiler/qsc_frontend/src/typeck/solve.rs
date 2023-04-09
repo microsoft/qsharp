@@ -1,15 +1,91 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind, Ty, Var};
+use super::{Error, ErrorKind};
+use crate::resolve::{DefId, PackageSrc};
 use qsc_ast::ast::{CallableKind, Functor, Span, TyPrim};
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
     mem,
 };
 
 pub(super) type Substitutions = HashMap<Var, Ty>;
+
+#[derive(Clone, Debug)]
+pub enum Ty {
+    Array(Box<Ty>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    DefId(DefId),
+    Err,
+    Param(String),
+    Prim(TyPrim),
+    Tuple(Vec<Ty>),
+    Var(Var),
+}
+
+impl Ty {
+    pub(super) const UNIT: Self = Self::Tuple(Vec::new());
+}
+
+impl Display for Ty {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Ty::Array(item) => write!(f, "({item})[]"),
+            Ty::Arrow(kind, input, output, functors) => {
+                let arrow = match kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
+                write!(f, "({input}) {arrow} ({output})")?;
+                if functors.contains(&Functor::Adj) && functors.contains(&Functor::Ctl) {
+                    f.write_str(" is Adj + Ctl")?;
+                } else if functors.contains(&Functor::Adj) {
+                    f.write_str(" is Adj")?;
+                } else if functors.contains(&Functor::Ctl) {
+                    f.write_str(" is Ctl")?;
+                }
+                Ok(())
+            }
+            Ty::DefId(DefId {
+                package: PackageSrc::Local,
+                node,
+            }) => write!(f, "Def<{node}>"),
+            Ty::DefId(DefId {
+                package: PackageSrc::Extern(package),
+                node,
+            }) => write!(f, "Def<{package}, {node}>"),
+            Ty::Err => f.write_str("Err"),
+            Ty::Param(name) => write!(f, "'{name}"),
+            Ty::Prim(prim) => prim.fmt(f),
+            Ty::Tuple(items) => {
+                f.write_str("(")?;
+                if let Some((first, rest)) = items.split_first() {
+                    Display::fmt(first, f)?;
+                    if rest.is_empty() {
+                        f.write_str(",")?;
+                    } else {
+                        for item in rest {
+                            f.write_str(", ")?;
+                            Display::fmt(item, f)?;
+                        }
+                    }
+                }
+                f.write_str(")")
+            }
+            Ty::Var(id) => Display::fmt(id, f),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Var(u32);
+
+impl Display for Var {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "?{}", self.0)
+    }
+}
 
 pub(super) struct Solver {
     constraints: Vec<Constraint>,
