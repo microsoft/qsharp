@@ -1255,7 +1255,6 @@ fn return_diverges_stmt_after() {
     );
 }
 
-// TODO
 #[test]
 fn return_mismatch() {
     check(
