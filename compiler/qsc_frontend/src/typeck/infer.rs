@@ -35,6 +35,108 @@ impl<'a> Context<'a> {
         }
     }
 
+    fn infer_spec(&mut self, spec: SpecImpl) {
+        let callable_input = self.infer_pat(spec.callable_input);
+        if let Some(input) = spec.input {
+            let expected = match spec.kind {
+                Spec::Body | Spec::Adj => callable_input,
+                Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
+                    Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
+                    callable_input,
+                ]),
+            };
+            let actual = self.infer_pat(input);
+            self.solver.eq(input.span, expected, actual);
+        }
+
+        if !spec.functors.is_empty() {
+            self.solver
+                .eq(spec.output_span, Ty::UNIT, spec.output.clone());
+        }
+
+        let block = self.infer_block(spec.block).unwrap();
+        self.solver.eq(spec.block.span, spec.output.clone(), block);
+    }
+
+    fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
+        match &ty.kind {
+            TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
+            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
+                *kind,
+                Box::new(self.infer_ty(input)),
+                Box::new(self.infer_ty(output)),
+                functors
+                    .as_ref()
+                    .map_or(HashSet::new(), FunctorExpr::to_set),
+            ),
+            TyKind::Hole => self.solver.fresh(),
+            TyKind::Paren(inner) => self.infer_ty(inner),
+            TyKind::Path(path) => Ty::DefId(
+                *self
+                    .resolutions
+                    .get(&path.id)
+                    .expect("path should be resolved"),
+            ),
+            &TyKind::Prim(prim) => Ty::Prim(prim),
+            TyKind::Tuple(items) => {
+                Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
+            }
+            TyKind::Var(name) => Ty::Param(name.name.clone()),
+        }
+    }
+
+    fn infer_block(&mut self, block: &Block) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
+        let mut last = None;
+        for stmt in &block.stmts {
+            let ty = termination.update(self.infer_stmt(stmt));
+            last = Some(ty);
+        }
+
+        let ty = if termination.diverges() {
+            self.solver.fresh()
+        } else {
+            last.unwrap_or(Ty::UNIT)
+        };
+        self.tys.insert(block.id, ty.clone());
+        termination.wrap(ty)
+    }
+
+    fn infer_stmt(&mut self, stmt: &Stmt) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
+        let ty = match &stmt.kind {
+            StmtKind::Empty => Ty::UNIT,
+            StmtKind::Expr(expr) => termination.update(self.infer_expr(expr)),
+            StmtKind::Local(_, pat, expr) => {
+                let pat_ty = self.infer_pat(pat);
+                let expr_ty = termination.update(self.infer_expr(expr));
+                self.solver.eq(pat.span, expr_ty, pat_ty);
+                Ty::UNIT
+            }
+            StmtKind::Qubit(_, pat, init, block) => {
+                let pat_ty = self.infer_pat(pat);
+                let init_ty = termination.update(self.infer_qubit_init(init));
+                self.solver.eq(pat.span, init_ty, pat_ty);
+                match block {
+                    None => Ty::UNIT,
+                    Some(block) => termination.update(self.infer_block(block)),
+                }
+            }
+            StmtKind::Semi(expr) => {
+                termination.update(self.infer_expr(expr));
+                Ty::UNIT
+            }
+        };
+
+        let ty = if termination.diverges() {
+            self.solver.fresh()
+        } else {
+            ty
+        };
+        self.tys.insert(stmt.id, ty.clone());
+        termination.wrap(ty)
+    }
+
     #[allow(clippy::too_many_lines)]
     fn infer_expr(&mut self, expr: &Expr) -> Fallible<Ty> {
         let mut termination = Termination::Converges;
@@ -169,7 +271,7 @@ impl<'a> Context<'a> {
                 None => Ty::Err,
                 Some(id) => {
                     if let Some(ty) = self.globals.get(id) {
-                        self.solver.instantiate(ty)
+                        self.solver.freshen(ty)
                     } else if id.package == PackageSrc::Local {
                         self.tys
                             .get(&id.node)
@@ -240,112 +342,6 @@ impl<'a> Context<'a> {
             ty
         };
         self.tys.insert(expr.id, ty.clone());
-        termination.wrap(ty)
-    }
-
-    fn infer_block(&mut self, block: &Block) -> Fallible<Ty> {
-        let mut termination = Termination::Converges;
-        let mut last = None;
-        for stmt in &block.stmts {
-            let ty = termination.update(self.infer_stmt(stmt));
-            last = Some(ty);
-        }
-
-        let ty = if termination.diverges() {
-            self.solver.fresh()
-        } else {
-            last.unwrap_or(Ty::UNIT)
-        };
-        self.tys.insert(block.id, ty.clone());
-        termination.wrap(ty)
-    }
-
-    fn infer_stmt(&mut self, stmt: &Stmt) -> Fallible<Ty> {
-        let mut termination = Termination::Converges;
-        let ty = match &stmt.kind {
-            StmtKind::Empty => Ty::UNIT,
-            StmtKind::Expr(expr) => termination.update(self.infer_expr(expr)),
-            StmtKind::Local(_, pat, expr) => {
-                let pat_ty = self.infer_pat(pat);
-                let expr_ty = termination.update(self.infer_expr(expr));
-                self.solver.eq(pat.span, expr_ty, pat_ty);
-                Ty::UNIT
-            }
-            StmtKind::Qubit(_, pat, init, block) => {
-                let pat_ty = self.infer_pat(pat);
-                let init_ty = termination.update(self.infer_qubit_init(init));
-                self.solver.eq(pat.span, init_ty, pat_ty);
-                match block {
-                    None => Ty::UNIT,
-                    Some(block) => termination.update(self.infer_block(block)),
-                }
-            }
-            StmtKind::Semi(expr) => {
-                termination.update(self.infer_expr(expr));
-                Ty::UNIT
-            }
-        };
-
-        let ty = if termination.diverges() {
-            self.solver.fresh()
-        } else {
-            ty
-        };
-        self.tys.insert(stmt.id, ty.clone());
-        termination.wrap(ty)
-    }
-
-    fn infer_pat(&mut self, pat: &Pat) -> Ty {
-        let ty = match &pat.kind {
-            PatKind::Bind(name, None) => {
-                let ty = self.solver.fresh();
-                self.tys.insert(name.id, ty.clone());
-                ty
-            }
-            PatKind::Bind(name, Some(ty)) => {
-                let ty = self.convert_ty(ty);
-                self.tys.insert(name.id, ty.clone());
-                ty
-            }
-            PatKind::Discard(None) | PatKind::Elided => self.solver.fresh(),
-            PatKind::Discard(Some(ty)) => self.convert_ty(ty),
-            PatKind::Paren(inner) => self.infer_pat(inner),
-            PatKind::Tuple(items) => {
-                Ty::Tuple(items.iter().map(|item| self.infer_pat(item)).collect())
-            }
-        };
-
-        self.tys.insert(pat.id, ty.clone());
-        ty
-    }
-
-    fn infer_qubit_init(&mut self, init: &QubitInit) -> Fallible<Ty> {
-        let mut termination = Termination::Converges;
-        let ty = match &init.kind {
-            QubitInitKind::Array(length) => {
-                let length_ty = termination.update(self.infer_expr(length));
-                self.solver
-                    .eq(length.span, Ty::Prim(TyPrim::Int), length_ty);
-                Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)))
-            }
-            QubitInitKind::Paren(inner) => termination.update(self.infer_qubit_init(inner)),
-            QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
-            QubitInitKind::Tuple(items) => {
-                let mut tys = Vec::new();
-                for item in items {
-                    let ty = termination.update(self.infer_qubit_init(item));
-                    tys.push(ty);
-                }
-                Ty::Tuple(tys)
-            }
-        };
-
-        let ty = if termination.diverges() {
-            self.solver.fresh()
-        } else {
-            ty
-        };
-        self.tys.insert(init.id, ty.clone());
         termination.wrap(ty)
     }
 
@@ -477,31 +473,58 @@ impl<'a> Context<'a> {
         })
     }
 
-    fn convert_ty(&mut self, ty: &ast::Ty) -> Ty {
-        match &ty.kind {
-            TyKind::Array(item) => Ty::Array(Box::new(self.convert_ty(item))),
-            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
-                *kind,
-                Box::new(self.convert_ty(input)),
-                Box::new(self.convert_ty(output)),
-                functors
-                    .as_ref()
-                    .map_or(HashSet::new(), FunctorExpr::to_set),
-            ),
-            TyKind::Hole => self.solver.fresh(),
-            TyKind::Paren(inner) => self.convert_ty(inner),
-            TyKind::Path(path) => Ty::DefId(
-                *self
-                    .resolutions
-                    .get(&path.id)
-                    .expect("path should be resolved"),
-            ),
-            &TyKind::Prim(prim) => Ty::Prim(prim),
-            TyKind::Tuple(items) => {
-                Ty::Tuple(items.iter().map(|item| self.convert_ty(item)).collect())
+    fn infer_pat(&mut self, pat: &Pat) -> Ty {
+        let ty = match &pat.kind {
+            PatKind::Bind(name, None) => {
+                let ty = self.solver.fresh();
+                self.tys.insert(name.id, ty.clone());
+                ty
             }
-            TyKind::Var(name) => Ty::Param(name.name.clone()),
-        }
+            PatKind::Bind(name, Some(ty)) => {
+                let ty = self.infer_ty(ty);
+                self.tys.insert(name.id, ty.clone());
+                ty
+            }
+            PatKind::Discard(None) | PatKind::Elided => self.solver.fresh(),
+            PatKind::Discard(Some(ty)) => self.infer_ty(ty),
+            PatKind::Paren(inner) => self.infer_pat(inner),
+            PatKind::Tuple(items) => {
+                Ty::Tuple(items.iter().map(|item| self.infer_pat(item)).collect())
+            }
+        };
+
+        self.tys.insert(pat.id, ty.clone());
+        ty
+    }
+
+    fn infer_qubit_init(&mut self, init: &QubitInit) -> Fallible<Ty> {
+        let mut termination = Termination::Converges;
+        let ty = match &init.kind {
+            QubitInitKind::Array(length) => {
+                let length_ty = termination.update(self.infer_expr(length));
+                self.solver
+                    .eq(length.span, Ty::Prim(TyPrim::Int), length_ty);
+                Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)))
+            }
+            QubitInitKind::Paren(inner) => termination.update(self.infer_qubit_init(inner)),
+            QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
+            QubitInitKind::Tuple(items) => {
+                let mut tys = Vec::new();
+                for item in items {
+                    let ty = termination.update(self.infer_qubit_init(item));
+                    tys.push(ty);
+                }
+                Ty::Tuple(tys)
+            }
+        };
+
+        let ty = if termination.diverges() {
+            self.solver.fresh()
+        } else {
+            ty
+        };
+        self.tys.insert(init.id, ty.clone());
+        termination.wrap(ty)
     }
 
     fn solve(self) -> (Tys, Vec<Error>) {
@@ -594,28 +617,6 @@ pub(super) fn spec(
     spec: SpecImpl,
 ) -> (Tys, Vec<Error>) {
     let mut context = Context::new(resolutions, globals, Some(spec.output));
-    let callable_input = context.infer_pat(spec.callable_input);
-    if let Some(input) = spec.input {
-        let expected = match spec.kind {
-            Spec::Body | Spec::Adj => callable_input,
-            Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
-                Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
-                callable_input,
-            ]),
-        };
-        let actual = context.infer_pat(input);
-        context.solver.eq(input.span, expected, actual);
-    }
-
-    if !spec.functors.is_empty() {
-        context
-            .solver
-            .eq(spec.output_span, Ty::UNIT, spec.output.clone());
-    }
-
-    let block = context.infer_block(spec.block).unwrap();
-    context
-        .solver
-        .eq(spec.block.span, spec.output.clone(), block);
+    context.infer_spec(spec);
     context.solve()
 }

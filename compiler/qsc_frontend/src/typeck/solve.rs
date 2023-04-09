@@ -283,7 +283,7 @@ impl Solver {
         Ty::Var(Var(var))
     }
 
-    pub(super) fn instantiate(&mut self, ty: &Ty) -> Ty {
+    pub(super) fn freshen(&mut self, ty: &Ty) -> Ty {
         fn go(fresh: &mut impl FnMut() -> Ty, vars: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
             match ty {
                 Ty::Array(item) => Ty::Array(Box::new(go(fresh, vars, item))),
