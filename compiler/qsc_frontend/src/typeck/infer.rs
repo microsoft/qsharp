@@ -61,21 +61,17 @@ impl Termination {
 struct Context<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<DefId, Ty>,
-    return_ty: Option<&'a Ty>,
+    return_ty: Option<Ty>,
     tys: Tys,
     solver: Solver,
 }
 
 impl<'a> Context<'a> {
-    fn new(
-        resolutions: &'a Resolutions,
-        globals: &'a HashMap<DefId, Ty>,
-        return_ty: Option<&'a Ty>,
-    ) -> Self {
+    fn new(resolutions: &'a Resolutions, globals: &'a HashMap<DefId, Ty>) -> Self {
         Self {
             resolutions,
             globals,
-            return_ty,
+            return_ty: None,
             tys: Tys::new(),
             solver: Solver::new(),
         }
@@ -83,8 +79,8 @@ impl<'a> Context<'a> {
 
     fn infer_spec(&mut self, spec: SpecImpl) {
         let callable_input = self.infer_pat(spec.callable_input);
-        if let Some(input) = spec.input {
-            let expected = match spec.kind {
+        if let Some(input) = spec.spec_input {
+            let expected = match spec.spec {
                 Spec::Body | Spec::Adj => callable_input,
                 Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
                     Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
@@ -95,13 +91,13 @@ impl<'a> Context<'a> {
             self.solver.eq(input.span, expected, actual);
         }
 
-        if !spec.functors.is_empty() {
-            self.solver
-                .eq(spec.output_span, Ty::UNIT, spec.output.clone());
+        self.return_ty = Some(spec.output);
+        let block = self.infer_block(spec.block).value;
+        if let Some(return_ty) = &self.return_ty {
+            self.solver.eq(spec.block.span, return_ty.clone(), block);
         }
 
-        let block = self.infer_block(spec.block).value;
-        self.solver.eq(spec.block.span, spec.output.clone(), block);
+        self.return_ty = None;
     }
 
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
@@ -576,21 +572,19 @@ impl<'a> Context<'a> {
 }
 
 pub(super) struct SpecImpl<'a> {
-    pub(super) kind: Spec,
-    pub(super) input: Option<&'a Pat>,
+    pub(super) spec: Spec,
     pub(super) callable_input: &'a Pat,
-    pub(super) output: &'a Ty,
-    pub(super) output_span: Span,
-    pub(super) functors: &'a HashSet<Functor>,
+    pub(super) spec_input: Option<&'a Pat>,
+    pub(super) output: Ty,
     pub(super) block: &'a Block,
 }
 
-pub(super) fn entry_expr(
+pub(super) fn entry(
     resolutions: &Resolutions,
     globals: &HashMap<DefId, Ty>,
     entry: &Expr,
 ) -> (Tys, Vec<Error>) {
-    let mut context = Context::new(resolutions, globals, None);
+    let mut context = Context::new(resolutions, globals);
     context.infer_expr(entry);
     context.solve()
 }
@@ -600,7 +594,7 @@ pub(super) fn spec(
     globals: &HashMap<DefId, Ty>,
     spec: SpecImpl,
 ) -> (Tys, Vec<Error>) {
-    let mut context = Context::new(resolutions, globals, Some(spec.output));
+    let mut context = Context::new(resolutions, globals);
     context.infer_spec(spec);
     context.solve()
 }

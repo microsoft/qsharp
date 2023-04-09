@@ -39,7 +39,7 @@ impl Visitor<'_> for Checker<'_> {
         }
 
         if let Some(entry) = &package.entry {
-            let (tys, errors) = infer::entry_expr(self.resolutions, &self.globals, entry);
+            let (tys, errors) = infer::entry(self.resolutions, &self.globals, entry);
             self.tys.extend(tys);
             self.errors.extend(errors);
         }
@@ -53,15 +53,23 @@ impl Visitor<'_> for Checker<'_> {
         let ty = self.globals.get(&id).expect("callable should have type");
         let Ty::Arrow(_, _, output, functors) = ty else { panic!("callable should have arrow type") };
 
+        match output.as_ref() {
+            Ty::Tuple(items) if items.is_empty() => {}
+            _ if !functors.is_empty() => self.errors.push(Error(ErrorKind::TypeMismatch(
+                Ty::UNIT,
+                (**output).clone(),
+                decl.output.span,
+            ))),
+            _ => {}
+        }
+
         match &decl.body {
             CallableBody::Block(block) => {
                 let spec = SpecImpl {
-                    kind: Spec::Body,
-                    input: None,
+                    spec: Spec::Body,
                     callable_input: &decl.input,
-                    output,
-                    output_span: decl.output.span,
-                    functors,
+                    spec_input: None,
+                    output: (**output).clone(),
                     block,
                 };
                 let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
@@ -70,22 +78,17 @@ impl Visitor<'_> for Checker<'_> {
             }
             CallableBody::Specs(specs) => {
                 for spec in specs {
-                    match &spec.body {
-                        SpecBody::Gen(_) => {}
-                        SpecBody::Impl(input, block) => {
-                            let spec = SpecImpl {
-                                kind: spec.spec,
-                                input: Some(input),
-                                callable_input: &decl.input,
-                                output,
-                                output_span: decl.output.span,
-                                functors,
-                                block,
-                            };
-                            let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
-                            self.tys.extend(tys);
-                            self.errors.extend(errors);
-                        }
+                    if let SpecBody::Impl(input, block) = &spec.body {
+                        let spec = SpecImpl {
+                            spec: spec.spec,
+                            callable_input: &decl.input,
+                            spec_input: Some(input),
+                            output: (**output).clone(),
+                            block,
+                        };
+                        let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
+                        self.tys.extend(tys);
+                        self.errors.extend(errors);
                     }
                 }
             }
