@@ -181,7 +181,6 @@ impl<'a> Context<'a> {
                         let item_ty = term.then(self.infer_expr(item));
                         self.solver.eq(item.span, first_ty.clone(), item_ty);
                     }
-
                     Ty::Array(Box::new(first_ty))
                 }
                 None => Ty::Array(Box::new(self.solver.fresh())),
@@ -256,7 +255,6 @@ impl<'a> Context<'a> {
                         item: item_ty,
                     },
                 );
-
                 term.then(self.infer_block(body));
                 Ty::UNIT
             }
@@ -264,11 +262,10 @@ impl<'a> Context<'a> {
                 let cond_ty = term.then(self.infer_expr(cond));
                 self.solver.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
                 let true_ty = self.infer_block(if_true);
-                let false_ty = if_false
-                    .as_ref()
-                    .map_or(Termination::default().with(Ty::UNIT), |e| {
-                        self.infer_expr(e)
-                    });
+                let false_ty = if_false.as_ref().map_or_else(
+                    || Termination::default().with(Ty::UNIT),
+                    |e| self.infer_expr(e),
+                );
                 let (true_ty, false_ty) = term.then(true_ty.and(false_ty));
                 self.solver.eq(expr.span, true_ty.clone(), false_ty);
                 true_ty
@@ -302,18 +299,15 @@ impl<'a> Context<'a> {
             ExprKind::Paren(expr) => term.then(self.infer_expr(expr)),
             ExprKind::Path(path) => match self.resolutions.get(&path.id) {
                 None => Ty::Err,
-                Some(id) => {
-                    if let Some(ty) = self.globals.get(id) {
-                        self.solver.freshen(ty)
-                    } else if id.package == PackageSrc::Local {
-                        self.tys
-                            .get(&id.node)
-                            .expect("local variable should have inferred type")
-                            .clone()
-                    } else {
-                        panic!("path resolves to external package, but definition not found in globals")
-                    }
-                }
+                Some(id) => match self.globals.get(id) {
+                    Some(ty) => self.solver.freshen(ty),
+                    None if id.package == PackageSrc::Local => self
+                        .tys
+                        .get(&id.node)
+                        .expect("local variable should have inferred type")
+                        .clone(),
+                    None => panic!("path resolves to external package but definition not found"),
+                },
             },
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
@@ -374,21 +368,22 @@ impl<'a> Context<'a> {
         term.with(ty)
     }
 
-    fn infer_unop(&mut self, op: UnOp, expr: &Expr) -> Fallible<Ty> {
+    fn infer_unop(&mut self, op: UnOp, operand: &Expr) -> Fallible<Ty> {
         let Fallible {
             term,
             value: operand_ty,
-        } = self.infer_expr(expr);
+        } = self.infer_expr(operand);
 
         let ty = match op {
             UnOp::Functor(Functor::Adj) => {
-                self.solver.class(expr.span, Class::Adj(operand_ty.clone()));
+                self.solver
+                    .class(operand.span, Class::Adj(operand_ty.clone()));
                 operand_ty
             }
             UnOp::Functor(Functor::Ctl) => {
                 let with_ctls = self.solver.fresh();
                 self.solver.class(
-                    expr.span,
+                    operand.span,
                     Class::Ctl {
                         op: operand_ty,
                         with_ctls: with_ctls.clone(),
@@ -397,18 +392,19 @@ impl<'a> Context<'a> {
                 with_ctls
             }
             UnOp::Neg | UnOp::NotB | UnOp::Pos => {
-                self.solver.class(expr.span, Class::Num(operand_ty.clone()));
+                self.solver
+                    .class(operand.span, Class::Num(operand_ty.clone()));
                 operand_ty
             }
             UnOp::NotL => {
                 self.solver
-                    .eq(expr.span, Ty::Prim(TyPrim::Bool), operand_ty.clone());
+                    .eq(operand.span, Ty::Prim(TyPrim::Bool), operand_ty.clone());
                 operand_ty
             }
             UnOp::Unwrap => {
                 let base = self.solver.fresh();
                 self.solver.class(
-                    expr.span,
+                    operand.span,
                     Class::Unwrap {
                         wrapper: operand_ty,
                         base: base.clone(),
@@ -421,7 +417,6 @@ impl<'a> Context<'a> {
         term.with(self.diverge_or(term, ty))
     }
 
-    #[allow(clippy::too_many_lines)]
     fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Fallible<Ty> {
         let mut term = Termination::default();
         let lhs_ty = term.then(self.infer_expr(lhs));
@@ -499,7 +494,6 @@ impl<'a> Context<'a> {
                 item: item_ty,
             },
         );
-
         term.with(self.diverge_or(term, container_ty))
     }
 
@@ -541,8 +535,7 @@ impl<'a> Context<'a> {
             QubitInitKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 for item in items {
-                    let ty = term.then(self.infer_qubit_init(item));
-                    tys.push(ty);
+                    tys.push(term.then(self.infer_qubit_init(item)));
                 }
                 Ty::Tuple(tys)
             }
