@@ -61,7 +61,7 @@ impl Termination {
 struct Context<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<DefId, Ty>,
-    return_ty: Option<Ty>,
+    return_ty: Option<&'a Ty>,
     tys: Tys,
     solver: Solver,
 }
@@ -77,7 +77,7 @@ impl<'a> Context<'a> {
         }
     }
 
-    fn infer_spec(&mut self, spec: SpecImpl) {
+    fn infer_spec(&mut self, spec: SpecImpl<'a>) {
         let callable_input = self.infer_pat(spec.callable_input);
         if let Some(input) = spec.spec_input {
             let expected = match spec.spec {
@@ -93,7 +93,7 @@ impl<'a> Context<'a> {
 
         self.return_ty = Some(spec.output);
         let block = self.infer_block(spec.block).value;
-        if let Some(return_ty) = &self.return_ty {
+        if let Some(return_ty) = self.return_ty {
             self.solver.eq(spec.block.span, return_ty.clone(), block);
         }
 
@@ -571,11 +571,12 @@ impl<'a> Context<'a> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct SpecImpl<'a> {
     pub(super) spec: Spec,
     pub(super) callable_input: &'a Pat,
     pub(super) spec_input: Option<&'a Pat>,
-    pub(super) output: Ty,
+    pub(super) output: &'a Ty,
     pub(super) block: &'a Block,
 }
 

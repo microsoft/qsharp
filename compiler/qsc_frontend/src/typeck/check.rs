@@ -12,8 +12,8 @@ use crate::{
 };
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, Functor, FunctorExpr, Package, Pat, PatKind, Span, Spec,
-        SpecBody, TyKind,
+        self, CallableBody, CallableDecl, Expr, Functor, FunctorExpr, Package, Pat, PatKind, Span,
+        Spec, SpecBody, TyKind,
     },
     visit::Visitor,
 };
@@ -30,6 +30,18 @@ impl Checker<'_> {
     pub(crate) fn into_tys(self) -> (Tys, Vec<Error>) {
         (self.tys, self.errors)
     }
+
+    fn check_spec(&mut self, spec: SpecImpl) {
+        let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
+        self.tys.extend(tys);
+        self.errors.extend(errors);
+    }
+
+    fn check_entry(&mut self, entry: &Expr) {
+        let (tys, errors) = infer::entry(self.resolutions, &self.globals, entry);
+        self.tys.extend(tys);
+        self.errors.extend(errors);
+    }
 }
 
 impl Visitor<'_> for Checker<'_> {
@@ -37,58 +49,42 @@ impl Visitor<'_> for Checker<'_> {
         for namespace in &package.namespaces {
             self.visit_namespace(namespace);
         }
-
         if let Some(entry) = &package.entry {
-            let (tys, errors) = infer::entry(self.resolutions, &self.globals, entry);
-            self.tys.extend(tys);
-            self.errors.extend(errors);
+            self.check_entry(entry);
         }
     }
 
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        let id = DefId {
-            package: PackageSrc::Local,
-            node: decl.name.id,
-        };
-        let ty = self.globals.get(&id).expect("callable should have type");
-        let Ty::Arrow(_, _, output, functors) = ty else { panic!("callable should have arrow type") };
-
-        match output.as_ref() {
+        let output = try_convert_ty(self.resolutions, &decl.output).0;
+        let functors = callable_functors(decl);
+        match &output {
             Ty::Tuple(items) if items.is_empty() => {}
             _ if !functors.is_empty() => self.errors.push(Error(ErrorKind::TypeMismatch(
                 Ty::UNIT,
-                (**output).clone(),
+                Ty::clone(&output),
                 decl.output.span,
             ))),
             _ => {}
         }
 
         match &decl.body {
-            CallableBody::Block(block) => {
-                let spec = SpecImpl {
-                    spec: Spec::Body,
-                    callable_input: &decl.input,
-                    spec_input: None,
-                    output: (**output).clone(),
-                    block,
-                };
-                let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
-                self.tys.extend(tys);
-                self.errors.extend(errors);
-            }
+            CallableBody::Block(block) => self.check_spec(SpecImpl {
+                spec: Spec::Body,
+                callable_input: &decl.input,
+                spec_input: None,
+                output: &output,
+                block,
+            }),
             CallableBody::Specs(specs) => {
                 for spec in specs {
                     if let SpecBody::Impl(input, block) = &spec.body {
-                        let spec = SpecImpl {
+                        self.check_spec(SpecImpl {
                             spec: spec.spec,
                             callable_input: &decl.input,
                             spec_input: Some(input),
-                            output: (**output).clone(),
+                            output: &output,
                             block,
-                        };
-                        let (tys, errors) = infer::spec(self.resolutions, &self.globals, spec);
-                        self.tys.extend(tys);
-                        self.errors.extend(errors);
+                        });
                     }
                 }
             }
@@ -147,7 +143,12 @@ fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> (Ty, Vec<Missi
     let (input, mut errors) = try_pat_ty(resolutions, &decl.input);
     let (output, output_errors) = try_convert_ty(resolutions, &decl.output);
     errors.extend(output_errors);
+    let functors = callable_functors(decl);
+    let ty = Ty::Arrow(decl.kind, Box::new(input), Box::new(output), functors);
+    (ty, errors)
+}
 
+fn callable_functors(decl: &CallableDecl) -> HashSet<Functor> {
     let sig_functors = decl
         .functors
         .as_ref()
@@ -164,10 +165,7 @@ fn callable_ty(resolutions: &Resolutions, decl: &CallableDecl) -> (Ty, Vec<Missi
             })
             .collect(),
     };
-
-    let functors = sig_functors.union(&body_functors).copied().collect();
-    let ty = Ty::Arrow(decl.kind, Box::new(input), Box::new(output), functors);
-    (ty, errors)
+    sig_functors.union(&body_functors).copied().collect()
 }
 
 fn try_convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
