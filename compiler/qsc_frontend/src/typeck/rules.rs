@@ -12,20 +12,6 @@ use qsc_ast::ast::{
 };
 use std::collections::{HashMap, HashSet};
 
-struct Fallible<T> {
-    term: Termination,
-    value: T,
-}
-
-impl<T> Fallible<T> {
-    fn and<U>(self, other: Fallible<U>) -> Fallible<(T, U)> {
-        Fallible {
-            term: self.term.and(other.term),
-            value: (self.value, other.value),
-        }
-    }
-}
-
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
 enum Termination {
     #[default]
@@ -55,6 +41,20 @@ impl Termination {
     fn then<T>(&mut self, fallible: Fallible<T>) -> T {
         *self = self.or(fallible.term);
         fallible.value
+    }
+}
+
+struct Fallible<T> {
+    term: Termination,
+    value: T,
+}
+
+impl<T> Fallible<T> {
+    fn and<U>(self, other: Fallible<U>) -> Fallible<(T, U)> {
+        Fallible {
+            term: self.term.and(other.term),
+            value: (self.value, other.value),
+        }
     }
 }
 
