@@ -29,39 +29,6 @@ impl<'a> Inferrer<'a> {
         }
     }
 
-    fn infer_spec(
-        &mut self,
-        spec: Spec,
-        call_input: &Pat,
-        spec_input: Option<&Pat>,
-        output: &ast::Ty,
-        functors: &HashSet<Functor>,
-        block: &Block,
-    ) {
-        let call_input_ty = self.infer_pat(call_input);
-
-        if let Some(spec_input) = spec_input {
-            let expected_input_ty = match spec {
-                Spec::Body | Spec::Adj => call_input_ty,
-                Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
-                    Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
-                    call_input_ty,
-                ]),
-            };
-            let actual_input_ty = self.infer_pat(spec_input);
-            self.solver
-                .eq(spec_input.span, expected_input_ty, actual_input_ty);
-        }
-
-        let output_ty = self.convert_ty(output);
-        if !functors.is_empty() {
-            self.solver.eq(output.span, Ty::UNIT, output_ty.clone());
-        }
-
-        let block_ty = self.infer_block(block).unwrap();
-        self.solver.eq(block.span, output_ty, block_ty);
-    }
-
     #[allow(clippy::too_many_lines)]
     fn infer_expr(&mut self, expr: &Expr) -> Fallible<Ty> {
         let mut termination = Termination::Converges;
@@ -617,13 +584,27 @@ pub(super) fn spec(
     spec: SpecImpl,
 ) -> (Tys, Vec<Error>) {
     let mut inferrer = Inferrer::new(resolutions, globals);
-    inferrer.infer_spec(
-        spec.kind,
-        &spec.callable_input,
-        spec.input,
-        &spec.output,
-        &spec.functors,
-        &spec.block,
-    );
+    let callable_input = inferrer.infer_pat(&spec.callable_input);
+    if let Some(input) = spec.input {
+        let expected = match spec.kind {
+            Spec::Body | Spec::Adj => callable_input,
+            Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
+                Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
+                callable_input,
+            ]),
+        };
+        let actual = inferrer.infer_pat(input);
+        inferrer.solver.eq(input.span, expected, actual);
+    }
+
+    let output = inferrer.convert_ty(&spec.output);
+    if !spec.functors.is_empty() {
+        inferrer
+            .solver
+            .eq(spec.output.span, Ty::UNIT, output.clone());
+    }
+
+    let block = inferrer.infer_block(&spec.block).unwrap();
+    inferrer.solver.eq(spec.block.span, output, block);
     inferrer.solve()
 }
