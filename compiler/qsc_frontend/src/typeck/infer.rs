@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use super::{
-    solve::{self, Solver},
-    Class, ConstraintKind, Error, Ty, Tys,
+    solve::{self, Class, ConstraintKind, Solver},
+    Error, Ty, Tys,
 };
 use crate::resolve::{DefId, PackageSrc, Resolutions};
 use qsc_ast::ast::{

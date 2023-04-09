@@ -1,9 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Class, Constraint, ConstraintKind, Error, Ty, UnifyError, Var};
+use super::{Error, ErrorKind, Ty, Var};
 use qsc_ast::ast::{CallableKind, Functor, Span, TyPrim};
-use std::{collections::HashMap, mem};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{self, Display, Formatter},
+    mem,
+};
 
 pub(super) type Substitutions = HashMap<Var, Ty>;
 
@@ -76,7 +80,7 @@ impl Solver {
                             {
                                 Ok(new) => new_constraints.extend(new),
                                 Err(error) => {
-                                    errors.push(Error::MissingClass(error.0, error.1));
+                                    errors.push(Error(ErrorKind::MissingClass(error.0, error.1)));
                                 }
                             }
                         } else {
@@ -91,7 +95,11 @@ impl Solver {
                         let new_substs = match unify(&ty1, &ty2) {
                             Ok(new_substs) => new_substs,
                             Err(UnifyError(ty1, ty2)) => {
-                                errors.push(Error::TypeMismatch(ty1, ty2, constraint.span));
+                                errors.push(Error(ErrorKind::TypeMismatch(
+                                    ty1,
+                                    ty2,
+                                    constraint.span,
+                                )));
                                 Vec::new()
                             }
                         };
@@ -123,7 +131,176 @@ impl Solver {
     }
 }
 
+pub(super) struct Constraint {
+    pub(super) span: Span,
+    pub(super) kind: ConstraintKind,
+}
+
+pub(super) enum ConstraintKind {
+    Class(Class),
+    Eq { expected: Ty, actual: Ty },
+}
+
+#[derive(Clone, Debug)]
+pub(super) enum Class {
+    Add(Ty),
+    Adj(Ty),
+    Call {
+        callee: Ty,
+        input: Ty,
+        output: Ty,
+    },
+    Ctl {
+        op: Ty,
+        with_ctls: Ty,
+    },
+    Eq(Ty),
+    Exp {
+        base: Ty,
+        power: Ty,
+    },
+    HasField {
+        record: Ty,
+        name: String,
+        item: Ty,
+    },
+    HasFunctorsIfOp {
+        callee: Ty,
+        functors: HashSet<Functor>,
+    },
+    HasIndex {
+        container: Ty,
+        index: Ty,
+        item: Ty,
+    },
+    HasPartialApp {
+        callee: Ty,
+        missing: Ty,
+        with_app: Ty,
+    },
+    Integral(Ty),
+    Iterable {
+        container: Ty,
+        item: Ty,
+    },
+    Num(Ty),
+    Unwrap {
+        wrapper: Ty,
+        base: Ty,
+    },
+}
+
+impl Class {
+    fn dependencies(&self) -> Vec<&Ty> {
+        match self {
+            Self::Add(ty) | Self::Adj(ty) | Self::Eq(ty) | Self::Integral(ty) | Self::Num(ty) => {
+                vec![ty]
+            }
+            Self::Call { callee, .. }
+            | Self::HasFunctorsIfOp { callee, .. }
+            | Self::HasPartialApp { callee, .. } => vec![callee],
+            Self::Ctl { op, .. } => vec![op],
+            Self::Exp { base, .. } => vec![base],
+            Self::HasField { record, .. } => vec![record],
+            Self::HasIndex {
+                container, index, ..
+            } => vec![container, index],
+            Self::Iterable { container, .. } => vec![container],
+            Self::Unwrap { wrapper, .. } => vec![wrapper],
+        }
+    }
+
+    fn map(self, mut f: impl FnMut(Ty) -> Ty) -> Self {
+        match self {
+            Self::Add(ty) => Self::Add(f(ty)),
+            Self::Adj(ty) => Self::Adj(f(ty)),
+            Self::Call {
+                callee,
+                input,
+                output,
+            } => Self::Call {
+                callee: f(callee),
+                input: f(input),
+                output: f(output),
+            },
+            Self::Ctl { op, with_ctls } => Self::Ctl {
+                op: f(op),
+                with_ctls: f(with_ctls),
+            },
+            Self::Eq(ty) => Self::Eq(f(ty)),
+            Self::Exp { base, power } => Self::Exp {
+                base: f(base),
+                power: f(power),
+            },
+            Self::HasField { record, name, item } => Self::HasField {
+                record: f(record),
+                name,
+                item: f(item),
+            },
+            Self::HasFunctorsIfOp { callee, functors } => Self::HasFunctorsIfOp {
+                callee: f(callee),
+                functors,
+            },
+            Self::HasIndex {
+                container,
+                index,
+                item,
+            } => Self::HasIndex {
+                container: f(container),
+                index: f(index),
+                item: f(item),
+            },
+            Self::HasPartialApp {
+                callee,
+                missing,
+                with_app,
+            } => Self::HasPartialApp {
+                callee: f(callee),
+                missing: f(missing),
+                with_app: f(with_app),
+            },
+            Self::Integral(ty) => Self::Integral(f(ty)),
+            Self::Iterable { container, item } => Self::Iterable {
+                container: f(container),
+                item: f(item),
+            },
+            Self::Num(ty) => Self::Num(f(ty)),
+            Self::Unwrap { wrapper, base } => Self::Unwrap {
+                wrapper: f(wrapper),
+                base: f(base),
+            },
+        }
+    }
+}
+
+impl Display for Class {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Class::Add(ty) => write!(f, "Add<{ty}>"),
+            Class::Adj(ty) => write!(f, "Adj<{ty}>"),
+            Class::Call { callee, .. } => write!(f, "Call<{callee}>"),
+            Class::Ctl { op, .. } => write!(f, "Ctl<{op}>"),
+            Class::Eq(ty) => write!(f, "Eq<{ty}>"),
+            Class::Exp { base, .. } => write!(f, "Exp<{base}>"),
+            Class::HasField { record, name, .. } => write!(f, "HasField<{record}, {name}>"),
+            Class::HasFunctorsIfOp { callee, functors } => {
+                write!(f, "HasFunctorsIfOp<{callee}, {functors:?}>")
+            }
+            Class::HasIndex {
+                container, index, ..
+            } => write!(f, "HasIndex<{container}, {index}>"),
+            Class::HasPartialApp { callee, .. } => write!(f, "HasPartialApp<{callee}>"),
+            Class::Integral(ty) => write!(f, "Integral<{ty}>"),
+            Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
+            Class::Num(ty) => write!(f, "Num<{ty}"),
+            Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
+        }
+    }
+}
+
 struct ClassError(Class, Span);
+
+struct UnifyError(Ty, Ty);
 
 fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
     match (ty1, ty2) {
