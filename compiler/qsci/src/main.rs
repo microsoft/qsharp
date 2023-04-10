@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
-use qsc_eval::interactive::Interpreter;
+use qsc_eval::interactive::{Interpreter, InterpreterResult};
 use qsc_frontend::compile::{Context, SourceIndex};
 use qsc_frontend::diagnostic::OffsetError;
 
@@ -92,7 +92,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 }
 
-fn print_results(results: Vec<qsc_eval::interactive::InterpreterResult>, line: &str) {
+fn print_results(results: impl Iterator<Item = InterpreterResult>, line: &str) {
     for result in results {
         if !result.value.is_empty() {
             println!("{}", result.value);

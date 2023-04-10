@@ -16,65 +16,65 @@ mod given_interpreter {
                 let mut interpreter =
                     Interpreter::new(true, SOURCES).expect("Failed to compile base environment.");
 
-                let result = &interpreter.line("Message(\"_\")")[0];
-                is_only_error(result, "`Message` not found in this scope");
+                let results = interpreter.line("Message(\"_\")");
+                is_only_error(results, "`Message` not found in this scope");
             }
         }
 
         #[test]
         fn stdlib_members_should_be_available() {
             let mut interpreter = get_interpreter();
-            let result = &interpreter.line("Message(\"_\")")[0];
-            is_unit_with_output(result, "_");
+            let results = interpreter.line("Message(\"_\")");
+            is_unit_with_output(results, "_");
         }
 
         #[test]
         fn let_bindings_update_interpreter() {
             let mut interpreter = get_interpreter();
-            let _ = &interpreter.line("let y = 7;")[0];
-            let result = &interpreter.line("y")[0];
-            assert_eq!("7", result.value);
+            let _ = interpreter.line("let y = 7;");
+            let results = interpreter.line("y");
+            is_only_value(results, "7");
         }
 
         #[test]
         fn let_bindings_can_be_shadowed() {
             let mut interpreter = get_interpreter();
 
-            let result = &interpreter.line("let y = 7;")[0];
-            is_only_value(result, "()");
+            let results = interpreter.line("let y = 7;");
+            is_only_value(results, "()");
 
-            let result = &interpreter.line("y")[0];
-            is_only_value(result, "7");
+            let results = interpreter.line("y");
+            is_only_value(results, "7");
 
-            let result = &interpreter.line("let y = \"Hello\";")[0];
-            is_only_value(result, "()");
+            let results = interpreter.line("let y = \"Hello\";");
+            is_only_value(results, "()");
 
-            let result = &interpreter.line("y")[0];
-            is_only_value(result, "Hello");
+            let results = interpreter.line("y");
+            is_only_value(results, "Hello");
         }
 
         #[test]
         fn invalid_statements_return_error() {
             let mut interpreter = get_interpreter();
 
-            let result = &interpreter.line("let y = 7")[0];
-            is_only_error(result, "expected `;`, found EOF");
+            let results = interpreter.line("let y = 7");
+            is_only_error(results, "expected `;`, found EOF");
 
-            let result = &interpreter.line("y")[0];
-            is_only_error(result, "`y` not found in this scope");
+            let results = interpreter.line("y");
+            is_only_error(results, "`y` not found in this scope");
         }
 
         #[test]
         fn failing_statements_return_early_error() {
             let mut interpreter = get_interpreter();
 
-            let results = &interpreter.line("let y = 7;y/0;y");
+            let results = interpreter.line("let y = 7;y/0;y");
+            let results = results.collect::<Vec<_>>();
             assert_eq!(results.len(), 2);
-            let result = &results[0];
-            is_only_value(result, "()");
 
-            let result = &results[1];
-            is_only_error(result, "division by zero");
+            is_only_value([results[0].clone()].into_iter(), "()");
+
+            is_only_error([results[1].clone()].into_iter(), "division by zero");
         }
     }
 
@@ -94,8 +94,8 @@ mod given_interpreter {
 
             let mut interpreter =
                 Interpreter::new(false, [source]).expect("Failed to compile base environment.");
-            let result = &interpreter.line("Test.Main()")[0];
-            is_unit_with_output(result, "hello there...");
+            let results = interpreter.line("Test.Main()");
+            is_unit_with_output(results, "hello there...");
         }
 
         #[test]
@@ -113,10 +113,10 @@ mod given_interpreter {
 
             let mut interpreter =
                 Interpreter::new(false, [source]).expect("Failed to compile base environment.");
-            let result = &interpreter.line("Test.Hello()")[0];
-            is_only_value(result, "hello there...");
-            let result = &interpreter.line("Test.Main()")[0];
-            is_only_value(result, "hello there...");
+            let results = interpreter.line("Test.Hello()");
+            is_only_value(results, "hello there...");
+            let results = interpreter.line("Test.Main()");
+            is_only_value(results, "hello there...");
         }
 
         #[test]
@@ -136,10 +136,10 @@ mod given_interpreter {
 
             let mut interpreter =
                 Interpreter::new(false, [source]).expect("Failed to compile base environment.");
-            let result = &interpreter.line("Test.Hello()")[0];
-            is_only_value(result, "hello there...");
-            let result = &interpreter.line("Test2.Main()")[0];
-            is_only_value(result, "hello there...");
+            let results = interpreter.line("Test.Hello()");
+            is_only_value(results, "hello there...");
+            let results = interpreter.line("Test2.Main()");
+            is_only_value(results, "hello there...");
         }
     }
 
@@ -148,19 +148,25 @@ mod given_interpreter {
         Interpreter::new(false, SOURCES).expect("Failed to compile base environment.")
     }
 
-    fn is_only_value(result: &InterpreterResult, value: &str) {
+    fn is_only_value(results: impl Iterator<Item = InterpreterResult>, value: &str) {
+        let results = results.collect::<Vec<_>>();
+        let result = &results[0];
         assert_eq!(value, result.value);
         assert_eq!("", result.output);
         assert_eq!(0, result.errors.len());
     }
 
-    fn is_unit_with_output(result: &InterpreterResult, output: &str) {
+    fn is_unit_with_output(results: impl Iterator<Item = InterpreterResult>, output: &str) {
+        let results = results.collect::<Vec<_>>();
+        let result = &results[0];
         assert_eq!("()", result.value);
         assert_eq!(output, result.output);
         assert_eq!(0, result.errors.len());
     }
 
-    fn is_only_error(result: &InterpreterResult, error: &str) {
+    fn is_only_error(results: impl Iterator<Item = InterpreterResult>, error: &str) {
+        let results = results.collect::<Vec<_>>();
+        let result = &results[0];
         assert_eq!("", result.value);
         assert_eq!("", result.output);
         assert_eq!(1, result.errors.len());

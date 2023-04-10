@@ -90,6 +90,7 @@ pub struct ExecutionContext {
     out: CursorReceiver<'this>,
 }
 
+#[derive(Clone, Debug)]
 pub struct InterpreterResult {
     pub output: String,
     pub value: String,
@@ -153,7 +154,7 @@ impl Interpreter {
         Ok(Self { context })
     }
 
-    pub fn line(&mut self, line: impl AsRef<str>) -> Vec<InterpreterResult> {
+    pub fn line(&mut self, line: impl AsRef<str>) -> impl Iterator<Item = InterpreterResult> {
         self.context
             .with_mut(|fields| eval_line_in_context(line, fields))
     }
@@ -163,7 +164,7 @@ impl Interpreter {
 fn eval_line_in_context(
     line: impl AsRef<str>,
     fields: BorrowedMutFields,
-) -> Vec<InterpreterResult> {
+) -> impl Iterator<Item = InterpreterResult> {
     let mut results = vec![];
     let fragments = fields.compiler.compile_fragment(line);
     for fragment in fragments {
@@ -192,7 +193,7 @@ fn eval_line_in_context(
                             output,
                             vec![crate::interactive::Error::Eval(e)],
                         ));
-                        return results;
+                        return results.into_iter();
                     }
                 }
             }
@@ -213,5 +214,5 @@ fn eval_line_in_context(
             }
         }
     }
-    results
+    results.into_iter()
 }
