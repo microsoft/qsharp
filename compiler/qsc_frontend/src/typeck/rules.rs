@@ -286,6 +286,7 @@ impl<'a> Context<'a> {
                 item_ty
             }
             ExprKind::Lambda(kind, input, body) => {
+                // TODO: Infer the supported functors or require that they are explicitly listed.
                 let input = self.infer_pat(input);
                 let body = term.then(self.infer_expr(body));
                 Ty::Arrow(*kind, Box::new(input), Box::new(body), HashSet::new())
