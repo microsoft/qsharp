@@ -60,6 +60,8 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
     exerciseDiv.append(exerciseParagraph);
     let sourceCodeArea = document.createElement("textarea");
     sourceCodeArea.id = `source_${exercise.id}`;
+    sourceCodeArea.rows = 30;
+    sourceCodeArea.cols = 80;
     sourceCodeArea.value = exercise.placeholderImplementation;
     exerciseDiv.append(sourceCodeArea);
     let outputDiv = document.createElement("div");

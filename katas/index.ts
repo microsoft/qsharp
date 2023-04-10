@@ -3,7 +3,7 @@ export type KatasMetadata = {
         id: string;
         title: string;
         description: string;
-        tasks: Array<{
+        exercises: Array<{
             id: string;
             title: string;
             description: string;
@@ -18,7 +18,7 @@ export const katasMetadata: KatasMetadata = {
             id: "single-qubit-gates",
             title: "Single-Qubit Gates",
             description: "",
-            tasks: [
+            exercises: [
                 {
                     id: "single-qubit-gates_y-gate",
                     title: "The Y Gate",

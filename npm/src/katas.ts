@@ -56,8 +56,9 @@ let modules : KataModule[] = [
                 
                         if CheckZero(target) {
                             if CheckZero(aux) {
-                                Message("SUCCESS");
+                                Message("CORRECT");
                                 task(target);
+                                Message("Expected State:");
                                 DumpMachine();
                                 return true;
                             }
@@ -67,18 +68,26 @@ let modules : KataModule[] = [
                         Reset(target);
                 
                         // Use DumpMachine to display actual vs desired state.
-                        Message("FAILURE");
+                        Message("INCORRECT");
                         task(target);
+                        Message("Actual State:");
                         DumpMachine();
                         Reset(target);
                         taskRef(target);
+                        Message("Expected State:");
                         DumpMachine();
                 
                         return false;
                     }
                 }`,
                 referenceImplementatuon: "Reference",
-                placeholderImplementation: "Placeholder"
+                placeholderImplementation: `
+namespace Kata {
+    operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
+        // ...
+
+    }
+}`
             },
             {
                 id: "single-qubit-gates_global-phase-i",
