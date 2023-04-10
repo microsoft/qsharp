@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod given_interpreter {
-    use crate::interactive::{Interpreter, InterpreterResult};
+    use crate::stateful::{Interpreter, InterpreterResult};
 
     mod without_sources {
         use super::*;

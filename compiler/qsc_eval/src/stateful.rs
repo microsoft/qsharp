@@ -15,8 +15,8 @@ use qsc_frontend::incremental::{Compiler, Fragment};
 use std::io::Cursor;
 use std::io::Write;
 
-use crate::interactive::ouroboros_impl_execution_context::BorrowedMutFields;
 use crate::output;
+use crate::stateful::ouroboros_impl_execution_context::BorrowedMutFields;
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -191,7 +191,7 @@ fn eval_line_in_context(
                         results.push(InterpreterResult::new(
                             String::new(),
                             output,
-                            vec![crate::interactive::Error::Eval(e)],
+                            vec![crate::stateful::Error::Eval(e)],
                         ));
                         return results.into_iter();
                     }
@@ -208,7 +208,7 @@ fn eval_line_in_context(
             Fragment::Error(errors) => {
                 let e = errors
                     .iter()
-                    .map(|e| crate::interactive::Error::Incremental(e.clone()))
+                    .map(|e| crate::stateful::Error::Incremental(e.clone()))
                     .collect();
                 results.push(InterpreterResult::new(String::new(), String::new(), e));
             }

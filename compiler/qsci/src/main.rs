@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
-use qsc_eval::interactive::{Interpreter, InterpreterResult};
+use qsc_eval::stateful::{Interpreter, InterpreterResult};
 use qsc_frontend::compile::{Context, SourceIndex};
 use qsc_frontend::diagnostic::OffsetError;
 

@@ -6,9 +6,10 @@
 #[cfg(test)]
 mod tests;
 
-pub mod interactive;
 mod intrinsic;
 pub mod output;
+pub mod stateful;
+pub mod stateless;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};

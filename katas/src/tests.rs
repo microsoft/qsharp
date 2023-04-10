@@ -8,7 +8,8 @@ use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::{compile_kata, verify_kata};
+use crate::run_kata;
+
 use qsc_eval::output::GenericReceiver;
 
 fn katas_qsharp_source_dir() -> PathBuf {
@@ -35,41 +36,50 @@ fn validate_exercise(exercise_dir: &Path) {
     reference_file_path.push("reference.qs");
     let reference_source = read_to_string(reference_file_path)
         .expect("Unable to read reference source implementation file.");
+
     let mut placeholder_file_path = PathBuf::from(exercise_dir);
     placeholder_file_path.push("placeholder.qs");
     let placeholder_source = read_to_string(placeholder_file_path)
         .expect("Unable to read placeholder source implementation file.");
-    let sources = vec![reference_source.clone(), placeholder_source.clone()];
-    for source in &sources {
-        let kata_compilation = compile_kata(verification_source.as_str(), source.as_str());
-        let kata_errors = match kata_compilation {
-            Ok((_, _)) => None,
-            Err(e) => Some(e),
-        };
 
-        assert!(
-            kata_errors.is_none(),
-            "Kata does not compile for exercise '{exercise_name}'. {kata_errors:?}"
-        );
-    }
+    let placeholder_sources = vec![placeholder_source, verification_source.clone()];
+    let reference_sources = vec![reference_source, verification_source];
 
-    // Validate that the reference implementation yields success and the placeholder implementation yields failure.
     let mut stdout = io::stdout();
     let mut out = GenericReceiver::new(&mut stdout);
-    let reference_succeeds = verify_kata(
-        verification_source.as_str(),
-        reference_source.as_str(),
-        &mut out,
-    );
-    assert!(
-        reference_succeeds,
-        "Reference implementation for exercise '{exercise_name}' expected to succeed but failed."
-    );
-    let _placeholder_fails = !verify_kata(
-        verification_source.as_str(),
-        placeholder_source.as_str(),
-        &mut out,
-    );
+    let reference_succeeds = run_kata(reference_sources, &mut out);
+    match reference_succeeds {
+        Ok(value) => {
+            assert!(value, "Reference implementation for exercise '{exercise_name}' expected to succeed but failed.");
+        }
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{error}");
+            }
+            panic!("Reference implementation for exercise '{exercise_name}' expected to succeed but failed.");
+        }
+    }
+    if let Err(errors) = reference_succeeds {
+        for error in errors {
+            eprintln!("{error}");
+        }
+        panic!("Reference implementation for exercise '{exercise_name}' expected to succeed but failed.");
+    }
+
+    let mut stdout = io::stdout();
+    let mut out = GenericReceiver::new(&mut stdout);
+    let placeholder_succeeds = run_kata(placeholder_sources, &mut out);
+    if let Err(errors) = placeholder_succeeds {
+        for error in errors {
+            match error {
+                qsc_eval::stateless::Error::Eval(_) => {}
+                qsc_eval::stateless::Error::Compile(_) => {
+                    eprintln!("{error}");
+                    panic!("Placeholder implementation for exercise '{exercise_name}' expected to compile but failed.");
+                }
+            }
+        }
+    }
     // N.B. Since verify_kata is doing evaluation, but it is not possible to determine correctness of some katas until
     //      the controlled functor is supported.
     //assert!(
