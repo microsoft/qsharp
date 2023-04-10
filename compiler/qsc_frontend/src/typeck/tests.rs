@@ -103,11 +103,8 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
     spans.visit_package(&unit.package);
 
     let mut actual = String::new();
-    let mut tys: Vec<_> = unit.context.tys().iter().collect();
-    tys.sort_by_key(|&(&id, _)| id);
-
-    for (id, ty) in tys {
-        let span = spans.0.get(id).expect("node should have span");
+    for (id, ty) in unit.context.tys() {
+        let span = spans.0.get(&id).expect("node should have span");
         let (index, offset) = unit.context.source(span.lo);
         let code = &[source, entry_expr][index.0][span.lo - offset..span.hi - offset];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)

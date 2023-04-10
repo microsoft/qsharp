@@ -1,0 +1,9 @@
+[package]
+name = "qsc_data_structures"
+version = "0.0.0"
+
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true

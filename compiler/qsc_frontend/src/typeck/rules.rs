@@ -7,7 +7,7 @@ use super::{
 };
 use crate::resolve::{DefId, PackageSrc, Resolutions};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, Pat, PatKind, QubitInit,
+    self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Span, Spec, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
 };
 use std::collections::{HashMap, HashSet};
@@ -62,17 +62,23 @@ struct Context<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<DefId, Ty>,
     return_ty: Option<&'a Ty>,
-    tys: Tys,
+    tys: &'a mut Tys,
+    nodes: Vec<NodeId>,
     inferrer: Inferrer,
 }
 
 impl<'a> Context<'a> {
-    fn new(resolutions: &'a Resolutions, globals: &'a HashMap<DefId, Ty>) -> Self {
+    fn new(
+        resolutions: &'a Resolutions,
+        globals: &'a HashMap<DefId, Ty>,
+        tys: &'a mut Tys,
+    ) -> Self {
         Self {
             resolutions,
             globals,
             return_ty: None,
-            tys: Tys::new(),
+            tys,
+            nodes: Vec::new(),
             inferrer: Inferrer::new(),
         }
     }
@@ -135,7 +141,7 @@ impl<'a> Context<'a> {
         }
 
         let ty = self.diverge_or(term, last.unwrap_or(Ty::UNIT));
-        self.tys.insert(block.id, ty.clone());
+        self.record(block.id, ty.clone());
         term.with(ty)
     }
 
@@ -166,7 +172,7 @@ impl<'a> Context<'a> {
         };
 
         let ty = self.diverge_or(term, ty);
-        self.tys.insert(stmt.id, ty.clone());
+        self.record(stmt.id, ty.clone());
         term.with(ty)
     }
 
@@ -307,7 +313,7 @@ impl<'a> Context<'a> {
                     Some(ty) => self.inferrer.freshen(ty),
                     None if id.package == PackageSrc::Local => self
                         .tys
-                        .get(&id.node)
+                        .get(id.node)
                         .expect("local variable should have inferred type")
                         .clone(),
                     None => panic!("path resolves to external package but definition not found"),
@@ -369,7 +375,7 @@ impl<'a> Context<'a> {
         };
 
         let ty = self.diverge_or(term, ty);
-        self.tys.insert(expr.id, ty.clone());
+        self.record(expr.id, ty.clone());
         term.with(ty)
     }
 
@@ -507,12 +513,12 @@ impl<'a> Context<'a> {
         let ty = match &pat.kind {
             PatKind::Bind(name, None) => {
                 let ty = self.inferrer.fresh();
-                self.tys.insert(name.id, ty.clone());
+                self.record(name.id, ty.clone());
                 ty
             }
             PatKind::Bind(name, Some(ty)) => {
                 let ty = self.infer_ty(ty);
-                self.tys.insert(name.id, ty.clone());
+                self.record(name.id, ty.clone());
                 ty
             }
             PatKind::Discard(None) | PatKind::Elided => self.inferrer.fresh(),
@@ -523,7 +529,7 @@ impl<'a> Context<'a> {
             }
         };
 
-        self.tys.insert(pat.id, ty.clone());
+        self.record(pat.id, ty.clone());
         ty
     }
 
@@ -548,7 +554,7 @@ impl<'a> Context<'a> {
         };
 
         let ty = self.diverge_or(term, ty);
-        self.tys.insert(init.id, ty.clone());
+        self.record(init.id, ty.clone());
         term.with(ty)
     }
 
@@ -559,14 +565,18 @@ impl<'a> Context<'a> {
         }
     }
 
-    fn solve(self) -> (Tys, Vec<Error>) {
+    fn record(&mut self, id: NodeId, ty: Ty) {
+        self.nodes.push(id);
+        self.tys.insert(id, ty);
+    }
+
+    fn solve(self) -> Vec<Error> {
         let (substs, errors) = self.inferrer.solve();
-        let tys = self
-            .tys
-            .into_iter()
-            .map(|(id, ty)| (id, infer::substitute(&substs, ty)))
-            .collect();
-        (tys, errors)
+        for id in self.nodes {
+            let ty = self.tys.get_mut(id).expect("node should have type");
+            infer::substitute(&substs, ty);
+        }
+        errors
     }
 }
 
@@ -582,9 +592,10 @@ pub(super) struct SpecImpl<'a> {
 pub(super) fn spec(
     resolutions: &Resolutions,
     globals: &HashMap<DefId, Ty>,
+    tys: &mut Tys,
     spec: SpecImpl,
-) -> (Tys, Vec<Error>) {
-    let mut context = Context::new(resolutions, globals);
+) -> Vec<Error> {
+    let mut context = Context::new(resolutions, globals, tys);
     context.infer_spec(spec);
     context.solve()
 }
@@ -592,9 +603,10 @@ pub(super) fn spec(
 pub(super) fn entry_expr(
     resolutions: &Resolutions,
     globals: &HashMap<DefId, Ty>,
+    tys: &mut Tys,
     entry: &Expr,
-) -> (Tys, Vec<Error>) {
-    let mut context = Context::new(resolutions, globals);
+) -> Vec<Error> {
+    let mut context = Context::new(resolutions, globals, tys);
     context.infer_expr(entry);
     context.solve()
 }

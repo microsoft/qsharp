@@ -705,6 +705,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_data_structures"
+version = "0.0.0"
+
+[[package]]
 name = "qsc_eval"
 version = "0.0.0"
 dependencies = [
@@ -732,6 +736,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "qsc_ast",
+ "qsc_data_structures",
  "thiserror",
 ]
 

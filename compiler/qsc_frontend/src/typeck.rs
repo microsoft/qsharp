@@ -10,13 +10,14 @@ mod tests;
 use self::infer::Class;
 use miette::Diagnostic;
 use qsc_ast::ast::{NodeId, Span};
-use std::{collections::HashMap, fmt::Debug};
+use qsc_data_structures::index_map::IndexMap;
+use std::fmt::Debug;
 use thiserror::Error;
 
 pub(super) use check::GlobalTable;
 pub use infer::Ty;
 
-pub type Tys = HashMap<NodeId, Ty>;
+pub type Tys = IndexMap<NodeId, Ty>;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]

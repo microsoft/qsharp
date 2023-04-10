@@ -89,14 +89,12 @@ impl Checker<'_> {
     }
 
     fn check_spec(&mut self, spec: SpecImpl) {
-        let (tys, errors) = rules::spec(self.resolutions, &self.globals, spec);
-        self.tys.extend(tys);
+        let errors = rules::spec(self.resolutions, &self.globals, &mut self.tys, spec);
         self.errors.extend(errors);
     }
 
     fn check_entry_expr(&mut self, entry: &Expr) {
-        let (tys, errors) = rules::entry_expr(self.resolutions, &self.globals, entry);
-        self.tys.extend(tys);
+        let errors = rules::entry_expr(self.resolutions, &self.globals, &mut self.tys, entry);
         self.errors.extend(errors);
     }
 }

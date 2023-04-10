@@ -4,19 +4,32 @@
 use super::{Error, ErrorKind};
 use crate::resolve::{DefId, PackageSrc};
 use qsc_ast::ast::{CallableKind, Functor, Span, TyPrim};
+use qsc_data_structures::index_map::IndexMap;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
-pub(super) type Substitutions = HashMap<Var, Ty>;
+pub(super) type Substitutions = IndexMap<Var, Ty>;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Var(u32);
+pub struct Var(usize);
 
 impl Display for Var {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "?{}", self.0)
+    }
+}
+
+impl From<usize> for Var {
+    fn from(value: usize) -> Self {
+        Var(value)
+    }
+}
+
+impl From<Var> for usize {
+    fn from(value: Var) -> Self {
+        value.0
     }
 }
 
@@ -395,14 +408,14 @@ impl Solver {
         let vars: Vec<_> = class
             .dependencies()
             .into_iter()
-            .filter_map(|ty| match substitute(&self.substs, ty.clone()) {
+            .filter_map(|ty| match substituted(&self.substs, ty.clone()) {
                 Ty::Var(var) => Some(var),
                 _ => None,
             })
             .collect();
 
         if vars.is_empty() {
-            match class.map(|ty| substitute(&self.substs, ty)).check(span) {
+            match class.map(|ty| substituted(&self.substs, ty)).check(span) {
                 Ok(constraints) => constraints,
                 Err(ClassError(class, span)) => {
                     self.errors
@@ -418,9 +431,9 @@ impl Solver {
         }
     }
 
-    fn solve_eq(&mut self, expected: Ty, actual: Ty, span: Span) -> Vec<Constraint> {
-        let expected = substitute(&self.substs, expected);
-        let actual = substitute(&self.substs, actual);
+    fn solve_eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
+        substitute(&self.substs, &mut expected);
+        substitute(&self.substs, &mut actual);
         let substs = match unify(&expected, &actual) {
             Ok(substs) => substs,
             Err(UnifyError(expected, actual)) => {
@@ -450,30 +463,31 @@ impl Solver {
     }
 }
 
-pub(super) fn substitute(substs: &Substitutions, ty: Ty) -> Ty {
+pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
     match ty {
-        Ty::Array(item) => Ty::Array(Box::new(substitute(substs, *item))),
-        Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
-            kind,
-            Box::new(substitute(substs, *input)),
-            Box::new(substitute(substs, *output)),
-            functors,
-        ),
-        Ty::DefId(id) => Ty::DefId(id),
-        Ty::Err => Ty::Err,
-        Ty::Param(name) => Ty::Param(name),
-        Ty::Prim(prim) => Ty::Prim(prim),
-        Ty::Tuple(items) => Ty::Tuple(
-            items
-                .into_iter()
-                .map(|item| substitute(substs, item))
-                .collect(),
-        ),
-        Ty::Var(var) => match substs.get(&var) {
-            Some(new_ty) => substitute(substs, new_ty.clone()),
-            None => Ty::Var(var),
-        },
+        Ty::DefId(_) | Ty::Err | Ty::Param(_) | Ty::Prim(_) => {}
+        Ty::Array(item) => substitute(substs, item),
+        Ty::Arrow(_, input, output, _) => {
+            substitute(substs, input);
+            substitute(substs, output);
+        }
+        Ty::Tuple(items) => {
+            for item in items {
+                substitute(substs, item);
+            }
+        }
+        &mut Ty::Var(var) => {
+            if let Some(new_ty) = substs.get(var) {
+                *ty = new_ty.clone();
+                substitute(substs, ty);
+            }
+        }
     }
+}
+
+fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
+    substitute(substs, &mut ty);
+    ty
 }
 
 fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {

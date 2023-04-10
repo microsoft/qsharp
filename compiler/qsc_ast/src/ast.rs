@@ -30,10 +30,10 @@ fn set_indentation<'a, 'b>(
 
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NodeId(u32);
+pub struct NodeId(usize);
 
 impl NodeId {
-    const PLACEHOLDER: Self = Self(u32::MAX);
+    const PLACEHOLDER: Self = Self(usize::MAX);
 
     /// Whether this ID is a placeholder.
     #[must_use]
@@ -67,6 +67,18 @@ impl Display for NodeId {
         } else {
             self.0.fmt(f)
         }
+    }
+}
+
+impl From<NodeId> for usize {
+    fn from(value: NodeId) -> Self {
+        value.0
+    }
+}
+
+impl From<usize> for NodeId {
+    fn from(value: usize) -> Self {
+        NodeId(value)
     }
 }
 
