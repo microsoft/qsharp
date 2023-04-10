@@ -32,7 +32,7 @@ pub enum Error {
 /// Returns an error if a single entry point with no parameters cannot be found.
 pub fn extract_entry(package: &Package) -> Result<Expr, Vec<Error>> {
     let mut entry_points = vec![];
-    let mut visitor = EntrypointVisitor {
+    let mut visitor = EntryPointVisitor {
         entry_points: &mut entry_points,
     };
     visitor.visit_package(package);
@@ -66,11 +66,11 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<Error>> {
     }
 }
 
-struct EntrypointVisitor<'a, 'b> {
+struct EntryPointVisitor<'a, 'b> {
     entry_points: &'a mut Vec<&'b CallableDecl>,
 }
 
-impl<'a, 'b> Visitor<'b> for EntrypointVisitor<'a, 'b> {
+impl<'a, 'b> Visitor<'b> for EntryPointVisitor<'a, 'b> {
     fn visit_item(&mut self, item: &'b Item) {
         if let ItemKind::Callable(decl) = &item.kind {
             if item
