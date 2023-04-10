@@ -15,6 +15,7 @@ use qsc_frontend::incremental::{Compiler, Fragment};
 use std::io::Cursor;
 use std::io::Write;
 
+use crate::interactive::ouroboros_impl_execution_context::BorrowedMutFields;
 use crate::output;
 use miette::Diagnostic;
 use num_bigint::BigUint;
@@ -153,58 +154,64 @@ impl Interpreter {
     }
 
     pub fn line(&mut self, line: impl AsRef<str>) -> Vec<InterpreterResult> {
-        let mut results = vec![];
-        self.context.with_mut(|fields| {
-            let fragments = fields.compiler.compile_fragment(line);
-            for fragment in fragments {
-                match fragment {
-                    Fragment::Stmt(stmt) => {
-                        let mut env = fields.env.take().unwrap_or(Env::empty());
-                        let result = eval_stmt(
-                            stmt,
-                            fields.store,
-                            fields.globals,
-                            fields.compiler.resolutions(),
-                            *fields.package,
-                            &mut env,
-                            fields.out,
-                        );
-                        let _ = fields.env.insert(env);
-                        let output = fields.out.dump();
+        self.context
+            .with_mut(|fields| eval_line_in_context(line, fields))
+    }
+}
 
-                        match result {
-                            Ok(v) => {
-                                results.push(InterpreterResult::new(
-                                    format!("{v}"),
-                                    output,
-                                    vec![],
-                                ));
-                            }
-                            Err(e) => results.push(InterpreterResult::new(
-                                String::new(),
-                                output,
-                                vec![crate::interactive::Error::Eval(e)],
-                            )),
-                        }
+#[allow(clippy::needless_pass_by_value)]
+fn eval_line_in_context(
+    line: impl AsRef<str>,
+    fields: BorrowedMutFields,
+) -> Vec<InterpreterResult> {
+    let mut results = vec![];
+    let fragments = fields.compiler.compile_fragment(line);
+    for fragment in fragments {
+        match fragment {
+            Fragment::Stmt(stmt) => {
+                let mut env = fields.env.take().unwrap_or(Env::empty());
+                let result = eval_stmt(
+                    stmt,
+                    fields.store,
+                    fields.globals,
+                    fields.compiler.resolutions(),
+                    *fields.package,
+                    &mut env,
+                    fields.out,
+                );
+                let _ = fields.env.insert(env);
+                let output = fields.out.dump();
+
+                match result {
+                    Ok(v) => {
+                        results.push(InterpreterResult::new(format!("{v}"), output, vec![]));
                     }
-                    Fragment::Callable(decl) => {
-                        let id = GlobalId {
-                            package: *fields.package,
-                            node: decl.name.id,
-                        };
-                        fields.globals.insert(id, decl);
-                        results.push(InterpreterResult::new(String::new(), String::new(), vec![]));
-                    }
-                    Fragment::Error(errors) => {
-                        let e = errors
-                            .iter()
-                            .map(|e| crate::interactive::Error::Incremental(e.clone()))
-                            .collect();
-                        results.push(InterpreterResult::new(String::new(), String::new(), e));
+                    Err(e) => {
+                        results.push(InterpreterResult::new(
+                            String::new(),
+                            output,
+                            vec![crate::interactive::Error::Eval(e)],
+                        ));
+                        return results;
                     }
                 }
             }
-        });
-        results
+            Fragment::Callable(decl) => {
+                let id = GlobalId {
+                    package: *fields.package,
+                    node: decl.name.id,
+                };
+                fields.globals.insert(id, decl);
+                results.push(InterpreterResult::new(String::new(), String::new(), vec![]));
+            }
+            Fragment::Error(errors) => {
+                let e = errors
+                    .iter()
+                    .map(|e| crate::interactive::Error::Incremental(e.clone()))
+                    .collect();
+                results.push(InterpreterResult::new(String::new(), String::new(), e));
+            }
+        }
     }
+    results
 }

@@ -63,6 +63,19 @@ mod given_interpreter {
             let result = &interpreter.line("y")[0];
             is_only_error(result, "`y` not found in this scope");
         }
+
+        #[test]
+        fn failing_statements_return_early_error() {
+            let mut interpreter = get_interpreter();
+
+            let results = &interpreter.line("let y = 7;y/0;y");
+            assert_eq!(results.len(), 2);
+            let result = &results[0];
+            is_only_value(result, "()");
+
+            let result = &results[1];
+            is_only_error(result, "division by zero");
+        }
     }
 
     #[cfg(test)]
