@@ -310,7 +310,11 @@ impl<'a> Context<'a> {
             ExprKind::Path(path) => match self.resolutions.get(path.id) {
                 None => Ty::Err,
                 Some(id) => match self.globals.get(id) {
-                    Some(ty) => self.inferrer.freshen(ty),
+                    Some(ty) => {
+                        let mut ty = ty.clone();
+                        self.inferrer.freshen(&mut ty);
+                        ty
+                    }
                     None if id.package == PackageSrc::Local => self
                         .tys
                         .get(id.node)

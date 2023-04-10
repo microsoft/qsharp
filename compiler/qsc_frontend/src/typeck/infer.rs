@@ -336,34 +336,30 @@ impl Inferrer {
         Ty::Var(var)
     }
 
-    pub(super) fn freshen(&mut self, ty: &Ty) -> Ty {
-        fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &Ty) -> Ty {
+    pub(super) fn freshen(&mut self, ty: &mut Ty) {
+        fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::Array(item) => Ty::Array(Box::new(freshen(solver, params, item))),
-                Ty::Arrow(kind, input, output, functors) => Ty::Arrow(
-                    *kind,
-                    Box::new(freshen(solver, params, input)),
-                    Box::new(freshen(solver, params, output)),
-                    functors.clone(),
-                ),
-                &Ty::DefId(id) => Ty::DefId(id),
-                Ty::Err => Ty::Err,
-                Ty::Param(name) => params
-                    .entry(name.clone())
-                    .or_insert_with(|| solver.fresh())
-                    .clone(),
-                &Ty::Prim(prim) => Ty::Prim(prim),
-                Ty::Tuple(items) => Ty::Tuple(
-                    items
-                        .iter()
-                        .map(|item| freshen(solver, params, item))
-                        .collect(),
-                ),
-                &Ty::Var(var) => Ty::Var(var),
+                Ty::DefId(_) | Ty::Err | Ty::Prim(_) | Ty::Var(_) => {}
+                Ty::Array(item) => freshen(solver, params, item),
+                Ty::Arrow(_, input, output, _) => {
+                    freshen(solver, params, input);
+                    freshen(solver, params, output);
+                }
+                Ty::Param(name) => {
+                    *ty = params
+                        .entry(name.clone())
+                        .or_insert_with(|| solver.fresh())
+                        .clone();
+                }
+                Ty::Tuple(items) => {
+                    for item in items {
+                        freshen(solver, params, item);
+                    }
+                }
             }
         }
 
-        freshen(self, &mut HashMap::new(), ty)
+        freshen(self, &mut HashMap::new(), ty);
     }
 
     pub(super) fn solve(mut self) -> (Substitutions, Vec<Error>) {
@@ -405,16 +401,17 @@ impl Solver {
     }
 
     fn solve_class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
-        let vars: Vec<_> = class
-            .dependencies()
-            .into_iter()
-            .filter_map(|ty| match substituted(&self.substs, ty.clone()) {
-                Ty::Var(var) => Some(var),
-                _ => None,
-            })
-            .collect();
+        let mut unknown_dependency = false;
+        for ty in class.dependencies() {
+            if let Some(var) = unknown_var(&self.substs, ty) {
+                self.pending.entry(var).or_default().push(class.clone());
+                unknown_dependency = true;
+            }
+        }
 
-        if vars.is_empty() {
+        if unknown_dependency {
+            Vec::new()
+        } else {
             match class.map(|ty| substituted(&self.substs, ty)).check(span) {
                 Ok(constraints) => constraints,
                 Err(ClassError(class, span)) => {
@@ -423,38 +420,33 @@ impl Solver {
                     Vec::new()
                 }
             }
-        } else {
-            for var in vars {
-                self.pending.entry(var).or_default().push(class.clone());
-            }
-            Vec::new()
         }
     }
 
     fn solve_eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
         substitute(&self.substs, &mut expected);
         substitute(&self.substs, &mut actual);
-        let substs = match unify(&expected, &actual) {
-            Ok(substs) => substs,
-            Err(UnifyError(expected, actual)) => {
-                self.errors
-                    .push(Error(ErrorKind::TypeMismatch(expected, actual, span)));
-                Vec::new()
-            }
-        };
-
         let mut constraints = Vec::new();
-        for (var, _) in &substs {
-            if let Some(classes) = self.pending.remove(var) {
+
+        let mut bind = |var, ty| {
+            self.substs.insert(var, ty);
+            if let Some(classes) = self.pending.remove(&var) {
                 constraints.extend(
                     classes
                         .into_iter()
                         .map(|class| Constraint::Class(class, span)),
                 );
             }
+        };
+
+        match unify(&expected, &actual, &mut bind) {
+            Ok(()) => {}
+            Err(UnifyError(expected, actual)) => {
+                self.errors
+                    .push(Error(ErrorKind::TypeMismatch(expected, actual, span)));
+            }
         }
 
-        self.substs.extend(substs);
         constraints
     }
 
@@ -490,32 +482,47 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
     ty
 }
 
-fn unify(ty1: &Ty, ty2: &Ty) -> Result<Vec<(Var, Ty)>, UnifyError> {
+fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
-        (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2),
+        (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2, bind),
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
             if kind1 == kind2 =>
         {
             // TODO: We ignore functors until subtyping is supported. This is unsound, but the
             // alternative is disallowing valid programs.
-            let mut substs = unify(input1, input2)?;
-            substs.extend(unify(output1, output2)?);
-            Ok(substs)
+            unify(input1, input2, bind)?;
+            unify(output1, output2, bind)?;
+            Ok(())
         }
-        (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(Vec::new()),
-        (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(Vec::new()),
-        (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
+        (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(()),
+        (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
+        (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
-            let mut substs = Vec::new();
             for (item1, item2) in items1.iter().zip(items2) {
-                substs.extend(unify(item1, item2)?);
+                unify(item1, item2, bind)?;
             }
-            Ok(substs)
+            Ok(())
         }
-        (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => Ok(Vec::new()),
-        (&Ty::Var(var), _) => Ok(vec![(var, ty2.clone())]),
-        (_, &Ty::Var(var)) => Ok(vec![(var, ty1.clone())]),
+        (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => Ok(()),
+        (&Ty::Var(var), _) => {
+            bind(var, ty2.clone());
+            Ok(())
+        }
+        (_, &Ty::Var(var)) => {
+            bind(var, ty1.clone());
+            Ok(())
+        }
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
+    }
+}
+
+fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<Var> {
+    match ty {
+        &Ty::Var(var) => match substs.get(var) {
+            None => Some(var),
+            Some(ty) => unknown_var(substs, ty),
+        },
+        _ => None,
     }
 }
 
