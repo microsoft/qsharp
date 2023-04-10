@@ -864,7 +864,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             PatKind::Bind(variable, _) => {
                 let id = self.defid_to_globalid(
                     self.resolutions
-                        .get(&variable.id)
+                        .get(variable.id)
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
 
@@ -899,7 +899,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn resolve_binding(&mut self, id: NodeId) -> Value {
         let id = self
             .resolutions
-            .get(&id)
+            .get(id)
             .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
         let global_id = self.defid_to_globalid(id);
@@ -921,7 +921,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             (ExprKind::Path(path), rhs) => {
                 let id = self.defid_to_globalid(
                     self.resolutions
-                        .get(&path.id)
+                        .get(path.id)
                         .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
                 );
 

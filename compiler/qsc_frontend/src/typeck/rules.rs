@@ -122,7 +122,7 @@ impl<'a> Context<'a> {
             TyKind::Path(path) => Ty::DefId(
                 *self
                     .resolutions
-                    .get(&path.id)
+                    .get(path.id)
                     .expect("path should be resolved"),
             ),
             &TyKind::Prim(prim) => Ty::Prim(prim),
@@ -307,7 +307,7 @@ impl<'a> Context<'a> {
             ExprKind::Lit(Lit::Result(_)) => Ty::Prim(TyPrim::Result),
             ExprKind::Lit(Lit::String(_)) => Ty::Prim(TyPrim::String),
             ExprKind::Paren(expr) => term.then(self.infer_expr(expr)),
-            ExprKind::Path(path) => match self.resolutions.get(&path.id) {
+            ExprKind::Path(path) => match self.resolutions.get(path.id) {
                 None => Ty::Err,
                 Some(id) => match self.globals.get(id) {
                     Some(ty) => self.inferrer.freshen(ty),

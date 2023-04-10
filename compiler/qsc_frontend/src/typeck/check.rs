@@ -160,10 +160,7 @@ fn convert_ty(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
         TyKind::Paren(inner) => convert_ty(resolutions, inner),
         TyKind::Path(path) => (
-            resolutions
-                .get(&path.id)
-                .copied()
-                .map_or(Ty::Err, Ty::DefId),
+            resolutions.get(path.id).copied().map_or(Ty::Err, Ty::DefId),
             Vec::new(),
         ),
         &TyKind::Prim(prim) => (Ty::Prim(prim), Vec::new()),

@@ -38,7 +38,7 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.resolutions.get(&path.id) {
+        if let Some(&id) = self.resolutions.get(path.id) {
             self.changes.push((path.span, id));
         } else {
             visit::walk_path(self, path);
@@ -46,7 +46,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.resolutions.get(&ident.id) {
+        if let Some(&id) = self.resolutions.get(ident.id) {
             self.changes.push((ident.span, id));
         }
     }
