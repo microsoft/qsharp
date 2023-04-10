@@ -46,8 +46,8 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<Error>> {
         if arg_count == 0 {
             if let CallableBody::Block(block) = &ep.body {
                 Ok(Expr {
-                    id: NodeId::zero(),
-                    span: Span { lo: 0, hi: 0 },
+                    id: NodeId::default(),
+                    span: Span::default(),
                     kind: ExprKind::Block(block.clone()),
                 })
             } else {
