@@ -30,12 +30,6 @@ impl<K: Into<usize>, V> IndexMap<K, V> {
         self.values[index] = Some(value);
     }
 
-    pub fn extend(&mut self, iter: impl IntoIterator<Item = (K, V)>) {
-        for (key, value) in iter {
-            self.insert(key, value);
-        }
-    }
-
     pub fn get(&self, key: K) -> Option<&V> {
         let index: usize = key.into();
         self.values.get(index).and_then(Option::as_ref)
