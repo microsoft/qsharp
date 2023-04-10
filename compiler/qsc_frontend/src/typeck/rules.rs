@@ -209,6 +209,8 @@ impl<'a> Context<'a> {
             ExprKind::Block(block) => term.then(self.infer_block(block)),
             ExprKind::Call(callee, input) => {
                 // TODO: Require that the callee has functors needed for generated specializations.
+                // TODO: Handle partial application. (It's probably easier to turn them into lambdas
+                // before type inference.)
                 let callee_ty = term.then(self.infer_expr(callee));
                 let input_ty = term.then(self.infer_expr(input));
                 let output_ty = self.inferrer.fresh();

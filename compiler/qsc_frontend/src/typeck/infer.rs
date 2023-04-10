@@ -122,11 +122,6 @@ pub(super) enum Class {
         index: Ty,
         item: Ty,
     },
-    HasPartialApp {
-        callee: Ty,
-        missing: Ty,
-        with_app: Ty,
-    },
     Integral(Ty),
     Iterable {
         container: Ty,
@@ -145,9 +140,7 @@ impl Class {
             Self::Add(ty) | Self::Adj(ty) | Self::Eq(ty) | Self::Integral(ty) | Self::Num(ty) => {
                 vec![ty]
             }
-            Self::Call { callee, .. }
-            | Self::HasFunctorsIfOp { callee, .. }
-            | Self::HasPartialApp { callee, .. } => vec![callee],
+            Self::Call { callee, .. } | Self::HasFunctorsIfOp { callee, .. } => vec![callee],
             Self::Ctl { op, .. } => vec![op],
             Self::Exp { base, .. } => vec![base],
             Self::HasField { record, .. } => vec![record],
@@ -199,15 +192,6 @@ impl Class {
                 index: f(index),
                 item: f(item),
             },
-            Self::HasPartialApp {
-                callee,
-                missing,
-                with_app,
-            } => Self::HasPartialApp {
-                callee: f(callee),
-                missing: f(missing),
-                with_app: f(with_app),
-            },
             Self::Integral(ty) => Self::Integral(f(ty)),
             Self::Iterable { container, item } => Self::Iterable {
                 container: f(container),
@@ -254,22 +238,6 @@ impl Class {
                 index,
                 item,
             } => check_has_index(container, index, item, span).map(|c| vec![c]),
-            Class::HasPartialApp {
-                callee,
-                missing,
-                with_app,
-            } => {
-                // TODO: Constrain `with_app` to be the callee type minus the applied arguments in
-                // `missing`.
-                Err(ClassError(
-                    Class::HasPartialApp {
-                        callee,
-                        missing,
-                        with_app,
-                    },
-                    span,
-                ))
-            }
             Class::Integral(ty) => check_integral(&ty)
                 .then_some(Vec::new())
                 .ok_or(ClassError(Class::Integral(ty), span)),
@@ -303,7 +271,6 @@ impl Display for Class {
             Class::HasIndex {
                 container, index, ..
             } => write!(f, "HasIndex<{container}, {index}>"),
-            Class::HasPartialApp { callee, .. } => write!(f, "HasPartialApp<{callee}>"),
             Class::Integral(ty) => write!(f, "Integral<{ty}>"),
             Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
             Class::Num(ty) => write!(f, "Num<{ty}"),
