@@ -4,6 +4,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>
+    <!-- If this is served under a directory it needs the trailing slash to load the relative paths-->
+    if(!window.location.pathname.endsWith("/")) window.location = window.location + "/";
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAACDvAxdbn9YZSTVntx1qcAADs=">
   <link rel="stylesheet" href="style.css">

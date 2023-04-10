@@ -1,6 +1,7 @@
 [package]
-name = "qtest_tool"
+name = "qsci"
 version = "0.0.0"
+description = "Q# Interactive"
 
 authors.workspace = true
 homepage.workspace = true
@@ -10,7 +11,6 @@ license.workspace = true
 
 [dependencies]
 qsc_ast = { path = "../qsc_ast" }
-qsc_codegen = { path = "../qsc_codegen" }
 qsc_eval = { path = "../qsc_eval" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_passes = { path = "../qsc_passes" }
@@ -19,5 +19,5 @@ miette = { workspace = true, features = ["fancy"] }
 thiserror = { workspace = true }
 
 [[bin]]
-name = "qtest_tool"
+name = "qsci"
 bench = false

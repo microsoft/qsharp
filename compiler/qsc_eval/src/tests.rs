@@ -6,7 +6,7 @@ use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
 use qsc_passes::globals::extract_callables;
 
-use crate::{output::GenericReceiver, Evaluator};
+use crate::{eval_expr, output::GenericReceiver, Env};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -17,20 +17,25 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         unit.context.errors()
     );
     let id = store.insert(unit);
-    let unit = store
-        .get(id)
-        .expect("compile unit should be in package store");
     let globals = extract_callables(&store);
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
-    let evaluator = Evaluator::from_store(&store, id, &globals, &mut out);
-    let expr = unit
-        .package
-        .entry
-        .as_ref()
-        .expect("entry expression should be present");
-    match evaluator.eval_expr(expr) {
-        Ok((result, _)) => expect.assert_eq(&result.to_string()),
+    let expr = store
+        .get_entry_expr(id)
+        .expect("entry expression shouild be present");
+    let resolutions = store
+        .get_resolutions(id)
+        .expect("package should be present in store");
+    match eval_expr(
+        expr,
+        &store,
+        &globals,
+        resolutions,
+        id,
+        &mut Env::default(),
+        &mut out,
+    ) {
+        Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
 }
@@ -805,6 +810,16 @@ fn binop_exp_bigint() {
 }
 
 #[test]
+fn binop_exp_bigint_zero_exp() {
+    check_expr("", "2L^0", &expect!["1"]);
+}
+
+#[test]
+fn binop_exp_bigint_neg_zero_exp() {
+    check_expr("", "(-2L)^0", &expect!["1"]);
+}
+
+#[test]
 fn binop_exp_bigint_negative_exp() {
     check_expr(
         "",
@@ -851,6 +866,16 @@ fn binop_exp_double_negative_exp() {
 #[test]
 fn binop_exp_int() {
     check_expr("", "2^3", &expect!["8"]);
+}
+
+#[test]
+fn binop_exp_int_zero_exp() {
+    check_expr("", "2^0", &expect!["1"]);
+}
+
+#[test]
+fn binop_exp_int_neg_zero_exp() {
+    check_expr("", "(-2)^0", &expect!["1"]);
 }
 
 #[test]
@@ -1777,6 +1802,25 @@ fn literal_string_expr() {
 }
 
 #[test]
+fn literal_tuple_expr() {
+    check_expr("", "(1, 2, 3)", &expect!["(1, 2, 3)"]);
+}
+
+#[test]
+fn literal_tuple_singleton_expr() {
+    check_expr("", "(1,)", &expect!["(1,)"]);
+}
+
+#[test]
+fn literal_tuple_mixed_expr() {
+    check_expr(
+        "",
+        "(1, One, 1.0, [1, 2, 3])",
+        &expect!["(1, One, 1.0, [1, 2, 3])"],
+    );
+}
+
+#[test]
 fn paren_expr() {
     check_expr("", "(42)", &expect!["42"]);
 }
@@ -2675,5 +2719,27 @@ fn check_ctls_count_nested_expr() {
         "#},
         "Controlled Controlled Test.Foo([1, 2], ([3], ()))",
         &expect!["()"],
+    );
+}
+
+#[test]
+fn global_callable_as_arg() {
+    check_expr(
+        indoc! {"
+            namespace Test {
+                function PlusOne(x : Int) : Int {
+                    x + 1
+                }
+                function ApplyToIntArray(f : (Int -> Int)) : Int[] {
+                    mutable arr = [1, size = 3];
+                    for i in 0..2 {
+                        set arr w/= i <- f(arr[i]);
+                    }
+                    arr
+                }
+            }
+        "},
+        "Test.ApplyToIntArray(Test.PlusOne)",
+        &expect!["[2, 2, 2]"],
     );
 }

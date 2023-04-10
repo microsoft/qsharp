@@ -46,32 +46,14 @@ struct Validator {
 impl Validator {
     fn validate_params(&mut self, params: &Pat) {
         match &params.kind {
-            PatKind::Bind(id, ty) => match &ty {
-                None => self
-                    .validation_errors
-                    .push(Error::ParameterNotTyped(id.name.clone(), params.span)),
-                Some(t) => self.validate_type(t, params.span),
-            },
+            PatKind::Bind(id, None) => {
+                self.validation_errors
+                    .push(Error::ParameterNotTyped(id.name.clone(), params.span));
+            }
             PatKind::Paren(item) => self.validate_params(item),
             PatKind::Tuple(items) => {
                 items.iter().for_each(|i| self.validate_params(i));
             }
-            _ => {}
-        }
-    }
-
-    fn validate_type(&mut self, ty: &Ty, span: Span) {
-        match &ty.kind {
-            TyKind::App(ty, tys) => {
-                self.validate_type(ty, span);
-                tys.iter().for_each(|t| self.validate_type(t, span));
-            }
-            TyKind::Arrow(_, _, _, _) => self.validation_errors.push(Error::NotCurrentlySupported(
-                "callables as parameters",
-                span,
-            )),
-            TyKind::Paren(ty) => self.validate_type(ty, span),
-            TyKind::Tuple(tys) => tys.iter().for_each(|t| self.validate_type(t, span)),
             _ => {}
         }
     }
