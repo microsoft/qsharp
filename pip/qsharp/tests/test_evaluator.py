@@ -13,7 +13,7 @@ def test_int_lit() -> None:
 def test_output_follows() -> None:
     e = Evaluator()
     (value, out, err) = e.eval('Message("Hello, world!")')
-    assert out == "Hello, world!\n"
+    assert out == "Hello, world!"
 
 
 def test_unknown_ident() -> None:
