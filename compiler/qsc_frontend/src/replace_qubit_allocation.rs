@@ -15,9 +15,14 @@ use qsc_ast::{
     mut_visit::{walk_stmt, MutVisitor},
 };
 
+struct QubitIdent {
+    id: Ident,
+    is_array: bool,
+}
+
 pub struct ReplaceQubitAllocation {
-    qubits_curr_block: Vec<Ident>,
-    prefix_qubits: Vec<Ident>,
+    qubits_curr_block: Vec<QubitIdent>,
+    prefix_qubits: Vec<QubitIdent>,
     gen_id_count: u32,
 }
 
@@ -69,8 +74,46 @@ impl ReplaceQubitAllocation {
         init: QubitInit,
         block: Option<Block>,
     ) -> Vec<Stmt> {
-        let (assignment_expr, ids) = self.process_qubit_init(init);
-        let mut new_stmts: Vec<Stmt> = ids.iter().map(create_alloc_stmt).collect();
+        let (assignment_expr, mut ids) = self.process_qubit_init(init);
+        // let mut new_stmts: Vec<Stmt> = vec![];
+        // let ids: Vec<QubitIdent> = ids
+        //     .iter_mut()
+        //     .map(|(id, size)| {
+        //         if let Some(size) = size {
+        //             self.visit_expr(size);
+        //             new_stmts.push(create_array_alloc_stmt(id, size));
+        //             QubitIdent {
+        //                 id: id.clone(),
+        //                 is_array: true,
+        //             }
+        //         } else {
+        //             new_stmts.push(create_alloc_stmt(id));
+        //             QubitIdent {
+        //                 id: id.clone(),
+        //                 is_array: false,
+        //             }
+        //         }
+        //     })
+        //     .collect();
+
+        let mut new_stmts: Vec<Stmt> = ids
+            .iter_mut()
+            .map(|(id, size)| match size {
+                Some(size) => {
+                    self.visit_expr(size);
+                    create_array_alloc_stmt(id, size.clone())
+                }
+                None => create_alloc_stmt(id),
+            })
+            .collect();
+        let ids: Vec<QubitIdent> = ids
+            .into_iter()
+            .map(|(id, expr)| QubitIdent {
+                id,
+                is_array: expr.is_some(),
+            })
+            .collect();
+
         new_stmts.push(Stmt {
             id: NodeId::default(),
             span: stmt_span,
@@ -100,8 +143,22 @@ impl ReplaceQubitAllocation {
         }
     }
 
-    fn process_qubit_init(&mut self, init: QubitInit) -> (Expr, Vec<Ident>) {
+    fn process_qubit_init(&mut self, init: QubitInit) -> (Expr, Vec<(Ident, Option<Expr>)>) {
         match init.kind {
+            QubitInitKind::Array(size) => {
+                let gen_id = self.gen_ident(init.span);
+                let expr = Expr {
+                    id: NodeId::default(),
+                    span: init.span,
+                    kind: ExprKind::Path(Path {
+                        id: NodeId::default(),
+                        span: init.span,
+                        namespace: None,
+                        name: gen_id.clone(),
+                    }),
+                };
+                (expr, vec![(gen_id, Some(*size))])
+            }
             QubitInitKind::Paren(i) => self.process_qubit_init(*i),
             QubitInitKind::Single => {
                 let gen_id = self.gen_ident(init.span);
@@ -115,11 +172,11 @@ impl ReplaceQubitAllocation {
                         name: gen_id.clone(),
                     }),
                 };
-                (expr, vec![gen_id])
+                (expr, vec![(gen_id, None)])
             }
             QubitInitKind::Tuple(inits) => {
                 let mut exprs: Vec<Expr> = vec![];
-                let mut ids: Vec<Ident> = vec![];
+                let mut ids: Vec<(Ident, Option<Expr>)> = vec![];
                 for i in inits {
                     let (sub_expr, sub_ids) = self.process_qubit_init(i);
                     exprs.push(sub_expr);
@@ -132,7 +189,6 @@ impl ReplaceQubitAllocation {
                 };
                 (tuple_expr, ids)
             }
-            QubitInitKind::Array(_) => todo!(),
         }
     }
 
@@ -166,9 +222,57 @@ impl MutVisitor for ReplaceQubitAllocation {
         }
 
         while let Some(qubit) = &self.qubits_curr_block.pop() {
-            block.stmts.push(create_dealloc_stmt(qubit));
+            if qubit.is_array {
+                block.stmts.push(create_array_dealloc_stmt(&qubit.id));
+            } else {
+                block.stmts.push(create_dealloc_stmt(&qubit.id));
+            }
         }
         self.qubits_curr_block = qubits_super_block;
+    }
+}
+
+fn create_array_alloc_stmt(qubit_array: &Ident, size: Expr) -> Stmt {
+    Stmt {
+        id: NodeId::default(),
+        span: qubit_array.span,
+        kind: StmtKind::Local(
+            Mutability::Immutable,
+            Pat {
+                id: NodeId::default(),
+                span: qubit_array.span,
+                kind: PatKind::Bind(qubit_array.clone(), None),
+            },
+            Expr {
+                id: NodeId::default(),
+                span: qubit_array.span,
+                kind: ExprKind::Call(
+                    Box::new(Expr {
+                        id: NodeId::default(),
+                        span: qubit_array.span,
+                        kind: ExprKind::Path(Path {
+                            id: NodeId::default(),
+                            span: qubit_array.span,
+                            namespace: Some(Ident {
+                                id: NodeId::default(),
+                                span: qubit_array.span,
+                                name: "QIR.Runtime".to_owned(),
+                            }),
+                            name: Ident {
+                                id: NodeId::default(),
+                                span: qubit_array.span,
+                                name: "__quantum__rt__qubit_array_allocate".to_owned(),
+                            },
+                        }),
+                    }),
+                    Box::new(Expr {
+                        id: NodeId::default(),
+                        span: size.span,
+                        kind: ExprKind::Tuple(vec![size]),
+                    }),
+                ),
+            },
+        ),
     }
 }
 
@@ -213,6 +317,51 @@ fn create_alloc_stmt(qubit: &Ident) -> Stmt {
                 ),
             },
         ),
+    }
+}
+
+fn create_array_dealloc_stmt(qubit_array: &Ident) -> Stmt {
+    Stmt {
+        id: NodeId::default(),
+        span: qubit_array.span,
+        kind: StmtKind::Semi(Expr {
+            id: NodeId::default(),
+            span: qubit_array.span,
+            kind: ExprKind::Call(
+                Box::new(Expr {
+                    id: NodeId::default(),
+                    span: qubit_array.span,
+                    kind: ExprKind::Path(Path {
+                        id: NodeId::default(),
+                        span: qubit_array.span,
+                        namespace: Some(Ident {
+                            id: NodeId::default(),
+                            span: qubit_array.span,
+                            name: "QIR.Runtime".to_owned(),
+                        }),
+                        name: Ident {
+                            id: NodeId::default(),
+                            span: qubit_array.span,
+                            name: "__quantum__rt__qubit_array_release".to_owned(),
+                        },
+                    }),
+                }),
+                Box::new(Expr {
+                    id: NodeId::default(),
+                    span: qubit_array.span,
+                    kind: ExprKind::Tuple(vec![Expr {
+                        id: NodeId::default(),
+                        span: qubit_array.span,
+                        kind: ExprKind::Path(Path {
+                            id: NodeId::default(),
+                            span: qubit_array.span,
+                            namespace: None,
+                            name: qubit_array.clone(),
+                        }),
+                    }]),
+                }),
+            ),
+        }),
     }
 }
 
