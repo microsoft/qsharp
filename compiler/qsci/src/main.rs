@@ -13,12 +13,10 @@ use qsc_frontend::diagnostic::OffsetError;
 
 use std::string::String;
 
-use miette::{IntoDiagnostic, NamedSource, Result};
+use miette::{Diagnostic, IntoDiagnostic, NamedSource, Report, Result};
 use std::io::prelude::BufRead;
 use std::io::Write;
 use std::{fs, io};
-
-use miette::{Diagnostic, Report};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, next_line_help = true)]
@@ -47,14 +45,14 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
 
     let interpreter = Interpreter::new(cli.nostdlib, sources.clone());
-    if let Err(ref unit) = interpreter {
+    if let Err((_, unit)) = interpreter {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {
             eprintln!("{:?}", reporter.report(error.clone()));
         }
         return Ok(ExitCode::FAILURE);
     }
-    let mut interpreter = interpreter.unwrap();
+    let mut interpreter = interpreter.expect("interpreter creation failed");
 
     if let Some(line) = cli.entry {
         let results = interpreter.line(line.clone());

@@ -3,7 +3,6 @@
 
 mod tests;
 
-use crate::output::Receiver;
 use crate::{eval_stmt, Env};
 use qsc_ast::ast::CallableDecl;
 use qsc_passes::globals::GlobalId;
@@ -13,13 +12,10 @@ use std::string::String;
 use qsc_frontend::compile::{self, CompileUnit, PackageStore};
 use qsc_frontend::incremental::{Compiler, Fragment};
 use std::io::Cursor;
-use std::io::Write;
 
-use crate::output;
+use crate::output::CursorReceiver;
 use crate::stateful::ouroboros_impl_execution_context::BorrowedMutFields;
 use miette::Diagnostic;
-use num_bigint::BigUint;
-use num_complex::Complex64;
 use ouroboros::self_referencing;
 use qsc_frontend::compile::compile;
 use qsc_passes::globals::extract_callables;
@@ -38,42 +34,7 @@ pub enum Error {
     Incremental(qsc_frontend::incremental::Error),
 }
 
-struct CursorReceiver<'a> {
-    cursor: &'a mut Cursor<Vec<u8>>,
-}
-
-impl<'a> CursorReceiver<'a> {
-    pub fn new(cursor: &'a mut Cursor<Vec<u8>>) -> Self {
-        Self { cursor }
-    }
-    fn dump(&mut self) -> String {
-        let v = self.cursor.get_mut();
-        let s = match std::str::from_utf8(v) {
-            Ok(v) => v.to_owned(),
-            Err(e) => format!("Invalid UTF-8 sequence: {e}"),
-        };
-        v.clear();
-        s.trim().to_string()
-    }
-}
-
-impl<'a> Receiver for CursorReceiver<'a> {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), output::Error> {
-        writeln!(self.cursor, "STATE:").map_err(|_| output::Error)?;
-        for (id, state) in state {
-            writeln!(self.cursor, "|{}⟩: {}", id.to_str_radix(2), state)
-                .map_err(|_| output::Error)?;
-        }
-        Ok(())
-    }
-
-    fn message(&mut self, msg: String) -> Result<(), output::Error> {
-        writeln!(self.cursor, "{msg}").map_err(|_| output::Error)
-    }
-}
-
 #[self_referencing]
-
 pub struct ExecutionContext {
     store: PackageStore,
     package: compile::PackageId,
@@ -119,38 +80,11 @@ impl Interpreter {
     pub fn new(
         nostdlib: bool,
         sources: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Result<Self, CompileUnit> {
-        let mut store = PackageStore::new();
-
-        let mut session_deps: Vec<_> = vec![];
-
-        if !nostdlib {
-            session_deps.push(store.insert(compile::std()));
-        }
-
-        // create a package with all defined dependencies for the session
-        let unit = compile(&store, session_deps.clone(), sources, "");
-        if !unit.context.errors().is_empty() {
-            return Err(unit);
-        }
-
-        let basis_package = store.insert(unit);
-        session_deps.push(basis_package);
-
-        // create a package with no dependencies for the session
-        let sources: [&str; 0] = [];
-        let session_package = store.insert(compile(&store, [], sources, ""));
-
-        let context = ExecutionContextBuilder {
-            store,
-            package: session_package,
-            compiler_builder: |store| Compiler::new(store, session_deps),
-            globals_builder: extract_callables,
-            env: None,
-            cursor: Cursor::new(Vec::<u8>::new()),
-            out_builder: |cursor| CursorReceiver::new(cursor),
-        }
-        .build();
+    ) -> Result<Self, (InterpreterResult, CompileUnit)> {
+        let context = match create_execution_context(nostdlib, sources, None) {
+            Ok(value) => value,
+            Err(value) => return Err(value),
+        };
         Ok(Self { context })
     }
 
@@ -158,6 +92,51 @@ impl Interpreter {
         self.context
             .with_mut(|fields| eval_line_in_context(line, fields))
     }
+}
+
+fn create_execution_context(
+    nostdlib: bool,
+    sources: impl IntoIterator<Item = impl AsRef<str>>,
+    expr: Option<String>,
+) -> Result<ExecutionContext, (InterpreterResult, CompileUnit)> {
+    let mut store = PackageStore::new();
+    let mut session_deps: Vec<_> = vec![];
+    if !nostdlib {
+        session_deps.push(store.insert(compile::std()));
+    }
+    let unit = compile(
+        &store,
+        session_deps.clone(),
+        sources,
+        &expr.unwrap_or_default(),
+    );
+    if !unit.context.errors().is_empty() {
+        let result = InterpreterResult::new(
+            String::new(),
+            String::new(),
+            unit.context
+                .errors()
+                .iter()
+                .map(|e| Error::Compile(e.clone()))
+                .collect(),
+        );
+        return Err((result, unit));
+    }
+    let basis_package = store.insert(unit);
+    session_deps.push(basis_package);
+    let sources: [&str; 0] = [];
+    let session_package = store.insert(compile(&store, [], sources, ""));
+    let context = ExecutionContextBuilder {
+        store,
+        package: session_package,
+        compiler_builder: |store| Compiler::new(store, session_deps),
+        globals_builder: extract_callables,
+        env: None,
+        cursor: Cursor::new(Vec::<u8>::new()),
+        out_builder: |cursor| CursorReceiver::new(cursor),
+    }
+    .build();
+    Ok(context)
 }
 
 #[allow(clippy::needless_pass_by_value)]
@@ -191,7 +170,7 @@ fn eval_line_in_context(
                         results.push(InterpreterResult::new(
                             String::new(),
                             output,
-                            vec![crate::stateful::Error::Eval(e)],
+                            vec![Error::Eval(e)],
                         ));
                         return results.into_iter();
                     }
@@ -208,7 +187,7 @@ fn eval_line_in_context(
             Fragment::Error(errors) => {
                 let e = errors
                     .iter()
-                    .map(|e| crate::stateful::Error::Incremental(e.clone()))
+                    .map(|e| Error::Incremental(e.clone()))
                     .collect();
                 results.push(InterpreterResult::new(String::new(), String::new(), e));
             }

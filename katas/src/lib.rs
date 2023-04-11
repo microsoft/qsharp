@@ -29,11 +29,12 @@ pub fn verify_kata(
 /// Will panic if Kata.Verify() does not return a Bool as result.
 pub fn run_kata(
     sources: impl IntoIterator<Item = impl AsRef<str>>,
-    recv: &mut impl Receiver,
+    receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<qsc_eval::stateless::Error>> {
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
-    let result = eval(false, KATA_VERIFY, recv, sources);
+    let nostdlib = false;
+    let result = eval(nostdlib, KATA_VERIFY, receiver, sources);
     if !result.errors.is_empty() {
         return Err(result.errors);
     }

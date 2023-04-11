@@ -71,12 +71,9 @@ fn validate_exercise(exercise_dir: &Path) {
     let placeholder_succeeds = run_kata(placeholder_sources, &mut out);
     if let Err(errors) = placeholder_succeeds {
         for error in errors {
-            match error {
-                qsc_eval::stateless::Error::Eval(_) => {}
-                qsc_eval::stateless::Error::Compile(_) => {
-                    eprintln!("{error}");
-                    panic!("Placeholder implementation for exercise '{exercise_name}' expected to compile but failed.");
-                }
+            eprintln!("{error}");
+            if let qsc_eval::stateless::Error::Compile(_) = error {
+                panic!("Placeholder implementation for exercise '{exercise_name}' expected to compile but failed.");
             }
         }
     }
