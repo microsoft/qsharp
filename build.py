@@ -18,8 +18,8 @@ parser = argparse.ArgumentParser(description=
 
 parser.add_argument('--cli', action='store_true',
                     help='Build the command-line compiler')
-parser.add_argument("--py", action="store_true",
-                    help="Build the python package")
+parser.add_argument("--pip", action="store_true",
+                    help="Build the pip wheel")
 parser.add_argument('--wasm', action='store_true',
                     help='Build the WebAssembly files')
 parser.add_argument('--npm', action='store_true',
@@ -35,10 +35,10 @@ args = parser.parse_args()
 
 # If no specific project given then build all
 build_all = (
-    not args.cli and not args.wasm and not args.npm and not args.play and not args.py
+    not args.cli and not args.wasm and not args.npm and not args.play and not args.pip
 )
 build_cli = build_all or args.cli
-build_py = build_all or args.py
+build_pip = build_all or args.pip
 build_wasm = build_all or args.wasm
 build_npm = build_all or args.npm
 build_play = build_all or args.play
@@ -73,7 +73,7 @@ if build_cli:
             cargo_test_args.append('--release')
         result = subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
 
-if build_py:
+if build_pip:
     pip_build_args = ["pip", "wheel", "--wheel-dir", wheels_dir, py_src]
     result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
 
