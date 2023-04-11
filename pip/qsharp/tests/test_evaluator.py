@@ -7,7 +7,7 @@ from qsharp import Evaluator
 def test_int_lit() -> None:
     e = Evaluator()
     (value, out, err) = e.eval("5")
-    assert value == "5"
+    assert value == 5
 
 
 def test_output_follows() -> None:
@@ -20,4 +20,5 @@ def test_unknown_ident() -> None:
     e = Evaluator()
     expr = "a864"
     (value, out, err) = e.eval(expr)
-    assert err == f"`{expr}` not found in this scope"
+    assert len(err) == 1
+    assert err[0].message == f"`{expr}` not found in this scope"
