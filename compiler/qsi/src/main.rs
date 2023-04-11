@@ -116,7 +116,7 @@ fn print_prompt(is_multiline: bool) {
     if is_multiline {
         print!("    > ");
     } else {
-        print!("qsci$ ");
+        print!("qsi$ ");
     }
     io::stdout().flush().expect("Could not flush stdout");
 }
