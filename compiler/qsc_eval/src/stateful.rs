@@ -131,6 +131,9 @@ fn create_execution_context(
     Ok(context)
 }
 
+// We can't take a mutable reference to the BorrowedMutFields
+// because it isn't declared as mutable in the ouroboros macro.
+// So we take the owned value and allow the clippy lint.
 #[allow(clippy::needless_pass_by_value)]
 fn eval_line_in_context(
     receiver: &mut dyn Receiver,
