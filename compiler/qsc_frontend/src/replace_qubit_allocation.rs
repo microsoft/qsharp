@@ -4,7 +4,7 @@
 //#[cfg(test)]
 //mod tests;
 
-use std::mem::{replace, swap, take};
+use std::mem::{replace, take};
 
 //use miette::Diagnostic;
 use qsc_ast::{
@@ -12,7 +12,7 @@ use qsc_ast::{
         Block, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Path, QubitInit,
         QubitInitKind, Span, Stmt, StmtKind,
     },
-    mut_visit::{walk_block, walk_stmt, MutVisitor},
+    mut_visit::{walk_stmt, MutVisitor},
 };
 
 pub struct ReplaceQubitAllocation {
@@ -69,16 +69,8 @@ impl ReplaceQubitAllocation {
         init: QubitInit,
         block: Option<Block>,
     ) -> Vec<Stmt> {
-        let mut temp: Vec<Ident> = vec![];
-
-        let (assignment_expr, ids) = self.do_thing(init);
-        let mut new_stmts: Vec<Stmt> = ids
-            .iter()
-            .map(|id| {
-                temp.push(id.clone());
-                create_alloc_stmt(id)
-            })
-            .collect();
+        let (assignment_expr, ids) = self.process_qubit_init(init);
+        let mut new_stmts: Vec<Stmt> = ids.iter().map(create_alloc_stmt).collect();
         new_stmts.push(Stmt {
             id: NodeId::default(),
             span: stmt_span,
@@ -90,7 +82,7 @@ impl ReplaceQubitAllocation {
         });
 
         if let Some(mut block) = block {
-            self.prefix_qubits = temp;
+            self.prefix_qubits = ids;
             block.stmts.splice(0..0, new_stmts);
             self.visit_block(&mut block);
             vec![Stmt {
@@ -103,14 +95,14 @@ impl ReplaceQubitAllocation {
                 }),
             }]
         } else {
-            self.qubits_curr_block.extend(temp);
+            self.qubits_curr_block.extend(ids);
             new_stmts
         }
     }
 
-    fn do_thing(&mut self, init: QubitInit) -> (Expr, Vec<Ident>) {
+    fn process_qubit_init(&mut self, init: QubitInit) -> (Expr, Vec<Ident>) {
         match init.kind {
-            QubitInitKind::Paren(i) => self.do_thing(*i),
+            QubitInitKind::Paren(i) => self.process_qubit_init(*i),
             QubitInitKind::Single => {
                 let gen_id = self.gen_ident(init.span);
                 let expr = Expr {
@@ -129,7 +121,7 @@ impl ReplaceQubitAllocation {
                 let mut exprs: Vec<Expr> = vec![];
                 let mut ids: Vec<Ident> = vec![];
                 for i in inits {
-                    let (sub_expr, sub_ids) = self.do_thing(i);
+                    let (sub_expr, sub_ids) = self.process_qubit_init(i);
                     exprs.push(sub_expr);
                     ids.extend(sub_ids);
                 }
