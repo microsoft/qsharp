@@ -19,7 +19,7 @@ pub fn verify_kata(
     recv: &mut impl Receiver,
 ) -> bool {
     let sources = [verification_source, kata_implementation];
-    run_kata(sources, recv).is_ok()
+    run_kata(sources, recv).unwrap_or(false)
 }
 
 /// # Errors
