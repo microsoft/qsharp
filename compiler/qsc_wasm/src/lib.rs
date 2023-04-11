@@ -10,6 +10,7 @@ use qsc_eval::{
     stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
+use katas::verify_kata;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};

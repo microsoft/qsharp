@@ -6,7 +6,7 @@ import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
 import {inspect} from "node:util";
 
-import {katasMetadata} from "../katas/qs/dist/metadata.js"
+import {katasMetadata} from "../katas/content/dist/metadata.js"
 
 console.log("CESARZC: BUILD");
 
