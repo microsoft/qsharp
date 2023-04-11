@@ -67,9 +67,6 @@ pub enum Error {
     #[error("division by zero")]
     DivZero(#[label("cannot divide by zero")] Span),
 
-    #[error("nothing to evaluate; entry expression is empty")]
-    EmptyExpr,
-
     #[error("{0} type does not support equality comparison")]
     Equality(&'static str, #[label("does not support comparison")] Span),
 
