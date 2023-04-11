@@ -81,10 +81,6 @@ fn repl(cli: Cli) -> Result<ExitCode> {
                 line.push_str(&next);
             }
 
-            // TODO: if multiple statements are entered, we currently only
-            // evaluate the first one. We need to evaluate all of them. This
-            // will require updates to parsing to read multiple statements
-            // followed by the EOF token.
             if !line.trim().is_empty() {
                 let results = interpreter.line(&mut receiver, line.clone());
                 print_results(results, &receiver.dump(), &line);
