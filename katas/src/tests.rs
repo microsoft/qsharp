@@ -56,7 +56,7 @@ fn validate_exercise(exercise_dir: &Path) {
             for error in errors {
                 eprintln!("{error}");
             }
-            panic!("Reference implementation for exercise '{exercise_name}' expected to succeed but failed.");
+            panic!("Reference implementation for exercise '{exercise_name}' expected to compile but failed.");
         }
     }
     if let Err(errors) = reference_succeeds {
