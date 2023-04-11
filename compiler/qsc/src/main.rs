@@ -141,7 +141,7 @@ impl<'a> ErrorReporter<'a> {
         let source = NamedSource::new(name, source);
 
         // Adjust all spans in the error to be relative to the start of this source.
-        let offset = -isize::try_from(offset).unwrap();
+        let offset = -isize::try_from(offset).expect("Could not convert offset to isize");
         Report::new(OffsetError::new(error, offset)).with_source_code(source)
     }
 }

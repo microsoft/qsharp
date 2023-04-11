@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::mod_module_files, clippy::pedantic)]
+#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 use std::sync::Arc;
 use std::{path::PathBuf, process::ExitCode};
@@ -77,7 +77,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             while !line.is_empty() && &line[line.len() - 1..] == "\\" {
                 print_prompt(true);
                 line.pop(); // remove '\' from line
-                let next = iter.next().unwrap();
+                let next = iter.next().expect("Could nod read next line");
                 line.push_str(&next);
             }
 
@@ -122,7 +122,7 @@ fn print_prompt(is_multiline: bool) {
     } else {
         print!("qsci$ ");
     }
-    io::stdout().flush().unwrap();
+    io::stdout().flush().expect("Could not flush stdout");
 }
 
 fn read_source(paths: &[PathBuf]) -> io::Result<Vec<String>> {
@@ -174,7 +174,7 @@ impl<'a> ErrorReporter<'a> {
         let source = NamedSource::new(name, source);
 
         // Adjust all spans in the error to be relative to the start of this source.
-        let offset = -isize::try_from(offset).unwrap();
+        let offset = -isize::try_from(offset).expect("Could not convert offset to isize");
         Report::new(OffsetError::new(error, offset)).with_source_code(source)
     }
 }
