@@ -30,12 +30,31 @@ use qsc_frontend::{
 use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
+    fmt::{Display, Formatter},
     hash::BuildHasher,
     mem::take,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
 };
 use thiserror::Error;
+
+#[derive(Debug, Diagnostic, Error)]
+pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
+
+impl<T: std::error::Error + Clone> Display for AggregateError<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for error in &self.0 {
+            writeln!(f, "{error}")?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: std::error::Error + Clone> Clone for AggregateError<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {

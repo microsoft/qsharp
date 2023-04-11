@@ -4,7 +4,7 @@
 mod tests;
 
 use crate::val::Value;
-use crate::{eval_stmt, Env};
+use crate::{eval_stmt, AggregateError, Env};
 use qsc_ast::ast::CallableDecl;
 use qsc_passes::globals::GlobalId;
 use std::collections::HashMap;
@@ -47,19 +47,6 @@ pub struct ExecutionContext {
     env: Option<Env>,
 }
 
-#[derive(Clone, Debug)]
-pub struct InterpreterResult {
-    pub value: Value,
-    pub errors: Vec<Error>,
-}
-
-impl InterpreterResult {
-    #[must_use]
-    pub fn new(value: Value, errors: Vec<Error>) -> Self {
-        Self { value, errors }
-    }
-}
-
 pub struct Interpreter {
     context: ExecutionContext,
 }
@@ -71,7 +58,7 @@ impl Interpreter {
     pub fn new(
         nostdlib: bool,
         sources: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Result<Self, (InterpreterResult, CompileUnit)> {
+    ) -> Result<Self, (AggregateError<Error>, CompileUnit)> {
         let context = match create_execution_context(nostdlib, sources, None) {
             Ok(value) => value,
             Err(value) => return Err(value),
@@ -83,7 +70,7 @@ impl Interpreter {
         &mut self,
         receiver: &mut dyn Receiver,
         line: impl AsRef<str>,
-    ) -> impl Iterator<Item = InterpreterResult> {
+    ) -> impl Iterator<Item = Result<Value, AggregateError<Error>>> {
         self.context
             .with_mut(|fields| eval_line_in_context(receiver, line, fields))
     }
@@ -93,7 +80,7 @@ fn create_execution_context(
     nostdlib: bool,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     expr: Option<String>,
-) -> Result<ExecutionContext, (InterpreterResult, CompileUnit)> {
+) -> Result<ExecutionContext, (AggregateError<Error>, CompileUnit)> {
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
     if !nostdlib {
@@ -106,15 +93,14 @@ fn create_execution_context(
         &expr.unwrap_or_default(),
     );
     if !unit.context.errors().is_empty() {
-        let result = InterpreterResult::new(
-            Value::UNIT,
-            unit.context
-                .errors()
-                .iter()
-                .map(|e| Error::Compile(e.clone()))
-                .collect(),
-        );
-        return Err((result, unit));
+        let errors = unit
+            .context
+            .errors()
+            .iter()
+            .map(|e| Error::Compile(e.clone()))
+            .collect();
+
+        return Err((AggregateError(errors), unit));
     }
     let basis_package = store.insert(unit);
     session_deps.push(basis_package);
@@ -139,7 +125,7 @@ fn eval_line_in_context(
     receiver: &mut dyn Receiver,
     line: impl AsRef<str>,
     fields: BorrowedMutFields,
-) -> impl Iterator<Item = InterpreterResult> {
+) -> impl Iterator<Item = Result<Value, AggregateError<Error>>> {
     let mut results = vec![];
     let fragments = fields.compiler.compile_fragment(line);
     for fragment in fragments {
@@ -159,10 +145,10 @@ fn eval_line_in_context(
 
                 match result {
                     Ok(v) => {
-                        results.push(InterpreterResult::new(v, vec![]));
+                        results.push(Ok(v));
                     }
                     Err(e) => {
-                        results.push(InterpreterResult::new(Value::UNIT, vec![Error::Eval(e)]));
+                        results.push(Err(AggregateError(vec![Error::Eval(e)])));
                         return results.into_iter();
                     }
                 }
@@ -173,14 +159,14 @@ fn eval_line_in_context(
                     node: decl.name.id,
                 };
                 fields.globals.insert(id, decl);
-                results.push(InterpreterResult::new(Value::UNIT, vec![]));
+                results.push(Ok(Value::UNIT));
             }
             Fragment::Error(errors) => {
                 let e = errors
                     .iter()
                     .map(|e| Error::Incremental(e.clone()))
                     .collect();
-                results.push(InterpreterResult::new(Value::UNIT, e));
+                results.push(Err(AggregateError(e)));
             }
         }
     }

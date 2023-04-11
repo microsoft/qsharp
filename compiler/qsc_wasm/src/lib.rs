@@ -311,7 +311,7 @@ where
     let mut out = CallbackReceiver { event_cb };
     let context = pre_compile_context(false, expr.to_string(), [code.to_string()]);
     if let Err(err) = context {
-        let e = err.errors[0].clone();
+        let e = err.0[0].clone();
         let diag: VSDiagnostic = (&e).into();
         let msg = format!(
             r#"{{"type": "Result", "success": false, "result": {}}}"#,
@@ -324,15 +324,15 @@ where
     for _ in 0..shots {
         let result = cached_eval(&context, &mut out);
         let mut success = true;
-
-        let msg = if result.errors.is_empty() {
-            format!(r#""{}""#, result.value)
-        } else {
-            // TODO: handle multiple errors
-            let e = result.errors[0].clone();
-            success = false;
-            let diag: VSDiagnostic = (&e).into();
-            diag.to_string()
+        let msg = match result {
+            Ok(value) => format!(r#""{value}""#),
+            Err(err) => {
+                // TODO: handle multiple errors
+                let e = err.0[0].clone();
+                success = false;
+                let diag: VSDiagnostic = (&e).into();
+                diag.to_string()
+            }
         };
 
         let msg_string = format!(r#"{{"type": "Result", "success": {success}, "result": {msg}}}"#);

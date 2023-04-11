@@ -8,7 +8,9 @@ use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
 use qsc_eval::output::CursorReceiver;
-use qsc_eval::stateful::{Interpreter, InterpreterResult};
+use qsc_eval::stateful::{Error, Interpreter};
+use qsc_eval::val::Value;
+use qsc_eval::AggregateError;
 use qsc_frontend::compile::{Context, SourceIndex};
 use qsc_frontend::diagnostic::OffsetError;
 
@@ -93,16 +95,22 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 }
 
-fn print_results(results: impl Iterator<Item = InterpreterResult>, output: &str, line: &str) {
+fn print_results(
+    results: impl Iterator<Item = Result<Value, AggregateError<Error>>>,
+    output: &str,
+    line: &str,
+) {
     for result in results {
-        println!("{}", result.value);
         if !output.is_empty() {
             println!("{output}");
         }
-        if !result.errors.is_empty() {
-            let reporter = InteractiveErrorReporter::new(line);
-            for error in result.errors {
-                eprintln!("{:?}", reporter.report(error.clone()));
+        match result {
+            Ok(value) => println!("{value:?}"),
+            Err(errors) => {
+                let reporter = InteractiveErrorReporter::new(line);
+                for error in errors.0 {
+                    eprintln!("{:?}", reporter.report(error.clone()));
+                }
             }
         }
     }

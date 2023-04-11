@@ -3,7 +3,7 @@
 
 use crate::output::Receiver;
 use crate::val::Value;
-use crate::{eval_expr, Env};
+use crate::{eval_expr, AggregateError, Env};
 use ouroboros::self_referencing;
 use qsc_ast::ast::CallableDecl;
 use qsc_frontend::compile::{self, compile, PackageStore};
@@ -27,25 +27,17 @@ pub enum Error {
     EmptyExpr,
 }
 
-#[derive(Clone, Debug)]
-pub struct InterpreterResult {
-    pub value: Value,
-    pub errors: Vec<Error>,
-}
-
-impl InterpreterResult {
-    #[must_use]
-    pub fn new(value: Value, errors: Vec<Error>) -> Self {
-        Self { value, errors }
-    }
-}
-
+/// # Errors
+/// If the compilation of the standard library fails, an error is returned.
+/// If the compilation of the sources fails, an error is returned.
+/// If the entry expression compilation fails, an error is returned.
+/// If the evaluation of the entry expression causes an error
 pub fn eval(
     nostdlib: bool,
     expr: impl AsRef<str>,
     receiver: &mut dyn Receiver,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
-) -> InterpreterResult {
+) -> Result<Value, AggregateError<Error>> {
     crate::init();
 
     let mut store = PackageStore::new();
@@ -59,14 +51,13 @@ pub fn eval(
     // create a package with all defined dependencies for the session
     let unit = compile(&store, session_deps.clone(), sources, expr.as_ref());
     if !unit.context.errors().is_empty() {
-        return InterpreterResult::new(
-            Value::UNIT,
+        return Err(AggregateError(
             unit.context
                 .errors()
                 .iter()
                 .map(|e| Error::Compile(e.clone()))
                 .collect(),
-        );
+        ));
     }
 
     let basis_package = store.insert(unit);
@@ -91,8 +82,8 @@ pub fn eval(
         receiver,
     );
     match result {
-        Ok(v) => InterpreterResult::new(v, vec![]),
-        Err(e) => InterpreterResult::new(Value::UNIT, vec![Error::Eval(e)]),
+        Ok(v) => Ok(v),
+        Err(e) => Err(AggregateError(vec![Error::Eval(e)])),
     }
 }
 
@@ -104,7 +95,7 @@ pub fn pre_compile_context(
     nostdlib: bool,
     expr: String,
     sources: impl IntoIterator<Item = String>,
-) -> Result<ExecutionContext, InterpreterResult> {
+) -> Result<ExecutionContext, AggregateError<Error>> {
     let sources = sources.into_iter().collect::<Vec<_>>();
 
     let mut store = PackageStore::new();
@@ -118,7 +109,12 @@ pub fn pre_compile_context(
     create_execution_context(nostdlib, sources, Some(expr))
 }
 
-pub fn cached_eval(context: &ExecutionContext, receiver: &mut dyn Receiver) -> InterpreterResult {
+/// # Errors
+/// If the evaluation of the entry expression causes an error
+pub fn cached_eval(
+    context: &ExecutionContext,
+    receiver: &mut dyn Receiver,
+) -> Result<Value, AggregateError<Error>> {
     crate::init();
 
     let result = context.with(|f| {
@@ -142,8 +138,8 @@ pub fn cached_eval(context: &ExecutionContext, receiver: &mut dyn Receiver) -> I
         )
     });
     match result {
-        Ok(v) => InterpreterResult::new(v, vec![]),
-        Err(e) => InterpreterResult::new(Value::UNIT, vec![Error::Eval(e)]),
+        Ok(v) => Ok(v),
+        Err(e) => Err(AggregateError(vec![Error::Eval(e)])),
     }
 }
 
@@ -160,7 +156,7 @@ fn create_execution_context(
     nostdlib: bool,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     expr: Option<String>,
-) -> Result<ExecutionContext, InterpreterResult> {
+) -> Result<ExecutionContext, AggregateError<Error>> {
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
     if !nostdlib {
@@ -179,7 +175,7 @@ fn create_execution_context(
             .iter()
             .map(|e| Error::Compile(e.clone()))
             .collect();
-        return Err(InterpreterResult::new(Value::UNIT, errors));
+        return Err(AggregateError(errors));
     }
     let basis_package = store.insert(unit);
 

@@ -35,12 +35,11 @@ pub fn run_kata(
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
     let nostdlib = false;
-    let result = eval(nostdlib, KATA_VERIFY, receiver, sources);
-    if !result.errors.is_empty() {
-        return Err(result.errors);
-    }
-    match result.value {
-        Value::Bool(value) => Ok(value),
-        _ => panic!("{KATA_VERIFY} did not return a Bool value."),
+    match eval(nostdlib, KATA_VERIFY, receiver, sources) {
+        Ok(value) => match value {
+            Value::Bool(value) => Ok(value),
+            _ => panic!("{KATA_VERIFY} did not return a Bool value."),
+        },
+        Err(errors) => Err(errors.0),
     }
 }

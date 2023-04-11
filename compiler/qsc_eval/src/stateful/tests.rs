@@ -7,13 +7,17 @@ mod given_interpreter {
 
     use crate::{
         output::CursorReceiver,
-        stateful::{Interpreter, InterpreterResult},
+        stateful::{Error, Interpreter},
         val::Value,
+        AggregateError,
     };
     fn line(
         interpreter: &mut Interpreter,
         line: impl AsRef<str>,
-    ) -> (impl Iterator<Item = InterpreterResult>, String) {
+    ) -> (
+        impl Iterator<Item = Result<Value, AggregateError<Error>>>,
+        String,
+    ) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.line(&mut receiver, line), receiver.dump())
@@ -168,34 +172,54 @@ mod given_interpreter {
         Interpreter::new(false, SOURCES).expect("Failed to compile base environment.")
     }
 
-    fn is_only_value(results: (impl Iterator<Item = InterpreterResult>, String), value: &Value) {
+    fn is_only_value(
+        results: (
+            impl Iterator<Item = Result<Value, AggregateError<Error>>>,
+            String,
+        ),
+        value: &Value,
+    ) {
         assert_eq!("", results.1);
 
         let results = results.0.collect::<Vec<_>>();
         let result = &results[0];
-        assert_eq!(value, &result.value);
-        assert_eq!(0, result.errors.len());
+        match result {
+            Ok(v) => assert_eq!(value, v),
+            Err(e) => panic!("Expected unit value, got {e:?}"),
+        }
     }
 
     fn is_unit_with_output(
-        results: (impl Iterator<Item = InterpreterResult>, String),
+        results: (
+            impl Iterator<Item = Result<Value, AggregateError<Error>>>,
+            String,
+        ),
         output: &str,
     ) {
         assert_eq!(output, results.1);
 
         let results = results.0.collect::<Vec<_>>();
         let result = &results[0];
-        assert_eq!(Value::UNIT, result.value);
-        assert_eq!(0, result.errors.len());
+        match result {
+            Ok(value) => assert_eq!(Value::UNIT, *value),
+            Err(e) => panic!("Expected unit value, got {e:?}"),
+        }
     }
 
-    fn is_only_error(results: (impl Iterator<Item = InterpreterResult>, String), error: &str) {
+    fn is_only_error(
+        results: (
+            impl Iterator<Item = Result<Value, AggregateError<Error>>>,
+            String,
+        ),
+        error: &str,
+    ) {
         assert_eq!("", results.1);
 
         let results = results.0.collect::<Vec<_>>();
         let result = &results[0];
-        assert_eq!(Value::UNIT, result.value);
-        assert_eq!(1, result.errors.len());
-        assert_eq!(error, result.errors[0].to_string());
+        match result {
+            Ok(value) => panic!("Expected error , got {value:?}"),
+            Err(errors) => assert_eq!(error, errors.0[0].to_string()),
+        }
     }
 }
