@@ -798,7 +798,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "qsci"
+name = "qsi"
 version = "0.0.0"
 dependencies = [
  "clap 4.1.8",

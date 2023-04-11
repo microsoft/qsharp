@@ -1,5 +1,5 @@
 [package]
-name = "qsci"
+name = "qsi"
 version = "0.0.0"
 description = "Q# Interactive"
 
@@ -19,5 +19,5 @@ miette = { workspace = true, features = ["fancy"] }
 thiserror = { workspace = true }
 
 [[bin]]
-name = "qsci"
+name = "qsi"
 bench = false
