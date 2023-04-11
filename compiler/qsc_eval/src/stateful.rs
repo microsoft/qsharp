@@ -56,10 +56,10 @@ impl Interpreter {
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
     pub fn new(
-        nostdlib: bool,
+        stdlib: bool,
         sources: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<Self, (AggregateError<Error>, CompileUnit)> {
-        let context = match create_execution_context(nostdlib, sources, None) {
+        let context = match create_execution_context(stdlib, sources, None) {
             Ok(value) => value,
             Err(value) => return Err(value),
         };
@@ -77,13 +77,13 @@ impl Interpreter {
 }
 
 fn create_execution_context(
-    nostdlib: bool,
+    stdlib: bool,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     expr: Option<String>,
 ) -> Result<ExecutionContext, (AggregateError<Error>, CompileUnit)> {
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
-    if !nostdlib {
+    if stdlib {
         session_deps.push(store.insert(compile::std()));
     }
     let unit = compile(

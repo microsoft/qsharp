@@ -309,7 +309,7 @@ where
     }
 
     let mut out = CallbackReceiver { event_cb };
-    let context = pre_compile_context(false, expr.to_string(), [code.to_string()]);
+    let context = pre_compile_context(true, expr.to_string(), [code.to_string()]);
     if let Err(err) = context {
         let e = err.0[0].clone();
         let diag: VSDiagnostic = (&e).into();

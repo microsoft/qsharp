@@ -33,7 +33,7 @@ pub enum Error {
 /// If the entry expression compilation fails, an error is returned.
 /// If the evaluation of the entry expression causes an error
 pub fn eval(
-    nostdlib: bool,
+    stdlib: bool,
     expr: impl AsRef<str>,
     receiver: &mut dyn Receiver,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
@@ -44,7 +44,7 @@ pub fn eval(
 
     let mut session_deps: Vec<_> = vec![];
 
-    if !nostdlib {
+    if stdlib {
         session_deps.push(store.insert(compile::std()));
     }
 
@@ -92,7 +92,7 @@ pub fn eval(
 /// If the compilation of the sources fails, an error is returned.
 /// If the entry expression compilation fails, an error is returned.
 pub fn pre_compile_context(
-    nostdlib: bool,
+    stdlib: bool,
     expr: String,
     sources: impl IntoIterator<Item = String>,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
@@ -102,11 +102,11 @@ pub fn pre_compile_context(
 
     let mut session_deps: Vec<_> = vec![];
 
-    if !nostdlib {
+    if stdlib {
         session_deps.push(store.insert(compile::std()));
     }
 
-    create_execution_context(nostdlib, sources, Some(expr))
+    create_execution_context(stdlib, sources, Some(expr))
 }
 
 /// # Errors
@@ -153,13 +153,13 @@ pub struct ExecutionContext {
 }
 
 fn create_execution_context(
-    nostdlib: bool,
+    stdlib: bool,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     expr: Option<String>,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
-    if !nostdlib {
+    if stdlib {
         session_deps.push(store.insert(compile::std()));
     }
     let unit = compile(

@@ -34,8 +34,8 @@ pub fn run_kata(
 ) -> Result<bool, Vec<qsc_eval::stateless::Error>> {
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
-    let nostdlib = false;
-    match eval(nostdlib, KATA_VERIFY, receiver, sources) {
+    let stdlib = true;
+    match eval(stdlib, KATA_VERIFY, receiver, sources) {
         Ok(value) => match value {
             Value::Bool(value) => Ok(value),
             _ => panic!("{KATA_VERIFY} did not return a Bool value."),

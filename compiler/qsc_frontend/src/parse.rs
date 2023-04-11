@@ -74,7 +74,7 @@ pub(super) fn item(input: &str) -> (Item, Vec<Error>) {
 #[must_use]
 pub(super) fn stmts(input: &str) -> (Vec<Stmt>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match stmt::stmts(&mut scanner) {
+    match stmt::many_stmt(&mut scanner) {
         Ok(stmts) => (stmts, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();

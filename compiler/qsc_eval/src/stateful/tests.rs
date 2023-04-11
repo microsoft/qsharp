@@ -32,7 +32,7 @@ mod given_interpreter {
             fn stdlib_members_should_be_unavailable() {
                 const SOURCES: [&str; 0] = [];
                 let mut interpreter =
-                    Interpreter::new(true, SOURCES).expect("Failed to compile base environment.");
+                    Interpreter::new(false, SOURCES).expect("Failed to compile base environment.");
 
                 let results = line(&mut interpreter, "Message(\"_\")");
                 is_only_error(results, "`Message` not found in this scope");
@@ -117,7 +117,7 @@ mod given_interpreter {
             }"#};
 
             let mut interpreter =
-                Interpreter::new(false, [source]).expect("Failed to compile base environment.");
+                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let results = line(&mut interpreter, "Test.Main()");
             is_unit_with_output(results, "hello there...");
         }
@@ -136,7 +136,7 @@ mod given_interpreter {
             }"#};
 
             let mut interpreter =
-                Interpreter::new(false, [source]).expect("Failed to compile base environment.");
+                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let results = line(&mut interpreter, "Test.Hello()");
             is_only_value(results, &Value::String("hello there...".to_string()));
             let results = line(&mut interpreter, "Test.Main()");
@@ -159,7 +159,7 @@ mod given_interpreter {
             }"#};
 
             let mut interpreter =
-                Interpreter::new(false, [source]).expect("Failed to compile base environment.");
+                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let results = line(&mut interpreter, "Test.Hello()");
             is_only_value(results, &Value::String("hello there...".to_string()));
             let results = line(&mut interpreter, "Test2.Main()");
@@ -169,7 +169,7 @@ mod given_interpreter {
 
     fn get_interpreter() -> Interpreter {
         const SOURCES: [&str; 0] = [];
-        Interpreter::new(false, SOURCES).expect("Failed to compile base environment.")
+        Interpreter::new(true, SOURCES).expect("Failed to compile base environment.")
     }
 
     fn is_only_value(
