@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::output::Receiver;
+use crate::val::Value;
 use crate::{eval_expr, Env};
 use ouroboros::self_referencing;
 use qsc_ast::ast::CallableDecl;
@@ -28,13 +29,13 @@ pub enum Error {
 
 #[derive(Clone, Debug)]
 pub struct InterpreterResult {
-    pub value: String,
+    pub value: Value,
     pub errors: Vec<Error>,
 }
 
 impl InterpreterResult {
     #[must_use]
-    pub fn new(value: String, errors: Vec<Error>) -> Self {
+    pub fn new(value: Value, errors: Vec<Error>) -> Self {
         Self { value, errors }
     }
 }
@@ -59,7 +60,7 @@ pub fn eval(
     let unit = compile(&store, session_deps.clone(), sources, expr.as_ref());
     if !unit.context.errors().is_empty() {
         return InterpreterResult::new(
-            String::new(),
+            Value::UNIT,
             unit.context
                 .errors()
                 .iter()
@@ -90,8 +91,8 @@ pub fn eval(
         receiver,
     );
     match result {
-        Ok(v) => InterpreterResult::new(format!("{v}"), vec![]),
-        Err(e) => InterpreterResult::new(String::new(), vec![Error::Eval(e)]),
+        Ok(v) => InterpreterResult::new(v, vec![]),
+        Err(e) => InterpreterResult::new(Value::UNIT, vec![Error::Eval(e)]),
     }
 }
 
@@ -141,8 +142,8 @@ pub fn cached_eval(context: &ExecutionContext, receiver: &mut dyn Receiver) -> I
         )
     });
     match result {
-        Ok(v) => InterpreterResult::new(format!("{v}"), vec![]),
-        Err(e) => InterpreterResult::new(String::new(), vec![Error::Eval(e)]),
+        Ok(v) => InterpreterResult::new(v, vec![]),
+        Err(e) => InterpreterResult::new(Value::UNIT, vec![Error::Eval(e)]),
     }
 }
 
@@ -178,7 +179,7 @@ fn create_execution_context(
             .iter()
             .map(|e| Error::Compile(e.clone()))
             .collect();
-        return Err(InterpreterResult::new(String::new(), errors));
+        return Err(InterpreterResult::new(Value::UNIT, errors));
     }
     let basis_package = store.insert(unit);
 

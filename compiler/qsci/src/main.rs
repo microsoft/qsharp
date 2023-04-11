@@ -95,9 +95,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
 
 fn print_results(results: impl Iterator<Item = InterpreterResult>, output: &str, line: &str) {
     for result in results {
-        if !result.value.is_empty() {
-            println!("{}", result.value);
-        }
+        println!("{}", result.value);
         if !output.is_empty() {
             println!("{output}");
         }

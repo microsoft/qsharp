@@ -8,6 +8,7 @@ mod tests;
 
 use qsc_eval::output::Receiver;
 use qsc_eval::stateless::eval;
+use qsc_eval::val::Value;
 
 const KATA_VERIFY: &str = "Kata.Verify()";
 
@@ -38,8 +39,8 @@ pub fn run_kata(
     if !result.errors.is_empty() {
         return Err(result.errors);
     }
-    Ok(result
-        .value
-        .parse::<bool>()
-        .unwrap_or_else(|_| panic!("{KATA_VERIFY} did not return a Bool value.")))
+    match result.value {
+        Value::Bool(value) => Ok(value),
+        _ => panic!("{KATA_VERIFY} did not return a Bool value."),
+    }
 }

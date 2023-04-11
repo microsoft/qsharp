@@ -8,6 +8,7 @@ mod given_interpreter {
     use crate::{
         output::CursorReceiver,
         stateful::{Interpreter, InterpreterResult},
+        val::Value,
     };
     fn line(
         interpreter: &mut Interpreter,
@@ -46,7 +47,7 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
             let _ = line(&mut interpreter, "let y = 7;");
             let results = line(&mut interpreter, "y");
-            is_only_value(results, "7");
+            is_only_value(results, &Value::Int(7));
         }
 
         #[test]
@@ -54,16 +55,16 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let results = line(&mut interpreter, "let y = 7;");
-            is_only_value(results, "()");
+            is_only_value(results, &Value::UNIT);
 
             let results = line(&mut interpreter, "y");
-            is_only_value(results, "7");
+            is_only_value(results, &Value::Int(7));
 
             let results = line(&mut interpreter, "let y = \"Hello\";");
-            is_only_value(results, "()");
+            is_only_value(results, &Value::UNIT);
 
             let results = line(&mut interpreter, "y");
-            is_only_value(results, "Hello");
+            is_only_value(results, &Value::String("Hello".to_string()));
         }
 
         #[test]
@@ -85,7 +86,10 @@ mod given_interpreter {
             let results = results.collect::<Vec<_>>();
             assert_eq!(results.len(), 2);
 
-            is_only_value(([results[0].clone()].into_iter(), output.clone()), "()");
+            is_only_value(
+                ([results[0].clone()].into_iter(), output.clone()),
+                &Value::UNIT,
+            );
 
             is_only_error(
                 ([results[1].clone()].into_iter(), output),
@@ -130,9 +134,9 @@ mod given_interpreter {
             let mut interpreter =
                 Interpreter::new(false, [source]).expect("Failed to compile base environment.");
             let results = line(&mut interpreter, "Test.Hello()");
-            is_only_value(results, "hello there...");
+            is_only_value(results, &Value::String("hello there...".to_string()));
             let results = line(&mut interpreter, "Test.Main()");
-            is_only_value(results, "hello there...");
+            is_only_value(results, &Value::String("hello there...".to_string()));
         }
 
         #[test]
@@ -153,9 +157,9 @@ mod given_interpreter {
             let mut interpreter =
                 Interpreter::new(false, [source]).expect("Failed to compile base environment.");
             let results = line(&mut interpreter, "Test.Hello()");
-            is_only_value(results, "hello there...");
+            is_only_value(results, &Value::String("hello there...".to_string()));
             let results = line(&mut interpreter, "Test2.Main()");
-            is_only_value(results, "hello there...");
+            is_only_value(results, &Value::String("hello there...".to_string()));
         }
     }
 
@@ -164,12 +168,12 @@ mod given_interpreter {
         Interpreter::new(false, SOURCES).expect("Failed to compile base environment.")
     }
 
-    fn is_only_value(results: (impl Iterator<Item = InterpreterResult>, String), value: &str) {
+    fn is_only_value(results: (impl Iterator<Item = InterpreterResult>, String), value: &Value) {
         assert_eq!("", results.1);
 
         let results = results.0.collect::<Vec<_>>();
         let result = &results[0];
-        assert_eq!(value, result.value);
+        assert_eq!(value, &result.value);
         assert_eq!(0, result.errors.len());
     }
 
@@ -181,7 +185,7 @@ mod given_interpreter {
 
         let results = results.0.collect::<Vec<_>>();
         let result = &results[0];
-        assert_eq!("()", result.value);
+        assert_eq!(Value::UNIT, result.value);
         assert_eq!(0, result.errors.len());
     }
 
@@ -190,7 +194,7 @@ mod given_interpreter {
 
         let results = results.0.collect::<Vec<_>>();
         let result = &results[0];
-        assert_eq!("", result.value);
+        assert_eq!(Value::UNIT, result.value);
         assert_eq!(1, result.errors.len());
         assert_eq!(error, result.errors[0].to_string());
     }

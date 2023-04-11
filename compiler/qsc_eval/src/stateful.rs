@@ -3,6 +3,7 @@
 
 mod tests;
 
+use crate::val::Value;
 use crate::{eval_stmt, Env};
 use qsc_ast::ast::CallableDecl;
 use qsc_passes::globals::GlobalId;
@@ -48,13 +49,13 @@ pub struct ExecutionContext {
 
 #[derive(Clone, Debug)]
 pub struct InterpreterResult {
-    pub value: String,
+    pub value: Value,
     pub errors: Vec<Error>,
 }
 
 impl InterpreterResult {
     #[must_use]
-    pub fn new(value: String, errors: Vec<Error>) -> Self {
+    pub fn new(value: Value, errors: Vec<Error>) -> Self {
         Self { value, errors }
     }
 }
@@ -106,7 +107,7 @@ fn create_execution_context(
     );
     if !unit.context.errors().is_empty() {
         let result = InterpreterResult::new(
-            String::new(),
+            Value::UNIT,
             unit.context
                 .errors()
                 .iter()
@@ -155,10 +156,10 @@ fn eval_line_in_context(
 
                 match result {
                     Ok(v) => {
-                        results.push(InterpreterResult::new(format!("{v}"), vec![]));
+                        results.push(InterpreterResult::new(v, vec![]));
                     }
                     Err(e) => {
-                        results.push(InterpreterResult::new(String::new(), vec![Error::Eval(e)]));
+                        results.push(InterpreterResult::new(Value::UNIT, vec![Error::Eval(e)]));
                         return results.into_iter();
                     }
                 }
@@ -169,14 +170,14 @@ fn eval_line_in_context(
                     node: decl.name.id,
                 };
                 fields.globals.insert(id, decl);
-                results.push(InterpreterResult::new(String::new(), vec![]));
+                results.push(InterpreterResult::new(Value::UNIT, vec![]));
             }
             Fragment::Error(errors) => {
                 let e = errors
                     .iter()
                     .map(|e| Error::Incremental(e.clone()))
                     .collect();
-                results.push(InterpreterResult::new(String::new(), e));
+                results.push(InterpreterResult::new(Value::UNIT, e));
             }
         }
     }
