@@ -19,6 +19,16 @@ impl<K, V> IndexMap<K, V> {
     pub fn new() -> Self {
         Self::default()
     }
+
+    // `Iter` does implement `Iterator`, but it has an additional bound on `K`.
+    #[allow(clippy::iter_not_returning_iterator)]
+    #[must_use]
+    pub fn iter(&self) -> Iter<K, V> {
+        Iter {
+            _keys: PhantomData,
+            base: self.values.iter().enumerate(),
+        }
+    }
 }
 
 impl<K: Into<usize>, V> IndexMap<K, V> {
@@ -39,15 +49,6 @@ impl<K: Into<usize>, V> IndexMap<K, V> {
         let index: usize = key.into();
         self.values.get_mut(index).and_then(Option::as_mut)
     }
-
-    #[allow(clippy::iter_not_returning_iterator)]
-    #[must_use]
-    pub fn iter(&self) -> Iter<K, V> {
-        Iter {
-            _keys: PhantomData,
-            base: self.values.iter().enumerate(),
-        }
-    }
 }
 
 impl<K, V: Debug> Debug for IndexMap<K, V> {
@@ -67,7 +68,7 @@ impl<K, V> Default for IndexMap<K, V> {
     }
 }
 
-impl<'a, K: From<usize> + Into<usize>, V> IntoIterator for &'a IndexMap<K, V> {
+impl<'a, K: From<usize>, V> IntoIterator for &'a IndexMap<K, V> {
     type Item = (K, &'a V);
 
     type IntoIter = Iter<'a, K, V>;
