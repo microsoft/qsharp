@@ -11,9 +11,8 @@ use std::string::String;
 
 use qsc_frontend::compile::{self, CompileUnit, PackageStore};
 use qsc_frontend::incremental::{Compiler, Fragment};
-use std::io::Cursor;
 
-use crate::output::CursorReceiver;
+use crate::output::Receiver;
 use crate::stateful::ouroboros_impl_execution_context::BorrowedMutFields;
 use miette::Diagnostic;
 use ouroboros::self_referencing;
@@ -45,27 +44,18 @@ pub struct ExecutionContext {
     #[not_covariant]
     globals: HashMap<GlobalId, &'this CallableDecl>,
     env: Option<Env>,
-    cursor: Cursor<Vec<u8>>,
-    #[borrows(mut cursor)]
-    #[not_covariant]
-    out: CursorReceiver<'this>,
 }
 
 #[derive(Clone, Debug)]
 pub struct InterpreterResult {
-    pub output: String,
     pub value: String,
     pub errors: Vec<Error>,
 }
 
 impl InterpreterResult {
     #[must_use]
-    pub fn new(value: String, output: String, errors: Vec<Error>) -> Self {
-        Self {
-            output,
-            value,
-            errors,
-        }
+    pub fn new(value: String, errors: Vec<Error>) -> Self {
+        Self { value, errors }
     }
 }
 
@@ -88,9 +78,13 @@ impl Interpreter {
         Ok(Self { context })
     }
 
-    pub fn line(&mut self, line: impl AsRef<str>) -> impl Iterator<Item = InterpreterResult> {
+    pub fn line(
+        &mut self,
+        receiver: &mut dyn Receiver,
+        line: impl AsRef<str>,
+    ) -> impl Iterator<Item = InterpreterResult> {
         self.context
-            .with_mut(|fields| eval_line_in_context(line, fields))
+            .with_mut(|fields| eval_line_in_context(receiver, line, fields))
     }
 }
 
@@ -113,7 +107,6 @@ fn create_execution_context(
     if !unit.context.errors().is_empty() {
         let result = InterpreterResult::new(
             String::new(),
-            String::new(),
             unit.context
                 .errors()
                 .iter()
@@ -132,8 +125,6 @@ fn create_execution_context(
         compiler_builder: |store| Compiler::new(store, session_deps),
         globals_builder: extract_callables,
         env: None,
-        cursor: Cursor::new(Vec::<u8>::new()),
-        out_builder: |cursor| CursorReceiver::new(cursor),
     }
     .build();
     Ok(context)
@@ -141,6 +132,7 @@ fn create_execution_context(
 
 #[allow(clippy::needless_pass_by_value)]
 fn eval_line_in_context(
+    receiver: &mut dyn Receiver,
     line: impl AsRef<str>,
     fields: BorrowedMutFields,
 ) -> impl Iterator<Item = InterpreterResult> {
@@ -157,21 +149,16 @@ fn eval_line_in_context(
                     fields.compiler.resolutions(),
                     *fields.package,
                     &mut env,
-                    fields.out,
+                    receiver,
                 );
                 let _ = fields.env.insert(env);
-                let output = fields.out.dump();
 
                 match result {
                     Ok(v) => {
-                        results.push(InterpreterResult::new(format!("{v}"), output, vec![]));
+                        results.push(InterpreterResult::new(format!("{v}"), vec![]));
                     }
                     Err(e) => {
-                        results.push(InterpreterResult::new(
-                            String::new(),
-                            output,
-                            vec![Error::Eval(e)],
-                        ));
+                        results.push(InterpreterResult::new(String::new(), vec![Error::Eval(e)]));
                         return results.into_iter();
                     }
                 }
@@ -182,14 +169,14 @@ fn eval_line_in_context(
                     node: decl.name.id,
                 };
                 fields.globals.insert(id, decl);
-                results.push(InterpreterResult::new(String::new(), String::new(), vec![]));
+                results.push(InterpreterResult::new(String::new(), vec![]));
             }
             Fragment::Error(errors) => {
                 let e = errors
                     .iter()
                     .map(|e| Error::Incremental(e.clone()))
                     .collect();
-                results.push(InterpreterResult::new(String::new(), String::new(), e));
+                results.push(InterpreterResult::new(String::new(), e));
             }
         }
     }

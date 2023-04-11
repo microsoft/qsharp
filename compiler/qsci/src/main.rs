@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
+use qsc_eval::output::CursorReceiver;
 use qsc_eval::stateful::{Interpreter, InterpreterResult};
 use qsc_frontend::compile::{Context, SourceIndex};
 use qsc_frontend::diagnostic::OffsetError;
@@ -15,7 +16,7 @@ use std::string::String;
 
 use miette::{Diagnostic, IntoDiagnostic, NamedSource, Report, Result};
 use std::io::prelude::BufRead;
-use std::io::Write;
+use std::io::{Cursor, Write};
 use std::{fs, io};
 
 #[derive(Debug, Parser)]
@@ -53,10 +54,12 @@ fn repl(cli: Cli) -> Result<ExitCode> {
         return Ok(ExitCode::FAILURE);
     }
     let mut interpreter = interpreter.expect("interpreter creation failed");
+    let mut cursor = Cursor::new(Vec::<u8>::new());
+    let mut receiver = CursorReceiver::new(&mut cursor);
 
     if let Some(line) = cli.entry {
-        let results = interpreter.line(line.clone());
-        print_results(results, &line);
+        let results = interpreter.line(&mut receiver, line.clone());
+        print_results(results, &receiver.dump(), &line);
     }
 
     if cli.exec {
@@ -81,8 +84,8 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             // will require updates to parsing to read multiple statements
             // followed by the EOF token.
             if !line.trim().is_empty() {
-                let results = interpreter.line(line.clone());
-                print_results(results, &line);
+                let results = interpreter.line(&mut receiver, line.clone());
+                print_results(results, &receiver.dump(), &line);
             }
 
             print_prompt(false);
@@ -90,13 +93,13 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 }
 
-fn print_results(results: impl Iterator<Item = InterpreterResult>, line: &str) {
+fn print_results(results: impl Iterator<Item = InterpreterResult>, output: &str, line: &str) {
     for result in results {
         if !result.value.is_empty() {
             println!("{}", result.value);
         }
-        if !result.output.is_empty() {
-            println!("{}", result.output);
+        if !output.is_empty() {
+            println!("{output}");
         }
         if !result.errors.is_empty() {
             let reporter = InteractiveErrorReporter::new(line);
