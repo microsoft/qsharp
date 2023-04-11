@@ -45,7 +45,18 @@ pub fn eval(
     let mut session_deps: Vec<_> = vec![];
 
     if stdlib {
-        session_deps.push(store.insert(compile::std()));
+        let unit = compile::std();
+        if unit.context.errors().is_empty() {
+            session_deps.push(store.insert(unit));
+        } else {
+            let errors = unit
+                .context
+                .errors()
+                .iter()
+                .map(|e| Error::Compile(e.clone()))
+                .collect();
+            return Err(AggregateError(errors));
+        }
     }
 
     // create a package with all defined dependencies for the session
@@ -103,7 +114,18 @@ pub fn pre_compile_context(
     let mut session_deps: Vec<_> = vec![];
 
     if stdlib {
-        session_deps.push(store.insert(compile::std()));
+        let unit = compile::std();
+        if unit.context.errors().is_empty() {
+            session_deps.push(store.insert(unit));
+        } else {
+            let errors = unit
+                .context
+                .errors()
+                .iter()
+                .map(|e| Error::Compile(e.clone()))
+                .collect();
+            return Err(AggregateError(errors));
+        }
     }
 
     create_execution_context(stdlib, sources, Some(expr))
@@ -159,9 +181,22 @@ fn create_execution_context(
 ) -> Result<ExecutionContext, AggregateError<Error>> {
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
+
     if stdlib {
-        session_deps.push(store.insert(compile::std()));
+        let unit = compile::std();
+        if unit.context.errors().is_empty() {
+            session_deps.push(store.insert(unit));
+        } else {
+            let errors = unit
+                .context
+                .errors()
+                .iter()
+                .map(|e| Error::Compile(e.clone()))
+                .collect();
+            return Err(AggregateError(errors));
+        }
     }
+
     let unit = compile(
         &store,
         session_deps.clone(),
