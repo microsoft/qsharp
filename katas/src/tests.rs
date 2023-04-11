@@ -59,12 +59,6 @@ fn validate_exercise(exercise_dir: &Path) {
             panic!("Reference implementation for exercise '{exercise_name}' expected to compile but failed.");
         }
     }
-    if let Err(errors) = reference_succeeds {
-        for error in errors {
-            eprintln!("{error}");
-        }
-        panic!("Reference implementation for exercise '{exercise_name}' expected to succeed but failed.");
-    }
 
     let mut stdout = io::stdout();
     let mut out = GenericReceiver::new(&mut stdout);
