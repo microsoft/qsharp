@@ -7,7 +7,7 @@ use once_cell::sync::OnceCell;
 use qsc_eval::{
     output,
     output::Receiver,
-    stateless::{cached_eval, pre_compile_context, Error},
+    stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
 
@@ -309,7 +309,7 @@ where
     }
 
     let mut out = CallbackReceiver { event_cb };
-    let context = pre_compile_context(true, expr.to_string(), [code.to_string()]);
+    let context = compile_execution_context(true, expr, [code.to_string()]);
     if let Err(err) = context {
         let e = err.0[0].clone();
         let diag: VSDiagnostic = (&e).into();
@@ -322,7 +322,7 @@ where
     }
     let context = context.expect("context should be valid");
     for _ in 0..shots {
-        let result = cached_eval(&context, &mut out);
+        let result = eval_in_context(&context, &mut out);
         let mut success = true;
         let msg = match result {
             Ok(value) => format!(r#""{value}""#),

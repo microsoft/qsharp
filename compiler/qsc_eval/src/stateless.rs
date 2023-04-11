@@ -102,10 +102,10 @@ pub fn eval(
 /// If the compilation of the standard library fails, an error is returned.
 /// If the compilation of the sources fails, an error is returned.
 /// If the entry expression compilation fails, an error is returned.
-pub fn pre_compile_context(
+pub fn compile_execution_context(
     stdlib: bool,
-    expr: String,
-    sources: impl IntoIterator<Item = String>,
+    expr: impl AsRef<str>,
+    sources: impl IntoIterator<Item = impl AsRef<str>>,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
     let sources = sources.into_iter().collect::<Vec<_>>();
 
@@ -128,12 +128,12 @@ pub fn pre_compile_context(
         }
     }
 
-    create_execution_context(stdlib, sources, Some(expr))
+    create_execution_context(stdlib, sources, Some(expr.as_ref().to_string()))
 }
 
 /// # Errors
 /// If the evaluation of the entry expression causes an error
-pub fn cached_eval(
+pub fn eval_in_context(
     context: &ExecutionContext,
     receiver: &mut dyn Receiver,
 ) -> Result<Value, AggregateError<Error>> {
