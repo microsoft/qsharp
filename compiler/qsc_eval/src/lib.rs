@@ -38,7 +38,7 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(Debug, Diagnostic, Error)]
+#[derive(Debug, Error)]
 pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
 
 impl<T: std::error::Error + Clone> Display for AggregateError<T> {
