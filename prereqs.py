@@ -51,7 +51,7 @@ def check_prereqs(install=False):
         node_major = int(version_match.group(1))
         node_minor = int(version_match.group(2))
         if node_major < node_ver[0] or (node_major == node_ver[0] and node_minor < node_ver[1]):
-            print('Node.js v{nodejs_ver[0]}.{nodejs_ver[1]} or later is required. Please update.')
+            print(f'Node.js v{node_ver[0]}.{node_ver[1]} or later is required. Please update.')
             exit(1)
     else:
         raise Exception('Unable to determine the Node.js version.')

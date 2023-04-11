@@ -4,11 +4,12 @@
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use once_cell::sync::OnceCell;
-use qsc_eval::output::Receiver;
-use qsc_eval::{eval_expr, output, Env, Error};
+use qsc_eval::{
+    output,
+    output::Receiver,
+    stateless::{compile_execution_context, eval_in_context, Error},
+};
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-use qsc_passes::globals::extract_callables;
-use katas::verify_kata;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -303,49 +304,41 @@ fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<()
 where
     F: Fn(&str),
 {
-    let mut store = PackageStore::new();
-    let std = store.insert(std());
-    let unit = compile(&store, [std], [code], expr);
-    // TODO: Fail here with diagnostics if compile failed
-
-    let id = store.insert(unit);
-    let unit = store.get(id).expect("Fail");
-    if let Some(expr) = &unit.package.entry {
-        let globals = extract_callables(&store);
-        let mut out = CallbackReceiver { event_cb };
-        for _ in 0..shots {
-            qsc_eval::init();
-            let mut success = true;
-            let result: String;
-            let resolutions = store
-                .get_resolutions(id)
-                .expect("package should be present in store");
-            match &eval_expr(
-                expr,
-                &store,
-                &globals,
-                resolutions,
-                id,
-                &mut Env::default(),
-                &mut out,
-            ) {
-                Ok(val) => {
-                    result = format!(r#""{}""#, val);
-                }
-                Err(e) => {
-                    success = false;
-                    let diag: VSDiagnostic = e.into();
-                    result = diag.to_string();
-                }
-            }
-            let msg_string =
-                format!(r#"{{"type": "Result", "success": {success}, "result": {result}}}"#);
-            (out.event_cb)(&msg_string);
-        }
-        Ok(())
-    } else {
-        Err(Error::EmptyExpr)
+    if expr.is_empty() {
+        return Err(Error::EmptyExpr);
     }
+
+    let mut out = CallbackReceiver { event_cb };
+    let context = compile_execution_context(true, expr, [code.to_string()]);
+    if let Err(err) = context {
+        let e = err.0[0].clone();
+        let diag: VSDiagnostic = (&e).into();
+        let msg = format!(
+            r#"{{"type": "Result", "success": false, "result": {}}}"#,
+            diag
+        );
+        (out.event_cb)(&msg);
+        return Err(e);
+    }
+    let context = context.expect("context should be valid");
+    for _ in 0..shots {
+        let result = eval_in_context(&context, &mut out);
+        let mut success = true;
+        let msg = match result {
+            Ok(value) => format!(r#""{value}""#),
+            Err(err) => {
+                // TODO: handle multiple errors
+                let e = err.0[0].clone();
+                success = false;
+                let diag: VSDiagnostic = (&e).into();
+                diag.to_string()
+            }
+        };
+
+        let msg_string = format!(r#"{{"type": "Result", "success": {success}, "result": {msg}}}"#);
+        (out.event_cb)(&msg_string);
+    }
+    Ok(())
 }
 
 #[wasm_bindgen]

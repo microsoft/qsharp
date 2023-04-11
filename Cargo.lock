@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "Inflector"
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
+
+[[package]]
 name = "addr2line"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -36,6 +42,12 @@ checksum = "cc936419f96fa211c1b9166887b38e5e40b19958e5b895be7c1f93adec7071ac"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "aliasable"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
 name = "anes"
@@ -606,6 +618,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
+name = "ouroboros"
+version = "0.15.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1358bd1558bd2a083fed428ffeda486fbfb323e698cdda7794259d592ca72db"
+dependencies = [
+ "aliasable",
+ "ouroboros_macro",
+]
+
+[[package]]
+name = "ouroboros_macro"
+version = "0.15.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f7d21ccd03305a674437ee1248f3ab5d4b1db095cf1caf49f1713ddf61956b7"
+dependencies = [
+ "Inflector",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "owo-colors"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -713,6 +748,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
+ "ouroboros",
  "qir-backend",
  "qir-stdlib",
  "qsc_ast",
@@ -763,7 +799,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "qsci"
+name = "qsi"
 version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
