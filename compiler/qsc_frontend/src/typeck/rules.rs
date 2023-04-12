@@ -214,9 +214,9 @@ impl<'a> Context<'a> {
             ExprKind::BinOp(op, lhs, rhs) => term.then(self.infer_binop(expr.span, *op, lhs, rhs)),
             ExprKind::Block(block) => term.then(self.infer_block(block)),
             ExprKind::Call(callee, input) => {
-                // TODO: Require that the callee has functors needed for generated specializations.
                 // TODO: Handle partial application. (It's probably easier to turn them into lambdas
                 // before type inference.)
+                // https://github.com/microsoft/qsharp/issues/151
                 let callee_ty = term.then(self.infer_expr(callee));
                 let input_ty = term.then(self.infer_expr(input));
                 let output_ty = self.inferrer.fresh();
@@ -295,6 +295,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Lambda(kind, input, body) => {
                 // TODO: Infer the supported functors or require that they are explicitly listed.
+                // https://github.com/microsoft/qsharp/issues/151
                 let input = self.infer_pat(input);
                 let body = term.then(self.infer_expr(body));
                 Ty::Arrow(*kind, Box::new(input), Box::new(body), HashSet::new())

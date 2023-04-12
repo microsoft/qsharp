@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Attr, Expr, ExprKind, Item, Package, Span},
+    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, Span, UnOp},
     visit::{self, Visitor},
 };
 use thiserror::Error;
@@ -53,6 +53,10 @@ impl Validator {
 impl Visitor<'_> for Validator {
     fn visit_item(&mut self, item: &Item) {
         self.validate_attrs(&item.meta.attrs);
+        if matches!(&item.kind, ItemKind::Ty(..)) {
+            self.errors
+                .push(Error::NotCurrentlySupported("newtype", item.span));
+        }
         visit::walk_item(self, item);
     }
 
@@ -64,6 +68,12 @@ impl Visitor<'_> for Validator {
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
+            ExprKind::Field(..) => self
+                .errors
+                .push(Error::NotCurrentlySupported("field access", expr.span)),
+            ExprKind::UnOp(UnOp::Unwrap, _) => self
+                .errors
+                .push(Error::NotCurrentlySupported("unwrap operator", expr.span)),
             _ => {}
         };
 
