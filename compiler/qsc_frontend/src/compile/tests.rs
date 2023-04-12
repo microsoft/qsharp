@@ -70,11 +70,20 @@ fn one_file_error() {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(0));
-    assert_eq!(span, Span { lo: 50, hi: 51 });
+    let errors: Vec<_> = unit
+        .context
+        .errors()
+        .iter()
+        .map(|error| source_span(&unit.context, error))
+        .collect();
+
+    assert_eq!(
+        vec![
+            (SourceIndex(0), Span { lo: 50, hi: 51 }),
+            (SourceIndex(0), Span { lo: 40, hi: 57 })
+        ],
+        errors,
+    );
 }
 
 #[test]
@@ -153,11 +162,20 @@ fn two_files_error() {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert_eq!(errors.len(), 1, "{errors:#?}");
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(1));
-    assert_eq!(span, Span { lo: 50, hi: 51 });
+    let errors: Vec<_> = unit
+        .context
+        .errors()
+        .iter()
+        .map(|error| source_span(&unit.context, error))
+        .collect();
+
+    assert_eq!(
+        vec![
+            (SourceIndex(1), Span { lo: 50, hi: 51 }),
+            (SourceIndex(1), Span { lo: 50, hi: 53 })
+        ],
+        errors,
+    );
 }
 
 #[test]
@@ -180,12 +198,12 @@ fn entry_call_operation() {
         panic!("item should be a callable");
     };
     let id = resolutions
-        .get(&callable.name.id)
+        .get(callable.name.id)
         .expect("callable should resolve");
     let entry = unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
     let ExprKind::Path(path) = callee.kind else { panic!("callee should be a path") };
-    assert_eq!(unit.context.resolutions.get(&path.id), Some(id));
+    assert_eq!(unit.context.resolutions.get(path.id), Some(id));
 }
 
 #[test]
@@ -202,7 +220,6 @@ fn entry_error() {
     );
 
     let errors = unit.context.errors();
-    assert_eq!(errors.len(), 1, "{errors:#?}");
     let (source, span) = source_span(&unit.context, &errors[0]);
     assert_eq!(source, SourceIndex(1));
     assert_eq!(span, Span { lo: 0, hi: 5 });
@@ -291,7 +308,7 @@ fn package_dependency() {
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
     let resolutions = unit2.context.resolutions();
-    let id = resolutions.get(&path.id).expect("should resolve");
+    let id = resolutions.get(path.id).expect("should resolve");
     assert_eq!(id.package, PackageSrc::Extern(package1));
     assert_eq!(id.node, foo);
 }
@@ -333,7 +350,7 @@ fn package_dependency_internal() {
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
-    assert!(unit2.context.resolutions.get(&path.id).is_none());
+    assert!(unit2.context.resolutions.get(path.id).is_none());
 }
 
 #[test]

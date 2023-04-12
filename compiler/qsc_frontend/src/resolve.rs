@@ -13,6 +13,7 @@ use qsc_ast::{
     },
     visit::{self, Visitor},
 };
+use qsc_data_structures::index_map::IndexMap;
 use std::{
     collections::{HashMap, HashSet},
     mem,
@@ -25,7 +26,7 @@ const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Intrinsic",
 ];
 
-pub type Resolutions = HashMap<NodeId, DefId>;
+pub type Resolutions = IndexMap<NodeId, DefId>;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DefId {

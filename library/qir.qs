@@ -97,7 +97,7 @@ namespace QIR.Intrinsic {
         body intrinsic;
     }
 
-    operation __quantum__qis__mresetz__body(target : Qubit) : Unit {
+    operation __quantum__qis__mresetz__body(target : Qubit) : Result {
         body intrinsic;
     }
 }
