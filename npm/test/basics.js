@@ -4,8 +4,8 @@
 //@ts-check
 
 import assert from "node:assert";
-import {test} from "node:test";
-import {checkCode, getCompletions, evaluate, run_shot} from "../dist/node.js"
+import { test } from "node:test";
+import { checkCode, getCompletions, evaluate, run_shot } from "../dist/node.js"
 
 test('no syntax errors', t => {
     let result = checkCode('namespace Foo { @EntryPoint() operation Main() : Unit {} }')
@@ -50,27 +50,20 @@ test('dump machine output', t => {
     assert(result.events[0].state["|0⟩"].length == 2);
 });
 
-test('runtime error position', t => {
-    // TODO: The below should be a compile-time check and the test will fail when fixed.
+test('type error', t => {
     let code = `namespace Sample {
-        operation main() : Result {
+        operation main() : Result[] {
             use q1 = Qubit();
             Ry(q1);
             let m1 = M(q1);
             return [m1];
         }
     }`;
-    let expr = 'Sample.main()';
-    let shot_result = run_shot(code, expr);
-    // TODO: Error positions should be returned
-    assert(!shot_result.success);
-    if (typeof shot_result.result != "object") {
-        assert.fail("Wrong result type");
-    } else {
-        assert(shot_result.result.start_pos == 99);
-        assert(shot_result.result.end_pos == 103);
-        assert(shot_result.result.message == "mismatched types");
-    }
+    let result = checkCode(code);
+    assert.equal(result.length, 1);
+    assert.equal(result[0].start_pos, 99);
+    assert.equal(result[0].end_pos, 103);
+    assert.equal(result[0].message, "mismatched types");
 });
 
 test('message output', t => {
