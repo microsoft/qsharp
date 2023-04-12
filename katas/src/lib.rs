@@ -12,16 +12,6 @@ use qsc_eval::val::Value;
 
 const KATA_VERIFY: &str = "Kata.Verify()";
 
-#[must_use]
-pub fn verify_kata(
-    verification_source: &str,
-    kata_implementation: &str,
-    recv: &mut impl Receiver,
-) -> bool {
-    let sources = [verification_source, kata_implementation];
-    run_kata(sources, recv).unwrap_or(false)
-}
-
 /// # Errors
 /// Returns a vector of errors if compilation or evaluation failed.
 ///

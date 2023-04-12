@@ -10,7 +10,7 @@ use qsc_eval::{
     stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-use katas::{run_kata, verify_kata};
+use katas::run_kata;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -400,38 +400,6 @@ pub fn run_kata_implementation(
             Err(JsError::from(first_error).into())
         }
     }
-}
-
-
-fn verify_kata_implementation_internal<F>(
-    verification_source: &str,
-    kata_implementation: &str,
-    event_cb: F) -> bool
-where
-    F: Fn(&str) {
-    let mut out = CallbackReceiver { event_cb };
-    verify_kata(
-        verification_source,
-        kata_implementation,
-        &mut out,
-    )
-}
-
-#[wasm_bindgen]
-pub fn verify_kata_implementation(
-    verification_source: &str,
-    kata_implementation: &str,
-    event_cb: &js_sys::Function
-) -> Result<JsValue, JsValue> {
-    let succeeds = verify_kata_implementation_internal(
-        verification_source,
-        kata_implementation,
-        |msg: &str| {
-            let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
-        }
-    );
-
-    Ok(JsValue::from_bool(succeeds))
 }
 
 #[cfg(test)]
