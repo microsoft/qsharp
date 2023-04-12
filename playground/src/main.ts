@@ -11,7 +11,8 @@ import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogr
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
 
-    operation main() : Result {
+    @EntryPoint()
+    operation Main() : Result[] {
         use q1 = Qubit();
         use q2 = Qubit();
 

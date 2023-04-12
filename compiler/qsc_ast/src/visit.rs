@@ -101,7 +101,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
 }
 
 pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
-    vis.visit_path(&attr.name);
+    vis.visit_ident(&attr.name);
     vis.visit_expr(&attr.arg);
 }
 

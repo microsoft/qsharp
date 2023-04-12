@@ -109,7 +109,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 
 pub fn walk_attr(vis: &mut impl MutVisitor, attr: &mut Attr) {
     vis.visit_span(&mut attr.span);
-    vis.visit_path(&mut attr.name);
+    vis.visit_ident(&mut attr.name);
     vis.visit_expr(&mut attr.arg);
 }
 

@@ -563,7 +563,7 @@ fn attr_no_args() {
         attr,
         "@Foo()",
         &expect![[r#"
-            Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+            Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
                 Expr _id_ [4-6]: Unit"#]],
     );
 }
@@ -574,7 +574,7 @@ fn attr_single_arg() {
         attr,
         "@Foo(123)",
         &expect![[r#"
-            Attr _id_ [0-9] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+            Attr _id_ [0-9] (Ident _id_ [1-4] "Foo"):
                 Expr _id_ [4-9]: Paren: Expr _id_ [5-8]: Lit: Int(123)"#]],
     );
 }
@@ -585,7 +585,7 @@ fn attr_two_args() {
         attr,
         "@Foo(123, \"bar\")",
         &expect![[r#"
-            Attr _id_ [0-16] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+            Attr _id_ [0-16] (Ident _id_ [1-4] "Foo"):
                 Expr _id_ [4-16]: Tuple:
                     Expr _id_ [5-8]: Lit: Int(123)
                     Expr _id_ [10-15]: Lit: String("bar")"#]],
@@ -600,7 +600,7 @@ fn open_attr() {
         &expect![[r#"
             Item _id_ [0-16]:
                 meta:
-                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
                         Expr _id_ [4-6]: Unit
                 Open (Ident _id_ [12-15] "Bar")"#]],
     );
@@ -614,7 +614,7 @@ fn newtype_attr() {
         &expect![[r#"
             Item _id_ [0-26]:
                 meta:
-                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
                         Expr _id_ [4-6]: Unit
                 New Type (Ident _id_ [15-18] "Bar"): TyDef _id_ [21-25]: Field:
                     Type _id_ [21-25]: Unit"#]],
@@ -629,7 +629,7 @@ fn operation_one_attr() {
         &expect![[r#"
             Item _id_ [0-32]:
                 meta:
-                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
                         Expr _id_ [4-6]: Unit
                 Callable _id_ [7-32] (Operation):
                     name: Ident _id_ [17-20] "Bar"
@@ -647,9 +647,9 @@ fn operation_two_attrs() {
         &expect![[r#"
             Item _id_ [0-39]:
                 meta:
-                    Attr _id_ [0-6] (Path _id_ [1-4] (Ident _id_ [1-4] "Foo")):
+                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
                         Expr _id_ [4-6]: Unit
-                    Attr _id_ [7-13] (Path _id_ [8-11] (Ident _id_ [8-11] "Bar")):
+                    Attr _id_ [7-13] (Ident _id_ [8-11] "Bar"):
                         Expr _id_ [11-13]: Unit
                 Callable _id_ [14-39] (Operation):
                     name: Ident _id_ [24-27] "Baz"

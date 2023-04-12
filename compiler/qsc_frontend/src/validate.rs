@@ -6,15 +6,20 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Expr, ExprKind, Package, Span},
+    ast::{Attr, Expr, ExprKind, Item, Package, Span},
     visit::{self, Visitor},
 };
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
+    #[error("invalid attribute arguments, expected {0}")]
+    InvalidAttrArgs(&'static str, #[label("invalid attribute arguments")] Span),
     #[error("{0} are not currently supported")]
     NotCurrentlySupported(&'static str, #[label("not currently supported")] Span),
+    #[error("unrecognized attribute {0}")]
+    #[diagnostic(help("supported attributes are: `EntryPoint`"))]
+    UnrecognizedAttr(String, #[label("unrecognized attribute")] Span),
 }
 
 pub(super) fn validate(package: &Package) -> Vec<Error> {
@@ -27,7 +32,30 @@ struct Validator {
     errors: Vec<Error>,
 }
 
+impl Validator {
+    fn validate_attrs(&mut self, attrs: &[Attr]) {
+        for attr in attrs {
+            match attr.name.name.as_str() {
+                "EntryPoint" => match &attr.arg.kind {
+                    ExprKind::Tuple(args) if args.is_empty() => {}
+                    _ => self
+                        .errors
+                        .push(Error::InvalidAttrArgs("()", attr.arg.span)),
+                },
+                _ => self
+                    .errors
+                    .push(Error::UnrecognizedAttr(attr.name.name.clone(), attr.span)),
+            }
+        }
+    }
+}
+
 impl Visitor<'_> for Validator {
+    fn visit_item(&mut self, item: &Item) {
+        self.validate_attrs(&item.meta.attrs);
+        visit::walk_item(self, item);
+    }
+
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Lambda(..) => self

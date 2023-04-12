@@ -8,7 +8,7 @@ members = [
     "compiler/qsc_frontend",
     "compiler/qsc_passes",
     "compiler/qsc_wasm",
-    "compiler/qsci",
+    "compiler/qsi",
     "compiler/qtest_tool",
     "katas",
 ]
@@ -37,6 +37,7 @@ once_cell = "1.17.1"
 serde = "1.0"
 serde-wasm-bindgen = "0.5"
 wasm-bindgen = "0.2.84"
+ouroboros = "0.15.6"
 
 [profile.release]
 debug = 1

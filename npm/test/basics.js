@@ -8,7 +8,7 @@ import {test} from "node:test";
 import {checkCode, getCompletions, evaluate, run_shot} from "../dist/node.js"
 
 test('no syntax errors', t => {
-    let result = checkCode('namespace Foo { operation Main() : Unit {} }')
+    let result = checkCode('namespace Foo { @EntryPoint() operation Main() : Unit {} }')
     assert.equal(result.length, 0);
 });
 

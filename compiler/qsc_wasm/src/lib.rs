@@ -4,10 +4,12 @@
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use once_cell::sync::OnceCell;
-use qsc_eval::output::Receiver;
-use qsc_eval::{eval_expr, output, Env, Error};
+use qsc_eval::{
+    output,
+    output::Receiver,
+    stateless::{compile_execution_context, eval_in_context, Error},
+};
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-use qsc_passes::globals::extract_callables;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -208,12 +210,9 @@ where
     T: Diagnostic,
 {
     fn from(err: &T) -> Self {
-        let label = err
-            .labels()
-            .and_then(|mut ls| ls.next())
-            .expect("error should have at least one label");
-        let offset = label.offset();
-        let len = label.len().max(1);
+        let label = err.labels().and_then(|mut ls| ls.next());
+        let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
+        let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
         let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
 
@@ -240,6 +239,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     for err in unit.context.errors() {
         result.push(err.into());
     }
+
     result
 }
 
@@ -302,49 +302,37 @@ fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<()
 where
     F: Fn(&str),
 {
-    let mut store = PackageStore::new();
-    let std = store.insert(std());
-    let unit = compile(&store, [std], [code], expr);
-    // TODO: Fail here with diagnostics if compile failed
-
-    let id = store.insert(unit);
-    let unit = store.get(id).expect("Fail");
-    if let Some(expr) = &unit.package.entry {
-        let globals = extract_callables(&store);
-        let mut out = CallbackReceiver { event_cb };
-        for _ in 0..shots {
-            qsc_eval::init();
-            let mut success = true;
-            let result: String;
-            let resolutions = store
-                .get_resolutions(id)
-                .expect("package should be present in store");
-            match &eval_expr(
-                expr,
-                &store,
-                &globals,
-                resolutions,
-                id,
-                &mut Env::default(),
-                &mut out,
-            ) {
-                Ok(val) => {
-                    result = format!(r#""{}""#, val);
-                }
-                Err(e) => {
-                    success = false;
-                    let diag: VSDiagnostic = e.into();
-                    result = diag.to_string();
-                }
-            }
-            let msg_string =
-                format!(r#"{{"type": "Result", "success": {success}, "result": {result}}}"#);
-            (out.event_cb)(&msg_string);
-        }
-        Ok(())
-    } else {
-        Err(Error::EmptyExpr)
+    let mut out = CallbackReceiver { event_cb };
+    let context = compile_execution_context(true, expr, [code.to_string()]);
+    if let Err(err) = context {
+        let e = err.0[0].clone();
+        let diag: VSDiagnostic = (&e).into();
+        let msg = format!(
+            r#"{{"type": "Result", "success": false, "result": {}}}"#,
+            diag
+        );
+        (out.event_cb)(&msg);
+        return Err(e);
     }
+    let context = context.expect("context should be valid");
+    for _ in 0..shots {
+        let result = eval_in_context(&context, &mut out);
+        let mut success = true;
+        let msg = match result {
+            Ok(value) => format!(r#""{value}""#),
+            Err(err) => {
+                // TODO: handle multiple errors
+                let e = err.0[0].clone();
+                success = false;
+                let diag: VSDiagnostic = (&e).into();
+                diag.to_string()
+            }
+        };
+
+        let msg_string = format!(r#"{{"type": "Result", "success": {success}, "result": {msg}}}"#);
+        (out.event_cb)(&msg_string);
+    }
+    Ok(())
 }
 
 #[wasm_bindgen]
@@ -389,12 +377,12 @@ mod test {
     #[test]
     fn test_run_two_shots() {
         let code = "
-namespace Test {
-    function Answer() : Int {
-        return 42;
-    }
-}
-";
+            namespace Test {
+                function Answer() : Int {
+                    return 42;
+                }
+            }
+        ";
         let expr = "Test.Answer()";
         let count = std::cell::Cell::new(0);
 
@@ -413,13 +401,13 @@ namespace Test {
     #[test]
     fn fail_ry() {
         let code = "namespace Sample {
-        operation main() : Result {
-            use q1 = Qubit();
-            Ry(q1);
-            let m1 = M(q1);
-            return [m1];
-        }
-    }";
+            operation main() : Result {
+                use q1 = Qubit();
+                Ry(q1);
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
         let expr = "Sample.main()";
         let result = crate::run_internal(
             code,
@@ -427,7 +415,7 @@ namespace Test {
             |_msg_| {
                 assert!(_msg_.contains(r#""type": "Result", "success": false"#));
                 assert!(_msg_.contains(r#""message": "mismatched types""#));
-                assert!(_msg_.contains(r#""start_pos": 99"#));
+                assert!(_msg_.contains(r#""start_pos": 111"#));
             },
             1,
         );
@@ -437,19 +425,63 @@ namespace Test {
     #[test]
     fn test_message() {
         let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+            open Microsoft.Quantum.Diagnostics;
 
-        operation main() : Unit {
-            Message("hi");
-            return ();
-        }
-    }"#;
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
         let expr = "Sample.main()";
         let result = crate::run_internal(
             code,
             expr,
             |_msg_| {
                 assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_entrypoint() {
+        let code = r#"namespace Sample {
+            @EntryPoint()
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
+        let expr = "";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_mising_entrypoint() {
+        let code = "namespace Sample {
+            operation main() : Result {
+                use q1 = Qubit();
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
+        let expr = "";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
+                assert!(_msg_.contains(r#""message": "entry point not found""#));
+                assert!(_msg_.contains(r#""start_pos": 0"#));
             },
             1,
         );
