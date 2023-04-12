@@ -6,7 +6,7 @@ use num_complex::Complex64;
 use once_cell::sync::OnceCell;
 use qsc_eval::{
     output,
-    output::Receiver,
+    output::{format_state_id, Receiver},
     stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
@@ -274,8 +274,8 @@ where
         for state in most {
             write!(
                 dump_json,
-                r#""|{:0<qubit_count$}⟩": [{}, {}],"#,
-                state.0.to_str_radix(2).chars().rev().collect::<String>(),
+                r#""{}": [{}, {}],"#,
+                format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -283,8 +283,8 @@ where
         }
         write!(
             dump_json,
-            r#""|{:0<qubit_count$}⟩": [{}, {}]}}}}"#,
-            last.0.to_str_radix(2),
+            r#""{}": [{}, {}]}}}}"#,
+            format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )

@@ -9,6 +9,14 @@ use num_complex::Complex64;
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Error;
 
+#[must_use]
+pub fn format_state_id(id: &BigUint, qubit_count: usize) -> String {
+    format!(
+        "|{:0<qubit_count$}⟩",
+        id.to_str_radix(2).chars().rev().collect::<String>()
+    )
+}
+
 pub trait Receiver {
     /// Receive state output
     /// # Errors
@@ -37,8 +45,8 @@ impl<'a> Receiver for GenericReceiver<'a> {
         for (id, state) in state {
             writeln!(
                 self.writer,
-                "|{:0<qubit_count$}⟩: {}",
-                id.to_str_radix(2).chars().rev().collect::<String>(),
+                "{}: {}",
+                format_state_id(&id, qubit_count),
                 state
             )
             .map_err(|_| Error)?;
@@ -76,8 +84,8 @@ impl<'a> Receiver for CursorReceiver<'a> {
         for (id, state) in state {
             writeln!(
                 self.cursor,
-                "|{:0<qubit_count$}⟩: {}",
-                id.to_str_radix(2).chars().rev().collect::<String>(),
+                "{}: {}",
+                format_state_id(&id, qubit_count),
                 state
             )
             .map_err(|_| Error)?;
