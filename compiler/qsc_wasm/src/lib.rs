@@ -6,7 +6,7 @@ use num_complex::Complex64;
 use once_cell::sync::OnceCell;
 use qsc_eval::{
     output,
-    output::Receiver,
+    output::{format_state_id, Receiver},
     stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
@@ -260,7 +260,11 @@ impl<F> Receiver for CallbackReceiver<F>
 where
     F: Fn(&str),
 {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), output::Error> {
+    fn state(
+        &mut self,
+        state: Vec<(BigUint, Complex64)>,
+        qubit_count: usize,
+    ) -> Result<(), output::Error> {
         let mut dump_json = String::new();
         write!(dump_json, r#"{{"type": "DumpMachine","state": {{"#)
             .expect("writing to string should succeed");
@@ -270,8 +274,8 @@ where
         for state in most {
             write!(
                 dump_json,
-                r#""|{}⟩": [{}, {}],"#,
-                state.0.to_str_radix(2),
+                r#""{}": [{}, {}],"#,
+                format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -279,8 +283,8 @@ where
         }
         write!(
             dump_json,
-            r#""|{}⟩": [{}, {}]}}}}"#,
-            last.0.to_str_radix(2),
+            r#""{}": [{}, {}]}}}}"#,
+            format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )

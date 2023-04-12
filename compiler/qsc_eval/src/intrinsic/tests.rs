@@ -108,6 +108,37 @@ fn dump_machine() {
 }
 
 #[test]
+fn dump_machine_qubit_count() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[4];
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+        }"},
+        &expect![[r#"
+            STATE:
+            |0000⟩: 1+0i
+        "#]],
+    );
+}
+
+#[test]
+fn dump_machine_endianness() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[4];
+            X(qs[1]);
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+        }"},
+        &expect![[r#"
+            STATE:
+            |0100⟩: 1+0i
+        "#]],
+    );
+}
+
+#[test]
 fn message() {
     check_intrinsic_output(
         "",

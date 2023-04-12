@@ -9,11 +9,19 @@ use num_complex::Complex64;
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Error;
 
+#[must_use]
+pub fn format_state_id(id: &BigUint, qubit_count: usize) -> String {
+    format!(
+        "|{:0<qubit_count$}⟩",
+        id.to_str_radix(2).chars().rev().collect::<String>()
+    )
+}
+
 pub trait Receiver {
     /// Receive state output
     /// # Errors
     /// This will return an error if handling the output fails.
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), Error>;
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error>;
 
     /// Receive generic message output
     /// # Errors
@@ -32,10 +40,16 @@ impl<'a> GenericReceiver<'a> {
 }
 
 impl<'a> Receiver for GenericReceiver<'a> {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), Error> {
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.writer, "STATE:").map_err(|_| Error)?;
         for (id, state) in state {
-            writeln!(self.writer, "|{}⟩: {}", id.to_str_radix(2), state).map_err(|_| Error)?;
+            writeln!(
+                self.writer,
+                "{}: {}",
+                format_state_id(&id, qubit_count),
+                state
+            )
+            .map_err(|_| Error)?;
         }
         Ok(())
     }
@@ -65,10 +79,16 @@ impl<'a> CursorReceiver<'a> {
 }
 
 impl<'a> Receiver for CursorReceiver<'a> {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), Error> {
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.cursor, "STATE:").map_err(|_| Error)?;
         for (id, state) in state {
-            writeln!(self.cursor, "|{}⟩: {}", id.to_str_radix(2), state).map_err(|_| Error)?;
+            writeln!(
+                self.cursor,
+                "{}: {}",
+                format_state_id(&id, qubit_count),
+                state
+            )
+            .map_err(|_| Error)?;
         }
         Ok(())
     }

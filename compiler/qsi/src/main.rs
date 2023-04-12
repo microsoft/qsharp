@@ -101,7 +101,7 @@ fn print_results(
             println!("{output}");
         }
         match result {
-            Ok(value) => println!("{value:?}"),
+            Ok(value) => println!("{value}"),
             Err(errors) => {
                 let reporter = InteractiveErrorReporter::new(line);
                 for error in errors.0 {
