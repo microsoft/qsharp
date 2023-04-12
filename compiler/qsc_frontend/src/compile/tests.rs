@@ -70,10 +70,20 @@ fn one_file_error() {
         "",
     );
 
-    let errors = unit.context.errors();
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(0));
-    assert_eq!(span, Span { lo: 50, hi: 51 });
+    let errors: Vec<_> = unit
+        .context
+        .errors()
+        .iter()
+        .map(|error| source_span(&unit.context, error))
+        .collect();
+
+    assert_eq!(
+        vec![
+            (SourceIndex(0), Span { lo: 50, hi: 51 }),
+            (SourceIndex(0), Span { lo: 40, hi: 57 })
+        ],
+        errors,
+    );
 }
 
 #[test]
@@ -152,10 +162,20 @@ fn two_files_error() {
         "",
     );
 
-    let errors = unit.context.errors();
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(1));
-    assert_eq!(span, Span { lo: 50, hi: 51 });
+    let errors: Vec<_> = unit
+        .context
+        .errors()
+        .iter()
+        .map(|error| source_span(&unit.context, error))
+        .collect();
+
+    assert_eq!(
+        vec![
+            (SourceIndex(1), Span { lo: 50, hi: 51 }),
+            (SourceIndex(1), Span { lo: 50, hi: 53 })
+        ],
+        errors,
+    );
 }
 
 #[test]
