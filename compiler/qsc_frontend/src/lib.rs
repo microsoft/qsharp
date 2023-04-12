@@ -9,6 +9,5 @@ pub mod id;
 pub mod incremental;
 mod lex;
 mod parse;
-mod replace_qubit_allocation;
 pub mod resolve;
 mod validate;
