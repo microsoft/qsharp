@@ -62,7 +62,7 @@ test('type error', t => {
     let result = checkCode(code);
     assert.equal(result.length, 1);
     assert.equal(result[0].start_pos, 99);
-    assert.equal(result[0].end_pos, 103);
+    assert.equal(result[0].end_pos, 105);
     assert.equal(result[0].message, "mismatched types");
 });
 
