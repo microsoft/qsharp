@@ -415,7 +415,7 @@ mod test {
             |_msg_| {
                 assert!(_msg_.contains(r#""type": "Result", "success": false"#));
                 assert!(_msg_.contains(r#""message": "mismatched types""#));
-                assert!(_msg_.contains(r#""start_pos": 99"#));
+                assert!(_msg_.contains(r#""start_pos": 111"#));
             },
             1,
         );
@@ -487,5 +487,4 @@ mod test {
         );
         assert!(result.is_ok());
     }
-
 }
