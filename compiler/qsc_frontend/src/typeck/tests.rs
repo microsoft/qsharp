@@ -128,6 +128,7 @@ fn empty_callable() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (()) -> (())
             #6 30-32 "()" : ()
             #8 40-42 "{}" : ()
         "##]],
@@ -144,6 +145,7 @@ fn return_constant() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (()) -> (Int)
             #6 30-32 "()" : ()
             #8 39-44 "{ 4 }" : Int
             #9 41-42 "4" : Int
@@ -162,6 +164,7 @@ fn return_wrong_type() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (()) -> (Int)
             #6 30-32 "()" : ()
             #8 39-47 "{ true }" : Bool
             #9 41-45 "true" : Bool
@@ -181,6 +184,7 @@ fn return_semi() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (()) -> (Int)
             #6 30-32 "()" : ()
             #8 39-45 "{ 4; }" : ()
             #9 41-43 "4;" : ()
@@ -203,6 +207,7 @@ fn return_var() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (()) -> (Int)
             #6 30-32 "()" : ()
             #8 39-75 "{\n        let x = 4;\n        x\n    }" : Int
             #9 49-59 "let x = 4;" : ()
@@ -226,12 +231,14 @@ fn call_function() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (Int) -> (Int)
             #6 30-39 "(x : Int)" : Int
             #7 31-38 "x : Int" : Int
             #8 31-32 "x" : Int
             #11 46-51 "{ x }" : Int
             #12 48-49 "x" : Int
             #13 48-49 "x" : Int
+            #18 65-68 "Bar" : (()) -> (Int)
             #19 68-70 "()" : ()
             #21 77-87 "{ Foo(4) }" : Int
             #22 79-85 "Foo(4)" : Int
@@ -254,12 +261,14 @@ fn call_generic_identity() {
         "},
         "",
         &expect![[r##"
+            #5 27-35 "Identity" : ('T) -> ('T)
             #7 39-47 "(x : 'T)" : 'T
             #8 40-46 "x : 'T" : 'T
             #9 40-41 "x" : 'T
             #14 53-58 "{ x }" : 'T
             #15 55-56 "x" : 'T
             #16 55-56 "x" : 'T
+            #21 72-75 "Foo" : (()) -> (Int)
             #22 75-77 "()" : ()
             #24 84-99 "{ Identity(4) }" : Int
             #25 86-97 "Identity(4)" : Int
@@ -298,6 +307,7 @@ fn add_wrong_types() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (()) -> (())
             #6 30-32 "()" : ()
             #8 40-52 "{ 1 + [2]; }" : ()
             #9 42-50 "1 + [2];" : ()
@@ -487,8 +497,10 @@ fn binop_equal_callable() {
         "},
         "Test.A == Test.B",
         &expect![[r##"
+            #5 30-31 "A" : (()) -> (())
             #6 31-33 "()" : ()
             #8 41-43 "{}" : ()
+            #11 57-58 "B" : (()) -> (())
             #12 58-60 "()" : ()
             #14 68-70 "{}" : ()
             #15 73-89 "Test.A == Test.B" : Bool
@@ -921,6 +933,7 @@ fn controlled_spec_impl() {
         "},
         "",
         &expect![[r##"
+            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -954,6 +967,7 @@ fn call_controlled() {
             }
         "},
         &expect![[r##"
+            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -1006,6 +1020,7 @@ fn call_controlled_nested() {
             }
         "},
         &expect![[r##"
+            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -1064,6 +1079,7 @@ fn call_controlled_error() {
             }
         "},
         &expect![[r##"
+            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -1103,6 +1119,7 @@ fn adj_requires_unit_return() {
         "},
         "",
         &expect![[r##"
+            #5 28-31 "Foo" : (()) => (Int) is Adj
             #6 31-33 "()" : ()
             #9 47-52 "{ 1 }" : Int
             #10 49-50 "1" : Int
@@ -1122,6 +1139,7 @@ fn ctl_requires_unit_return() {
         "},
         "",
         &expect![[r##"
+            #5 28-31 "Foo" : (()) => (Int) is Ctl
             #6 31-33 "()" : ()
             #9 47-52 "{ 1 }" : Int
             #10 49-50 "1" : Int
@@ -1141,6 +1159,7 @@ fn adj_ctl_requires_unit_return() {
         "},
         "",
         &expect![[r##"
+            #5 28-31 "Foo" : (()) => (Int) is Adj + Ctl
             #6 31-33 "()" : ()
             #11 53-58 "{ 1 }" : Int
             #12 55-56 "1" : Int
@@ -1193,6 +1212,7 @@ fn return_diverges() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (Bool) -> (Int)
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
@@ -1232,6 +1252,7 @@ fn return_diverges_stmt_after() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (Bool) -> (Int)
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
@@ -1264,6 +1285,7 @@ fn return_mismatch() {
         "},
         "",
         &expect![[r##"
+            #5 27-30 "Foo" : (Bool) -> (Int)
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool

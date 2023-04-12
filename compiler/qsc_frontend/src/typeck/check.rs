@@ -77,14 +77,15 @@ impl Checker<'_> {
     }
 
     fn check_callable_signature(&mut self, decl: &CallableDecl) {
-        match convert_ty(self.resolutions, &decl.output).0 {
-            _ if callable_functors(decl).is_empty() => {}
-            Ty::Tuple(items) if items.is_empty() => {}
-            output => self.errors.push(Error(ErrorKind::TypeMismatch(
-                Ty::UNIT,
-                output,
-                decl.output.span,
-            ))),
+        if !callable_functors(decl).is_empty() {
+            match &decl.output.kind {
+                TyKind::Tuple(items) if items.is_empty() => {}
+                _ => self.errors.push(Error(ErrorKind::TypeMismatch(
+                    Ty::UNIT,
+                    convert_ty(self.resolutions, &decl.output).0,
+                    decl.output.span,
+                ))),
+            }
         }
     }
 
@@ -110,7 +111,10 @@ impl Visitor<'_> for Checker<'_> {
     }
 
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+        self.tys
+            .insert(decl.name.id, callable_ty(self.resolutions, decl).0);
         self.check_callable_signature(decl);
+
         let output = convert_ty(self.resolutions, &decl.output).0;
         match &decl.body {
             CallableBody::Block(block) => self.check_spec(SpecImpl {
