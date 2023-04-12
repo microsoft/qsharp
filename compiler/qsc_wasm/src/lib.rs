@@ -377,12 +377,12 @@ mod test {
     #[test]
     fn test_run_two_shots() {
         let code = "
-namespace Test {
-    function Answer() : Int {
-        return 42;
-    }
-}
-";
+            namespace Test {
+                function Answer() : Int {
+                    return 42;
+                }
+            }
+        ";
         let expr = "Test.Answer()";
         let count = std::cell::Cell::new(0);
 
@@ -401,13 +401,13 @@ namespace Test {
     #[test]
     fn fail_ry() {
         let code = "namespace Sample {
-        operation main() : Result {
-            use q1 = Qubit();
-            Ry(q1);
-            let m1 = M(q1);
-            return [m1];
-        }
-    }";
+            operation main() : Result {
+                use q1 = Qubit();
+                Ry(q1);
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
         let expr = "Sample.main()";
         let result = crate::run_internal(
             code,
@@ -425,13 +425,13 @@ namespace Test {
     #[test]
     fn test_message() {
         let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+            open Microsoft.Quantum.Diagnostics;
 
-        operation main() : Unit {
-            Message("hi");
-            return ();
-        }
-    }"#;
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
         let expr = "Sample.main()";
         let result = crate::run_internal(
             code,
@@ -443,4 +443,49 @@ namespace Test {
         );
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_entrypoint() {
+        let code = r#"namespace Sample {
+            @EntryPoint()
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
+        let expr = "";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_mising_entrypoint() {
+        let code = "namespace Sample {
+            operation main() : Result {
+                use q1 = Qubit();
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
+        let expr = "";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
+                assert!(_msg_.contains(r#""message": "entry point not found""#));
+                assert!(_msg_.contains(r#""start_pos": 0"#));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
 }

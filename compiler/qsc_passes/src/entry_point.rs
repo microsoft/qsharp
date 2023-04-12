@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
@@ -30,7 +31,7 @@ pub enum Error {
 /// Extracts a single entry point callable declaration, if found.
 /// # Errors
 /// Returns an error if a single entry point with no parameters cannot be found.
-pub fn extract_entry(package: &Package) -> Result<Expr, Vec<Error>> {
+pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
     let mut entry_points = vec![];
     let mut visitor = EntryPointVisitor {
         entry_points: &mut entry_points,
@@ -51,17 +52,24 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<Error>> {
                     kind: ExprKind::Block(block.clone()),
                 })
             } else {
-                Err(vec![Error::EntryPointBody(ep.span)])
+                Err(vec![PassErr::EntryPoint(Error::EntryPointBody(ep.span))])
             }
         } else {
-            Err(vec![Error::EntryPointArgs(ep.input.span)])
+            Err(vec![PassErr::EntryPoint(Error::EntryPointArgs(
+                ep.input.span,
+            ))])
         }
     } else if entry_points.is_empty() {
-        Err(vec![Error::EntryPointMissing])
+        Err(vec![PassErr::EntryPoint(Error::EntryPointMissing)])
     } else {
         Err(entry_points
             .into_iter()
-            .map(|ep| Error::DuplicateEntryPoint(ep.name.name.clone(), ep.name.span))
+            .map(|ep| {
+                PassErr::EntryPoint(Error::DuplicateEntryPoint(
+                    ep.name.name.clone(),
+                    ep.name.span,
+                ))
+            })
             .collect())
     }
 }
