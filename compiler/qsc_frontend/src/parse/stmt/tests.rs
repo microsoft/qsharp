@@ -232,3 +232,37 @@ fn let_if() {
                 Stmt _id_ [40-41]: Expr: Expr _id_ [40-41]: Path: Path _id_ [40-41] (Ident _id_ [40-41] "x")"#]],
     );
 }
+
+#[test]
+fn empty_block() {
+    check(block, "{}", &expect!["Block _id_ [0-2]: <empty>"]);
+}
+
+#[test]
+fn empty_stmt() {
+    check(stmt, ";", &expect!["Stmt _id_ [0-1]: Empty"]);
+}
+
+#[test]
+fn two_empty_stmts() {
+    check(
+        block,
+        "{ ;; }",
+        &expect![[r#"
+            Block _id_ [0-6]:
+                Stmt _id_ [2-3]: Empty
+                Stmt _id_ [3-4]: Empty"#]],
+    );
+}
+
+#[test]
+fn empty_stmt_after_expr() {
+    check(
+        block,
+        "{ x;; }",
+        &expect![[r#"
+            Block _id_ [0-7]:
+                Stmt _id_ [2-4]: Semi: Expr _id_ [2-3]: Path: Path _id_ [2-3] (Ident _id_ [2-3] "x")
+                Stmt _id_ [4-5]: Empty"#]],
+    );
+}
