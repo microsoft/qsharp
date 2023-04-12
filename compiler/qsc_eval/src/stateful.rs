@@ -142,7 +142,7 @@ fn eval_line_in_context(
     for fragment in fragments {
         match fragment {
             Fragment::Stmt(stmt) => {
-                let mut env = fields.env.take().unwrap_or(Env::empty());
+                let mut env = fields.env.take().unwrap_or(Env::new_with_empty_scope());
                 let result = eval_stmt(
                     stmt,
                     fields.store,

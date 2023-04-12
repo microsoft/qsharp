@@ -81,7 +81,7 @@ pub fn eval(
     let resolutions = store
         .get_resolutions(basis_package)
         .expect("package should be present in store");
-    let mut env = Env::empty();
+    let mut env = Env::new_with_empty_scope();
     let result = eval_expr(
         &expr,
         &store,
@@ -123,7 +123,7 @@ pub fn eval_in_context(
             .store
             .get_resolutions(*f.package)
             .expect("package should be present in store");
-        let mut env = Env::empty();
+        let mut env = Env::new_with_empty_scope();
         eval_expr(
             &expr,
             f.store,
