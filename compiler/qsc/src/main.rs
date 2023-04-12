@@ -81,7 +81,15 @@ fn main() -> Result<ExitCode> {
     let dependencies = if cli.nostdlib {
         vec![]
     } else {
-        vec![store.insert(compile::std())]
+        let std = compile::std();
+        if !std.context.errors().is_empty() {
+            let reporter = ErrorReporter::new(cli, sources, &std.context);
+            for error in std.context.errors() {
+                eprintln!("{:?}", reporter.report(error.clone()));
+            }
+            return Ok(ExitCode::FAILURE);
+        }
+        vec![store.insert(std)]
     };
     let unit = compile(
         &store,

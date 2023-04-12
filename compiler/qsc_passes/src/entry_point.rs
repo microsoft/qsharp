@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_ast::{

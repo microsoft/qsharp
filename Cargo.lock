@@ -776,6 +776,8 @@ dependencies = [
 name = "qsc_passes"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
+ "indoc",
  "miette",
  "qsc_ast",
  "qsc_frontend",
