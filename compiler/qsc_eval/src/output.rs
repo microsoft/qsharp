@@ -71,10 +71,16 @@ impl<'a> CursorReceiver<'a> {
 }
 
 impl<'a> Receiver for CursorReceiver<'a> {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), Error> {
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.cursor, "STATE:").map_err(|_| Error)?;
         for (id, state) in state {
-            writeln!(self.cursor, "|{}⟩: {}", id.to_str_radix(2), state).map_err(|_| Error)?;
+            writeln!(
+                self.cursor,
+                "|{:0<qubit_count$}⟩: {}",
+                id.to_str_radix(2),
+                state
+            )
+            .map_err(|_| Error)?;
         }
         Ok(())
     }
