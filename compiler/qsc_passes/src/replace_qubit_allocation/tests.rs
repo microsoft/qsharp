@@ -346,7 +346,7 @@ fn test_rtrn_expr() {
 }
 
 #[test]
-fn test_qubit_block() {
+fn test_lambdas() {
     check(
         indoc! { "namespace input {
             operation Foo() : Unit {
