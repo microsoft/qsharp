@@ -107,44 +107,16 @@ impl Display for Ty {
 pub(super) enum Class {
     Add(Ty),
     Adj(Ty),
-    Call {
-        callee: Ty,
-        input: Ty,
-        output: Ty,
-    },
-    Ctl {
-        op: Ty,
-        with_ctls: Ty,
-    },
+    Call { callee: Ty, input: Ty, output: Ty },
+    Ctl { op: Ty, with_ctls: Ty },
     Eq(Ty),
-    Exp {
-        base: Ty,
-        power: Ty,
-    },
-    HasField {
-        record: Ty,
-        name: String,
-        item: Ty,
-    },
-    HasFunctorsIfOp {
-        callee: Ty,
-        functors: HashSet<Functor>,
-    },
-    HasIndex {
-        container: Ty,
-        index: Ty,
-        item: Ty,
-    },
+    Exp { base: Ty, power: Ty },
+    HasField { record: Ty, name: String, item: Ty },
+    HasIndex { container: Ty, index: Ty, item: Ty },
     Integral(Ty),
-    Iterable {
-        container: Ty,
-        item: Ty,
-    },
+    Iterable { container: Ty, item: Ty },
     Num(Ty),
-    Unwrap {
-        wrapper: Ty,
-        base: Ty,
-    },
+    Unwrap { wrapper: Ty, base: Ty },
 }
 
 impl Class {
@@ -153,7 +125,7 @@ impl Class {
             Self::Add(ty) | Self::Adj(ty) | Self::Eq(ty) | Self::Integral(ty) | Self::Num(ty) => {
                 vec![ty]
             }
-            Self::Call { callee, .. } | Self::HasFunctorsIfOp { callee, .. } => vec![callee],
+            Self::Call { callee, .. } => vec![callee],
             Self::Ctl { op, .. } => vec![op],
             Self::Exp { base, .. } => vec![base],
             Self::HasField { record, .. } => vec![record],
@@ -191,10 +163,6 @@ impl Class {
                 record: f(record),
                 name,
                 item: f(item),
-            },
-            Self::HasFunctorsIfOp { callee, functors } => Self::HasFunctorsIfOp {
-                callee: f(callee),
-                functors,
             },
             Self::HasIndex {
                 container,
@@ -236,15 +204,8 @@ impl Class {
             Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
             Class::HasField { record, name, item } => {
                 // TODO: If the record type is a user-defined type, look up its fields.
+                // https://github.com/microsoft/qsharp/issues/148
                 Err(ClassError(Class::HasField { record, name, item }, span))
-            }
-            Class::HasFunctorsIfOp { callee, functors } => {
-                check_has_functors_if_op(&callee, &functors)
-                    .then_some(Vec::new())
-                    .ok_or(ClassError(
-                        Class::HasFunctorsIfOp { callee, functors },
-                        span,
-                    ))
             }
             Class::HasIndex {
                 container,
@@ -262,6 +223,7 @@ impl Class {
                 .ok_or(ClassError(Class::Num(ty), span)),
             Class::Unwrap { wrapper, base } => {
                 // TODO: If the wrapper type is a user-defined type, look up its underlying type.
+                // https://github.com/microsoft/qsharp/issues/148
                 Err(ClassError(Class::Unwrap { wrapper, base }, span))
             }
         }
@@ -278,9 +240,6 @@ impl Display for Class {
             Class::Eq(ty) => write!(f, "Eq<{ty}>"),
             Class::Exp { base, .. } => write!(f, "Exp<{base}>"),
             Class::HasField { record, name, .. } => write!(f, "HasField<{record}, {name}>"),
-            Class::HasFunctorsIfOp { callee, functors } => {
-                write!(f, "HasFunctorsIfOp<{callee}, {functors:?}>")
-            }
             Class::HasIndex {
                 container, index, ..
             } => write!(f, "HasIndex<{container}, {index}>"),
@@ -371,6 +330,7 @@ impl Inferrer {
         // TODO: Variables that don't have a substitution should cause errors for ambiguous types.
         // However, if an unsolved variable is the result of a divergent expression, it may be OK to
         // leave it or substitute it with a concrete uninhabited type.
+        // https://github.com/microsoft/qsharp/issues/152
         let mut solver = Solver::new();
         while let Some(constraint) = self.constraints.pop_front() {
             self.constraints.extend(solver.constrain(constraint));
@@ -495,6 +455,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), Unify
         {
             // TODO: We ignore functors until subtyping is supported. This is unsound, but the
             // alternative is disallowing valid programs.
+            // https://github.com/microsoft/qsharp/issues/150
             unify(input1, input2, bind)?;
             unify(output1, output2, bind)?;
             Ok(())
@@ -625,15 +586,6 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> 
             span,
         }),
         _ => Err(ClassError(Class::Exp { base, power }, span)),
-    }
-}
-
-fn check_has_functors_if_op(callee: &Ty, functors: &HashSet<Functor>) -> bool {
-    match callee {
-        Ty::Arrow(CallableKind::Operation, _, _, callee_functors) => {
-            callee_functors.is_subset(functors)
-        }
-        _ => true,
     }
 }
 

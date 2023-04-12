@@ -59,7 +59,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Closure => todo!(),
+            Value::Closure => todo!("https://github.com/microsoft/qsharp/issues/151"),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -105,7 +105,7 @@ impl Display for Value {
                 }
                 write!(f, ")")
             }
-            Value::Udt => todo!(),
+            Value::Udt => todo!("https://github.com/microsoft/qsharp/issues/148"),
         }
     }
 }
