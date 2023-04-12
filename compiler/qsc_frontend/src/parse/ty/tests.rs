@@ -57,7 +57,11 @@ fn ty_unit() {
 
 #[test]
 fn ty_var() {
-    check(ty, "'T", &expect!["Type _id_ [0-2]: Type Var T"]);
+    check(
+        ty,
+        "'T",
+        &expect![[r#"Type _id_ [0-2]: Type Var Ident _id_ [1-2] "T""#]],
+    );
 }
 
 #[test]
@@ -136,11 +140,7 @@ fn ty_array() {
     check(
         ty,
         "Int[]",
-        &expect![[r#"
-            Type _id_ [0-5]: App:
-                base type: Type _id_ [3-5]: Prim (Array)
-                arg types:
-                    Type _id_ [0-3]: Prim (Int)"#]],
+        &expect!["Type _id_ [0-5]: Array: Type _id_ [0-3]: Prim (Int)"],
     );
 }
 
@@ -149,14 +149,7 @@ fn ty_array2() {
     check(
         ty,
         "Int[][]",
-        &expect![[r#"
-            Type _id_ [0-7]: App:
-                base type: Type _id_ [5-7]: Prim (Array)
-                arg types:
-                    Type _id_ [0-5]: App:
-                        base type: Type _id_ [3-5]: Prim (Array)
-                        arg types:
-                            Type _id_ [0-3]: Prim (Int)"#]],
+        &expect!["Type _id_ [0-7]: Array: Type _id_ [0-5]: Array: Type _id_ [0-3]: Prim (Int)"],
     );
 }
 
@@ -166,12 +159,9 @@ fn ty_tuple_array() {
         ty,
         "(Int, Bool)[]",
         &expect![[r#"
-            Type _id_ [0-13]: App:
-                base type: Type _id_ [11-13]: Prim (Array)
-                arg types:
-                    Type _id_ [0-11]: Tuple:
-                        Type _id_ [1-4]: Prim (Int)
-                        Type _id_ [6-10]: Prim (Bool)"#]],
+            Type _id_ [0-13]: Array: Type _id_ [0-11]: Tuple:
+                Type _id_ [1-4]: Prim (Int)
+                Type _id_ [6-10]: Prim (Bool)"#]],
     );
 }
 
