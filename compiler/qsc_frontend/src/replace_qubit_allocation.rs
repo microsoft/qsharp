@@ -251,11 +251,53 @@ impl MutVisitor for ReplaceQubitAllocation {
             }
         }
 
+        let new_end_stmt: Option<Stmt> = match block.stmts.last_mut() {
+            Some(s) => {
+                if let StmtKind::Expr(end) = &mut s.kind {
+                    let end_capture = self.gen_ident(end.span);
+                    *s = Stmt {
+                        id: NodeId::default(),
+                        span: s.span,
+                        kind: StmtKind::Local(
+                            Mutability::Immutable,
+                            Pat {
+                                id: NodeId::default(),
+                                span: end.span,
+                                kind: PatKind::Bind(end_capture.clone(), None),
+                            },
+                            take(end),
+                        ),
+                    };
+                    Some(Stmt {
+                        id: NodeId::default(),
+                        span: s.span,
+                        kind: StmtKind::Expr(Expr {
+                            id: NodeId::default(),
+                            span: s.span,
+                            kind: ExprKind::Path(Path {
+                                id: NodeId::default(),
+                                span: end_capture.span,
+                                namespace: None,
+                                name: end_capture,
+                            }),
+                        }),
+                    })
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+
         block.stmts.extend(self.get_dealloc_stmts_for_block());
         self.qubits_curr_block = self
             .qubits_curr_callable
             .pop()
             .expect("missing expected vector of qubits identifiers");
+
+        if let Some(end) = new_end_stmt {
+            block.stmts.push(end);
+        }
     }
 
     fn visit_expr(&mut self, expr: &mut Expr) {
