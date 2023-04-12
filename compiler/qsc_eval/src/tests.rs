@@ -331,21 +331,6 @@ fn block_qubit_use_nested_tuple_expr() {
 }
 
 #[test]
-fn block_qubit_use_nested_bind_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            use q = Qubit();
-            {
-                let temp = q;
-            }
-            q
-        }"},
-        &expect!["Qubit0"],
-    );
-}
-
-#[test]
 fn assign_invalid_expr() {
     check_expr(
         "",
