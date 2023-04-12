@@ -112,9 +112,7 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
         } catch(e)
         {
             if (e instanceof Error) {
-                console.warn(e.name);
-                console.warn(e.message);
-                Object.keys(e).forEach(key => console.log(key));
+                // TODO: This is not necessarily an unexpected error.
                 let unexpectedError: UnexpectedError = {kind: "UnexpectedError", error: e.message};
                 let renderedError = renderKataOutput(unexpectedError);
                 outputDiv.prepend(renderedError);
