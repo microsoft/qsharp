@@ -1,9 +1,9 @@
-# qsci - Q# interactive command-line
+# qsi - Q# interactive command-line
 
 ```console
 Q# Interactive
 
-Usage: qsci [OPTIONS]
+Usage: qsi [OPTIONS]
 
 Options:
       --use <SOURCES>

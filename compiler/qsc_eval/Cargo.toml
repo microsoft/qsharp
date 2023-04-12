@@ -18,6 +18,7 @@ miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 thiserror = { workspace = true }
+ouroboros = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
