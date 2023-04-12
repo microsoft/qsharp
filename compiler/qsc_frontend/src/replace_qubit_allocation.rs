@@ -12,29 +12,8 @@ use qsc_ast::{
         Block, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Path, QubitInit,
         QubitInitKind, Span, Stmt, StmtKind,
     },
-    mut_visit::{walk_stmt, MutVisitor},
+    mut_visit::{walk_expr, walk_stmt, MutVisitor},
 };
-
-struct QubitIdent {
-    id: Ident,
-    is_array: bool,
-}
-
-pub struct ReplaceQubitAllocation {
-    qubits_curr_block: Vec<QubitIdent>,
-    prefix_qubits: Vec<QubitIdent>,
-    gen_id_count: u32,
-}
-
-impl ReplaceQubitAllocation {
-    pub fn new() -> ReplaceQubitAllocation {
-        ReplaceQubitAllocation {
-            qubits_curr_block: Vec::new(),
-            prefix_qubits: Vec::new(),
-            gen_id_count: 0,
-        }
-    }
-}
 
 fn remove_extra_parens(pat: Pat) -> Pat {
     match pat.kind {
@@ -66,7 +45,28 @@ fn remove_extra_parens(pat: Pat) -> Pat {
 //     }
 // }
 
+struct QubitIdent {
+    id: Ident,
+    is_array: bool,
+}
+
+pub struct ReplaceQubitAllocation {
+    qubits_curr_callable: Vec<Vec<QubitIdent>>,
+    qubits_curr_block: Vec<QubitIdent>,
+    prefix_qubits: Vec<QubitIdent>,
+    gen_id_count: u32,
+}
+
 impl ReplaceQubitAllocation {
+    pub fn new() -> ReplaceQubitAllocation {
+        ReplaceQubitAllocation {
+            qubits_curr_callable: Vec::new(),
+            qubits_curr_block: Vec::new(),
+            prefix_qubits: Vec::new(),
+            gen_id_count: 0,
+        }
+    }
+
     fn process_qubit_stmt(
         &mut self,
         stmt_span: Span,
@@ -201,11 +201,41 @@ impl ReplaceQubitAllocation {
         self.gen_id_count += 1;
         new_id
     }
+
+    fn get_dealloc_stmts(qubits: &[QubitIdent]) -> Vec<Stmt> {
+        qubits
+            .iter()
+            .rev()
+            .map(|qubit| {
+                if qubit.is_array {
+                    create_array_dealloc_stmt(&qubit.id)
+                } else {
+                    create_dealloc_stmt(&qubit.id)
+                }
+            })
+            .collect()
+    }
+
+    fn get_dealloc_stmts_for_block(&self) -> Vec<Stmt> {
+        ReplaceQubitAllocation::get_dealloc_stmts(&self.qubits_curr_block)
+    }
+
+    fn get_dealloc_stmts_for_callable(&self) -> Vec<Stmt> {
+        let mut stmts = ReplaceQubitAllocation::get_dealloc_stmts(&self.qubits_curr_block);
+        stmts.extend(
+            self.qubits_curr_callable
+                .iter()
+                .rev()
+                .flat_map(|q| ReplaceQubitAllocation::get_dealloc_stmts(q)),
+        );
+        stmts
+    }
 }
 
 impl MutVisitor for ReplaceQubitAllocation {
     fn visit_block(&mut self, block: &mut Block) {
         let qubits_super_block = take(&mut self.qubits_curr_block);
+        self.qubits_curr_callable.push(qubits_super_block);
         self.qubits_curr_block = take(&mut self.prefix_qubits);
 
         // walk block
@@ -221,54 +251,107 @@ impl MutVisitor for ReplaceQubitAllocation {
             }
         }
 
-        while let Some(qubit) = &self.qubits_curr_block.pop() {
-            if qubit.is_array {
-                block.stmts.push(create_array_dealloc_stmt(&qubit.id));
-            } else {
-                block.stmts.push(create_dealloc_stmt(&qubit.id));
+        block.stmts.extend(self.get_dealloc_stmts_for_block());
+        self.qubits_curr_block = self
+            .qubits_curr_callable
+            .pop()
+            .expect("missing expected vector of qubits identifiers");
+    }
+
+    fn visit_expr(&mut self, expr: &mut Expr) {
+        match &mut expr.kind {
+            ExprKind::Return(e) => {
+                let rtrn_capture = self.gen_ident(e.span);
+                self.visit_expr(e);
+                let mut stmts: Vec<Stmt> = vec![];
+                stmts.push(Stmt {
+                    id: NodeId::default(),
+                    span: e.span,
+                    kind: StmtKind::Local(
+                        Mutability::Immutable,
+                        Pat {
+                            id: NodeId::default(),
+                            span: e.span,
+                            kind: PatKind::Bind(rtrn_capture.clone(), None),
+                        },
+                        take(e),
+                    ),
+                });
+                stmts.extend(self.get_dealloc_stmts_for_callable());
+                stmts.push(Stmt {
+                    id: NodeId::default(),
+                    span: expr.span,
+                    kind: StmtKind::Semi(Expr {
+                        id: NodeId::default(),
+                        span: expr.span,
+                        kind: ExprKind::Return(Box::new(Expr {
+                            id: NodeId::default(),
+                            span: rtrn_capture.span,
+                            kind: ExprKind::Path(Path {
+                                id: NodeId::default(),
+                                span: rtrn_capture.span,
+                                namespace: None,
+                                name: rtrn_capture,
+                            }),
+                        })),
+                    }),
+                });
+                let new_expr = Expr {
+                    id: NodeId::default(),
+                    span: expr.span,
+                    kind: ExprKind::Block(Block {
+                        id: NodeId::default(),
+                        span: expr.span,
+                        stmts,
+                    }),
+                };
+                *expr = new_expr;
             }
+            _ => walk_expr(self, expr),
         }
-        self.qubits_curr_block = qubits_super_block;
     }
 }
 
-fn create_array_alloc_stmt(qubit_array: &Ident, size: Expr) -> Stmt {
+fn create_general_alloc_stmt(func_name: String, ident: &Ident, array_size: Option<Expr>) -> Stmt {
     Stmt {
         id: NodeId::default(),
-        span: qubit_array.span,
+        span: ident.span,
         kind: StmtKind::Local(
             Mutability::Immutable,
             Pat {
                 id: NodeId::default(),
-                span: qubit_array.span,
-                kind: PatKind::Bind(qubit_array.clone(), None),
+                span: ident.span,
+                kind: PatKind::Bind(ident.clone(), None),
             },
             Expr {
                 id: NodeId::default(),
-                span: qubit_array.span,
+                span: ident.span,
                 kind: ExprKind::Call(
                     Box::new(Expr {
                         id: NodeId::default(),
-                        span: qubit_array.span,
+                        span: ident.span,
                         kind: ExprKind::Path(Path {
                             id: NodeId::default(),
-                            span: qubit_array.span,
+                            span: ident.span,
                             namespace: Some(Ident {
                                 id: NodeId::default(),
-                                span: qubit_array.span,
+                                span: ident.span,
                                 name: "QIR.Runtime".to_owned(),
                             }),
                             name: Ident {
                                 id: NodeId::default(),
-                                span: qubit_array.span,
-                                name: "__quantum__rt__qubit_array_allocate".to_owned(),
+                                span: ident.span,
+                                name: func_name,
                             },
                         }),
                     }),
                     Box::new(Expr {
                         id: NodeId::default(),
-                        span: size.span,
-                        kind: ExprKind::Tuple(vec![size]),
+                        span: ident.span,
+                        kind: ExprKind::Tuple(match array_size {
+                            Some(size) => vec![size],
+                            None => vec![],
+                        }),
                     }),
                 ),
             },
@@ -276,87 +359,55 @@ fn create_array_alloc_stmt(qubit_array: &Ident, size: Expr) -> Stmt {
     }
 }
 
-fn create_alloc_stmt(qubit: &Ident) -> Stmt {
-    Stmt {
-        id: NodeId::default(),
-        span: qubit.span,
-        kind: StmtKind::Local(
-            Mutability::Immutable,
-            Pat {
-                id: NodeId::default(),
-                span: qubit.span,
-                kind: PatKind::Bind(qubit.clone(), None),
-            },
-            Expr {
-                id: NodeId::default(),
-                span: qubit.span,
-                kind: ExprKind::Call(
-                    Box::new(Expr {
-                        id: NodeId::default(),
-                        span: qubit.span,
-                        kind: ExprKind::Path(Path {
-                            id: NodeId::default(),
-                            span: qubit.span,
-                            namespace: Some(Ident {
-                                id: NodeId::default(),
-                                span: qubit.span,
-                                name: "QIR.Runtime".to_owned(),
-                            }),
-                            name: Ident {
-                                id: NodeId::default(),
-                                span: qubit.span,
-                                name: "__quantum__rt__qubit_allocate".to_owned(),
-                            },
-                        }),
-                    }),
-                    Box::new(Expr {
-                        id: NodeId::default(),
-                        span: qubit.span,
-                        kind: ExprKind::Tuple(vec![]),
-                    }),
-                ),
-            },
-        ),
-    }
+fn create_array_alloc_stmt(ident: &Ident, array_size: Expr) -> Stmt {
+    create_general_alloc_stmt(
+        "__quantum__rt__qubit_array_allocate".to_owned(),
+        ident,
+        Some(array_size),
+    )
 }
 
-fn create_array_dealloc_stmt(qubit_array: &Ident) -> Stmt {
+fn create_alloc_stmt(ident: &Ident) -> Stmt {
+    create_general_alloc_stmt("__quantum__rt__qubit_allocate".to_owned(), ident, None)
+}
+
+fn create_general_dealloc_stmt(func_name: String, ident: &Ident) -> Stmt {
     Stmt {
         id: NodeId::default(),
-        span: qubit_array.span,
+        span: ident.span,
         kind: StmtKind::Semi(Expr {
             id: NodeId::default(),
-            span: qubit_array.span,
+            span: ident.span,
             kind: ExprKind::Call(
                 Box::new(Expr {
                     id: NodeId::default(),
-                    span: qubit_array.span,
+                    span: ident.span,
                     kind: ExprKind::Path(Path {
                         id: NodeId::default(),
-                        span: qubit_array.span,
+                        span: ident.span,
                         namespace: Some(Ident {
                             id: NodeId::default(),
-                            span: qubit_array.span,
+                            span: ident.span,
                             name: "QIR.Runtime".to_owned(),
                         }),
                         name: Ident {
                             id: NodeId::default(),
-                            span: qubit_array.span,
-                            name: "__quantum__rt__qubit_array_release".to_owned(),
+                            span: ident.span,
+                            name: func_name,
                         },
                     }),
                 }),
                 Box::new(Expr {
                     id: NodeId::default(),
-                    span: qubit_array.span,
+                    span: ident.span,
                     kind: ExprKind::Tuple(vec![Expr {
                         id: NodeId::default(),
-                        span: qubit_array.span,
+                        span: ident.span,
                         kind: ExprKind::Path(Path {
                             id: NodeId::default(),
-                            span: qubit_array.span,
+                            span: ident.span,
                             namespace: None,
-                            name: qubit_array.clone(),
+                            name: ident.clone(),
                         }),
                     }]),
                 }),
@@ -365,49 +416,12 @@ fn create_array_dealloc_stmt(qubit_array: &Ident) -> Stmt {
     }
 }
 
-fn create_dealloc_stmt(qubit: &Ident) -> Stmt {
-    Stmt {
-        id: NodeId::default(),
-        span: qubit.span,
-        kind: StmtKind::Semi(Expr {
-            id: NodeId::default(),
-            span: qubit.span,
-            kind: ExprKind::Call(
-                Box::new(Expr {
-                    id: NodeId::default(),
-                    span: qubit.span,
-                    kind: ExprKind::Path(Path {
-                        id: NodeId::default(),
-                        span: qubit.span,
-                        namespace: Some(Ident {
-                            id: NodeId::default(),
-                            span: qubit.span,
-                            name: "QIR.Runtime".to_owned(),
-                        }),
-                        name: Ident {
-                            id: NodeId::default(),
-                            span: qubit.span,
-                            name: "__quantum__rt__qubit_release".to_owned(),
-                        },
-                    }),
-                }),
-                Box::new(Expr {
-                    id: NodeId::default(),
-                    span: qubit.span,
-                    kind: ExprKind::Tuple(vec![Expr {
-                        id: NodeId::default(),
-                        span: qubit.span,
-                        kind: ExprKind::Path(Path {
-                            id: NodeId::default(),
-                            span: qubit.span,
-                            namespace: None,
-                            name: qubit.clone(),
-                        }),
-                    }]),
-                }),
-            ),
-        }),
-    }
+fn create_array_dealloc_stmt(ident: &Ident) -> Stmt {
+    create_general_dealloc_stmt("__quantum__rt__qubit_array_release".to_owned(), ident)
+}
+
+fn create_dealloc_stmt(ident: &Ident) -> Stmt {
+    create_general_dealloc_stmt("__quantum__rt__qubit_release".to_owned(), ident)
 }
 
 // This function is a temporary workaround until we have full type information on identifiers
