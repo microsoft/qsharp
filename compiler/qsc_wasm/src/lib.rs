@@ -401,25 +401,21 @@ mod test {
     #[test]
     fn fail_ry() {
         let code = "namespace Sample {
-            operation main() : Result {
+            operation main() : Result[] {
                 use q1 = Qubit();
                 Ry(q1);
                 let m1 = M(q1);
                 return [m1];
             }
         }";
-        let expr = "Sample.main()";
-        let result = crate::run_internal(
-            code,
-            expr,
-            |_msg_| {
-                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-                assert!(_msg_.contains(r#""message": "mismatched types""#));
-                assert!(_msg_.contains(r#""start_pos": 111"#));
-            },
-            1,
-        );
-        assert!(result.is_ok());
+
+        let errors = crate::check_code_internal(code);
+        assert_eq!(errors.len(), 1, "{errors:#?}");
+
+        let error = errors.first().unwrap();
+        assert_eq!(error.start_pos, 111);
+        assert_eq!(error.end_pos, 117);
+        assert_eq!(error.message, "mismatched types");
     }
 
     #[test]
@@ -468,7 +464,7 @@ mod test {
     #[test]
     fn test_mising_entrypoint() {
         let code = "namespace Sample {
-            operation main() : Result {
+            operation main() : Result[] {
                 use q1 = Qubit();
                 let m1 = M(q1);
                 return [m1];
