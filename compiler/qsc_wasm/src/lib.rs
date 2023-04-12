@@ -210,12 +210,9 @@ where
     T: Diagnostic,
 {
     fn from(err: &T) -> Self {
-        let label = err
-            .labels()
-            .and_then(|mut ls| ls.next())
-            .expect("error should have at least one label");
-        let offset = label.offset();
-        let len = label.len().max(1);
+        let label = err.labels().and_then(|mut ls| ls.next());
+        let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
+        let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
         let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
 
@@ -242,6 +239,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     for err in unit.context.errors() {
         result.push(err.into());
     }
+
     result
 }
 
@@ -304,10 +302,6 @@ fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<()
 where
     F: Fn(&str),
 {
-    if expr.is_empty() {
-        return Err(Error::EmptyExpr);
-    }
-
     let mut out = CallbackReceiver { event_cb };
     let context = compile_execution_context(true, expr, [code.to_string()]);
     if let Err(err) = context {
@@ -383,12 +377,12 @@ mod test {
     #[test]
     fn test_run_two_shots() {
         let code = "
-namespace Test {
-    function Answer() : Int {
-        return 42;
-    }
-}
-";
+            namespace Test {
+                function Answer() : Int {
+                    return 42;
+                }
+            }
+        ";
         let expr = "Test.Answer()";
         let count = std::cell::Cell::new(0);
 
@@ -407,13 +401,13 @@ namespace Test {
     #[test]
     fn fail_ry() {
         let code = "namespace Sample {
-        operation main() : Result {
-            use q1 = Qubit();
-            Ry(q1);
-            let m1 = M(q1);
-            return [m1];
-        }
-    }";
+            operation main() : Result {
+                use q1 = Qubit();
+                Ry(q1);
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
         let expr = "Sample.main()";
         let result = crate::run_internal(
             code,
@@ -421,7 +415,7 @@ namespace Test {
             |_msg_| {
                 assert!(_msg_.contains(r#""type": "Result", "success": false"#));
                 assert!(_msg_.contains(r#""message": "mismatched types""#));
-                assert!(_msg_.contains(r#""start_pos": 99"#));
+                assert!(_msg_.contains(r#""start_pos": 111"#));
             },
             1,
         );
@@ -431,19 +425,63 @@ namespace Test {
     #[test]
     fn test_message() {
         let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+            open Microsoft.Quantum.Diagnostics;
 
-        operation main() : Unit {
-            Message("hi");
-            return ();
-        }
-    }"#;
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
         let expr = "Sample.main()";
         let result = crate::run_internal(
             code,
             expr,
             |_msg_| {
                 assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_entrypoint() {
+        let code = r#"namespace Sample {
+            @EntryPoint()
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
+        let expr = "";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_mising_entrypoint() {
+        let code = "namespace Sample {
+            operation main() : Result {
+                use q1 = Qubit();
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
+        let expr = "";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
+                assert!(_msg_.contains(r#""message": "entry point not found""#));
+                assert!(_msg_.contains(r#""start_pos": 0"#));
             },
             1,
         );

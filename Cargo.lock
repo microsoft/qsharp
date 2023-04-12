@@ -719,6 +719,7 @@ dependencies = [
  "qsc_ast",
  "qsc_codegen",
  "qsc_frontend",
+ "qsc_passes",
  "thiserror",
 ]
 
@@ -775,8 +776,12 @@ dependencies = [
 name = "qsc_passes"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
+ "indoc",
+ "miette",
  "qsc_ast",
  "qsc_frontend",
+ "thiserror",
 ]
 
 [[package]]
