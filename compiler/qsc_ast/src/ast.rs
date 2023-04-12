@@ -289,7 +289,7 @@ pub struct Attr {
     /// The span.
     pub span: Span,
     /// The name of the attribute.
-    pub name: Path,
+    pub name: Ident,
     /// The argument to the attribute.
     pub arg: Expr,
 }
