@@ -318,6 +318,7 @@ impl Inferrer {
         }
     }
 
+    /// Introduces an equality constraint between the expected and actual types.
     pub(super) fn eq(&mut self, span: Span, expected: Ty, actual: Ty) {
         self.constraints.push_back(Constraint::Eq {
             expected,
@@ -326,16 +327,19 @@ impl Inferrer {
         });
     }
 
+    /// Introduces a class constraint.
     pub(super) fn class(&mut self, span: Span, class: Class) {
         self.constraints.push_back(Constraint::Class(class, span));
     }
 
+    /// Returns a unique unconstrained type variable.
     pub(super) fn fresh(&mut self) -> Ty {
         let var = self.next_var;
         self.next_var = Var(var.0 + 1);
         Ty::Var(var)
     }
 
+    /// Replaces all type parameters with fresh types.
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
@@ -362,13 +366,14 @@ impl Inferrer {
         freshen(self, &mut HashMap::new(), ty);
     }
 
+    /// Solves for all type variables given the accumulated constraints.
     pub(super) fn solve(mut self) -> (Substitutions, Vec<Error>) {
         // TODO: Variables that don't have a substitution should cause errors for ambiguous types.
         // However, if an unsolved variable is the result of a divergent expression, it may be OK to
         // leave it or substitute it with a concrete uninhabited type.
         let mut solver = Solver::new();
         while let Some(constraint) = self.constraints.pop_front() {
-            self.constraints.extend(solver.solve_constraint(constraint));
+            self.constraints.extend(solver.constrain(constraint));
         }
         solver.into_substs()
     }
@@ -389,18 +394,18 @@ impl Solver {
         }
     }
 
-    fn solve_constraint(&mut self, constraint: Constraint) -> Vec<Constraint> {
+    fn constrain(&mut self, constraint: Constraint) -> Vec<Constraint> {
         match constraint {
-            Constraint::Class(class, span) => self.solve_class(class, span),
+            Constraint::Class(class, span) => self.class(class, span),
             Constraint::Eq {
                 expected,
                 actual,
                 span,
-            } => self.solve_eq(expected, actual, span),
+            } => self.eq(expected, actual, span),
         }
     }
 
-    fn solve_class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
+    fn class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
         let mut unknown_dependency = false;
         for ty in class.dependencies() {
             if let Some(var) = unknown_var(&self.substs, ty) {
@@ -423,7 +428,7 @@ impl Solver {
         }
     }
 
-    fn solve_eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
+    fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
         substitute(&self.substs, &mut expected);
         substitute(&self.substs, &mut actual);
         let mut constraints = Vec::new();
