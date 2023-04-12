@@ -8,45 +8,49 @@ import {inspect} from "node:util";
 
 import {katasMetadata} from "../katas/content/dist/metadata.js"
 
-console.log("CESARZC: BUILD");
-
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const katasContentDir = join(thisDir, "..", "katas/content")
-const katasMetadataJs = join(thisDir, "dist", "katas-metadata.js");
+const katasContentJs = join(thisDir, "dist", "katas-content.js");
 
-//
-var modules = [];
-for(const moduleMetadata of katasMetadata.modules)
-{
-    console.log(`KATAS MODULE: ${moduleMetadata.title}`);
-    const moduleDir = join(katasContentDir, moduleMetadata.directory)
-    var exercises = [];
-    for(const exerciseMetadata of moduleMetadata.exercises)
-    {
-        var exerciseDir = join(moduleDir, exerciseMetadata.directory);
-        var placeholderPath = join(exerciseDir, "placeholder.qs");
-        var placeholderSource = readFileSync(placeholderPath, 'utf8');
-        var referencePath = join(exerciseDir, "reference.qs");
-        var referenceSource = readFileSync(referencePath, 'utf8');
-        var verificationPath = join(exerciseDir, "verify.qs");
-        var verificationSource = readFileSync(verificationPath, 'utf8');
-        var exercise = {
-            id: exerciseMetadata.id,
-            title: exerciseMetadata.title,
-            placeholderImplementation: placeholderSource,
-            referenceImplementation: referenceSource,
-            verificationImplementation: verificationSource
-        };
+function buildExercise(exerciseMetadata, moduleDir) {
+    const exerciseDir = join(moduleDir, exerciseMetadata.directory);
+    const placeholderSource = readFileSync(join(exerciseDir, "placeholder.qs"), 'utf8');
+    const referenceSource = readFileSync(join(exerciseDir, "reference.qs"), 'utf8');
+    const verificationSource = readFileSync(join(exerciseDir, "verify.qs"), 'utf8');
+    return {
+        id: exerciseMetadata.id,
+        title: exerciseMetadata.title,
+        placeholderImplementation: placeholderSource,
+        referenceImplementation: referenceSource,
+        verificationImplementation: verificationSource
+    };
+}
+
+function buildKata(kataMetadata, katasDir) {
+    const kataDir = join(katasDir, kataMetadata.directory)
+    let exercises = [];
+    for(const exerciseMetadata of kataMetadata.exercises) {
+        const exercise = buildExercise(exerciseMetadata, kataDir);
         exercises.push(exercise);
     }
 
-    var module = {
-        id: moduleMetadata.id,
-        title: moduleMetadata.title,
+    return {
+        id: kataMetadata.id,
+        title: kataMetadata.title,
         exercises: exercises
     };
-    modules.push(module);
 }
 
-console.log(katasMetadataJs);
-writeFileSync(katasMetadataJs, 'var modules = ' + inspect(modules, {depth: null }) , 'utf-8');
+function buildKatasContentJs(katasDir, outJsPath)
+{
+    console.log("Building katas content");
+    var katas = [];
+    for(const kataMetadata of katasMetadata.modules) {
+        var kata = buildKata(kataMetadata, katasDir);
+        katas.push(kata);
+    }
+
+    writeFileSync(outJsPath, 'const katas = ' + inspect(katas, {depth: null }) , 'utf-8');
+}
+
+buildKatasContentJs(katasContentDir, katasContentJs);
