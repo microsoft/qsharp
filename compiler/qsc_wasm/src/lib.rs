@@ -10,7 +10,7 @@ use qsc_eval::{
     stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-use katas::verify_kata;
+use katas::{run_kata, verify_kata};
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -366,6 +366,42 @@ pub fn run(
         Err(e) => Err(JsError::from(e).into()),
     }
 }
+
+fn run_kata_implementation_internal<F>(
+    verification_source: &str,
+    kata_implementation: &str,
+    event_cb: F) -> Result<bool, Vec<qsc_eval::stateless::Error>>
+where
+    F: Fn(&str) {
+    let mut out = CallbackReceiver { event_cb };
+    run_kata(
+        [verification_source, kata_implementation],
+        &mut out
+    )
+}
+
+#[wasm_bindgen]
+pub fn run_kata_implementation(
+    verification_source: &str,
+    kata_implementation: &str,
+    event_cb: &js_sys::Function
+) -> Result<JsValue, JsValue> {
+    match run_kata_implementation_internal(
+        verification_source,
+        kata_implementation, |msg: &str| {
+        let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+        }
+    ) {
+        Ok(v) => Ok(JsValue::from_bool(v)),
+        Err(e) =>
+        {
+            // TODO: Handle multiple errors.
+            let first_error = e.first().expect("Running kata failed but no errors were reported");
+            Err(JsError::from(first_error).into())
+        }
+    }
+}
+
 
 fn verify_kata_implementation_internal<F>(
     verification_source: &str,

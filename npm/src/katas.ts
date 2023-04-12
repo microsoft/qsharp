@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { verify_kata_implementation} from "../lib/web/qsc_wasm.js";
+import { run_kata_implementation } from "../lib/web/qsc_wasm.js";
 
 export type KataExercise = {
     id: string;
@@ -146,7 +146,7 @@ export function queryKataModules() : KataModule[] {
 export function verifyKata(id: string, kataImplementation: string, eventCb: (msg: string) => void) : boolean
 {
     let exercise = getKataExercise(id);
-    return verify_kata_implementation(
+    return run_kata_implementation(
         exercise.verificationImplementation,
         kataImplementation,
         eventCb);
