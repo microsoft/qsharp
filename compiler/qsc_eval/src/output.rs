@@ -77,7 +77,7 @@ impl<'a> Receiver for CursorReceiver<'a> {
             writeln!(
                 self.cursor,
                 "|{:0<qubit_count$}⟩: {}",
-                id.to_str_radix(2),
+                id.to_str_radix(2).chars().rev().collect::<String>(),
                 state
             )
             .map_err(|_| Error)?;
