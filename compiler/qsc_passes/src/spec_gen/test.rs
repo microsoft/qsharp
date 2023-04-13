@@ -422,3 +422,38 @@ fn generate_ctl_with_function_calls() {
                                                 Expr 34 [139-141]: Unit"#]],
     );
 }
+
+#[test]
+fn generate_adj_self() {
+    check(
+        indoc! {r#"
+            namespace test {
+                operation A(q : Qubit) : Unit is Adj {
+                    body ... { fail "body impl"; }
+                    adjoint self;
+                }
+            }
+        "#},
+        &expect![[r#"
+            Package 0:
+                Namespace 1 [0-128] (Ident 2 [10-14] "test"):
+                    Item 3 [21-126]:
+                        Callable 4 [21-126] (Operation):
+                            name: Ident 5 [31-32] "A"
+                            input: Pat 6 [32-43]: Paren:
+                                Pat 7 [33-42]: Bind:
+                                    Ident 8 [33-34] "q"
+                                    Type 9 [37-42]: Prim (Qubit)
+                            output: Type 10 [46-50]: Unit
+                            functors: Functor Expr 11 [54-57]: Adj
+                            body: Specializations:
+                                SpecDecl 12 [68-98] (Body): Impl:
+                                    Pat 13 [73-76]: Elided
+                                    Block 14 [77-98]:
+                                        Stmt 15 [79-96]: Semi: Expr 16 [79-95]: Fail: Expr 17 [84-95]: Lit: String("body impl")
+                                SpecDecl 18 [107-120] (Adj): Impl:
+                                    Pat 13 [73-76]: Elided
+                                    Block 14 [77-98]:
+                                        Stmt 15 [79-96]: Semi: Expr 16 [79-95]: Fail: Expr 17 [84-95]: Lit: String("body impl")"#]],
+    );
+}
