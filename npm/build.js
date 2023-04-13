@@ -54,7 +54,7 @@ function buildKata(kataMetadata, katasDir) {
 function buildKatasContentJs(katasDir, outDir) {
     console.log("Building katas content");
     var katas = [];
-    for (const kataMetadata of katasMetadata.modules) {
+    for (const kataMetadata of katasMetadata.katas) {
         var kata = buildKata(kataMetadata, katasDir);
         katas.push(kata);
     }

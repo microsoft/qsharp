@@ -1,5 +1,5 @@
 export type KatasMetadata = {
-    modules: Array<{
+    katas: Array<{
         id: string;
         title: string;
         directory: string;
@@ -12,7 +12,7 @@ export type KatasMetadata = {
 };
 
 export const katasMetadata: KatasMetadata = {
-    modules: [
+    katas: [
         {
             id: "single-qubit-gates",
             title: "Single-Qubit Gates",
