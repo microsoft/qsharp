@@ -51,9 +51,9 @@ function renderKataOutput(output: KataOutput) : HTMLDivElement {
 function renderExercise(exercise: Exercise) : HTMLDivElement {
     let exerciseDiv = document.createElement("div");
     exerciseDiv.className = "kata-exercise";
-    let exerciseHeader = document.createElement("h3");
-    exerciseHeader.textContent = exercise.title;
-    exerciseDiv.append(exerciseHeader);
+    let exerciseContent = document.createElement("div");
+    exerciseContent.innerHTML = exercise.contentAsHtml;
+    exerciseDiv.append(exerciseContent);
     let sourceCodeArea = document.createElement("textarea");
     sourceCodeArea.id = `source_${exercise.id}`;
     sourceCodeArea.rows = 30;
@@ -123,13 +123,10 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
 function renderKata(kata: Kata) : HTMLDivElement {
     let kataDiv = document.createElement("div");
 
-    // Render the title and the content.
-    let kataHeader = document.createElement("h2");
-    kataHeader.textContent = kata.title;
-    kataDiv.append(kataHeader);
-    let kataConent = document.createElement("div");
-    kataConent.innerHTML = kata.contentAsHtml;
-    kataDiv.append(kataConent);
+    // Render the content.
+    let kataContent = document.createElement("div");
+    kataContent.innerHTML = kata.contentAsHtml;
+    kataDiv.append(kataContent);
 
     // Render each one of the exercises.
     for (let exercise of kata.exercises)

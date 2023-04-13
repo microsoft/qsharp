@@ -20,12 +20,16 @@ function buildExercise(exerciseMetadata, moduleDir) {
     const placeholderSource = readFileSync(join(exerciseDir, "placeholder.qs"), 'utf8');
     const referenceSource = readFileSync(join(exerciseDir, "reference.qs"), 'utf8');
     const verificationSource = readFileSync(join(exerciseDir, "verify.qs"), 'utf8');
+    const contentAsMarkdown = readFileSync(join(exerciseDir, "content.md"), 'utf8');
+    const contentAsHtml = parse(contentAsMarkdown);
     return {
         id: exerciseMetadata.id,
         title: exerciseMetadata.title,
         placeholderImplementation: placeholderSource,
         referenceImplementation: referenceSource,
-        verificationImplementation: verificationSource
+        verificationImplementation: verificationSource,
+        contentAsMarkdown: contentAsMarkdown,
+        contentAsHtml: contentAsHtml
     };
 }
 

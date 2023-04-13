@@ -7,6 +7,8 @@ import {katas} from "../dist/katas-content.js";
 export type Exercise = {
     id: string;
     title: string;
+    contentAsHtml: string;
+    contentAsMarkdown: string;
     verificationImplementation: string;
     referenceImplementation: string;
     placeholderImplementation: string;
