@@ -135,6 +135,26 @@ export function getAllKatas() : Kata[] {
     return katas as Kata[];
 }
 
+export function getKata(id: string) : Kata {
+    let filteredKatas = getAllKatas().filter(k => k.id == id);
+    if (filteredKatas.length != 1) {
+        throw new Error(`Failed to get kata with id: ${id}`);
+    }
+
+    return filteredKatas.at(0)!;
+}
+
+export function getExercise(id: string) : Exercise {
+    for (let kata of getAllKatas()) {
+        let filteredExercises = kata.exercises.filter(e => e.id == id);
+        if (filteredExercises.length == 1) {
+            return filteredExercises.at(0)!;
+        }
+    }
+
+    throw new Error(`Failed to get exercise with id: ${id}`);
+}
+
 export function getKataModule(id: string) : KataModule {
     let filteredModules = modules.filter(m => m.id == id);
     if (filteredModules.length != 1)
