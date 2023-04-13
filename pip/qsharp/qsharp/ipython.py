@@ -10,14 +10,14 @@ def register_magic():
         "interpret q# code"
         try:
             (value, out, dumps) = interpret_with_dumps(cell)
-            return Output(dumps, value)
+            return DisplayableOutput(dumps, value)
             # return value
         except QSharpException as ex:
             for diagnostic in ex.diagnostics:
                 print("\x1b[31m" + diagnostic.message + "\x1b[0m")
 
 
-class Output:
+class DisplayableOutput:
     def __init__(self, dumps, value):
         self.dumps = dumps
         self.value = value
@@ -34,8 +34,8 @@ class Output:
 
     def dump_to_html(self, dump):
         table = '<table>\n'
-        for label, value in dump.items():
-            row = f'<tr><td>{label}</td><td>{value.real}</td><td>{value.imag}</td></tr>\n'
+        for id, r, i, c in dump:
+            row = f'<tr><td>|{id}⟩</td><td>{r}</td><td>{i}</td></tr>\n'
             table += row
         table += '</table>'
         return table

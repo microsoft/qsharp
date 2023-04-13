@@ -61,5 +61,20 @@ except RuntimeException as ex:
     for diagnostic in ex.diagnostics:
         print("\x1b[31m" + diagnostic.message + "\x1b[0m")
 
-# TODO: Exceptions should probably share a base class, or we should just have one exception type
-# TODO: Q: Do/will runtime errors contain a stack trace?
+# State visualization
+(value, out, dumps) = qsharp.interpret_with_dumps("AllBasisVectorsWithPhases_TwoQubits()")
+print(f"States: {dumps}")
+
+# Mix DumpMachine() and message (this is just temporary so I can test my janky parsing)
+qsharp.interpret("""
+operation Main() : Result {
+    use q = Qubit();
+    H(q);
+    Microsoft.Quantum.Diagnostics.DumpMachine();
+    let r = M(q);
+    Message("Result: " + AsString(r));
+    r
+};
+""")
+
+qsharp.interpret("Main()")
