@@ -15,6 +15,8 @@ export type Exercise = {
 export type Kata = {
     id: string;
     title: string;
+    contentAsHtml: string;
+    contentAsMarkdown: string;
     exercises: Exercise[]
 }
 

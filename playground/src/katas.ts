@@ -123,10 +123,13 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
 function renderKata(kata: Kata) : HTMLDivElement {
     let kataDiv = document.createElement("div");
 
-    // Render the title and the description.
+    // Render the title and the content.
     let kataHeader = document.createElement("h2");
     kataHeader.textContent = kata.title;
     kataDiv.append(kataHeader);
+    let kataConent = document.createElement("div");
+    kataConent.innerHTML = kata.contentAsHtml;
+    kataDiv.append(kataConent);
 
     // Render each one of the exercises.
     for (let exercise of kata.exercises)
