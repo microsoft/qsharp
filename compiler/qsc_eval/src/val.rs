@@ -8,7 +8,6 @@ use std::{
 };
 
 use num_bigint::BigInt;
-use qir_backend::__quantum__rt__qubit_release;
 use qsc_ast::ast::Pauli;
 use qsc_passes::globals::GlobalId;
 
@@ -22,13 +21,16 @@ pub enum Value {
     Global(GlobalId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
-    Qubit(*mut c_void),
+    Qubit(Qubit),
     Range(Option<i64>, Option<i64>, Option<i64>),
     Result(bool),
     String(String),
     Tuple(Vec<Value>),
     Udt,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Qubit(pub *mut c_void);
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
@@ -59,7 +61,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Closure => todo!(),
+            Value::Closure => todo!("https://github.com/microsoft/qsharp/issues/151"),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -78,7 +80,7 @@ impl Display for Value {
                 Pauli::Z => write!(f, "PauliZ"),
                 Pauli::Y => write!(f, "PauliY"),
             },
-            Value::Qubit(v) => write!(f, "Qubit{}", (*v as usize)),
+            Value::Qubit(v) => write!(f, "Qubit{}", (v.0 as usize)),
             Value::Range(start, step, end) => match (start, step, end) {
                 (Some(start), Some(step), Some(end)) => write!(f, "{start}..{step}..{end}"),
                 (Some(start), Some(step), None) => write!(f, "{start}..{step}..."),
@@ -105,7 +107,7 @@ impl Display for Value {
                 }
                 write!(f, ")")
             }
-            Value::Udt => todo!(),
+            Value::Udt => todo!("https://github.com/microsoft/qsharp/issues/148"),
         }
     }
 }
@@ -180,7 +182,7 @@ impl TryFrom<Value> for *mut c_void {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Qubit(q) = value {
-            Ok(q)
+            Ok(q.0)
         } else {
             Err(ConversionError {
                 expected: "Qubit",
@@ -233,12 +235,6 @@ impl Value {
                 expected: "Tuple",
                 actual: self.type_name(),
             })
-        }
-    }
-
-    pub fn release(&self) {
-        if let Value::Qubit(q) = self {
-            __quantum__rt__qubit_release(*q);
         }
     }
 

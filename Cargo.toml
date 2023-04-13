@@ -3,12 +3,12 @@ members = [
     "compiler/qsc",
     "compiler/qsc_ast",
     "compiler/qsc_codegen",
+    "compiler/qsc_data_structures",
     "compiler/qsc_eval",
     "compiler/qsc_frontend",
     "compiler/qsc_passes",
     "compiler/qsc_wasm",
     "compiler/qsi",
-    "compiler/qtest_tool",
     "katas",
 ]
 

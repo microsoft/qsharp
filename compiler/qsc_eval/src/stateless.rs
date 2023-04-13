@@ -5,11 +5,11 @@ use crate::output::Receiver;
 use crate::val::Value;
 use crate::{eval_expr, AggregateError, Env};
 use ouroboros::self_referencing;
-use qsc_ast::ast::CallableDecl;
+use qsc_ast::ast::{CallableDecl, Expr};
 use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_passes::entry_point::extract_entry;
 use qsc_passes::globals::{extract_callables, GlobalId};
 use std::collections::HashMap;
-use std::string::String;
 
 use miette::Diagnostic;
 
@@ -23,8 +23,9 @@ pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Compile(qsc_frontend::compile::Error),
-    #[error("nothing to evaluate; entry expression is empty")]
-    EmptyExpr,
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Pass(qsc_passes::Error),
 }
 
 /// # Errors
@@ -76,15 +77,13 @@ pub fn eval(
 
     let globals = extract_callables(&store);
 
-    let expr = store
-        .get_entry_expr(basis_package)
-        .expect("entry expression should be present");
+    let expr = get_entry_expr(&store, basis_package)?;
     let resolutions = store
         .get_resolutions(basis_package)
         .expect("package should be present in store");
-    let mut env = Env::empty();
+    let mut env = Env::with_empty_scope();
     let result = eval_expr(
-        expr,
+        &expr,
         &store,
         &globals,
         resolutions,
@@ -107,28 +106,7 @@ pub fn compile_execution_context(
     expr: impl AsRef<str>,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
-    let sources = sources.into_iter().collect::<Vec<_>>();
-
-    let mut store = PackageStore::new();
-
-    let mut session_deps: Vec<_> = vec![];
-
-    if stdlib {
-        let unit = compile::std();
-        if unit.context.errors().is_empty() {
-            session_deps.push(store.insert(unit));
-        } else {
-            let errors = unit
-                .context
-                .errors()
-                .iter()
-                .map(|e| Error::Compile(e.clone()))
-                .collect();
-            return Err(AggregateError(errors));
-        }
-    }
-
-    create_execution_context(stdlib, sources, Some(expr.as_ref().to_string()))
+    create_execution_context(stdlib, sources, expr.as_ref())
 }
 
 /// # Errors
@@ -139,18 +117,15 @@ pub fn eval_in_context(
 ) -> Result<Value, AggregateError<Error>> {
     crate::init();
 
-    let result = context.with(|f| {
-        let expr = f
-            .store
-            .get_entry_expr(*f.package)
-            .expect("entry expression should be present");
+    context.with(|f| {
+        let expr = get_entry_expr(f.store, *f.package)?;
         let resolutions = f
             .store
             .get_resolutions(*f.package)
             .expect("package should be present in store");
-        let mut env = Env::empty();
+        let mut env = Env::with_empty_scope();
         eval_expr(
-            expr,
+            &expr,
             f.store,
             f.globals,
             resolutions,
@@ -158,11 +133,8 @@ pub fn eval_in_context(
             &mut env,
             receiver,
         )
-    });
-    match result {
-        Ok(v) => Ok(v),
-        Err(e) => Err(AggregateError(vec![Error::Eval(e)])),
-    }
+        .map_err(|e| AggregateError(vec![Error::Eval(e)]))
+    })
 }
 
 #[self_referencing]
@@ -177,7 +149,7 @@ pub struct ExecutionContext {
 fn create_execution_context(
     stdlib: bool,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
-    expr: Option<String>,
+    expr: &str,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
@@ -197,12 +169,7 @@ fn create_execution_context(
         }
     }
 
-    let unit = compile(
-        &store,
-        session_deps.clone(),
-        sources,
-        &expr.unwrap_or_default(),
-    );
+    let unit = compile(&store, session_deps.clone(), sources, expr);
     if !unit.context.errors().is_empty() {
         let errors = unit
             .context
@@ -221,4 +188,21 @@ fn create_execution_context(
     }
     .build();
     Ok(context)
+}
+
+fn get_entry_expr(
+    store: &PackageStore,
+    basis_package: compile::PackageId,
+) -> Result<Expr, AggregateError<Error>> {
+    if let Some(expr) = store.get_entry_expr(basis_package) {
+        Ok(expr.clone())
+    } else {
+        extract_entry(
+            &store
+                .get(basis_package)
+                .expect("package should be in store after insert")
+                .package,
+        )
+        .map_err(|e| AggregateError(e.into_iter().map(Error::Pass).collect()))
+    }
 }

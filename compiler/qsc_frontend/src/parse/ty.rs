@@ -13,18 +13,17 @@ use super::{
 use crate::lex::{ClosedBinOp, Delim, TokenKind};
 use qsc_ast::ast::{
     CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind, TyPrim,
-    TyVar,
 };
 
 pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
     let mut lhs = base(s)?;
     loop {
-        if let Some(array) = opt(s, array)? {
+        if let Some(()) = opt(s, array)? {
             lhs = Ty {
                 id: NodeId::default(),
                 span: s.span(lo),
-                kind: TyKind::App(Box::new(array), vec![lhs]),
+                kind: TyKind::Array(Box::new(lhs)),
             }
         } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
@@ -50,15 +49,10 @@ pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
     ident(s)
 }
 
-fn array(s: &mut Scanner) -> Result<Ty> {
-    let lo = s.peek().span.lo;
+fn array(s: &mut Scanner) -> Result<()> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(Ty {
-        id: NodeId::default(),
-        span: s.span(lo),
-        kind: TyKind::Prim(TyPrim::Array),
-    })
+    Ok(())
 }
 
 fn arrow(s: &mut Scanner) -> Result<CallableKind> {
@@ -95,8 +89,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         Ok(TyKind::Prim(TyPrim::String))
     } else if keyword(s, Keyword::Unit).is_ok() {
         Ok(TyKind::Tuple(Vec::new()))
-    } else if let Some(var) = opt(s, var)? {
-        Ok(TyKind::Var(TyVar::Name(var.name)))
+    } else if let Some(ident) = opt(s, var)? {
+        Ok(TyKind::Var(ident))
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {

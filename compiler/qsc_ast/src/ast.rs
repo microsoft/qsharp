@@ -9,6 +9,7 @@ use indenter::{indented, Format, Indented};
 use miette::SourceSpan;
 use num_bigint::BigInt;
 use std::{
+    collections::HashSet,
     fmt::{self, Display, Formatter, Write},
     ops::{Bound, Index, RangeBounds},
 };
@@ -29,10 +30,10 @@ fn set_indentation<'a, 'b>(
 
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NodeId(u32);
+pub struct NodeId(usize);
 
 impl NodeId {
-    const PLACEHOLDER: Self = Self(u32::MAX);
+    const PLACEHOLDER: Self = Self(usize::MAX);
 
     /// Whether this ID is a placeholder.
     #[must_use]
@@ -69,6 +70,18 @@ impl Display for NodeId {
     }
 }
 
+impl From<NodeId> for usize {
+    fn from(value: NodeId) -> Self {
+        value.0
+    }
+}
+
+impl From<usize> for NodeId {
+    fn from(value: usize) -> Self {
+        NodeId(value)
+    }
+}
+
 /// A region between two source code positions. Spans are the half-open interval `[lo, hi)`. The
 /// offsets are absolute within an AST, assuming that each file has its own offset.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -90,6 +103,14 @@ impl Index<Span> for str {
     type Output = str;
 
     fn index(&self, index: Span) -> &Self::Output {
+        &self[index.lo..index.hi]
+    }
+}
+
+impl Index<&Span> for str {
+    type Output = str;
+
+    fn index(&self, index: &Span) -> &Self::Output {
         &self[index.lo..index.hi]
     }
 }
@@ -289,7 +310,7 @@ pub struct Attr {
     /// The span.
     pub span: Span,
     /// The name of the attribute.
-    pub name: Path,
+    pub name: Ident,
     /// The argument to the attribute.
     pub arg: Expr,
 }
@@ -501,6 +522,26 @@ pub struct FunctorExpr {
     pub kind: FunctorExprKind,
 }
 
+impl FunctorExpr {
+    /// Evaluates the functor expression.
+    #[must_use]
+    pub fn to_set(&self) -> HashSet<Functor> {
+        match &self.kind {
+            FunctorExprKind::BinOp(op, lhs, rhs) => {
+                let mut functors = lhs.to_set();
+                let rhs_functors = rhs.to_set();
+                match op {
+                    SetOp::Union => functors.extend(rhs_functors),
+                    SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
+                }
+                functors
+            }
+            &FunctorExprKind::Lit(functor) => [functor].into(),
+            FunctorExprKind::Paren(inner) => inner.to_set(),
+        }
+    }
+}
+
 impl Display for FunctorExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Functor Expr {} {}: {}", self.id, self.span, self.kind)
@@ -517,6 +558,7 @@ pub enum FunctorExprKind {
     /// A parenthesized group.
     Paren(Box<FunctorExpr>),
 }
+
 impl Display for FunctorExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -547,8 +589,8 @@ impl Display for Ty {
 /// A type kind.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TyKind {
-    /// One or more type arguments applied to a type constructor.
-    App(Box<Ty>, Vec<Ty>),
+    /// An array type.
+    Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     /// An unspecified type, `_`, which may be inferred.
@@ -562,23 +604,14 @@ pub enum TyKind {
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A type variable.
-    Var(TyVar),
+    Var(Ident),
 }
 
 impl Display for TyKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        match &self {
-            TyKind::App(base, args) => {
-                write!(indent, "App:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\nbase type: {base}")?;
-                write!(indent, "\narg types:")?;
-                indent = set_indentation(indent, 2);
-                for a in args {
-                    write!(indent, "\n{a}")?;
-                }
-            }
+        match self {
+            TyKind::Array(item) => write!(indent, "Array: {item}")?,
             TyKind::Arrow(ck, param, rtrn, functors) => {
                 write!(indent, "Arrow ({ck:?}):")?;
                 indent = set_indentation(indent, 1);
@@ -605,10 +638,7 @@ impl Display for TyKind {
                     }
                 }
             }
-            TyKind::Var(t) => match t {
-                TyVar::Name(n) => write!(indent, "\nType Var {n}")?,
-                TyVar::Id(id) => write!(indent, "\nType Var {id}")?,
-            },
+            TyKind::Var(name) => write!(indent, "\nType Var {name}")?,
         }
         Ok(())
     }
@@ -766,7 +796,7 @@ pub enum ExprKind {
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
     Path(Path),
-    /// A range: `start..step..stop`, `start..stop`, `start...`, `...stop`, or `...`.
+    /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Block, Box<Expr>, Option<Block>),
@@ -1265,8 +1295,6 @@ pub enum QubitSource {
 /// A primitive type.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TyPrim {
-    /// The array type.
-    Array,
     /// The big integer type.
     BigInt,
     /// The boolean type.
@@ -1285,15 +1313,6 @@ pub enum TyPrim {
     Result,
     /// The string type.
     String,
-}
-
-/// A type variable.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum TyVar {
-    /// A named variable.
-    Name(String),
-    /// A numeric variable.
-    Id(u32),
 }
 
 /// A literal.

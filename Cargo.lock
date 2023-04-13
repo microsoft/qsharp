@@ -688,7 +688,7 @@ dependencies = [
 [[package]]
 name = "qir-backend"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=b438d884c774a67d55bf67081d9ddd1585dd8e97#b438d884c774a67d55bf67081d9ddd1585dd8e97"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=8a7ee42401ef23092c5ecd5e92877948f4b8e017#8a7ee42401ef23092c5ecd5e92877948f4b8e017"
 dependencies = [
  "bitvec",
  "ndarray",
@@ -703,7 +703,7 @@ dependencies = [
 [[package]]
 name = "qir-stdlib"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=b438d884c774a67d55bf67081d9ddd1585dd8e97#b438d884c774a67d55bf67081d9ddd1585dd8e97"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=8a7ee42401ef23092c5ecd5e92877948f4b8e017#8a7ee42401ef23092c5ecd5e92877948f4b8e017"
 dependencies = [
  "num-bigint",
  "rand",
@@ -719,6 +719,7 @@ dependencies = [
  "qsc_ast",
  "qsc_codegen",
  "qsc_frontend",
+ "qsc_passes",
  "thiserror",
 ]
 
@@ -738,6 +739,10 @@ dependencies = [
  "qsc_ast",
  "qsc_frontend",
 ]
+
+[[package]]
+name = "qsc_data_structures"
+version = "0.0.0"
 
 [[package]]
 name = "qsc_eval"
@@ -768,6 +773,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "qsc_ast",
+ "qsc_data_structures",
  "thiserror",
 ]
 
@@ -775,8 +781,12 @@ dependencies = [
 name = "qsc_passes"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
+ "indoc",
+ "miette",
  "qsc_ast",
  "qsc_frontend",
+ "thiserror",
 ]
 
 [[package]]
@@ -805,20 +815,6 @@ dependencies = [
  "clap 4.1.8",
  "miette",
  "qsc_ast",
- "qsc_eval",
- "qsc_frontend",
- "qsc_passes",
- "thiserror",
-]
-
-[[package]]
-name = "qtest_tool"
-version = "0.0.0"
-dependencies = [
- "clap 4.1.8",
- "miette",
- "qsc_ast",
- "qsc_codegen",
  "qsc_eval",
  "qsc_frontend",
  "qsc_passes",

@@ -44,9 +44,8 @@ pub(crate) fn invoke_intrinsic(
             }
 
             "DumpMachine" => {
-                let mut state = capture_quantum_state();
-                state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-                match out.state(state) {
+                let (state, qubit_count) = capture_quantum_state();
+                match out.state(state, qubit_count) {
                     Ok(_) => ControlFlow::Continue(Value::UNIT),
                     Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
                 }

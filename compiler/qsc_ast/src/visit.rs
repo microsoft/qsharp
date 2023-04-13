@@ -101,7 +101,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
 }
 
 pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
-    vis.visit_path(&attr.name);
+    vis.visit_ident(&attr.name);
     vis.visit_expr(&attr.arg);
 }
 
@@ -151,10 +151,7 @@ pub fn walk_functor_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a FunctorExpr) 
 
 pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
     match &ty.kind {
-        TyKind::App(ty, tys) => {
-            vis.visit_ty(ty);
-            tys.iter().for_each(|t| vis.visit_ty(t));
-        }
+        TyKind::Array(item) => vis.visit_ty(item),
         TyKind::Arrow(_, lhs, rhs, functors) => {
             vis.visit_ty(lhs);
             vis.visit_ty(rhs);
@@ -163,7 +160,8 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path(path),
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
-        TyKind::Hole | TyKind::Prim(_) | TyKind::Var(_) => {}
+        TyKind::Var(ident) => vis.visit_ident(ident),
+        TyKind::Hole | TyKind::Prim(_) => {}
     }
 }
 

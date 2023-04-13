@@ -6,7 +6,7 @@ use num_complex::Complex64;
 use once_cell::sync::OnceCell;
 use qsc_eval::{
     output,
-    output::Receiver,
+    output::{format_state_id, Receiver},
     stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
@@ -16,9 +16,6 @@ use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
-
-// TODO: Below is an example of how to return typed structures from Rust via Wasm
-// to the consuming JavaScript/TypeScript code. To be replaced with the implementation.
 
 // These definitions match the values expected by VS Code and Monaco.
 enum CompletionKind {
@@ -183,7 +180,7 @@ export interface IDiagnostic {
 }
 "#;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
@@ -211,12 +208,9 @@ where
     T: Diagnostic,
 {
     fn from(err: &T) -> Self {
-        let label = err
-            .labels()
-            .and_then(|mut ls| ls.next())
-            .expect("error should have at least one label");
-        let offset = label.offset();
-        let len = label.len().max(1);
+        let label = err.labels().and_then(|mut ls| ls.next());
+        let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
+        let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
         let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
 
@@ -243,6 +237,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     for err in unit.context.errors() {
         result.push(err.into());
     }
+
     result
 }
 
@@ -263,7 +258,11 @@ impl<F> Receiver for CallbackReceiver<F>
 where
     F: Fn(&str),
 {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), output::Error> {
+    fn state(
+        &mut self,
+        state: Vec<(BigUint, Complex64)>,
+        qubit_count: usize,
+    ) -> Result<(), output::Error> {
         let mut dump_json = String::new();
         write!(dump_json, r#"{{"type": "DumpMachine","state": {{"#)
             .expect("writing to string should succeed");
@@ -273,8 +272,8 @@ where
         for state in most {
             write!(
                 dump_json,
-                r#""|{}⟩": [{}, {}],"#,
-                state.0.to_str_radix(2),
+                r#""{}": [{}, {}],"#,
+                format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -282,8 +281,8 @@ where
         }
         write!(
             dump_json,
-            r#""|{}⟩": [{}, {}]}}}}"#,
-            last.0.to_str_radix(2),
+            r#""{}": [{}, {}]}}}}"#,
+            format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )
@@ -305,13 +304,11 @@ fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<()
 where
     F: Fn(&str),
 {
-    if expr.is_empty() {
-        return Err(Error::EmptyExpr);
-    }
-
     let mut out = CallbackReceiver { event_cb };
     let context = compile_execution_context(true, expr, [code.to_string()]);
     if let Err(err) = context {
+        // TODO: handle multiple errors
+        // https://github.com/microsoft/qsharp/issues/149
         let e = err.0[0].clone();
         let diag: VSDiagnostic = (&e).into();
         let msg = format!(
@@ -329,6 +326,7 @@ where
             Ok(value) => format!(r#""{value}""#),
             Err(err) => {
                 // TODO: handle multiple errors
+                // https://github.com/microsoft/qsharp/issues/149
                 let e = err.0[0].clone();
                 success = false;
                 let diag: VSDiagnostic = (&e).into();
@@ -408,23 +406,23 @@ mod test {
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
         let diag = crate::check_code_internal(code);
-        assert_eq!(diag.len(), 1);
+        assert_eq!(diag.len(), 1, "{diag:#?}");
         let err = diag.first().unwrap();
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert!(err.message.starts_with("callable parameter"));
+        assert_eq!(err.message, "missing type in item signature");
     }
 
     #[test]
     fn test_run_two_shots() {
         let code = "
-namespace Test {
-    function Answer() : Int {
-        return 42;
-    }
-}
-";
+            namespace Test {
+                function Answer() : Int {
+                    return 42;
+                }
+            }
+        ";
         let expr = "Test.Answer()";
         let count = std::cell::Cell::new(0);
 
@@ -443,21 +441,39 @@ namespace Test {
     #[test]
     fn fail_ry() {
         let code = "namespace Sample {
-        operation main() : Result {
-            use q1 = Qubit();
-            Ry(q1);
-            let m1 = M(q1);
-            return [m1];
-        }
-    }";
+            operation main() : Result[] {
+                use q1 = Qubit();
+                Ry(q1);
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
+
+        let errors = crate::check_code_internal(code);
+        assert_eq!(errors.len(), 1, "{errors:#?}");
+
+        let error = errors.first().unwrap();
+        assert_eq!(error.start_pos, 111);
+        assert_eq!(error.end_pos, 117);
+        assert_eq!(error.message, "mismatched types");
+    }
+
+    #[test]
+    fn test_message() {
+        let code = r#"namespace Sample {
+            open Microsoft.Quantum.Diagnostics;
+
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
         let expr = "Sample.main()";
         let result = crate::run_internal(
             code,
             expr,
             |_msg_| {
-                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-                assert!(_msg_.contains(r#""message": "mismatched types""#));
-                assert!(_msg_.contains(r#""start_pos": 99"#));
+                assert!(_msg_.contains("hi") || _msg_.contains("result"));
             },
             1,
         );
@@ -465,21 +481,43 @@ namespace Test {
     }
 
     #[test]
-    fn test_message() {
+    fn test_entrypoint() {
         let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
-
-        operation main() : Unit {
-            Message("hi");
-            return ();
-        }
-    }"#;
-        let expr = "Sample.main()";
+            @EntryPoint()
+            operation main() : Unit {
+                Message("hi");
+                return ();
+            }
+        }"#;
+        let expr = "";
         let result = crate::run_internal(
             code,
             expr,
             |_msg_| {
                 assert!(_msg_.contains("hi") || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_mising_entrypoint() {
+        let code = "namespace Sample {
+            operation main() : Result[] {
+                use q1 = Qubit();
+                let m1 = M(q1);
+                return [m1];
+            }
+        }";
+        let expr = "";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
+                assert!(_msg_.contains(r#""message": "entry point not found""#));
+                assert!(_msg_.contains(r#""start_pos": 0"#));
             },
             1,
         );

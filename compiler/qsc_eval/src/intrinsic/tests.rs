@@ -78,47 +78,11 @@ fn length() {
 }
 
 #[test]
-fn length_type_err() {
-    check_intrinsic_result(
-        "",
-        "Length((1, 2, 3))",
-        &expect![[r#"
-            Type(
-                "Array",
-                "Tuple",
-                Span {
-                    lo: 6,
-                    hi: 17,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn int_as_double() {
     check_intrinsic_result(
         "",
         "Microsoft.Quantum.Convert.IntAsDouble(2)",
         &expect!["2.0"],
-    );
-}
-
-#[test]
-fn int_as_double_type_error() {
-    check_intrinsic_result(
-        "",
-        "Microsoft.Quantum.Convert.IntAsDouble(false)",
-        &expect![[r#"
-            Type(
-                "Int",
-                "Bool",
-                Span {
-                    lo: 37,
-                    hi: 44,
-                },
-            )
-        "#]],
     );
 }
 
@@ -139,6 +103,37 @@ fn dump_machine() {
         &expect![[r#"
             STATE:
             |0⟩: 1+0i
+        "#]],
+    );
+}
+
+#[test]
+fn dump_machine_qubit_count() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[4];
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+        }"},
+        &expect![[r#"
+            STATE:
+            |0000⟩: 1+0i
+        "#]],
+    );
+}
+
+#[test]
+fn dump_machine_endianness() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[4];
+            X(qs[1]);
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+        }"},
+        &expect![[r#"
+            STATE:
+            |0100⟩: 1+0i
         "#]],
     );
 }
@@ -789,22 +784,21 @@ fn unknown_intrinsic() {
 }
 
 #[test]
-fn single_arg_for_tuple() {
-    check_intrinsic_result(
+fn qubit_nested_bind_not_released() {
+    check_intrinsic_output(
         "",
-        indoc! {r#"{
+        indoc! {"{
+            use aux = Qubit();
             use q = Qubit();
-            Ry(q);
-        }"#},
+            {
+                let temp = q;
+                X(temp);
+            }
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+        }"},
         &expect![[r#"
-            Type(
-                "Tuple",
-                "Qubit",
-                Span {
-                    lo: 29,
-                    hi: 32,
-                },
-            )
+            STATE:
+            |01⟩: 1+0i
         "#]],
     );
 }
