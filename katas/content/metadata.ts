@@ -6,7 +6,7 @@ export type KatasMetadata = {
         exercises: Array<{
             id: string;
             title: string;
-            directory : string;
+            directory: string;
         }>;
     }>;
 };
@@ -34,7 +34,13 @@ export const katasMetadata: KatasMetadata = {
             id: "multi-qubit-gates",
             title: "Multi-Qubit Gates",
             directory: "multi_qubit_gates",
-            exercises: []
+            exercises: [
+                {
+                    id: "multi-qubit-gates_preparing_bell_state",
+                    title: "Preparing a Bell State",
+                    directory: "preparing_bell_state"
+                }
+            ]
         }
     ]
 }
