@@ -33,7 +33,7 @@ fn validate_exercise(path: impl AsRef<Path>) {
 
     let placeholder =
         fs::read_to_string(path.join("placeholder.qs")).expect("file should be readable");
-    // TODO: Assert that running returns true. This isn't reliable until the controlled functor is supported.
+    // TODO: Assert that running returns false. This isn't reliable until the controlled functor is supported.
     run_kata([&placeholder, &verify]).expect("placeholder should succeed");
 }
 
