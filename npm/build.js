@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import {readFileSync, writeFileSync}  from "node:fs";
-import {dirname, join} from "node:path";
-import {fileURLToPath} from "node:url";
-import {inspect} from "node:util";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { inspect } from "node:util";
 
-import {parse} from "marked"
+import { parse } from "marked"
 
-import {katasMetadata} from "../katas/content/dist/metadata.js"
+import { katasMetadata } from "../katas/content/dist/metadata.js"
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const katasContentDir = join(thisDir, "..", "katas", "content")
-const katasContentJs = join(thisDir, "dist", "katas-content.js");
-const katasContentDeclarationTs = join(thisDir, "dist", "katas-content.d.ts");
+const katasContentJsOutDir = join(thisDir, "dist");
 
 function buildExercise(exerciseMetadata, moduleDir) {
     const exerciseDir = join(moduleDir, exerciseMetadata.directory);
@@ -36,7 +35,7 @@ function buildExercise(exerciseMetadata, moduleDir) {
 function buildKata(kataMetadata, katasDir) {
     const kataDir = join(katasDir, kataMetadata.directory)
     let exercises = [];
-    for(const exerciseMetadata of kataMetadata.exercises) {
+    for (const exerciseMetadata of kataMetadata.exercises) {
         const exercise = buildExercise(exerciseMetadata, kataDir);
         exercises.push(exercise);
     }
@@ -52,18 +51,23 @@ function buildKata(kataMetadata, katasDir) {
     };
 }
 
-function buildKatasContentJs(katasDir, outJsPath, declarationTsPath) {
+function buildKatasContentJs(katasDir, outDir) {
     console.log("Building katas content");
     var katas = [];
-    for(const kataMetadata of katasMetadata.modules) {
+    for (const kataMetadata of katasMetadata.modules) {
         var kata = buildKata(kataMetadata, katasDir);
         katas.push(kata);
     }
 
-    writeFileSync(outJsPath, 'export const katas = ' + inspect(katas, {depth: null }), 'utf-8');
-    const tsDeclaration = `declare let katas: any; export {katas}`;
+    if (!existsSync(outDir)) {
+        mkdirSync(outDir);
+    }
 
-    writeFileSync(declarationTsPath, tsDeclaration, 'utf-8');
+    const contentJsPath = join(outDir, "katas-content.js");
+    writeFileSync(contentJsPath, 'export const katas = ' + inspect(katas, { depth: null }), 'utf-8');
+    const contentTsDeclarationPath = join(outDir, "katas-content.d.ts");
+    const tsDeclaration = `declare let katas: any; export {katas}`;
+    writeFileSync(contentTsDeclarationPath, tsDeclaration, 'utf-8');
 }
 
-buildKatasContentJs(katasContentDir, katasContentJs, katasContentDeclarationTs);
+buildKatasContentJs(katasContentDir, katasContentJsOutDir);
