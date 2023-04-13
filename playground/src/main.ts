@@ -7,7 +7,7 @@ import {init, getCompletions, checkCode, evaluate, eventStringToMsg,
     renderDump, IDiagnostic, ShotResult } from "qsharp/browser";
 
 import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
-import {PopulateModules, RenderKatas} from "./katas.js";
+import {PopulateKatasList, RenderKatas} from "./katas.js";
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -164,9 +164,9 @@ async function loaded() {
     });
 
     // TODO (cesarzc): Comment.
-    PopulateModules();
+    PopulateKatasList();
     RenderKatas();
-    let modulesSelect = document.querySelector('#modules') as HTMLSelectElement;
+    let modulesSelect = document.querySelector('#katas-list') as HTMLSelectElement;
     modulesSelect.addEventListener('change', _ => {
         RenderKatas();
     });

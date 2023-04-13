@@ -39,4 +39,4 @@ export function run_shot(code: string, expr: string) : ShotResult {
 export {type IDiagnostic}
 export {renderDump, exampleDump} from "./state-table.js"
 export {outputAsDump, outputAsMessage, outputAsResult, eventStringToMsg, type Dump, type ShotResult} from "./common.js";
-export {getAllKatas, getKata, getExercise, getKataExercise, getKataModule, queryKataModules, verifyKata, type Kata, type Exercise, type KataExercise, type KataModule} from "./katas.js";
+export {getAllKatas, getKata, getExercise, runExercise, type Kata, type Exercise} from "./katas.js";

@@ -367,7 +367,7 @@ pub fn run(
     }
 }
 
-fn run_kata_implementation_internal<F>(
+fn run_kata_exercise_internal<F>(
     verification_source: &str,
     kata_implementation: &str,
     event_cb: F) -> Result<bool, Vec<qsc_eval::stateless::Error>>
@@ -381,12 +381,12 @@ where
 }
 
 #[wasm_bindgen]
-pub fn run_kata_implementation(
+pub fn run_kata_exercise(
     verification_source: &str,
     kata_implementation: &str,
     event_cb: &js_sys::Function
 ) -> Result<JsValue, JsValue> {
-    match run_kata_implementation_internal(
+    match run_kata_exercise_internal(
         verification_source,
         kata_implementation, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));

@@ -1,4 +1,4 @@
-import {eventStringToMsg, getAllKatas, getKataModule, queryKataModules, renderDump, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
+import {eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type Exercise} from "qsharp/browser";
 
 // TODO (cesarzc): should probably be in the npm package.
 interface VerificationResult {
@@ -48,15 +48,12 @@ function renderKataOutput(output: KataOutput) : HTMLDivElement {
     return outputDiv;
 }
 
-function renderExercise(exercise: KataExercise) : HTMLDivElement {
+function renderExercise(exercise: Exercise) : HTMLDivElement {
     let exerciseDiv = document.createElement("div");
     exerciseDiv.className = "kata-exercise";
     let exerciseHeader = document.createElement("h3");
     exerciseHeader.textContent = exercise.title;
     exerciseDiv.append(exerciseHeader);
-    let exerciseParagraph = document.createElement("p");
-    exerciseParagraph.textContent = exercise.description;
-    exerciseDiv.append(exerciseParagraph);
     let sourceCodeArea = document.createElement("textarea");
     sourceCodeArea.id = `source_${exercise.id}`;
     sourceCodeArea.rows = 30;
@@ -102,9 +99,9 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
     //
     verifyButton.addEventListener('click', _ => {
         clearDiv(outputDiv);
-        let kataImplementation = sourceCodeArea.value;
+        let exerciseImplementation = sourceCodeArea.value;
         try {
-            let result = verifyKata(exercise.id, kataImplementation, kataSimulationCallback);
+            let result = runExercise(exercise.id, exerciseImplementation, kataSimulationCallback);
             let verificationResult: VerificationResult = {kind: "VerificationResult", result: result};
             let renderedResult = renderKataOutput(verificationResult);
             outputDiv.prepend(renderedResult);
@@ -123,50 +120,45 @@ function renderExercise(exercise: KataExercise) : HTMLDivElement {
     return exerciseDiv;
 }
 
-function renderModule(module: KataModule) : HTMLDivElement {
-    let moduleDiv = document.createElement("div");
-    moduleDiv.id = "kata-module";
+function renderKata(kata: Kata) : HTMLDivElement {
+    let kataDiv = document.createElement("div");
 
     // Render the title and the description.
-    let moduleHeader = document.createElement("h2");
-    moduleHeader.textContent = module.title;
-    moduleDiv.append(moduleHeader);
-    let moduleParagraph = document.createElement("p");
-    moduleParagraph.textContent = module.description;
-    moduleDiv.append(moduleParagraph);
+    let kataHeader = document.createElement("h2");
+    kataHeader.textContent = kata.title;
+    kataDiv.append(kataHeader);
 
-    // Render each one of the module exercises.
-    for (let exercise of module.exercises)
+    // Render each one of the exercises.
+    for (let exercise of kata.exercises)
     {
         let renderedExercise = renderExercise(exercise);
-        moduleDiv.append(renderedExercise);
+        kataDiv.append(renderedExercise);
     }
-    return moduleDiv;
+    return kataDiv;
 }
 
 export function RenderKatas() {
-    let _ks = getAllKatas();
     // Katas are rendered inside a div element with "katas-canvas" as id.
     let canvasDiv = document.querySelector('#katas-canvas') as HTMLDivElement;
 
     // Clear the katas' canvas every time before re-rendering.
     clearDiv(canvasDiv);
 
-    // Render the selected module.
-    let modulesDropdown = document.querySelector('#modules') as HTMLSelectElement;
-    let selectedOption = modulesDropdown.item(modulesDropdown.selectedIndex)!;
-    let module = getKataModule(selectedOption.value);
-    let renderedModule = renderModule(module);
-    canvasDiv.append(renderedModule);
+    // Render the selected kata.
+    let katasDropdown = document.querySelector('#katas-list') as HTMLSelectElement;
+    let selectedOption = katasDropdown.item(katasDropdown.selectedIndex)!;
+    let kata = getKata(selectedOption.value);
+    let renderedKata = renderKata(kata);
+    canvasDiv.append(renderedKata);
 }
 
-export function PopulateModules() {
-    let modulesDropdown = document.querySelector('#modules') as HTMLSelectElement;
-    for (let module of queryKataModules())
+export function PopulateKatasList() {
+    let katasDropdown = document.querySelector('#katas-list') as HTMLSelectElement;
+    for (let kata of getAllKatas())
     {
         let option = document.createElement("option");
-        option.value = module.id;
-        option.text = module.title;
-        modulesDropdown.add(option);
+        option.value = kata.id;
+        option.text = kata.title;
+        katasDropdown.add(option);
     }
 }
