@@ -15,7 +15,7 @@ use miette::{IntoDiagnostic, Result};
 use miette::{Diagnostic, NamedSource, Report};
 use qsc_ast::ast::Package;
 use qsc_frontend::{
-    compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
+    compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
 use qsc_passes::entry_point::extract_entry;
