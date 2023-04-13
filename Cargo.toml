@@ -9,7 +9,6 @@ members = [
     "compiler/qsc_passes",
     "compiler/qsc_wasm",
     "compiler/qsi",
-    "compiler/qtest_tool",
     "katas",
 ]
 

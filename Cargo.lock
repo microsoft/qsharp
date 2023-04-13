@@ -821,20 +821,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qtest_tool"
-version = "0.0.0"
-dependencies = [
- "clap 4.1.8",
- "miette",
- "qsc_ast",
- "qsc_codegen",
- "qsc_eval",
- "qsc_frontend",
- "qsc_passes",
- "thiserror",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
