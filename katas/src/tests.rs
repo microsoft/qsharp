@@ -11,7 +11,7 @@ use std::{
 fn katas_qsharp_dir() -> PathBuf {
     env::current_dir()
         .expect("test should have current directory")
-        .join("qs")
+        .join("content")
 }
 
 fn run_kata(
