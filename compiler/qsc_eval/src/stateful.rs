@@ -7,6 +7,7 @@ use crate::val::Value;
 use crate::{eval_stmt, AggregateError, Env};
 use qsc_hir::hir::CallableDecl;
 use qsc_passes::globals::GlobalId;
+use qsc_passes::run_default_passes;
 use std::collections::HashMap;
 use std::string::String;
 
@@ -84,8 +85,9 @@ fn create_execution_context(
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
     if stdlib {
-        let unit = compile::std();
+        let mut unit = compile::std();
         if unit.context.errors().is_empty() {
+            run_default_passes(&mut unit);
             session_deps.push(store.insert(unit));
         } else {
             let errors = unit

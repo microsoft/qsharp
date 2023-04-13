@@ -9,6 +9,7 @@ use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_hir::hir::{CallableDecl, Expr};
 use qsc_passes::entry_point::extract_entry;
 use qsc_passes::globals::{extract_callables, GlobalId};
+use qsc_passes::run_default_passes;
 use std::collections::HashMap;
 
 use miette::Diagnostic;
@@ -155,8 +156,9 @@ fn create_execution_context(
     let mut session_deps: Vec<_> = vec![];
 
     if stdlib {
-        let unit = compile::std();
+        let mut unit = compile::std();
         if unit.context.errors().is_empty() {
+            run_default_passes(&mut unit);
             session_deps.push(store.insert(unit));
         } else {
             let errors = unit
@@ -169,7 +171,7 @@ fn create_execution_context(
         }
     }
 
-    let unit = compile(&store, session_deps.clone(), sources, expr);
+    let mut unit = compile(&store, session_deps.clone(), sources, expr);
     if !unit.context.errors().is_empty() {
         let errors = unit
             .context
@@ -179,6 +181,7 @@ fn create_execution_context(
             .collect();
         return Err(AggregateError(errors));
     }
+    run_default_passes(&mut unit);
     let basis_package = store.insert(unit);
 
     let context = ExecutionContextBuilder {
