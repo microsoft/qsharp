@@ -232,11 +232,15 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
         let std = store.insert(std);
         (std, store)
     });
-    let unit = compile(store, [*std], [code], "");
+    let mut unit = compile(store, [*std], [code], "");
+    let pass_errs = run_default_passes(&mut unit);
 
     let mut result: Vec<VSDiagnostic> = vec![];
 
     for err in unit.context.errors() {
+        result.push(err.into());
+    }
+    for err in &pass_errs {
         result.push(err.into());
     }
 
