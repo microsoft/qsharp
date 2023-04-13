@@ -1,5 +1,4 @@
-import { Console } from "console";
-import {eventStringToMsg, getKataModule, queryKataModules, renderDump, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
+import {eventStringToMsg, getAllKatas, getKataModule, queryKataModules, renderDump, verifyKata, type KataExercise, type KataModule} from "qsharp/browser";
 
 // TODO (cesarzc): should probably be in the npm package.
 interface VerificationResult {
@@ -146,6 +145,7 @@ function renderModule(module: KataModule) : HTMLDivElement {
 }
 
 export function RenderKatas() {
+    let _ks = getAllKatas();
     // Katas are rendered inside a div element with "katas-canvas" as id.
     let canvasDiv = document.querySelector('#katas-canvas') as HTMLDivElement;
 

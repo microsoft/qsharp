@@ -9,8 +9,9 @@ import {inspect} from "node:util";
 import {katasMetadata} from "../katas/content/dist/metadata.js"
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const katasContentDir = join(thisDir, "..", "katas/content")
+const katasContentDir = join(thisDir, "..", "katas", "content")
 const katasContentJs = join(thisDir, "dist", "katas-content.js");
+const katasContentDeclarationTs = join(thisDir, "dist", "katas-content.d.ts");
 
 function buildExercise(exerciseMetadata, moduleDir) {
     const exerciseDir = join(moduleDir, exerciseMetadata.directory);
@@ -41,8 +42,7 @@ function buildKata(kataMetadata, katasDir) {
     };
 }
 
-function buildKatasContentJs(katasDir, outJsPath)
-{
+function buildKatasContentJs(katasDir, outJsPath, declarationTsPath) {
     console.log("Building katas content");
     var katas = [];
     for(const kataMetadata of katasMetadata.modules) {
@@ -50,7 +50,10 @@ function buildKatasContentJs(katasDir, outJsPath)
         katas.push(kata);
     }
 
-    writeFileSync(outJsPath, 'const katas = ' + inspect(katas, {depth: null }) , 'utf-8');
+    writeFileSync(outJsPath, 'export const katas = ' + inspect(katas, {depth: null }), 'utf-8');
+    const tsDeclaration = `declare let katas: any; export {katas}`;
+
+    writeFileSync(declarationTsPath, tsDeclaration, 'utf-8');
 }
 
-buildKatasContentJs(katasContentDir, katasContentJs);
+buildKatasContentJs(katasContentDir, katasContentJs, katasContentDeclarationTs);

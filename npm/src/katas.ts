@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { run_kata_implementation } from "../lib/web/qsc_wasm.js";
+import {katas} from "../dist/katas-content.js";
 
 export type KataExercise = {
     id: string;
@@ -17,6 +18,20 @@ export type KataModule = {
     title: string;
     description: string;
     exercises: KataExercise[]
+}
+
+export type Exercise = {
+    id: string;
+    title: string;
+    verificationImplementation: string;
+    referenceImplementation: string;
+    placeholderImplementation: string;
+}
+
+export type Kata = {
+    id: string;
+    title: string;
+    exercises: Exercise[]
 }
 
 let modules : KataModule[] = [
@@ -115,6 +130,10 @@ namespace Kata {
         ]
     }
 ];
+
+export function getAllKatas() : Kata[] {
+    return katas as Kata[];
+}
 
 export function getKataModule(id: string) : KataModule {
     let filteredModules = modules.filter(m => m.id == id);
