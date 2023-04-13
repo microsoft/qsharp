@@ -17,7 +17,9 @@ use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
-use qir_backend::{__quantum__rt__initialize, __quantum__rt__qubit_allocate};
+use qir_backend::{
+    __quantum__rt__initialize, __quantum__rt__qubit_allocate, __quantum__rt__qubit_release,
+};
 use qsc_ast::ast::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
     NodeId, Pat, PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind,
@@ -37,6 +39,7 @@ use std::{
     ptr::null_mut,
 };
 use thiserror::Error;
+use val::Qubit;
 
 #[derive(Debug, Error)]
 pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
@@ -272,12 +275,18 @@ pub fn init() {
 }
 
 #[derive(Default)]
-pub struct Env(Vec<HashMap<GlobalId, Variable>>);
+pub struct Env(Vec<Scope>);
+
+#[derive(Default)]
+struct Scope {
+    bindings: HashMap<GlobalId, Variable>,
+    qubits: Vec<Qubit>,
+}
 
 impl Env {
     #[must_use]
-    pub fn empty() -> Self {
-        Self(vec![HashMap::new()])
+    pub fn with_empty_scope() -> Self {
+        Self(vec![Scope::default()])
     }
 }
 
@@ -426,7 +435,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         } else {
             ControlFlow::Continue(Value::UNIT)
         };
-        self.leave_scope(true);
+        self.leave_scope();
         result
     }
 
@@ -444,14 +453,16 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
-                let qubits = self.eval_qubit_init(qubit_init)?;
+                let (qubit_val, qubits) = self.eval_qubit_init(qubit_init)?;
                 if let Some(block) = block {
                     self.enter_scope();
-                    self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
+                    self.track_qubits(qubits);
+                    self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
                     let _ = self.eval_block(block)?;
-                    self.leave_scope(true);
+                    self.leave_scope();
                 } else {
-                    self.bind_value(pat, qubits, stmt.span, Mutability::Immutable)?;
+                    self.track_qubits(qubits);
+                    self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
                 }
                 ControlFlow::Continue(Value::UNIT)
             }
@@ -490,7 +501,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             self.enter_scope();
             self.bind_value(pat, value, expr.span, Mutability::Immutable);
             let _ = self.eval_block(block)?;
-            self.leave_scope(false);
+            self.leave_scope();
         }
 
         ControlFlow::Continue(Value::UNIT)
@@ -512,7 +523,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 self.eval_block(block)?;
             }
 
-            self.leave_scope(true);
+            self.leave_scope();
             self.enter_scope();
 
             for stmt in &repeat.stmts {
@@ -520,11 +531,14 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             }
         }
 
-        self.leave_scope(true);
+        self.leave_scope();
         ControlFlow::Continue(Value::UNIT)
     }
 
-    fn eval_qubit_init(&mut self, qubit_init: &QubitInit) -> ControlFlow<Reason, Value> {
+    fn eval_qubit_init(
+        &mut self,
+        qubit_init: &QubitInit,
+    ) -> ControlFlow<Reason, (Value, Vec<Qubit>)> {
         match &qubit_init.kind {
             QubitInitKind::Array(count) => {
                 let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
@@ -535,19 +549,27 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                     }
                 }?;
                 let mut arr = vec![];
-                arr.resize_with(count, || Value::Qubit(__quantum__rt__qubit_allocate()));
-                ControlFlow::Continue(Value::Array(arr))
+                arr.resize_with(count, || Qubit(__quantum__rt__qubit_allocate()));
+
+                ControlFlow::Continue((
+                    Value::Array(arr.iter().copied().map(Value::Qubit).collect()),
+                    arr,
+                ))
             }
             QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
             QubitInitKind::Single => {
-                ControlFlow::Continue(Value::Qubit(__quantum__rt__qubit_allocate()))
+                let qubit = Qubit(__quantum__rt__qubit_allocate());
+                ControlFlow::Continue((Value::Qubit(qubit), vec![qubit]))
             }
             QubitInitKind::Tuple(tup) => {
                 let mut tup_vec = vec![];
+                let mut qubit_vec = vec![];
                 for init in tup {
-                    tup_vec.push(self.eval_qubit_init(init)?);
+                    let (t, mut v) = self.eval_qubit_init(init)?;
+                    tup_vec.push(t);
+                    qubit_vec.append(&mut v);
                 }
-                ControlFlow::Continue(Value::Tuple(tup_vec))
+                ControlFlow::Continue((Value::Tuple(tup_vec), qubit_vec))
             }
         }
     }
@@ -658,7 +680,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             }
             _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
         };
-        self.leave_scope(false);
+        self.leave_scope();
         res
     }
 
@@ -852,22 +874,27 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     }
 
     fn enter_scope(&mut self) {
-        self.env.0.push(HashMap::default());
+        self.env.0.push(Scope::default());
     }
 
-    fn leave_scope(&mut self, release: bool) {
-        if release {
-            for (_, var) in self
-                .env
-                .0
-                .pop()
-                .expect("scope should be entered first before leaving")
-                .drain()
-            {
-                var.value.release();
-            }
-        } else {
-            let _ = self.env.0.pop();
+    fn track_qubits(&mut self, mut qubits: Vec<Qubit>) {
+        self.env
+            .0
+            .last_mut()
+            .expect("scope should have been entered to track qubits")
+            .qubits
+            .append(&mut qubits);
+    }
+
+    fn leave_scope(&mut self) {
+        for qubit in self
+            .env
+            .0
+            .pop()
+            .expect("scope should be entered first before leaving")
+            .qubits
+        {
+            __quantum__rt__qubit_release(qubit.0);
         }
     }
 
@@ -887,7 +914,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 );
 
                 let scope = self.env.0.last_mut().expect("binding should have a scope");
-                match scope.entry(id) {
+                match scope.bindings.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("duplicate binding: {id}"),
                 };
@@ -926,7 +953,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 .0
                 .iter()
                 .rev()
-                .find_map(|s| s.get(&global_id))
+                .find_map(|s| s.bindings.get(&global_id))
                 .map(|v| v.value.clone())
         } else {
             None
@@ -948,7 +975,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                     .0
                     .iter_mut()
                     .rev()
-                    .find_map(|scope| scope.get_mut(&id))
+                    .find_map(|scope| scope.bindings.get_mut(&id))
                     .unwrap_or_else(|| panic!("path is not bound: {id}"));
 
                 if variable.is_mutable() {
