@@ -16,9 +16,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
-// TODO: Below is an example of how to return typed structures from Rust via Wasm
-// to the consuming JavaScript/TypeScript code. To be replaced with the implementation.
-
 // These definitions match the values expected by VS Code and Monaco.
 enum CompletionKind {
     Method = 1,
@@ -309,6 +306,8 @@ where
     let mut out = CallbackReceiver { event_cb };
     let context = compile_execution_context(true, expr, [code.to_string()]);
     if let Err(err) = context {
+        // TODO: handle multiple errors
+        // https://github.com/microsoft/qsharp/issues/149
         let e = err.0[0].clone();
         let diag: VSDiagnostic = (&e).into();
         let msg = format!(
@@ -326,6 +325,7 @@ where
             Ok(value) => format!(r#""{value}""#),
             Err(err) => {
                 // TODO: handle multiple errors
+                // https://github.com/microsoft/qsharp/issues/149
                 let e = err.0[0].clone();
                 success = false;
                 let diag: VSDiagnostic = (&e).into();
