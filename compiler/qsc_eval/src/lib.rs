@@ -32,7 +32,6 @@ use qsc_frontend::{
 use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
-    ffi::c_void,
     fmt::{Display, Formatter},
     hash::BuildHasher,
     mem::take,
@@ -40,6 +39,7 @@ use std::{
     ptr::null_mut,
 };
 use thiserror::Error;
+use val::Qubit;
 
 #[derive(Debug, Error)]
 pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
@@ -280,12 +280,12 @@ pub struct Env(Vec<Scope>);
 #[derive(Default)]
 struct Scope {
     bindings: HashMap<GlobalId, Variable>,
-    qubits: Vec<*mut c_void>,
+    qubits: Vec<Qubit>,
 }
 
 impl Env {
     #[must_use]
-    pub fn new_with_empty_scope() -> Self {
+    pub fn with_empty_scope() -> Self {
         Self(vec![Scope::default()])
     }
 }
@@ -538,7 +538,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn eval_qubit_init(
         &mut self,
         qubit_init: &QubitInit,
-    ) -> ControlFlow<Reason, (Value, Vec<*mut c_void>)> {
+    ) -> ControlFlow<Reason, (Value, Vec<val::Qubit>)> {
         match &qubit_init.kind {
             QubitInitKind::Array(count) => {
                 let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
@@ -554,7 +554,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 // `__quantum__rt__qubit_allocate` because it does not satisfy the required trait
                 // bounds.
                 #[allow(clippy::redundant_closure)]
-                arr.resize_with(count, || __quantum__rt__qubit_allocate());
+                arr.resize_with(count, || __quantum__rt__qubit_allocate().into());
 
                 ControlFlow::Continue((
                     Value::Array(arr.clone().into_iter().map(Value::Qubit).collect()),
@@ -563,7 +563,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             }
             QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
             QubitInitKind::Single => {
-                let qubit = __quantum__rt__qubit_allocate();
+                let qubit = __quantum__rt__qubit_allocate().into();
                 ControlFlow::Continue((Value::Qubit(qubit), vec![qubit]))
             }
             QubitInitKind::Tuple(tup) => {
@@ -882,7 +882,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         self.env.0.push(Scope::default());
     }
 
-    fn track_qubits(&mut self, mut qubits: Vec<*mut c_void>) {
+    fn track_qubits(&mut self, mut qubits: Vec<Qubit>) {
         self.env
             .0
             .last_mut()
@@ -899,7 +899,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             .expect("scope should be entered first before leaving")
             .qubits
         {
-            __quantum__rt__qubit_release(qubit);
+            __quantum__rt__qubit_release(qubit.into());
         }
     }
 
