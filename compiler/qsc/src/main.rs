@@ -17,6 +17,7 @@ use qsc_frontend::{
     compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
+use qsc_passes::entry_point::extract_entry;
 use std::{fs, io, string::String, sync::Arc};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -80,7 +81,15 @@ fn main() -> Result<ExitCode> {
     let dependencies = if cli.nostdlib {
         vec![]
     } else {
-        vec![store.insert(compile::std())]
+        let std = compile::std();
+        if !std.context.errors().is_empty() {
+            let reporter = ErrorReporter::new(cli, sources, &std.context);
+            for error in std.context.errors() {
+                eprintln!("{:?}", reporter.report(error.clone()));
+            }
+            return Ok(ExitCode::FAILURE);
+        }
+        vec![store.insert(std)]
     };
     let unit = compile(
         &store,
@@ -102,7 +111,20 @@ fn main() -> Result<ExitCode> {
     }
 
     if unit.context.errors().is_empty() {
-        Ok(ExitCode::SUCCESS)
+        if cli.entry.is_none() {
+            match extract_entry(&unit.package) {
+                Ok(..) => Ok(ExitCode::SUCCESS),
+                Err(errors) => {
+                    let reporter = ErrorReporter::new(cli, sources, &unit.context);
+                    for error in &errors {
+                        eprintln!("{:?}", reporter.report(error.clone()));
+                    }
+                    Ok(ExitCode::FAILURE)
+                }
+            }
+        } else {
+            Ok(ExitCode::SUCCESS)
+        }
     } else {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {
@@ -141,7 +163,7 @@ impl<'a> ErrorReporter<'a> {
         let source = NamedSource::new(name, source);
 
         // Adjust all spans in the error to be relative to the start of this source.
-        let offset = -isize::try_from(offset).unwrap();
+        let offset = -isize::try_from(offset).expect("Could not convert offset to isize");
         Report::new(OffsetError::new(error, offset)).with_source_code(source)
     }
 }

@@ -1,122 +1,83 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 #[cfg(test)]
 mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{
-        CallableDecl, CallableKind, Expr, ExprKind, Package, Pat, PatKind, Span, Spec, SpecBody,
-        SpecDecl, Ty, TyKind,
-    },
-    visit::{walk_callable_decl, walk_expr, walk_ty, Visitor},
+    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, Span, UnOp},
+    visit::{self, Visitor},
 };
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
-    #[error("callable specialization pattern requires elided pattern `...`")]
-    ElidedRequired(#[label("should be `...`")] Span),
-
-    #[error("callable specialization pattern requires elided tuple `(ident, ...)`")]
-    ElidedTupleRequired(#[label("should be `(ident, ...)`")] Span),
-
-    #[error("callable parameter `{0}` must be type annotated")]
-    ParameterNotTyped(String, #[label("missing type annotation")] Span),
-
-    #[error("adjointable/controllable operation `{0}` must return Unit")]
-    NonUnitReturn(String, #[label("must return Unit")] Span),
-
+    #[error("invalid attribute arguments, expected {0}")]
+    InvalidAttrArgs(&'static str, #[label("invalid attribute arguments")] Span),
     #[error("{0} are not currently supported")]
     NotCurrentlySupported(&'static str, #[label("not currently supported")] Span),
+    #[error("unrecognized attribute {0}")]
+    #[diagnostic(help("supported attributes are: `EntryPoint`"))]
+    UnrecognizedAttr(String, #[label("unrecognized attribute")] Span),
 }
 
 pub(super) fn validate(package: &Package) -> Vec<Error> {
-    let mut validator = Validator {
-        validation_errors: Vec::new(),
-    };
+    let mut validator = Validator { errors: Vec::new() };
     validator.visit_package(package);
-    validator.validation_errors
+    validator.errors
 }
 
 struct Validator {
-    validation_errors: Vec<Error>,
+    errors: Vec<Error>,
 }
 
 impl Validator {
-    fn validate_params(&mut self, params: &Pat) {
-        match &params.kind {
-            PatKind::Bind(id, None) => {
-                self.validation_errors
-                    .push(Error::ParameterNotTyped(id.name.clone(), params.span));
+    fn validate_attrs(&mut self, attrs: &[Attr]) {
+        for attr in attrs {
+            match attr.name.name.as_str() {
+                "EntryPoint" => match &attr.arg.kind {
+                    ExprKind::Tuple(args) if args.is_empty() => {}
+                    _ => self
+                        .errors
+                        .push(Error::InvalidAttrArgs("()", attr.arg.span)),
+                },
+                _ => self
+                    .errors
+                    .push(Error::UnrecognizedAttr(attr.name.name.clone(), attr.span)),
             }
-            PatKind::Paren(item) => self.validate_params(item),
-            PatKind::Tuple(items) => {
-                items.iter().for_each(|i| self.validate_params(i));
-            }
-            _ => {}
         }
     }
 }
 
-impl<'a> Visitor<'a> for Validator {
-    fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        if CallableKind::Operation == decl.kind && decl.functors.is_some() {
-            match &decl.output.kind {
-                TyKind::Tuple(items) if items.is_empty() => {}
-                _ => {
-                    self.validation_errors.push(Error::NonUnitReturn(
-                        decl.name.name.clone(),
-                        decl.output.span,
-                    ));
-                }
-            }
+impl Visitor<'_> for Validator {
+    fn visit_item(&mut self, item: &Item) {
+        self.validate_attrs(&item.meta.attrs);
+        if matches!(&item.kind, ItemKind::Ty(..)) {
+            self.errors
+                .push(Error::NotCurrentlySupported("newtype", item.span));
         }
-
-        self.validate_params(&decl.input);
-        walk_callable_decl(self, decl);
+        visit::walk_item(self, item);
     }
 
-    fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
-        match decl.spec {
-            Spec::Body | Spec::Adj => {
-                if let SpecBody::Impl(pat, _) = &decl.body {
-                    if !is_elided(pat) {
-                        self.validation_errors.push(Error::ElidedRequired(pat.span));
-                    }
-                }
-            }
-            Spec::Ctl | Spec::CtlAdj => {
-                if let SpecBody::Impl(pat, _) = &decl.body {
-                    if !is_elided_tuple(pat) {
-                        self.validation_errors
-                            .push(Error::ElidedTupleRequired(pat.span));
-                    }
-                }
-            }
-        }
-    }
-
-    fn visit_expr(&mut self, expr: &'a Expr) {
+    fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
-            ExprKind::Lambda(_, _, _) => self
-                .validation_errors
+            ExprKind::Lambda(..) => self
+                .errors
                 .push(Error::NotCurrentlySupported("lambdas", expr.span)),
-            ExprKind::Call(_, arg) if has_hole(arg) => self.validation_errors.push(
+            ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
+            ExprKind::Field(..) => self
+                .errors
+                .push(Error::NotCurrentlySupported("field access", expr.span)),
+            ExprKind::UnOp(UnOp::Unwrap, _) => self
+                .errors
+                .push(Error::NotCurrentlySupported("unwrap operator", expr.span)),
             _ => {}
         };
-        walk_expr(self, expr);
-    }
 
-    fn visit_ty(&mut self, ty: &'a Ty) {
-        if let TyKind::Hole = ty.kind {
-            self.validation_errors
-                .push(Error::NotCurrentlySupported("type holes", ty.span));
-        }
-
-        walk_ty(self, ty);
+        visit::walk_expr(self, expr);
     }
 }
 
@@ -125,24 +86,6 @@ fn has_hole(expr: &Expr) -> bool {
         ExprKind::Hole => true,
         ExprKind::Paren(sub_expr) => has_hole(sub_expr),
         ExprKind::Tuple(sub_exprs) => sub_exprs.iter().any(has_hole),
-        _ => false,
-    }
-}
-
-fn is_elided(pat: &Pat) -> bool {
-    match &pat.kind {
-        PatKind::Elided => true,
-        PatKind::Paren(pat) => is_elided(pat),
-        _ => false,
-    }
-}
-
-fn is_elided_tuple(pat: &Pat) -> bool {
-    match &pat.kind {
-        PatKind::Paren(pat) => is_elided_tuple(pat),
-        PatKind::Tuple(pats) => {
-            pats.len() == 2 && matches!(&pats[0].kind, PatKind::Bind(_, _)) && is_elided(&pats[1])
-        }
         _ => false,
     }
 }

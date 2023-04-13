@@ -28,9 +28,17 @@ pub(super) fn block(s: &mut Scanner) -> Result<Block> {
     })
 }
 
+pub(super) fn many_stmt(s: &mut Scanner) -> Result<Vec<Stmt>> {
+    let statements = many(s, stmt)?;
+    token(s, TokenKind::Eof)?;
+    Ok(statements)
+}
+
 pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     let lo = s.peek().span.lo;
-    let kind = if let Some(var) = opt(s, var_binding)? {
+    let kind = if token(s, TokenKind::Semi).is_ok() {
+        Ok(StmtKind::Empty)
+    } else if let Some(var) = opt(s, var_binding)? {
         Ok(var)
     } else if let Some(qubit) = opt(s, qubit_binding)? {
         Ok(qubit)

@@ -8,6 +8,8 @@ mod tests;
 
 mod intrinsic;
 pub mod output;
+pub mod stateful;
+pub mod stateless;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};
@@ -28,12 +30,31 @@ use qsc_frontend::{
 use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
+    fmt::{Display, Formatter},
     hash::BuildHasher,
     mem::take,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
 };
 use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
+
+impl<T: std::error::Error + Clone> Display for AggregateError<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for error in &self.0 {
+            writeln!(f, "{error}")?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: std::error::Error + Clone> Clone for AggregateError<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -45,9 +66,6 @@ pub enum Error {
 
     #[error("division by zero")]
     DivZero(#[label("cannot divide by zero")] Span),
-
-    #[error("nothing to evaluate; entry expression is empty")]
-    EmptyExpr,
 
     #[error("{0} type does not support equality comparison")]
     Equality(&'static str, #[label("does not support comparison")] Span),
@@ -864,7 +882,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             PatKind::Bind(variable, _) => {
                 let id = self.defid_to_globalid(
                     self.resolutions
-                        .get(&variable.id)
+                        .get(variable.id)
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
 
@@ -899,7 +917,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn resolve_binding(&mut self, id: NodeId) -> Value {
         let id = self
             .resolutions
-            .get(&id)
+            .get(id)
             .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
         let global_id = self.defid_to_globalid(id);
@@ -921,7 +939,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             (ExprKind::Path(path), rhs) => {
                 let id = self.defid_to_globalid(
                     self.resolutions
-                        .get(&path.id)
+                        .get(path.id)
                         .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
                 );
 

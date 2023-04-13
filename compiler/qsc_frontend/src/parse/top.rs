@@ -7,7 +7,7 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{dot_ident, ident, keyword, many, opt, pat, path, seq, token},
+    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token},
     scan::Scanner,
     stmt::{self, stmt},
     ty::{self, ty},
@@ -71,7 +71,7 @@ fn item_meta(s: &mut Scanner) -> Result<ItemMeta> {
 fn attr(s: &mut Scanner) -> Result<Attr> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::At)?;
-    let name = path(s)?;
+    let name = ident(s)?;
     let arg = expr(s)?;
     Ok(Attr {
         id: NodeId::default(),

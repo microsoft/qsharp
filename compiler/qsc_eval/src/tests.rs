@@ -51,24 +51,6 @@ fn array_repeat_expr() {
 }
 
 #[test]
-fn array_repeat_type_error_expr() {
-    check_expr(
-        "",
-        "[4, size = true]",
-        &expect![[r#"
-            Type(
-                "Int",
-                "Bool",
-                Span {
-                    lo: 11,
-                    hi: 15,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn block_expr() {
     check_expr(
         "",
@@ -120,26 +102,6 @@ fn block_let_bind_tuple_expr() {
             (z, y)
         }"},
         &expect!["(2, 1)"],
-    );
-}
-
-#[test]
-fn block_let_bind_tuple_arity_error_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            let (x, y, z) = (0, 1);
-        }"},
-        &expect![[r#"
-            TupleArity(
-                3,
-                2,
-                Span {
-                    lo: 10,
-                    hi: 19,
-                },
-            )
-        "#]],
     );
 }
 
@@ -204,28 +166,6 @@ fn block_mutable_update_tuple_hole_expr() {
             (x, y)
         }"},
         &expect!["(0, 2)"],
-    );
-}
-
-#[test]
-fn block_mutable_update_tuple_arity_error_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            mutable (x, y) = (0, 1);
-            set (x, y) = (1, 2, 3);
-            x
-        }"},
-        &expect![[r#"
-            TupleArity(
-                2,
-                3,
-                Span {
-                    lo: 39,
-                    hi: 45,
-                },
-            )
-        "#]],
     );
 }
 
@@ -367,27 +307,6 @@ fn block_qubit_use_array_invalid_count_expr() {
 }
 
 #[test]
-fn block_qubit_use_array_invalid_type_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            use q = Qubit[false];
-            q
-        }"},
-        &expect![[r#"
-            Type(
-                "Int",
-                "Bool",
-                Span {
-                    lo: 20,
-                    hi: 25,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn block_qubit_use_tuple_expr() {
     check_expr(
         "",
@@ -408,27 +327,6 @@ fn block_qubit_use_nested_tuple_expr() {
             q
         }"},
         &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
-    );
-}
-
-#[test]
-fn block_qubit_use_tuple_invalid_arity_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            use (q, q1) = (Qubit[3], Qubit(), Qubit());
-            q
-        }"},
-        &expect![[r#"
-            TupleArity(
-                2,
-                3,
-                Span {
-                    lo: 10,
-                    hi: 17,
-                },
-            )
-        "#]],
     );
 }
 
@@ -478,42 +376,6 @@ fn binop_add_string() {
 }
 
 #[test]
-fn binop_add_invalid() {
-    check_expr(
-        "",
-        "(1, 3) + 5.4",
-        &expect![[r#"
-        Type(
-            "Array, BigInt, Double, Int, or String",
-            "Tuple",
-            Span {
-                lo: 0,
-                hi: 6,
-            },
-        )
-    "#]],
-    );
-}
-
-#[test]
-fn binop_add_mismatch() {
-    check_expr(
-        "",
-        "1 + 5.4",
-        &expect![[r#"
-        Type(
-            "Int",
-            "Double",
-            Span {
-                lo: 4,
-                hi: 7,
-            },
-        )
-    "#]],
-    );
-}
-
-#[test]
 fn binop_andb_bigint() {
     check_expr("", "28L &&& 54L", &expect!["20"]);
 }
@@ -538,24 +400,6 @@ fn binop_andb_invalid() {
             },
         )
     "#]],
-    );
-}
-
-#[test]
-fn binop_andb_mismatch() {
-    check_expr(
-        "",
-        "28 &&& 54L",
-        &expect![[r#"
-            Type(
-                "Int",
-                "BigInt",
-                Span {
-                    lo: 7,
-                    hi: 10,
-                },
-            )
-        "#]],
     );
 }
 
@@ -680,46 +524,6 @@ fn binop_equal_bigint_false() {
 }
 
 #[test]
-fn binop_equal_type() {
-    check_expr(
-        "",
-        "18L == 18",
-        &expect![[r#"
-            Type(
-                "BigInt",
-                "Int",
-                Span {
-                    lo: 7,
-                    hi: 9,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn binop_equal_callable() {
-    check_expr(
-        indoc! {"
-            namespace Test {
-                function A() : Unit {}
-                function B() : Unit {}
-            }
-        "},
-        "Test.A == Test.B",
-        &expect![[r#"
-            Equality(
-                "Global",
-                Span {
-                    lo: 73,
-                    hi: 79,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn binop_equal_bool() {
     check_expr("", "false == false", &expect!["true"]);
 }
@@ -796,12 +600,7 @@ fn binop_equal_tuple() {
 
 #[test]
 fn binop_equal_tuple_false_content() {
-    check_expr("", "(1, 2, 3) == (1, Zero, 3)", &expect!["false"]);
-}
-
-#[test]
-fn binop_equal_tuple_false_arity() {
-    check_expr("", "(1, 2, 3) == (1, 2, 3, 4)", &expect!["false"]);
+    check_expr("", "(1, 2, 3) == (1, -2, 3)", &expect!["false"]);
 }
 
 #[test]
@@ -1101,24 +900,6 @@ fn binop_neq_bigint_true() {
 }
 
 #[test]
-fn binop_neq_type() {
-    check_expr(
-        "",
-        "18L != 18",
-        &expect![[r#"
-            Type(
-                "BigInt",
-                "Int",
-                Span {
-                    lo: 7,
-                    hi: 9,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn binop_neq_bool() {
     check_expr("", "false != false", &expect!["false"]);
 }
@@ -1195,12 +976,7 @@ fn binop_neq_tuple() {
 
 #[test]
 fn binop_neq_tuple_true_content() {
-    check_expr("", "(1, 2, 3) != (1, Zero, 3)", &expect!["true"]);
-}
-
-#[test]
-fn binop_neq_tuple_true_arity() {
-    check_expr("", "(1, 2, 3) != (1, 2, 3, 4)", &expect!["true"]);
+    check_expr("", "(1, 2, 3) != (1, -2, 3)", &expect!["true"]);
 }
 
 #[test]
@@ -1228,24 +1004,6 @@ fn binop_orb_invalid() {
             },
         )
     "#]],
-    );
-}
-
-#[test]
-fn binop_orb_mismatch() {
-    check_expr(
-        "",
-        "28 ||| 54L",
-        &expect![[r#"
-            Type(
-                "Int",
-                "BigInt",
-                Span {
-                    lo: 7,
-                    hi: 10,
-                },
-            )
-        "#]],
     );
 }
 
@@ -1358,24 +1116,6 @@ fn binop_xorb_invalid() {
 }
 
 #[test]
-fn binop_xorb_mismatch() {
-    check_expr(
-        "",
-        "28 ^^^ 54L",
-        &expect![[r#"
-            Type(
-                "Int",
-                "BigInt",
-                Span {
-                    lo: 7,
-                    hi: 10,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn assignop_add_expr() {
     check_expr(
         "",
@@ -1428,28 +1168,6 @@ fn assignop_mutability_expr() {
                 Span {
                     lo: 29,
                     hi: 30,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn assignop_invalid_type_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            mutable x = false;
-            set x += 1;
-            x
-        }"},
-        &expect![[r#"
-            Type(
-                "Array, BigInt, Double, Int, or String",
-                "Bool",
-                Span {
-                    lo: 33,
-                    hi: 34,
                 },
             )
         "#]],
@@ -1530,23 +1248,6 @@ fn for_loop_iterator_immutable_expr() {
                 Span {
                     lo: 21,
                     hi: 22,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn for_loop_not_iterable_expr() {
-    check_expr(
-        "",
-        "for i in (1, true, One) {}",
-        &expect![[r#"
-            NotIterable(
-                "Tuple",
-                Span {
-                    lo: 9,
-                    hi: 23,
                 },
             )
         "#]],
@@ -1699,24 +1400,6 @@ fn array_index_out_of_range_expr() {
                 Span {
                     lo: 10,
                     hi: 11,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn array_index_type_error_expr() {
-    check_expr(
-        "",
-        "[1, 2, 3][false]",
-        &expect![[r#"
-            Type(
-                "Int or Range",
-                "Bool",
-                Span {
-                    lo: 10,
-                    hi: 15,
                 },
             )
         "#]],
@@ -1963,24 +1646,6 @@ fn unop_bitwise_not_big_int_expr() {
 }
 
 #[test]
-fn unop_bitwise_not_bool_expr() {
-    check_expr(
-        "",
-        "~~~(false)",
-        &expect![[r#"
-            Type(
-                "Int or BigInt",
-                "Bool",
-                Span {
-                    lo: 3,
-                    hi: 10,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn while_expr() {
     check_expr(
         "",
@@ -2005,24 +1670,6 @@ fn while_false_shortcut_expr() {
 }
 
 #[test]
-fn while_invalid_type_expr() {
-    check_expr(
-        "",
-        r#"while Zero { fail "Shouldn't fail" }"#,
-        &expect![[r#"
-            Type(
-                "Bool",
-                "Result",
-                Span {
-                    lo: 6,
-                    hi: 10,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn ternop_cond_expr() {
     check_expr("", "true ? 1 | 0", &expect!["1"]);
 }
@@ -2043,62 +1690,8 @@ fn ternop_cond_false_shortcircuit_expr() {
 }
 
 #[test]
-fn ternop_cond_invalid_type_expr() {
-    check_expr(
-        "",
-        "7 ? 1 | 0",
-        &expect![[r#"
-            Type(
-                "Bool",
-                "Int",
-                Span {
-                    lo: 0,
-                    hi: 1,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn ternop_update_expr() {
     check_expr("", "[1, 2, 3] w/ 2 <- 4", &expect!["[1, 2, 4]"]);
-}
-
-#[test]
-fn ternop_update_invalid_target_expr() {
-    check_expr(
-        "",
-        "(1, 2, 3) w/ 2 <- 4",
-        &expect![[r#"
-            Type(
-                "Array",
-                "Tuple",
-                Span {
-                    lo: 0,
-                    hi: 9,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
-fn ternop_update_invalid_index_type_expr() {
-    check_expr(
-        "",
-        "[1, 2, 3] w/ false <- 4",
-        &expect![[r#"
-            Type(
-                "Int",
-                "Bool",
-                Span {
-                    lo: 13,
-                    hi: 18,
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]
@@ -2183,24 +1776,6 @@ fn unop_negate_big_int_expr() {
 }
 
 #[test]
-fn unop_negate_bool_expr() {
-    check_expr(
-        "",
-        "-(false)",
-        &expect![[r#"
-            Type(
-                "Int, BigInt, or Double",
-                "Bool",
-                Span {
-                    lo: 1,
-                    hi: 8,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn unop_negate_double_expr() {
     check_expr("", "-(3.4)", &expect!["-3.4"]);
 }
@@ -2230,47 +1805,11 @@ fn unop_not_bool_expr() {
 }
 
 #[test]
-fn unop_not_int_expr() {
-    check_expr(
-        "",
-        "not 0",
-        &expect![[r#"
-            Type(
-                "Bool",
-                "Int",
-                Span {
-                    lo: 4,
-                    hi: 5,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn unop_positive_big_int_expr() {
     check_expr(
         "",
         "+(9_223_372_036_854_775_808L)",
         &expect!["9223372036854775808"],
-    );
-}
-
-#[test]
-fn unop_positive_bool_expr() {
-    check_expr(
-        "",
-        "+(false)",
-        &expect![[r#"
-            Type(
-                "Int, BigInt, or Double",
-                "Bool",
-                Span {
-                    lo: 1,
-                    hi: 8,
-                },
-            )
-        "#]],
     );
 }
 
@@ -2389,24 +1928,6 @@ fn if_false_expr() {
         "",
         r#"if false {return "Shouldn't get here...";}"#,
         &expect!["()"],
-    );
-}
-
-#[test]
-fn if_type_error_expr() {
-    check_expr(
-        "",
-        "if 4 { 3 }",
-        &expect![[r#"
-            Type(
-                "Bool",
-                "Int",
-                Span {
-                    lo: 3,
-                    hi: 4,
-                },
-            )
-        "#]],
     );
 }
 
@@ -2693,7 +2214,12 @@ fn check_ctls_count_expr() {
                 }
             }
         "#},
-        "Controlled Test.Foo([1, 2, 3], ())",
+        indoc! {"
+            {
+                use qs = Qubit[3];
+                Controlled Test.Foo(qs, ());
+            }
+        "},
         &expect!["()"],
     );
 }
@@ -2717,7 +2243,13 @@ fn check_ctls_count_nested_expr() {
                 }
             }
         "#},
-        "Controlled Controlled Test.Foo([1, 2], ([3], ()))",
+        indoc! {"
+            {
+                use qs1 = Qubit[1];
+                use qs2 = Qubit[2];
+                Controlled Controlled Test.Foo(qs2, (qs1, ()));
+            }
+        "},
         &expect!["()"],
     );
 }
