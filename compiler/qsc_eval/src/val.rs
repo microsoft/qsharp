@@ -11,6 +11,8 @@ use num_bigint::BigInt;
 use qsc_ast::ast::Pauli;
 use qsc_passes::globals::GlobalId;
 
+pub(super) type Qubit = *mut c_void;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Array(Vec<Value>),
@@ -28,9 +30,6 @@ pub enum Value {
     Tuple(Vec<Value>),
     Udt,
 }
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Qubit(*mut c_void);
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
@@ -80,7 +79,7 @@ impl Display for Value {
                 Pauli::Z => write!(f, "PauliZ"),
                 Pauli::Y => write!(f, "PauliY"),
             },
-            Value::Qubit(v) => write!(f, "Qubit{}", (v.0 as usize)),
+            Value::Qubit(v) => write!(f, "Qubit{}", (*v as usize)),
             Value::Range(start, step, end) => match (start, step, end) {
                 (Some(start), Some(step), Some(end)) => write!(f, "{start}..{step}..{end}"),
                 (Some(start), Some(step), None) => write!(f, "{start}..{step}..."),
@@ -182,25 +181,13 @@ impl TryFrom<Value> for *mut c_void {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Qubit(q) = value {
-            Ok(q.0)
+            Ok(q)
         } else {
             Err(ConversionError {
                 expected: "Qubit",
                 actual: value.type_name(),
             })
         }
-    }
-}
-
-impl From<*mut c_void> for Qubit {
-    fn from(value: *mut c_void) -> Self {
-        Self(value)
-    }
-}
-
-impl From<Qubit> for *mut c_void {
-    fn from(value: Qubit) -> Self {
-        value.0
     }
 }
 
