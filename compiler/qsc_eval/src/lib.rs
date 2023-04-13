@@ -554,7 +554,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 // `__quantum__rt__qubit_allocate` because it does not satisfy the required trait
                 // bounds.
                 #[allow(clippy::redundant_closure)]
-                arr.resize_with(count, || __quantum__rt__qubit_allocate().into());
+                arr.resize_with(count, || Qubit(__quantum__rt__qubit_allocate()));
 
                 ControlFlow::Continue((
                     Value::Array(arr.clone().into_iter().map(Value::Qubit).collect()),
@@ -563,7 +563,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             }
             QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
             QubitInitKind::Single => {
-                let qubit = __quantum__rt__qubit_allocate().into();
+                let qubit = Qubit(__quantum__rt__qubit_allocate());
                 ControlFlow::Continue((Value::Qubit(qubit), vec![qubit]))
             }
             QubitInitKind::Tuple(tup) => {
@@ -899,7 +899,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             .expect("scope should be entered first before leaving")
             .qubits
         {
-            __quantum__rt__qubit_release(qubit.into());
+            __quantum__rt__qubit_release(qubit.0);
         }
     }
 

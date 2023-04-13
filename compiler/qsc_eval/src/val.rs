@@ -30,7 +30,7 @@ pub enum Value {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Qubit(*mut c_void);
+pub struct Qubit(pub *mut c_void);
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
@@ -189,18 +189,6 @@ impl TryFrom<Value> for *mut c_void {
                 actual: value.type_name(),
             })
         }
-    }
-}
-
-impl From<*mut c_void> for Qubit {
-    fn from(value: *mut c_void) -> Self {
-        Self(value)
-    }
-}
-
-impl From<Qubit> for *mut c_void {
-    fn from(value: Qubit) -> Self {
-        value.0
     }
 }
 
