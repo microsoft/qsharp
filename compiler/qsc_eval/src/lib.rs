@@ -538,7 +538,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn eval_qubit_init(
         &mut self,
         qubit_init: &QubitInit,
-    ) -> ControlFlow<Reason, (Value, Vec<val::Qubit>)> {
+    ) -> ControlFlow<Reason, (Value, Vec<Qubit>)> {
         match &qubit_init.kind {
             QubitInitKind::Array(count) => {
                 let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
@@ -549,15 +549,10 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                     }
                 }?;
                 let mut arr = vec![];
-
-                // This lint is incorrect here; the closure cannot be replaced by the function
-                // `__quantum__rt__qubit_allocate` because it does not satisfy the required trait
-                // bounds.
-                #[allow(clippy::redundant_closure)]
                 arr.resize_with(count, || Qubit(__quantum__rt__qubit_allocate()));
 
                 ControlFlow::Continue((
-                    Value::Array(arr.clone().into_iter().map(Value::Qubit).collect()),
+                    Value::Array(arr.iter().copied().map(Value::Qubit).collect()),
                     arr,
                 ))
             }
