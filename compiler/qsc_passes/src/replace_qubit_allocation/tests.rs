@@ -1,16 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    globals::{extract_callables, GlobalId},
-    replace_qubit_allocation::ReplaceQubitAllocation,
-};
+use crate::replace_qubit_allocation::ReplaceQubitAllocation;
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::{ast::NodeId, mut_visit::MutVisitor};
-use qsc_frontend::compile::{compile, PackageId, PackageStore};
-
-//use super::Error;
+use qsc_ast::mut_visit::MutVisitor;
+use qsc_frontend::compile::{compile, PackageStore};
 
 fn check(input: &str, expected: &Expect) {
     let store = PackageStore::new();
@@ -24,12 +19,6 @@ fn check(input: &str, expected: &Expect) {
 
     let mut transforamtion = ReplaceQubitAllocation::new();
     transforamtion.visit_package(&mut unit.package);
-
-    let globals = extract_callables(&store);
-    // let temp = globals.get(&GlobalId {
-    //     package: PackageId unit.package,
-    //     node: NodeId::from(4),
-    // });
 
     let ns = unit
         .package
@@ -57,24 +46,20 @@ fn test_single_qubit() {
                         input: Pat 6 [35-37]: Unit
                         output: Type 7 [40-44]: Unit
                         body: Block: Block 8 [45-96]:
-                            Stmt _id_ [63-70]: Local (Immutable):
-                                Pat _id_ [63-70]: Bind:
-                                    Ident _id_ [63-70] "__generated_ident_0__"
-                                Expr _id_ [63-70]: Call:
-                                    Expr _id_ [63-70]: Path: Path _id_ [63-70] (Ident _id_ [63-70] "QIR.Runtime") (Ident _id_ [63-70] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [63-70]: Unit
-                            Stmt _id_ [55-71]: Local (Immutable):
-                                Pat 10 [59-60]: Bind:
+                            Stmt _id_ [59-60]: Local (Immutable):
+                                Pat _id_ [59-60]: Bind:
                                     Ident 11 [59-60] "q"
-                                Expr _id_ [63-70]: Path: Path _id_ [63-70] (Ident _id_ [63-70] "__generated_ident_0__")
+                                Expr _id_ [59-60]: Call:
+                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate")
+                                    Expr _id_ [59-60]: Unit
                             Stmt 13 [80-90]: Local (Immutable):
                                 Pat 14 [84-85]: Bind:
                                     Ident 15 [84-85] "x"
                                 Expr 16 [88-89]: Lit: Int(3)
-                            Stmt _id_ [63-70]: Semi: Expr _id_ [63-70]: Call:
-                                Expr _id_ [63-70]: Path: Path _id_ [63-70] (Ident _id_ [63-70] "QIR.Runtime") (Ident _id_ [63-70] "__quantum__rt__qubit_release")
-                                Expr _id_ [63-70]: Tuple:
-                                    Expr _id_ [63-70]: Path: Path _id_ [63-70] (Ident _id_ [63-70] "__generated_ident_0__")"#]],
+                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
+                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release")
+                                Expr _id_ [59-60]: Tuple:
+                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "q")"#]],
     );
 }
 
@@ -105,7 +90,7 @@ fn test_qubit_tuple() {
 }
 
 #[test]
-fn test_qubits_tuple() {
+fn test_multiple_qubits_tuple() {
     check(
         indoc! { "namespace input {
             operation Foo() : Unit {
@@ -142,8 +127,10 @@ fn test_qubit_block() {
             operation Foo() : Unit {
                 use (a, b) = (Qubit(), Qubit()) {
                     let x = 3;
+                    use c = Qubit();
+                    let y = 3
                 }
-                let y = 3;
+                let z = 3;
             }
         }" },
         &expect![[""]],

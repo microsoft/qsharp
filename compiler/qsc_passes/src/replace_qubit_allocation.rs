@@ -71,61 +71,69 @@ impl ReplaceQubitAllocation {
         &mut self,
         stmt_span: Span,
         pat: Pat,
-        init: QubitInit,
+        mut init: QubitInit,
         block: Option<Block>,
     ) -> Vec<Stmt> {
-        let (assignment_expr, mut ids) = self.process_qubit_init(init);
-        // let mut new_stmts: Vec<Stmt> = vec![];
-        // let ids: Vec<QubitIdent> = ids
-        //     .iter_mut()
-        //     .map(|(id, size)| {
-        //         if let Some(size) = size {
-        //             self.visit_expr(size);
-        //             new_stmts.push(create_array_alloc_stmt(id, size));
-        //             QubitIdent {
-        //                 id: id.clone(),
-        //                 is_array: true,
-        //             }
-        //         } else {
-        //             new_stmts.push(create_alloc_stmt(id));
-        //             QubitIdent {
-        //                 id: id.clone(),
-        //                 is_array: false,
-        //             }
-        //         }
-        //     })
-        //     .collect();
+        fn is_non_tuple(init: &mut QubitInit) -> (bool, Option<Expr>) {
+            match &mut init.kind {
+                QubitInitKind::Array(e) => (true, Some(take(e))),
+                QubitInitKind::Paren(_) => is_non_tuple(init),
+                QubitInitKind::Single => (true, None),
+                QubitInitKind::Tuple(_) => (false, None),
+            }
+        }
 
-        let mut new_stmts: Vec<Stmt> = ids
-            .iter_mut()
-            .map(|(id, size)| match size {
-                Some(size) => {
-                    self.visit_expr(size);
-                    create_array_alloc_stmt(id, size.clone())
-                }
-                None => create_alloc_stmt(id),
-            })
-            .collect();
-        let ids: Vec<QubitIdent> = ids
-            .into_iter()
-            .map(|(id, expr)| QubitIdent {
-                id,
-                is_array: expr.is_some(),
-            })
-            .collect();
+        let mut new_stmts: Vec<Stmt> = vec![];
+        let mut new_ids: Vec<QubitIdent> = vec![];
 
-        new_stmts.push(Stmt {
-            id: NodeId::default(),
-            span: stmt_span,
-            kind: StmtKind::Local(
-                Mutability::Immutable,
-                remove_extra_parens(pat),
-                assignment_expr,
-            ),
-        });
+        if let (true, opt) = is_non_tuple(&mut init) {
+            if let PatKind::Bind(id, _) = remove_extra_parens(pat).kind {
+                new_ids.push(QubitIdent {
+                    id: id.clone(),
+                    is_array: opt.is_some(),
+                });
+                new_stmts.push(match opt {
+                    Some(mut size) => {
+                        self.visit_expr(&mut size);
+                        create_array_alloc_stmt(&id, size)
+                    }
+                    None => create_alloc_stmt(&id),
+                });
+            } else {
+                panic!("Shape of identifier pattern doesn't match shape of initializer");
+            }
+        } else {
+            let (assignment_expr, mut ids) = self.process_qubit_init(init);
+            new_stmts = ids
+                .iter_mut()
+                .map(|(id, size)| match size {
+                    Some(size) => {
+                        self.visit_expr(size);
+                        create_array_alloc_stmt(id, size.clone())
+                    }
+                    None => create_alloc_stmt(id),
+                })
+                .collect();
+            new_ids = ids
+                .into_iter()
+                .map(|(id, expr)| QubitIdent {
+                    id,
+                    is_array: expr.is_some(),
+                })
+                .collect();
+            new_stmts.push(Stmt {
+                id: NodeId::default(),
+                span: stmt_span,
+                kind: StmtKind::Local(
+                    Mutability::Immutable,
+                    remove_extra_parens(pat),
+                    assignment_expr,
+                ),
+            });
+        }
 
         if let Some(mut block) = block {
-            self.prefix_qubits = ids;
+            self.prefix_qubits = new_ids;
             block.stmts.splice(0..0, new_stmts);
             self.visit_block(&mut block);
             vec![Stmt {
@@ -138,7 +146,7 @@ impl ReplaceQubitAllocation {
                 }),
             }]
         } else {
-            self.qubits_curr_block.extend(ids);
+            self.qubits_curr_block.extend(new_ids);
             new_stmts
         }
     }
@@ -202,6 +210,14 @@ impl ReplaceQubitAllocation {
         new_id
     }
 
+    fn is_qubits_empty(&self) -> bool {
+        self.qubits_curr_block.is_empty()
+            && self
+                .qubits_curr_callable
+                .iter()
+                .all(std::vec::Vec::is_empty)
+    }
+
     fn get_dealloc_stmts(qubits: &[QubitIdent]) -> Vec<Stmt> {
         qubits
             .iter()
@@ -251,103 +267,109 @@ impl MutVisitor for ReplaceQubitAllocation {
             }
         }
 
-        let new_end_stmt: Option<Stmt> = match block.stmts.last_mut() {
-            Some(s) => {
-                if let StmtKind::Expr(end) = &mut s.kind {
-                    let end_capture = self.gen_ident(end.span);
-                    *s = Stmt {
-                        id: NodeId::default(),
-                        span: s.span,
-                        kind: StmtKind::Local(
-                            Mutability::Immutable,
-                            Pat {
-                                id: NodeId::default(),
-                                span: end.span,
-                                kind: PatKind::Bind(end_capture.clone(), None),
-                            },
-                            take(end),
-                        ),
-                    };
-                    Some(Stmt {
-                        id: NodeId::default(),
-                        span: s.span,
-                        kind: StmtKind::Expr(Expr {
+        if !self.qubits_curr_block.is_empty() {
+            let new_end_stmt: Option<Stmt> = match block.stmts.last_mut() {
+                Some(s) => {
+                    if let StmtKind::Expr(end) = &mut s.kind {
+                        let end_capture = self.gen_ident(end.span);
+                        *s = Stmt {
                             id: NodeId::default(),
                             span: s.span,
-                            kind: ExprKind::Path(Path {
+                            kind: StmtKind::Local(
+                                Mutability::Immutable,
+                                Pat {
+                                    id: NodeId::default(),
+                                    span: end.span,
+                                    kind: PatKind::Bind(end_capture.clone(), None),
+                                },
+                                take(end),
+                            ),
+                        };
+                        Some(Stmt {
+                            id: NodeId::default(),
+                            span: s.span,
+                            kind: StmtKind::Expr(Expr {
                                 id: NodeId::default(),
-                                span: end_capture.span,
-                                namespace: None,
-                                name: end_capture,
+                                span: s.span,
+                                kind: ExprKind::Path(Path {
+                                    id: NodeId::default(),
+                                    span: end_capture.span,
+                                    namespace: None,
+                                    name: end_capture,
+                                }),
                             }),
-                        }),
-                    })
-                } else {
-                    None
+                        })
+                    } else {
+                        None
+                    }
                 }
-            }
-            _ => None,
-        };
+                _ => None,
+            };
 
-        block.stmts.extend(self.get_dealloc_stmts_for_block());
+            block.stmts.extend(self.get_dealloc_stmts_for_block());
+            if let Some(end) = new_end_stmt {
+                block.stmts.push(end);
+            }
+        }
+
         self.qubits_curr_block = self
             .qubits_curr_callable
             .pop()
             .expect("missing expected vector of qubits identifiers");
-
-        if let Some(end) = new_end_stmt {
-            block.stmts.push(end);
-        }
     }
 
     fn visit_expr(&mut self, expr: &mut Expr) {
         match &mut expr.kind {
             ExprKind::Return(e) => {
-                let rtrn_capture = self.gen_ident(e.span);
-                self.visit_expr(e);
-                let mut stmts: Vec<Stmt> = vec![];
-                stmts.push(Stmt {
-                    id: NodeId::default(),
-                    span: e.span,
-                    kind: StmtKind::Local(
-                        Mutability::Immutable,
-                        Pat {
-                            id: NodeId::default(),
-                            span: e.span,
-                            kind: PatKind::Bind(rtrn_capture.clone(), None),
-                        },
-                        take(e),
-                    ),
-                });
-                stmts.extend(self.get_dealloc_stmts_for_callable());
-                stmts.push(Stmt {
-                    id: NodeId::default(),
-                    span: expr.span,
-                    kind: StmtKind::Semi(Expr {
+                if self.is_qubits_empty() {
+                    self.visit_expr(e);
+                } else {
+                    let rtrn_capture = self.gen_ident(e.span);
+                    self.visit_expr(e);
+                    let mut stmts: Vec<Stmt> = vec![];
+                    stmts.push(Stmt {
+                        id: NodeId::default(),
+                        span: e.span,
+                        kind: StmtKind::Local(
+                            Mutability::Immutable,
+                            Pat {
+                                id: NodeId::default(),
+                                span: e.span,
+                                kind: PatKind::Bind(rtrn_capture.clone(), None),
+                            },
+                            take(e),
+                        ),
+                    });
+                    stmts.extend(self.get_dealloc_stmts_for_callable());
+                    stmts.push(Stmt {
                         id: NodeId::default(),
                         span: expr.span,
-                        kind: ExprKind::Return(Box::new(Expr {
+                        kind: StmtKind::Semi(Expr {
                             id: NodeId::default(),
-                            span: rtrn_capture.span,
-                            kind: ExprKind::Path(Path {
+                            span: expr.span,
+                            kind: ExprKind::Return(Box::new(Expr {
                                 id: NodeId::default(),
                                 span: rtrn_capture.span,
-                                namespace: None,
-                                name: rtrn_capture,
-                            }),
-                        })),
-                    }),
-                });
-                let new_expr = Expr {
-                    id: NodeId::default(),
-                    span: expr.span,
-                    kind: ExprKind::Block(Block {
+                                kind: ExprKind::Path(Path {
+                                    id: NodeId::default(),
+                                    span: rtrn_capture.span,
+                                    namespace: None,
+                                    name: rtrn_capture,
+                                }),
+                            })),
+                        }),
+                    });
+                    let new_expr = Expr {
                         id: NodeId::default(),
                         span: expr.span,
-                        stmts,
-                    }),
-                };
-                *expr = new_expr;
+                        kind: ExprKind::Block(Block {
+                            id: NodeId::default(),
+                            span: expr.span,
+                            stmts,
+                        }),
+                    };
+                    *expr = new_expr;
+                }
             }
             ExprKind::Lambda(_, _, e) => {
                 let super_block_qubits = take(&mut self.qubits_curr_block);
