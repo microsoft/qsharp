@@ -17,8 +17,58 @@ fn check(file: &str, expect: &Expect) {
         "Compilation errors: {:?}",
         unit.context.errors()
     );
-    generate_specs(&mut unit);
-    expect.assert_eq(&unit.package.to_string());
+    let errors = generate_specs(&mut unit);
+    if errors.is_empty() {
+        expect.assert_eq(&unit.package.to_string());
+    } else {
+        expect.assert_debug_eq(&errors);
+    }
+}
+
+#[test]
+fn generate_specs_body_intrinsic() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Ctl {
+                body intrinsic;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                MissingBody(
+                    Span {
+                        lo: 68,
+                        hi: 83,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn generate_specs_body_missing() {
+    check(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Adj {
+                adjoint ... {}
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                MissingBody(
+                    Span {
+                        lo: 21,
+                        hi: 88,
+                    },
+                ),
+            ]
+        "#]],
+    );
 }
 
 #[test]
@@ -271,5 +321,32 @@ fn generate_ctl_skip_conjugate_apply_block() {
                                                     Expr 59 [237-240]: Tuple:
                                                         Expr 60 [237-240]: Path: Path 56 [124-257] (Ident 57 [124-257] "ctls")
                                                         Expr 49 [237-240]: Paren: Expr 50 [238-239]: Path: Path 51 [238-239] (Ident 52 [238-239] "q")"#]],
+    );
+}
+
+#[test]
+fn generate_ctl_op_missing_functor() {
+    check(
+        indoc! {"
+            namespace test {
+                operation A(q : Qubit) : Unit {
+                }
+                operation B(q : Qubit) : Unit is Ctl {
+                    A(q);
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                CtlGen(
+                    MissingCtlFunctor(
+                        Span {
+                            lo: 110,
+                            hi: 111,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
     );
 }

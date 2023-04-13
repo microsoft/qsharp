@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use miette::Diagnostic;
+use qsc_data_structures::span::Span;
 use qsc_frontend::{
     compile::Context,
     typeck::ty::{CallableKind, Functor, Prim, Ty},
@@ -9,10 +11,19 @@ use qsc_hir::{
     hir::{self, Expr, ExprKind, Path, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[error("operation does not support the controlled functor")]
+    #[diagnostic(help("each operation called inside an operation with compiler-generated controlled specializations must support the controlled functor"))]
+    MissingCtlFunctor(#[label("operation missing controlled functor support")] Span),
+}
 
 pub(super) struct CtlDistrib<'a> {
     pub(super) ctls: &'a Path,
     pub(super) context: &'a mut Context,
+    pub(super) errors: Vec<Error>,
 }
 
 impl<'a> MutVisitor for CtlDistrib<'a> {
@@ -61,7 +72,9 @@ impl<'a> MutVisitor for CtlDistrib<'a> {
                         ]),
                     });
                 }
-                Ty::Arrow(CallableKind::Operation, _, _, _) => todo!("missing functor"),
+                Ty::Arrow(CallableKind::Operation, _, _, _) => {
+                    self.errors.push(Error::MissingCtlFunctor(op.span));
+                }
                 _ => {}
             }
         }

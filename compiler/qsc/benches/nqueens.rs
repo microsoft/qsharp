@@ -11,11 +11,13 @@ pub fn nqueens(c: &mut Criterion) {
     c.bench_function("NQueens large input file", |b| {
         b.iter(|| {
             let mut std = compile::std();
-            run_default_passes(&mut std);
+            assert!(std.context.errors().is_empty());
+            assert!(run_default_passes(&mut std).is_empty());
             let mut store = PackageStore::new();
             let stdlib = store.insert(std);
             let mut unit = compile(&store, [stdlib], [INPUT], "");
-            run_default_passes(&mut unit);
+            assert!(unit.context.errors().is_empty());
+            assert!(run_default_passes(&mut unit).is_empty());
         })
     });
 }

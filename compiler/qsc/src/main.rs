@@ -87,7 +87,14 @@ fn main() -> Result<ExitCode> {
             }
             return Ok(ExitCode::FAILURE);
         }
-        run_default_passes(&mut std);
+        let pass_errs = run_default_passes(&mut std);
+        if !pass_errs.is_empty() {
+            let reporter = ErrorReporter::new(cli, sources, &std.context);
+            for error in pass_errs {
+                eprintln!("{:?}", reporter.report(error));
+            }
+            return Ok(ExitCode::FAILURE);
+        }
         vec![store.insert(std)]
     };
     let mut unit = compile(
@@ -96,7 +103,7 @@ fn main() -> Result<ExitCode> {
         &sources,
         &cli.entry.clone().unwrap_or_default(),
     );
-    run_default_passes(&mut unit);
+    let pass_errs = run_default_passes(&mut unit);
 
     for (_, emit) in cli.emit.iter().enumerate() {
         match emit {
@@ -110,7 +117,7 @@ fn main() -> Result<ExitCode> {
         }
     }
 
-    if unit.context.errors().is_empty() {
+    if unit.context.errors().is_empty() && pass_errs.is_empty() {
         if cli.entry.is_none() {
             match extract_entry(&unit.package) {
                 Ok(..) => Ok(ExitCode::SUCCESS),
@@ -129,6 +136,9 @@ fn main() -> Result<ExitCode> {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {
             eprintln!("{:?}", reporter.report(error.clone()));
+        }
+        for error in pass_errs {
+            eprintln!("{:?}", reporter.report(error));
         }
         Ok(ExitCode::FAILURE)
     }

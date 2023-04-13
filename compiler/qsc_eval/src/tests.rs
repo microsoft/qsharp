@@ -16,7 +16,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         "Compilation errors: {:?}",
         unit.context.errors()
     );
-    run_default_passes(&mut unit);
+    assert!(run_default_passes(&mut unit).is_empty());
     let id = store.insert(unit);
     let globals = extract_callables(&store);
     let mut stdout = vec![];

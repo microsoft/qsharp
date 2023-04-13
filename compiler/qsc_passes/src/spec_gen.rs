@@ -6,9 +6,9 @@ mod ctl_gen;
 #[cfg(test)]
 mod test;
 
-use std::collections::HashSet;
-
 use self::ctl_gen::CtlDistrib;
+use miette::Diagnostic;
+use qsc_data_structures::span::Span;
 use qsc_frontend::{
     compile::{CompileUnit, Context},
     resolve::Res,
@@ -21,12 +21,24 @@ use qsc_hir::{
     },
     mut_visit::MutVisitor,
 };
+use std::collections::HashSet;
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    CtlGen(ctl_gen::Error),
+
+    #[error("missing body implementation")]
+    MissingBody(#[label("specialization generation requires body implementation")] Span),
+}
 
 /// Generates specializations for the given compile unit, updating it in-place.
-pub fn generate_specs(unit: &mut CompileUnit) {
+pub fn generate_specs(unit: &mut CompileUnit) -> Vec<Error> {
     generate_placeholders(unit);
 
-    generate_spec_impls(unit);
+    generate_spec_impls(unit)
 }
 
 fn generate_placeholders(unit: &mut CompileUnit) {
@@ -141,15 +153,18 @@ fn is_self_adjoint(spec_decl: &[SpecDecl]) -> bool {
     }
 }
 
-fn generate_spec_impls(unit: &mut CompileUnit) {
+fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = SpecImplPass {
         context: &mut unit.context,
+        errors: Vec::new(),
     };
     pass.transform(&mut unit.package);
+    pass.errors
 }
 
 struct SpecImplPass<'a> {
     context: &'a mut Context,
+    errors: Vec<Error>,
 }
 
 impl<'a> SpecImplPass<'a> {
@@ -185,8 +200,11 @@ impl<'a> SpecImplPass<'a> {
         let mut distrib = CtlDistrib {
             ctls: &ctls,
             context: self.context,
+            errors: Vec::new(),
         };
         distrib.visit_block(&mut ctl_block);
+        self.errors
+            .extend(distrib.errors.into_iter().map(Error::CtlGen));
 
         // Add both the Ident for the controls array and the Path to the resolutions.
         self.context
@@ -234,10 +252,12 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 }
 
                 let Some(body) = body else {
-                    todo!("controlled spec should be present");
+                    self.errors.push(Error::MissingBody(decl.span));
+                    return;
                 };
                 let SpecBody::Impl(_, body_block) = &body.body else {
-                    todo!("body spec should have impl");
+                    self.errors.push(Error::MissingBody(body.span));
+                    return;
                 };
 
                 if let Some(ctl) = ctl.as_mut() {

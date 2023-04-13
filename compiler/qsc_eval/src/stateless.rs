@@ -17,15 +17,11 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
+#[error(transparent)]
+#[diagnostic(transparent)]
 pub enum Error {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
     Eval(crate::Error),
-    #[error(transparent)]
-    #[diagnostic(transparent)]
     Compile(qsc_frontend::compile::Error),
-    #[error(transparent)]
-    #[diagnostic(transparent)]
     Pass(qsc_passes::Error),
 }
 
@@ -157,31 +153,33 @@ fn create_execution_context(
 
     if stdlib {
         let mut unit = compile::std();
-        if unit.context.errors().is_empty() {
-            run_default_passes(&mut unit);
+        let pass_errs = run_default_passes(&mut unit);
+        if unit.context.errors().is_empty() && pass_errs.is_empty() {
             session_deps.push(store.insert(unit));
         } else {
-            let errors = unit
+            let mut errors: Vec<Error> = unit
                 .context
                 .errors()
                 .iter()
                 .map(|e| Error::Compile(e.clone()))
                 .collect();
+            errors.extend(pass_errs.into_iter().map(Error::Pass));
             return Err(AggregateError(errors));
         }
     }
 
     let mut unit = compile(&store, session_deps.clone(), sources, expr);
-    if !unit.context.errors().is_empty() {
-        let errors = unit
+    let pass_errs = run_default_passes(&mut unit);
+    if !unit.context.errors().is_empty() || !pass_errs.is_empty() {
+        let mut errors: Vec<Error> = unit
             .context
             .errors()
             .iter()
             .map(|e| Error::Compile(e.clone()))
             .collect();
+        errors.extend(pass_errs.into_iter().map(Error::Pass));
         return Err(AggregateError(errors));
     }
-    run_default_passes(&mut unit);
     let basis_package = store.insert(unit);
 
     let context = ExecutionContextBuilder {
