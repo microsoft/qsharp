@@ -714,6 +714,28 @@ fn reset() {
 }
 
 #[test]
+fn reset_all() {
+    check_intrinsic_result(
+        "",
+        indoc! {r#"{
+            use register = Qubit[2];
+            ResetAll(register);
+            if not Microsoft.Quantum.Diagnostics.CheckAllZero(register) {
+                fail "Qubits should be in zero state.";
+            }
+
+            for q in register {
+                X(q);
+            }
+
+            ResetAll(register);
+            Microsoft.Quantum.Diagnostics.CheckAllZero(register)
+        }"#},
+        &expect!["true"],
+    );
+}
+
+#[test]
 fn m() {
     check_intrinsic_result(
         "",
