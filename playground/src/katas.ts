@@ -1,6 +1,5 @@
 import {eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type Exercise} from "qsharp/browser";
 
-// TODO (cesarzc): should probably be in the npm package.
 interface VerificationResult {
     kind: "VerificationResult";
     result: boolean;
@@ -11,17 +10,7 @@ interface KataError {
     error: string;
 }
 
-interface RuntimeError {
-    kind: "RuntimeError";
-    error: string;
-}
-
-interface UnexpectedError {
-    kind: "UnexpectedError";
-    error: string;
-}
-
-type KataOutput = VerificationResult | KataError | RuntimeError | UnexpectedError;
+type KataOutput = VerificationResult | KataError;
 
 function clearDiv(div: HTMLDivElement) {
     while (div.hasChildNodes()) {
@@ -62,19 +51,15 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
     verifyButton.id = `verify_${exercise.id}`;
     verifyButtonDiv.append(verifyButton);
 
-    //
-    let kataSimulationCallback = (ev: string) => {
+    // This callback is the one that processes output produced when running the kata.
+    let outputCallback = (ev: string) => {
         let result = eventStringToMsg(ev);
         if (!result) {
             console.error("Unrecognized message: " + ev);
             return;
         }
         let paragraph = document.createElement('p') as HTMLParagraphElement;
-        console.log(`Callback invoked: ${result.type}`);
         switch (result.type) {
-            case "Result":
-                paragraph.textContent = `RESULT: ${result.result}`;
-                break;
             case "Message":
                 paragraph.textContent = `MESSAGE: ${result.message}`;
                 break;
@@ -88,12 +73,12 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
         outputDiv.append(paragraph);
     }
 
-    //
+    // Run the exercise when clicking the verify button.
     verifyButton.addEventListener('click', _ => {
         clearDiv(outputDiv);
         let exerciseImplementation = sourceCodeArea.value;
         try {
-            let result = runExercise(exercise.id, exerciseImplementation, kataSimulationCallback);
+            let result = runExercise(exercise.id, exerciseImplementation, outputCallback);
             let verificationResult: VerificationResult = {kind: "VerificationResult", result: result};
             let renderedResult = renderKataOutput(verificationResult);
             outputDiv.prepend(renderedResult);
