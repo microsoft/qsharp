@@ -5,7 +5,7 @@
 mod tests;
 
 use super::{
-    expr::{expr, expr_stmt},
+    expr::{self, expr, expr_stmt},
     keyword::Keyword,
     prim::{keyword, many, opt, pat, seq, token},
     scan::Scanner,
@@ -13,13 +13,14 @@ use super::{
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
-    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
+    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Span, Stmt, StmtKind,
 };
 
 pub(super) fn block(s: &mut Scanner) -> Result<Block> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = many(s, stmt)?;
+    check_semis(&stmts)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Block {
         id: NodeId::default(),
@@ -127,4 +128,19 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
         span: s.span(lo),
         kind,
     })
+}
+
+fn check_semis(stmts: &[Stmt]) -> Result<()> {
+    let leading_stmts = stmts.split_last().map_or([].as_slice(), |s| s.1);
+    for stmt in leading_stmts {
+        if matches!(&stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {
+            let span = Span {
+                lo: stmt.span.hi,
+                hi: stmt.span.hi,
+            };
+            return Err(Error::MissingSemi(span));
+        }
+    }
+
+    Ok(())
 }

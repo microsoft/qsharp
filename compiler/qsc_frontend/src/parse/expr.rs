@@ -69,6 +69,18 @@ pub(super) fn expr_stmt(s: &mut Scanner) -> Result<Expr> {
     expr_op(s, OpContext::Stmt)
 }
 
+pub(super) fn is_stmt_final(kind: &ExprKind) -> bool {
+    matches!(
+        kind,
+        ExprKind::Block(..)
+            | ExprKind::Conjugate(..)
+            | ExprKind::For(..)
+            | ExprKind::If(..)
+            | ExprKind::Repeat(..)
+            | ExprKind::While(..)
+    )
+}
+
 fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Expr> {
     let lo = s.peek().span.lo;
     let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
@@ -604,16 +616,4 @@ fn expr_as_pat(expr: Expr) -> Result<Pat> {
         span: expr.span,
         kind,
     })
-}
-
-fn is_stmt_final(kind: &ExprKind) -> bool {
-    matches!(
-        kind,
-        ExprKind::Block(..)
-            | ExprKind::Conjugate(..)
-            | ExprKind::For(..)
-            | ExprKind::If(..)
-            | ExprKind::Repeat(..)
-            | ExprKind::While(..)
-    )
 }
