@@ -1,5 +1,8 @@
 import {eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type Exercise} from "qsharp/browser";
 
+// MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
+declare var MathJax: {typeset: () => void;};
+
 interface VerificationResult {
     kind: "VerificationResult";
     result: boolean;
@@ -125,6 +128,9 @@ export function RenderKatas() {
     let kata = getKata(selectedOption.value);
     let renderedKata = renderKata(kata);
     canvasDiv.append(renderedKata);
+
+    // Render math stuff.
+    MathJax.typeset();
 }
 
 export function PopulateKatasList() {

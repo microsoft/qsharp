@@ -1,4 +1,4 @@
-### The Y gate
+### The $Y$ gate
 
 **Input:** A qubit in an arbitrary state $|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle$.
 

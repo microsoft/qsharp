@@ -1,4 +1,4 @@
-### Applying a global phase i
+### Applying a global phase $i$
 
 **Input:** A qubit in an arbitrary state $|\\psi\\rangle = \\alpha|0\\rangle + \\beta|1\\rangle$.
 
