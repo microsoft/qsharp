@@ -350,6 +350,12 @@ namespace Microsoft.Quantum.Intrinsic {
         __quantum__qis__reset__body(qubit);
     }
 
+    operation ResetAll(qubits : Qubit[]) : Unit {
+        for q in qubits {
+            Reset(q);
+        }
+    }
+
     /// # Summary
     /// Applies a rotation about the given Pauli axis by an angle specified
     /// as a dyadic fraction.
