@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use katas::run_kata;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use once_cell::sync::OnceCell;
@@ -10,7 +11,6 @@ use qsc_eval::{
     stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-use katas::run_kata;
 
 use miette::{Diagnostic, Severity};
 use serde::{Deserialize, Serialize};
@@ -368,33 +368,30 @@ pub fn run(
 fn run_kata_exercise_internal<F>(
     verification_source: &str,
     kata_implementation: &str,
-    event_cb: F) -> Result<bool, Vec<qsc_eval::stateless::Error>>
+    event_cb: F,
+) -> Result<bool, Vec<qsc_eval::stateless::Error>>
 where
-    F: Fn(&str) {
+    F: Fn(&str),
+{
     let mut out = CallbackReceiver { event_cb };
-    run_kata(
-        [verification_source, kata_implementation],
-        &mut out
-    )
+    run_kata([verification_source, kata_implementation], &mut out)
 }
 
 #[wasm_bindgen]
 pub fn run_kata_exercise(
     verification_source: &str,
     kata_implementation: &str,
-    event_cb: &js_sys::Function
+    event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(
-        verification_source,
-        kata_implementation, |msg: &str| {
+    match run_kata_exercise_internal(verification_source, kata_implementation, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
-        }
-    ) {
+    }) {
         Ok(v) => Ok(JsValue::from_bool(v)),
-        Err(e) =>
-        {
+        Err(e) => {
             // TODO: Handle multiple errors.
-            let first_error = e.first().expect("Running kata failed but no errors were reported");
+            let first_error = e
+                .first()
+                .expect("Running kata failed but no errors were reported");
             Err(JsError::from(first_error).into())
         }
     }
