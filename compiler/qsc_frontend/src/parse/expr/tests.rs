@@ -1762,3 +1762,81 @@ fn lambda_invalid_tuple_input() {
         "#]],
     );
 }
+
+#[test]
+fn call_block_no_parens() {
+    check(
+        expr,
+        "{ { let a = b; a }(c, d) }",
+        &expect![[r#"
+            Expr _id_ [0-26]: Expr Block: Block _id_ [0-26]:
+                Stmt _id_ [2-18]: Expr: Expr _id_ [2-18]: Expr Block: Block _id_ [2-18]:
+                    Stmt _id_ [4-14]: Local (Immutable):
+                        Pat _id_ [8-9]: Bind:
+                            Ident _id_ [8-9] "a"
+                        Expr _id_ [12-13]: Path: Path _id_ [12-13] (Ident _id_ [12-13] "b")
+                    Stmt _id_ [15-16]: Expr: Expr _id_ [15-16]: Path: Path _id_ [15-16] (Ident _id_ [15-16] "a")
+                Stmt _id_ [18-24]: Expr: Expr _id_ [18-24]: Tuple:
+                    Expr _id_ [19-20]: Path: Path _id_ [19-20] (Ident _id_ [19-20] "c")
+                    Expr _id_ [22-23]: Path: Path _id_ [22-23] (Ident _id_ [22-23] "d")"#]],
+    );
+}
+
+#[test]
+fn call_block_parens() {
+    check(
+        expr,
+        "{ ({ let a = b; a })(c, d) }",
+        &expect![[r#"
+            Expr _id_ [0-28]: Expr Block: Block _id_ [0-28]:
+                Stmt _id_ [2-26]: Expr: Expr _id_ [2-26]: Call:
+                    Expr _id_ [2-20]: Paren: Expr _id_ [3-19]: Expr Block: Block _id_ [3-19]:
+                        Stmt _id_ [5-15]: Local (Immutable):
+                            Pat _id_ [9-10]: Bind:
+                                Ident _id_ [9-10] "a"
+                            Expr _id_ [13-14]: Path: Path _id_ [13-14] (Ident _id_ [13-14] "b")
+                        Stmt _id_ [16-17]: Expr: Expr _id_ [16-17]: Path: Path _id_ [16-17] (Ident _id_ [16-17] "a")
+                    Expr _id_ [20-26]: Tuple:
+                        Expr _id_ [21-22]: Path: Path _id_ [21-22] (Ident _id_ [21-22] "c")
+                        Expr _id_ [24-25]: Path: Path _id_ [24-25] (Ident _id_ [24-25] "d")"#]],
+    );
+}
+
+#[test]
+fn if_stmt_plus() {
+    check(
+        expr,
+        "{ if x { 1 } else { 2 } + 3 }",
+        &expect![[r#"
+            Expr _id_ [0-29]: Expr Block: Block _id_ [0-29]:
+                Stmt _id_ [2-23]: Expr: Expr _id_ [2-23]: If:
+                    Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "x")
+                    Block _id_ [7-12]:
+                        Stmt _id_ [9-10]: Expr: Expr _id_ [9-10]: Lit: Int(1)
+                    Expr _id_ [13-23]: Expr Block: Block _id_ [18-23]:
+                        Stmt _id_ [20-21]: Expr: Expr _id_ [20-21]: Lit: Int(2)
+                Stmt _id_ [24-27]: Expr: Expr _id_ [24-27]: UnOp (Pos):
+                    Expr _id_ [26-27]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn if_expr_plus() {
+    check(
+        expr,
+        "{ let y = if x { 1 } else { 2 } + 3; }",
+        &expect![[r#"
+            Expr _id_ [0-38]: Expr Block: Block _id_ [0-38]:
+                Stmt _id_ [2-36]: Local (Immutable):
+                    Pat _id_ [6-7]: Bind:
+                        Ident _id_ [6-7] "y"
+                    Expr _id_ [10-35]: BinOp (Add):
+                        Expr _id_ [10-31]: If:
+                            Expr _id_ [13-14]: Path: Path _id_ [13-14] (Ident _id_ [13-14] "x")
+                            Block _id_ [15-20]:
+                                Stmt _id_ [17-18]: Expr: Expr _id_ [17-18]: Lit: Int(1)
+                            Expr _id_ [21-31]: Expr Block: Block _id_ [26-31]:
+                                Stmt _id_ [28-29]: Expr: Expr _id_ [28-29]: Lit: Int(2)
+                        Expr _id_ [34-35]: Lit: Int(3)"#]],
+    );
+}

@@ -5,7 +5,7 @@
 mod tests;
 
 use super::{
-    expr::expr,
+    expr::{expr, expr_stmt},
     keyword::Keyword,
     prim::{keyword, many, opt, pat, seq, token},
     scan::Scanner,
@@ -43,7 +43,7 @@ pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     } else if let Some(qubit) = opt(s, qubit_binding)? {
         Ok(qubit)
     } else {
-        let e = expr(s)?;
+        let e = expr_stmt(s)?;
         if token(s, TokenKind::Semi).is_ok() {
             Ok(StmtKind::Semi(e))
         } else {
