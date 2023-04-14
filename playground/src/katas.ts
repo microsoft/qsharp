@@ -77,11 +77,11 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
     }
 
     // Run the exercise when clicking the verify button.
-    verifyButton.addEventListener('click', _ => {
+    verifyButton.addEventListener('click', async _ => {
         clearDiv(outputDiv);
         let exerciseImplementation = sourceCodeArea.value;
         try {
-            let result = runExercise(exercise.id, exerciseImplementation, outputCallback);
+            let result = await runExercise(exercise.id, exerciseImplementation, outputCallback);
             let verificationResult: VerificationResult = {kind: "VerificationResult", result: result};
             let renderedResult = renderKataOutput(verificationResult);
             outputDiv.prepend(renderedResult);
@@ -115,7 +115,7 @@ function renderKata(kata: Kata) : HTMLDivElement {
     return kataDiv;
 }
 
-export function RenderKatas() {
+export async function RenderKatas() {
     // Katas are rendered inside a div element with "katas-canvas" as id.
     let canvasDiv = document.querySelector('#katas-canvas') as HTMLDivElement;
 
@@ -125,7 +125,7 @@ export function RenderKatas() {
     // Render the selected kata.
     let katasDropdown = document.querySelector('#katas-list') as HTMLSelectElement;
     let selectedOption = katasDropdown.item(katasDropdown.selectedIndex)!;
-    let kata = getKata(selectedOption.value);
+    let kata = await getKata(selectedOption.value);
     let renderedKata = renderKata(kata);
     canvasDiv.append(renderedKata);
 
@@ -133,9 +133,10 @@ export function RenderKatas() {
     MathJax.typeset();
 }
 
-export function PopulateKatasList() {
+export async function PopulateKatasList() {
     let katasDropdown = document.querySelector('#katas-list') as HTMLSelectElement;
-    for (let kata of getAllKatas())
+    let katas = await getAllKatas();
+    for (let kata of await getAllKatas())
     {
         let option = document.createElement("option");
         option.value = kata.id;

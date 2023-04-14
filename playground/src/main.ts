@@ -165,12 +165,14 @@ async function loaded() {
     });
 
     // Render katas.
-    PopulateKatasList();
-    RenderKatas();
-    let modulesSelect = document.querySelector('#katas-list') as HTMLSelectElement;
-    modulesSelect.addEventListener('change', _ => {
-        RenderKatas();
-    });
+    PopulateKatasList()
+        .then(() => RenderKatas())
+        .then(() => {
+            let modulesSelect = document.querySelector('#katas-list') as HTMLSelectElement;
+            modulesSelect.addEventListener('change', _ => {
+                RenderKatas();
+            });
+        });
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/

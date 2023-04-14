@@ -22,12 +22,13 @@ export type Kata = {
     exercises: Exercise[]
 }
 
-export function getAllKatas() : Kata[] {
+export async function getAllKatas() : Promise<Kata[]> {
     return katas as Kata[];
 }
 
-export function getKata(id: string) : Kata {
-    let filteredKatas = getAllKatas().filter(k => k.id == id);
+export async function getKata(id: string) : Promise<Kata> {
+    let katas = await getAllKatas();
+    let filteredKatas = katas.filter(k => k.id == id);
     if (filteredKatas.length != 1) {
         throw new Error(`Failed to get kata with id: ${id}`);
     }
@@ -35,8 +36,9 @@ export function getKata(id: string) : Kata {
     return filteredKatas.at(0)!;
 }
 
-export function getExercise(id: string) : Exercise {
-    for (let kata of getAllKatas()) {
+export async function getExercise(id: string) : Promise<Exercise> {
+    let katas = await getAllKatas();
+    for (let kata of katas) {
         let filteredExercises = kata.exercises.filter(e => e.id == id);
         if (filteredExercises.length == 1) {
             return filteredExercises.at(0)!;
@@ -46,9 +48,9 @@ export function getExercise(id: string) : Exercise {
     throw new Error(`Failed to get exercise with id: ${id}`);
 }
 
-export function runExercise(id: string, implementation: string, eventCb: (msg: string) => void) : boolean
+export async function runExercise(id: string, implementation: string, eventCb: (msg: string) => void) : Promise<boolean>
 {
-    let exercise = getExercise(id);
+    let exercise = await getExercise(id);
     return run_kata_exercise(
         exercise.verificationImplementation,
         implementation,
