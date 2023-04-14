@@ -350,6 +350,13 @@ namespace Microsoft.Quantum.Intrinsic {
         __quantum__qis__reset__body(qubit);
     }
 
+    /// # Summary
+    /// Given an array of qubits, measure them and ensure they are in the |0⟩ state
+    /// such that they can be safely released.
+    ///
+    /// # Input
+    /// ## qubits
+    /// An array of qubits whose states are to be reset to $\ket{0}$.
     operation ResetAll(qubits : Qubit[]) : Unit {
         for q in qubits {
             Reset(q);
