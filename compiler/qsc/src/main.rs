@@ -13,8 +13,9 @@ use clap::{error::ErrorKind, Parser, ValueEnum};
 use miette::{IntoDiagnostic, Result};
 
 use miette::{Diagnostic, NamedSource, Report};
+use qsc_ast::ast::Package;
 use qsc_frontend::{
-    compile::{self, compile, CompileUnit, Context, PackageStore, SourceIndex},
+    compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
 use qsc_passes::entry_point::extract_entry;
@@ -105,7 +106,7 @@ fn main() -> Result<ExitCode> {
                     Some(value) => value.clone(),
                     None => PathBuf::from("."),
                 };
-                emit_compilation_unit(&unit, &out_dir);
+                emit_ast(&unit.package, &out_dir);
             }
         }
     }
@@ -168,9 +169,9 @@ impl<'a> ErrorReporter<'a> {
     }
 }
 
-fn emit_compilation_unit(unit: &CompileUnit, out_dir: impl AsRef<Path>) {
+fn emit_ast(package: &Package, out_dir: impl AsRef<Path>) {
     let path = out_dir.as_ref().join("ast.txt");
-    fs::write(path, format!("{unit:#?}")).unwrap();
+    fs::write(path, format!("{package}")).unwrap();
 }
 
 fn read_source(path: impl AsRef<Path>) -> String {
