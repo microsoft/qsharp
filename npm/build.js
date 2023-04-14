@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//@ts-check
+
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 
-import { parse } from "marked"
+import { marked } from "marked"
 
 import { katasMetadata } from "../katas/content/dist/metadata.js"
 
@@ -20,7 +22,7 @@ function buildExercise(exerciseMetadata, moduleDir) {
     const referenceSource = readFileSync(join(exerciseDir, "reference.qs"), 'utf8');
     const verificationSource = readFileSync(join(exerciseDir, "verify.qs"), 'utf8');
     const contentAsMarkdown = readFileSync(join(exerciseDir, "content.md"), 'utf8');
-    const contentAsHtml = parse(contentAsMarkdown);
+    const contentAsHtml = marked.parse(contentAsMarkdown);
     return {
         id: exerciseMetadata.id,
         title: exerciseMetadata.title,
@@ -41,7 +43,7 @@ function buildKata(kataMetadata, katasDir) {
     }
 
     const contentAsMarkdown = readFileSync(join(kataDir, "content.md"), 'utf8');
-    const contentAsHtml = parse(contentAsMarkdown);
+    const contentAsHtml = marked.parse(contentAsMarkdown);
     return {
         id: kataMetadata.id,
         title: kataMetadata.title,
