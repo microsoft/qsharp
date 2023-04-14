@@ -6,8 +6,8 @@ interface VerificationResult {
     result: boolean;
 }
 
-interface CompilationError {
-    kind: "CompilationError";
+interface KataError {
+    kind: "KataError";
     error: string;
 }
 
@@ -21,7 +21,7 @@ interface UnexpectedError {
     error: string;
 }
 
-type KataOutput = VerificationResult | CompilationError | RuntimeError | UnexpectedError;
+type KataOutput = VerificationResult | KataError | RuntimeError | UnexpectedError;
 
 function clearDiv(div: HTMLDivElement) {
     while (div.hasChildNodes()) {
@@ -32,16 +32,8 @@ function clearDiv(div: HTMLDivElement) {
 function renderKataOutput(output: KataOutput) : HTMLDivElement {
     let outputDiv = document.createElement("div");
     if (output.kind === "VerificationResult") {
-        console.log("VerificationResult");
         outputDiv.textContent = `Kata Verification: ${output.result}`;
-    } else if (output.kind === "CompilationError") {
-        console.log("CompilationError");
-        outputDiv.textContent = `${output.kind}: ${output.error}`;
-    } else if (output.kind === "RuntimeError") {
-        console.log("RuntimeError");
-        outputDiv.textContent = `${output.kind}: ${output.error}`;
-    } else if (output.kind === "UnexpectedError") {
-        console.log("UnexpectedError");
+    } else if (output.kind === "KataError") {
         outputDiv.textContent = `${output.kind}: ${output.error}`;
     }
 
@@ -108,13 +100,11 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
         } catch(e)
         {
             if (e instanceof Error) {
-                // TODO: This is not necessarily an unexpected error.
-                let unexpectedError: UnexpectedError = {kind: "UnexpectedError", error: e.message};
-                let renderedError = renderKataOutput(unexpectedError);
+                let kataError: KataError = {kind: "KataError", error: e.message};
+                let renderedError = renderKataOutput(kataError);
                 outputDiv.prepend(renderedError);
             }
         }
-        
     });
 
     return exerciseDiv;

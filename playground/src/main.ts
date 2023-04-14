@@ -164,7 +164,7 @@ async function loaded() {
         }
     });
 
-    // TODO (cesarzc): Comment.
+    // Render katas.
     PopulateKatasList();
     RenderKatas();
     let modulesSelect = document.querySelector('#katas-list') as HTMLSelectElement;
