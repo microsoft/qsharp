@@ -26,7 +26,7 @@ fn check(file: &str, expect: &Expect) {
 }
 
 #[test]
-fn generate_specs_body_intrinsic() {
+fn generate_specs_body_intrinsic_should_fail() {
     check(
         indoc! {"
         namespace test {
@@ -49,7 +49,7 @@ fn generate_specs_body_intrinsic() {
 }
 
 #[test]
-fn generate_specs_body_missing() {
+fn generate_specs_body_missing_should_fail() {
     check(
         indoc! {"
         namespace test {
@@ -348,5 +348,77 @@ fn generate_ctl_op_missing_functor() {
                 ),
             ]
         "#]],
+    );
+}
+
+#[test]
+fn generate_ctl_with_function_calls() {
+    check(
+        indoc! {"
+            namespace test {
+                function Foo() : Unit {}
+                operation A() : Unit is Ctl {}
+                operation B() : Unit is Ctl {
+                    Foo();
+                    A();
+                }
+            }
+        "},
+        &expect![[r#"
+            Package 0:
+                Namespace 1 [0-150] (Ident 2 [10-14] "test"):
+                    Item 3 [21-45]:
+                        Callable 4 [21-45] (Function):
+                            name: Ident 5 [30-33] "Foo"
+                            input: Pat 6 [33-35]: Unit
+                            output: Type 7 [38-42]: Unit
+                            body: Block: Block 8 [43-45]: <empty>
+                    Item 9 [50-80]:
+                        Callable 10 [50-80] (Operation):
+                            name: Ident 11 [60-61] "A"
+                            input: Pat 12 [61-63]: Unit
+                            output: Type 13 [66-70]: Unit
+                            functors: Functor Expr 14 [74-77]: Ctl
+                            body: Specializations:
+                                SpecDecl 35 [78-80] (Body): Impl:
+                                    Pat 36 [78-80]: Elided
+                                    Block 15 [78-80]: <empty>
+                                SpecDecl 37 [50-80] (Ctl): Impl:
+                                    Pat 43 [50-80]: Tuple:
+                                        Pat 44 [50-80]: Bind:
+                                            Ident 42 [50-80] "ctls"
+                                        Pat 45 [50-80]: Elided
+                                    Block 15 [78-80]: <empty>
+                    Item 16 [85-148]:
+                        Callable 17 [85-148] (Operation):
+                            name: Ident 18 [95-96] "B"
+                            input: Pat 19 [96-98]: Unit
+                            output: Type 20 [101-105]: Unit
+                            functors: Functor Expr 21 [109-112]: Ctl
+                            body: Specializations:
+                                SpecDecl 38 [113-148] (Body): Impl:
+                                    Pat 39 [113-148]: Elided
+                                    Block 22 [113-148]:
+                                        Stmt 23 [123-129]: Semi: Expr 24 [123-128]: Call:
+                                            Expr 25 [123-126]: Path: Path 26 [123-126] (Ident 27 [123-126] "Foo")
+                                            Expr 28 [126-128]: Unit
+                                        Stmt 29 [138-142]: Semi: Expr 30 [138-141]: Call:
+                                            Expr 31 [138-139]: Path: Path 32 [138-139] (Ident 33 [138-139] "A")
+                                            Expr 34 [139-141]: Unit
+                                SpecDecl 40 [85-148] (Ctl): Impl:
+                                    Pat 51 [85-148]: Tuple:
+                                        Pat 52 [85-148]: Bind:
+                                            Ident 47 [85-148] "ctls"
+                                        Pat 53 [85-148]: Elided
+                                    Block 22 [113-148]:
+                                        Stmt 23 [123-129]: Semi: Expr 24 [123-128]: Call:
+                                            Expr 25 [123-126]: Path: Path 26 [123-126] (Ident 27 [123-126] "Foo")
+                                            Expr 28 [126-128]: Unit
+                                        Stmt 29 [138-142]: Semi: Expr 30 [138-141]: Call:
+                                            Expr 48 [138-139]: UnOp (Functor Ctl):
+                                                Expr 31 [138-139]: Path: Path 32 [138-139] (Ident 33 [138-139] "A")
+                                            Expr 49 [139-141]: Tuple:
+                                                Expr 50 [139-141]: Path: Path 46 [85-148] (Ident 47 [85-148] "ctls")
+                                                Expr 34 [139-141]: Unit"#]],
     );
 }
