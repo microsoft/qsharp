@@ -3,13 +3,6 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-pub mod compile;
-pub mod diagnostic;
-pub mod id;
-pub mod incremental;
-mod lex;
-mod lower;
-mod parse;
-pub mod resolve;
-pub mod typeck;
-mod validate;
+pub mod hir;
+pub mod mut_visit;
+pub mod visit;

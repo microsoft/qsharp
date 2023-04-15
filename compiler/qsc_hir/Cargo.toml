@@ -1,5 +1,5 @@
 [package]
-name = "qsc_ast"
+name = "qsc_hir"
 version = "0.0.0"
 
 authors.workspace = true

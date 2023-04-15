@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use super::{Error, ErrorKind};
-use crate::resolve::{DefId, PackageSrc};
-use qsc_ast::ast::{CallableKind, Functor, Span, TyPrim};
-use qsc_data_structures::index_map::IndexMap;
+use qsc_ast::ast;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_hir::hir;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -37,7 +37,6 @@ impl From<Var> for usize {
 pub enum Ty {
     Array(Box<Ty>),
     Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
-    DefId(DefId),
     Err,
     Param(String),
     Prim(TyPrim),
@@ -71,14 +70,6 @@ impl Display for Ty {
 
                 write!(f, "({input}) {arrow} ({output}){is}")
             }
-            Ty::DefId(DefId {
-                package: PackageSrc::Local,
-                node,
-            }) => write!(f, "Def<{node}>"),
-            Ty::DefId(DefId {
-                package: PackageSrc::Extern(package),
-                node,
-            }) => write!(f, "Def<{package}, {node}>"),
             Ty::Err => f.write_str("?"),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => prim.fmt(f),
@@ -99,6 +90,117 @@ impl Display for Ty {
                 f.write_str(")")
             }
             Ty::Var(id) => Display::fmt(id, f),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TyPrim {
+    BigInt,
+    Bool,
+    Double,
+    Int,
+    Pauli,
+    Qubit,
+    Range,
+    Result,
+    String,
+}
+
+impl From<ast::TyPrim> for TyPrim {
+    fn from(value: ast::TyPrim) -> Self {
+        match value {
+            ast::TyPrim::BigInt => Self::BigInt,
+            ast::TyPrim::Bool => Self::Bool,
+            ast::TyPrim::Double => Self::Double,
+            ast::TyPrim::Int => Self::Int,
+            ast::TyPrim::Pauli => Self::Pauli,
+            ast::TyPrim::Qubit => Self::Qubit,
+            ast::TyPrim::Range => Self::Range,
+            ast::TyPrim::Result => Self::Result,
+            ast::TyPrim::String => Self::String,
+        }
+    }
+}
+
+impl From<hir::TyPrim> for TyPrim {
+    fn from(value: hir::TyPrim) -> Self {
+        match value {
+            hir::TyPrim::BigInt => Self::BigInt,
+            hir::TyPrim::Bool => Self::Bool,
+            hir::TyPrim::Double => Self::Double,
+            hir::TyPrim::Int => Self::Int,
+            hir::TyPrim::Pauli => Self::Pauli,
+            hir::TyPrim::Qubit => Self::Qubit,
+            hir::TyPrim::Range => Self::Range,
+            hir::TyPrim::Result => Self::Result,
+            hir::TyPrim::String => Self::String,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CallableKind {
+    Function,
+    Operation,
+}
+
+impl From<ast::CallableKind> for CallableKind {
+    fn from(value: ast::CallableKind) -> Self {
+        match value {
+            ast::CallableKind::Function => Self::Function,
+            ast::CallableKind::Operation => Self::Operation,
+        }
+    }
+}
+
+impl From<&ast::CallableKind> for CallableKind {
+    fn from(value: &ast::CallableKind) -> Self {
+        match value {
+            ast::CallableKind::Function => Self::Function,
+            ast::CallableKind::Operation => Self::Operation,
+        }
+    }
+}
+
+impl From<hir::CallableKind> for CallableKind {
+    fn from(value: hir::CallableKind) -> Self {
+        match value {
+            hir::CallableKind::Function => Self::Function,
+            hir::CallableKind::Operation => Self::Operation,
+        }
+    }
+}
+
+impl From<&hir::CallableKind> for CallableKind {
+    fn from(value: &hir::CallableKind) -> Self {
+        match value {
+            hir::CallableKind::Function => Self::Function,
+            hir::CallableKind::Operation => Self::Operation,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum Functor {
+    Adj,
+    Ctl,
+}
+
+impl From<ast::Functor> for Functor {
+    fn from(value: ast::Functor) -> Self {
+        match value {
+            ast::Functor::Adj => Self::Adj,
+            ast::Functor::Ctl => Self::Ctl,
+        }
+    }
+}
+
+impl From<hir::Functor> for Functor {
+    fn from(value: hir::Functor) -> Self {
+        match value {
+            hir::Functor::Adj => Self::Adj,
+            hir::Functor::Ctl => Self::Ctl,
         }
     }
 }
@@ -302,7 +404,7 @@ impl Inferrer {
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::DefId(_) | Ty::Err | Ty::Prim(_) | Ty::Var(_) => {}
+                Ty::Err | Ty::Prim(_) | Ty::Var(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
                 Ty::Arrow(_, input, output, _) => {
                     freshen(solver, params, input);
@@ -422,7 +524,7 @@ impl Solver {
 
 pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
     match ty {
-        Ty::DefId(_) | Ty::Err | Ty::Param(_) | Ty::Prim(_) => {}
+        Ty::Err | Ty::Param(_) | Ty::Prim(_) => {}
         Ty::Array(item) => substitute(substs, item),
         Ty::Arrow(_, input, output, _) => {
             substitute(substs, input);
@@ -460,7 +562,6 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), Unify
             unify(output1, output2, bind)?;
             Ok(())
         }
-        (Ty::DefId(def1), Ty::DefId(def2)) if def1 == def2 => Ok(()),
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {

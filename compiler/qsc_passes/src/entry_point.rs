@@ -6,10 +6,9 @@ mod tests;
 
 use super::Error as PassErr;
 use miette::Diagnostic;
-use qsc_ast::{
-    ast::{
-        CallableBody, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind, Span,
-    },
+use qsc_data_structures::span::Span;
+use qsc_hir::{
+    hir::{CallableBody, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind},
     visit::Visitor,
 };
 use thiserror::Error;

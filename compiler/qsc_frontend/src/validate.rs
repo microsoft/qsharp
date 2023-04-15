@@ -6,9 +6,10 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, Span, UnOp},
+    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, UnOp},
     visit::{self, Visitor},
 };
+use qsc_data_structures::span::Span;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]

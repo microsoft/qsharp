@@ -2,15 +2,19 @@
 // Licensed under the MIT License.
 
 use super::{
-    infer::{self, Class, Inferrer, Ty},
+    infer::{self, Class, Inferrer, Ty, TyPrim},
     Error, Tys,
 };
-use crate::resolve::{DefId, PackageSrc, Resolutions};
+use crate::resolve::{Link, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
-    QubitInitKind, Span, Spec, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
+    QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
-use std::collections::{HashMap, HashSet};
+use qsc_data_structures::span::Span;
+use std::{
+    collections::{HashMap, HashSet},
+    convert::Into,
+};
 
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
 enum Termination {
@@ -59,19 +63,19 @@ impl<T> Fallible<T> {
 }
 
 struct Context<'a> {
-    resolutions: &'a Resolutions,
-    globals: &'a HashMap<DefId, Ty>,
+    resolutions: &'a Resolutions<NodeId>,
+    globals: &'a HashMap<Link<NodeId>, Ty>,
     return_ty: Option<&'a Ty>,
-    tys: &'a mut Tys,
+    tys: &'a mut Tys<NodeId>,
     nodes: Vec<NodeId>,
     inferrer: Inferrer,
 }
 
 impl<'a> Context<'a> {
     fn new(
-        resolutions: &'a Resolutions,
-        globals: &'a HashMap<DefId, Ty>,
-        tys: &'a mut Tys,
+        resolutions: &'a Resolutions<NodeId>,
+        globals: &'a HashMap<Link<NodeId>, Ty>,
+        tys: &'a mut Tys<NodeId>,
     ) -> Self {
         Self {
             resolutions,
@@ -110,22 +114,20 @@ impl<'a> Context<'a> {
         match &ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
             TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
-                *kind,
+                kind.into(),
                 Box::new(self.infer_ty(input)),
                 Box::new(self.infer_ty(output)),
                 functors
                     .as_ref()
-                    .map_or(HashSet::new(), FunctorExpr::to_set),
+                    .map_or(HashSet::new(), FunctorExpr::to_set)
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(path) => Ty::DefId(
-                *self
-                    .resolutions
-                    .get(path.id)
-                    .expect("path should be resolved"),
-            ),
-            &TyKind::Prim(prim) => Ty::Prim(prim),
+            TyKind::Path(_) => Ty::Err, // TODO: Resolve user-defined types.
+            &TyKind::Prim(prim) => Ty::Prim(prim.into()),
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
@@ -298,7 +300,7 @@ impl<'a> Context<'a> {
                 // https://github.com/microsoft/qsharp/issues/151
                 let input = self.infer_pat(input);
                 let body = term.then(self.infer_expr(body));
-                Ty::Arrow(*kind, Box::new(input), Box::new(body), HashSet::new())
+                Ty::Arrow(kind.into(), Box::new(input), Box::new(body), HashSet::new())
             }
             ExprKind::Lit(Lit::BigInt(_)) => Ty::Prim(TyPrim::BigInt),
             ExprKind::Lit(Lit::Bool(_)) => Ty::Prim(TyPrim::Bool),
@@ -310,18 +312,22 @@ impl<'a> Context<'a> {
             ExprKind::Paren(expr) => term.then(self.infer_expr(expr)),
             ExprKind::Path(path) => match self.resolutions.get(path.id) {
                 None => Ty::Err,
-                Some(id) => match self.globals.get(id) {
+                Some(&link) => match self.globals.get(&link) {
                     Some(ty) => {
                         let mut ty = ty.clone();
                         self.inferrer.freshen(&mut ty);
                         ty
                     }
-                    None if id.package == PackageSrc::Local => self
-                        .tys
-                        .get(id.node)
-                        .expect("local variable should have inferred type")
-                        .clone(),
-                    None => panic!("path resolves to external package but definition not found"),
+                    None => match link {
+                        Link::Internal(id) => self
+                            .tys
+                            .get(id)
+                            .expect("local variable should have inferred type")
+                            .clone(),
+                        Link::External(..) => {
+                            panic!("path resolves to external package but definition not found")
+                        }
+                    },
                 },
             },
             ExprKind::Range(start, step, end) => {
@@ -595,9 +601,9 @@ pub(super) struct SpecImpl<'a> {
 }
 
 pub(super) fn spec(
-    resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
-    tys: &mut Tys,
+    resolutions: &Resolutions<NodeId>,
+    globals: &HashMap<Link<NodeId>, Ty>,
+    tys: &mut Tys<NodeId>,
     spec: SpecImpl,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);
@@ -606,9 +612,9 @@ pub(super) fn spec(
 }
 
 pub(super) fn entry_expr(
-    resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
-    tys: &mut Tys,
+    resolutions: &Resolutions<NodeId>,
+    globals: &HashMap<Link<NodeId>, Ty>,
+    tys: &mut Tys<NodeId>,
     entry: &Expr,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);

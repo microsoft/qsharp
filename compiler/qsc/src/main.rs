@@ -13,18 +13,17 @@ use clap::{error::ErrorKind, Parser, ValueEnum};
 use miette::{IntoDiagnostic, Result};
 
 use miette::{Diagnostic, NamedSource, Report};
-use qsc_ast::ast::Package;
 use qsc_frontend::{
     compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
+use qsc_hir::hir;
 use qsc_passes::entry_point::extract_entry;
 use std::{fs, io, string::String, sync::Arc};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Emit {
-    /// Abstract syntax tree
-    Ast,
+    Hir,
 }
 
 #[derive(Debug, Parser)]
@@ -101,12 +100,12 @@ fn main() -> Result<ExitCode> {
 
     for (_, emit) in cli.emit.iter().enumerate() {
         match emit {
-            Emit::Ast => {
+            Emit::Hir => {
                 let out_dir = match &cli.out_dir {
                     Some(value) => value.clone(),
                     None => PathBuf::from("."),
                 };
-                emit_ast(&unit.package, &out_dir);
+                emit_hir(&unit.package, &out_dir);
             }
         }
     }
@@ -169,7 +168,7 @@ impl<'a> ErrorReporter<'a> {
     }
 }
 
-fn emit_ast(package: &Package, out_dir: impl AsRef<Path>) {
+fn emit_hir(package: &hir::Package, out_dir: impl AsRef<Path>) {
     let path = out_dir.as_ref().join("ast.txt");
     fs::write(path, format!("{package}")).unwrap();
 }

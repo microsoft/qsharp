@@ -17,7 +17,7 @@ use qir_backend::{
     __quantum__qis__z__body, capture_quantum_state, qubit_is_zero,
     result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
 };
-use qsc_ast::ast::Span;
+use qsc_data_structures::span::Span;
 
 use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
 

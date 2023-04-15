@@ -10,12 +10,13 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+clap = { workspace = true, features = ["derive"] }
+miette = { workspace = true, features = ["fancy"] }
 qsc_ast = { path = "../qsc_ast" }
 qsc_codegen = { path = "../qsc_codegen" }
 qsc_frontend = { path = "../qsc_frontend" }
+qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
-clap = { workspace = true, features = ["derive"] }
-miette = { workspace = true, features = ["fancy"] }
 thiserror = { workspace = true }
 
 [dev-dependencies]

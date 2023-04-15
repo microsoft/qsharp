@@ -6,7 +6,7 @@ use std::{
     iter::Enumerate,
     marker::PhantomData,
     option::Option,
-    slice,
+    slice, vec,
 };
 
 pub struct IndexMap<K, V> {
@@ -68,6 +68,19 @@ impl<K, V> Default for IndexMap<K, V> {
     }
 }
 
+impl<K: From<usize>, V> IntoIterator for IndexMap<K, V> {
+    type Item = (K, V);
+
+    type IntoIter = IntoIter<K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            _keys: PhantomData,
+            base: self.values.into_iter().enumerate(),
+        }
+    }
+}
+
 impl<'a, K: From<usize>, V> IntoIterator for &'a IndexMap<K, V> {
     type Item = (K, &'a V);
 
@@ -78,6 +91,18 @@ impl<'a, K: From<usize>, V> IntoIterator for &'a IndexMap<K, V> {
     }
 }
 
+impl<K: Into<usize>, V> FromIterator<(K, V)> for IndexMap<K, V> {
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        let iter = iter.into_iter();
+        let mut map = Self::new();
+        for (key, value) in iter {
+            map.insert(key, value);
+        }
+
+        map
+    }
+}
+
 pub struct Iter<'a, K, V> {
     _keys: PhantomData<K>,
     base: Enumerate<slice::Iter<'a, Option<V>>>,
@@ -85,6 +110,23 @@ pub struct Iter<'a, K, V> {
 
 impl<'a, K: From<usize>, V> Iterator for Iter<'a, K, V> {
     type Item = (K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let (index, Some(value)) = self.base.next()? {
+                break Some((index.into(), value));
+            }
+        }
+    }
+}
+
+pub struct IntoIter<K, V> {
+    _keys: PhantomData<K>,
+    base: Enumerate<vec::IntoIter<Option<V>>>,
+}
+
+impl<K: From<usize>, V> Iterator for IntoIter<K, V> {
+    type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

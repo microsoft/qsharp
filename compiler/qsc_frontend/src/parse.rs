@@ -17,7 +17,8 @@ mod ty;
 
 use crate::lex::{self, TokenKind};
 use miette::Diagnostic;
-use qsc_ast::ast::{Expr, Item, Namespace, Span, Stmt};
+use qsc_ast::ast::{Expr, Item, Namespace, Stmt};
+use qsc_data_structures::span::Span;
 use scan::Scanner;
 use std::result;
 use thiserror::Error;

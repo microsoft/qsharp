@@ -20,14 +20,15 @@ use output::Receiver;
 use qir_backend::{
     __quantum__rt__initialize, __quantum__rt__qubit_allocate, __quantum__rt__qubit_release,
 };
-use qsc_ast::ast::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
-    NodeId, Pat, PatKind, QubitInit, QubitInitKind, Span, Spec, SpecBody, SpecGen, Stmt, StmtKind,
-    TernOp, UnOp,
-};
+use qsc_data_structures::span::Span;
 use qsc_frontend::{
     compile::{PackageId, PackageStore},
-    resolve::{DefId, PackageSrc, Resolutions},
+    resolve::{Link, Resolutions},
+};
+use qsc_hir::hir::{
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
+    NodeId, Pat, PatKind, QubitInit, QubitInitKind, Spec, SpecBody, SpecGen, Stmt, StmtKind,
+    TernOp, UnOp,
 };
 use qsc_passes::globals::GlobalId;
 use std::{
@@ -221,7 +222,7 @@ pub fn eval_stmt<'a, S: BuildHasher>(
     stmt: &Stmt,
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions,
+    resolutions: &'a Resolutions<NodeId>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
@@ -249,7 +250,7 @@ pub fn eval_expr<'a, S: BuildHasher>(
     expr: &Expr,
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions,
+    resolutions: &'a Resolutions<NodeId>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
@@ -293,7 +294,7 @@ impl Env {
 struct Evaluator<'a, S: BuildHasher> {
     store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions,
+    resolutions: &'a Resolutions<NodeId>,
     package: PackageId,
     env: Env,
     out: Option<&'a mut dyn Receiver>,
@@ -907,8 +908,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self.defid_to_globalid(
-                    self.resolutions
+                let id = self.link_to_global_id(
+                    *self
+                        .resolutions
                         .get(variable.id)
                         .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
                 );
@@ -942,13 +944,13 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     }
 
     fn resolve_binding(&mut self, id: NodeId) -> Value {
-        let id = self
+        let link = self
             .resolutions
             .get(id)
             .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
-        let global_id = self.defid_to_globalid(id);
-        let local = if id.package == PackageSrc::Local {
+        let global_id = self.link_to_global_id(*link);
+        let local = if matches!(link, Link::Internal(_)) {
             self.env
                 .0
                 .iter()
@@ -964,8 +966,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
-                let id = self.defid_to_globalid(
-                    self.resolutions
+                let id = self.link_to_global_id(
+                    *self
+                        .resolutions
                         .get(path.id)
                         .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
                 );
@@ -1005,13 +1008,13 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         }
     }
 
-    fn defid_to_globalid(&self, id: &DefId) -> GlobalId {
-        GlobalId {
-            package: match id.package {
-                PackageSrc::Local => self.package,
-                PackageSrc::Extern(id) => id,
+    fn link_to_global_id(&self, link: Link<NodeId>) -> GlobalId {
+        match link {
+            Link::Internal(node) => GlobalId {
+                package: self.package,
+                node,
             },
-            node: id.node,
+            Link::External(package, node) => GlobalId { package, node },
         }
     }
 }
@@ -1044,10 +1047,8 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Double(v) => Value::Double(*v),
         Lit::Int(v) => Value::Int(*v),
         Lit::Pauli(v) => Value::Pauli(*v),
-        Lit::Result(v) => Value::Result(match v {
-            ast::Result::Zero => false,
-            ast::Result::One => true,
-        }),
+        Lit::Result(hir::Result::Zero) => Value::Result(false),
+        Lit::Result(hir::Result::One) => Value::Result(true),
         Lit::String(v) => Value::String(v.clone()),
     }
 }

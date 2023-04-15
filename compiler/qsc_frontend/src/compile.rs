@@ -6,61 +6,59 @@ mod tests;
 
 use crate::{
     diagnostic::OffsetError,
-    id::Assigner,
+    id::{AstAssigner, HirAssigner},
+    lower::Lowerer,
     parse,
-    resolve::{self, Resolutions},
+    resolve::{self, Link, Resolutions},
     typeck::{self, Tys},
     validate::{self, validate},
 };
 use miette::Diagnostic;
-use qsc_ast::{
-    ast::{Expr, Package, Span},
-    mut_visit::MutVisitor,
-    visit::Visitor,
-};
-use std::fmt::Debug;
+use qsc_ast::{ast, mut_visit::MutVisitor as AstMutVisitor, visit::Visitor as AstVisitor};
+use qsc_data_structures::span::Span;
+use qsc_hir::{hir, visit::Visitor as HirVisitor};
 use std::{
     collections::{hash_map::Iter, HashMap},
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
 };
 use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
 pub struct CompileUnit {
-    pub package: Package,
+    pub package: hir::Package,
     pub context: Context,
 }
 
 #[derive(Debug)]
 pub struct Context {
-    assigner: Assigner,
-    resolutions: Resolutions,
-    tys: Tys,
+    assigner: HirAssigner,
+    resolutions: Resolutions<hir::NodeId>,
+    tys: Tys<hir::NodeId>,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
 
 impl Context {
-    pub fn assigner_mut(&mut self) -> &mut Assigner {
+    pub fn assigner_mut(&mut self) -> &mut HirAssigner {
         &mut self.assigner
     }
 
     #[must_use]
-    pub fn resolutions(&self) -> &Resolutions {
+    pub fn resolutions(&self) -> &Resolutions<hir::NodeId> {
         &self.resolutions
     }
 
-    pub fn resolutions_mut(&mut self) -> &mut Resolutions {
+    pub fn resolutions_mut(&mut self) -> &mut Resolutions<hir::NodeId> {
         &mut self.resolutions
     }
 
     #[must_use]
-    pub fn tys(&self) -> &Tys {
+    pub fn tys(&self) -> &Tys<hir::NodeId> {
         &self.tys
     }
 
-    pub fn tys_mut(&mut self) -> &mut Tys {
+    pub fn tys_mut(&mut self) -> &mut Tys<hir::NodeId> {
         &mut self.tys
     }
 
@@ -128,12 +126,12 @@ impl PackageStore {
     }
 
     #[must_use]
-    pub fn get_entry_expr(&self, id: PackageId) -> Option<&Expr> {
+    pub fn get_entry_expr(&self, id: PackageId) -> Option<&hir::Expr> {
         self.get(id).and_then(|unit| unit.package.entry.as_ref())
     }
 
     #[must_use]
-    pub fn get_resolutions(&self, id: PackageId) -> Option<&Resolutions> {
+    pub fn get_resolutions(&self, id: PackageId) -> Option<&Resolutions<hir::NodeId>> {
         self.get(id).map(|unit| unit.context.resolutions())
     }
 
@@ -154,7 +152,7 @@ impl Display for PackageId {
 
 struct Offsetter(usize);
 
-impl MutVisitor for Offsetter {
+impl AstMutVisitor for Offsetter {
     fn visit_span(&mut self, span: &mut Span) {
         span.lo += self.0;
         span.hi += self.0;
@@ -168,8 +166,8 @@ pub fn compile(
     entry_expr: &str,
 ) -> CompileUnit {
     let (mut package, parse_errors, offsets) = parse_all(sources, entry_expr);
-    let mut assigner = Assigner::new();
-    assigner.visit_package(&mut package);
+    let mut assigner = AstAssigner::new();
+    AstMutVisitor::visit_package(&mut assigner, &mut package);
 
     let dependencies: Vec<_> = dependencies.into_iter().collect();
     let (resolutions, resolve_errors) = resolve_all(store, dependencies.iter().copied(), &package);
@@ -190,10 +188,34 @@ pub fn compile(
             .map(|e| Error(ErrorKind::Validate(e))),
     );
 
+    let mut lowerer = Lowerer::new();
+    let package = lowerer.lower_package(&package);
+
+    let resolutions = resolutions
+        .into_iter()
+        .filter_map(|(id, link)| {
+            let id = lowerer.get_id(id)?;
+            let link = match link {
+                Link::Internal(node) => Link::Internal(
+                    lowerer
+                        .get_id(node)
+                        .expect("lowered node should not resolve to deleted node"),
+                ),
+                Link::External(package, node) => Link::External(package, node),
+            };
+            Some((id, link))
+        })
+        .collect();
+
+    let tys = tys
+        .into_iter()
+        .filter_map(|(id, ty)| lowerer.get_id(id).map(|id| (id, ty)))
+        .collect();
+
     CompileUnit {
         package,
         context: Context {
-            assigner,
+            assigner: lowerer.into_assigner(),
             resolutions,
             tys,
             errors,
@@ -233,7 +255,7 @@ pub fn std() -> CompileUnit {
 fn parse_all(
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     entry_expr: &str,
-) -> (Package, Vec<OffsetError<parse::Error>>, Vec<usize>) {
+) -> (ast::Package, Vec<OffsetError<parse::Error>>, Vec<usize>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     let mut offsets = Vec::new();
@@ -243,7 +265,7 @@ fn parse_all(
         let source = source.as_ref();
         let (source_namespaces, source_errors) = parse::namespaces(source);
         for mut namespace in source_namespaces {
-            Offsetter(offset).visit_namespace(&mut namespace);
+            AstMutVisitor::visit_namespace(&mut Offsetter(offset), &mut namespace);
             namespaces.push(namespace);
         }
 
@@ -256,53 +278,55 @@ fn parse_all(
         None
     } else {
         let (mut entry, entry_errors) = parse::expr(entry_expr);
-        Offsetter(offset).visit_expr(&mut entry);
+        AstMutVisitor::visit_expr(&mut Offsetter(offset), &mut entry);
         append_errors(&mut errors, offset, entry_errors);
         offsets.push(offset);
         Some(entry)
     };
 
-    (Package::new(namespaces, entry), errors, offsets)
+    (ast::Package::new(namespaces, entry), errors, offsets)
 }
 
 fn resolve_all(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
-    package: &Package,
-) -> (Resolutions, Vec<resolve::Error>) {
+    package: &ast::Package,
+) -> (Resolutions<ast::NodeId>, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    globals.visit_package(package);
+    AstVisitor::visit_package(&mut globals, package);
+
     for dependency in dependencies {
         let unit = store
             .get(dependency)
             .expect("dependency should be in package store before compilation");
         globals.set_package(dependency);
-        globals.visit_package(&unit.package);
+        HirVisitor::visit_package(&mut globals, &unit.package);
     }
 
     let mut resolver = globals.into_resolver();
-    resolver.visit_package(package);
+    AstVisitor::visit_package(&mut resolver, package);
     resolver.into_resolutions()
 }
 
 fn typeck_all(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
-    package: &Package,
-    resolutions: &Resolutions,
-) -> (Tys, Vec<typeck::Error>) {
+    package: &ast::Package,
+    resolutions: &Resolutions<ast::NodeId>,
+) -> (Tys<ast::NodeId>, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new(resolutions);
-    globals.visit_package(package);
+    AstVisitor::visit_package(&mut globals, package);
+
     for dependency in dependencies {
         let unit = store
             .get(dependency)
             .expect("dependency should be added to package store before compilation");
         globals.set_package(dependency);
-        globals.visit_package(&unit.package);
+        HirVisitor::visit_package(&mut globals, &unit.package);
     }
 
     let mut checker = globals.into_checker();
-    checker.visit_package(package);
+    AstVisitor::visit_package(&mut checker, package);
     checker.into_tys()
 }
 

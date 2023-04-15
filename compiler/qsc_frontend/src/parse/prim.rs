@@ -6,7 +6,8 @@ mod tests;
 
 use super::{keyword::Keyword, scan::Scanner, ty::ty, Error, Parser, Result};
 use crate::lex::{Delim, TokenKind};
-use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, Span};
+use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
+use qsc_data_structures::span::Span;
 use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

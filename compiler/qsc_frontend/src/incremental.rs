@@ -3,16 +3,19 @@
 
 use crate::{
     compile::{PackageId, PackageStore},
-    id::Assigner,
+    id::AstAssigner,
+    lower::Lowerer,
     parse,
-    resolve::{self, DefId, GlobalTable, Resolutions, Resolver},
+    resolve::{self, GlobalTable, Link, Resolutions, Resolver},
 };
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{CallableDecl, ItemKind, Stmt},
-    mut_visit::MutVisitor,
-    visit::Visitor,
+    ast::{ItemKind, NodeId},
+    mut_visit::MutVisitor as AstMutVisitor,
+    visit::Visitor as AstVisitor,
 };
+use qsc_data_structures::index_map::IndexMap;
+use qsc_hir::{hir, visit::Visitor as HirVisitor};
 use std::collections::HashMap;
 
 use thiserror::Error;
@@ -31,38 +34,42 @@ enum ErrorKind {
 }
 
 pub struct Compiler<'a> {
-    assigner: Assigner,
+    assigner: AstAssigner,
     resolver: Resolver<'a>,
-    fragments_scope: HashMap<&'a str, DefId>,
+    fragments_scope: HashMap<&'a str, NodeId>,
+    lowerer: Lowerer,
+    resolutions: Resolutions<hir::NodeId>,
 }
 
 impl<'a> Compiler<'a> {
     pub fn new(store: &'a PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut globals = GlobalTable::new();
         for dependency in dependencies {
-            globals.set_package(dependency);
             let unit = store
                 .get(dependency)
                 .expect("dependency should be added to package store before compilation");
-            globals.visit_package(&unit.package);
+            globals.set_package(dependency);
+            HirVisitor::visit_package(&mut globals, &unit.package);
         }
 
         Self {
-            assigner: Assigner::new(),
+            assigner: AstAssigner::new(),
             resolver: globals.into_resolver(),
             fragments_scope: HashMap::new(),
+            lowerer: Lowerer::new(),
+            resolutions: IndexMap::new(),
         }
     }
 
     #[must_use]
-    pub fn resolutions(&self) -> &Resolutions {
-        self.resolver.resolutions()
+    pub fn resolutions(&self) -> &Resolutions<hir::NodeId> {
+        &self.resolutions
     }
 
     /// Compile a single string as either a callable declaration or a statement into a `Fragment`.
     /// # Errors
     /// This will Err if the fragment cannot be compiled due to parsing or symbol resolution errors.
-    pub fn compile_fragment(&mut self, source: impl AsRef<str>) -> Vec<Fragment<'static>> {
+    pub fn compile_fragment(&mut self, source: impl AsRef<str>) -> Vec<Fragment> {
         self.resolver.reset_errors();
         let (item, errors) = parse::item(source.as_ref());
 
@@ -74,7 +81,7 @@ impl<'a> Compiler<'a> {
                 self.resolver
                     .with_scope(&mut self.fragments_scope, |resolver| {
                         resolver.add_global_callable(decl);
-                        resolver.visit_callable_decl(decl);
+                        AstVisitor::visit_callable_decl(resolver, decl);
                         errors.extend(
                             resolver
                                 .errors()
@@ -82,6 +89,9 @@ impl<'a> Compiler<'a> {
                                 .map(|e| Error(ErrorKind::Resolve(e.clone()))),
                         );
                     });
+
+                let decl = self.lowerer.lower_callable_decl(decl);
+                self.lower_resolutions();
                 if errors.is_empty() {
                     vec![Fragment::Callable(decl)]
                 } else {
@@ -95,6 +105,7 @@ impl<'a> Compiler<'a> {
                     parse_errors.extend(errors.iter().map(|e| Error(ErrorKind::Parse(*e))));
                     return vec![Fragment::Error(parse_errors)];
                 }
+
                 let mut fragments = vec![];
                 for mut stmt in stmts {
                     self.assigner.visit_stmt(&mut stmt);
@@ -110,21 +121,42 @@ impl<'a> Compiler<'a> {
                                     .map(|e| Error(ErrorKind::Resolve(e.clone()))),
                             );
                         });
+                    let stmt = self.lowerer.lower_stmt(stmt);
+                    self.lower_resolutions();
+
                     if !errors.is_empty() {
                         // bail out on first error
                         fragments.push(Fragment::Error(errors));
                         return fragments;
                     }
+
                     fragments.push(Fragment::Stmt(stmt));
                 }
+
                 fragments
+            }
+        }
+    }
+
+    fn lower_resolutions(&mut self) {
+        for (id, link) in self.resolver.drain() {
+            if let Some(id) = self.lowerer.get_id(id) {
+                let link = match link {
+                    Link::Internal(node) => Link::Internal(
+                        self.lowerer
+                            .get_id(node)
+                            .expect("lowered node should not resolve to deleted node"),
+                    ),
+                    Link::External(package, node) => Link::External(package, node),
+                };
+                self.resolutions.insert(id, link);
             }
         }
     }
 }
 
-pub enum Fragment<'a> {
-    Stmt(&'a Stmt),
-    Callable(&'a CallableDecl),
+pub enum Fragment {
+    Stmt(hir::Stmt),
+    Callable(hir::CallableDecl),
     Error(Vec<Error>),
 }
