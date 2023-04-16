@@ -323,7 +323,7 @@ impl<'a> hir_visit::Visitor<'a> for GlobalTable<'a> {
             .package
             .expect("HIR item should only be in package dependency");
 
-        if item.meta.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
+        if item.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
             return;
         }
 

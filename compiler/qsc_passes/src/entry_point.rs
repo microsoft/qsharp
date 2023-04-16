@@ -83,12 +83,7 @@ struct EntryPointVisitor<'a, 'b> {
 impl<'a, 'b> Visitor<'b> for EntryPointVisitor<'a, 'b> {
     fn visit_item(&mut self, item: &'b Item) {
         if let ItemKind::Callable(decl) = &item.kind {
-            if item
-                .meta
-                .attrs
-                .iter()
-                .any(|attr| attr.name.name == "EntryPoint")
-            {
+            if item.attrs.iter().any(|attr| attr.name.name == "EntryPoint") {
                 self.entry_points.push(decl);
             }
         }

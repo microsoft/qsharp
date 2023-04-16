@@ -155,8 +155,10 @@ pub struct Item {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// The item metadata.
-    pub meta: ItemMeta,
+    /// The attributes.
+    pub attrs: Vec<Attr>,
+    /// The visibility.
+    pub visibility: Option<Visibility>,
     /// The item kind.
     pub kind: ItemKind,
 }
@@ -166,11 +168,11 @@ impl Display for Item {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
         indent = set_indentation(indent, 1);
-        if !self.meta.attrs.is_empty() || self.meta.visibility.is_some() {
-            write!(indent, "\nmeta:")?;
-            indent = set_indentation(indent, 2);
-            write!(indent, "{}", self.meta)?;
-            indent = set_indentation(indent, 1);
+        for attr in &self.attrs {
+            write!(indent, "\n{attr}")?;
+        }
+        if let Some(visibility) = &self.visibility {
+            write!(indent, "\n{visibility}")?;
         }
         write!(indent, "\n{}", self.kind)?;
         Ok(())
@@ -201,27 +203,6 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
-        }
-        Ok(())
-    }
-}
-
-/// Metadata for an item.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ItemMeta {
-    /// The attributes.
-    pub attrs: Vec<Attr>,
-    /// The visibility.
-    pub visibility: Option<Visibility>,
-}
-
-impl Display for ItemMeta {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        for a in &self.attrs {
-            write!(f, "\n{a}")?;
-        }
-        if let Some(v) = &self.visibility {
-            write!(f, "\n{v}")?;
         }
         Ok(())
     }

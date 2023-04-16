@@ -4,7 +4,7 @@
 use crate::{
     hir::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
-        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef,
+        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -54,15 +54,16 @@ impl MutVisitor for Assigner {
 
     fn visit_item(&mut self, item: &mut Item) {
         self.assign(&mut item.id);
-        if let Some(visibility) = &mut item.meta.visibility {
-            self.assign(&mut visibility.id);
-        }
         mut_visit::walk_item(self, item);
     }
 
     fn visit_attr(&mut self, attr: &mut Attr) {
         self.assign(&mut attr.id);
         mut_visit::walk_attr(self, attr);
+    }
+
+    fn visit_visibility(&mut self, visibility: &mut Visibility) {
+        self.assign(&mut visibility.id);
     }
 
     fn visit_ty_def(&mut self, def: &mut TyDef) {

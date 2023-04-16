@@ -49,13 +49,8 @@ impl Lowerer {
 
     fn lower_item(&mut self, item: &ast::Item) -> hir::Item {
         let id = self.lower_id(item.id);
-        let attrs = item.meta.attrs.iter().map(|a| self.lower_attr(a)).collect();
-        let visibility = item
-            .meta
-            .visibility
-            .as_ref()
-            .map(|v| self.lower_visibility(v));
-
+        let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
+        let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
         let kind = match &item.kind {
             ast::ItemKind::Callable(decl) => {
                 hir::ItemKind::Callable(self.lower_callable_decl(decl))
@@ -73,7 +68,8 @@ impl Lowerer {
         hir::Item {
             id,
             span: item.span,
-            meta: hir::ItemMeta { attrs, visibility },
+            attrs,
+            visibility,
             kind,
         }
     }
