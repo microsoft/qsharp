@@ -6,7 +6,6 @@ mod tests;
 
 use crate::{
     diagnostic::OffsetError,
-    id::{AstAssigner, HirAssigner},
     lower::Lowerer,
     parse,
     resolve::{self, Link, Resolutions},
@@ -14,9 +13,12 @@ use crate::{
     validate::{self, validate},
 };
 use miette::Diagnostic;
-use qsc_ast::{ast, mut_visit::MutVisitor as AstMutVisitor, visit::Visitor as AstVisitor};
+use qsc_ast::{
+    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor as AstMutVisitor,
+    visit::Visitor as AstVisitor,
+};
 use qsc_data_structures::span::Span;
-use qsc_hir::{hir, visit::Visitor as HirVisitor};
+use qsc_hir::{assigner::Assigner as HirAssigner, hir, visit::Visitor as HirVisitor};
 use std::{
     collections::{hash_map::Iter, HashMap},
     fmt::{self, Debug, Display, Formatter},

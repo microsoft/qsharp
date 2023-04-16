@@ -1,20 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::id::HirAssigner;
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::hir;
+use qsc_hir::{assigner::Assigner, hir};
 
 pub(super) struct Lowerer {
-    assigner: HirAssigner,
+    assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
 }
 
 impl Lowerer {
     pub(super) fn new() -> Self {
         Self {
-            assigner: HirAssigner::new(),
+            assigner: Assigner::new(),
             nodes: IndexMap::new(),
         }
     }
@@ -23,7 +22,7 @@ impl Lowerer {
         self.nodes.get(id).copied()
     }
 
-    pub(super) fn into_assigner(self) -> HirAssigner {
+    pub(super) fn into_assigner(self) -> Assigner {
         self.assigner
     }
 

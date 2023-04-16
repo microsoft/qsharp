@@ -3,13 +3,13 @@
 
 use crate::{
     compile::{PackageId, PackageStore},
-    id::AstAssigner,
     lower::Lowerer,
     parse,
     resolve::{self, GlobalTable, Link, Resolutions, Resolver},
 };
 use miette::Diagnostic;
 use qsc_ast::{
+    assigner::Assigner,
     ast::{ItemKind, NodeId},
     mut_visit::MutVisitor as AstMutVisitor,
     visit::Visitor as AstVisitor,
@@ -34,7 +34,7 @@ enum ErrorKind {
 }
 
 pub struct Compiler<'a> {
-    assigner: AstAssigner,
+    assigner: Assigner,
     resolver: Resolver<'a>,
     fragments_scope: HashMap<&'a str, NodeId>,
     lowerer: Lowerer,
@@ -53,7 +53,7 @@ impl<'a> Compiler<'a> {
         }
 
         Self {
-            assigner: AstAssigner::new(),
+            assigner: Assigner::new(),
             resolver: globals.into_resolver(),
             fragments_scope: HashMap::new(),
             lowerer: Lowerer::new(),

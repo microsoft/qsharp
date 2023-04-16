@@ -2,10 +2,11 @@
 // Licensed under the MIT License.
 
 use super::{GlobalTable, Link, Resolutions};
-use crate::{id::AstAssigner, parse};
+use crate::parse;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
+    assigner::Assigner,
     ast::{Ident, NodeId, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
@@ -61,7 +62,7 @@ fn resolve_names(input: &str) -> String {
     let (namespaces, errors) = parse::namespaces(input);
     assert!(errors.is_empty(), "Program has syntax errors: {errors:#?}");
     let mut package = Package::new(namespaces, None);
-    let mut assigner = AstAssigner::new();
+    let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let mut globals = GlobalTable::new();
     globals.visit_package(&package);
