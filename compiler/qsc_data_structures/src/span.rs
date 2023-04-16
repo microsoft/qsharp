@@ -7,13 +7,12 @@ use std::{
     ops::{Bound, Index, RangeBounds},
 };
 
-/// A region between two source code positions. Spans are the half-open interval `[lo, hi)`. The
-/// offsets are absolute within an AST, assuming that each file has its own offset.
+/// A region between two offsets in an array. Spans are the half-open interval `[lo, hi)`.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Span {
-    /// The offset of the first byte.
+    /// The smallest offset contained in the span.
     pub lo: usize,
-    /// The offset immediately following the last byte.
+    /// The next offset after the largest offset contained in the span.
     pub hi: usize,
 }
 
