@@ -716,7 +716,6 @@ dependencies = [
  "clap 4.1.8",
  "criterion",
  "miette",
- "qsc_ast",
  "qsc_codegen",
  "qsc_frontend",
  "qsc_hir",

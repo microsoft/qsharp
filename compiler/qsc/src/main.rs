@@ -3,23 +3,21 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
-use std::{
-    path::{Path, PathBuf},
-    process::ExitCode,
-};
-
 use clap::{error::ErrorKind, Parser, ValueEnum};
-
-use miette::{IntoDiagnostic, Result};
-
-use miette::{Diagnostic, NamedSource, Report};
+use miette::{Diagnostic, IntoDiagnostic, NamedSource, Report, Result};
 use qsc_frontend::{
     compile::{self, compile, Context, PackageStore, SourceIndex},
     diagnostic::OffsetError,
 };
-use qsc_hir::hir;
+use qsc_hir::hir::Package;
 use qsc_passes::entry_point::extract_entry;
-use std::{fs, io, string::String, sync::Arc};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+    process::ExitCode,
+    string::String,
+    sync::Arc,
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Emit {
@@ -168,7 +166,7 @@ impl<'a> ErrorReporter<'a> {
     }
 }
 
-fn emit_hir(package: &hir::Package, out_dir: impl AsRef<Path>) {
+fn emit_hir(package: &Package, out_dir: impl AsRef<Path>) {
     let path = out_dir.as_ref().join("ast.txt");
     fs::write(path, format!("{package}")).unwrap();
 }
