@@ -69,6 +69,11 @@ pub(super) fn expr_stmt(s: &mut Scanner) -> Result<Expr> {
     expr_op(s, OpContext::Stmt)
 }
 
+/// Returns true if the expression kind is statement-final. When a statement-final expression occurs
+/// at the top level of an expression statement, it indicates the end of the statement, and any
+/// operators following it will not be parsed as part of the expression. Statement-final expressions
+/// in a top level position also do not require a semicolon when they are followed by another
+/// statement.
 pub(super) fn is_stmt_final(kind: &ExprKind) -> bool {
     matches!(
         kind,
