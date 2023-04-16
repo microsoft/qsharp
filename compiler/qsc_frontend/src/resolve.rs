@@ -17,7 +17,7 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{hir, visit as hir_visit};
 use std::{
     collections::{HashMap, HashSet},
-    mem,
+    mem, vec,
 };
 use thiserror::Error;
 
@@ -60,16 +60,12 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn drain(&mut self) -> impl Iterator<Item = (NodeId, Link<NodeId>)> + '_ {
+    pub(super) fn drain_resolutions(&mut self) -> vec::Drain<(NodeId, Link<NodeId>)> {
         self.resolutions.drain(..)
     }
 
-    pub(super) fn errors(&self) -> &[Error] {
-        &self.errors
-    }
-
-    pub(super) fn reset_errors(&mut self) {
-        self.errors.clear();
+    pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
+        self.errors.drain(..)
     }
 
     pub(super) fn add_global_callable(&mut self, decl: &'a CallableDecl) {
