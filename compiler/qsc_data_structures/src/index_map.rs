@@ -95,6 +95,8 @@ impl<K: Into<usize>, V> FromIterator<(K, V)> for IndexMap<K, V> {
     fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
         let iter = iter.into_iter();
         let mut map = Self::new();
+        let (lo, hi) = iter.size_hint();
+        map.values.reserve(hi.unwrap_or(lo));
         for (key, value) in iter {
             map.insert(key, value);
         }
