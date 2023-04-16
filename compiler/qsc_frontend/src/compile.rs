@@ -14,8 +14,7 @@ use crate::{
 };
 use miette::Diagnostic;
 use qsc_ast::{
-    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor as AstMutVisitor,
-    visit::Visitor as AstVisitor,
+    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor as AstVisitor,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{assigner::Assigner as HirAssigner, hir, visit::Visitor as HirVisitor};
@@ -154,7 +153,7 @@ impl Display for PackageId {
 
 struct Offsetter(usize);
 
-impl AstMutVisitor for Offsetter {
+impl MutVisitor for Offsetter {
     fn visit_span(&mut self, span: &mut Span) {
         span.lo += self.0;
         span.hi += self.0;
@@ -169,7 +168,7 @@ pub fn compile(
 ) -> CompileUnit {
     let (mut package, parse_errors, offsets) = parse_all(sources, entry_expr);
     let mut assigner = AstAssigner::new();
-    AstMutVisitor::visit_package(&mut assigner, &mut package);
+    assigner.visit_package(&mut package);
 
     let dependencies: Vec<_> = dependencies.into_iter().collect();
     let (resolutions, resolve_errors) = resolve_all(store, dependencies.iter().copied(), &package);
@@ -192,26 +191,13 @@ pub fn compile(
 
     let mut lowerer = Lowerer::new();
     let package = lowerer.lower_package(&package);
-
     let resolutions = resolutions
         .into_iter()
-        .filter_map(|(id, link)| {
-            let id = lowerer.get_id(id)?;
-            let link = match link {
-                Link::Internal(node) => Link::Internal(
-                    lowerer
-                        .get_id(node)
-                        .expect("lowered node should not resolve to deleted node"),
-                ),
-                Link::External(package, node) => Link::External(package, node),
-            };
-            Some((id, link))
-        })
+        .filter_map(|(id, link)| lower_link(&lowerer, id, link))
         .collect();
-
     let tys = tys
         .into_iter()
-        .filter_map(|(id, ty)| lowerer.get_id(id).map(|id| (id, ty)))
+        .filter_map(|(ast_id, ty)| lowerer.get_id(ast_id).map(|hir_id| (hir_id, ty)))
         .collect();
 
     CompileUnit {
@@ -267,7 +253,7 @@ fn parse_all(
         let source = source.as_ref();
         let (source_namespaces, source_errors) = parse::namespaces(source);
         for mut namespace in source_namespaces {
-            AstMutVisitor::visit_namespace(&mut Offsetter(offset), &mut namespace);
+            Offsetter(offset).visit_namespace(&mut namespace);
             namespaces.push(namespace);
         }
 
@@ -280,7 +266,7 @@ fn parse_all(
         None
     } else {
         let (mut entry, entry_errors) = parse::expr(entry_expr);
-        AstMutVisitor::visit_expr(&mut Offsetter(offset), &mut entry);
+        Offsetter(offset).visit_expr(&mut entry);
         append_errors(&mut errors, offset, entry_errors);
         offsets.push(offset);
         Some(entry)
@@ -341,4 +327,21 @@ fn append_errors(
     for error in other {
         errors.push(OffsetError::new(error, offset));
     }
+}
+
+fn lower_link(
+    lowerer: &Lowerer,
+    id: ast::NodeId,
+    link: Link<ast::NodeId>,
+) -> Option<(hir::NodeId, Link<hir::NodeId>)> {
+    let id = lowerer.get_id(id)?;
+    let link = match link {
+        Link::Internal(node) => Link::Internal(
+            lowerer
+                .get_id(node)
+                .expect("lowered node should not resolve to deleted node"),
+        ),
+        Link::External(package, node) => Link::External(package, node),
+    };
+    Some((id, link))
 }

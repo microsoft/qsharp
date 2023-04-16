@@ -18,7 +18,7 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn get_id(&mut self, id: ast::NodeId) -> Option<hir::NodeId> {
+    pub(super) fn get_id(&self, id: ast::NodeId) -> Option<hir::NodeId> {
         self.nodes.get(id).copied()
     }
 
