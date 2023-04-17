@@ -38,6 +38,10 @@ pub enum Error {
 pub fn generate_specs(unit: &mut CompileUnit) -> Vec<Error> {
     generate_placeholders(unit);
 
+    // TODO: Generating specialization violates the invariant of node ids being unique because of how
+    // it depends on cloning parts of the tree. We should update this when HIR supports the notion of
+    // generating new, properly mapped node ids such the uniqueness invariant is preserved without the burden
+    // of keeping out-of-band type and symbol resolution context updated.
     generate_spec_impls(unit)
 }
 
