@@ -759,6 +759,7 @@ dependencies = [
  "qsc_ast",
  "qsc_frontend",
  "qsc_passes",
+ "rand",
  "thiserror",
 ]
 

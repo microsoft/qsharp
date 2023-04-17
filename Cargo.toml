@@ -38,6 +38,7 @@ serde = "1.0"
 serde-wasm-bindgen = "0.5"
 wasm-bindgen = "0.2.84"
 ouroboros = "0.15.6"
+rand = "0.8.5"
 
 [profile.release]
 debug = 1
