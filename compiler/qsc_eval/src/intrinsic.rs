@@ -14,12 +14,17 @@ use qir_backend::{
     __quantum__qis__rz__body, __quantum__qis__rzz__body, __quantum__qis__s__adj,
     __quantum__qis__s__body, __quantum__qis__swap__body, __quantum__qis__t__adj,
     __quantum__qis__t__body, __quantum__qis__x__body, __quantum__qis__y__body,
-    __quantum__qis__z__body, capture_quantum_state, qubit_is_zero,
+    __quantum__qis__z__body, __quantum__rt__qubit_allocate, __quantum__rt__qubit_release,
+    capture_quantum_state, qubit_is_zero,
     result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
 };
 use qsc_ast::ast::Span;
 
-use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
+use crate::{
+    output::Receiver,
+    val::{Qubit, Value},
+    Error, Reason, WithSpan,
+};
 
 pub(crate) fn invoke_intrinsic(
     name: &str,
@@ -121,6 +126,16 @@ pub(crate) fn invoke_intrinsic(
             "Tanh" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
                 ControlFlow::Continue(Value::Double(val.tanh()))
+            }
+
+            "__quantum__rt__qubit_allocate" => {
+                let qubit = Qubit(__quantum__rt__qubit_allocate());
+                ControlFlow::Continue(Value::Qubit(qubit))
+            }
+
+            "__quantum__rt__qubit_release" => {
+                __quantum__rt__qubit_release(args.try_into().with_span(args_span)?);
+                ControlFlow::Continue(Value::UNIT)
             }
 
             _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
