@@ -2290,7 +2290,8 @@ fn check_generated_ctladj_distrib_expr() {
                     body intrinsic;
                 }
                 operation A() : Unit is Ctl + Adj {
-                    body ... {}
+                    body ... { fail "Shouldn't get here"; }
+                    adjoint self;
                     controlled (ctls, ...) {
                         if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";

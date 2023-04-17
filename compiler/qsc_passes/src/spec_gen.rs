@@ -21,7 +21,7 @@ use qsc_hir::{
     },
     mut_visit::MutVisitor,
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, option::Option};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -86,7 +86,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
                 CallableBody::Specs(spec_decl) => spec_decl.clone(),
             };
 
-            if is_adj && !spec_decl.iter().any(|s| s.spec == Spec::Adj) {
+            if is_adj && spec_decl.iter().all(|s| s.spec != Spec::Adj) {
                 spec_decl.push(SpecDecl {
                     id: self.context.assigner_mut().next_id(),
                     span: decl.span,
@@ -95,7 +95,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
                 });
             }
 
-            if is_ctl && !spec_decl.iter().any(|s| s.spec == Spec::Ctl) {
+            if is_ctl && spec_decl.iter().all(|s| s.spec != Spec::Ctl) {
                 spec_decl.push(SpecDecl {
                     id: self.context.assigner_mut().next_id(),
                     span: decl.span,
@@ -104,7 +104,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
                 });
             }
 
-            if is_ctladj && !spec_decl.iter().any(|s| s.spec == Spec::CtlAdj) {
+            if is_ctladj && spec_decl.iter().all(|s| s.spec != Spec::CtlAdj) {
                 let gen = if is_self_adjoint(&spec_decl) {
                     SpecGen::Slf
                 } else {
@@ -146,11 +146,9 @@ fn collect_functors(func_kind: &FunctorExprKind, set: &mut HashSet<Functor>) {
 }
 
 fn is_self_adjoint(spec_decl: &[SpecDecl]) -> bool {
-    if let Some(adj_spec) = spec_decl.iter().find(|s| s.spec == Spec::Adj) {
-        matches!(adj_spec.body, SpecBody::Gen(SpecGen::Slf))
-    } else {
-        false
-    }
+    spec_decl
+        .iter()
+        .any(|s| s.spec == Spec::Adj && s.body == SpecBody::Gen(SpecGen::Slf))
 }
 
 fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
@@ -195,6 +193,14 @@ impl<'a> SpecImplPass<'a> {
             },
         };
 
+        // Add both the Ident for the controls array and the Path to the resolutions.
+        self.context
+            .resolutions_mut()
+            .insert(ctls.name.id, Res::Internal(ctls.name.id));
+        self.context
+            .resolutions_mut()
+            .insert(ctls.id, Res::Internal(ctls.name.id));
+
         // Clone the reference block and use the pass to update the calls inside.
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
@@ -205,14 +211,6 @@ impl<'a> SpecImplPass<'a> {
         distrib.visit_block(&mut ctl_block);
         self.errors
             .extend(distrib.errors.into_iter().map(Error::CtlGen));
-
-        // Add both the Ident for the controls array and the Path to the resolutions.
-        self.context
-            .resolutions_mut()
-            .insert(ctls.name.id, Res::Internal(ctls.name.id));
-        self.context
-            .resolutions_mut()
-            .insert(ctls.id, Res::Internal(ctls.name.id));
 
         // Update the specialization body to reflect the generated block.
         spec_decl.body = SpecBody::Impl(
@@ -239,50 +237,52 @@ impl<'a> SpecImplPass<'a> {
 
 impl<'a> MutVisitor for SpecImplPass<'a> {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
-        if decl.functors.is_some() {
-            if let CallableBody::Specs(spec_decls) = &mut decl.body {
-                let (mut body, mut adj, mut ctl, mut ctladj) = (None, None, None, None);
-                for spec_decl in spec_decls.drain(0..) {
-                    match spec_decl.spec {
-                        Spec::Body => body = Some(spec_decl),
-                        Spec::Adj => adj = Some(spec_decl),
-                        Spec::Ctl => ctl = Some(spec_decl),
-                        Spec::CtlAdj => ctladj = Some(spec_decl),
-                    }
+        if let CallableBody::Specs(spec_decls) = &mut decl.body {
+            let (mut body, mut adj, mut ctl, mut ctladj) = (None, None, None, None);
+            for spec_decl in spec_decls.drain(0..) {
+                match spec_decl.spec {
+                    Spec::Body => body = Some(spec_decl),
+                    Spec::Adj => adj = Some(spec_decl),
+                    Spec::Ctl => ctl = Some(spec_decl),
+                    Spec::CtlAdj => ctladj = Some(spec_decl),
                 }
+            }
 
-                let Some(body) = body else {
+            let Some(body) = body else {
                     self.errors.push(Error::MissingBody(decl.span));
                     return;
                 };
-                let SpecBody::Impl(_, body_block) = &body.body else {
-                    self.errors.push(Error::MissingBody(body.span));
+            let SpecBody::Impl(_, body_block) = &body.body else {
+                    if body.body == SpecBody::Gen(SpecGen::Intrinsic) && [adj, ctl, ctladj].iter().any(Option::is_some) {
+                        self.errors.push(Error::MissingBody(body.span));
+                    } else {
+                        spec_decls.push(body);
+                    }
                     return;
                 };
 
-                if let Some(ctl) = ctl.as_mut() {
-                    if matches!(ctl.body, SpecBody::Gen(SpecGen::Distribute))
-                        || matches!(ctl.body, SpecBody::Gen(SpecGen::Auto))
-                    {
-                        self.ctl_distrib(ctl, body_block);
-                    }
-                };
+            if let Some(ctl) = ctl.as_mut() {
+                if ctl.body == SpecBody::Gen(SpecGen::Distribute)
+                    || ctl.body == SpecBody::Gen(SpecGen::Auto)
+                {
+                    self.ctl_distrib(ctl, body_block);
+                }
+            };
 
-                if let (Some(ctladj), Some(adj)) = (ctladj.as_mut(), &adj) {
-                    if matches!(ctladj.body, SpecBody::Gen(SpecGen::Distribute))
-                        || matches!(ctladj.body, SpecBody::Gen(SpecGen::Auto))
-                    {
-                        if let SpecBody::Impl(_, adj_block) = &adj.body {
-                            self.ctl_distrib(ctladj, adj_block);
-                        }
+            if let (Some(ctladj), Some(adj)) = (ctladj.as_mut(), &adj) {
+                if ctladj.body == SpecBody::Gen(SpecGen::Distribute)
+                    || ctladj.body == SpecBody::Gen(SpecGen::Auto)
+                {
+                    if let SpecBody::Impl(_, adj_block) = &adj.body {
+                        self.ctl_distrib(ctladj, adj_block);
                     }
-                };
+                }
+            };
 
-                *spec_decls = vec![body];
-                adj.into_iter().for_each(|spec| spec_decls.push(spec));
-                ctl.into_iter().for_each(|spec| spec_decls.push(spec));
-                ctladj.into_iter().for_each(|spec| spec_decls.push(spec));
-            }
+            *spec_decls = vec![body];
+            adj.into_iter().for_each(|spec| spec_decls.push(spec));
+            ctl.into_iter().for_each(|spec| spec_decls.push(spec));
+            ctladj.into_iter().for_each(|spec| spec_decls.push(spec));
         }
     }
 }
