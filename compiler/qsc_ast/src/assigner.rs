@@ -62,8 +62,8 @@ impl MutVisitor for Assigner {
         mut_visit::walk_attr(self, attr);
     }
 
-    fn visit_visibility(&mut self, visibilty: &mut Visibility) {
-        self.assign(&mut visibilty.id);
+    fn visit_visibility(&mut self, visibility: &mut Visibility) {
+        self.assign(&mut visibility.id);
     }
 
     fn visit_ty_def(&mut self, def: &mut TyDef) {
