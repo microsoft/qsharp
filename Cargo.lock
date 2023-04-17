@@ -818,6 +818,7 @@ dependencies = [
  "once_cell",
  "qsc_eval",
  "qsc_frontend",
+ "qsc_hir",
  "qsc_passes",
  "serde",
  "serde-wasm-bindgen",

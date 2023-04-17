@@ -4,7 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compile::PackageId;
 use miette::Diagnostic;
 use qsc_ast::{
     ast,
@@ -12,7 +11,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
-    hir,
+    hir::{self, PackageId, Res},
     visit::{self as hir_visit, Visitor as HirVisitor},
 };
 use std::{
@@ -29,14 +28,6 @@ const PRELUDE: &[&str] = &[
 
 pub type Resolutions<Id> = IndexMap<Id, Res<Id>>;
 
-/// A resolution. This connects a usage of a name with the declaration of that name by uniquely
-/// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Res<Id> {
-    Internal(Id),
-    External(PackageId, hir::NodeId),
-}
-
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
@@ -52,7 +43,7 @@ pub(super) enum Error {
 }
 
 pub(super) struct Resolver<'a> {
-    resolutions: Vec<(ast::NodeId, Res<ast::NodeId>)>,
+    resolutions: Resolutions<ast::NodeId>,
     tys: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     terms: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     opens: HashMap<&'a str, HashMap<&'a str, Span>>,
@@ -62,8 +53,8 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn drain_resolutions(&mut self) -> vec::Drain<(ast::NodeId, Res<ast::NodeId>)> {
-        self.resolutions.drain(..)
+    pub(super) fn resolutions(&self) -> &Resolutions<ast::NodeId> {
+        &self.resolutions
     }
 
     pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
@@ -72,7 +63,7 @@ impl<'a> Resolver<'a> {
 
     pub(super) fn add_global_callable(&mut self, decl: &'a ast::CallableDecl) {
         let res = Res::Internal(decl.name.id);
-        self.resolutions.push((decl.name.id, res));
+        self.resolutions.insert(decl.name.id, res);
         self.terms
             .entry(self.namespace)
             .or_default()
@@ -80,19 +71,19 @@ impl<'a> Resolver<'a> {
     }
 
     pub(super) fn into_resolutions(self) -> (Resolutions<ast::NodeId>, Vec<Error>) {
-        (self.resolutions.into_iter().collect(), self.errors)
+        (self.resolutions, self.errors)
     }
 
     fn resolve_ty(&mut self, path: &ast::Path) {
         match resolve(&self.tys, &self.opens, self.namespace, &[], path) {
-            Ok(id) => self.resolutions.push((path.id, id)),
+            Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
 
     fn resolve_term(&mut self, path: &ast::Path) {
         match resolve(&self.terms, &self.opens, self.namespace, &self.locals, path) {
-            Ok(id) => self.resolutions.push((path.id, id)),
+            Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
@@ -125,7 +116,7 @@ impl<'a> Resolver<'a> {
                     .locals
                     .last_mut()
                     .expect("binding should have environment");
-                self.resolutions.push((name.id, Res::Internal(name.id)));
+                self.resolutions.insert(name.id, Res::Internal(name.id));
                 env.insert(name.name.as_str(), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
@@ -231,7 +222,7 @@ impl<'a> AstVisitor<'a> for Resolver<'a> {
 }
 
 pub(super) struct GlobalTable<'a> {
-    resolutions: Vec<(ast::NodeId, Res<ast::NodeId>)>,
+    resolutions: Resolutions<ast::NodeId>,
     tys: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     terms: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     package: Option<PackageId>,
@@ -241,7 +232,7 @@ pub(super) struct GlobalTable<'a> {
 impl<'a> GlobalTable<'a> {
     pub(super) fn new() -> Self {
         Self {
-            resolutions: Vec::new(),
+            resolutions: Resolutions::new(),
             tys: HashMap::new(),
             terms: HashMap::new(),
             package: None,
@@ -282,7 +273,7 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
         match &item.kind {
             ast::ItemKind::Callable(decl) => {
                 let res = Res::Internal(decl.name.id);
-                self.resolutions.push((decl.name.id, res));
+                self.resolutions.insert(decl.name.id, res);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
@@ -290,7 +281,7 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
             }
             ast::ItemKind::Ty(name, _) => {
                 let res = Res::Internal(name.id);
-                self.resolutions.push((name.id, res));
+                self.resolutions.insert(name.id, res);
                 self.tys
                     .entry(self.namespace)
                     .or_default()

@@ -4,7 +4,7 @@
 use crate::{
     hir::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
-        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
+        QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -114,11 +114,6 @@ impl MutVisitor for Assigner {
     fn visit_qubit_init(&mut self, init: &mut QubitInit) {
         self.assign(&mut init.id);
         mut_visit::walk_qubit_init(self, init);
-    }
-
-    fn visit_path(&mut self, path: &mut Path) {
-        self.assign(&mut path.id);
-        mut_visit::walk_path(self, path);
     }
 
     fn visit_ident(&mut self, ident: &mut Ident) {

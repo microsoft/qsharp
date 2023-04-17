@@ -77,8 +77,8 @@ impl Ty {
             }
             hir::TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
             hir::TyKind::Paren(inner) => Self::from_hir(inner),
-            hir::TyKind::Path(_) => (Ty::Err, Vec::new()), // TODO: Resolve user-defined types.
             &hir::TyKind::Prim(prim) => (Ty::Prim(prim.into()), Vec::new()),
+            hir::TyKind::Symbol(_) => (Ty::Err, Vec::new()), // TODO: Resolve user-defined types.
             hir::TyKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut errors = Vec::new();

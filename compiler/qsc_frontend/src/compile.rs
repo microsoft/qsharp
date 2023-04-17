@@ -8,7 +8,7 @@ use crate::{
     diagnostic::OffsetError,
     lower::Lowerer,
     parse,
-    resolve::{self, Res, Resolutions},
+    resolve::{self, Resolutions},
     typeck::{self, Tys},
     validate::{self, validate},
 };
@@ -17,10 +17,14 @@ use qsc_ast::{
     assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor as AstVisitor,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::{assigner::Assigner as HirAssigner, hir, visit::Visitor as HirVisitor};
+use qsc_hir::{
+    assigner::Assigner as HirAssigner,
+    hir::{self, PackageId, Res},
+    visit::Visitor as HirVisitor,
+};
 use std::{
     collections::{hash_map::Iter, HashMap},
-    fmt::{self, Debug, Display, Formatter},
+    fmt::Debug,
 };
 use thiserror::Error;
 
@@ -132,22 +136,8 @@ impl PackageStore {
     }
 
     #[must_use]
-    pub fn get_resolutions(&self, id: PackageId) -> Option<&Resolutions<hir::NodeId>> {
-        self.get(id).map(|unit| unit.context.resolutions())
-    }
-
-    #[must_use]
     pub fn iter(&self) -> Iter<PackageId, CompileUnit> {
         self.units.iter()
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct PackageId(u32);
-
-impl Display for PackageId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(&self.0, f)
     }
 }
 
@@ -190,7 +180,7 @@ pub fn compile(
     );
 
     let mut lowerer = Lowerer::new();
-    let package = lowerer.lower_package(&package);
+    let package = lowerer.lower_package(&resolutions, &package);
     let resolutions = resolutions
         .into_iter()
         .filter_map(|(id, res)| lower_res(&lowerer, id, res))
@@ -343,6 +333,7 @@ fn lower_res(
                 .expect("lowered node should not resolve to deleted node"),
         ),
         Res::External(package, node) => Res::External(package, node),
+        Res::Err => Res::Err,
     };
     Some((id, res))
 }

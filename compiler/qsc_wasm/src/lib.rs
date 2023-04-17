@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use once_cell::sync::OnceCell;
@@ -9,9 +10,8 @@ use qsc_eval::{
     output::{format_state_id, Receiver},
     stateless::{compile_execution_context, eval_in_context, Error},
 };
-use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-
-use miette::{Diagnostic, Severity};
+use qsc_frontend::compile::{compile, std, PackageStore};
+use qsc_hir::hir::PackageId;
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;

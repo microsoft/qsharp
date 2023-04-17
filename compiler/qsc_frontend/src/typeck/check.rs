@@ -6,13 +6,12 @@ use super::{
     ty::{self, Ty},
     Error, ErrorKind, Tys,
 };
-use crate::{
-    compile::PackageId,
-    resolve::{Res, Resolutions},
-    typeck::ty::MissingTyError,
-};
+use crate::{resolve::Resolutions, typeck::ty::MissingTyError};
 use qsc_ast::{ast, visit::Visitor as AstVisitor};
-use qsc_hir::{hir, visit::Visitor as HirVisitor};
+use qsc_hir::{
+    hir::{self, PackageId, Res},
+    visit::Visitor as HirVisitor,
+};
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {

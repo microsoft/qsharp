@@ -32,6 +32,7 @@ impl<'a> Renamer<'a> {
             let name = match res {
                 Res::Internal(node) => format!("_{node}"),
                 Res::External(package, node) => format!("_{package}_{node}"),
+                Res::Err => String::from("?"),
             };
             input.replace_range(span, &name);
         }

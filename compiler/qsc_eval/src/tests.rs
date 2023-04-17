@@ -23,18 +23,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let expr = store
         .get_entry_expr(id)
         .expect("entry expression shouild be present");
-    let resolutions = store
-        .get_resolutions(id)
-        .expect("package should be present in store");
-    match eval_expr(
-        expr,
-        &store,
-        &globals,
-        resolutions,
-        id,
-        &mut Env::default(),
-        &mut out,
-    ) {
+    match eval_expr(expr, &globals, id, &mut Env::default(), &mut out) {
         Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }

@@ -3,22 +3,19 @@
 
 mod tests;
 
-use crate::val::Value;
-use crate::{eval_stmt, AggregateError, Env};
-use qsc_hir::hir::CallableDecl;
-use qsc_passes::globals::GlobalId;
-use std::collections::HashMap;
-use std::string::String;
-
-use qsc_frontend::compile::{self, CompileUnit, PackageStore};
-use qsc_frontend::incremental::{Compiler, Fragment};
-
-use crate::output::Receiver;
-use crate::stateful::ouroboros_impl_execution_context::BorrowedMutFields;
+use crate::{
+    eval_stmt, output::Receiver, stateful::ouroboros_impl_execution_context::BorrowedMutFields,
+    val::Value, AggregateError, Env,
+};
 use miette::Diagnostic;
 use ouroboros::self_referencing;
-use qsc_frontend::compile::compile;
-use qsc_passes::globals::extract_callables;
+use qsc_frontend::{
+    compile::{self, compile, CompileUnit, PackageStore},
+    incremental::{Compiler, Fragment},
+};
+use qsc_hir::hir::{CallableDecl, PackageId};
+use qsc_passes::globals::{extract_callables, GlobalId};
+use std::{collections::HashMap, string::String};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -37,7 +34,7 @@ pub enum Error {
 #[self_referencing]
 pub struct ExecutionContext {
     store: PackageStore,
-    package: compile::PackageId,
+    package: PackageId,
     #[borrows(store)]
     #[covariant]
     compiler: Compiler<'this>,
@@ -143,15 +140,7 @@ fn eval_line_in_context(
         match fragment {
             Fragment::Stmt(stmt) => {
                 let mut env = fields.env.take().unwrap_or(Env::with_empty_scope());
-                let result = eval_stmt(
-                    &stmt,
-                    fields.store,
-                    fields.globals,
-                    fields.compiler.resolutions(),
-                    *fields.package,
-                    &mut env,
-                    receiver,
-                );
+                let result = eval_stmt(&stmt, fields.globals, *fields.package, &mut env, receiver);
                 let _ = fields.env.insert(env);
 
                 match result {

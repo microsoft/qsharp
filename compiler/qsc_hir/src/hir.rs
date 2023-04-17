@@ -81,6 +81,24 @@ impl From<usize> for NodeId {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct PackageId(pub u32);
+
+impl Display for PackageId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+/// A resolution. This connects a usage of a name with the declaration of that name by uniquely
+/// identifying the node that declared it.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum Res<Id> {
+    Internal(Id),
+    External(PackageId, NodeId),
+    Err,
+}
+
 /// The root node of the HIR.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
@@ -520,10 +538,10 @@ pub enum TyKind {
     Hole,
     /// A type wrapped in parentheses.
     Paren(Box<Ty>),
-    /// A named type.
-    Path(Path),
     /// A primitive type.
     Prim(TyPrim),
+    /// A resolved symbol.
+    Symbol(Res<NodeId>),
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A type variable.
@@ -546,8 +564,8 @@ impl Display for TyKind {
             }
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
-            TyKind::Path(p) => write!(indent, "Path: {p}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
+            TyKind::Symbol(res) => write!(indent, "Symbol: {res:?}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
@@ -717,14 +735,14 @@ pub enum ExprKind {
     Lit(Lit),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
-    /// A path: `a` or `a.b`.
-    Path(Path),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Block, Box<Expr>, Option<Block>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A resolved symbol.
+    Symbol(Res<NodeId>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -760,10 +778,10 @@ impl Display for ExprKind {
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
-            ExprKind::Path(p) => write!(indent, "Path: {p}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Symbol(res) => write!(indent, "Symbol: {res:?}")?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -1132,30 +1150,6 @@ impl Display for QubitInitKind {
                     }
                 }
             }
-        }
-        Ok(())
-    }
-}
-
-/// A path to a declaration.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Path {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The namespace.
-    pub namespace: Option<Ident>,
-    /// The declaration name.
-    pub name: Ident,
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
-        } else {
-            write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
         }
         Ok(())
     }

@@ -2,13 +2,12 @@
 // Licensed under the MIT License.
 
 use super::{compile, Context, Error, PackageStore, SourceIndex};
-use crate::resolve::Res;
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableBody, Expr, ExprKind, ItemKind, Lit, NodeId, StmtKind},
+    hir::{CallableBody, Expr, ExprKind, ItemKind, Lit, NodeId, Res, StmtKind},
     mut_visit::MutVisitor,
 };
 
@@ -198,13 +197,13 @@ fn entry_call_operation() {
     let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
         panic!("item should be a callable");
     };
-    let id = resolutions
+    let expected_res = resolutions
         .get(callable.name.id)
         .expect("callable should resolve");
     let entry = unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Path(path) = callee.kind else { panic!("callee should be a path") };
-    assert_eq!(unit.context.resolutions.get(path.id), Some(id));
+    let ExprKind::Symbol(actual_res) = callee.kind else { panic!("callee should be a symbol") };
+    assert_eq!(expected_res, &actual_res);
 }
 
 #[test]
@@ -308,9 +307,7 @@ fn package_dependency() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
-    let resolutions = unit2.context.resolutions();
-    let res = resolutions.get(path.id).expect("should resolve");
+    let ExprKind::Symbol(res) = &callee.kind else { panic!("callee should be a symbol") };
     assert_eq!(res, &Res::External(package1, foo));
 }
 
@@ -350,8 +347,8 @@ fn package_dependency_internal() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
-    assert!(unit2.context.resolutions.get(path.id).is_none());
+    let ExprKind::Symbol(res) = &callee.kind else { panic!("callee should be a symbol") };
+    assert_eq!(&Res::Err, res);
 }
 
 #[test]

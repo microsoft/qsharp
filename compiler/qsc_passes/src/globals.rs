@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_frontend::compile::{PackageId, PackageStore};
+use qsc_frontend::compile::PackageStore;
 use qsc_hir::{
-    hir::{CallableDecl, Item, ItemKind, NodeId},
+    hir::{CallableDecl, Item, ItemKind, NodeId, PackageId},
     visit::Visitor,
 };
 use std::{

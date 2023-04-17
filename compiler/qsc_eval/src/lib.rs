@@ -21,14 +21,10 @@ use qir_backend::{
     __quantum__rt__initialize, __quantum__rt__qubit_allocate, __quantum__rt__qubit_release,
 };
 use qsc_data_structures::span::Span;
-use qsc_frontend::{
-    compile::{PackageId, PackageStore},
-    resolve::{Res, Resolutions},
-};
 use qsc_hir::hir::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
-    NodeId, Pat, PatKind, QubitInit, QubitInitKind, Spec, SpecBody, SpecGen, Stmt, StmtKind,
-    TernOp, UnOp,
+    NodeId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody, SpecGen, Stmt,
+    StmtKind, TernOp, UnOp,
 };
 use qsc_passes::globals::GlobalId;
 use std::{
@@ -223,17 +219,13 @@ impl Range {
 /// Returns the first error encountered during execution.
 pub fn eval_stmt<'a, S: BuildHasher>(
     stmt: &Stmt,
-    store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions<NodeId>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, Error> {
     let mut eval = Evaluator {
-        store,
         globals,
-        resolutions,
         package,
         env: take(env),
         out: Some(out),
@@ -251,17 +243,13 @@ pub fn eval_stmt<'a, S: BuildHasher>(
 /// Returns the first error encountered during execution.
 pub fn eval_expr<'a, S: BuildHasher>(
     expr: &Expr,
-    store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions<NodeId>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, Error> {
     let mut eval = Evaluator {
-        store,
         globals,
-        resolutions,
         package,
         env: take(env),
         out: Some(out),
@@ -295,9 +283,7 @@ impl Env {
 }
 
 struct Evaluator<'a, S: BuildHasher> {
-    store: &'a PackageStore,
     globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions<NodeId>,
     package: PackageId,
     env: Env,
     out: Option<&'a mut dyn Receiver>,
@@ -369,10 +355,10 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
             ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
+            &ExprKind::Symbol(res) => ControlFlow::Continue(self.resolve_binding(res)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
                 TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
@@ -592,20 +578,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
 
         let spec = specialization_from_functor_app(&functor);
 
-        let resolutions = if call.package == self.package {
-            self.resolutions
-        } else {
-            self.store
-                .get(call.package)
-                .expect("global value should refer only to stored packages")
-                .context
-                .resolutions()
-        };
-
         let mut new_self = Self {
             env: Env::default(),
             package: call.package,
-            resolutions,
             out: self.out.take(),
             ..*self
         };
@@ -911,13 +886,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self.res_to_global_id(
-                    *self
-                        .resolutions
-                        .get(variable.id)
-                        .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
-                );
-
+                let id = self.res_to_global_id(Res::Internal(variable.id));
                 let scope = self.env.0.last_mut().expect("binding should have a scope");
                 match scope.bindings.entry(id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
@@ -946,13 +915,8 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         }
     }
 
-    fn resolve_binding(&mut self, id: NodeId) -> Value {
-        let res = self
-            .resolutions
-            .get(id)
-            .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
-
-        let global_id = self.res_to_global_id(*res);
+    fn resolve_binding(&mut self, res: Res<NodeId>) -> Value {
+        let global_id = self.res_to_global_id(res);
         let local = if matches!(res, Res::Internal(_)) {
             self.env
                 .0
@@ -966,16 +930,12 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         local.unwrap_or_else(|| Value::Global(global_id, FunctorApp::default()))
     }
 
+    #[allow(clippy::similar_names)]
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
-            (ExprKind::Path(path), rhs) => {
-                let id = self.res_to_global_id(
-                    *self
-                        .resolutions
-                        .get(path.id)
-                        .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
-                );
-
+            (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
+            (&ExprKind::Symbol(res), rhs) => {
+                let id = self.res_to_global_id(res);
                 let mut variable = self
                     .env
                     .0
@@ -988,10 +948,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                     variable.value = rhs;
                     ControlFlow::Continue(Value::UNIT)
                 } else {
-                    ControlFlow::Break(Reason::Error(Error::Mutability(path.span)))
+                    ControlFlow::Break(Reason::Error(Error::Mutability(lhs.span)))
                 }
             }
-            (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
                 if var_tup.len() == tup.len() {
@@ -1018,6 +977,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 node,
             },
             Res::External(package, node) => GlobalId { package, node },
+            Res::Err => panic!("resolution error"),
         }
     }
 }

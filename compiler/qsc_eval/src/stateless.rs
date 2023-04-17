@@ -1,18 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::output::Receiver;
-use crate::val::Value;
-use crate::{eval_expr, AggregateError, Env};
+use crate::{eval_expr, output::Receiver, val::Value, AggregateError, Env};
+use miette::Diagnostic;
 use ouroboros::self_referencing;
 use qsc_frontend::compile::{self, compile, PackageStore};
-use qsc_hir::hir::{CallableDecl, Expr};
-use qsc_passes::entry_point::extract_entry;
-use qsc_passes::globals::{extract_callables, GlobalId};
+use qsc_hir::hir::{CallableDecl, Expr, PackageId};
+use qsc_passes::{
+    entry_point::extract_entry,
+    globals::{extract_callables, GlobalId},
+};
 use std::collections::HashMap;
-
-use miette::Diagnostic;
-
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -78,19 +76,8 @@ pub fn eval(
     let globals = extract_callables(&store);
 
     let expr = get_entry_expr(&store, basis_package)?;
-    let resolutions = store
-        .get_resolutions(basis_package)
-        .expect("package should be present in store");
     let mut env = Env::with_empty_scope();
-    let result = eval_expr(
-        &expr,
-        &store,
-        &globals,
-        resolutions,
-        basis_package,
-        &mut env,
-        receiver,
-    );
+    let result = eval_expr(&expr, &globals, basis_package, &mut env, receiver);
     match result {
         Ok(v) => Ok(v),
         Err(e) => Err(AggregateError(vec![Error::Eval(e)])),
@@ -119,28 +106,16 @@ pub fn eval_in_context(
 
     context.with(|f| {
         let expr = get_entry_expr(f.store, *f.package)?;
-        let resolutions = f
-            .store
-            .get_resolutions(*f.package)
-            .expect("package should be present in store");
         let mut env = Env::with_empty_scope();
-        eval_expr(
-            &expr,
-            f.store,
-            f.globals,
-            resolutions,
-            *f.package,
-            &mut env,
-            receiver,
-        )
-        .map_err(|e| AggregateError(vec![Error::Eval(e)]))
+        eval_expr(&expr, f.globals, *f.package, &mut env, receiver)
+            .map_err(|e| AggregateError(vec![Error::Eval(e)]))
     })
 }
 
 #[self_referencing]
 pub struct ExecutionContext {
     store: PackageStore,
-    package: compile::PackageId,
+    package: PackageId,
     #[borrows(store)]
     #[not_covariant]
     globals: HashMap<GlobalId, &'this CallableDecl>,
@@ -192,7 +167,7 @@ fn create_execution_context(
 
 fn get_entry_expr(
     store: &PackageStore,
-    basis_package: compile::PackageId,
+    basis_package: PackageId,
 ) -> Result<Expr, AggregateError<Error>> {
     if let Some(expr) = store.get_entry_expr(basis_package) {
         Ok(expr.clone())

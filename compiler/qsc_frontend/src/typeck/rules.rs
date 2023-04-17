@@ -6,12 +6,13 @@ use super::{
     ty::{Prim, Ty},
     Error, Tys,
 };
-use crate::resolve::{Res, Resolutions};
+use crate::resolve::Resolutions;
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
+use qsc_hir::hir::Res;
 use std::{
     collections::{HashMap, HashSet},
     convert::Into,
@@ -328,6 +329,7 @@ impl<'a> Context<'a> {
                         Res::External(..) => {
                             panic!("path resolves to external package but definition not found")
                         }
+                        Res::Err => Ty::Err,
                     },
                 },
             },
