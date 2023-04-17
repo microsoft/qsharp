@@ -5,6 +5,7 @@ import { run_kata_exercise } from "../lib/web/qsc_wasm.js";
 import {katas} from "../dist/katas-content.js";
 
 export type Exercise = {
+    type: "exercise";
     id: string;
     title: string;
     contentAsHtml: string;
@@ -14,12 +15,14 @@ export type Exercise = {
     placeholderImplementation: string;
 }
 
+export type KataModule = Exercise;
+
 export type Kata = {
     id: string;
     title: string;
     contentAsHtml: string;
     contentAsMarkdown: string;
-    exercises: Exercise[]
+    modules: KataModule[]
 }
 
 export async function getAllKatas() : Promise<Kata[]> {
@@ -39,7 +42,7 @@ export async function getKata(id: string) : Promise<Kata> {
 export async function getExercise(id: string) : Promise<Exercise> {
     let katas = await getAllKatas();
     for (let kata of katas) {
-        let filteredExercises = kata.exercises.filter(e => e.id == id);
+        let filteredExercises = kata.modules.filter(m => m.type === "exercise" && m.id === id);
         if (filteredExercises.length == 1) {
             return filteredExercises.at(0)!;
         }
