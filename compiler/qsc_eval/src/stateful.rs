@@ -5,7 +5,7 @@ mod tests;
 
 use crate::val::Value;
 use crate::{eval_stmt, AggregateError, Env};
-use qsc_ast::ast::CallableDecl;
+use qsc_hir::hir::CallableDecl;
 use qsc_passes::globals::GlobalId;
 use std::collections::HashMap;
 use std::string::String;
@@ -144,7 +144,7 @@ fn eval_line_in_context(
             Fragment::Stmt(stmt) => {
                 let mut env = fields.env.take().unwrap_or(Env::with_empty_scope());
                 let result = eval_stmt(
-                    stmt,
+                    &stmt,
                     fields.store,
                     fields.globals,
                     fields.compiler.resolutions(),
@@ -169,7 +169,7 @@ fn eval_line_in_context(
                     package: *fields.package,
                     node: decl.name.id,
                 };
-                fields.globals.insert(id, decl);
+                fields.globals.insert(id, Box::leak(Box::new(decl)));
                 results.push(Ok(Value::UNIT));
             }
             Fragment::Error(errors) => {

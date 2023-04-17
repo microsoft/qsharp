@@ -716,9 +716,9 @@ dependencies = [
  "clap 4.1.8",
  "criterion",
  "miette",
- "qsc_ast",
  "qsc_codegen",
  "qsc_frontend",
+ "qsc_hir",
  "qsc_passes",
  "thiserror",
 ]
@@ -730,6 +730,7 @@ dependencies = [
  "indenter",
  "miette",
  "num-bigint",
+ "qsc_data_structures",
 ]
 
 [[package]]
@@ -743,6 +744,9 @@ dependencies = [
 [[package]]
 name = "qsc_data_structures"
 version = "0.0.0"
+dependencies = [
+ "miette",
+]
 
 [[package]]
 name = "qsc_eval"
@@ -756,8 +760,9 @@ dependencies = [
  "ouroboros",
  "qir-backend",
  "qir-stdlib",
- "qsc_ast",
+ "qsc_data_structures",
  "qsc_frontend",
+ "qsc_hir",
  "qsc_passes",
  "rand",
  "thiserror",
@@ -775,7 +780,17 @@ dependencies = [
  "num-traits",
  "qsc_ast",
  "qsc_data_structures",
+ "qsc_hir",
  "thiserror",
+]
+
+[[package]]
+name = "qsc_hir"
+version = "0.0.0"
+dependencies = [
+ "indenter",
+ "num-bigint",
+ "qsc_data_structures",
 ]
 
 [[package]]
@@ -785,8 +800,9 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
- "qsc_ast",
+ "qsc_data_structures",
  "qsc_frontend",
+ "qsc_hir",
  "thiserror",
 ]
 

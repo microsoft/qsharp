@@ -8,7 +8,7 @@ use std::{
 };
 
 use num_bigint::BigInt;
-use qsc_ast::ast::Pauli;
+use qsc_hir::hir::Pauli;
 use qsc_passes::globals::GlobalId;
 
 #[derive(Clone, Debug, PartialEq)]

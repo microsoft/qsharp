@@ -20,7 +20,7 @@ use super::{
 };
 use enum_iterator::Sequence;
 use miette::Diagnostic;
-use qsc_ast::ast::Span;
+use qsc_data_structures::span::Span;
 use std::{
     fmt::{self, Display, Formatter},
     iter::Peekable,

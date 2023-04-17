@@ -6,10 +6,9 @@ mod tests;
 
 use super::Error as PassErr;
 use miette::Diagnostic;
-use qsc_ast::{
-    ast::{
-        CallableBody, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind, Span,
-    },
+use qsc_data_structures::span::Span;
+use qsc_hir::{
+    hir::{CallableBody, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind},
     visit::Visitor,
 };
 use thiserror::Error;
@@ -84,12 +83,7 @@ struct EntryPointVisitor<'a, 'b> {
 impl<'a, 'b> Visitor<'b> for EntryPointVisitor<'a, 'b> {
     fn visit_item(&mut self, item: &'b Item) {
         if let ItemKind::Callable(decl) = &item.kind {
-            if item
-                .meta
-                .attrs
-                .iter()
-                .any(|attr| attr.name.name == "EntryPoint")
-            {
+            if item.attrs.iter().any(|attr| attr.name.name == "EntryPoint") {
                 self.entry_points.push(decl);
             }
         }

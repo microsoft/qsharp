@@ -9,9 +9,10 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-qsc_ast = { path = "../qsc_ast" }
-qsc_frontend = { path = "../qsc_frontend" }
 miette = { workspace = true }
+qsc_data_structures = { path = "../qsc_data_structures" }
+qsc_frontend = { path = "../qsc_frontend" }
+qsc_hir = { path = "../qsc_hir" }
 thiserror = { workspace = true }
 
 [dev-dependencies]
