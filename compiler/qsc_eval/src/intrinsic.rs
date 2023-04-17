@@ -132,15 +132,7 @@ pub(crate) fn invoke_intrinsic(
                         args.pop().expect("tuple should have 2 entries"),
                         args.pop().expect("tuple should have 2 entries"),
                     );
-                    let low_bound: i64 = a1.try_into().with_span(args_span)?;
-                    let high_bound: i64 = a2.try_into().with_span(args_span)?;
-                    if low_bound > high_bound {
-                        ControlFlow::Break(Reason::Error(Error::EmptyRange(args_span)))
-                    } else {
-                        ControlFlow::Continue(Value::Int(
-                            rand::thread_rng().gen_range(low_bound..=high_bound),
-                        ))
-                    }
+                    invoke_draw_random_int(a1, a2, args_span)
                 } else {
                     ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                 }
@@ -148,6 +140,18 @@ pub(crate) fn invoke_intrinsic(
 
             _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
         }
+    }
+}
+
+fn invoke_draw_random_int(a1: Value, a2: Value, args_span: Span) -> ControlFlow<Reason, Value> {
+    let low_bound: i64 = a1.try_into().with_span(args_span)?;
+    let high_bound: i64 = a2.try_into().with_span(args_span)?;
+    if low_bound > high_bound {
+        ControlFlow::Break(Reason::Error(Error::EmptyRange(args_span)))
+    } else {
+        ControlFlow::Continue(Value::Int(
+            rand::thread_rng().gen_range(low_bound..=high_bound),
+        ))
     }
 }
 
