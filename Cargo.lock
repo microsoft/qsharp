@@ -728,6 +728,7 @@ name = "qsc_ast"
 version = "0.0.0"
 dependencies = [
  "indenter",
+ "miette",
  "num-bigint",
  "qsc_data_structures",
 ]
