@@ -278,6 +278,15 @@ fn tanh() {
 }
 
 #[test]
+fn draw_random_int() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Random.DrawRandomInt(5,5)",
+        &Value::Int(5),
+    );
+}
+
+#[test]
 fn ccx() {
     check_intrinsic_result(
         "",

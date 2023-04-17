@@ -764,6 +764,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
+ "rand",
  "thiserror",
 ]
 
