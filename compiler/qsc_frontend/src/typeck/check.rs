@@ -50,8 +50,9 @@ impl AstVisitor<'_> for GlobalTable<'_> {
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         assert!(
             self.package.is_none(),
-            "AST callable should only be in local package"
+            "package ID should not be set before visiting AST"
         );
+
         let (ty, errors) = Ty::of_ast_callable(decl);
         self.globals.insert(Link::Internal(decl.name.id), ty);
         for MissingTyError(span) in errors {
@@ -64,7 +65,8 @@ impl HirVisitor<'_> for GlobalTable<'_> {
     fn visit_callable_decl(&mut self, decl: &hir::CallableDecl) {
         let package = self
             .package
-            .expect("HIR callable should only be in external package");
+            .expect("package ID should be set before visiting HIR");
+
         let (ty, errors) = Ty::of_hir_callable(decl);
         self.globals
             .insert(Link::External(package, decl.name.id), ty);

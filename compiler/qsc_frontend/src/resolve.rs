@@ -274,7 +274,7 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
     fn visit_item(&mut self, item: &'a ast::Item) {
         assert!(
             self.package.is_none(),
-            "package ID should not be set before visiting AST item"
+            "package ID should not be set before visiting AST"
         );
 
         match &item.kind {
@@ -313,7 +313,7 @@ impl<'a> HirVisitor<'a> for GlobalTable<'a> {
     fn visit_item(&mut self, item: &'a hir::Item) {
         let package = self
             .package
-            .expect("package ID should be set before visiting HIR item");
+            .expect("package ID should be set before visiting HIR");
 
         if item.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
             return;
