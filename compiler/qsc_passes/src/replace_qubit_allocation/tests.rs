@@ -4,8 +4,8 @@
 use crate::replace_qubit_allocation::ReplaceQubitAllocation;
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::mut_visit::MutVisitor;
 use qsc_frontend::compile::{compile, PackageStore};
+use qsc_hir::mut_visit::MutVisitor;
 
 fn check(input: &str, expected: &Expect) {
     let store = PackageStore::new();

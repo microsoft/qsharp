@@ -4,10 +4,11 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_ast::{
-    ast::{
+use qsc_data_structures::span::Span;
+use qsc_hir::{
+    hir::{
         Block, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Path, QubitInit,
-        QubitInitKind, Span, Stmt, StmtKind,
+        QubitInitKind, Stmt, StmtKind,
     },
     mut_visit::{walk_expr, walk_stmt, MutVisitor},
 };

@@ -28,6 +28,7 @@ use crate::{
 
 use rand::Rng;
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn invoke_intrinsic(
     name: &str,
     name_span: Span,
