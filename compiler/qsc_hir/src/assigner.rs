@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::{
-    ast::{
+use crate::{
+    hir::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
-        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef,
+        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -15,7 +15,8 @@ pub struct Assigner {
 }
 
 impl Assigner {
-    pub(super) fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             next_id: NodeId::zero(),
         }
@@ -31,6 +32,12 @@ impl Assigner {
         if id.is_placeholder() {
             *id = self.next_id();
         }
+    }
+}
+
+impl Default for Assigner {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -53,6 +60,10 @@ impl MutVisitor for Assigner {
     fn visit_attr(&mut self, attr: &mut Attr) {
         self.assign(&mut attr.id);
         mut_visit::walk_attr(self, attr);
+    }
+
+    fn visit_visibility(&mut self, visibility: &mut Visibility) {
+        self.assign(&mut visibility.id);
     }
 
     fn visit_ty_def(&mut self, def: &mut TyDef) {

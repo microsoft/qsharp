@@ -4,10 +4,11 @@
 use crate::compile::{self, compile, PackageStore};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::{
-    ast::{
+use qsc_data_structures::span::Span;
+use qsc_hir::{
+    hir::{
         self, Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId,
-        Package, Pat, Path, QubitInit, Span, SpecDecl, Stmt, TyDef,
+        Package, Pat, Path, QubitInit, SpecDecl, Stmt, TyDef,
     },
     visit::{self, Visitor},
 };
@@ -55,7 +56,7 @@ impl Visitor<'_> for SpanCollector {
         visit::walk_functor_expr(self, expr);
     }
 
-    fn visit_ty(&mut self, ty: &ast::Ty) {
+    fn visit_ty(&mut self, ty: &hir::Ty) {
         self.0.insert(ty.id, ty.span);
         visit::walk_ty(self, ty);
     }

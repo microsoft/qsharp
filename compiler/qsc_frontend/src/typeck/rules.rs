@@ -2,15 +2,20 @@
 // Licensed under the MIT License.
 
 use super::{
-    infer::{self, Class, Inferrer, Ty},
+    infer::{self, Class, Inferrer},
+    ty::{Prim, Ty},
     Error, Tys,
 };
-use crate::resolve::{DefId, PackageSrc, Resolutions};
+use crate::resolve::{Res, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
-    QubitInitKind, Span, Spec, Stmt, StmtKind, TernOp, TyKind, TyPrim, UnOp,
+    QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
-use std::collections::{HashMap, HashSet};
+use qsc_data_structures::span::Span;
+use std::{
+    collections::{HashMap, HashSet},
+    convert::Into,
+};
 
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
 enum Termination {
@@ -59,19 +64,19 @@ impl<T> Fallible<T> {
 }
 
 struct Context<'a> {
-    resolutions: &'a Resolutions,
-    globals: &'a HashMap<DefId, Ty>,
+    resolutions: &'a Resolutions<NodeId>,
+    globals: &'a HashMap<Res<NodeId>, Ty>,
     return_ty: Option<&'a Ty>,
-    tys: &'a mut Tys,
+    tys: &'a mut Tys<NodeId>,
     nodes: Vec<NodeId>,
     inferrer: Inferrer,
 }
 
 impl<'a> Context<'a> {
     fn new(
-        resolutions: &'a Resolutions,
-        globals: &'a HashMap<DefId, Ty>,
-        tys: &'a mut Tys,
+        resolutions: &'a Resolutions<NodeId>,
+        globals: &'a HashMap<Res<NodeId>, Ty>,
+        tys: &'a mut Tys<NodeId>,
     ) -> Self {
         Self {
             resolutions,
@@ -89,7 +94,7 @@ impl<'a> Context<'a> {
             let expected = match spec.spec {
                 Spec::Body | Spec::Adj => callable_input,
                 Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
-                    Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit))),
+                    Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                     callable_input,
                 ]),
             };
@@ -110,22 +115,20 @@ impl<'a> Context<'a> {
         match &ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
             TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
-                *kind,
+                kind.into(),
                 Box::new(self.infer_ty(input)),
                 Box::new(self.infer_ty(output)),
                 functors
                     .as_ref()
-                    .map_or(HashSet::new(), FunctorExpr::to_set),
+                    .map_or(HashSet::new(), FunctorExpr::to_set)
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(path) => Ty::DefId(
-                *self
-                    .resolutions
-                    .get(path.id)
-                    .expect("path should be resolved"),
-            ),
-            &TyKind::Prim(prim) => Ty::Prim(prim),
+            TyKind::Path(_) => Ty::Err, // TODO: Resolve user-defined types.
+            &TyKind::Prim(prim) => Ty::Prim(prim.into()),
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
@@ -194,7 +197,7 @@ impl<'a> Context<'a> {
             ExprKind::ArrayRepeat(item, size) => {
                 let item_ty = term.then(self.infer_expr(item));
                 let size_ty = term.then(self.infer_expr(size));
-                self.inferrer.eq(size.span, Ty::Prim(TyPrim::Int), size_ty);
+                self.inferrer.eq(size.span, Ty::Prim(Prim::Int), size_ty);
                 Ty::Array(Box::new(item_ty))
             }
             ExprKind::Assign(lhs, rhs) => {
@@ -237,7 +240,7 @@ impl<'a> Context<'a> {
             ExprKind::Fail(message) => {
                 let message_ty = self.infer_expr(message).value;
                 self.inferrer
-                    .eq(message.span, Ty::Prim(TyPrim::String), message_ty);
+                    .eq(message.span, Ty::Prim(Prim::String), message_ty);
                 term = Termination::Divergent;
                 Ty::Err
             }
@@ -269,7 +272,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::If(cond, if_true, if_false) => {
                 let cond_ty = term.then(self.infer_expr(cond));
-                self.inferrer.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
+                self.inferrer.eq(cond.span, Ty::Prim(Prim::Bool), cond_ty);
                 let true_ty = self.infer_block(if_true);
                 let false_ty = if_false.as_ref().map_or_else(
                     || Termination::default().with(Ty::UNIT),
@@ -298,44 +301,47 @@ impl<'a> Context<'a> {
                 // https://github.com/microsoft/qsharp/issues/151
                 let input = self.infer_pat(input);
                 let body = term.then(self.infer_expr(body));
-                Ty::Arrow(*kind, Box::new(input), Box::new(body), HashSet::new())
+                Ty::Arrow(kind.into(), Box::new(input), Box::new(body), HashSet::new())
             }
-            ExprKind::Lit(Lit::BigInt(_)) => Ty::Prim(TyPrim::BigInt),
-            ExprKind::Lit(Lit::Bool(_)) => Ty::Prim(TyPrim::Bool),
-            ExprKind::Lit(Lit::Double(_)) => Ty::Prim(TyPrim::Double),
-            ExprKind::Lit(Lit::Int(_)) => Ty::Prim(TyPrim::Int),
-            ExprKind::Lit(Lit::Pauli(_)) => Ty::Prim(TyPrim::Pauli),
-            ExprKind::Lit(Lit::Result(_)) => Ty::Prim(TyPrim::Result),
-            ExprKind::Lit(Lit::String(_)) => Ty::Prim(TyPrim::String),
+            ExprKind::Lit(Lit::BigInt(_)) => Ty::Prim(Prim::BigInt),
+            ExprKind::Lit(Lit::Bool(_)) => Ty::Prim(Prim::Bool),
+            ExprKind::Lit(Lit::Double(_)) => Ty::Prim(Prim::Double),
+            ExprKind::Lit(Lit::Int(_)) => Ty::Prim(Prim::Int),
+            ExprKind::Lit(Lit::Pauli(_)) => Ty::Prim(Prim::Pauli),
+            ExprKind::Lit(Lit::Result(_)) => Ty::Prim(Prim::Result),
+            ExprKind::Lit(Lit::String(_)) => Ty::Prim(Prim::String),
             ExprKind::Paren(expr) => term.then(self.infer_expr(expr)),
             ExprKind::Path(path) => match self.resolutions.get(path.id) {
                 None => Ty::Err,
-                Some(id) => match self.globals.get(id) {
+                Some(res) => match self.globals.get(res) {
                     Some(ty) => {
                         let mut ty = ty.clone();
                         self.inferrer.freshen(&mut ty);
                         ty
                     }
-                    None if id.package == PackageSrc::Local => self
-                        .tys
-                        .get(id.node)
-                        .expect("local variable should have inferred type")
-                        .clone(),
-                    None => panic!("path resolves to external package but definition not found"),
+                    None => match res {
+                        &Res::Internal(id) => self
+                            .tys
+                            .get(id)
+                            .expect("local variable should have inferred type")
+                            .clone(),
+                        Res::External(..) => {
+                            panic!("path resolves to external package but definition not found")
+                        }
+                    },
                 },
             },
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
                     let ty = term.then(self.infer_expr(expr));
-                    self.inferrer.eq(expr.span, Ty::Prim(TyPrim::Int), ty);
+                    self.inferrer.eq(expr.span, Ty::Prim(Prim::Int), ty);
                 }
-                Ty::Prim(TyPrim::Range)
+                Ty::Prim(Prim::Range)
             }
             ExprKind::Repeat(body, until, fixup) => {
                 term.then(self.infer_block(body));
                 let until_ty = term.then(self.infer_expr(until));
-                self.inferrer
-                    .eq(until.span, Ty::Prim(TyPrim::Bool), until_ty);
+                self.inferrer.eq(until.span, Ty::Prim(Prim::Bool), until_ty);
                 if let Some(fixup) = fixup {
                     term.then(self.infer_block(fixup));
                 }
@@ -351,7 +357,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_ty = term.then(self.infer_expr(cond));
-                self.inferrer.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
+                self.inferrer.eq(cond.span, Ty::Prim(Prim::Bool), cond_ty);
                 let true_ty = self.infer_expr(if_true);
                 let false_ty = self.infer_expr(if_false);
                 let (true_ty, false_ty) = term.then(true_ty.and(false_ty));
@@ -372,7 +378,7 @@ impl<'a> Context<'a> {
             ExprKind::UnOp(op, expr) => term.then(self.infer_unop(*op, expr)),
             ExprKind::While(cond, body) => {
                 let cond_ty = term.then(self.infer_expr(cond));
-                self.inferrer.eq(cond.span, Ty::Prim(TyPrim::Bool), cond_ty);
+                self.inferrer.eq(cond.span, Ty::Prim(Prim::Bool), cond_ty);
                 term.then(self.infer_block(body));
                 Ty::UNIT
             }
@@ -414,7 +420,7 @@ impl<'a> Context<'a> {
             }
             UnOp::NotL => {
                 self.inferrer
-                    .eq(operand.span, Ty::Prim(TyPrim::Bool), operand_ty.clone());
+                    .eq(operand.span, Ty::Prim(Prim::Bool), operand_ty.clone());
                 operand_ty
             }
             UnOp::Unwrap => {
@@ -442,13 +448,13 @@ impl<'a> Context<'a> {
             BinOp::AndL | BinOp::OrL => {
                 self.inferrer.eq(span, lhs_ty.clone(), rhs_ty);
                 self.inferrer
-                    .eq(lhs.span, Ty::Prim(TyPrim::Bool), lhs_ty.clone());
+                    .eq(lhs.span, Ty::Prim(Prim::Bool), lhs_ty.clone());
                 lhs_ty
             }
             BinOp::Eq | BinOp::Neq => {
                 self.inferrer.eq(span, lhs_ty.clone(), rhs_ty);
                 self.inferrer.class(lhs.span, Class::Eq(lhs_ty));
-                Ty::Prim(TyPrim::Bool)
+                Ty::Prim(Prim::Bool)
             }
             BinOp::Add => {
                 self.inferrer.eq(span, lhs_ty.clone(), rhs_ty);
@@ -458,7 +464,7 @@ impl<'a> Context<'a> {
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(span, lhs_ty.clone(), rhs_ty);
                 self.inferrer.class(lhs.span, Class::Num(lhs_ty));
-                Ty::Prim(TyPrim::Bool)
+                Ty::Prim(Prim::Bool)
             }
             BinOp::AndB
             | BinOp::Div
@@ -484,7 +490,7 @@ impl<'a> Context<'a> {
             BinOp::Shl | BinOp::Shr => {
                 self.inferrer
                     .class(lhs.span, Class::Integral(lhs_ty.clone()));
-                self.inferrer.eq(rhs.span, Ty::Prim(TyPrim::Int), rhs_ty);
+                self.inferrer.eq(rhs.span, Ty::Prim(Prim::Int), rhs_ty);
                 lhs_ty
             }
         };
@@ -544,11 +550,11 @@ impl<'a> Context<'a> {
             QubitInitKind::Array(length) => {
                 let length_ty = term.then(self.infer_expr(length));
                 self.inferrer
-                    .eq(length.span, Ty::Prim(TyPrim::Int), length_ty);
-                Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)))
+                    .eq(length.span, Ty::Prim(Prim::Int), length_ty);
+                Ty::Array(Box::new(Ty::Prim(Prim::Qubit)))
             }
             QubitInitKind::Paren(inner) => term.then(self.infer_qubit_init(inner)),
-            QubitInitKind::Single => Ty::Prim(TyPrim::Qubit),
+            QubitInitKind::Single => Ty::Prim(Prim::Qubit),
             QubitInitKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 for item in items {
@@ -595,9 +601,9 @@ pub(super) struct SpecImpl<'a> {
 }
 
 pub(super) fn spec(
-    resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
-    tys: &mut Tys,
+    resolutions: &Resolutions<NodeId>,
+    globals: &HashMap<Res<NodeId>, Ty>,
+    tys: &mut Tys<NodeId>,
     spec: SpecImpl,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);
@@ -606,9 +612,9 @@ pub(super) fn spec(
 }
 
 pub(super) fn entry_expr(
-    resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
-    tys: &mut Tys,
+    resolutions: &Resolutions<NodeId>,
+    globals: &HashMap<Res<NodeId>, Ty>,
+    tys: &mut Tys<NodeId>,
     entry: &Expr,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);
