@@ -111,17 +111,17 @@ namespace QIR.Runtime {
         body intrinsic;
     }
 
-    function __quantum__rt__qubit_array_allocate(size: Int) : Qubit[] {
+    function __quantum__rt__qubit_allocate_array(size: Int) : Qubit[] {
         mutable qs = [];
         for _ in 0..size-1 {
-            set qs += [__quantum__rt__qubit__allocate()];
+            set qs += [__quantum__rt__qubit_allocate()];
         }
         return qs;
     }
 
-    function __quantum__rt__qubit_array_release(qs : Qubit[]) : Unit {
+    function __quantum__rt__qubit_release_array(qs : Qubit[]) : Unit {
         for q in qs {
-            __quantum__rt__qubit__release(q);
+            __quantum__rt__qubit_release(q);
         }
     }
 }

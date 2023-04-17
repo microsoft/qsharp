@@ -420,7 +420,7 @@ fn create_general_alloc_stmt(func_name: String, ident: &Ident, array_size: Optio
 
 fn create_array_alloc_stmt(ident: &Ident, array_size: Expr) -> Stmt {
     create_general_alloc_stmt(
-        "__quantum__rt__qubit_array_allocate".to_owned(),
+        "__quantum__rt__qubit_allocate_array".to_owned(),
         ident,
         Some(array_size),
     )
@@ -476,42 +476,9 @@ fn create_general_dealloc_stmt(func_name: String, ident: &Ident) -> Stmt {
 }
 
 fn create_array_dealloc_stmt(ident: &Ident) -> Stmt {
-    create_general_dealloc_stmt("__quantum__rt__qubit_array_release".to_owned(), ident)
+    create_general_dealloc_stmt("__quantum__rt__qubit_release_array".to_owned(), ident)
 }
 
 fn create_dealloc_stmt(ident: &Ident) -> Stmt {
     create_general_dealloc_stmt("__quantum__rt__qubit_release".to_owned(), ident)
 }
-
-// This function is a temporary workaround until we have full type information on identifiers
-// fn assign_qubit_type<'a>(pat: &'a Pat, init: &'a QubitInit) -> Vec<(&'a Ident, &'a QubitInit)> {
-//     let init_no_parens = remove_extra_init_parens(init);
-
-//     match &pat.kind {
-//         PatKind::Bind(name, _) => vec![(name, init_no_parens)],
-//         PatKind::Discard(_) => vec![],
-//         PatKind::Elided => todo!("error state for `use` statements"),
-//         PatKind::Paren(pat) => assign_qubit_type(pat, init_no_parens),
-//         PatKind::Tuple(tup) => {
-//             if let QubitInitKind::Tuple(init_tup) = &init_no_parens.kind {
-//                 assert!(
-//                     tup.len() == init_tup.len(),
-//                     "qubit tuple initializer length doesn't match identifier tuple length"
-//                 );
-//                 tup.iter()
-//                     .zip(init_tup.iter())
-//                     .flat_map(|(pat, init)| assign_qubit_type(pat, init))
-//                     .collect()
-//             } else {
-//                 panic!("cannot initialize an identifier tuple with non-tuple qubit initializer");
-//             }
-//         }
-//     }
-// }
-
-// fn remove_extra_init_parens(init: &QubitInit) -> &QubitInit {
-//     match &init.kind {
-//         QubitInitKind::Paren(p) => remove_extra_init_parens(p),
-//         _ => init,
-//     }
-// }
