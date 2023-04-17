@@ -714,6 +714,28 @@ fn reset() {
 }
 
 #[test]
+fn reset_all() {
+    check_intrinsic_result(
+        "",
+        indoc! {r#"{
+            use register = Qubit[2];
+            ResetAll(register);
+            if not Microsoft.Quantum.Diagnostics.CheckAllZero(register) {
+                fail "Qubits should be in zero state.";
+            }
+
+            for q in register {
+                X(q);
+            }
+
+            ResetAll(register);
+            Microsoft.Quantum.Diagnostics.CheckAllZero(register)
+        }"#},
+        &expect!["true"],
+    );
+}
+
+#[test]
 fn m() {
     check_intrinsic_result(
         "",
@@ -779,6 +801,26 @@ fn unknown_intrinsic() {
                     hi: 84,
                 },
             )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_nested_bind_not_released() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use aux = Qubit();
+            use q = Qubit();
+            {
+                let temp = q;
+                X(temp);
+            }
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+        }"},
+        &expect![[r#"
+            STATE:
+            |01⟩: 1+0i
         "#]],
     );
 }

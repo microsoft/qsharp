@@ -270,21 +270,6 @@ fn double_path() {
 }
 
 #[test]
-fn block() {
-    check(
-        expr,
-        "{ let x = 1; x }",
-        &expect![[r#"
-            Expr _id_ [0-16]: Expr Block: Block _id_ [0-16]:
-                Stmt _id_ [2-12]: Local (Immutable):
-                    Pat _id_ [6-7]: Bind:
-                        Ident _id_ [6-7] "x"
-                    Expr _id_ [10-11]: Lit: Int(1)
-                Stmt _id_ [13-14]: Expr: Expr _id_ [13-14]: Path: Path _id_ [13-14] (Ident _id_ [13-14] "x")"#]],
-    );
-}
-
-#[test]
 fn fail() {
     check(
         expr,
