@@ -16,7 +16,7 @@
         "./browser": "./dist/browser.js"
     },
     "scripts":{
-        "build": "node build.js && node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json"
+        "build": "node generate_katas_content.js && node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json"
     },
     "type": "module",
     "files": ["dist", "lib"]
