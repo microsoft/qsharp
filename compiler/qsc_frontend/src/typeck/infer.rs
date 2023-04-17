@@ -1,209 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind};
-use qsc_ast::ast;
+use super::{
+    ty::{Functor, Prim, Ty, Var},
+    Error, ErrorKind,
+};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir;
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
 pub(super) type Substitutions = IndexMap<Var, Ty>;
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Var(usize);
-
-impl Display for Var {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "?{}", self.0)
-    }
-}
-
-impl From<usize> for Var {
-    fn from(value: usize) -> Self {
-        Var(value)
-    }
-}
-
-impl From<Var> for usize {
-    fn from(value: Var) -> Self {
-        value.0
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum Ty {
-    Array(Box<Ty>),
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
-    Err,
-    Param(String),
-    Prim(TyPrim),
-    Tuple(Vec<Ty>),
-    Var(Var),
-}
-
-impl Ty {
-    pub(super) const UNIT: Self = Self::Tuple(Vec::new());
-}
-
-impl Display for Ty {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Ty::Array(item) => write!(f, "({item})[]"),
-            Ty::Arrow(kind, input, output, functors) => {
-                let arrow = match kind {
-                    CallableKind::Function => "->",
-                    CallableKind::Operation => "=>",
-                };
-
-                let is = if functors.contains(&Functor::Adj) && functors.contains(&Functor::Ctl) {
-                    " is Adj + Ctl"
-                } else if functors.contains(&Functor::Adj) {
-                    " is Adj"
-                } else if functors.contains(&Functor::Ctl) {
-                    " is Ctl"
-                } else {
-                    ""
-                };
-
-                write!(f, "({input}) {arrow} ({output}){is}")
-            }
-            Ty::Err => f.write_str("?"),
-            Ty::Param(name) => write!(f, "'{name}"),
-            Ty::Prim(prim) => prim.fmt(f),
-            Ty::Tuple(items) => {
-                f.write_str("(")?;
-                if let Some((first, rest)) = items.split_first() {
-                    Display::fmt(first, f)?;
-                    if rest.is_empty() {
-                        f.write_str(",")?;
-                    } else {
-                        for item in rest {
-                            f.write_str(", ")?;
-                            Display::fmt(item, f)?;
-                        }
-                    }
-                }
-
-                f.write_str(")")
-            }
-            Ty::Var(id) => Display::fmt(id, f),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TyPrim {
-    BigInt,
-    Bool,
-    Double,
-    Int,
-    Pauli,
-    Qubit,
-    Range,
-    Result,
-    String,
-}
-
-impl From<ast::TyPrim> for TyPrim {
-    fn from(value: ast::TyPrim) -> Self {
-        match value {
-            ast::TyPrim::BigInt => Self::BigInt,
-            ast::TyPrim::Bool => Self::Bool,
-            ast::TyPrim::Double => Self::Double,
-            ast::TyPrim::Int => Self::Int,
-            ast::TyPrim::Pauli => Self::Pauli,
-            ast::TyPrim::Qubit => Self::Qubit,
-            ast::TyPrim::Range => Self::Range,
-            ast::TyPrim::Result => Self::Result,
-            ast::TyPrim::String => Self::String,
-        }
-    }
-}
-
-impl From<hir::TyPrim> for TyPrim {
-    fn from(value: hir::TyPrim) -> Self {
-        match value {
-            hir::TyPrim::BigInt => Self::BigInt,
-            hir::TyPrim::Bool => Self::Bool,
-            hir::TyPrim::Double => Self::Double,
-            hir::TyPrim::Int => Self::Int,
-            hir::TyPrim::Pauli => Self::Pauli,
-            hir::TyPrim::Qubit => Self::Qubit,
-            hir::TyPrim::Range => Self::Range,
-            hir::TyPrim::Result => Self::Result,
-            hir::TyPrim::String => Self::String,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum CallableKind {
-    Function,
-    Operation,
-}
-
-impl From<ast::CallableKind> for CallableKind {
-    fn from(value: ast::CallableKind) -> Self {
-        match value {
-            ast::CallableKind::Function => Self::Function,
-            ast::CallableKind::Operation => Self::Operation,
-        }
-    }
-}
-
-impl From<&ast::CallableKind> for CallableKind {
-    fn from(value: &ast::CallableKind) -> Self {
-        match value {
-            ast::CallableKind::Function => Self::Function,
-            ast::CallableKind::Operation => Self::Operation,
-        }
-    }
-}
-
-impl From<hir::CallableKind> for CallableKind {
-    fn from(value: hir::CallableKind) -> Self {
-        match value {
-            hir::CallableKind::Function => Self::Function,
-            hir::CallableKind::Operation => Self::Operation,
-        }
-    }
-}
-
-impl From<&hir::CallableKind> for CallableKind {
-    fn from(value: &hir::CallableKind) -> Self {
-        match value {
-            hir::CallableKind::Function => Self::Function,
-            hir::CallableKind::Operation => Self::Operation,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum Functor {
-    Adj,
-    Ctl,
-}
-
-impl From<ast::Functor> for Functor {
-    fn from(value: ast::Functor) -> Self {
-        match value {
-            ast::Functor::Adj => Self::Adj,
-            ast::Functor::Ctl => Self::Ctl,
-        }
-    }
-}
-
-impl From<hir::Functor> for Functor {
-    fn from(value: hir::Functor) -> Self {
-        match value {
-            hir::Functor::Adj => Self::Adj,
-            hir::Functor::Ctl => Self::Ctl,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub(super) enum Class {
@@ -596,7 +404,7 @@ fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<Var> {
 fn check_add(ty: &Ty) -> bool {
     matches!(
         ty,
-        Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int | TyPrim::String) | Ty::Array(_)
+        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_)
     )
 }
 
@@ -640,7 +448,7 @@ fn check_call(
 fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError> {
     match op {
         Ty::Arrow(kind, input, output, functors) if functors.contains(&Functor::Ctl) => {
-            let qubit_array = Ty::Array(Box::new(Ty::Prim(TyPrim::Qubit)));
+            let qubit_array = Ty::Array(Box::new(Ty::Prim(Prim::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
             Ok(Constraint::Eq {
                 expected: Ty::Arrow(kind, ctl_input, output, functors),
@@ -655,15 +463,15 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError
 fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
     match ty {
         Ty::Prim(
-            TyPrim::BigInt
-            | TyPrim::Bool
-            | TyPrim::Double
-            | TyPrim::Int
-            | TyPrim::Qubit
-            | TyPrim::Range
-            | TyPrim::Result
-            | TyPrim::String
-            | TyPrim::Pauli,
+            Prim::BigInt
+            | Prim::Bool
+            | Prim::Double
+            | Prim::Int
+            | Prim::Qubit
+            | Prim::Range
+            | Prim::Result
+            | Prim::String
+            | Prim::Pauli,
         ) => Ok(Vec::new()),
         Ty::Array(item) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
         Ty::Tuple(items) => Ok(items
@@ -676,12 +484,12 @@ fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
 
 fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> {
     match base {
-        Ty::Prim(TyPrim::BigInt) => Ok(Constraint::Eq {
-            expected: Ty::Prim(TyPrim::Int),
+        Ty::Prim(Prim::BigInt) => Ok(Constraint::Eq {
+            expected: Ty::Prim(Prim::Int),
             actual: power,
             span,
         }),
-        Ty::Prim(TyPrim::Double | TyPrim::Int) => Ok(Constraint::Eq {
+        Ty::Prim(Prim::Double | Prim::Int) => Ok(Constraint::Eq {
             expected: base,
             actual: power,
             span,
@@ -697,12 +505,12 @@ fn check_has_index(
     span: Span,
 ) -> Result<Constraint, ClassError> {
     match (container, index) {
-        (Ty::Array(container_item), Ty::Prim(TyPrim::Int)) => Ok(Constraint::Eq {
+        (Ty::Array(container_item), Ty::Prim(Prim::Int)) => Ok(Constraint::Eq {
             expected: *container_item,
             actual: item,
             span,
         }),
-        (container @ Ty::Array(_), Ty::Prim(TyPrim::Range)) => Ok(Constraint::Eq {
+        (container @ Ty::Array(_), Ty::Prim(Prim::Range)) => Ok(Constraint::Eq {
             expected: container,
             actual: item,
             span,
@@ -719,13 +527,13 @@ fn check_has_index(
 }
 
 fn check_integral(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(TyPrim::BigInt | TyPrim::Int))
+    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Int))
 }
 
 fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, ClassError> {
     match container {
-        Ty::Prim(TyPrim::Range) => Ok(Constraint::Eq {
-            expected: Ty::Prim(TyPrim::Int),
+        Ty::Prim(Prim::Range) => Ok(Constraint::Eq {
+            expected: Ty::Prim(Prim::Int),
             actual: item,
             span,
         }),
@@ -739,5 +547,5 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, Cla
 }
 
 fn check_num(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(TyPrim::BigInt | TyPrim::Double | TyPrim::Int))
+    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
 }
