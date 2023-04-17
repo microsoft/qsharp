@@ -137,7 +137,9 @@ pub(crate) fn invoke_intrinsic(
                     if low_bound > high_bound {
                         ControlFlow::Break(Reason::Error(Error::EmptyRange(args_span)))
                     } else {
-                        ControlFlow::Continue(Value::Int(rand::thread_rng().gen_range(low_bound..=high_bound)))
+                        ControlFlow::Continue(Value::Int(
+                            rand::thread_rng().gen_range(low_bound..=high_bound),
+                        ))
                     }
                 } else {
                     ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
