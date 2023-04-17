@@ -167,7 +167,7 @@ impl<'a> ErrorReporter<'a> {
 }
 
 fn emit_hir(package: &Package, out_dir: impl AsRef<Path>) {
-    let path = out_dir.as_ref().join("ast.txt");
+    let path = out_dir.as_ref().join("hir.txt");
     fs::write(path, format!("{package}")).unwrap();
 }
 
