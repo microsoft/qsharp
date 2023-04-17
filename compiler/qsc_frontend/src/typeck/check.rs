@@ -11,22 +11,19 @@ use crate::{
     resolve::{Link, Resolutions},
     typeck::ty::MissingTyError,
 };
-use qsc_ast::{
-    ast::{CallableBody, CallableDecl, Expr, NodeId, Package, Spec, SpecBody, TyKind},
-    visit::Visitor,
-};
-use qsc_hir::{hir, visit as hir_visit};
+use qsc_ast::{ast, visit::Visitor as AstVisitor};
+use qsc_hir::{hir, visit::Visitor as HirVisitor};
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
-    resolutions: &'a Resolutions<NodeId>,
-    globals: HashMap<Link<NodeId>, Ty>,
+    resolutions: &'a Resolutions<ast::NodeId>,
+    globals: HashMap<Link<ast::NodeId>, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
 
 impl<'a> GlobalTable<'a> {
-    pub(crate) fn new(resolutions: &'a Resolutions<NodeId>) -> Self {
+    pub(crate) fn new(resolutions: &'a Resolutions<ast::NodeId>) -> Self {
         Self {
             resolutions,
             globals: HashMap::new(),
@@ -49,8 +46,8 @@ impl<'a> GlobalTable<'a> {
     }
 }
 
-impl Visitor<'_> for GlobalTable<'_> {
-    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+impl AstVisitor<'_> for GlobalTable<'_> {
+    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         assert!(
             self.package.is_none(),
             "AST callable should only be in local package"
@@ -63,7 +60,7 @@ impl Visitor<'_> for GlobalTable<'_> {
     }
 }
 
-impl hir_visit::Visitor<'_> for GlobalTable<'_> {
+impl HirVisitor<'_> for GlobalTable<'_> {
     fn visit_callable_decl(&mut self, decl: &hir::CallableDecl) {
         let package = self
             .package
@@ -78,21 +75,21 @@ impl hir_visit::Visitor<'_> for GlobalTable<'_> {
 }
 
 pub(crate) struct Checker<'a> {
-    resolutions: &'a Resolutions<NodeId>,
-    globals: HashMap<Link<NodeId>, Ty>,
-    tys: Tys<NodeId>,
+    resolutions: &'a Resolutions<ast::NodeId>,
+    globals: HashMap<Link<ast::NodeId>, Ty>,
+    tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }
 
 impl Checker<'_> {
-    pub(crate) fn into_tys(self) -> (Tys<NodeId>, Vec<Error>) {
+    pub(crate) fn into_tys(self) -> (Tys<ast::NodeId>, Vec<Error>) {
         (self.tys, self.errors)
     }
 
-    fn check_callable_signature(&mut self, decl: &CallableDecl) {
+    fn check_callable_signature(&mut self, decl: &ast::CallableDecl) {
         if !ty::ast_callable_functors(decl).is_empty() {
             match &decl.output.kind {
-                TyKind::Tuple(items) if items.is_empty() => {}
+                ast::TyKind::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TypeMismatch(
                     Ty::UNIT,
                     Ty::from_ast(&decl.output).0,
@@ -107,14 +104,14 @@ impl Checker<'_> {
         self.errors.extend(errors);
     }
 
-    fn check_entry_expr(&mut self, entry: &Expr) {
+    fn check_entry_expr(&mut self, entry: &ast::Expr) {
         let errors = rules::entry_expr(self.resolutions, &self.globals, &mut self.tys, entry);
         self.errors.extend(errors);
     }
 }
 
-impl Visitor<'_> for Checker<'_> {
-    fn visit_package(&mut self, package: &Package) {
+impl AstVisitor<'_> for Checker<'_> {
+    fn visit_package(&mut self, package: &ast::Package) {
         for namespace in &package.namespaces {
             self.visit_namespace(namespace);
         }
@@ -123,22 +120,22 @@ impl Visitor<'_> for Checker<'_> {
         }
     }
 
-    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
+    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         self.tys.insert(decl.name.id, Ty::of_ast_callable(decl).0);
         self.check_callable_signature(decl);
 
         let output = Ty::from_ast(&decl.output).0;
         match &decl.body {
-            CallableBody::Block(block) => self.check_spec(SpecImpl {
-                spec: Spec::Body,
+            ast::CallableBody::Block(block) => self.check_spec(SpecImpl {
+                spec: ast::Spec::Body,
                 callable_input: &decl.input,
                 spec_input: None,
                 output: &output,
                 block,
             }),
-            CallableBody::Specs(specs) => {
+            ast::CallableBody::Specs(specs) => {
                 for spec in specs {
-                    if let SpecBody::Impl(input, block) = &spec.body {
+                    if let ast::SpecBody::Impl(input, block) = &spec.body {
                         self.check_spec(SpecImpl {
                             spec: spec.spec,
                             callable_input: &decl.input,
