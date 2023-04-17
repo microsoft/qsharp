@@ -8,7 +8,7 @@ use crate::{
     diagnostic::OffsetError,
     lower::Lowerer,
     parse,
-    resolve::{self, Link, Resolutions},
+    resolve::{self, Res, Resolutions},
     typeck::{self, Tys},
     validate::{self, validate},
 };
@@ -193,7 +193,7 @@ pub fn compile(
     let package = lowerer.lower_package(&package);
     let resolutions = resolutions
         .into_iter()
-        .filter_map(|(id, link)| lower_link(&lowerer, id, link))
+        .filter_map(|(id, res)| lower_res(&lowerer, id, res))
         .collect();
     let tys = tys
         .into_iter()
@@ -329,19 +329,19 @@ fn append_errors(
     }
 }
 
-fn lower_link(
+fn lower_res(
     lowerer: &Lowerer,
     id: ast::NodeId,
-    link: Link<ast::NodeId>,
-) -> Option<(hir::NodeId, Link<hir::NodeId>)> {
+    res: Res<ast::NodeId>,
+) -> Option<(hir::NodeId, Res<hir::NodeId>)> {
     let id = lowerer.get_id(id)?;
-    let link = match link {
-        Link::Internal(node) => Link::Internal(
+    let res = match res {
+        Res::Internal(node) => Res::Internal(
             lowerer
                 .get_id(node)
                 .expect("lowered node should not resolve to deleted node"),
         ),
-        Link::External(package, node) => Link::External(package, node),
+        Res::External(package, node) => Res::External(package, node),
     };
-    Some((id, link))
+    Some((id, res))
 }

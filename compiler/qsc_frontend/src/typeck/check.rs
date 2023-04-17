@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     compile::PackageId,
-    resolve::{Link, Resolutions},
+    resolve::{Res, Resolutions},
     typeck::ty::MissingTyError,
 };
 use qsc_ast::{ast, visit::Visitor as AstVisitor};
@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
     resolutions: &'a Resolutions<ast::NodeId>,
-    globals: HashMap<Link<ast::NodeId>, Ty>,
+    globals: HashMap<Res<ast::NodeId>, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
@@ -54,7 +54,7 @@ impl AstVisitor<'_> for GlobalTable<'_> {
         );
 
         let (ty, errors) = Ty::of_ast_callable(decl);
-        self.globals.insert(Link::Internal(decl.name.id), ty);
+        self.globals.insert(Res::Internal(decl.name.id), ty);
         for MissingTyError(span) in errors {
             self.errors.push(Error(ErrorKind::MissingItemTy(span)));
         }
@@ -69,7 +69,7 @@ impl HirVisitor<'_> for GlobalTable<'_> {
 
         let (ty, errors) = Ty::of_hir_callable(decl);
         self.globals
-            .insert(Link::External(package, decl.name.id), ty);
+            .insert(Res::External(package, decl.name.id), ty);
         for MissingTyError(span) in errors {
             self.errors.push(Error(ErrorKind::MissingItemTy(span)));
         }
@@ -78,7 +78,7 @@ impl HirVisitor<'_> for GlobalTable<'_> {
 
 pub(crate) struct Checker<'a> {
     resolutions: &'a Resolutions<ast::NodeId>,
-    globals: HashMap<Link<ast::NodeId>, Ty>,
+    globals: HashMap<Res<ast::NodeId>, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }

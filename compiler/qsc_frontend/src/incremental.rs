@@ -5,7 +5,7 @@ use crate::{
     compile::{PackageId, PackageStore},
     lower::Lowerer,
     parse,
-    resolve::{self, GlobalTable, Link, Resolutions, Resolver},
+    resolve::{self, GlobalTable, Res, Resolutions, Resolver},
 };
 use miette::Diagnostic;
 use qsc_ast::{
@@ -149,17 +149,17 @@ impl<'a> Compiler<'a> {
     }
 
     fn lower_resolutions(&mut self) {
-        for (id, link) in self.resolver.drain_resolutions() {
+        for (id, res) in self.resolver.drain_resolutions() {
             let Some(id) = self.lowerer.get_id(id) else { continue; };
-            let link = match link {
-                Link::Internal(node) => Link::Internal(
+            let res = match res {
+                Res::Internal(node) => Res::Internal(
                     self.lowerer
                         .get_id(node)
                         .expect("lowered node should not resolve to deleted node"),
                 ),
-                Link::External(package, node) => Link::External(package, node),
+                Res::External(package, node) => Res::External(package, node),
             };
-            self.resolutions.insert(id, link);
+            self.resolutions.insert(id, res);
         }
     }
 }

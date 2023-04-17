@@ -6,7 +6,7 @@ use super::{
     ty::{Prim, Ty},
     Error, Tys,
 };
-use crate::resolve::{Link, Resolutions};
+use crate::resolve::{Res, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
@@ -65,7 +65,7 @@ impl<T> Fallible<T> {
 
 struct Context<'a> {
     resolutions: &'a Resolutions<NodeId>,
-    globals: &'a HashMap<Link<NodeId>, Ty>,
+    globals: &'a HashMap<Res<NodeId>, Ty>,
     return_ty: Option<&'a Ty>,
     tys: &'a mut Tys<NodeId>,
     nodes: Vec<NodeId>,
@@ -75,7 +75,7 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions<NodeId>,
-        globals: &'a HashMap<Link<NodeId>, Ty>,
+        globals: &'a HashMap<Res<NodeId>, Ty>,
         tys: &'a mut Tys<NodeId>,
     ) -> Self {
         Self {
@@ -313,19 +313,19 @@ impl<'a> Context<'a> {
             ExprKind::Paren(expr) => term.then(self.infer_expr(expr)),
             ExprKind::Path(path) => match self.resolutions.get(path.id) {
                 None => Ty::Err,
-                Some(&link) => match self.globals.get(&link) {
+                Some(res) => match self.globals.get(res) {
                     Some(ty) => {
                         let mut ty = ty.clone();
                         self.inferrer.freshen(&mut ty);
                         ty
                     }
-                    None => match link {
-                        Link::Internal(id) => self
+                    None => match res {
+                        &Res::Internal(id) => self
                             .tys
                             .get(id)
                             .expect("local variable should have inferred type")
                             .clone(),
-                        Link::External(..) => {
+                        Res::External(..) => {
                             panic!("path resolves to external package but definition not found")
                         }
                     },
@@ -602,7 +602,7 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     resolutions: &Resolutions<NodeId>,
-    globals: &HashMap<Link<NodeId>, Ty>,
+    globals: &HashMap<Res<NodeId>, Ty>,
     tys: &mut Tys<NodeId>,
     spec: SpecImpl,
 ) -> Vec<Error> {
@@ -613,7 +613,7 @@ pub(super) fn spec(
 
 pub(super) fn entry_expr(
     resolutions: &Resolutions<NodeId>,
-    globals: &HashMap<Link<NodeId>, Ty>,
+    globals: &HashMap<Res<NodeId>, Ty>,
     tys: &mut Tys<NodeId>,
     entry: &Expr,
 ) -> Vec<Error> {

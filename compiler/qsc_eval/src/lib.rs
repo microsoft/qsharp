@@ -23,7 +23,7 @@ use qir_backend::{
 use qsc_data_structures::span::Span;
 use qsc_frontend::{
     compile::{PackageId, PackageStore},
-    resolve::{Link, Resolutions},
+    resolve::{Res, Resolutions},
 };
 use qsc_hir::hir::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
@@ -908,7 +908,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
             PatKind::Bind(variable, _) => {
-                let id = self.link_to_global_id(
+                let id = self.res_to_global_id(
                     *self
                         .resolutions
                         .get(variable.id)
@@ -944,13 +944,13 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     }
 
     fn resolve_binding(&mut self, id: NodeId) -> Value {
-        let link = self
+        let res = self
             .resolutions
             .get(id)
             .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
 
-        let global_id = self.link_to_global_id(*link);
-        let local = if matches!(link, Link::Internal(_)) {
+        let global_id = self.res_to_global_id(*res);
+        let local = if matches!(res, Res::Internal(_)) {
             self.env
                 .0
                 .iter()
@@ -966,7 +966,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Path(path), rhs) => {
-                let id = self.link_to_global_id(
+                let id = self.res_to_global_id(
                     *self
                         .resolutions
                         .get(path.id)
@@ -1008,13 +1008,13 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         }
     }
 
-    fn link_to_global_id(&self, link: Link<NodeId>) -> GlobalId {
-        match link {
-            Link::Internal(node) => GlobalId {
+    fn res_to_global_id(&self, res: Res<NodeId>) -> GlobalId {
+        match res {
+            Res::Internal(node) => GlobalId {
                 package: self.package,
                 node,
             },
-            Link::External(package, node) => GlobalId { package, node },
+            Res::External(package, node) => GlobalId { package, node },
         }
     }
 }

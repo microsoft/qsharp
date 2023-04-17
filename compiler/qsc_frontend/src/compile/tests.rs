@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{compile, Context, Error, PackageStore, SourceIndex};
-use crate::resolve::Link;
+use crate::resolve::Res;
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -310,8 +310,8 @@ fn package_dependency() {
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
     let resolutions = unit2.context.resolutions();
-    let link = resolutions.get(path.id).expect("should resolve");
-    assert_eq!(link, &Link::External(package1, foo));
+    let res = resolutions.get(path.id).expect("should resolve");
+    assert_eq!(res, &Res::External(package1, foo));
 }
 
 #[test]

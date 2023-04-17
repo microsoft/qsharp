@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{GlobalTable, Link, Resolutions};
+use super::{GlobalTable, Res, Resolutions};
 use crate::parse;
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -16,7 +16,7 @@ use std::fmt::Write;
 
 struct Renamer<'a> {
     resolutions: &'a Resolutions<NodeId>,
-    changes: Vec<(Span, Link<NodeId>)>,
+    changes: Vec<(Span, Res<NodeId>)>,
 }
 
 impl<'a> Renamer<'a> {
@@ -28,10 +28,10 @@ impl<'a> Renamer<'a> {
     }
 
     fn rename(&self, input: &mut String) {
-        for (span, link) in self.changes.iter().rev() {
-            let name = match link {
-                Link::Internal(node) => format!("_{node}"),
-                Link::External(package, node) => format!("_{package}_{node}"),
+        for (span, res) in self.changes.iter().rev() {
+            let name = match res {
+                Res::Internal(node) => format!("_{node}"),
+                Res::External(package, node) => format!("_{package}_{node}"),
             };
             input.replace_range(span, &name);
         }
