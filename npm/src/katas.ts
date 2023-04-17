@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { run_kata_exercise } from "../lib/web/qsc_wasm.js";
-import {katas} from "../dist/katas-content.js";
+import {katas} from "./katas-content.generated.js";
 
 export type Exercise = {
     type: "exercise";

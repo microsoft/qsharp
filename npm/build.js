@@ -14,7 +14,7 @@ import { katas }  from '../katas/content/katas.js';
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const katasContentDir = join(thisDir, "..", "katas", "content")
-const katasContentJsOutDir = join(thisDir, "dist");
+const katasGeneratedContentDir = join(thisDir, "src");
 
 function getTitleFromMarkdown(markdown) {
     const titleRe = /#+ /;
@@ -93,11 +93,8 @@ function buildKatasContentJs(katasDir, outDir) {
         mkdirSync(outDir);
     }
 
-    const contentJsPath = join(outDir, "katas-content.js");
+    const contentJsPath = join(outDir, "katas-content.generated.ts");
     writeFileSync(contentJsPath, 'export const katas = ' + inspect(katasContent, { depth: null }), 'utf-8');
-    const contentTsDeclarationPath = join(outDir, "katas-content.d.ts");
-    const tsDeclaration = `declare let katas: any; export {katas}`;
-    writeFileSync(contentTsDeclarationPath, tsDeclaration, 'utf-8');
 }
 
-buildKatasContentJs(katasContentDir, katasContentJsOutDir);
+buildKatasContentJs(katasContentDir, katasGeneratedContentDir);
