@@ -1,8 +1,8 @@
 import Module from "module";
-import {eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataModule, type Exercise} from "qsharp/browser";
+import { eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataModule, type Exercise } from "qsharp/browser";
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
-declare var MathJax: {typeset: () => void;};
+declare var MathJax: { typeset: () => void; };
 
 interface VerificationResult {
     kind: "VerificationResult";
@@ -22,7 +22,7 @@ function clearDiv(div: HTMLDivElement) {
     }
 }
 
-function renderKataOutput(output: KataOutput) : HTMLDivElement {
+function renderKataOutput(output: KataOutput): HTMLDivElement {
     let outputDiv = document.createElement("div");
     if (output.kind === "VerificationResult") {
         outputDiv.textContent = `Kata Verification: ${output.result}`;
@@ -33,7 +33,7 @@ function renderKataOutput(output: KataOutput) : HTMLDivElement {
     return outputDiv;
 }
 
-function renderExercise(exercise: Exercise) : HTMLDivElement {
+function renderExercise(exercise: Exercise): HTMLDivElement {
     let exerciseDiv = document.createElement("div");
     exerciseDiv.className = "kata-exercise";
     let exerciseContent = document.createElement("div");
@@ -83,13 +83,12 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
         let exerciseImplementation = sourceCodeArea.value;
         try {
             let result = await runExercise(exercise.id, exerciseImplementation, outputCallback);
-            let verificationResult: VerificationResult = {kind: "VerificationResult", result: result};
+            let verificationResult: VerificationResult = { kind: "VerificationResult", result: result };
             let renderedResult = renderKataOutput(verificationResult);
             outputDiv.prepend(renderedResult);
-        } catch(e)
-        {
+        } catch (e) {
             if (e instanceof Error) {
-                let kataError: KataError = {kind: "KataError", error: e.message};
+                let kataError: KataError = { kind: "KataError", error: e.message };
                 let renderedError = renderKataOutput(kataError);
                 outputDiv.prepend(renderedError);
             }
@@ -99,10 +98,10 @@ function renderExercise(exercise: Exercise) : HTMLDivElement {
     return exerciseDiv;
 }
 
-function renderModule(module: KataModule) : HTMLDivElement {
+function renderModule(module: KataModule): HTMLDivElement {
     let moduleDiv = document.createElement("div");
     moduleDiv.className = "kata-module";
-    if (module.type === "exercise"){
+    if (module.type === "exercise") {
         const exerciseDiv = renderExercise(module as Exercise);
         moduleDiv.append(exerciseDiv);
     }
@@ -110,7 +109,7 @@ function renderModule(module: KataModule) : HTMLDivElement {
     return moduleDiv;
 }
 
-function renderKata(kata: Kata) : HTMLDivElement {
+function renderKata(kata: Kata): HTMLDivElement {
     let kataDiv = document.createElement("div");
 
     // Render the content.
@@ -119,8 +118,7 @@ function renderKata(kata: Kata) : HTMLDivElement {
     kataDiv.append(kataContent);
 
     // Render each one of the modules.
-    for (let module of kata.modules)
-    {
+    for (let module of kata.modules) {
         let renderedModule = renderModule(module);
         kataDiv.append(renderedModule);
     }
@@ -148,8 +146,7 @@ export async function RenderKatas() {
 export async function PopulateKatasList() {
     let katasDropdown = document.querySelector('#katas-list') as HTMLSelectElement;
     let katas = await getAllKatas();
-    for (let kata of await getAllKatas())
-    {
+    for (let kata of await getAllKatas()) {
         let option = document.createElement("option");
         option.value = kata.id;
         option.text = kata.title;

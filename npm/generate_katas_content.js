@@ -4,13 +4,13 @@
 //@ts-check
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join} from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 
 import { marked } from "marked"
 
-import { katas }  from '../katas/content/katas.js';
+import { katas } from '../katas/content/katas.js';
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const katasContentDir = join(thisDir, "..", "katas", "content")
@@ -28,7 +28,7 @@ function getTitleFromMarkdown(markdown) {
     if (match === null) {
         throw new Error(`First line does not follow the expected title pattern: ${firstLine}`);
     }
-    
+
     return firstLine.replace(titleRe, "");
 }
 

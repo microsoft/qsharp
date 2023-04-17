@@ -3,11 +3,13 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompletions, checkCode, evaluate, eventStringToMsg,
-    renderDump, IDiagnostic, ShotResult } from "qsharp/browser";
+import {
+    init, getCompletions, checkCode, evaluate, eventStringToMsg,
+    renderDump, IDiagnostic, ShotResult
+} from "qsharp/browser";
 
-import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
-import {PopulateKatasList, RenderKatas} from "./katas.js";
+import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
+import { PopulateKatasList, RenderKatas } from "./katas.js";
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -30,7 +32,7 @@ const sampleCode = `namespace Sample {
 `;
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
-declare var MathJax: {typeset: () => void;};
+declare var MathJax: { typeset: () => void; };
 
 let runResults: ShotResult[] = [];
 let currentFilter = "";
@@ -46,7 +48,7 @@ function squiggleDiagnostics(errors: IDiagnostic[]) {
         let range = monaco.Range.fromPositions(startPos, endPos);
         let decoration: monaco.editor.IModelDeltaDecoration = {
             range,
-            options: {className: 'err-span', hoverMessage: {value: err.message}}
+            options: { className: 'err-span', hoverMessage: { value: err.message } }
         }
         return decoration;
     });
@@ -59,7 +61,7 @@ async function loaded() {
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
-    let errorsDiv = document.querySelector('#errors') as HTMLDivElement; 
+    let errorsDiv = document.querySelector('#errors') as HTMLDivElement;
     let exprInput = document.querySelector('#expr') as HTMLInputElement;
     let shotCount = document.querySelector('#shot') as HTMLInputElement;
     let runButton = document.querySelector('#run') as HTMLButtonElement;
@@ -77,7 +79,7 @@ async function loaded() {
         errorsDiv.innerText = JSON.stringify(errs, null, 2);
 
         squiggleDiagnostics(errs);
-        errs.length ? 
+        errs.length ?
             runButton.setAttribute("disabled", "true") : runButton.removeAttribute("disabled");
     }
 
@@ -120,7 +122,7 @@ async function loaded() {
 
                     // Push this result and prep for the next
                     runResults.push(currentShotResult);
-                    currentShotResult = {success: false, result: "pending", events: []};
+                    currentShotResult = { success: false, result: "pending", events: [] };
                     break;
                 case "Message":
                     currentShotResult.events.push(result);
@@ -134,9 +136,9 @@ async function loaded() {
         try {
             performance.mark("start-shots");
             let result = evaluate(code, expr, event_cb, shots);
-        } catch(e: any) {
+        } catch (e: any) {
             // TODO: Should only happen on crash. Telmetry?
-            
+
         }
         performance.mark("end-shots");
         let measure = performance.measure("shots-duration", "start-shots", "end-shots");
@@ -145,13 +147,13 @@ async function loaded() {
     });
 
     // Example of getting results from a call into the WASM module
-    monaco.languages.registerCompletionItemProvider("qsharp", { 
+    monaco.languages.registerCompletionItemProvider("qsharp", {
         provideCompletionItems(model, position, context, token) {
             // @ts-ignore : This is required in the defintion, but not needed.
             var range: monaco.IRange = undefined;
 
             let result = getCompletions();
-            
+
             let mapped: monaco.languages.CompletionList = {
                 suggestions: result.items.map(item => ({
                     label: item.label,
@@ -202,8 +204,8 @@ function renderOutputs(container: HTMLDivElement) {
     }));
 
     let filteredResults = currentFilter == "" ? mappedResults :
-            mappedResults.filter(entry => entry.result === currentFilter);
-    
+        mappedResults.filter(entry => entry.result === currentFilter);
+
     if (filteredResults.length === 0) return;
 
     // Show the current result and navigation.
