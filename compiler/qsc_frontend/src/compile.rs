@@ -217,6 +217,7 @@ pub fn std() -> CompileUnit {
             include_str!("../../../library/intrinsic.qs"),
             include_str!("../../../library/math.qs"),
             include_str!("../../../library/qir.qs"),
+            include_str!("../../../library/random.qs"),
         ],
         "",
     );

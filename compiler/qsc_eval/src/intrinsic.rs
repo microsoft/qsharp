@@ -21,6 +21,8 @@ use qsc_ast::ast::Span;
 
 use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
 
+use rand::Rng;
+
 pub(crate) fn invoke_intrinsic(
     name: &str,
     name_span: Span,
@@ -121,6 +123,25 @@ pub(crate) fn invoke_intrinsic(
             "Tanh" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
                 ControlFlow::Continue(Value::Double(val.tanh()))
+            }
+
+            "DrawRandomInt" => {
+                let mut args = args.try_into_tuple().with_span(args_span)?;
+                if args.len() == 2 {
+                    let (a2, a1) = (
+                        args.pop().expect("tuple should have 2 entries"),
+                        args.pop().expect("tuple should have 2 entries"),
+                    );
+                    let low_bound: i64 = a1.try_into().with_span(args_span)?;
+                    let high_bound: i64 = a2.try_into().with_span(args_span)?;
+                    if low_bound > high_bound {
+                        ControlFlow::Break(Reason::Error(Error::EmptyRange(args_span)))
+                    } else {
+                        ControlFlow::Continue(Value::Int(rand::thread_rng().gen_range(low_bound..=high_bound)))
+                    }
+                } else {
+                    ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                }
             }
 
             _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
