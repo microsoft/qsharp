@@ -39,6 +39,8 @@ pub(super) enum Error {
     RuleKeyword(&'static str, Keyword, #[label("expected {0}")] Span),
     #[error("expected {0}, found {1}")]
     Convert(&'static str, &'static str, #[label("expected {0}")] Span),
+    #[error("expected statement to end with a semicolon")]
+    MissingSemi(#[label("expected semicolon")] Span),
 }
 
 pub(super) type Result<T> = result::Result<T, Error>;
