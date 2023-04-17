@@ -4,9 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use std::mem::{replace, take};
-
-//use miette::Diagnostic;
 use qsc_ast::{
     ast::{
         Block, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Path, QubitInit,
@@ -14,6 +11,7 @@ use qsc_ast::{
     },
     mut_visit::{walk_expr, walk_stmt, MutVisitor},
 };
+use std::mem::take;
 
 fn remove_extra_parens(pat: Pat) -> Pat {
     match pat.kind {
@@ -26,24 +24,6 @@ fn remove_extra_parens(pat: Pat) -> Pat {
         },
     }
 }
-
-// fn remove_extra_parens_mut(pat: &mut Pat) {
-//     match &mut pat.kind {
-//         PatKind::Bind(_, _) | PatKind::Discard(_) | PatKind::Elided => {}
-//         PatKind::Paren(p) => {
-//             remove_extra_parens_mut(p);
-//             *pat = replace(
-//                 p,
-//                 Pat {
-//                     id: NodeId::default(),
-//                     span: Span::default(),
-//                     kind: PatKind::Elided,
-//                 },
-//             );
-//         }
-//         PatKind::Tuple(ps) => ps.iter_mut().for_each(remove_extra_parens_mut),
-//     }
-// }
 
 struct QubitIdent {
     id: Ident,
@@ -58,6 +38,7 @@ pub struct ReplaceQubitAllocation {
 }
 
 impl ReplaceQubitAllocation {
+    #[must_use]
     pub fn new() -> ReplaceQubitAllocation {
         ReplaceQubitAllocation {
             qubits_curr_callable: Vec::new(),
@@ -245,6 +226,12 @@ impl ReplaceQubitAllocation {
                 .flat_map(|q| ReplaceQubitAllocation::get_dealloc_stmts(q)),
         );
         stmts
+    }
+}
+
+impl Default for ReplaceQubitAllocation {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
