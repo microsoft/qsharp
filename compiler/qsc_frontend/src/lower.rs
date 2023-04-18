@@ -249,7 +249,7 @@ impl With<'_> {
 
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
         let id = self.lower_id(expr.id);
-        let ty = self.tys.get(expr.id).expect("expression should have type");
+        let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
         let kind = match &expr.kind {
             ast::ExprKind::Array(items) => {
                 hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
@@ -344,7 +344,7 @@ impl With<'_> {
         hir::Expr {
             id,
             span: expr.span,
-            ty: ty.clone(),
+            ty,
             kind,
         }
     }
