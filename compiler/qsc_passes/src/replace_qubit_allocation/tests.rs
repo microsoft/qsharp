@@ -84,7 +84,7 @@ fn test_qubit_array() {
                                 Pat _id_ [59-60]: Bind:
                                     Ident 11 [59-60] "q"
                                 Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_array_allocate")
+                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate_array")
                                     Expr _id_ [59-60]: Tuple:
                                         Expr 13 [69-70]: Lit: Int(3)
                             Stmt 14 [81-91]: Local (Immutable):
@@ -92,7 +92,7 @@ fn test_qubit_array() {
                                     Ident 16 [85-86] "x"
                                 Expr 17 [89-90]: Lit: Int(3)
                             Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_array_release")
+                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release_array")
                                 Expr _id_ [59-60]: Tuple:
                                     Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "q")"#]],
     );
@@ -175,7 +175,7 @@ fn test_multiple_qubits_tuple() {
                                 Pat _id_ [78-86]: Bind:
                                     Ident _id_ [78-86] "__generated_ident_1__"
                                 Expr _id_ [78-86]: Call:
-                                    Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "QIR.Runtime") (Ident _id_ [78-86] "__quantum__rt__qubit_array_allocate")
+                                    Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "QIR.Runtime") (Ident _id_ [78-86] "__quantum__rt__qubit_allocate_array")
                                     Expr _id_ [78-86]: Tuple:
                                         Expr 18 [84-85]: Lit: Int(3)
                             Stmt _id_ [55-88]: Local (Immutable):
@@ -192,7 +192,7 @@ fn test_multiple_qubits_tuple() {
                                     Ident 21 [101-102] "x"
                                 Expr 22 [105-106]: Lit: Int(3)
                             Stmt _id_ [78-86]: Semi: Expr _id_ [78-86]: Call:
-                                Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "QIR.Runtime") (Ident _id_ [78-86] "__quantum__rt__qubit_array_release")
+                                Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "QIR.Runtime") (Ident _id_ [78-86] "__quantum__rt__qubit_release_array")
                                 Expr _id_ [78-86]: Tuple:
                                     Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "__generated_ident_1__")
                             Stmt _id_ [69-76]: Semi: Expr _id_ [69-76]: Call:
@@ -702,7 +702,7 @@ fn test_array_expr() {
                                 Pat _id_ [59-60]: Bind:
                                     Ident 11 [59-60] "a"
                                 Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_array_allocate")
+                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate_array")
                                     Expr _id_ [59-60]: Tuple:
                                         Expr 13 [69-123]: Expr Block: Block 14 [69-123]:
                                             Stmt _id_ [87-88]: Local (Immutable):
@@ -725,7 +725,7 @@ fn test_array_expr() {
                                     Ident 23 [138-139] "x"
                                 Expr 24 [142-143]: Lit: Int(3)
                             Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_array_release")
+                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release_array")
                                 Expr _id_ [59-60]: Tuple:
                                     Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "a")"#]],
     );
