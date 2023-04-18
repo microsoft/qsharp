@@ -20,6 +20,20 @@ body {
     border: 1px solid gray;
 }
 
+#button-row {
+    display:flex;
+    margin:16px 0;
+}
+
+#share-div {
+    text-align:right;
+    flex-grow:1;
+}
+
+#share-confirmation {
+    display: none;
+}
+
 #errors {
     font-family: 'Courier New', Courier, monospace;
     color: darkred;
