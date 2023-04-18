@@ -12,6 +12,7 @@ use qsc_eval::{
 use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
 
 use miette::{Diagnostic, Severity};
+use qsc_passes::run_default_passes;
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
@@ -226,14 +227,20 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
     let (std, ref store) = STDLIB_STORE.get_or_init(|| {
         let mut store = PackageStore::new();
-        let std = store.insert(std());
+        let mut std = std();
+        run_default_passes(&mut std);
+        let std = store.insert(std);
         (std, store)
     });
-    let unit = compile(store, [*std], [code], "");
+    let mut unit = compile(store, [*std], [code], "");
+    let pass_errs = run_default_passes(&mut unit);
 
     let mut result: Vec<VSDiagnostic> = vec![];
 
     for err in unit.context.errors() {
+        result.push(err.into());
+    }
+    for err in &pass_errs {
         result.push(err.into());
     }
 
