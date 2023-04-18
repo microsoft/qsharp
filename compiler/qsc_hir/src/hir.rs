@@ -544,8 +544,8 @@ pub enum TyKind {
     Paren(Box<Ty>),
     /// A primitive type.
     Prim(TyPrim),
-    /// A resolved symbol.
-    Symbol(Res<NodeId>),
+    /// A resolved name.
+    Res(Res<NodeId>),
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A type variable.
@@ -569,7 +569,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
-            TyKind::Symbol(res) => write!(indent, "Symbol: {res:?}")?,
+            TyKind::Res(res) => write!(indent, "Res: {res:?}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
@@ -743,10 +743,10 @@ pub enum ExprKind {
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Block, Box<Expr>, Option<Block>),
+    /// A resolved name.
+    Res(Res<NodeId>),
     /// A return: `return a`.
     Return(Box<Expr>),
-    /// A resolved symbol.
-    Symbol(Res<NodeId>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -784,8 +784,8 @@ impl Display for ExprKind {
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
+            ExprKind::Res(res) => write!(indent, "Res: {res:?}")?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
-            ExprKind::Symbol(res) => write!(indent, "Symbol: {res:?}")?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }

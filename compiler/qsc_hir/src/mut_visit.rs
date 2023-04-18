@@ -182,7 +182,7 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Tuple(tys) => tys.iter_mut().for_each(|t| vis.visit_ty(t)),
         TyKind::Var(ident) => vis.visit_ident(ident),
-        TyKind::Hole | TyKind::Prim(_) | TyKind::Symbol(_) => {}
+        TyKind::Hole | TyKind::Prim(_) | TyKind::Res(_) => {}
     }
 }
 
@@ -284,7 +284,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Symbol(_) => {}
+        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Res(_) => {}
     }
 }
 

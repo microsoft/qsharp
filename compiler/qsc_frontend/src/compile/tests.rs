@@ -198,7 +198,7 @@ fn entry_call_operation() {
     };
     let entry = unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Symbol(res) = callee.kind else { panic!("callee should be a symbol") };
+    let ExprKind::Res(res) = callee.kind else { panic!("callee should be a resolution") };
     assert_eq!(Res::Internal(callable.name.id), res);
 }
 
@@ -303,7 +303,7 @@ fn package_dependency() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Symbol(res) = &callee.kind else { panic!("callee should be a symbol") };
+    let ExprKind::Res(res) = &callee.kind else { panic!("callee should be a resolution") };
     assert_eq!(res, &Res::External(package1, foo));
 }
 
@@ -343,7 +343,7 @@ fn package_dependency_internal() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Symbol(res) = &callee.kind else { panic!("callee should be a symbol") };
+    let ExprKind::Res(res) = &callee.kind else { panic!("callee should be a resolution") };
     assert_eq!(&Res::Err, res);
 }
 

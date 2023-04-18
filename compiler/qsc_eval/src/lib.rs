@@ -357,8 +357,8 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
+            &ExprKind::Res(res) => ControlFlow::Continue(self.resolve_binding(res)),
             ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
-            &ExprKind::Symbol(res) => ControlFlow::Continue(self.resolve_binding(res)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
                 TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
@@ -934,7 +934,8 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
-            (&ExprKind::Symbol(res), rhs) => {
+            (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
+            (&ExprKind::Res(res), rhs) => {
                 let id = self.res_to_global_id(res);
                 let mut variable = self
                     .env
@@ -951,7 +952,6 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                     ControlFlow::Break(Reason::Error(Error::Mutability(lhs.span)))
                 }
             }
-            (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
                 if var_tup.len() == tup.len() {
                     for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
