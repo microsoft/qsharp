@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::resolve::Resolutions;
+use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{assigner::Assigner, hir};
@@ -482,11 +482,11 @@ impl Lowerer {
         }
     }
 
-    fn lower_path(&mut self, resolutions: &Resolutions, path: &ast::Path) -> hir::Res<hir::NodeId> {
+    fn lower_path(&mut self, resolutions: &Resolutions, path: &ast::Path) -> hir::Res {
         match resolutions.get(path.id) {
-            None | Some(hir::Res::Err) => hir::Res::Err,
-            Some(&hir::Res::Internal(node)) => hir::Res::Internal(self.lower_id(node)),
-            Some(&hir::Res::External(package, node)) => hir::Res::External(package, node),
+            None => hir::Res::Err,
+            Some(&resolve::Res::Internal(node)) => hir::Res::Internal(self.lower_id(node)),
+            Some(&resolve::Res::External(package, node)) => hir::Res::External(package, node),
         }
     }
 

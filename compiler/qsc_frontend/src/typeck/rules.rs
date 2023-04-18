@@ -6,13 +6,12 @@ use super::{
     ty::{Prim, Ty},
     Error, Tys,
 };
-use crate::resolve::Resolutions;
+use crate::resolve::{Res, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::Res;
 use std::{
     collections::{HashMap, HashSet},
     convert::Into,
@@ -66,7 +65,7 @@ impl<T> Fallible<T> {
 
 struct Context<'a> {
     resolutions: &'a Resolutions,
-    globals: &'a HashMap<Res<NodeId>, Ty>,
+    globals: &'a HashMap<Res, Ty>,
     return_ty: Option<&'a Ty>,
     tys: &'a mut Tys<NodeId>,
     nodes: Vec<NodeId>,
@@ -76,7 +75,7 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions,
-        globals: &'a HashMap<Res<NodeId>, Ty>,
+        globals: &'a HashMap<Res, Ty>,
         tys: &'a mut Tys<NodeId>,
     ) -> Self {
         Self {
@@ -329,7 +328,6 @@ impl<'a> Context<'a> {
                         Res::External(..) => {
                             panic!("path resolves to external package but definition not found")
                         }
-                        Res::Err => Ty::Err,
                     },
                 },
             },
@@ -604,7 +602,7 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     resolutions: &Resolutions,
-    globals: &HashMap<Res<NodeId>, Ty>,
+    globals: &HashMap<Res, Ty>,
     tys: &mut Tys<NodeId>,
     spec: SpecImpl,
 ) -> Vec<Error> {
@@ -615,7 +613,7 @@ pub(super) fn spec(
 
 pub(super) fn entry_expr(
     resolutions: &Resolutions,
-    globals: &HashMap<Res<NodeId>, Ty>,
+    globals: &HashMap<Res, Ty>,
     tys: &mut Tys<NodeId>,
     entry: &Expr,
 ) -> Vec<Error> {

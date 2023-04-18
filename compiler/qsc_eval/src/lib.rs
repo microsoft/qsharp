@@ -23,7 +23,7 @@ use qir_backend::{
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
-    NodeId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody, SpecGen, Stmt,
+    PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody, SpecGen, Stmt,
     StmtKind, TernOp, UnOp,
 };
 use qsc_passes::globals::GlobalId;
@@ -915,7 +915,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         }
     }
 
-    fn resolve_binding(&mut self, res: Res<NodeId>) -> Value {
+    fn resolve_binding(&mut self, res: Res) -> Value {
         let global_id = self.res_to_global_id(res);
         let local = if matches!(res, Res::Internal(_)) {
             self.env
@@ -970,7 +970,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         }
     }
 
-    fn res_to_global_id(&self, res: Res<NodeId>) -> GlobalId {
+    fn res_to_global_id(&self, res: Res) -> GlobalId {
         match res {
             Res::Internal(node) => GlobalId {
                 package: self.package,

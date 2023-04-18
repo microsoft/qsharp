@@ -6,17 +6,20 @@ use super::{
     ty::{self, Ty},
     Error, ErrorKind, Tys,
 };
-use crate::{resolve::Resolutions, typeck::ty::MissingTyError};
+use crate::{
+    resolve::{Res, Resolutions},
+    typeck::ty::MissingTyError,
+};
 use qsc_ast::{ast, visit::Visitor as AstVisitor};
 use qsc_hir::{
-    hir::{self, PackageId, Res},
+    hir::{self, PackageId},
     visit::Visitor as HirVisitor,
 };
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<Res<ast::NodeId>, Ty>,
+    globals: HashMap<Res, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
@@ -77,7 +80,7 @@ impl HirVisitor<'_> for GlobalTable<'_> {
 
 pub(crate) struct Checker<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<Res<ast::NodeId>, Ty>,
+    globals: HashMap<Res, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }

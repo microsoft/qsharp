@@ -94,9 +94,9 @@ impl Display for PackageId {
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Res<Id> {
+pub enum Res {
     /// A resolution to a name declared in the same package as the usage.
-    Internal(Id),
+    Internal(NodeId),
     /// A resolution to a name declared in another package.
     External(PackageId, NodeId),
     /// An unresolved name.
@@ -545,7 +545,7 @@ pub enum TyKind {
     /// A primitive type.
     Prim(TyPrim),
     /// A resolved name.
-    Res(Res<NodeId>),
+    Res(Res),
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A type variable.
@@ -744,7 +744,7 @@ pub enum ExprKind {
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Block, Box<Expr>, Option<Block>),
     /// A resolved name.
-    Res(Res<NodeId>),
+    Res(Res),
     /// A return: `return a`.
     Return(Box<Expr>),
     /// A ternary operator.

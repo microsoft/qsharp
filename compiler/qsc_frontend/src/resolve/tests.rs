@@ -7,7 +7,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner,
-    ast::{Ident, NodeId, Package, Path},
+    ast::{Ident, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -16,7 +16,7 @@ use std::fmt::Write;
 
 struct Renamer<'a> {
     resolutions: &'a Resolutions,
-    changes: Vec<(Span, Res<NodeId>)>,
+    changes: Vec<(Span, Res)>,
 }
 
 impl<'a> Renamer<'a> {
@@ -32,7 +32,6 @@ impl<'a> Renamer<'a> {
             let name = match res {
                 Res::Internal(node) => format!("_{node}"),
                 Res::External(package, node) => format!("_{package}_{node}"),
-                Res::Err => String::from("?"),
             };
             input.replace_range(span, &name);
         }
