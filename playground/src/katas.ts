@@ -1,4 +1,3 @@
-import Module from "module";
 import { eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataItem, type Exercise } from "qsharp/browser";
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
