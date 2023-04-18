@@ -114,7 +114,9 @@ impl<'a> Compiler<'a> {
 
         let decl = self
             .lowerer
-            .lower_callable_decl(self.resolver.resolutions(), decl);
+            .with(self.resolver.resolutions())
+            .lower_callable_decl(decl);
+
         if errors.is_empty() {
             Fragment::Callable(decl)
         } else {
@@ -135,7 +137,11 @@ impl<'a> Compiler<'a> {
             .map(|e| Error(ErrorKind::Resolve(e)))
             .collect();
 
-        let stmt = self.lowerer.lower_stmt(self.resolver.resolutions(), stmt);
+        let stmt = self
+            .lowerer
+            .with(self.resolver.resolutions())
+            .lower_stmt(stmt);
+
         if errors.is_empty() {
             Fragment::Stmt(stmt)
         } else {
