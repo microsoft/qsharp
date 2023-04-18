@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 // base64 functions to encode unicode
 // Per samples on https://developer.mozilla.org/en-US/docs/Web/API/btoa
 
