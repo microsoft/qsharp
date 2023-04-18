@@ -81,6 +81,7 @@ impl From<usize> for NodeId {
     }
 }
 
+/// A unique identifier for a package within a package store.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageId(pub u32);
 
@@ -94,8 +95,11 @@ impl Display for PackageId {
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Res<Id> {
+    /// A resolution to a name declared in the same package as the usage.
     Internal(Id),
+    /// A resolution to a name declared in another package.
     External(PackageId, NodeId),
+    /// An unresolved name.
     Err,
 }
 
