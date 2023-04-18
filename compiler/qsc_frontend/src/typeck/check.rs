@@ -3,16 +3,15 @@
 
 use super::{
     rules::{self, SpecImpl},
-    ty::{self, Ty},
     Error, ErrorKind, Tys,
 };
 use crate::{
     resolve::{Res, Resolutions},
-    typeck::ty::MissingTyError,
+    typeck::convert::{self, MissingTyError},
 };
 use qsc_ast::{ast, visit::Visitor as AstVisitor};
 use qsc_hir::{
-    hir::{self, PackageId},
+    hir::{self, PackageId, Ty},
     visit::Visitor as HirVisitor,
 };
 use std::collections::HashMap;
@@ -55,7 +54,7 @@ impl AstVisitor<'_> for GlobalTable<'_> {
             "package ID should not be set before visiting AST"
         );
 
-        let (ty, errors) = Ty::of_ast_callable(decl);
+        let (ty, errors) = convert::ast_callable_ty(decl);
         self.globals.insert(Res::Internal(decl.name.id), ty);
         for MissingTyError(span) in errors {
             self.errors.push(Error(ErrorKind::MissingItemTy(span)));
@@ -68,13 +67,10 @@ impl HirVisitor<'_> for GlobalTable<'_> {
         let package = self
             .package
             .expect("package ID should be set before visiting HIR");
-
-        let (ty, errors) = Ty::of_hir_callable(decl);
-        self.globals
-            .insert(Res::External(package, decl.name.id), ty);
-        for MissingTyError(span) in errors {
-            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-        }
+        self.globals.insert(
+            Res::External(package, decl.name.id),
+            convert::hir_callable_ty(decl),
+        );
     }
 }
 
@@ -91,12 +87,12 @@ impl Checker<'_> {
     }
 
     fn check_callable_signature(&mut self, decl: &ast::CallableDecl) {
-        if !ty::ast_callable_functors(decl).is_empty() {
+        if !convert::ast_callable_functors(decl).is_empty() {
             match &decl.output.kind {
                 ast::TyKind::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TypeMismatch(
                     Ty::UNIT,
-                    Ty::from_ast(&decl.output).0,
+                    convert::ty_from_ast(&decl.output).0,
                     decl.output.span,
                 ))),
             }
@@ -125,10 +121,11 @@ impl AstVisitor<'_> for Checker<'_> {
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        self.tys.insert(decl.name.id, Ty::of_ast_callable(decl).0);
+        self.tys
+            .insert(decl.name.id, convert::ast_callable_ty(decl).0);
         self.check_callable_signature(decl);
 
-        let output = Ty::from_ast(&decl.output).0;
+        let output = convert::ty_from_ast(&decl.output).0;
         match &decl.body {
             ast::CallableBody::Block(block) => self.check_spec(SpecImpl {
                 spec: ast::Spec::Body,

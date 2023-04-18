@@ -2,15 +2,16 @@
 // Licensed under the MIT License.
 
 mod check;
+pub(super) mod convert;
 mod infer;
 mod rules;
 #[cfg(test)]
 mod tests;
-pub mod ty;
 
-use self::{infer::Class, ty::Ty};
+use self::infer::Class;
 use miette::Diagnostic;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_hir::hir::Ty;
 use std::fmt::Debug;
 use thiserror::Error;
 

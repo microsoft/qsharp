@@ -6,6 +6,7 @@ use crate::{
     lower::Lowerer,
     parse,
     resolve::{self, GlobalTable, Resolver},
+    typeck::Tys,
 };
 use miette::Diagnostic;
 use qsc_ast::{
@@ -114,7 +115,7 @@ impl<'a> Compiler<'a> {
 
         let decl = self
             .lowerer
-            .with(self.resolver.resolutions())
+            .with(self.resolver.resolutions(), &Tys::new()) // TODO
             .lower_callable_decl(decl);
 
         if errors.is_empty() {
@@ -139,7 +140,7 @@ impl<'a> Compiler<'a> {
 
         let stmt = self
             .lowerer
-            .with(self.resolver.resolutions())
+            .with(self.resolver.resolutions(), &Tys::new()) // TODO
             .lower_stmt(stmt);
 
         if errors.is_empty() {

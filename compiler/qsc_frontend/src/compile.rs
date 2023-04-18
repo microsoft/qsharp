@@ -180,7 +180,7 @@ pub fn compile(
     );
 
     let mut lowerer = Lowerer::new();
-    let package = lowerer.with(&resolutions).lower_package(&package);
+    let package = lowerer.with(&resolutions, &tys).lower_package(&package);
     let tys = tys
         .into_iter()
         .filter_map(|(ast_id, ty)| lowerer.get_id(ast_id).map(|hir_id| (hir_id, ty)))

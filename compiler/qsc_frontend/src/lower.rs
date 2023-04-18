@@ -1,10 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::resolve::{self, Resolutions};
+use crate::{
+    resolve::{self, Resolutions},
+    typeck::{convert, Tys},
+};
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{assigner::Assigner, hir};
+use std::clone::Clone;
 
 pub(super) struct Lowerer {
     assigner: Assigner,
@@ -19,10 +23,15 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions) -> With {
+    pub(super) fn with<'a>(
+        &'a mut self,
+        resolutions: &'a Resolutions,
+        tys: &'a Tys<ast::NodeId>,
+    ) -> With {
         With {
             lowerer: self,
             resolutions,
+            tys,
         }
     }
 
@@ -34,9 +43,11 @@ impl Lowerer {
         self.assigner
     }
 }
+
 pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
     resolutions: &'a Resolutions,
+    tys: &'a Tys<ast::NodeId>,
 }
 
 impl With<'_> {
@@ -116,7 +127,7 @@ impl With<'_> {
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(&decl.input),
-            output: self.lower_ty(&decl.output),
+            output: convert::ty_from_ast(&decl.output).0,
             functors: decl.functors.as_ref().map(|f| self.lower_functor_expr(f)),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
@@ -161,7 +172,7 @@ impl With<'_> {
             kind: match &def.kind {
                 ast::TyDefKind::Field(name, ty) => hir::TyDefKind::Field(
                     name.as_ref().map(|n| self.lower_ident(n)),
-                    self.lower_ty(ty),
+                    convert::ty_from_ast(ty).0,
                 ),
                 ast::TyDefKind::Paren(inner) => {
                     hir::TyDefKind::Paren(Box::new(self.lower_ty_def(inner)))
@@ -193,41 +204,6 @@ impl With<'_> {
                     hir::FunctorExprKind::Paren(Box::new(self.lower_functor_expr(inner)))
                 }
             },
-        }
-    }
-
-    fn lower_ty(&mut self, ty: &ast::Ty) -> hir::Ty {
-        let id = self.lower_id(ty.id);
-        let kind = match &ty.kind {
-            ast::TyKind::Array(item) => hir::TyKind::Array(Box::new(self.lower_ty(item))),
-            ast::TyKind::Arrow(kind, input, output, functors) => hir::TyKind::Arrow(
-                lower_callable_kind(*kind),
-                Box::new(self.lower_ty(input)),
-                Box::new(self.lower_ty(output)),
-                functors.as_ref().map(|f| self.lower_functor_expr(f)),
-            ),
-            ast::TyKind::Hole => hir::TyKind::Hole,
-            ast::TyKind::Paren(inner) => hir::TyKind::Paren(Box::new(self.lower_ty(inner))),
-            ast::TyKind::Path(path) => hir::TyKind::Name(self.lower_path(path)),
-            ast::TyKind::Prim(ast::TyPrim::BigInt) => hir::TyKind::Prim(hir::TyPrim::BigInt),
-            ast::TyKind::Prim(ast::TyPrim::Bool) => hir::TyKind::Prim(hir::TyPrim::Bool),
-            ast::TyKind::Prim(ast::TyPrim::Double) => hir::TyKind::Prim(hir::TyPrim::Double),
-            ast::TyKind::Prim(ast::TyPrim::Int) => hir::TyKind::Prim(hir::TyPrim::Int),
-            ast::TyKind::Prim(ast::TyPrim::Pauli) => hir::TyKind::Prim(hir::TyPrim::Pauli),
-            ast::TyKind::Prim(ast::TyPrim::Qubit) => hir::TyKind::Prim(hir::TyPrim::Qubit),
-            ast::TyKind::Prim(ast::TyPrim::Range) => hir::TyKind::Prim(hir::TyPrim::Range),
-            ast::TyKind::Prim(ast::TyPrim::Result) => hir::TyKind::Prim(hir::TyPrim::Result),
-            ast::TyKind::Prim(ast::TyPrim::String) => hir::TyKind::Prim(hir::TyPrim::String),
-            ast::TyKind::Tuple(tys) => {
-                hir::TyKind::Tuple(tys.iter().map(|t| self.lower_ty(t)).collect())
-            }
-            ast::TyKind::Var(name) => hir::TyKind::Var(self.lower_ident(name)),
-        };
-
-        hir::Ty {
-            id,
-            span: ty.span,
-            kind,
         }
     }
 
@@ -273,6 +249,7 @@ impl With<'_> {
 
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
         let id = self.lower_id(expr.id);
+        let ty = self.tys.get(expr.id).expect("expression should have type");
         let kind = match &expr.kind {
             ast::ExprKind::Array(items) => {
                 hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
@@ -367,20 +344,21 @@ impl With<'_> {
         hir::Expr {
             id,
             span: expr.span,
+            ty: ty.clone(),
             kind,
         }
     }
 
     fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
         let id = self.lower_id(pat.id);
+        let ty = self
+            .tys
+            .get(pat.id)
+            .map_or_else(|| convert::ast_pat_ty(pat).0, Clone::clone);
+
         let kind = match &pat.kind {
-            ast::PatKind::Bind(name, ty) => hir::PatKind::Bind(
-                self.lower_ident(name),
-                ty.as_ref().map(|t| self.lower_ty(t)),
-            ),
-            ast::PatKind::Discard(ty) => {
-                hir::PatKind::Discard(ty.as_ref().map(|t| self.lower_ty(t)))
-            }
+            ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
+            ast::PatKind::Discard(_) => hir::PatKind::Discard,
             ast::PatKind::Elided => hir::PatKind::Elided,
             ast::PatKind::Paren(inner) => hir::PatKind::Paren(Box::new(self.lower_pat(inner))),
             ast::PatKind::Tuple(items) => {
@@ -391,6 +369,7 @@ impl With<'_> {
         hir::Pat {
             id,
             span: pat.span,
+            ty,
             kind,
         }
     }

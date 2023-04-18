@@ -1,17 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{
-    ty::{Functor, Prim, Ty, Var},
-    Error, ErrorKind,
-};
+use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_hir::hir::{Functor, PrimTy, Ty, TyVar};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
-pub(super) type Substitutions = IndexMap<Var, Ty>;
+pub(super) type Substitutions = IndexMap<TyVar, Ty>;
 
 #[derive(Clone, Debug)]
 pub(super) enum Class {
@@ -176,14 +174,14 @@ struct UnifyError(Ty, Ty);
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
-    next_var: Var,
+    next_var: TyVar,
 }
 
 impl Inferrer {
     pub(super) fn new() -> Self {
         Self {
             constraints: VecDeque::new(),
-            next_var: Var(0),
+            next_var: TyVar(0),
         }
     }
 
@@ -204,7 +202,7 @@ impl Inferrer {
     /// Returns a unique unconstrained type variable.
     pub(super) fn fresh(&mut self) -> Ty {
         let var = self.next_var;
-        self.next_var = Var(var.0 + 1);
+        self.next_var = TyVar(var.0 + 1);
         Ty::Var(var)
     }
 
@@ -251,7 +249,7 @@ impl Inferrer {
 
 struct Solver {
     substs: Substitutions,
-    pending: HashMap<Var, Vec<Class>>,
+    pending: HashMap<TyVar, Vec<Class>>,
     errors: Vec<Error>,
 }
 
@@ -357,7 +355,7 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
     ty
 }
 
-fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), UnifyError> {
+fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(TyVar, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
         (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2, bind),
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
@@ -391,7 +389,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), Unify
     }
 }
 
-fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<Var> {
+fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<TyVar> {
     match ty {
         &Ty::Var(var) => match substs.get(var) {
             None => Some(var),
@@ -404,7 +402,7 @@ fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<Var> {
 fn check_add(ty: &Ty) -> bool {
     matches!(
         ty,
-        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_)
+        Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int | PrimTy::String) | Ty::Array(_)
     )
 }
 
@@ -448,7 +446,7 @@ fn check_call(
 fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError> {
     match op {
         Ty::Arrow(kind, input, output, functors) if functors.contains(&Functor::Ctl) => {
-            let qubit_array = Ty::Array(Box::new(Ty::Prim(Prim::Qubit)));
+            let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
             Ok(Constraint::Eq {
                 expected: Ty::Arrow(kind, ctl_input, output, functors),
@@ -463,15 +461,15 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError
 fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
     match ty {
         Ty::Prim(
-            Prim::BigInt
-            | Prim::Bool
-            | Prim::Double
-            | Prim::Int
-            | Prim::Qubit
-            | Prim::Range
-            | Prim::Result
-            | Prim::String
-            | Prim::Pauli,
+            PrimTy::BigInt
+            | PrimTy::Bool
+            | PrimTy::Double
+            | PrimTy::Int
+            | PrimTy::Qubit
+            | PrimTy::Range
+            | PrimTy::Result
+            | PrimTy::String
+            | PrimTy::Pauli,
         ) => Ok(Vec::new()),
         Ty::Array(item) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
         Ty::Tuple(items) => Ok(items
@@ -484,12 +482,12 @@ fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
 
 fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> {
     match base {
-        Ty::Prim(Prim::BigInt) => Ok(Constraint::Eq {
-            expected: Ty::Prim(Prim::Int),
+        Ty::Prim(PrimTy::BigInt) => Ok(Constraint::Eq {
+            expected: Ty::Prim(PrimTy::Int),
             actual: power,
             span,
         }),
-        Ty::Prim(Prim::Double | Prim::Int) => Ok(Constraint::Eq {
+        Ty::Prim(PrimTy::Double | PrimTy::Int) => Ok(Constraint::Eq {
             expected: base,
             actual: power,
             span,
@@ -505,12 +503,12 @@ fn check_has_index(
     span: Span,
 ) -> Result<Constraint, ClassError> {
     match (container, index) {
-        (Ty::Array(container_item), Ty::Prim(Prim::Int)) => Ok(Constraint::Eq {
+        (Ty::Array(container_item), Ty::Prim(PrimTy::Int)) => Ok(Constraint::Eq {
             expected: *container_item,
             actual: item,
             span,
         }),
-        (container @ Ty::Array(_), Ty::Prim(Prim::Range)) => Ok(Constraint::Eq {
+        (container @ Ty::Array(_), Ty::Prim(PrimTy::Range)) => Ok(Constraint::Eq {
             expected: container,
             actual: item,
             span,
@@ -527,13 +525,13 @@ fn check_has_index(
 }
 
 fn check_integral(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Int))
+    matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Int))
 }
 
 fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, ClassError> {
     match container {
-        Ty::Prim(Prim::Range) => Ok(Constraint::Eq {
-            expected: Ty::Prim(Prim::Int),
+        Ty::Prim(PrimTy::Range) => Ok(Constraint::Eq {
+            expected: Ty::Prim(PrimTy::Int),
             actual: item,
             span,
         }),
@@ -547,5 +545,5 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, Cla
 }
 
 fn check_num(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
+    matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int))
 }

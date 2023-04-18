@@ -3,12 +3,9 @@
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::{
-    compile::Context,
-    typeck::ty::{CallableKind, Functor, Prim, Ty},
-};
+use qsc_frontend::compile::Context;
 use qsc_hir::{
-    hir::{self, Expr, ExprKind, Res, UnOp},
+    hir::{self, CallableKind, Expr, ExprKind, Functor, PrimTy, Res, Ty, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
 use thiserror::Error;
@@ -44,6 +41,10 @@ impl<'a> MutVisitor for CtlDistrib<'a> {
                     *op = Box::new(Expr {
                         id: new_op_id,
                         span: op.span,
+                        ty: Ty::Tuple(vec![
+                            Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                            args.ty.clone(),
+                        ]),
                         kind: ExprKind::UnOp(UnOp::Functor(hir::Functor::Ctl), op.clone()),
                     });
 
@@ -51,21 +52,27 @@ impl<'a> MutVisitor for CtlDistrib<'a> {
                     self.context.tys_mut().insert(
                         new_args_id,
                         Ty::Tuple(vec![
-                            Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
+                            Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
                             *args_ty.clone(),
                         ]),
                     );
                     let new_ctls_path_id = self.context.assigner_mut().next_id();
-                    self.context
-                        .tys_mut()
-                        .insert(new_ctls_path_id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
+                    self.context.tys_mut().insert(
+                        new_ctls_path_id,
+                        Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                    );
                     *args = Box::new(Expr {
                         id: new_args_id,
                         span: args.span,
+                        ty: Ty::Tuple(vec![
+                            Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                            args.ty.clone(),
+                        ]),
                         kind: ExprKind::Tuple(vec![
                             Expr {
                                 id: new_ctls_path_id,
                                 span: args.span,
+                                ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
                                 kind: ExprKind::Name(self.ctls),
                             },
                             *args.clone(),

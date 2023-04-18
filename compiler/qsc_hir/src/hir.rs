@@ -10,7 +10,7 @@ use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use std::{
     collections::HashSet,
-    fmt::{self, Display, Formatter, Write},
+    fmt::{self, Debug, Display, Formatter, Write},
 };
 
 fn set_indentation<'a, 'b>(
@@ -64,7 +64,7 @@ impl Display for NodeId {
         if self.0 == Self::PLACEHOLDER.0 {
             write!(f, "_id_")
         } else {
-            self.0.fmt(f)
+            Display::fmt(&self.0, f)
         }
     }
 }
@@ -534,78 +534,61 @@ impl Display for FunctorExprKind {
     }
 }
 
-/// A type.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Ty {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The type kind.
-    pub kind: TyKind,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Ty {
+    Array(Box<Ty>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    Err,
+    Param(String),
+    Prim(PrimTy),
+    Tuple(Vec<Ty>),
+    Var(TyVar),
+}
+
+impl Ty {
+    pub const UNIT: Self = Self::Tuple(Vec::new());
 }
 
 impl Display for Ty {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Type {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A type kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum TyKind {
-    /// An array type.
-    Array(Box<Ty>),
-    /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
-    /// An unspecified type, `_`, which may be inferred.
-    Hole,
-    /// A resolved name.
-    Name(Res),
-    /// A type wrapped in parentheses.
-    Paren(Box<Ty>),
-    /// A primitive type.
-    Prim(TyPrim),
-    /// A tuple type.
-    Tuple(Vec<Ty>),
-    /// A type variable.
-    Var(Ident),
-}
-
-impl Display for TyKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            TyKind::Array(item) => write!(indent, "Array: {item}")?,
-            TyKind::Arrow(ck, param, rtrn, functors) => {
-                write!(indent, "Arrow ({ck:?}):")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\nparam: {param}")?;
-                write!(indent, "\nreturn: {rtrn}")?;
-                if let Some(f) = functors {
-                    write!(indent, "\nfunctors: {f}")?;
-                }
+            Ty::Array(item) => write!(f, "({item})[]"),
+            Ty::Arrow(kind, input, output, functors) => {
+                let arrow = match kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
+                let is = match (
+                    functors.contains(&Functor::Adj),
+                    functors.contains(&Functor::Ctl),
+                ) {
+                    (true, true) => " is Adj + Ctl",
+                    (true, false) => " is Adj",
+                    (false, true) => " is Ctl",
+                    (false, false) => "",
+                };
+                write!(f, "({input}) {arrow} ({output}){is}")
             }
-            TyKind::Hole => write!(indent, "Hole")?,
-            TyKind::Name(res) => write!(indent, "Name: {res:?}")?,
-            TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
-            TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
-            TyKind::Tuple(ts) => {
-                if ts.is_empty() {
-                    write!(indent, "Unit")?;
-                } else {
-                    write!(indent, "Tuple:")?;
-                    indent = indent.with_format(Format::Uniform {
-                        indentation: "    ",
-                    });
-                    for t in ts {
-                        write!(indent, "\n{t}")?;
+            Ty::Err => f.write_str("?"),
+            Ty::Param(name) => write!(f, "'{name}"),
+            Ty::Prim(prim) => prim.fmt(f),
+            Ty::Tuple(items) => {
+                f.write_str("(")?;
+                if let Some((first, rest)) = items.split_first() {
+                    Display::fmt(first, f)?;
+                    if rest.is_empty() {
+                        f.write_str(",")?;
+                    } else {
+                        for item in rest {
+                            f.write_str(", ")?;
+                            Display::fmt(item, f)?;
+                        }
                     }
                 }
+                f.write_str(")")
             }
-            TyKind::Var(name) => write!(indent, "\nType Var {name}")?,
+            Ty::Var(id) => Display::fmt(id, f),
         }
-        Ok(())
     }
 }
 
@@ -697,12 +680,13 @@ impl Display for StmtKind {
 }
 
 /// An expression.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
     /// The node ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    pub ty: Ty,
     /// The expression kind.
     pub kind: ExprKind,
 }
@@ -1045,12 +1029,13 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
 }
 
 /// A pattern.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pat {
     /// The node ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    pub ty: Ty,
     /// The pattern kind.
     pub kind: PatKind,
 }
@@ -1062,12 +1047,12 @@ impl Display for Pat {
 }
 
 /// A pattern kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatKind {
     /// A binding with an optional type annotation.
-    Bind(Ident, Option<Ty>),
+    Bind(Ident),
     /// A discarded binding, `_`, with an optional type annotation.
-    Discard(Option<Ty>),
+    Discard,
     /// An elided pattern, `...`, used by specializations.
     Elided,
     /// Parentheses: `(a)`.
@@ -1080,22 +1065,12 @@ impl Display for PatKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            PatKind::Bind(id, ty) => {
+            PatKind::Bind(id) => {
                 write!(indent, "Bind:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{id}")?;
-                if let Some(t) = ty {
-                    write!(indent, "\n{t}")?;
-                }
             }
-            PatKind::Discard(d) => match d {
-                Some(t) => {
-                    write!(indent, "Discard:")?;
-                    indent = set_indentation(indent, 1);
-                    write!(indent, "\n{t}")?;
-                }
-                None => write!(indent, "Discard")?,
-            },
+            PatKind::Discard => write!(indent, "Discard")?,
             PatKind::Elided => write!(indent, "Elided")?,
             PatKind::Paren(p) => {
                 write!(indent, "Paren:")?;
@@ -1235,7 +1210,7 @@ pub enum QubitSource {
 
 /// A primitive type.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum TyPrim {
+pub enum PrimTy {
     /// The big integer type.
     BigInt,
     /// The boolean type.
@@ -1254,6 +1229,27 @@ pub enum TyPrim {
     Result,
     /// The string type.
     String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct TyVar(pub usize);
+
+impl Display for TyVar {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "?{}", self.0)
+    }
+}
+
+impl From<usize> for TyVar {
+    fn from(value: usize) -> Self {
+        TyVar(value)
+    }
+}
+
+impl From<TyVar> for usize {
+    fn from(value: TyVar) -> Self {
+        value.0
+    }
 }
 
 /// A literal.

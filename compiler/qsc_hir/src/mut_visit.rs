@@ -4,7 +4,7 @@
 use crate::hir::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Namespace, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl,
-    Stmt, StmtKind, Ty, TyDef, TyDefKind, TyKind, Visibility,
+    Stmt, StmtKind, TyDef, TyDefKind, Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -41,10 +41,6 @@ pub trait MutVisitor: Sized {
 
     fn visit_functor_expr(&mut self, expr: &mut FunctorExpr) {
         walk_functor_expr(self, expr);
-    }
-
-    fn visit_ty(&mut self, ty: &mut Ty) {
-        walk_ty(self, ty);
     }
 
     fn visit_block(&mut self, block: &mut Block) {
@@ -119,10 +115,7 @@ pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
     vis.visit_span(&mut def.span);
 
     match &mut def.kind {
-        TyDefKind::Field(name, ty) => {
-            name.iter_mut().for_each(|n| vis.visit_ident(n));
-            vis.visit_ty(ty);
-        }
+        TyDefKind::Field(name, _) => name.iter_mut().for_each(|n| vis.visit_ident(n)),
         TyDefKind::Paren(def) => vis.visit_ty_def(def),
         TyDefKind::Tuple(defs) => defs.iter_mut().for_each(|d| vis.visit_ty_def(d)),
     }
@@ -133,7 +126,6 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_ident(&mut decl.name);
     decl.ty_params.iter_mut().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&mut decl.input);
-    vis.visit_ty(&mut decl.output);
     decl.functors
         .iter_mut()
         .for_each(|f| vis.visit_functor_expr(f));
@@ -166,23 +158,6 @@ pub fn walk_functor_expr(vis: &mut impl MutVisitor, expr: &mut FunctorExpr) {
         }
         FunctorExprKind::Lit(_) => {}
         FunctorExprKind::Paren(expr) => vis.visit_functor_expr(expr),
-    }
-}
-
-pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
-    vis.visit_span(&mut ty.span);
-
-    match &mut ty.kind {
-        TyKind::Array(item) => vis.visit_ty(item),
-        TyKind::Arrow(_, lhs, rhs, functors) => {
-            vis.visit_ty(lhs);
-            vis.visit_ty(rhs);
-            functors.iter_mut().for_each(|f| vis.visit_functor_expr(f));
-        }
-        TyKind::Paren(ty) => vis.visit_ty(ty),
-        TyKind::Tuple(tys) => tys.iter_mut().for_each(|t| vis.visit_ty(t)),
-        TyKind::Var(ident) => vis.visit_ident(ident),
-        TyKind::Hole | TyKind::Name(_) | TyKind::Prim(_) => {}
     }
 }
 
@@ -292,12 +267,8 @@ pub fn walk_pat(vis: &mut impl MutVisitor, pat: &mut Pat) {
     vis.visit_span(&mut pat.span);
 
     match &mut pat.kind {
-        PatKind::Bind(name, ty) => {
-            vis.visit_ident(name);
-            ty.iter_mut().for_each(|t| vis.visit_ty(t));
-        }
-        PatKind::Discard(ty) => ty.iter_mut().for_each(|t| vis.visit_ty(t)),
-        PatKind::Elided => {}
+        PatKind::Bind(name) => vis.visit_ident(name),
+        PatKind::Discard | PatKind::Elided => {}
         PatKind::Paren(pat) => vis.visit_pat(pat),
         PatKind::Tuple(pats) => pats.iter_mut().for_each(|p| vis.visit_pat(p)),
     }

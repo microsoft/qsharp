@@ -51,6 +51,7 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
                 Ok(Expr {
                     id: NodeId::default(),
                     span: Span::default(),
+                    ty: ep.output.clone(),
                     kind: ExprKind::Block(block.clone()),
                 })
             } else {

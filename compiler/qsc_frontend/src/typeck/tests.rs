@@ -7,8 +7,8 @@ use indoc::indoc;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        self, Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId,
-        Package, Pat, QubitInit, SpecDecl, Stmt, TyDef,
+        Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
+        QubitInit, SpecDecl, Stmt, TyDef,
     },
     visit::{self, Visitor},
 };
@@ -54,11 +54,6 @@ impl Visitor<'_> for SpanCollector {
     fn visit_functor_expr(&mut self, expr: &FunctorExpr) {
         self.0.insert(expr.id, expr.span);
         visit::walk_functor_expr(self, expr);
-    }
-
-    fn visit_ty(&mut self, ty: &hir::Ty) {
-        self.0.insert(ty.id, ty.span);
-        visit::walk_ty(self, ty);
     }
 
     fn visit_block(&mut self, block: &Block) {

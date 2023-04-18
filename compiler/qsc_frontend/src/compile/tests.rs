@@ -7,7 +7,7 @@ use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableBody, Expr, ExprKind, ItemKind, Lit, NodeId, Res, StmtKind},
+    hir::{CallableBody, Expr, ExprKind, ItemKind, Lit, NodeId, PrimTy, Res, StmtKind, Ty},
     mut_visit::MutVisitor,
 };
 
@@ -230,6 +230,7 @@ fn replace_node() {
             *expr = Expr {
                 id: NodeId::default(),
                 span: expr.span,
+                ty: Ty::Prim(PrimTy::Int),
                 kind: ExprKind::Lit(Lit::Int(2)),
             };
         }
