@@ -29,7 +29,6 @@ function renderKataOutput(output: KataOutput): HTMLDivElement {
 
 function renderExercise(exercise: Exercise): HTMLDivElement {
     let exerciseDiv = document.createElement("div");
-    exerciseDiv.className = "kata-exercise";
     let exerciseContent = document.createElement("div");
     exerciseContent.innerHTML = exercise.contentAsHtml;
     exerciseDiv.append(exerciseContent);
