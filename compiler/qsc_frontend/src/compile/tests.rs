@@ -258,7 +258,7 @@ fn replace_node() {
 
     expect![[r#"
         Block 7 [39-56]:
-            Stmt 8 [49-50]: Expr: Expr 10 [49-50]: Lit: Int(2)"#]]
+            Stmt 8 [49-50]: Expr: Expr 10 [49-50] [Type Int]: Lit: Int(2)"#]]
     .assert_eq(&block.to_string());
 }
 

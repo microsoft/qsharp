@@ -534,64 +534,6 @@ impl Display for FunctorExprKind {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Ty {
-    Array(Box<Ty>),
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
-    Err,
-    Param(String),
-    Prim(PrimTy),
-    Tuple(Vec<Ty>),
-    Var(TyVar),
-}
-
-impl Ty {
-    pub const UNIT: Self = Self::Tuple(Vec::new());
-}
-
-impl Display for Ty {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Ty::Array(item) => write!(f, "({item})[]"),
-            Ty::Arrow(kind, input, output, functors) => {
-                let arrow = match kind {
-                    CallableKind::Function => "->",
-                    CallableKind::Operation => "=>",
-                };
-                let is = match (
-                    functors.contains(&Functor::Adj),
-                    functors.contains(&Functor::Ctl),
-                ) {
-                    (true, true) => " is Adj + Ctl",
-                    (true, false) => " is Adj",
-                    (false, true) => " is Ctl",
-                    (false, false) => "",
-                };
-                write!(f, "({input}) {arrow} ({output}){is}")
-            }
-            Ty::Err => f.write_str("?"),
-            Ty::Param(name) => write!(f, "'{name}"),
-            Ty::Prim(prim) => prim.fmt(f),
-            Ty::Tuple(items) => {
-                f.write_str("(")?;
-                if let Some((first, rest)) = items.split_first() {
-                    Display::fmt(first, f)?;
-                    if rest.is_empty() {
-                        f.write_str(",")?;
-                    } else {
-                        for item in rest {
-                            f.write_str(", ")?;
-                            Display::fmt(item, f)?;
-                        }
-                    }
-                }
-                f.write_str(")")
-            }
-            Ty::Var(id) => Display::fmt(id, f),
-        }
-    }
-}
-
 /// A sequenced block of statements.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block {
@@ -686,14 +628,19 @@ pub struct Expr {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The expression type.
     pub ty: Ty,
     /// The expression kind.
     pub kind: ExprKind,
 }
 
 impl Display for Expr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Expr {} {}: {}", self.id, self.span, self.kind)
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Expr {} {} [Type {}]: {}",
+            self.id, self.span, self.ty, self.kind
+        )
     }
 }
 
@@ -1035,14 +982,19 @@ pub struct Pat {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The pattern type.
     pub ty: Ty,
     /// The pattern kind.
     pub kind: PatKind,
 }
 
 impl Display for Pat {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Pat {} {}: {}", self.id, self.span, self.kind)
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Pat {} {} [Type {}]: {}",
+            self.id, self.span, self.ty, self.kind
+        )
     }
 }
 
@@ -1171,6 +1123,111 @@ impl Display for Ident {
     }
 }
 
+/// A type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Ty {
+    Array(Box<Ty>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    Err,
+    Param(String),
+    Prim(PrimTy),
+    Tuple(Vec<Ty>),
+    Var(TyVar),
+}
+
+impl Ty {
+    /// The unit type.
+    pub const UNIT: Self = Self::Tuple(Vec::new());
+}
+
+impl Display for Ty {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Ty::Array(item) => write!(f, "({item})[]"),
+            Ty::Arrow(kind, input, output, functors) => {
+                let arrow = match kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
+                let is = match (
+                    functors.contains(&Functor::Adj),
+                    functors.contains(&Functor::Ctl),
+                ) {
+                    (true, true) => " is Adj + Ctl",
+                    (true, false) => " is Adj",
+                    (false, true) => " is Ctl",
+                    (false, false) => "",
+                };
+                write!(f, "({input}) {arrow} ({output}){is}")
+            }
+            Ty::Err => f.write_str("?"),
+            Ty::Param(name) => write!(f, "'{name}"),
+            Ty::Prim(prim) => prim.fmt(f),
+            Ty::Tuple(items) => {
+                f.write_str("(")?;
+                if let Some((first, rest)) = items.split_first() {
+                    Display::fmt(first, f)?;
+                    if rest.is_empty() {
+                        f.write_str(",")?;
+                    } else {
+                        for item in rest {
+                            f.write_str(", ")?;
+                            Display::fmt(item, f)?;
+                        }
+                    }
+                }
+                f.write_str(")")
+            }
+            Ty::Var(id) => Display::fmt(id, f),
+        }
+    }
+}
+
+/// A primitive type.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum PrimTy {
+    /// The big integer type.
+    BigInt,
+    /// The boolean type.
+    Bool,
+    /// The floating-point type.
+    Double,
+    /// The integer type.
+    Int,
+    /// The Pauli operator type.
+    Pauli,
+    /// The qubit type.
+    Qubit,
+    /// The range type.
+    Range,
+    /// The measurement result type.
+    Result,
+    /// The string type.
+    String,
+}
+
+/// A type variable.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct TyVar(pub usize);
+
+impl Display for TyVar {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "?{}", self.0)
+    }
+}
+
+impl From<usize> for TyVar {
+    fn from(value: usize) -> Self {
+        TyVar(value)
+    }
+}
+
+impl From<TyVar> for usize {
+    fn from(value: TyVar) -> Self {
+        value.0
+    }
+}
+
 /// A declaration visibility kind.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum VisibilityKind {
@@ -1206,50 +1263,6 @@ pub enum QubitSource {
     /// A qubit borrowed from another part of the program that may be in any state, and is expected
     /// to be returned to that state before being released.
     Dirty,
-}
-
-/// A primitive type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum PrimTy {
-    /// The big integer type.
-    BigInt,
-    /// The boolean type.
-    Bool,
-    /// The floating-point type.
-    Double,
-    /// The integer type.
-    Int,
-    /// The Pauli operator type.
-    Pauli,
-    /// The qubit type.
-    Qubit,
-    /// The range type.
-    Range,
-    /// The measurement result type.
-    Result,
-    /// The string type.
-    String,
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct TyVar(pub usize);
-
-impl Display for TyVar {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "?{}", self.0)
-    }
-}
-
-impl From<usize> for TyVar {
-    fn from(value: usize) -> Self {
-        TyVar(value)
-    }
-}
-
-impl From<TyVar> for usize {
-    fn from(value: TyVar) -> Self {
-        value.0
-    }
 }
 
 /// A literal.
