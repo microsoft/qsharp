@@ -18,7 +18,7 @@
     // https://docs.mathjax.org/en/latest/input/tex/extensions/physics.html
     window.MathJax = {
       loader: { load: ['[tex]/physics'] },
-      tex: { packages: { '[+]': ['physics'] } }
+      tex: { packages: { '[+]': ['physics'] }, inlineMath: [['$', '$'], ['\\(', '\\)']] }
     };
   </script>
   <script src="libs/mathjax/tex-chtml.js"></script>
@@ -44,6 +44,15 @@
     <div id="output"></div>
   </div>
   <div id="errors"></div>
+
+  <div id="katas">
+    <h1>Katas</h1>
+    <div>
+      <select id="katas-list">
+      </select>
+      <div id="katas-canvas"></div>
+    </div>
+  </div>
   <script src="libs/monaco/vs/loader.js"></script>
   <script src="libs/app.js"></script>
 </body>
