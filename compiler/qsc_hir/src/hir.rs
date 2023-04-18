@@ -1126,12 +1126,19 @@ impl Display for Ident {
 /// A type.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Ty {
+    /// An array type.
     Array(Box<Ty>),
+    /// An arrow type: `->` for a function or `=>` for an operation.
     Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    /// An unknown type caused by an error.
     Err,
+    /// A type parameter.
     Param(String),
+    /// A primitive type.
     Prim(PrimTy),
+    /// A tuple type.
     Tuple(Vec<Ty>),
+    /// A type variable.
     Var(TyVar),
 }
 
