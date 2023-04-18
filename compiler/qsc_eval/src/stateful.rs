@@ -5,8 +5,9 @@ mod tests;
 
 use crate::val::Value;
 use crate::{eval_stmt, AggregateError, Env};
-use qsc_ast::ast::CallableDecl;
+use qsc_hir::hir::CallableDecl;
 use qsc_passes::globals::GlobalId;
+use qsc_passes::run_default_passes;
 use std::collections::HashMap;
 use std::string::String;
 
@@ -22,15 +23,12 @@ use qsc_passes::globals::extract_callables;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
+#[error(transparent)]
+#[diagnostic(transparent)]
 pub enum Error {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
     Eval(crate::Error),
-    #[error(transparent)]
-    #[diagnostic(transparent)]
     Compile(qsc_frontend::compile::Error),
-    #[error(transparent)]
-    #[diagnostic(transparent)]
+    Pass(qsc_passes::Error),
     Incremental(qsc_frontend::incremental::Error),
 }
 
@@ -84,32 +82,36 @@ fn create_execution_context(
     let mut store = PackageStore::new();
     let mut session_deps: Vec<_> = vec![];
     if stdlib {
-        let unit = compile::std();
-        if unit.context.errors().is_empty() {
+        let mut unit = compile::std();
+        let pass_errs = run_default_passes(&mut unit);
+        if unit.context.errors().is_empty() && pass_errs.is_empty() {
             session_deps.push(store.insert(unit));
         } else {
-            let errors = unit
+            let mut errors: Vec<Error> = unit
                 .context
                 .errors()
                 .iter()
                 .map(|e| Error::Compile(e.clone()))
                 .collect();
+            errors.extend(pass_errs.into_iter().map(Error::Pass));
             return Err((AggregateError(errors), unit));
         }
     }
-    let unit = compile(
+    let mut unit = compile(
         &store,
         session_deps.clone(),
         sources,
         &expr.unwrap_or_default(),
     );
-    if !unit.context.errors().is_empty() {
-        let errors = unit
+    let pass_errs = run_default_passes(&mut unit);
+    if !unit.context.errors().is_empty() || !pass_errs.is_empty() {
+        let mut errors: Vec<Error> = unit
             .context
             .errors()
             .iter()
             .map(|e| Error::Compile(e.clone()))
             .collect();
+        errors.extend(pass_errs.into_iter().map(Error::Pass));
 
         return Err((AggregateError(errors), unit));
     }
@@ -144,7 +146,7 @@ fn eval_line_in_context(
             Fragment::Stmt(stmt) => {
                 let mut env = fields.env.take().unwrap_or(Env::with_empty_scope());
                 let result = eval_stmt(
-                    stmt,
+                    &stmt,
                     fields.store,
                     fields.globals,
                     fields.compiler.resolutions(),
@@ -169,7 +171,7 @@ fn eval_line_in_context(
                     package: *fields.package,
                     node: decl.name.id,
                 };
-                fields.globals.insert(id, decl);
+                fields.globals.insert(id, Box::leak(Box::new(decl)));
                 results.push(Ok(Value::UNIT));
             }
             Fragment::Error(errors) => {

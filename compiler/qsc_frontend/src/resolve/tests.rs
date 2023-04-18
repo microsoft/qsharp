@@ -1,24 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{DefId, GlobalTable, PackageSrc, Resolutions};
-use crate::{id, parse};
+use super::{GlobalTable, Res, Resolutions};
+use crate::parse;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
-    ast::{Ident, Package, Path, Span},
+    assigner::Assigner,
+    ast::{Ident, NodeId, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
+use qsc_data_structures::span::Span;
 use std::fmt::Write;
 
 struct Renamer<'a> {
-    resolutions: &'a Resolutions,
-    changes: Vec<(Span, DefId)>,
+    resolutions: &'a Resolutions<NodeId>,
+    changes: Vec<(Span, Res<NodeId>)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(resolutions: &'a Resolutions) -> Self {
+    fn new(resolutions: &'a Resolutions<NodeId>) -> Self {
         Self {
             resolutions,
             changes: Vec::new(),
@@ -26,10 +28,10 @@ impl<'a> Renamer<'a> {
     }
 
     fn rename(&self, input: &mut String) {
-        for (span, id) in self.changes.iter().rev() {
-            let name = match id.package {
-                PackageSrc::Local => format!("_{}", id.node),
-                PackageSrc::Extern(package) => format!("_{package}_{}", id.node),
+        for (span, res) in self.changes.iter().rev() {
+            let name = match res {
+                Res::Internal(node) => format!("_{node}"),
+                Res::External(package, node) => format!("_{package}_{node}"),
             };
             input.replace_range(span, &name);
         }
@@ -60,7 +62,7 @@ fn resolve_names(input: &str) -> String {
     let (namespaces, errors) = parse::namespaces(input);
     assert!(errors.is_empty(), "Program has syntax errors: {errors:#?}");
     let mut package = Package::new(namespaces, None);
-    let mut assigner = id::Assigner::new();
+    let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let mut globals = GlobalTable::new();
     globals.visit_package(&package);
@@ -141,10 +143,10 @@ fn global_callable_internal() {
         "},
         &expect![[r#"
             namespace Foo {
-                internal function _5() : Unit {}
+                internal function _6() : Unit {}
 
-                function _11() : Unit {
-                    _5();
+                function _12() : Unit {
+                    _6();
                 }
             }
         "#]],

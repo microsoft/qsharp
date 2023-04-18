@@ -13,8 +13,9 @@ use super::{
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
-    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Span, Stmt, StmtKind,
+    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
+use qsc_data_structures::span::Span;
 
 pub(super) fn block(s: &mut Scanner) -> Result<Block> {
     let lo = s.peek().span.lo;

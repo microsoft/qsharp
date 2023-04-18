@@ -5,9 +5,9 @@
 
 pub mod compile;
 pub mod diagnostic;
-pub mod id;
 pub mod incremental;
 mod lex;
+mod lower;
 mod parse;
 pub mod resolve;
 pub mod typeck;

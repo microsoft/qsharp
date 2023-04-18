@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use expect_test::expect;
-use qsc_ast::ast::Span;
+use qsc_data_structures::span::Span;
 
 #[test]
 fn ident_basic() {

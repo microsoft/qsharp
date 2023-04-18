@@ -516,8 +516,7 @@ fn internal_ty() {
         "internal newtype Foo = Unit;",
         &expect![[r#"
             Item _id_ [0-28]:
-                meta:
-                    Visibility _id_ [0-8] (Internal)
+                Visibility _id_ [0-8] (Internal)
                 New Type (Ident _id_ [17-20] "Foo"): TyDef _id_ [23-27]: Field:
                     Type _id_ [23-27]: Unit"#]],
     );
@@ -530,8 +529,7 @@ fn internal_function() {
         "internal function Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-33]:
-                meta:
-                    Visibility _id_ [0-8] (Internal)
+                Visibility _id_ [0-8] (Internal)
                 Callable _id_ [9-33] (Function):
                     name: Ident _id_ [18-21] "Foo"
                     input: Pat _id_ [21-23]: Unit
@@ -547,8 +545,7 @@ fn internal_operation() {
         "internal operation Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-34]:
-                meta:
-                    Visibility _id_ [0-8] (Internal)
+                Visibility _id_ [0-8] (Internal)
                 Callable _id_ [9-34] (Operation):
                     name: Ident _id_ [19-22] "Foo"
                     input: Pat _id_ [22-24]: Unit
@@ -599,9 +596,8 @@ fn open_attr() {
         "@Foo() open Bar;",
         &expect![[r#"
             Item _id_ [0-16]:
-                meta:
-                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
-                        Expr _id_ [4-6]: Unit
+                Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
+                    Expr _id_ [4-6]: Unit
                 Open (Ident _id_ [12-15] "Bar")"#]],
     );
 }
@@ -613,9 +609,8 @@ fn newtype_attr() {
         "@Foo() newtype Bar = Unit;",
         &expect![[r#"
             Item _id_ [0-26]:
-                meta:
-                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
-                        Expr _id_ [4-6]: Unit
+                Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
+                    Expr _id_ [4-6]: Unit
                 New Type (Ident _id_ [15-18] "Bar"): TyDef _id_ [21-25]: Field:
                     Type _id_ [21-25]: Unit"#]],
     );
@@ -628,9 +623,8 @@ fn operation_one_attr() {
         "@Foo() operation Bar() : Unit {}",
         &expect![[r#"
             Item _id_ [0-32]:
-                meta:
-                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
-                        Expr _id_ [4-6]: Unit
+                Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
+                    Expr _id_ [4-6]: Unit
                 Callable _id_ [7-32] (Operation):
                     name: Ident _id_ [17-20] "Bar"
                     input: Pat _id_ [20-22]: Unit
@@ -646,11 +640,10 @@ fn operation_two_attrs() {
         "@Foo() @Bar() operation Baz() : Unit {}",
         &expect![[r#"
             Item _id_ [0-39]:
-                meta:
-                    Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
-                        Expr _id_ [4-6]: Unit
-                    Attr _id_ [7-13] (Ident _id_ [8-11] "Bar"):
-                        Expr _id_ [11-13]: Unit
+                Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
+                    Expr _id_ [4-6]: Unit
+                Attr _id_ [7-13] (Ident _id_ [8-11] "Bar"):
+                    Expr _id_ [11-13]: Unit
                 Callable _id_ [14-39] (Operation):
                     name: Ident _id_ [24-27] "Baz"
                     input: Pat _id_ [27-29]: Unit

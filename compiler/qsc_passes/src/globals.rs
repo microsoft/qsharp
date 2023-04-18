@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use qsc_frontend::compile::{PackageId, PackageStore};
+use qsc_hir::{
+    hir::{CallableDecl, Item, ItemKind, NodeId},
+    visit::Visitor,
+};
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
 };
-
-use qsc_ast::{
-    ast::{CallableDecl, Item, ItemKind, NodeId},
-    visit::Visitor,
-};
-use qsc_frontend::compile::{PackageId, PackageStore};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct GlobalId {
