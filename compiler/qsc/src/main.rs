@@ -10,7 +10,7 @@ use qsc_frontend::{
     diagnostic::OffsetError,
 };
 use qsc_hir::hir::Package;
-use qsc_passes::entry_point::extract_entry;
+use qsc_passes::{entry_point::extract_entry, run_default_passes};
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -79,7 +79,7 @@ fn main() -> Result<ExitCode> {
     let dependencies = if cli.nostdlib {
         vec![]
     } else {
-        let std = compile::std();
+        let mut std = compile::std();
         if !std.context.errors().is_empty() {
             let reporter = ErrorReporter::new(cli, sources, &std.context);
             for error in std.context.errors() {
@@ -87,14 +87,23 @@ fn main() -> Result<ExitCode> {
             }
             return Ok(ExitCode::FAILURE);
         }
+        let pass_errs = run_default_passes(&mut std);
+        if !pass_errs.is_empty() {
+            let reporter = ErrorReporter::new(cli, sources, &std.context);
+            for error in pass_errs {
+                eprintln!("{:?}", reporter.report(error));
+            }
+            return Ok(ExitCode::FAILURE);
+        }
         vec![store.insert(std)]
     };
-    let unit = compile(
+    let mut unit = compile(
         &store,
         dependencies,
         &sources,
         &cli.entry.clone().unwrap_or_default(),
     );
+    let pass_errs = run_default_passes(&mut unit);
 
     for (_, emit) in cli.emit.iter().enumerate() {
         match emit {
@@ -108,7 +117,7 @@ fn main() -> Result<ExitCode> {
         }
     }
 
-    if unit.context.errors().is_empty() {
+    if unit.context.errors().is_empty() && pass_errs.is_empty() {
         if cli.entry.is_none() {
             match extract_entry(&unit.package) {
                 Ok(..) => Ok(ExitCode::SUCCESS),
@@ -127,6 +136,9 @@ fn main() -> Result<ExitCode> {
         let reporter = ErrorReporter::new(cli, sources, &unit.context);
         for error in unit.context.errors() {
             eprintln!("{:?}", reporter.report(error.clone()));
+        }
+        for error in pass_errs {
+            eprintln!("{:?}", reporter.report(error));
         }
         Ok(ExitCode::FAILURE)
     }
