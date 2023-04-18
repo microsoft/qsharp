@@ -261,6 +261,12 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 }
             };
 
+            if let Some(adj) = adj.as_mut() {
+                if adj.body == SpecBody::Gen(SpecGen::Slf) {
+                    adj.body = body.body.clone();
+                }
+            }
+
             if let (Some(ctladj), Some(adj)) = (ctladj.as_mut(), &adj) {
                 if ctladj.body == SpecBody::Gen(SpecGen::Distribute)
                     || ctladj.body == SpecBody::Gen(SpecGen::Auto)

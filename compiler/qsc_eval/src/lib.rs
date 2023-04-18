@@ -628,21 +628,6 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                         self.bind_args_for_spec(&decl.input, pat, args_val, args_span, ctl_count)?;
                         self.eval_block(body_block)
                     }
-                    SpecBody::Gen(SpecGen::Slf) => {
-                        let actual_spec = if spec == Spec::Adj {
-                            Spec::Body
-                        } else {
-                            Spec::Ctl
-                        };
-                        self.eval_call_spec(
-                            decl,
-                            actual_spec,
-                            args_val,
-                            args_span,
-                            call_span,
-                            ctl_count,
-                        )
-                    }
                     SpecBody::Gen(SpecGen::Intrinsic) => invoke_intrinsic(
                         &decl.name.name,
                         call_span,
