@@ -23,16 +23,13 @@ namespace Kata {
         CNOT(aux, target);
         H(aux);
 
-        if CheckZero(target) {
-            if CheckZero(aux) {
-                task(target);
-                DumpMachine();
-                return true;
-            }
+        if CheckAllZero([aux, target]) {
+            task(target);
+            DumpMachine();
+            return true;
         }
 
-        Reset(aux);
-        Reset(target);
+        ResetAll([aux, target]);
 
         // Use DumpMachine to display actual vs desired state.
         task(target);

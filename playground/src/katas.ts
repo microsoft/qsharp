@@ -16,12 +16,6 @@ interface KataError {
 
 type KataOutput = VerificationResult | KataError;
 
-function clearDiv(div: HTMLDivElement) {
-    while (div.hasChildNodes()) {
-        div.removeChild(div.lastChild!);
-    }
-}
-
 function renderKataOutput(output: KataOutput): HTMLDivElement {
     let outputDiv = document.createElement("div");
     if (output.kind === "VerificationResult") {
@@ -79,7 +73,7 @@ function renderExercise(exercise: Exercise): HTMLDivElement {
 
     // Run the exercise when clicking the verify button.
     verifyButton.addEventListener('click', async _ => {
-        clearDiv(outputDiv);
+        outputDiv.innerHTML = "";
         let exerciseImplementation = sourceCodeArea.value;
         try {
             let result = await runExercise(exercise, exerciseImplementation, outputCallback);
@@ -130,7 +124,7 @@ export async function RenderKatas() {
     let canvasDiv = document.querySelector('#katas-canvas') as HTMLDivElement;
 
     // Clear the katas' canvas every time before re-rendering.
-    clearDiv(canvasDiv);
+    canvasDiv.innerHTML = "";
 
     // Render the selected kata.
     let katasDropdown = document.querySelector('#katas-list') as HTMLSelectElement;

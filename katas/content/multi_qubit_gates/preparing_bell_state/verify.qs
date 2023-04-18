@@ -22,20 +22,18 @@ namespace Kata {
         task(targetRegister);
         Adjoint taskRef(targetRegister);
 
-        if CheckZero(targetRegister[0]) and CheckZero(targetRegister[1]) {
+        if CheckAllZero(targetRegister) {
             task(targetRegister);
             DumpMachine();
             return true;
         }
 
-        Reset(targetRegister[0]);
-        Reset(targetRegister[1]);
+        ResetAll(targetRegister);
 
         // Use DumpMachine to display actual vs desired state.
         task(targetRegister);
         DumpMachine();
-        Reset(targetRegister[0]);
-        Reset(targetRegister[1]);
+        ResetAll(targetRegister);
         taskRef(targetRegister);
         DumpMachine();
         return false;
