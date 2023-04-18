@@ -4,18 +4,19 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
-use qsc_passes::globals::extract_callables;
+use qsc_passes::{globals::extract_callables, run_default_passes};
 
 use crate::{eval_expr, output::GenericReceiver, Env};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
-    let unit = compile(&store, [], [file], expr);
+    let mut unit = compile(&store, [], [file], expr);
     assert!(
         unit.context.errors().is_empty(),
         "Compilation errors: {:?}",
         unit.context.errors()
     );
+    assert!(run_default_passes(&mut unit).is_empty());
     let id = store.insert(unit);
     let globals = extract_callables(&store);
     let mut stdout = vec![];
@@ -1818,7 +1819,7 @@ fn unop_adjoint_functor_expr() {
         indoc! {"
             namespace Test {
                 operation Foo() : Unit is Adj + Ctl {
-                    body intrinsic;
+                    body ... {}
                 }
             }
         "},
@@ -1833,7 +1834,7 @@ fn unop_controlled_functor_expr() {
         indoc! {"
             namespace Test {
                 operation Foo() : Unit is Adj + Ctl {
-                    body intrinsic;
+                    body ... {}
                 }
             }
         "},
@@ -1848,7 +1849,7 @@ fn unop_adjoint_adjoint_functor_expr() {
         indoc! {"
             namespace Test {
                 operation Foo() : Unit is Adj + Ctl {
-                    body intrinsic;
+                    body ... {}
                 }
             }
         "},
@@ -1863,7 +1864,7 @@ fn unop_controlled_adjoint_functor_expr() {
         indoc! {"
             namespace Test {
                 operation Foo() : Unit is Adj + Ctl {
-                    body intrinsic;
+                    body ... {}
                 }
             }
         "},
@@ -1878,7 +1879,7 @@ fn unop_adjoint_controlled_functor_expr() {
         indoc! {"
             namespace Test {
                 operation Foo() : Unit is Adj + Ctl {
-                    body intrinsic;
+                    body ... {}
                 }
             }
         "},
@@ -1893,7 +1894,7 @@ fn unop_controlled_controlled_functor_expr() {
         indoc! {"
             namespace Test {
                 operation Foo() : Unit is Adj + Ctl {
-                    body intrinsic;
+                    body ... {}
                 }
             }
         "},
@@ -2239,6 +2240,65 @@ fn check_ctls_count_nested_expr() {
                 Controlled Controlled Test.Foo(qs2, (qs1, ()));
             }
         "},
+        &expect!["()"],
+    );
+}
+
+#[test]
+fn check_generated_ctl_expr() {
+    check_expr(
+        indoc! {r#"
+            namespace Test {
+                function Length<'T>(a : 'T[]) : Int {
+                    body intrinsic;
+                }
+                operation A() : Unit is Ctl {
+                    body ... {}
+                    controlled (ctls, ...) {
+                        if Length(ctls) != 3 {
+                            fail "Incorrect ctls count!";
+                        }
+                    }
+                }
+                operation B() : Unit is Ctl {
+                    A();
+                }
+            }
+        "#},
+        "{use qs = Qubit[3]; Controlled Test.B(qs, ())}",
+        &expect!["()"],
+    );
+}
+
+#[test]
+fn check_generated_ctladj_distrib_expr() {
+    check_expr(
+        indoc! {r#"
+            namespace Test {
+                function Length<'T>(a : 'T[]) : Int {
+                    body intrinsic;
+                }
+                operation A() : Unit is Ctl + Adj {
+                    body ... { fail "Shouldn't get here"; }
+                    adjoint self;
+                    controlled (ctls, ...) {
+                        if Length(ctls) != 3 {
+                            fail "Incorrect ctls count!";
+                        }
+                    }
+                    controlled adjoint (ctls, ...) {
+                        if Length(ctls) != 2 {
+                            fail "Incorrect ctls count!";
+                        }
+                    }
+                }
+                operation B() : Unit is Ctl + Adj {
+                    body ... { A(); }
+                    adjoint ... { Adjoint A(); }
+                }
+            }
+        "#},
+        "{use qs = Qubit[2]; Controlled Adjoint Test.B(qs, ())}",
         &expect!["()"],
     );
 }
