@@ -29,15 +29,20 @@
   <div id="container">
     <div>
       <div id="editor"></div>
-      <p>
-        <input id="expr" value="Sample.Main()" />
-        <input id="shot" type="number" value="100" max="1000" min="1" />
-        <button id="run">Run</button>
-      </p>
+      <div id="button-row">
+        <div>
+          <input id="expr" value="Sample.Main()" />
+          <input id="shot" type="number" value="100" max="1000" min="1" />
+          <button id="run">Run</button>
+        </div>
+        <div id="share-div">
+          <span id="share-confirmation">Copied to clipboard.</span>
+          <button id="share">Share</button>
+        </div>
+      </div>
     </div>
     <div id="output"></div>
   </div>
-
   <div id="errors"></div>
 
   <div id="katas">

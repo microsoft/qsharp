@@ -15,9 +15,9 @@ use super::{
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, ItemMeta,
-    Namespace, NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Ty, TyDef, TyDefKind, TyKind,
-    Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
+    NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Ty, TyDef, TyDefKind, TyKind, Visibility,
+    VisibilityKind,
 };
 
 pub(super) fn namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
@@ -43,7 +43,8 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
 
 pub(super) fn item(s: &mut Scanner) -> Result<Item> {
     let lo = s.peek().span.lo;
-    let meta = opt(s, item_meta)?.unwrap_or_default();
+    let attrs = many(s, attr)?;
+    let visibility = opt(s, visibility)?;
     let kind = if let Some(open) = opt(s, item_open)? {
         Ok(open)
     } else if let Some(ty) = opt(s, item_ty)? {
@@ -57,15 +58,10 @@ pub(super) fn item(s: &mut Scanner) -> Result<Item> {
     Ok(Item {
         id: NodeId::default(),
         span: s.span(lo),
-        meta,
+        attrs,
+        visibility,
         kind,
     })
-}
-
-fn item_meta(s: &mut Scanner) -> Result<ItemMeta> {
-    let attrs = many(s, attr)?;
-    let visibility = opt(s, visibility)?;
-    Ok(ItemMeta { attrs, visibility })
 }
 
 fn attr(s: &mut Scanner) -> Result<Attr> {

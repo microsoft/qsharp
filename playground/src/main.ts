@@ -65,10 +65,18 @@ async function loaded() {
     let exprInput = document.querySelector('#expr') as HTMLInputElement;
     let shotCount = document.querySelector('#shot') as HTMLInputElement;
     let runButton = document.querySelector('#run') as HTMLButtonElement;
+    let shareButton = document.querySelector('#share') as HTMLButtonElement;
+    let shareConfirmation = document.querySelector('#share-confirmation') as HTMLDivElement;
 
-    // Create the monaco editor and set some initial code
+    // Create the monaco editor
     editor = monaco.editor.create(editorDiv);
-    let srcModel = monaco.editor.createModel(sampleCode, 'qsharp');
+
+    // If URL is a sharing link, populate the editor with the code from the link. 
+    // Otherwise, populate with sample code.
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code") ? window.atob(params.get("code")!) : sampleCode;
+
+    let srcModel = monaco.editor.createModel(code, 'qsharp');
     editor.setModel(srcModel);
 
     // As code is edited check it for errors and update the error list
@@ -175,6 +183,18 @@ async function loaded() {
                 RenderKatas();
             });
         });
+
+    shareButton.addEventListener('click', _ => {
+        const code = srcModel.getValue();
+        // Note: btoa does not work with non-ASCII characters.
+        const encodedCode = window.btoa(code);
+        // Get current URL without query parameters to use as the base URL
+        const newUrl = `${window.location.href.split('?')[0]}?code=${encodedCode}`;
+        // Copy link to clipboard and update url without reloading the page
+        navigator.clipboard.writeText(newUrl);
+        window.history.pushState({}, '', newUrl);
+        shareConfirmation.style.display = "inline";
+    });
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/

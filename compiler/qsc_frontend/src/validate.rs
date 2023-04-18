@@ -6,9 +6,10 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, Span, UnOp},
+    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, UnOp},
     visit::{self, Visitor},
 };
+use qsc_data_structures::span::Span;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -52,7 +53,7 @@ impl Validator {
 
 impl Visitor<'_> for Validator {
     fn visit_item(&mut self, item: &Item) {
-        self.validate_attrs(&item.meta.attrs);
+        self.validate_attrs(&item.attrs);
         if matches!(&item.kind, ItemKind::Ty(..)) {
             self.errors
                 .push(Error::NotCurrentlySupported("newtype", item.span));

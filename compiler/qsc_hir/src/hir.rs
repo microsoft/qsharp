@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! The abstract syntax tree (AST) for Q#. The AST directly corresponds to the surface syntax of Q#.
+//! The high-level intermediate representation for Q#. HIR is lowered from the AST.
 
 #![warn(missing_docs)]
 
@@ -27,7 +27,7 @@ fn set_indentation<'a, 'b>(
     })
 }
 
-/// The unique identifier for an AST node.
+/// The unique identifier for an HIR node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(usize);
 
@@ -81,7 +81,7 @@ impl From<usize> for NodeId {
     }
 }
 
-/// The root node of an AST.
+/// The root node of the HIR.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
     /// The node ID.

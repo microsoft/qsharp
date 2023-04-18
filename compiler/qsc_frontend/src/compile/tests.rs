@@ -2,12 +2,13 @@
 // Licensed under the MIT License.
 
 use super::{compile, Context, Error, PackageStore, SourceIndex};
-use crate::{id::Assigner, resolve::PackageSrc};
+use crate::resolve::Res;
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
-use qsc_ast::{
-    ast::{CallableBody, Expr, ExprKind, ItemKind, Lit, Span, StmtKind},
+use qsc_data_structures::span::Span;
+use qsc_hir::{
+    hir::{CallableBody, Expr, ExprKind, ItemKind, Lit, NodeId, StmtKind},
     mut_visit::MutVisitor,
 };
 
@@ -227,12 +228,12 @@ fn entry_error() {
 
 #[test]
 fn replace_node() {
-    struct Replacer<'a>(&'a mut Assigner);
+    struct Replacer;
 
-    impl MutVisitor for Replacer<'_> {
+    impl MutVisitor for Replacer {
         fn visit_expr(&mut self, expr: &mut Expr) {
             *expr = Expr {
-                id: self.0.next_id(),
+                id: NodeId::default(),
                 span: expr.span,
                 kind: ExprKind::Lit(Lit::Int(2)),
             };
@@ -252,7 +253,8 @@ fn replace_node() {
         "",
     );
 
-    Replacer(unit.context.assigner_mut()).visit_package(&mut unit.package);
+    Replacer.visit_package(&mut unit.package);
+    unit.context.assigner_mut().visit_package(&mut unit.package);
     let ItemKind::Callable(callable)= &unit.package.namespaces[0].items[0].kind else {
         panic!("item should be a callable");
     };
@@ -308,9 +310,8 @@ fn package_dependency() {
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Path(path) = &callee.kind else { panic!("callee should be a path") };
     let resolutions = unit2.context.resolutions();
-    let id = resolutions.get(path.id).expect("should resolve");
-    assert_eq!(id.package, PackageSrc::Extern(package1));
-    assert_eq!(id.node, foo);
+    let res = resolutions.get(path.id).expect("should resolve");
+    assert_eq!(res, &Res::External(package1, foo));
 }
 
 #[test]

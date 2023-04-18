@@ -3,7 +3,7 @@
 
 use super::Error;
 use crate::lex::{Lexer, Token, TokenKind};
-use qsc_ast::ast::Span;
+use qsc_data_structures::span::Span;
 
 pub(super) struct Scanner<'a> {
     input: &'a str,

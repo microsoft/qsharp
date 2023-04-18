@@ -4,7 +4,7 @@
 use super::{Lexer, Token, TokenKind};
 use crate::lex::Delim;
 use expect_test::{expect, Expect};
-use qsc_ast::ast::Span;
+use qsc_data_structures::span::Span;
 
 fn check(input: &str, expect: &Expect) {
     let actual: Vec<_> = Lexer::new(input).collect();
