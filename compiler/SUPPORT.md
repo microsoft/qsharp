@@ -32,7 +32,7 @@ Op(qs);
 Adjoint Prepare(qs);
 ```
 
-### Generated Specializations (other than `adjoint self`)
+### Generated Adjoint Specializations
 
 ```qsharp
 operation AutomaticSpec(q : Qubit) : Unit is Adj + Ctl {
@@ -42,13 +42,12 @@ operation AutomaticSpec2(q : Qubit) : Unit is Adj + Ctl {
     body ... {
         Op(q);
     }
-    adjoint inverse;
-    controlled distribute;
-    controlled adjoint distribute;
+    adjoint invert;
+    controlled adjoint invert;
 }
 ```
 
-#### Alternative: Explicitly define specializations
+#### Alternative: Explicitly define adjoint specializations
 
 ```qsharp
 operation ExplicitSpec(q : Qubit) : Unit is Adj + Ctl {
@@ -57,9 +56,6 @@ operation ExplicitSpec(q : Qubit) : Unit is Adj + Ctl {
     }
     adjoint ... {
         Adjoint Op(q);
-    }
-    controlled (ctls, ...) {
-        Controlled Op(ctls, q);
     }
     controlled adjoint (ctls, ...) {
         Controlled Adjoint Op(ctls, q);
@@ -123,3 +119,4 @@ let opLambda = q => H(q);
 - Body intrinsic callables (`body intrinsic`) (*Limitation:* only specific intrinsic callables are
 supported by the evaluator, matching the callables present in the standard library)
 - Callables as arguments to other callables (ie: `operation ApplyToEach(op : (Qubit => Unit), q : Qubit) : Unit {}`)
+- Controlled generator (`controlled distribute` and `controlled adjoint distribute`)
