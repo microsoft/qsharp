@@ -15,12 +15,12 @@ use qsc_data_structures::span::Span;
 use std::fmt::Write;
 
 struct Renamer<'a> {
-    resolutions: &'a Resolutions<NodeId>,
+    resolutions: &'a Resolutions,
     changes: Vec<(Span, Res<NodeId>)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(resolutions: &'a Resolutions<NodeId>) -> Self {
+    fn new(resolutions: &'a Resolutions) -> Self {
         Self {
             resolutions,
             changes: Vec::new(),

@@ -19,7 +19,7 @@ use qsc_ast::{
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
-    hir::{self, PackageId, Res},
+    hir::{self, PackageId},
     visit::Visitor as HirVisitor,
 };
 use std::{
@@ -38,7 +38,6 @@ pub struct CompileUnit {
 #[derive(Debug)]
 pub struct Context {
     assigner: HirAssigner,
-    resolutions: Resolutions<hir::NodeId>,
     tys: Tys<hir::NodeId>,
     errors: Vec<Error>,
     offsets: Vec<usize>,
@@ -47,15 +46,6 @@ pub struct Context {
 impl Context {
     pub fn assigner_mut(&mut self) -> &mut HirAssigner {
         &mut self.assigner
-    }
-
-    #[must_use]
-    pub fn resolutions(&self) -> &Resolutions<hir::NodeId> {
-        &self.resolutions
-    }
-
-    pub fn resolutions_mut(&mut self) -> &mut Resolutions<hir::NodeId> {
-        &mut self.resolutions
     }
 
     #[must_use]
@@ -181,10 +171,6 @@ pub fn compile(
 
     let mut lowerer = Lowerer::new();
     let package = lowerer.lower_package(&resolutions, &package);
-    let resolutions = resolutions
-        .into_iter()
-        .filter_map(|(id, res)| lower_res(&lowerer, id, res))
-        .collect();
     let tys = tys
         .into_iter()
         .filter_map(|(ast_id, ty)| lowerer.get_id(ast_id).map(|hir_id| (hir_id, ty)))
@@ -194,7 +180,6 @@ pub fn compile(
         package,
         context: Context {
             assigner: lowerer.into_assigner(),
-            resolutions,
             tys,
             errors,
             offsets,
@@ -270,7 +255,7 @@ fn resolve_all(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
     package: &ast::Package,
-) -> (Resolutions<ast::NodeId>, Vec<resolve::Error>) {
+) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     AstVisitor::visit_package(&mut globals, package);
 
@@ -291,7 +276,7 @@ fn typeck_all(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
     package: &ast::Package,
-    resolutions: &Resolutions<ast::NodeId>,
+    resolutions: &Resolutions,
 ) -> (Tys<ast::NodeId>, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new(resolutions);
     AstVisitor::visit_package(&mut globals, package);
@@ -318,22 +303,4 @@ fn append_errors(
     for error in other {
         errors.push(OffsetError::new(error, offset));
     }
-}
-
-fn lower_res(
-    lowerer: &Lowerer,
-    id: ast::NodeId,
-    res: Res<ast::NodeId>,
-) -> Option<(hir::NodeId, Res<hir::NodeId>)> {
-    let id = lowerer.get_id(id)?;
-    let res = match res {
-        Res::Internal(node) => Res::Internal(
-            lowerer
-                .get_id(node)
-                .expect("lowered node should not resolve to deleted node"),
-        ),
-        Res::External(package, node) => Res::External(package, node),
-        Res::Err => Res::Err,
-    };
-    Some((id, res))
 }

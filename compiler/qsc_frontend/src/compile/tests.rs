@@ -193,17 +193,13 @@ fn entry_call_operation() {
 
     let errors = unit.context.errors();
     assert!(errors.is_empty(), "{errors:#?}");
-    let resolutions = unit.context.resolutions();
     let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
         panic!("item should be a callable");
     };
-    let expected_res = resolutions
-        .get(callable.name.id)
-        .expect("callable should resolve");
     let entry = unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Symbol(actual_res) = callee.kind else { panic!("callee should be a symbol") };
-    assert_eq!(expected_res, &actual_res);
+    let ExprKind::Symbol(res) = callee.kind else { panic!("callee should be a symbol") };
+    assert_eq!(Res::Internal(callable.name.id), res);
 }
 
 #[test]

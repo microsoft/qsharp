@@ -15,14 +15,14 @@ use qsc_hir::{
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
-    resolutions: &'a Resolutions<ast::NodeId>,
+    resolutions: &'a Resolutions,
     globals: HashMap<Res<ast::NodeId>, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
 
 impl<'a> GlobalTable<'a> {
-    pub(crate) fn new(resolutions: &'a Resolutions<ast::NodeId>) -> Self {
+    pub(crate) fn new(resolutions: &'a Resolutions) -> Self {
         Self {
             resolutions,
             globals: HashMap::new(),
@@ -76,7 +76,7 @@ impl HirVisitor<'_> for GlobalTable<'_> {
 }
 
 pub(crate) struct Checker<'a> {
-    resolutions: &'a Resolutions<ast::NodeId>,
+    resolutions: &'a Resolutions,
     globals: HashMap<Res<ast::NodeId>, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,

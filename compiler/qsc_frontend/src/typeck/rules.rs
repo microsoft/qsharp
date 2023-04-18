@@ -65,7 +65,7 @@ impl<T> Fallible<T> {
 }
 
 struct Context<'a> {
-    resolutions: &'a Resolutions<NodeId>,
+    resolutions: &'a Resolutions,
     globals: &'a HashMap<Res<NodeId>, Ty>,
     return_ty: Option<&'a Ty>,
     tys: &'a mut Tys<NodeId>,
@@ -75,7 +75,7 @@ struct Context<'a> {
 
 impl<'a> Context<'a> {
     fn new(
-        resolutions: &'a Resolutions<NodeId>,
+        resolutions: &'a Resolutions,
         globals: &'a HashMap<Res<NodeId>, Ty>,
         tys: &'a mut Tys<NodeId>,
     ) -> Self {
@@ -603,7 +603,7 @@ pub(super) struct SpecImpl<'a> {
 }
 
 pub(super) fn spec(
-    resolutions: &Resolutions<NodeId>,
+    resolutions: &Resolutions,
     globals: &HashMap<Res<NodeId>, Ty>,
     tys: &mut Tys<NodeId>,
     spec: SpecImpl,
@@ -614,7 +614,7 @@ pub(super) fn spec(
 }
 
 pub(super) fn entry_expr(
-    resolutions: &Resolutions<NodeId>,
+    resolutions: &Resolutions,
     globals: &HashMap<Res<NodeId>, Ty>,
     tys: &mut Tys<NodeId>,
     entry: &Expr,

@@ -29,7 +29,7 @@ impl Lowerer {
 
     pub(super) fn lower_package(
         &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
+        resolutions: &Resolutions,
         package: &ast::Package,
     ) -> hir::Package {
         hir::Package {
@@ -48,7 +48,7 @@ impl Lowerer {
 
     fn lower_namespace(
         &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
+        resolutions: &Resolutions,
         namespace: &ast::Namespace,
     ) -> hir::Namespace {
         hir::Namespace {
@@ -63,11 +63,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_item(
-        &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
-        item: &ast::Item,
-    ) -> hir::Item {
+    fn lower_item(&mut self, resolutions: &Resolutions, item: &ast::Item) -> hir::Item {
         let id = self.lower_id(item.id);
         let attrs = item
             .attrs
@@ -98,11 +94,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_attr(
-        &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
-        attr: &ast::Attr,
-    ) -> hir::Attr {
+    fn lower_attr(&mut self, resolutions: &Resolutions, attr: &ast::Attr) -> hir::Attr {
         hir::Attr {
             id: self.lower_id(attr.id),
             span: attr.span,
@@ -124,7 +116,7 @@ impl Lowerer {
 
     pub(super) fn lower_callable_decl(
         &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
+        resolutions: &Resolutions,
         decl: &ast::CallableDecl,
     ) -> hir::CallableDecl {
         hir::CallableDecl {
@@ -152,7 +144,7 @@ impl Lowerer {
 
     fn lower_spec_decl(
         &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
+        resolutions: &Resolutions,
         decl: &ast::SpecDecl,
     ) -> hir::SpecDecl {
         hir::SpecDecl {
@@ -180,11 +172,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_ty_def(
-        &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
-        def: &ast::TyDef,
-    ) -> hir::TyDef {
+    fn lower_ty_def(&mut self, resolutions: &Resolutions, def: &ast::TyDef) -> hir::TyDef {
         hir::TyDef {
             id: self.lower_id(def.id),
             span: def.span,
@@ -228,7 +216,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_ty(&mut self, resolutions: &Resolutions<ast::NodeId>, ty: &ast::Ty) -> hir::Ty {
+    fn lower_ty(&mut self, resolutions: &Resolutions, ty: &ast::Ty) -> hir::Ty {
         let id = self.lower_id(ty.id);
         let kind = match &ty.kind {
             ast::TyKind::Array(item) => {
@@ -267,11 +255,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_block(
-        &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
-        block: &ast::Block,
-    ) -> hir::Block {
+    fn lower_block(&mut self, resolutions: &Resolutions, block: &ast::Block) -> hir::Block {
         hir::Block {
             id: self.lower_id(block.id),
             span: block.span,
@@ -283,11 +267,7 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn lower_stmt(
-        &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
-        stmt: &ast::Stmt,
-    ) -> hir::Stmt {
+    pub(super) fn lower_stmt(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) -> hir::Stmt {
         let id = self.lower_id(stmt.id);
         let kind = match &stmt.kind {
             ast::StmtKind::Empty => hir::StmtKind::Empty,
@@ -320,11 +300,7 @@ impl Lowerer {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn lower_expr(
-        &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
-        expr: &ast::Expr,
-    ) -> hir::Expr {
+    fn lower_expr(&mut self, resolutions: &Resolutions, expr: &ast::Expr) -> hir::Expr {
         let id = self.lower_id(expr.id);
         let kind = match &expr.kind {
             ast::ExprKind::Array(items) => hir::ExprKind::Array(
@@ -448,7 +424,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_pat(&mut self, resolutions: &Resolutions<ast::NodeId>, pat: &ast::Pat) -> hir::Pat {
+    fn lower_pat(&mut self, resolutions: &Resolutions, pat: &ast::Pat) -> hir::Pat {
         let id = self.lower_id(pat.id);
         let kind = match &pat.kind {
             ast::PatKind::Bind(name, ty) => hir::PatKind::Bind(
@@ -479,7 +455,7 @@ impl Lowerer {
 
     fn lower_qubit_init(
         &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
+        resolutions: &Resolutions,
         init: &ast::QubitInit,
     ) -> hir::QubitInit {
         let id = self.lower_id(init.id);
@@ -506,11 +482,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_path(
-        &mut self,
-        resolutions: &Resolutions<ast::NodeId>,
-        path: &ast::Path,
-    ) -> hir::Res<hir::NodeId> {
+    fn lower_path(&mut self, resolutions: &Resolutions, path: &ast::Path) -> hir::Res<hir::NodeId> {
         match resolutions.get(path.id) {
             None | Some(hir::Res::Err) => hir::Res::Err,
             Some(&hir::Res::Internal(node)) => hir::Res::Internal(self.lower_id(node)),

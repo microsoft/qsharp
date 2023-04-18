@@ -26,7 +26,7 @@ const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Intrinsic",
 ];
 
-pub type Resolutions<Id> = IndexMap<Id, Res<Id>>;
+pub type Resolutions = IndexMap<ast::NodeId, Res<ast::NodeId>>;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
@@ -43,7 +43,7 @@ pub(super) enum Error {
 }
 
 pub(super) struct Resolver<'a> {
-    resolutions: Resolutions<ast::NodeId>,
+    resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     terms: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     opens: HashMap<&'a str, HashMap<&'a str, Span>>,
@@ -53,7 +53,7 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn resolutions(&self) -> &Resolutions<ast::NodeId> {
+    pub(super) fn resolutions(&self) -> &Resolutions {
         &self.resolutions
     }
 
@@ -70,7 +70,7 @@ impl<'a> Resolver<'a> {
             .insert(&decl.name.name, res);
     }
 
-    pub(super) fn into_resolutions(self) -> (Resolutions<ast::NodeId>, Vec<Error>) {
+    pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
         (self.resolutions, self.errors)
     }
 
@@ -222,7 +222,7 @@ impl<'a> AstVisitor<'a> for Resolver<'a> {
 }
 
 pub(super) struct GlobalTable<'a> {
-    resolutions: Resolutions<ast::NodeId>,
+    resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     terms: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
     package: Option<PackageId>,
