@@ -4,7 +4,7 @@
 mod ctl_gen;
 
 #[cfg(test)]
-mod test;
+mod tests;
 
 use self::ctl_gen::CtlDistrib;
 use miette::Diagnostic;
