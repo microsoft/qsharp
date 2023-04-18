@@ -14,19 +14,17 @@ use qsc_hir::{
     hir::{self, PackageId, Ty},
     visit::Visitor as HirVisitor,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, vec};
 
-pub(crate) struct GlobalTable<'a> {
-    resolutions: &'a Resolutions,
+pub(crate) struct GlobalTable {
     globals: HashMap<Res, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
 
-impl<'a> GlobalTable<'a> {
-    pub(crate) fn new(resolutions: &'a Resolutions) -> Self {
+impl GlobalTable {
+    pub(crate) fn new() -> Self {
         Self {
-            resolutions,
             globals: HashMap::new(),
             package: None,
             errors: Vec::new(),
@@ -37,9 +35,8 @@ impl<'a> GlobalTable<'a> {
         self.package = Some(package);
     }
 
-    pub(crate) fn into_checker(self) -> Checker<'a> {
+    pub(crate) fn into_checker(self) -> Checker {
         Checker {
-            resolutions: self.resolutions,
             globals: self.globals,
             tys: Tys::new(),
             errors: self.errors,
@@ -47,7 +44,7 @@ impl<'a> GlobalTable<'a> {
     }
 }
 
-impl AstVisitor<'_> for GlobalTable<'_> {
+impl AstVisitor<'_> for GlobalTable {
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         assert!(
             self.package.is_none(),
@@ -62,7 +59,7 @@ impl AstVisitor<'_> for GlobalTable<'_> {
     }
 }
 
-impl HirVisitor<'_> for GlobalTable<'_> {
+impl HirVisitor<'_> for GlobalTable {
     fn visit_callable_decl(&mut self, decl: &hir::CallableDecl) {
         let package = self
             .package
@@ -74,23 +71,52 @@ impl HirVisitor<'_> for GlobalTable<'_> {
     }
 }
 
-pub(crate) struct Checker<'a> {
-    resolutions: &'a Resolutions,
+pub(crate) struct Checker {
     globals: HashMap<Res, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }
 
-impl Checker<'_> {
+impl Checker {
+    pub(crate) fn tys(&self) -> &Tys<ast::NodeId> {
+        &self.tys
+    }
+
+    pub(crate) fn drain_errors(&mut self) -> vec::Drain<Error> {
+        self.errors.drain(..)
+    }
+
+    pub(crate) fn add_global_callable(&mut self, decl: &ast::CallableDecl) {
+        let (ty, errors) = convert::ast_callable_ty(decl);
+        self.globals.insert(Res::Internal(decl.name.id), ty);
+        for MissingTyError(span) in errors {
+            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+        }
+    }
+
     pub(crate) fn into_tys(self) -> (Tys<ast::NodeId>, Vec<Error>) {
         (self.tys, self.errors)
     }
 
+    pub(crate) fn with<'a>(&'a mut self, resolutions: &'a Resolutions) -> With {
+        With {
+            checker: self,
+            resolutions,
+        }
+    }
+}
+
+pub(crate) struct With<'a> {
+    checker: &'a mut Checker,
+    resolutions: &'a Resolutions,
+}
+
+impl With<'_> {
     fn check_callable_signature(&mut self, decl: &ast::CallableDecl) {
         if !convert::ast_callable_functors(decl).is_empty() {
             match &decl.output.kind {
                 ast::TyKind::Tuple(items) if items.is_empty() => {}
-                _ => self.errors.push(Error(ErrorKind::TypeMismatch(
+                _ => self.checker.errors.push(Error(ErrorKind::TypeMismatch(
                     Ty::UNIT,
                     convert::ty_from_ast(&decl.output).0,
                     decl.output.span,
@@ -100,28 +126,34 @@ impl Checker<'_> {
     }
 
     fn check_spec(&mut self, spec: SpecImpl) {
-        let errors = rules::spec(self.resolutions, &self.globals, &mut self.tys, spec);
-        self.errors.extend(errors);
-    }
-
-    fn check_entry_expr(&mut self, entry: &ast::Expr) {
-        let errors = rules::entry_expr(self.resolutions, &self.globals, &mut self.tys, entry);
-        self.errors.extend(errors);
+        self.checker.errors.append(&mut rules::spec(
+            self.resolutions,
+            &self.checker.globals,
+            &mut self.checker.tys,
+            spec,
+        ));
     }
 }
 
-impl AstVisitor<'_> for Checker<'_> {
+impl AstVisitor<'_> for With<'_> {
     fn visit_package(&mut self, package: &ast::Package) {
         for namespace in &package.namespaces {
             self.visit_namespace(namespace);
         }
+
         if let Some(entry) = &package.entry {
-            self.check_entry_expr(entry);
+            self.checker.errors.append(&mut rules::expr(
+                self.resolutions,
+                &self.checker.globals,
+                &mut self.checker.tys,
+                entry,
+            ));
         }
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        self.tys
+        self.checker
+            .tys
             .insert(decl.name.id, convert::ast_callable_ty(decl).0);
         self.check_callable_signature(decl);
 
@@ -148,5 +180,15 @@ impl AstVisitor<'_> for Checker<'_> {
                 }
             }
         }
+    }
+
+    fn visit_stmt(&mut self, stmt: &ast::Stmt) {
+        // TODO: Probably more correct for the REPL to keep the Inferrer around.
+        self.checker.errors.append(&mut rules::stmt(
+            self.resolutions,
+            &self.checker.globals,
+            &mut self.checker.tys,
+            stmt,
+        ));
     }
 }

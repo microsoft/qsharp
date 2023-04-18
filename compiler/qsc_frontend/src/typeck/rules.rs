@@ -615,13 +615,24 @@ pub(super) fn spec(
     context.solve()
 }
 
-pub(super) fn entry_expr(
+pub(super) fn expr(
     resolutions: &Resolutions,
     globals: &HashMap<Res, Ty>,
     tys: &mut Tys<NodeId>,
-    entry: &Expr,
+    expr: &Expr,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);
-    context.infer_expr(entry);
+    context.infer_expr(expr);
+    context.solve()
+}
+
+pub(super) fn stmt(
+    resolutions: &Resolutions,
+    globals: &HashMap<Res, Ty>,
+    tys: &mut Tys<NodeId>,
+    stmt: &Stmt,
+) -> Vec<Error> {
+    let mut context = Context::new(resolutions, globals, tys);
+    context.infer_stmt(stmt);
     context.solve()
 }

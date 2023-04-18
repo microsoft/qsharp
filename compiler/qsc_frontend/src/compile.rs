@@ -288,7 +288,7 @@ fn typeck_all(
     package: &ast::Package,
     resolutions: &Resolutions,
 ) -> (Tys<ast::NodeId>, Vec<typeck::Error>) {
-    let mut globals = typeck::GlobalTable::new(resolutions);
+    let mut globals = typeck::GlobalTable::new();
     AstVisitor::visit_package(&mut globals, package);
 
     for dependency in dependencies {
@@ -300,7 +300,7 @@ fn typeck_all(
     }
 
     let mut checker = globals.into_checker();
-    AstVisitor::visit_package(&mut checker, package);
+    checker.with(resolutions).visit_package(package);
     checker.into_tys()
 }
 

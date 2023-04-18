@@ -5,8 +5,8 @@ use crate::{
     compile::PackageStore,
     lower::Lowerer,
     parse,
-    resolve::{self, GlobalTable, Resolver},
-    typeck::Tys,
+    resolve::{self, Resolver},
+    typeck::{self, Checker},
 };
 use miette::Diagnostic;
 use qsc_ast::{
@@ -33,6 +33,7 @@ pub struct Error(ErrorKind);
 enum ErrorKind {
     Parse(parse::Error),
     Resolve(resolve::Error),
+    Type(typeck::Error),
 }
 
 pub enum Fragment {
@@ -44,24 +45,29 @@ pub enum Fragment {
 pub struct Compiler<'a> {
     assigner: Assigner,
     resolver: Resolver<'a>,
+    checker: Checker,
     scope: HashMap<&'a str, NodeId>,
     lowerer: Lowerer,
 }
 
 impl<'a> Compiler<'a> {
     pub fn new(store: &'a PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
-        let mut globals = GlobalTable::new();
+        let mut resolve_globals = resolve::GlobalTable::new();
+        let mut typeck_globals = typeck::GlobalTable::new();
         for dependency in dependencies {
             let unit = store
                 .get(dependency)
                 .expect("dependency should be added to package store before compilation");
-            globals.set_package(dependency);
-            HirVisitor::visit_package(&mut globals, &unit.package);
+            resolve_globals.set_package(dependency);
+            HirVisitor::visit_package(&mut resolve_globals, &unit.package);
+            typeck_globals.set_package(dependency);
+            HirVisitor::visit_package(&mut typeck_globals, &unit.package);
         }
 
         Self {
             assigner: Assigner::new(),
-            resolver: globals.into_resolver(),
+            resolver: resolve_globals.into_resolver(),
+            checker: typeck_globals.into_checker(),
             scope: HashMap::new(),
             lowerer: Lowerer::new(),
         }
@@ -99,54 +105,64 @@ impl<'a> Compiler<'a> {
         fragments
     }
 
-    fn compile_callable_decl(&mut self, mut decl: ast::CallableDecl) -> Fragment {
-        self.assigner.visit_callable_decl(&mut decl);
+    fn compile_callable_decl(&mut self, decl: ast::CallableDecl) -> Fragment {
         let decl = Box::leak(Box::new(decl));
+        self.assigner.visit_callable_decl(decl);
         self.resolver.with_scope(&mut self.scope, |resolver| {
             resolver.add_global_callable(decl);
             AstVisitor::visit_callable_decl(resolver, decl);
         });
+        self.checker.add_global_callable(decl);
+        self.checker
+            .with(self.resolver.resolutions())
+            .visit_callable_decl(decl);
 
-        let errors: Vec<_> = self
-            .resolver
-            .drain_errors()
-            .map(|e| Error(ErrorKind::Resolve(e)))
-            .collect();
-
-        let decl = self
-            .lowerer
-            .with(self.resolver.resolutions(), &Tys::new()) // TODO
-            .lower_callable_decl(decl);
-
+        let errors = self.drain_errors();
         if errors.is_empty() {
-            Fragment::Callable(decl)
+            Fragment::Callable(
+                self.lowerer
+                    .with(self.resolver.resolutions(), self.checker.tys())
+                    .lower_callable_decl(decl),
+            )
         } else {
             Fragment::Error(errors)
         }
     }
 
-    fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Fragment {
-        self.assigner.visit_stmt(&mut stmt);
+    fn compile_stmt(&mut self, stmt: ast::Stmt) -> Fragment {
         let stmt = Box::leak(Box::new(stmt));
+        self.assigner.visit_stmt(stmt);
         self.resolver.with_scope(&mut self.scope, |resolver| {
             resolver.visit_stmt(stmt);
         });
+        self.checker
+            .with(self.resolver.resolutions())
+            .visit_stmt(stmt);
 
-        let errors: Vec<_> = self
-            .resolver
-            .drain_errors()
-            .map(|e| Error(ErrorKind::Resolve(e)))
-            .collect();
-
-        let stmt = self
-            .lowerer
-            .with(self.resolver.resolutions(), &Tys::new()) // TODO
-            .lower_stmt(stmt);
-
+        let errors = self.drain_errors();
         if errors.is_empty() {
-            Fragment::Stmt(stmt)
+            Fragment::Stmt(
+                self.lowerer
+                    .with(self.resolver.resolutions(), self.checker.tys())
+                    .lower_stmt(stmt),
+            )
         } else {
             Fragment::Error(errors)
         }
+    }
+
+    fn drain_errors(&mut self) -> Vec<Error> {
+        let mut errors = Vec::new();
+        errors.extend(
+            self.resolver
+                .drain_errors()
+                .map(|e| Error(ErrorKind::Resolve(e))),
+        );
+        errors.extend(
+            self.checker
+                .drain_errors()
+                .map(|e| Error(ErrorKind::Type(e))),
+        );
+        errors
     }
 }

@@ -15,7 +15,7 @@ use qsc_hir::hir::Ty;
 use std::fmt::Debug;
 use thiserror::Error;
 
-pub(super) use check::GlobalTable;
+pub(super) use check::{Checker, GlobalTable};
 
 pub type Tys<Id> = IndexMap<Id, Ty>;
 
