@@ -10,6 +10,7 @@ import {
 
 import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
 import { PopulateKatasList, RenderKatas } from "./katas.js";
+import { fromBinary, toBinary } from "./utils.js";
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -74,7 +75,7 @@ async function loaded() {
     // If URL is a sharing link, populate the editor with the code from the link. 
     // Otherwise, populate with sample code.
     const params = new URLSearchParams(window.location.search);
-    const code = params.get("code") ? window.atob(params.get("code")!) : sampleCode;
+    const code = params.get("code") ? fromBinary(window.atob(params.get("code")!)) : sampleCode;
 
     let srcModel = monaco.editor.createModel(code, 'qsharp');
     editor.setModel(srcModel);
@@ -186,8 +187,7 @@ async function loaded() {
 
     shareButton.addEventListener('click', _ => {
         const code = srcModel.getValue();
-        // Note: btoa does not work with non-ASCII characters.
-        const encodedCode = window.btoa(code);
+        const encodedCode = window.btoa(toBinary(code));
         // Get current URL without query parameters to use as the base URL
         const newUrl = `${window.location.href.split('?')[0]}?code=${encodedCode}`;
         // Copy link to clipboard and update url without reloading the page
