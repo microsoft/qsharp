@@ -1,7 +1,7 @@
 //@ts-check
 
 /**
- * Katas Organization
+ * Katas Taxonomy
  * 
  * A Kata is a top-level container of educational items (exercises and examples) which are used to explain a particular
  * topic.
