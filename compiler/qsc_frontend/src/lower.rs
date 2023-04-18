@@ -232,7 +232,7 @@ impl Lowerer {
             ast::TyKind::Paren(inner) => {
                 hir::TyKind::Paren(Box::new(self.lower_ty(resolutions, inner)))
             }
-            ast::TyKind::Path(path) => hir::TyKind::Res(self.lower_path(resolutions, path)),
+            ast::TyKind::Path(path) => hir::TyKind::Name(self.lower_path(resolutions, path)),
             ast::TyKind::Prim(ast::TyPrim::BigInt) => hir::TyKind::Prim(hir::TyPrim::BigInt),
             ast::TyKind::Prim(ast::TyPrim::Bool) => hir::TyKind::Prim(hir::TyPrim::Bool),
             ast::TyKind::Prim(ast::TyPrim::Double) => hir::TyKind::Prim(hir::TyPrim::Double),
@@ -377,7 +377,7 @@ impl Lowerer {
             ast::ExprKind::Paren(inner) => {
                 hir::ExprKind::Paren(Box::new(self.lower_expr(resolutions, inner)))
             }
-            ast::ExprKind::Path(path) => hir::ExprKind::Res(self.lower_path(resolutions, path)),
+            ast::ExprKind::Path(path) => hir::ExprKind::Name(self.lower_path(resolutions, path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start
                     .as_ref()

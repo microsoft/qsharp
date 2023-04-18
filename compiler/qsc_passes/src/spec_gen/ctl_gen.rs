@@ -66,7 +66,7 @@ impl<'a> MutVisitor for CtlDistrib<'a> {
                             Expr {
                                 id: new_ctls_path_id,
                                 span: args.span,
-                                kind: ExprKind::Res(self.ctls),
+                                kind: ExprKind::Name(self.ctls),
                             },
                             *args.clone(),
                         ]),

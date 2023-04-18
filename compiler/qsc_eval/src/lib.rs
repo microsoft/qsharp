@@ -357,7 +357,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
-            &ExprKind::Res(res) => ControlFlow::Continue(self.resolve_binding(res)),
+            &ExprKind::Name(res) => ControlFlow::Continue(self.resolve_binding(res)),
             ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
@@ -920,7 +920,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
-            (&ExprKind::Res(res), rhs) => {
+            (&ExprKind::Name(res), rhs) => {
                 let id = self.res_to_global_id(res);
                 let mut variable = self
                     .env

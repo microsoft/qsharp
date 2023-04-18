@@ -159,7 +159,7 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
         TyKind::Var(ident) => vis.visit_ident(ident),
-        TyKind::Hole | TyKind::Prim(_) | TyKind::Res(_) => {}
+        TyKind::Hole | TyKind::Name(_) | TyKind::Prim(_) => {}
     }
 }
 
@@ -256,7 +256,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Res(_) => {}
+        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Name(_) => {}
     }
 }
 

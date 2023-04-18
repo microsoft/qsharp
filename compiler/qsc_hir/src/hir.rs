@@ -540,12 +540,12 @@ pub enum TyKind {
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     /// An unspecified type, `_`, which may be inferred.
     Hole,
+    /// A resolved name.
+    Name(Res),
     /// A type wrapped in parentheses.
     Paren(Box<Ty>),
     /// A primitive type.
     Prim(TyPrim),
-    /// A resolved name.
-    Res(Res),
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A type variable.
@@ -567,9 +567,9 @@ impl Display for TyKind {
                 }
             }
             TyKind::Hole => write!(indent, "Hole")?,
+            TyKind::Name(res) => write!(indent, "Name: {res:?}")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
-            TyKind::Res(res) => write!(indent, "Res: {res:?}")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
@@ -737,14 +737,14 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
+    /// A resolved name.
+    Name(Res),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Block, Box<Expr>, Option<Block>),
-    /// A resolved name.
-    Res(Res),
     /// A return: `return a`.
     Return(Box<Expr>),
     /// A ternary operator.
@@ -781,10 +781,10 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
+            ExprKind::Name(res) => write!(indent, "Name: {res:?}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
-            ExprKind::Res(res) => write!(indent, "Res: {res:?}")?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
