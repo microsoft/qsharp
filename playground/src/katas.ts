@@ -1,5 +1,5 @@
 import Module from "module";
-import { eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataModule, type Exercise } from "qsharp/browser";
+import { eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataItem, type Exercise } from "qsharp/browser";
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
 declare var MathJax: { typeset: () => void; };
@@ -98,15 +98,15 @@ function renderExercise(exercise: Exercise): HTMLDivElement {
     return exerciseDiv;
 }
 
-function renderModule(module: KataModule): HTMLDivElement {
-    let moduleDiv = document.createElement("div");
-    moduleDiv.className = "kata-module";
-    if (module.type === "exercise") {
-        const exerciseDiv = renderExercise(module as Exercise);
-        moduleDiv.append(exerciseDiv);
+function renderItem(item: KataItem): HTMLDivElement {
+    let itemDiv = document.createElement("div");
+    itemDiv.className = "kata-item";
+    if (item.type === "exercise") {
+        const exerciseDiv = renderExercise(item as Exercise);
+        itemDiv.append(exerciseDiv);
     }
 
-    return moduleDiv;
+    return itemDiv;
 }
 
 function renderKata(kata: Kata): HTMLDivElement {
@@ -117,10 +117,10 @@ function renderKata(kata: Kata): HTMLDivElement {
     kataContent.innerHTML = kata.contentAsHtml;
     kataDiv.append(kataContent);
 
-    // Render each one of the modules.
-    for (let module of kata.modules) {
-        let renderedModule = renderModule(module);
-        kataDiv.append(renderedModule);
+    // Render each one of the items.
+    for (let item of kata.items) {
+        let renderedItem = renderItem(item);
+        kataDiv.append(renderedItem);
     }
     return kataDiv;
 }

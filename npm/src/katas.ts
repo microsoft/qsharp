@@ -15,14 +15,14 @@ export type Exercise = {
     placeholderImplementation: string;
 }
 
-export type KataModule = Exercise;
+export type KataItem = Exercise;
 
 export type Kata = {
     id: string;
     title: string;
     contentAsHtml: string;
     contentAsMarkdown: string;
-    modules: KataModule[]
+    items: KataItem[]
 }
 
 export async function getAllKatas(): Promise<Kata[]> {

@@ -51,22 +51,22 @@ function buildExerciseContent(id, exerciseDir) {
     };
 }
 
-function buildModuleContent(module, kataDir) {
-    const moduleDir = join(kataDir, module.directory);
-    const moduleId = `${basename(kataDir)}__${module.directory}`;
-    if (module.type === "exercise") {
-        return buildExerciseContent(moduleId, moduleDir);
+function buildItemContent(item, kataDir) {
+    const itemDir = join(kataDir, item.directory);
+    const itemId = `${basename(kataDir)}__${item.directory}`;
+    if (item.type === "exercise") {
+        return buildExerciseContent(itemId, itemDir);
     }
 
-    throw new Error(`Unknown module type ${module.type}`);
+    throw new Error(`Unknown module type ${item.type}`);
 }
 
 function buildKataContent(kata, katasDir) {
     const kataDir = join(katasDir, kata.directory)
-    let modulesContent = [];
-    for (const module of kata.modules) {
-        const moduleContent = buildModuleContent(module, kataDir);
-        modulesContent.push(moduleContent);
+    let itemsContent = [];
+    for (const item of kata.items) {
+        const moduleContent = buildItemContent(item, kataDir);
+        itemsContent.push(moduleContent);
     }
 
     const contentAsMarkdown = readFileSync(join(kataDir, "content.md"), 'utf8');
@@ -77,7 +77,7 @@ function buildKataContent(kata, katasDir) {
         title: title,
         contentAsMarkdown: contentAsMarkdown,
         contentAsHtml: contentAsHtml,
-        modules: modulesContent
+        items: itemsContent
     };
 }
 
