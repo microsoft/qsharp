@@ -31,12 +31,7 @@ export async function getAllKatas(): Promise<Kata[]> {
 
 export async function getKata(id: string): Promise<Kata> {
     const katas = await getAllKatas();
-    const filteredKatas = katas.filter(k => k.id == id);
-    if (filteredKatas.length != 1) {
-        throw new Error(`Failed to get kata with id: ${id}`);
-    }
-
-    return filteredKatas.at(0)!;
+    return katas.find(k => k.id === id) || Promise.reject(`Failed to get kata with id: ${id}`);
 }
 
 export async function runExercise(exercise: Exercise, implementation: string, eventCb: (msg: string) => void): Promise<boolean> {
