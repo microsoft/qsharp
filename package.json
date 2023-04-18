@@ -15,6 +15,7 @@
         "mathjax": "^3.2.2",
         "monaco-editor": "^0.36.1",
         "preact": "^10.13.1",
+        "marked": "^4.3.0",
         "typescript": "^5.0.2"
     }
 }

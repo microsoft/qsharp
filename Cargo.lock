@@ -812,6 +812,7 @@ version = "0.0.0"
 dependencies = [
  "getrandom",
  "js-sys",
+ "katas",
  "miette",
  "num-bigint",
  "num-complex",
