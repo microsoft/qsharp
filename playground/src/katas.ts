@@ -82,7 +82,7 @@ function renderExercise(exercise: Exercise): HTMLDivElement {
         clearDiv(outputDiv);
         let exerciseImplementation = sourceCodeArea.value;
         try {
-            let result = await runExercise(exercise.id, exerciseImplementation, outputCallback);
+            let result = await runExercise(exercise, exerciseImplementation, outputCallback);
             let verificationResult: VerificationResult = { kind: "VerificationResult", result: result };
             let renderedResult = renderKataOutput(verificationResult);
             outputDiv.prepend(renderedResult);

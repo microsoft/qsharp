@@ -39,20 +39,7 @@ export async function getKata(id: string): Promise<Kata> {
     return filteredKatas.at(0)!;
 }
 
-export async function getExercise(id: string): Promise<Exercise> {
-    const katas = await getAllKatas();
-    for (const kata of katas) {
-        const filteredExercises = kata.modules.filter(m => m.type === "exercise" && m.id === id);
-        if (filteredExercises.length == 1) {
-            return filteredExercises.at(0)!;
-        }
-    }
-
-    throw new Error(`Failed to get exercise with id: ${id}`);
-}
-
-export async function runExercise(id: string, implementation: string, eventCb: (msg: string) => void): Promise<boolean> {
-    const exercise = await getExercise(id);
+export async function runExercise(exercise: Exercise, implementation: string, eventCb: (msg: string) => void): Promise<boolean> {
     return run_kata_exercise(
         exercise.verificationImplementation,
         implementation,
