@@ -493,87 +493,85 @@ fn generate_ctladj_self() {
                     Item 3 [21-68]:
                         Callable 4 [21-68] (Operation):
                             name: Ident 5 [31-32] "B"
-                            input: Pat 6 [32-45]: Paren:
-                                Pat 7 [33-44]: Bind:
+                            input: Pat 6 [32-45] [Type Int]: Paren:
+                                Pat 7 [33-44] [Type Int]: Bind:
                                     Ident 8 [33-38] "input"
-                                    Type 9 [41-44]: Prim (Int)
-                            output: Type 10 [48-52]: Unit
-                            functors: Functor Expr 11 [56-65]: BinOp Union: (Functor Expr 12 [56-59]: Ctl) (Functor Expr 13 [62-65]: Adj)
+                            output: ()
+                            functors: Functor Expr 9 [56-65]: BinOp Union: (Functor Expr 10 [56-59]: Ctl) (Functor Expr 11 [62-65]: Adj)
                             body: Specializations:
-                                SpecDecl 40 [66-68] (Body): Impl:
-                                    Pat 41 [66-68]: Elided
-                                    Block 14 [66-68]: <empty>
-                                SpecDecl 42 [21-68] (Adj): Gen: Invert
-                                SpecDecl 43 [21-68] (Ctl): Impl:
-                                    Pat 49 [21-68]: Tuple:
-                                        Pat 48 [21-68]: Bind:
-                                            Ident 47 [21-68] "ctls"
-                                        Pat 50 [21-68]: Elided
-                                    Block 14 [66-68]: <empty>
-                                SpecDecl 44 [21-68] (CtlAdj): Gen: Distribute
-                    Item 15 [73-178]:
-                        Callable 16 [73-178] (Operation):
-                            name: Ident 17 [83-84] "A"
-                            input: Pat 18 [84-95]: Paren:
-                                Pat 19 [85-94]: Bind:
-                                    Ident 20 [85-86] "q"
-                                    Type 21 [89-94]: Prim (Qubit)
-                            output: Type 22 [98-102]: Unit
-                            functors: Functor Expr 23 [106-115]: BinOp Union: (Functor Expr 24 [106-109]: Ctl) (Functor Expr 25 [112-115]: Adj)
+                                SpecDecl 36 [66-68] (Body): Impl:
+                                    Pat 37 [66-68] [Type Int]: Elided
+                                    Block 12 [66-68]: <empty>
+                                SpecDecl 38 [21-68] (Adj): Gen: Invert
+                                SpecDecl 39 [21-68] (Ctl): Impl:
+                                    Pat 45 [21-68] [Type ((Qubit)[], Int)]: Tuple:
+                                        Pat 44 [21-68] [Type (Qubit)[]]: Bind:
+                                            Ident 43 [21-68] "ctls"
+                                        Pat 46 [21-68] [Type Int]: Elided
+                                    Block 12 [66-68]: <empty>
+                                SpecDecl 40 [21-68] (CtlAdj): Gen: Distribute
+                    Item 13 [73-178]:
+                        Callable 14 [73-178] (Operation):
+                            name: Ident 15 [83-84] "A"
+                            input: Pat 16 [84-95] [Type Qubit]: Paren:
+                                Pat 17 [85-94] [Type Qubit]: Bind:
+                                    Ident 18 [85-86] "q"
+                            output: ()
+                            functors: Functor Expr 19 [106-115]: BinOp Union: (Functor Expr 20 [106-109]: Ctl) (Functor Expr 21 [112-115]: Adj)
                             body: Specializations:
-                                SpecDecl 26 [126-150] (Body): Impl:
-                                    Pat 27 [131-134]: Elided
-                                    Block 28 [135-150]:
-                                        Stmt 29 [137-142]: Semi: Expr 30 [137-141]: Call:
-                                            Expr 31 [137-138]: Name: Internal(NodeId(5))
-                                            Expr 32 [138-141]: Paren: Expr 33 [139-140]: Lit: Int(1)
-                                        Stmt 34 [143-148]: Semi: Expr 35 [143-147]: Call:
-                                            Expr 36 [143-144]: Name: Internal(NodeId(5))
-                                            Expr 37 [144-147]: Paren: Expr 38 [145-146]: Lit: Int(2)
-                                SpecDecl 39 [159-172] (Adj): Impl:
-                                    Pat 27 [131-134]: Elided
-                                    Block 28 [135-150]:
-                                        Stmt 29 [137-142]: Semi: Expr 30 [137-141]: Call:
-                                            Expr 31 [137-138]: Name: Internal(NodeId(5))
-                                            Expr 32 [138-141]: Paren: Expr 33 [139-140]: Lit: Int(1)
-                                        Stmt 34 [143-148]: Semi: Expr 35 [143-147]: Call:
-                                            Expr 36 [143-144]: Name: Internal(NodeId(5))
-                                            Expr 37 [144-147]: Paren: Expr 38 [145-146]: Lit: Int(2)
-                                SpecDecl 45 [73-178] (Ctl): Impl:
-                                    Pat 59 [73-178]: Tuple:
-                                        Pat 52 [73-178]: Bind:
-                                            Ident 51 [73-178] "ctls"
-                                        Pat 60 [73-178]: Elided
-                                    Block 28 [135-150]:
-                                        Stmt 29 [137-142]: Semi: Expr 30 [137-141]: Call:
-                                            Expr 53 [137-138]: UnOp (Functor Ctl):
-                                                Expr 31 [137-138]: Name: Internal(NodeId(5))
-                                            Expr 54 [138-141]: Tuple:
-                                                Expr 55 [138-141]: Name: Internal(NodeId(51))
-                                                Expr 32 [138-141]: Paren: Expr 33 [139-140]: Lit: Int(1)
-                                        Stmt 34 [143-148]: Semi: Expr 35 [143-147]: Call:
-                                            Expr 56 [143-144]: UnOp (Functor Ctl):
-                                                Expr 36 [143-144]: Name: Internal(NodeId(5))
-                                            Expr 57 [144-147]: Tuple:
-                                                Expr 58 [144-147]: Name: Internal(NodeId(51))
-                                                Expr 37 [144-147]: Paren: Expr 38 [145-146]: Lit: Int(2)
-                                SpecDecl 46 [73-178] (CtlAdj): Impl:
-                                    Pat 59 [73-178]: Tuple:
-                                        Pat 52 [73-178]: Bind:
-                                            Ident 51 [73-178] "ctls"
-                                        Pat 60 [73-178]: Elided
-                                    Block 28 [135-150]:
-                                        Stmt 29 [137-142]: Semi: Expr 30 [137-141]: Call:
-                                            Expr 53 [137-138]: UnOp (Functor Ctl):
-                                                Expr 31 [137-138]: Name: Internal(NodeId(5))
-                                            Expr 54 [138-141]: Tuple:
-                                                Expr 55 [138-141]: Name: Internal(NodeId(51))
-                                                Expr 32 [138-141]: Paren: Expr 33 [139-140]: Lit: Int(1)
-                                        Stmt 34 [143-148]: Semi: Expr 35 [143-147]: Call:
-                                            Expr 56 [143-144]: UnOp (Functor Ctl):
-                                                Expr 36 [143-144]: Name: Internal(NodeId(5))
-                                            Expr 57 [144-147]: Tuple:
-                                                Expr 58 [144-147]: Name: Internal(NodeId(51))
-                                                Expr 37 [144-147]: Paren: Expr 38 [145-146]: Lit: Int(2)"#]],
+                                SpecDecl 22 [126-150] (Body): Impl:
+                                    Pat 23 [131-134] [Type Qubit]: Elided
+                                    Block 24 [135-150]:
+                                        Stmt 25 [137-142]: Semi: Expr 26 [137-141] [Type ()]: Call:
+                                            Expr 27 [137-138] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 28 [138-141] [Type Int]: Paren: Expr 29 [139-140] [Type Int]: Lit: Int(1)
+                                        Stmt 30 [143-148]: Semi: Expr 31 [143-147] [Type ()]: Call:
+                                            Expr 32 [143-144] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 33 [144-147] [Type Int]: Paren: Expr 34 [145-146] [Type Int]: Lit: Int(2)
+                                SpecDecl 35 [159-172] (Adj): Impl:
+                                    Pat 23 [131-134] [Type Qubit]: Elided
+                                    Block 24 [135-150]:
+                                        Stmt 25 [137-142]: Semi: Expr 26 [137-141] [Type ()]: Call:
+                                            Expr 27 [137-138] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 28 [138-141] [Type Int]: Paren: Expr 29 [139-140] [Type Int]: Lit: Int(1)
+                                        Stmt 30 [143-148]: Semi: Expr 31 [143-147] [Type ()]: Call:
+                                            Expr 32 [143-144] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 33 [144-147] [Type Int]: Paren: Expr 34 [145-146] [Type Int]: Lit: Int(2)
+                                SpecDecl 41 [73-178] (Ctl): Impl:
+                                    Pat 55 [73-178] [Type ((Qubit)[], Qubit)]: Tuple:
+                                        Pat 48 [73-178] [Type (Qubit)[]]: Bind:
+                                            Ident 47 [73-178] "ctls"
+                                        Pat 56 [73-178] [Type Qubit]: Elided
+                                    Block 24 [135-150]:
+                                        Stmt 25 [137-142]: Semi: Expr 26 [137-141] [Type ()]: Call:
+                                            Expr 49 [137-138] [Type ((Qubit)[], Int)]: UnOp (Functor Ctl):
+                                                Expr 27 [137-138] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 50 [138-141] [Type ((Qubit)[], Int)]: Tuple:
+                                                Expr 51 [138-141] [Type (Qubit)[]]: Name: Internal(NodeId(47))
+                                                Expr 28 [138-141] [Type Int]: Paren: Expr 29 [139-140] [Type Int]: Lit: Int(1)
+                                        Stmt 30 [143-148]: Semi: Expr 31 [143-147] [Type ()]: Call:
+                                            Expr 52 [143-144] [Type ((Qubit)[], Int)]: UnOp (Functor Ctl):
+                                                Expr 32 [143-144] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 53 [144-147] [Type ((Qubit)[], Int)]: Tuple:
+                                                Expr 54 [144-147] [Type (Qubit)[]]: Name: Internal(NodeId(47))
+                                                Expr 33 [144-147] [Type Int]: Paren: Expr 34 [145-146] [Type Int]: Lit: Int(2)
+                                SpecDecl 42 [73-178] (CtlAdj): Impl:
+                                    Pat 55 [73-178] [Type ((Qubit)[], Qubit)]: Tuple:
+                                        Pat 48 [73-178] [Type (Qubit)[]]: Bind:
+                                            Ident 47 [73-178] "ctls"
+                                        Pat 56 [73-178] [Type Qubit]: Elided
+                                    Block 24 [135-150]:
+                                        Stmt 25 [137-142]: Semi: Expr 26 [137-141] [Type ()]: Call:
+                                            Expr 49 [137-138] [Type ((Qubit)[], Int)]: UnOp (Functor Ctl):
+                                                Expr 27 [137-138] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 50 [138-141] [Type ((Qubit)[], Int)]: Tuple:
+                                                Expr 51 [138-141] [Type (Qubit)[]]: Name: Internal(NodeId(47))
+                                                Expr 28 [138-141] [Type Int]: Paren: Expr 29 [139-140] [Type Int]: Lit: Int(1)
+                                        Stmt 30 [143-148]: Semi: Expr 31 [143-147] [Type ()]: Call:
+                                            Expr 52 [143-144] [Type ((Qubit)[], Int)]: UnOp (Functor Ctl):
+                                                Expr 32 [143-144] [Type (Int) => (()) is Adj + Ctl]: Name: Internal(NodeId(5))
+                                            Expr 53 [144-147] [Type ((Qubit)[], Int)]: Tuple:
+                                                Expr 54 [144-147] [Type (Qubit)[]]: Name: Internal(NodeId(47))
+                                                Expr 33 [144-147] [Type Int]: Paren: Expr 34 [145-146] [Type Int]: Lit: Int(2)"#]],
     );
 }
