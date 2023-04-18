@@ -83,11 +83,31 @@ impl From<usize> for NodeId {
 
 /// A unique identifier for a package within a package store.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct PackageId(pub u32);
+pub struct PackageId(usize);
+
+impl PackageId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
 
 impl Display for PackageId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         Display::fmt(&self.0, f)
+    }
+}
+
+impl From<PackageId> for usize {
+    fn from(value: PackageId) -> Self {
+        value.0
+    }
+}
+
+impl From<usize> for PackageId {
+    fn from(value: usize) -> Self {
+        PackageId(value)
     }
 }
 

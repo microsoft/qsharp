@@ -16,16 +16,16 @@ use miette::Diagnostic;
 use qsc_ast::{
     assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor as AstVisitor,
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{
+    index_map::{self, IndexMap},
+    span::Span,
+};
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},
     visit::Visitor as HirVisitor,
 };
-use std::{
-    collections::{hash_map::Iter, HashMap},
-    fmt::Debug,
-};
+use std::fmt::Debug;
 use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
@@ -98,7 +98,7 @@ pub(crate) enum ErrorKind {
 
 #[derive(Default)]
 pub struct PackageStore {
-    units: HashMap<PackageId, CompileUnit>,
+    units: IndexMap<PackageId, CompileUnit>,
     next_id: PackageId,
 }
 
@@ -110,14 +110,14 @@ impl PackageStore {
 
     pub fn insert(&mut self, unit: CompileUnit) -> PackageId {
         let id = self.next_id;
-        self.next_id = PackageId(id.0 + 1);
+        self.next_id = id.successor();
         self.units.insert(id, unit);
         id
     }
 
     #[must_use]
     pub fn get(&self, id: PackageId) -> Option<&CompileUnit> {
-        self.units.get(&id)
+        self.units.get(id)
     }
 
     #[must_use]
@@ -126,8 +126,18 @@ impl PackageStore {
     }
 
     #[must_use]
-    pub fn iter(&self) -> Iter<PackageId, CompileUnit> {
-        self.units.iter()
+    pub fn iter(&self) -> Iter {
+        Iter(self.units.iter())
+    }
+}
+
+pub struct Iter<'a>(index_map::Iter<'a, PackageId, CompileUnit>);
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = (PackageId, &'a CompileUnit);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }
 

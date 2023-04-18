@@ -29,7 +29,7 @@ pub fn extract_callables(store: &PackageStore) -> HashMap<GlobalId, &CallableDec
     for (package_id, unit) in store.iter() {
         let mut visitor = CallableVisitor {
             callables: &mut callables,
-            package_id: *package_id,
+            package_id,
         };
         visitor.visit_package(&unit.package);
     }
