@@ -428,32 +428,57 @@ fn generate_adj_self() {
     check(
         indoc! {r#"
             namespace test {
+                operation B(input : Int) : Unit is Adj {}
                 operation A(q : Qubit) : Unit is Adj {
-                    body ... { fail "body impl"; }
+                    body ... { B(1); B(2); }
                     adjoint self;
                 }
             }
         "#},
         &expect![[r#"
             Package 0:
-                Namespace 1 [0-128] (Ident 2 [10-14] "test"):
-                    Item 3 [21-126]:
-                        Callable 4 [21-126] (Operation):
-                            name: Ident 5 [31-32] "A"
-                            input: Pat 6 [32-43]: Paren:
-                                Pat 7 [33-42]: Bind:
-                                    Ident 8 [33-34] "q"
-                                    Type 9 [37-42]: Prim (Qubit)
-                            output: Type 10 [46-50]: Unit
-                            functors: Functor Expr 11 [54-57]: Adj
+                Namespace 1 [0-168] (Ident 2 [10-14] "test"):
+                    Item 3 [21-62]:
+                        Callable 4 [21-62] (Operation):
+                            name: Ident 5 [31-32] "B"
+                            input: Pat 6 [32-45]: Paren:
+                                Pat 7 [33-44]: Bind:
+                                    Ident 8 [33-38] "input"
+                                    Type 9 [41-44]: Prim (Int)
+                            output: Type 10 [48-52]: Unit
+                            functors: Functor Expr 11 [56-59]: Adj
                             body: Specializations:
-                                SpecDecl 12 [68-98] (Body): Impl:
-                                    Pat 13 [73-76]: Elided
-                                    Block 14 [77-98]:
-                                        Stmt 15 [79-96]: Semi: Expr 16 [79-95]: Fail: Expr 17 [84-95]: Lit: String("body impl")
-                                SpecDecl 18 [107-120] (Adj): Impl:
-                                    Pat 13 [73-76]: Elided
-                                    Block 14 [77-98]:
-                                        Stmt 15 [79-96]: Semi: Expr 16 [79-95]: Fail: Expr 17 [84-95]: Lit: String("body impl")"#]],
+                                SpecDecl 40 [60-62] (Body): Impl:
+                                    Pat 41 [60-62]: Elided
+                                    Block 12 [60-62]: <empty>
+                                SpecDecl 42 [21-62] (Adj): Gen: Invert
+                    Item 13 [67-166]:
+                        Callable 14 [67-166] (Operation):
+                            name: Ident 15 [77-78] "A"
+                            input: Pat 16 [78-89]: Paren:
+                                Pat 17 [79-88]: Bind:
+                                    Ident 18 [79-80] "q"
+                                    Type 19 [83-88]: Prim (Qubit)
+                            output: Type 20 [92-96]: Unit
+                            functors: Functor Expr 21 [100-103]: Adj
+                            body: Specializations:
+                                SpecDecl 22 [114-138] (Body): Impl:
+                                    Pat 23 [119-122]: Elided
+                                    Block 24 [123-138]:
+                                        Stmt 25 [125-130]: Semi: Expr 26 [125-129]: Call:
+                                            Expr 27 [125-126]: Path: Path 28 [125-126] (Ident 29 [125-126] "B")
+                                            Expr 30 [126-129]: Paren: Expr 31 [127-128]: Lit: Int(1)
+                                        Stmt 32 [131-136]: Semi: Expr 33 [131-135]: Call:
+                                            Expr 34 [131-132]: Path: Path 35 [131-132] (Ident 36 [131-132] "B")
+                                            Expr 37 [132-135]: Paren: Expr 38 [133-134]: Lit: Int(2)
+                                SpecDecl 39 [147-160] (Adj): Impl:
+                                    Pat 23 [119-122]: Elided
+                                    Block 24 [123-138]:
+                                        Stmt 25 [125-130]: Semi: Expr 26 [125-129]: Call:
+                                            Expr 27 [125-126]: Path: Path 28 [125-126] (Ident 29 [125-126] "B")
+                                            Expr 30 [126-129]: Paren: Expr 31 [127-128]: Lit: Int(1)
+                                        Stmt 32 [131-136]: Semi: Expr 33 [131-135]: Call:
+                                            Expr 34 [131-132]: Path: Path 35 [131-132] (Ident 36 [131-132] "B")
+                                            Expr 37 [132-135]: Paren: Expr 38 [133-134]: Lit: Int(2)"#]],
     );
 }
