@@ -280,16 +280,14 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             }
 
             if let (Some(ctladj), Some(adj), Some(ctl)) = (ctladj.as_mut(), &adj, &ctl) {
-                if ctladj.body != SpecBody::Gen(SpecGen::Invert) {
-                    match &ctladj.body {
-                        SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
-                            if let SpecBody::Impl(_, adj_block) = &adj.body {
-                                self.ctl_distrib(ctladj, adj_block);
-                            }
+                match &ctladj.body {
+                    SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
+                        if let SpecBody::Impl(_, adj_block) = &adj.body {
+                            self.ctl_distrib(ctladj, adj_block);
                         }
-                        SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),
-                        _ => {}
                     }
+                    SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),
+                    _ => {}
                 }
             };
 
