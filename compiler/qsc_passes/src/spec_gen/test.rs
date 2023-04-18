@@ -448,10 +448,10 @@ fn generate_adj_self() {
                             output: Type 10 [48-52]: Unit
                             functors: Functor Expr 11 [56-59]: Adj
                             body: Specializations:
-                                SpecDecl 40 [60-62] (Body): Impl:
-                                    Pat 41 [60-62]: Elided
+                                SpecDecl 36 [60-62] (Body): Impl:
+                                    Pat 37 [60-62]: Elided
                                     Block 12 [60-62]: <empty>
-                                SpecDecl 42 [21-62] (Adj): Gen: Invert
+                                SpecDecl 38 [21-62] (Adj): Gen: Invert
                     Item 13 [67-166]:
                         Callable 14 [67-166] (Operation):
                             name: Ident 15 [77-78] "A"
@@ -466,19 +466,19 @@ fn generate_adj_self() {
                                     Pat 23 [119-122]: Elided
                                     Block 24 [123-138]:
                                         Stmt 25 [125-130]: Semi: Expr 26 [125-129]: Call:
-                                            Expr 27 [125-126]: Path: Path 28 [125-126] (Ident 29 [125-126] "B")
-                                            Expr 30 [126-129]: Paren: Expr 31 [127-128]: Lit: Int(1)
-                                        Stmt 32 [131-136]: Semi: Expr 33 [131-135]: Call:
-                                            Expr 34 [131-132]: Path: Path 35 [131-132] (Ident 36 [131-132] "B")
-                                            Expr 37 [132-135]: Paren: Expr 38 [133-134]: Lit: Int(2)
-                                SpecDecl 39 [147-160] (Adj): Impl:
+                                            Expr 27 [125-126]: Res: Internal(NodeId(5))
+                                            Expr 28 [126-129]: Paren: Expr 29 [127-128]: Lit: Int(1)
+                                        Stmt 30 [131-136]: Semi: Expr 31 [131-135]: Call:
+                                            Expr 32 [131-132]: Res: Internal(NodeId(5))
+                                            Expr 33 [132-135]: Paren: Expr 34 [133-134]: Lit: Int(2)
+                                SpecDecl 35 [147-160] (Adj): Impl:
                                     Pat 23 [119-122]: Elided
                                     Block 24 [123-138]:
                                         Stmt 25 [125-130]: Semi: Expr 26 [125-129]: Call:
-                                            Expr 27 [125-126]: Path: Path 28 [125-126] (Ident 29 [125-126] "B")
-                                            Expr 30 [126-129]: Paren: Expr 31 [127-128]: Lit: Int(1)
-                                        Stmt 32 [131-136]: Semi: Expr 33 [131-135]: Call:
-                                            Expr 34 [131-132]: Path: Path 35 [131-132] (Ident 36 [131-132] "B")
-                                            Expr 37 [132-135]: Paren: Expr 38 [133-134]: Lit: Int(2)"#]],
+                                            Expr 27 [125-126]: Res: Internal(NodeId(5))
+                                            Expr 28 [126-129]: Paren: Expr 29 [127-128]: Lit: Int(1)
+                                        Stmt 30 [131-136]: Semi: Expr 31 [131-135]: Call:
+                                            Expr 32 [131-132]: Res: Internal(NodeId(5))
+                                            Expr 33 [132-135]: Paren: Expr 34 [133-134]: Lit: Int(2)"#]],
     );
 }
