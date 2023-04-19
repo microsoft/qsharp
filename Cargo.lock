@@ -945,6 +945,7 @@ dependencies = [
  "qsc_ast",
  "qsc_eval",
  "qsc_frontend",
+ "qsc_hir",
  "qsc_passes",
 ]
 

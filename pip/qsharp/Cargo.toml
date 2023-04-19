@@ -14,6 +14,7 @@ qsc_ast = { path = "../../compiler/qsc_ast" }
 qsc_eval = { path = "../../compiler/qsc_eval" }
 qsc_frontend = { path = "../../compiler/qsc_frontend" }
 qsc_passes = { path = "../../compiler/qsc_passes" }
+qsc_hir = { path = "../../compiler/qsc_hir" }
 
 pyo3 = { workspace = true }
 ouroboros = { workspace = true }

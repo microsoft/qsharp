@@ -103,7 +103,7 @@ impl From<Error> for ExecutionError {
         match e {
             Error::Compile(e) => {
                 panic!("Did not expect compilation error {}", e.to_string())
-            }
+            },
             Error::Eval(e) => ExecutionError {
                 error_type: String::from("RuntimeError"),
                 message: e.to_string(),
@@ -112,6 +112,10 @@ impl From<Error> for ExecutionError {
                 error_type: String::from("CompilationError"),
                 message: e.to_string(),
             },
+            Error::Pass(e) => ExecutionError {
+                error_type: String::from("CompilationError"),
+                message: e.to_string(),
+            }
         }
     }
 }
@@ -165,10 +169,10 @@ impl IntoPy<PyObject> for ValueWrapper {
             Value::String(val) => val.into_py(py),
             Value::Result(val) => if val { Result::One } else { Result::Zero }.into_py(py),
             Value::Pauli(val) => match val {
-                qsc_ast::ast::Pauli::I => Pauli::I.into_py(py),
-                qsc_ast::ast::Pauli::X => Pauli::X.into_py(py),
-                qsc_ast::ast::Pauli::Y => Pauli::Y.into_py(py),
-                qsc_ast::ast::Pauli::Z => Pauli::Z.into_py(py),
+                qsc_hir::hir::Pauli::I => Pauli::I.into_py(py),
+                qsc_hir::hir::Pauli::X => Pauli::X.into_py(py),
+                qsc_hir::hir::Pauli::Y => Pauli::Y.into_py(py),
+                qsc_hir::hir::Pauli::Z => Pauli::Z.into_py(py),
             },
             Value::Tuple(val) => {
                 PyTuple::new(py, val.into_iter().map(|v| ValueWrapper(v).into_py(py))).into_py(py)

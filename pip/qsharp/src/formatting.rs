@@ -82,14 +82,9 @@ impl FormattingReceiver {
 }
 
 impl Receiver for FormattingReceiver {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>) -> Result<(), Error> {
+    fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         self.outputs.push(DisplayableOutput::State({
-            // TODO: num_qubits should be coming from the quantum state
-            let num_qubits = match state.iter().max_by_key(|(id, _)| id.bits()) {
-                Some((id, _)) => id.bits() as usize,
-                None => 0,
-            };
-            DisplayableState(state, num_qubits)
+            DisplayableState(state, qubit_count)
         }));
         Ok(())
     }
