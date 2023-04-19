@@ -32,7 +32,7 @@ mod given_interpreter {
                     Interpreter::new(false, SOURCES).expect("Failed to compile base environment.");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
-                is_only_error(&result, output, "`Message` not found in this scope");
+                is_only_error(&result, &output, "`Message` not found in this scope");
             }
         }
 
@@ -40,7 +40,7 @@ mod given_interpreter {
         fn stdlib_members_should_be_available() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "Message(\"_\")");
-            is_unit_with_output(&result, output, "_");
+            is_unit_with_output(&result, &output, "_");
         }
 
         #[test]
@@ -48,7 +48,7 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
             let _ = line(&mut interpreter, "let y = 7;");
             let (result, output) = line(&mut interpreter, "y");
-            is_only_value(&result, output, &Value::Int(7));
+            is_only_value(&result, &output, &Value::Int(7));
         }
 
         #[test]
@@ -56,16 +56,16 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7;");
-            is_only_value(&result, output, &Value::UNIT);
+            is_only_value(&result, &output, &Value::UNIT);
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_value(&result, output, &Value::Int(7));
+            is_only_value(&result, &output, &Value::Int(7));
 
             let (result, output) = line(&mut interpreter, "let y = \"Hello\";");
-            is_only_value(&result, output, &Value::UNIT);
+            is_only_value(&result, &output, &Value::UNIT);
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_value(&result, output, &Value::String("Hello".to_string()));
+            is_only_value(&result, &output, &Value::String("Hello".to_string()));
         }
 
         #[test]
@@ -73,10 +73,10 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7");
-            is_only_error(&result, output, "expected `;`, found EOF");
+            is_only_error(&result, &output, "expected `;`, found EOF");
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(&result, output, "`y` not found in this scope");
+            is_only_error(&result, &output, "`y` not found in this scope");
         }
 
         #[test]
@@ -85,7 +85,7 @@ mod given_interpreter {
 
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");
 
-            is_only_error(&result, output, "division by zero");
+            is_only_error(&result, &output, "division by zero");
         }
     }
 
@@ -106,7 +106,7 @@ mod given_interpreter {
             let mut interpreter =
                 Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let (result, output) = line(&mut interpreter, "Test.Main()");
-            is_unit_with_output(&result, output, "hello there...");
+            is_unit_with_output(&result, &output, "hello there...");
         }
 
         #[test]
@@ -127,13 +127,13 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(
                 &result,
-                output,
+                &output,
                 &Value::String("hello there...".to_string()),
             );
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_only_value(
                 &result,
-                output,
+                &output,
                 &Value::String("hello there...".to_string()),
             );
         }
@@ -158,13 +158,13 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(
                 &result,
-                output,
+                &output,
                 &Value::String("hello there...".to_string()),
             );
             let (result, output) = line(&mut interpreter, "Test2.Main()");
             is_only_value(
                 &result,
-                output,
+                &output,
                 &Value::String("hello there...".to_string()),
             );
         }
@@ -175,7 +175,7 @@ mod given_interpreter {
         Interpreter::new(true, SOURCES).expect("Failed to compile base environment.")
     }
 
-    fn is_only_value(result: &Result<Value, AggregateError<Error>>, output: String, value: &Value) {
+    fn is_only_value(result: &Result<Value, AggregateError<Error>>, output: &str, value: &Value) {
         assert_eq!("", output);
 
         match result {
@@ -186,7 +186,7 @@ mod given_interpreter {
 
     fn is_unit_with_output(
         result: &Result<Value, AggregateError<Error>>,
-        output: String,
+        output: &str,
         expected_output: &str,
     ) {
         assert_eq!(expected_output, output);
@@ -197,7 +197,7 @@ mod given_interpreter {
         }
     }
 
-    fn is_only_error(result: &Result<Value, AggregateError<Error>>, output: String, error: &str) {
+    fn is_only_error(result: &Result<Value, AggregateError<Error>>, output: &str, error: &str) {
         assert_eq!("", output);
 
         match result {
