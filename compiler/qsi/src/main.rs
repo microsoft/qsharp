@@ -91,22 +91,16 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 }
 
-fn print_results(
-    results: impl Iterator<Item = Result<Value, AggregateError<Error>>>,
-    output: &str,
-    line: &str,
-) {
-    for result in results {
-        if !output.is_empty() {
-            println!("{output}");
-        }
-        match result {
-            Ok(value) => println!("{value}"),
-            Err(errors) => {
-                let reporter = InteractiveErrorReporter::new(line);
-                for error in errors.0 {
-                    eprintln!("{:?}", reporter.report(error.clone()));
-                }
+fn print_results(result: Result<Value, AggregateError<Error>>, output: &str, line: &str) {
+    if !output.is_empty() {
+        println!("{output}");
+    }
+    match result {
+        Ok(value) => println!("{value}"),
+        Err(errors) => {
+            let reporter = InteractiveErrorReporter::new(line);
+            for error in errors.0 {
+                eprintln!("{:?}", reporter.report(error.clone()));
             }
         }
     }
