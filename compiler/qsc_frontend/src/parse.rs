@@ -30,6 +30,8 @@ pub(super) enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),
+    #[error("invalid {0} literal")]
+    Lit(&'static str, #[label] Span),
     #[error("expected {0}, found {1}")]
     Token(TokenKind, TokenKind, #[label("expected {0}")] Span),
     #[error("expected keyword `{0}`, found {1}")]
