@@ -63,6 +63,10 @@ impl Interpreter {
         Ok(Self { context })
     }
 
+    /// # Errors
+    /// If the parsing of the line fails, an error is returned.
+    /// If the compilation of the line fails, an error is returned.
+    /// If there is a runtime error when interpreting the line, an error is returned.
     pub fn line(
         &mut self,
         receiver: &mut dyn Receiver,
