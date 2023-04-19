@@ -124,8 +124,8 @@ export function mapUtf8UnitsToUtf16Units(positions: Array<number>, source: strin
 
     // Assume that Rust handles utf-8 correctly in strings, and that the UTF-8 code units 
     // per Unicode code point are as per the ranges below:
-    // - 0x000000 to 0x0000FF = 1 utf-8 code unit
-    // - 0x000100 to 0x0007FF = 2 utf-8 code units
+    // - 0x000000 to 0x00007F = 1 utf-8 code unit
+    // - 0x000080 to 0x0007FF = 2 utf-8 code units
     // - 0x000800 to 0x00FFFF = 3 utf-8 code units
     // - 0x010000 to 0x10FFFF = 4 utf-8 code units
     //
@@ -161,7 +161,7 @@ export function mapUtf8UnitsToUtf16Units(positions: Array<number>, source: strin
         const utf16CodeUnit = source.charCodeAt(utf16Index);
 
         // Advance the utf-8 offset by the correct amount for the utf-16 code unit value.
-        if (utf16CodeUnit < 0x100) {
+        if (utf16CodeUnit < 0x80) {
             utf8Index += 1;
         } else if (utf16CodeUnit < 0x800) {
             utf8Index += 2;
