@@ -34,23 +34,23 @@ namespace Kata {
 
         if isCorrect {
             use target = Qubit();
-            Message("Qubit state after applying a global phase to the |0⟩ state:");
             task(target);
+            Message("Qubit state after applying a global phase to the |0⟩ state:");
             DumpMachine();
             Reset(target);
         } else {
             {
                 use expected = Qubit();
-                Message("Expected state after applying operation:");
                 taskRef(expected);
+                Message("Expected state after applying operation:");
                 DumpMachine();
                 Reset(expected);
             }
 
             {
                 use actual = Qubit();
-                Message("Actual state after applying operation:");
                 task(actual);
+                Message("Actual state after applying operation:");
                 DumpMachine();
                 Reset(actual);
             }
