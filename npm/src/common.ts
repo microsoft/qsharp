@@ -155,6 +155,8 @@ export function mapUtf8UnitsToUtf16Units(positions: Array<number>, source: strin
             nextUtf8Target = sorted_pos[posArrayIndex];
         }
 
+        if (utf16Index >= source.length) break;
+
         // Get the code unit (not code point) at the source index.
         const utf16CodeUnit = source.charCodeAt(utf16Index);
 
@@ -173,7 +175,7 @@ export function mapUtf8UnitsToUtf16Units(positions: Array<number>, source: strin
             // Valid utf-16 surrogate pair implies code point over 0xFFFF implies 4 utf-8 code units.
             utf8Index += 4;
         }
-        if (++utf16Index >= source.length) break;
+        ++utf16Index; // Don't break here if EOF. We need to handle EOF being the final position to resolve.
     }
 
     // TODO: May want to have a more configurable error reporting at some point. Avoid throwing here,
@@ -197,8 +199,9 @@ export function mapDiagnostics(diags: VSDiagnostic[], code: string) : VSDiagnost
     // Return the diagnostics with the positions mapped (or EOF if couldn't resolve)
     const results = diags.map(diag => ({
         ...diag,
-        start_pos: positionMap[diag.start_pos] || code.length,
-        end_pos: positionMap[diag.end_pos] || code.length,
+        // The mapped position may well be 0, so need to use ?? rather than ||
+        start_pos: positionMap[diag.start_pos] ?? code.length,
+        end_pos: positionMap[diag.end_pos] ?? code.length,
     }));
 
     return results;
