@@ -805,6 +805,24 @@ fn if_no_else_must_be_unit() {
 }
 
 #[test]
+fn if_else_fail() {
+    check(
+        "",
+        r#"if false {} else { fail "error"; }"#,
+        &expect![[r##"
+            #1 0-34 "if false {} else { fail \"error\"; }" : ()
+            #2 3-8 "false" : Bool
+            #3 9-11 "{}" : ()
+            #4 12-34 "else { fail \"error\"; }" : ()
+            #5 17-34 "{ fail \"error\"; }" : ()
+            #6 19-32 "fail \"error\";" : ()
+            #7 19-31 "fail \"error\"" : ?0
+            #8 24-31 "\"error\"" : String
+        "##]],
+    );
+}
+
+#[test]
 fn ternop_cond_error() {
     check(
         "",
@@ -1185,8 +1203,8 @@ fn fail_diverges() {
             #1 0-42 "if true {\n    fail \"true\"\n} else {\n    4\n}" : Int
             #2 3-7 "true" : Bool
             #3 8-27 "{\n    fail \"true\"\n}" : Int
-            #4 14-25 "fail \"true\"" : ?1
-            #5 14-25 "fail \"true\"" : ?0
+            #4 14-25 "fail \"true\"" : Int
+            #5 14-25 "fail \"true\"" : Int
             #6 19-25 "\"true\"" : String
             #7 28-42 "else {\n    4\n}" : Int
             #8 33-42 "{\n    4\n}" : Int
@@ -1224,8 +1242,8 @@ fn return_diverges() {
             #15 65-136 "if x {\n            return 1\n        } else {\n            true\n        }" : Bool
             #16 68-69 "x" : Bool
             #19 70-102 "{\n            return 1\n        }" : Bool
-            #20 84-92 "return 1" : ?2
-            #21 84-92 "return 1" : ?1
+            #20 84-92 "return 1" : Bool
+            #21 84-92 "return 1" : Bool
             #22 91-92 "1" : Int
             #23 103-136 "else {\n            true\n        }" : Bool
             #24 108-136 "{\n            true\n        }" : Bool
@@ -1258,11 +1276,11 @@ fn return_diverges_stmt_after() {
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
             #11 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #12 57-116 "let x = {\n            return 1;\n            true\n        };" : ?5
+            #12 57-116 "let x = {\n            return 1;\n            true\n        };" : ?4
             #13 61-62 "x" : ?0
             #14 61-62 "x" : ?0
             #15 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #16 65-115 "{\n            return 1;\n            true\n        }" : ?3
+            #16 65-115 "{\n            return 1;\n            true\n        }" : ?0
             #17 79-88 "return 1;" : ?2
             #18 79-87 "return 1" : ?1
             #19 86-87 "1" : Int
@@ -1291,7 +1309,7 @@ fn return_mismatch() {
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
             #11 47-75 "{\n        return true;\n    }" : Int
-            #12 57-69 "return true;" : ?1
+            #12 57-69 "return true;" : Int
             #13 57-68 "return true" : ?0
             #14 64-68 "true" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
