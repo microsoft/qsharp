@@ -1,8 +1,9 @@
 # Q# Python Bindings
 
 ## TODO:
-- [ ] DumpMachine output
+- [ ] Fix state visualization on the JS side to match
 - [ ] Finalize error/exception types. Base class? Single type?
+- [ ] Fancier error reporting through miette
 - [ ] See if runtime errors have stack traces.
 - [ ] Clean up Rust code
 - [ ] Write README.md (usage examples)
@@ -19,3 +20,5 @@
 - [ ] Check in sample notebook and sample.qs
 - [ ] Figure out how to open namespaces
 - [ ] Eliminate pip/qsharp subdirectory?
+- [ ] Panic handler
+- [ ] Clean up TODOs across the board

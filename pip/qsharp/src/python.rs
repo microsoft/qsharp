@@ -1,10 +1,23 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// TODO: merge: I'm sure there are unused stuff here
+use crate::formatting::{DisplayableOutput, FormattingReceiver};
 use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
-use qsc_eval::{output::CursorReceiver, stateful::Interpreter, val::Value};
-use std::io::Cursor;
+use qsc_eval::{
+    stateful::{Error, Interpreter},
+    val::Value,
+};
+
+#[pymodule]
+fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<Evaluator>()?;
+    m.add_class::<Result>()?;
+    m.add_class::<Pauli>()?;
+    m.add_class::<Output>()?;
+    m.add_class::<ExecutionError>()?;
+
+    Ok(())
+}
 
 #[pyclass(unsendable)]
 pub(crate) struct Evaluator {
@@ -32,58 +45,38 @@ impl Evaluator {
     /// .2 is the error output.
     #[pyo3(text_signature = "(expr)")]
     fn eval(&mut self, py: Python, expr: String) -> PyResult<(PyObject, PyObject, PyObject)> {
-        let mut cursor = Cursor::new(Vec::<u8>::new());
-        let mut receiver = CursorReceiver::new(&mut cursor);
+        let mut receiver = FormattingReceiver::new();
         let results = self
             .interpreter
             .line(&mut receiver, expr)
             .collect::<Vec<_>>();
+        let outputs = receiver.outputs;
 
-        // TODO: hoooo boy
-        return match results[0].to_owned() {
-            Ok(value) => Ok((
-                ValueWrapper(value).into_py(py),
-                receiver.dump().to_object(py),
-                PyList::empty(py).to_object(py),
-            )),
-            Err(err) => Ok((
-                PyTuple::empty(py).to_object(py),
-                receiver.dump().to_object(py),
-                {
-                    let list = PyList::empty(py);
-                    err.0
-                        .into_iter()
-                        .map(|e| match e {
-                            qsc_eval::stateful::Error::Compile(e) => {
-                                panic!("Did not expect compilation error {}", e.to_string())
-                            }
-                            qsc_eval::stateful::Error::Eval(e) => ExecutionError {
-                                error_type: "RuntimeError".to_string(),
-                                message: e.to_string(),
-                            },
-                            qsc_eval::stateful::Error::Incremental(e) => ExecutionError {
-                                error_type: "CompilationError".to_string(),
-                                message: e.to_string(),
-                            },
-                        })
-                        .for_each(|e| {
-                            list.append(e.into_py(py)).unwrap(); // TODO: Argh
-                            ()
-                        });
-                    list.to_object(py)
-                },
-            )),
+        // TODO: Figure out what to do with multiple statements
+        let (value, errors) = match results.last() {
+            Some(r) => match r.to_owned() {
+                Ok(value) => (value, Vec::<Error>::new()),
+                Err(err) => (Value::UNIT, { err.0 }),
+            },
+            None => (Value::UNIT, Vec::<Error>::new()),
         };
+
+        Ok((
+            ValueWrapper(value).into_py(py),
+            PyList::new(
+                py,
+                outputs.into_iter().map(|o| Py::new(py, Output(o)).unwrap()),
+            )
+            .into_py(py),
+            PyList::new(
+                py,
+                errors
+                    .into_iter()
+                    .map(|e| Py::new(py, ExecutionError::from(e)).unwrap()),
+            )
+            .into_py(py),
+        ))
     }
-}
-
-#[pymodule]
-fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Evaluator>()?;
-    m.add_class::<Result>()?;
-    m.add_class::<Pauli>()?;
-
-    Ok(())
 }
 
 #[pyclass(unsendable)]
@@ -101,20 +94,48 @@ impl ExecutionError {
     }
 
     fn __str__(&self) -> String {
-        format!("{}: {}", self.error_type, self.message)
+        self.__repr__()
     }
 }
 
-struct ValueWrapper(Value);
+impl From<Error> for ExecutionError {
+    fn from(e: Error) -> ExecutionError {
+        match e {
+            Error::Compile(e) => {
+                panic!("Did not expect compilation error {}", e.to_string())
+            }
+            Error::Eval(e) => ExecutionError {
+                error_type: String::from("RuntimeError"),
+                message: e.to_string(),
+            },
+            Error::Incremental(e) => ExecutionError {
+                error_type: String::from("CompilationError"),
+                message: e.to_string(),
+            },
+        }
+    }
+}
 
-impl IntoPy<PyObject> for ValueWrapper {
-    fn into_py(self, py: Python) -> PyObject {
-        match self.0 {
-            Value::Int(val) => val.into_py(py),
-            Value::Result(val) => if val { Result::One } else { Result::Zero }.into_py(py),
-            Value::Bool(val) => val.into_py(py),
-            Value::Pauli(val) => PauliWrapper(val).into_py(py),
-            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
+#[pyclass(unsendable)]
+pub(crate) struct Output(DisplayableOutput);
+
+#[pymethods]
+impl Output {
+    fn __repr__(&self) -> String {
+        match &self.0 {
+            DisplayableOutput::State(state) => state.to_plain(),
+            DisplayableOutput::Message(msg) => msg.clone(),
+        }
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    fn _repr_html_(&self) -> String {
+        match &self.0 {
+            DisplayableOutput::State(state) => state.to_html(),
+            DisplayableOutput::Message(msg) => msg.clone(),
         }
     }
 }
@@ -133,15 +154,29 @@ pub(crate) enum Pauli {
     Z,
 }
 
-struct PauliWrapper(qsc_ast::ast::Pauli);
+// Mapping of Q# value types to Python value types.
+struct ValueWrapper(Value);
 
-impl IntoPy<PyObject> for PauliWrapper {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl IntoPy<PyObject> for ValueWrapper {
+    fn into_py(self, py: Python) -> PyObject {
         match self.0 {
-            qsc_ast::ast::Pauli::I => Pauli::I.into_py(py),
-            qsc_ast::ast::Pauli::X => Pauli::X.into_py(py),
-            qsc_ast::ast::Pauli::Y => Pauli::Y.into_py(py),
-            qsc_ast::ast::Pauli::Z => Pauli::Z.into_py(py),
+            Value::Int(val) => val.into_py(py),
+            Value::Bool(val) => val.into_py(py),
+            Value::String(val) => val.into_py(py),
+            Value::Result(val) => if val { Result::One } else { Result::Zero }.into_py(py),
+            Value::Pauli(val) => match val {
+                qsc_ast::ast::Pauli::I => Pauli::I.into_py(py),
+                qsc_ast::ast::Pauli::X => Pauli::X.into_py(py),
+                qsc_ast::ast::Pauli::Y => Pauli::Y.into_py(py),
+                qsc_ast::ast::Pauli::Z => Pauli::Z.into_py(py),
+            },
+            Value::Tuple(val) => {
+                PyTuple::new(py, val.into_iter().map(|v| ValueWrapper(v).into_py(py))).into_py(py)
+            }
+            Value::Array(val) => {
+                PyList::new(py, val.into_iter().map(|v| ValueWrapper(v).into_py(py))).into_py(py)
+            }
+            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
         }
     }
 }

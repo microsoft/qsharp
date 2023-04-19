@@ -1,10 +1,10 @@
 import qsharp
 import pathlib
-from qsharp import ( CompilationException, RuntimeException )
+from qsharp import (CompilationException, RuntimeException)
 
 sample_qs = pathlib.Path(__file__).parent.resolve().joinpath("./sample.qs")
 
-# Interpret some code. 
+# Interpret some code.
 # Just defining an operation.
 # TODO: Q: namespace suport?
 qsharp.interpret("""
@@ -29,7 +29,7 @@ qsharp.interpret("AllBasisVectorsWithPhases_TwoQubits()")
 # Get result
 result = qsharp.interpret("1 + 2")
 
-print(f"Result was: {result} (type: {type(result).__name__})")  
+print(f"Result was: {result} (type: {type(result).__name__})")
 
 # Return a Result type
 print(qsharp.interpret("One"))
@@ -62,19 +62,34 @@ except RuntimeException as ex:
         print("\x1b[31m" + diagnostic.message + "\x1b[0m")
 
 # State visualization
-(value, out, dumps) = qsharp.interpret_with_dumps("AllBasisVectorsWithPhases_TwoQubits()")
-print(f"States: {dumps}")
+(value, outputs) = qsharp.interpret_with_dumps(
+    "AllBasisVectorsWithPhases_TwoQubits()")
+print(f"States: {outputs}")
 
-# Mix DumpMachine() and message (this is just temporary so I can test my janky parsing)
+# Multiple statements
+print(qsharp.interpret("3; 4; 5"))
+
+# No statements
+print(qsharp.interpret(""))
+
+# Return a tuple
+print(qsharp.interpret("(1,2,\"hi\")"))
+
+# Check bit order in state output
 qsharp.interpret("""
-operation Main() : Result {
-    use q = Qubit();
-    H(q);
+operation AllocateQubits() : Unit {
+    use qs = Qubit[2];
+    use q3 = Qubit();
+    use q4 = Qubit();
+    
+    H(qs[0]);
+    H(q3);
+    X(q4);
+
     Microsoft.Quantum.Diagnostics.DumpMachine();
-    let r = M(q);
-    Message("Result: " + AsString(r));
-    r
-};
+}
 """)
 
-qsharp.interpret("Main()")
+qsharp.interpret("""
+AllocateQubits()
+""")
