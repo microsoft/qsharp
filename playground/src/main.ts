@@ -4,7 +4,7 @@
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import {
-    init, getCompletions, checkCode, evaluate, eventStringToMsg,
+    init, getCompletions, checkCode, evaluate, eventStringToMsg, mapDiagnostics,
     renderDump, IDiagnostic, ShotResult
 } from "qsharp/browser";
 
@@ -132,8 +132,14 @@ async function loaded() {
             switch (result.type) {
                 case "Result":
                     currentShotResult.success = result.success;
-                    currentShotResult.result = result.result;
 
+                    // If there was an error, map the diagnostic location
+                    let resultObj = result.result;
+                    if(typeof resultObj == "object") {
+                        resultObj = mapDiagnostics([resultObj], code)[0];
+                    }
+
+                    currentShotResult.result = resultObj;
                     // Push this result and prep for the next
                     runResults.push(currentShotResult);
                     currentShotResult = { success: false, result: "pending", events: [] };
