@@ -5,6 +5,7 @@
 
 pub mod entry_point;
 pub mod globals;
+pub mod loop_unification;
 pub mod spec_gen;
 
 use miette::Diagnostic;
