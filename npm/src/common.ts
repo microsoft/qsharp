@@ -176,23 +176,29 @@ export function mapUtf8UnitsToUtf16Units(positions: Array<number>, source: strin
         if (++utf16Index >= source.length) break;
     }
 
+    // TODO: May want to have a more configurable error reporting at some point. Avoid throwing here,
+    // and just report and continue.
+    if (posArrayIndex < sorted_pos.length) {
+        console.error(`Failed to map all utf-8 positions to source locations. Remaining positions are: ${sorted_pos.slice(posArrayIndex)}`);
+    }
+
     return result;
 }
 
 export function mapDiagnostics(diags: VSDiagnostic[], code: string) : VSDiagnostic[] {
     // Get a map of the Rust source positions to the JavaScript source positions
-    let positions: number[] = [];
+    const positions: number[] = [];
     diags.forEach(diag => {
         positions.push(diag.start_pos);
         positions.push(diag.end_pos);
     });
     const positionMap = mapUtf8UnitsToUtf16Units(positions, code);
 
-    // Return the diagnostics with the positions mapped (or untouched if couldn't resolve)
-    let results = diags.map(diag => ({
+    // Return the diagnostics with the positions mapped (or EOF if couldn't resolve)
+    const results = diags.map(diag => ({
         ...diag,
-        start_pos: positionMap[diag.start_pos] || diag.start_pos,
-        end_pos: positionMap[diag.end_pos] || diag.end_pos,
+        start_pos: positionMap[diag.start_pos] || code.length,
+        end_pos: positionMap[diag.end_pos] || code.length,
     }));
 
     return results;

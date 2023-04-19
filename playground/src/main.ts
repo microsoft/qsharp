@@ -135,7 +135,7 @@ async function loaded() {
 
                     // If there was an error, map the diagnostic location
                     let resultObj = result.result;
-                    if(typeof resultObj == "object") {
+                    if(typeof resultObj === "object") {
                         resultObj = mapDiagnostics([resultObj], code)[0];
                     }
 
