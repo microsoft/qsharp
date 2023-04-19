@@ -31,7 +31,7 @@ export function renderDump(dump: Dump): string {
   let table = `
     <thead>
       <tr>
-        <th>Basis State<br/>(|&#x1D713;&#x2099;...&#x1D713;&#x2080;⟩)</th>
+        <th>Basis State<br/>(|&#x1D713;&#x2099;&#x2026;&#x1D713;&#x2080;⟩)</th>
         <th>Amplitude</th>
         <th>Measurement Probability</th>
         <th colspan="2">Phase</th>
