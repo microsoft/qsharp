@@ -153,6 +153,101 @@ fn lit_double_leading_zero() {
 }
 
 #[test]
+fn lit_double_trailing_exp_0() {
+    check(
+        expr,
+        "0e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_trailing_exp_1() {
+    check(
+        expr,
+        "1e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_trailing_dot_trailing_exp() {
+    check(
+        expr,
+        "1.e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 3,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_dot_trailing_exp() {
+    check(
+        expr,
+        "1.2e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_trailing_exp_dot() {
+    check(
+        expr,
+        "1e.",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn lit_int_hexadecimal_dot() {
     check(expr, "0x123.45", &expect!["Expr _id_ [0-5]: Lit: Int(291)"]);
 }
