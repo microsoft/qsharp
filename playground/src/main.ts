@@ -10,6 +10,7 @@ import {
 
 import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
 import { PopulateKatasList, RenderKatas } from "./katas.js";
+import { base64ToCode, codeToBase64 } from "./utils.js";
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -74,7 +75,12 @@ async function loaded() {
     // If URL is a sharing link, populate the editor with the code from the link. 
     // Otherwise, populate with sample code.
     const params = new URLSearchParams(window.location.search);
-    const code = params.get("code") ? window.atob(params.get("code")!) : sampleCode;
+
+    let code = sampleCode;
+    if (params.get("code")) {
+        const base64code = decodeURIComponent(params.get("code")!);
+        code = base64ToCode(base64code);
+    }
 
     let srcModel = monaco.editor.createModel(code, 'qsharp');
     editor.setModel(srcModel);
@@ -186,10 +192,11 @@ async function loaded() {
 
     shareButton.addEventListener('click', _ => {
         const code = srcModel.getValue();
-        // Note: btoa does not work with non-ASCII characters.
-        const encodedCode = window.btoa(code);
+        const encodedCode = codeToBase64(code);
+        const escapedCode = encodeURIComponent(encodedCode);
+
         // Get current URL without query parameters to use as the base URL
-        const newUrl = `${window.location.href.split('?')[0]}?code=${encodedCode}`;
+        const newUrl = `${window.location.href.split('?')[0]}?code=${escapedCode}`;
         // Copy link to clipboard and update url without reloading the page
         navigator.clipboard.writeText(newUrl);
         window.history.pushState({}, '', newUrl);
