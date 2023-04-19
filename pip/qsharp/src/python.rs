@@ -102,8 +102,8 @@ impl From<Error> for ExecutionError {
     fn from(e: Error) -> ExecutionError {
         match e {
             Error::Compile(e) => {
-                panic!("Did not expect compilation error {}", e.to_string())
-            },
+                panic!("Did not expect compilation error {}", e)
+            }
             Error::Eval(e) => ExecutionError {
                 error_type: String::from("RuntimeError"),
                 message: e.to_string(),
@@ -115,7 +115,7 @@ impl From<Error> for ExecutionError {
             Error::Pass(e) => ExecutionError {
                 error_type: String::from("CompilationError"),
                 message: e.to_string(),
-            }
+            },
         }
     }
 }
