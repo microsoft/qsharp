@@ -17,25 +17,39 @@ namespace Kata {
         let task = BellState;
         let taskRef = BellStateReference;
 
-        use targetRegister = Qubit[2];
-
-        task(targetRegister);
-        Adjoint taskRef(targetRegister);
-
-        if CheckAllZero(targetRegister) {
+        mutable isCorrect = false;
+        {
+            use targetRegister = Qubit[2];
             task(targetRegister);
-            DumpMachine();
-            return true;
+            Adjoint taskRef(targetRegister);
+            set isCorrect = CheckAllZero(targetRegister);
+            ResetAll(targetRegister);
         }
 
-        ResetAll(targetRegister);
+        if isCorrect {
+            use targetRegister = Qubit[2];
+            task(targetRegister);
+            Message("Qubits state after setting them into a Bell state:");
+            DumpMachine();
+            ResetAll(targetRegister);
+        } else {
+            {
+                use expected = Qubit[2];
+                taskRef(expected);
+                Message("Expected qubits state:");
+                DumpMachine();
+                ResetAll(expected);
+            }
 
-        // Use DumpMachine to display actual vs desired state.
-        task(targetRegister);
-        DumpMachine();
-        ResetAll(targetRegister);
-        taskRef(targetRegister);
-        DumpMachine();
-        return false;
+            {
+                use actual = Qubit[2];
+                task(actual);
+                Message("Actual qubits state:");
+                DumpMachine();
+                ResetAll(actual);
+            }
+        }
+
+        return isCorrect;
     }
 }

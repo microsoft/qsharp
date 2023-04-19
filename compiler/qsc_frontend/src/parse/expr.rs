@@ -13,7 +13,7 @@ use super::{
     scan::Scanner,
     stmt, Error, Result,
 };
-use crate::lex::{ClosedBinOp, Delim, Radix, TokenKind};
+use crate::lex::{ClosedBinOp, Delim, Radix, Token, TokenKind};
 use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
@@ -184,7 +184,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         Ok(a)
     } else if let Some(b) = opt(s, stmt::block)? {
         Ok(ExprKind::Block(b))
-    } else if let Some(l) = opt(s, lit)? {
+    } else if let Some(l) = lit(s)? {
         Ok(ExprKind::Lit(l))
     } else if let Some(p) = opt(s, path)? {
         Ok(ExprKind::Path(p))
@@ -302,50 +302,52 @@ fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
     }
 }
 
-fn lit(s: &mut Scanner) -> Result<Lit> {
+fn lit(s: &mut Scanner) -> Result<Option<Lit>> {
     let lexeme = s.read();
-    let kind = s.peek().kind;
+    let token = s.peek();
 
-    if let Some(lit) = lit_token(lexeme, kind) {
+    if let Some(lit) = lit_token(lexeme, token)? {
         s.advance();
-        Ok(lit)
-    } else if kind != TokenKind::Ident {
-        Err(Error::Rule("literal", kind, s.peek().span))
+        Ok(Some(lit))
+    } else if token.kind != TokenKind::Ident {
+        Ok(None)
     } else if let Some(lit) = lit_keyword(lexeme) {
         s.advance();
-        Ok(lit)
+        Ok(Some(lit))
     } else {
-        Err(Error::Rule("literal", kind, s.peek().span))
+        Ok(None)
     }
 }
 
 #[allow(clippy::inline_always)]
 #[inline(always)]
-fn lit_token(lexeme: &str, kind: TokenKind) -> Option<Lit> {
-    match kind {
+fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
+    match token.kind {
         TokenKind::BigInt(radix) => {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
             let lexeme = &lexeme[offset..lexeme.len() - 1]; // Slice off prefix and suffix.
             let value = BigInt::from_str_radix(lexeme, radix.into())
-                .expect("big integer token should be parsable");
-            Some(Lit::BigInt(value))
+                .map_err(|_| Error::Lit("big-integer", token.span))?;
+            Ok(Some(Lit::BigInt(value)))
         }
         TokenKind::Float => {
             let lexeme = lexeme.replace('_', "");
-            let value = lexeme.parse().expect("float token should be parsable");
-            Some(Lit::Double(value))
+            let value = lexeme
+                .parse()
+                .map_err(|_| Error::Lit("floating-point", token.span))?;
+            Ok(Some(Lit::Double(value)))
         }
         TokenKind::Int(radix) => {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
-            let value =
-                lit_int(&lexeme[offset..], radix.into()).expect("integer token should be parsable");
-            Some(Lit::Int(value))
+            let value = lit_int(&lexeme[offset..], radix.into())
+                .ok_or(Error::Lit("integer", token.span))?;
+            Ok(Some(Lit::Int(value)))
         }
         TokenKind::String => {
             let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
-            Some(Lit::String(lexeme.to_string()))
+            Ok(Some(Lit::String(lexeme.to_string())))
         }
-        _ => None,
+        _ => Ok(None),
     }
 }
 
