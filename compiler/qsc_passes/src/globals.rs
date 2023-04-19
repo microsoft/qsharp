@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_frontend::compile::{PackageId, PackageStore};
+use qsc_frontend::compile::PackageStore;
 use qsc_hir::{
-    hir::{CallableDecl, Item, ItemKind, NodeId},
+    hir::{CallableDecl, Item, ItemKind, NodeId, PackageId},
     visit::Visitor,
 };
 use std::{
@@ -29,7 +29,7 @@ pub fn extract_callables(store: &PackageStore) -> HashMap<GlobalId, &CallableDec
     for (package_id, unit) in store.iter() {
         let mut visitor = CallableVisitor {
             callables: &mut callables,
-            package_id: *package_id,
+            package_id,
         };
         visitor.visit_package(&unit.package);
     }

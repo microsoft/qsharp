@@ -3,8 +3,8 @@
 
 use crate::hir::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, Ty, TyDef, TyDefKind, TyKind, Visibility,
+    Item, ItemKind, Namespace, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl,
+    Stmt, StmtKind, Ty, TyDef, TyDefKind, TyKind, Visibility,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -64,10 +64,6 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_qubit_init(&mut self, init: &'a QubitInit) {
         walk_qubit_init(self, init);
-    }
-
-    fn visit_path(&mut self, path: &'a Path) {
-        walk_path(self, path);
     }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
@@ -161,10 +157,9 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
             functors.iter().for_each(|f| vis.visit_functor_expr(f));
         }
         TyKind::Paren(ty) => vis.visit_ty(ty),
-        TyKind::Path(path) => vis.visit_path(path),
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
         TyKind::Var(ident) => vis.visit_ident(ident),
-        TyKind::Hole | TyKind::Prim(_) => {}
+        TyKind::Hole | TyKind::Name(_) | TyKind::Prim(_) => {}
     }
 }
 
@@ -241,7 +236,6 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         ExprKind::Paren(expr) | ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
             vis.visit_expr(expr);
         }
-        ExprKind::Path(path) => vis.visit_path(path),
         ExprKind::Range(start, step, end) => {
             start.iter().for_each(|s| vis.visit_expr(s));
             step.iter().for_each(|s| vis.visit_expr(s));
@@ -262,7 +256,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) => {}
+        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Name(_) => {}
     }
 }
 
@@ -286,9 +280,4 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
         QubitInitKind::Single => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
-}
-
-pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
-    path.namespace.iter().for_each(|n| vis.visit_ident(n));
-    vis.visit_ident(&path.name);
 }
