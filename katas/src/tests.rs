@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_eval::{output::CursorReceiver, stateless};
+use qsc_eval::{output::CursorReceiver, stateless, stateless::eval, stateless::Error, val::Value, AggregateError};
 use std::{
     env, fs,
     io::Cursor,
@@ -35,6 +35,20 @@ fn validate_exercise(path: impl AsRef<Path>) {
         fs::read_to_string(path.join("placeholder.qs")).expect("file should be readable");
     // TODO: Assert that running returns false. This isn't reliable until the controlled functor is supported.
     run_kata([&placeholder, &verify]).expect("placeholder should succeed");
+}
+
+fn validate_example(path: impl AsRef<Path>) {
+    let mut cursor = Cursor::new(Vec::new());
+    let mut receiver = CursorReceiver::new(&mut cursor);
+    let path = path.as_ref();
+    let source = fs::read_to_string(path.join("example.qs")).expect("file should be readable");
+    let result = eval(true, "Kata.Main()", &mut receiver, [&source]);
+    println!("{}", receiver.dump());
+    result.expect("Running an example should succeed");
+}
+
+fn validate_item(path: impl AsRef<Path>) {
+    
 }
 
 fn validate_kata(path: impl AsRef<Path>) {
