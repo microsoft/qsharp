@@ -19,31 +19,43 @@ namespace Kata {
         let task = GlobalPhaseI;
         let taskRef = GlobalPhaseIReference;
 
-        use (aux, target) = (Qubit(), Qubit());
-        H(aux);
-        CNOT(aux, target);
+        mutable isCorrect = false;
 
-        task(target);
-        Adjoint taskRef(target);
-
-        CNOT(aux, target);
-        H(aux);
-
-        if CheckAllZero([aux, target]) {
-            task(target);
-            DumpMachine();
-            return true;
+        // Explicit scopes are used to make output from DumpMachine calls more useful.
+        {
+            use (ctl, target) = (Qubit(), Qubit());
+            H(ctl);
+            Controlled task([ctl], target);
+            Adjoint Controlled taskRef([ctl], target);
+            H(ctl);
+            set isCorrect = CheckAllZero([ctl, target]);
+            ResetAll([ctl, target]);
         }
 
-        ResetAll([aux, target]);
+        if isCorrect {
+            use target = Qubit();
+            task(target);
+            Message("Qubit state after applying a global phase to the |0⟩ state:");
+            DumpMachine();
+            Reset(target);
+        } else {
+            {
+                use expected = Qubit();
+                taskRef(expected);
+                Message("Expected state after applying operation:");
+                DumpMachine();
+                Reset(expected);
+            }
 
-        // Use DumpMachine to display actual vs desired state.
-        task(target);
-        DumpMachine();
-        Reset(target);
-        taskRef(target);
-        DumpMachine();
+            {
+                use actual = Qubit();
+                task(actual);
+                Message("Actual state after applying operation:");
+                DumpMachine();
+                Reset(actual);
+            }
+        }
 
-        return false;
+        return isCorrect;
     }
 }
