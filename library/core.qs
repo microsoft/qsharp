@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.Core {
     /// Returns the defined start value of the given range.
     ///
     /// # Input
-    /// ## range
+    /// ## r
     /// Input range.
     ///
     /// # Output
@@ -34,8 +34,8 @@ namespace Microsoft.Quantum.Core {
     /// 
     /// Note that the defined start value of a range is the same as the first element of the sequence,
     /// unless the range specifies an empty sequence (for example, 2 .. 1).
-    function RangeStart(range : Range) : Int {
-        range::Start
+    function RangeStart(r : Range) : Int {
+        r::Start
     }
     
     
@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.Core {
     /// which is not necessarily the last element in the sequence.
     ///
     /// # Input
-    /// ## range
+    /// ## r
     /// Input range.
     ///
     /// # Output
@@ -57,8 +57,8 @@ namespace Microsoft.Quantum.Core {
     /// 
     /// Note that the defined end value of a range can differ from the last element in the sequence specified by the range;
     /// for example, in a range 0 .. 2 .. 5 the last element is 4 but the end value is 5.
-    function RangeEnd(range : Range) : Int {
-        range::End
+    function RangeEnd(r : Range) : Int {
+        r::End
     }
     
     
@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.Core {
     /// Returns the integer that specifies how the next value of a range is calculated.
     ///
     /// # Input
-    /// ## range
+    /// ## r
     /// Input range.
     ///
     /// # Output
@@ -76,15 +76,15 @@ namespace Microsoft.Quantum.Core {
     /// A range expression's first element is `start`,
     /// its second element is `start+step`, third element is `start+step+step`, etc.,
     /// until `end` is passed.
-    function RangeStep(range : Range) : Int {
-        range::Step
+    function RangeStep(r : Range) : Int {
+        r::Step
     }
 
     /// # Summary
     /// Returns a new range which is the reverse of the input range.
     ///
     /// # Input
-    /// ## range
+    /// ## r
     /// Input range.
     ///
     /// # Output
@@ -93,9 +93,9 @@ namespace Microsoft.Quantum.Core {
     /// # Remarks
     /// Note that the reverse of a range is not simply `end`..`-step`..`start`, because
     /// the actual last element of a range may not be the same as `end`.
-    function RangeReverse(range : Range) : Range {
-        let start = range::Start + ((range::End - range::Start) / range::Step) * range::Step;
-        start..-range::Step..range::Start
+    function RangeReverse(r : Range) : Range {
+        let start = r::Start + ((r::End - r::Start) / r::Step) * r::Step;
+        start..-r::Step..r::Start
     }
 
     function AsString<'T>(v : 'T) : String {
