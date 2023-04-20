@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_eval::{output::CursorReceiver, stateless, stateless::eval, stateless::Error, val::Value, AggregateError};
+use qsc_eval::{
+    output::CursorReceiver, stateless, stateless::eval, stateless::Error, val::Value,
+    AggregateError,
+};
 use std::{
-    collections,
-    env, fs,
+    collections, env, fs,
     io::Cursor,
     path::{Path, PathBuf},
 };
@@ -49,20 +51,21 @@ fn validate_example(path: impl AsRef<Path>) {
 }
 
 fn validate_item(path: impl AsRef<Path>) {
-    let mut exerciseSources: collections::HashMap<&str, std::option::Option<PathBuf>> = collections::HashMap::from([
-        ("placeholder.qs", None),
-        ("reference.qs", None),
-        ("verify.qs", None)
-    ]);
+    let mut exerciseSources: collections::HashMap<&str, std::option::Option<PathBuf>> =
+        collections::HashMap::from([
+            ("placeholder.qs", None),
+            ("reference.qs", None),
+            ("verify.qs", None),
+        ]);
 
     for entry in fs::read_dir(path).expect("directory should be readable") {
         let path = entry.expect("entry should be usable").path();
         if path.is_file() {
             let filename = path.file_name().expect("file name should be readable");
-            let filename_str = filename.to_str().expect("file name string should be valid").clone();
-            if exerciseSources.contains_key(filename_str) {
-                let file_path = Some(path);
-                exerciseSources.insert(filename_str, file_path);
+            let key = filename.to_str().expect("file name string should be valid");
+            if exerciseSources.contains_key(key) {
+                let file_path = Some(path.clone());
+                exerciseSources.insert(key, file_path);
             }
         }
     }
