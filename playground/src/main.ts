@@ -3,14 +3,12 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {
-    init, getCompletions, checkCode, evaluate, eventStringToMsg, mapDiagnostics,
-    renderDump, IDiagnostic, ShotResult
-} from "qsharp/browser";
+import {init, getCompiler, checkCode, eventStringToMsg, mapDiagnostics, evaluate,
+    getCompletions, ShotResult, Dump, renderDump, IDiagnostic} from "qsharp";
 
 import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
-import { PopulateKatasList, RenderKatas } from "./katas.js";
 import { base64ToCode, codeToBase64 } from "./utils.js";
+import { PopulateKatasList, RenderKatas } from "./katas.js";
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;

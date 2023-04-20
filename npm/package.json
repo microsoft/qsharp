@@ -12,8 +12,9 @@
         "directory": "npm"
     },
     "exports": {
-        "./node": "./dist/node.js",
-        "./browser": "./dist/browser.js"
+        "browser": "./dist/browser.js",
+        "node": "./dist/node.js",
+        "default": "./dist/browser.js"
     },
     "scripts":{
         "build": "node generate_katas_content.js && node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json"

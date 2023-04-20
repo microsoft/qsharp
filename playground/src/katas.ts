@@ -1,4 +1,4 @@
-import { eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataItem, type Exercise } from "qsharp/browser";
+import { eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataItem, type Exercise } from "qsharp";
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
 declare var MathJax: { typeset: () => void; };
