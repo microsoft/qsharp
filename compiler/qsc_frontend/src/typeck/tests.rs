@@ -1293,3 +1293,116 @@ fn return_mismatch() {
         "##]],
     );
 }
+
+#[test]
+fn array_length_field_converges() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Int {
+                    x::Length
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : ((Qubit)[]) -> (Int)
+            #6 30-43 "(x : Qubit[])" : (Qubit)[]
+            #7 31-42 "x : Qubit[]" : (Qubit)[]
+            #8 31-32 "x" : (Qubit)[]
+            #12 50-75 "{\n        x::Length\n    }" : Int
+            #13 60-69 "x::Length" : Int
+            #14 60-69 "x::Length" : Int
+            #15 60-61 "x" : (Qubit)[]
+        "##]],
+    );
+}
+
+#[test]
+fn array_length_generic_converges() {
+    check(
+        indoc! {"
+            namespace A {
+                function Length<'T>(a : 'T[]) : Int {
+                    a::Length
+                }
+                function Foo(x : Qubit[]) : Int {
+                    Length(x)
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-33 "Length" : (('T)[]) -> (Int)
+            #7 37-47 "(a : 'T[])" : ('T)[]
+            #8 38-46 "a : 'T[]" : ('T)[]
+            #9 38-39 "a" : ('T)[]
+            #14 54-79 "{\n        a::Length\n    }" : Int
+            #15 64-73 "a::Length" : Int
+            #16 64-73 "a::Length" : Int
+            #17 64-65 "a" : ('T)[]
+            #21 93-96 "Foo" : ((Qubit)[]) -> (Int)
+            #22 96-109 "(x : Qubit[])" : (Qubit)[]
+            #23 97-108 "x : Qubit[]" : (Qubit)[]
+            #24 97-98 "x" : (Qubit)[]
+            #28 116-141 "{\n        Length(x)\n    }" : Int
+            #29 126-135 "Length(x)" : Int
+            #30 126-135 "Length(x)" : Int
+            #31 126-132 "Length" : ((Qubit)[]) -> (Int)
+            #32 132-135 "(x)" : (Qubit)[]
+            #33 133-134 "x" : (Qubit)[]
+        "##]],
+    );
+}
+
+#[test]
+fn array_length_field_used_as_double_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Double {
+                    x::Length * 2.0
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : ((Qubit)[]) -> (Double)
+            #6 30-43 "(x : Qubit[])" : (Qubit)[]
+            #7 31-42 "x : Qubit[]" : (Qubit)[]
+            #8 31-32 "x" : (Qubit)[]
+            #12 53-84 "{\n        x::Length * 2.0\n    }" : Double
+            #13 63-78 "x::Length * 2.0" : Double
+            #14 63-78 "x::Length * 2.0" : Double
+            #15 63-72 "x::Length" : Double
+            #16 63-64 "x" : (Qubit)[]
+            #18 75-78 "2.0" : Double
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 63, hi: 72 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn array_unknown_field_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Int {
+                    x::Size
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : ((Qubit)[]) -> (Int)
+            #6 30-43 "(x : Qubit[])" : (Qubit)[]
+            #7 31-42 "x : Qubit[]" : (Qubit)[]
+            #8 31-32 "x" : (Qubit)[]
+            #12 50-73 "{\n        x::Size\n    }" : Int
+            #13 60-67 "x::Size" : Int
+            #14 60-67 "x::Size" : Int
+            #15 60-61 "x" : (Qubit)[]
+            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Var(Var(0)) }, Span { lo: 60, hi: 67 }))))
+        "##]],
+    );
+}

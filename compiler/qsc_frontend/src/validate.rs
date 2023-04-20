@@ -69,9 +69,6 @@ impl Visitor<'_> for Validator {
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
-            ExprKind::Field(..) => self
-                .errors
-                .push(Error::NotCurrentlySupported("field access", expr.span)),
             ExprKind::UnOp(UnOp::Unwrap, _) => self
                 .errors
                 .push(Error::NotCurrentlySupported("unwrap operator", expr.span)),
