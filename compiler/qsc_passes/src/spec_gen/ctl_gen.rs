@@ -8,7 +8,7 @@ use qsc_frontend::{
     typeck::ty::{CallableKind, Functor, Prim, Ty},
 };
 use qsc_hir::{
-    hir::{self, Expr, ExprKind, Path, UnOp},
+    hir::{self, Expr, ExprKind, Res, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
 use thiserror::Error;
@@ -21,7 +21,7 @@ pub enum Error {
 }
 
 pub(super) struct CtlDistrib<'a> {
-    pub(super) ctls: &'a Path,
+    pub(super) ctls: Res,
     pub(super) context: &'a mut Context,
     pub(super) errors: Vec<Error>,
 }
@@ -66,7 +66,7 @@ impl<'a> MutVisitor for CtlDistrib<'a> {
                             Expr {
                                 id: new_ctls_path_id,
                                 span: args.span,
-                                kind: ExprKind::Path(self.ctls.clone()),
+                                kind: ExprKind::Name(self.ctls),
                             },
                             *args.clone(),
                         ]),

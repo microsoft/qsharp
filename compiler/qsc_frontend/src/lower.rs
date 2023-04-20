@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{assigner::Assigner, hir};
@@ -18,6 +19,13 @@ impl Lowerer {
         }
     }
 
+    pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions) -> With {
+        With {
+            lowerer: self,
+            resolutions,
+        }
+    }
+
     pub(super) fn get_id(&self, id: ast::NodeId) -> Option<hir::NodeId> {
         self.nodes.get(id).copied()
     }
@@ -25,7 +33,13 @@ impl Lowerer {
     pub(super) fn into_assigner(self) -> Assigner {
         self.assigner
     }
+}
+pub(super) struct With<'a> {
+    lowerer: &'a mut Lowerer,
+    resolutions: &'a Resolutions,
+}
 
+impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
         hir::Package {
             id: self.lower_id(package.id),
@@ -194,7 +208,7 @@ impl Lowerer {
             ),
             ast::TyKind::Hole => hir::TyKind::Hole,
             ast::TyKind::Paren(inner) => hir::TyKind::Paren(Box::new(self.lower_ty(inner))),
-            ast::TyKind::Path(path) => hir::TyKind::Path(self.lower_path(path)),
+            ast::TyKind::Path(path) => hir::TyKind::Name(self.lower_path(path)),
             ast::TyKind::Prim(ast::TyPrim::BigInt) => hir::TyKind::Prim(hir::TyPrim::BigInt),
             ast::TyKind::Prim(ast::TyPrim::Bool) => hir::TyKind::Prim(hir::TyPrim::Bool),
             ast::TyKind::Prim(ast::TyPrim::Double) => hir::TyKind::Prim(hir::TyPrim::Double),
@@ -321,7 +335,7 @@ impl Lowerer {
             ),
             ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
             ast::ExprKind::Paren(inner) => hir::ExprKind::Paren(Box::new(self.lower_expr(inner))),
-            ast::ExprKind::Path(path) => hir::ExprKind::Path(self.lower_path(path)),
+            ast::ExprKind::Path(path) => hir::ExprKind::Name(self.lower_path(path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
                 step.as_ref().map(|s| Box::new(self.lower_expr(s))),
@@ -403,12 +417,11 @@ impl Lowerer {
         }
     }
 
-    fn lower_path(&mut self, path: &ast::Path) -> hir::Path {
-        hir::Path {
-            id: self.lower_id(path.id),
-            span: path.span,
-            namespace: path.namespace.as_ref().map(|n| self.lower_ident(n)),
-            name: self.lower_ident(&path.name),
+    fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
+        match self.resolutions.get(path.id) {
+            None => hir::Res::Err,
+            Some(&resolve::Res::Internal(node)) => hir::Res::Internal(self.lower_id(node)),
+            Some(&resolve::Res::External(package, node)) => hir::Res::External(package, node),
         }
     }
 
@@ -421,9 +434,11 @@ impl Lowerer {
     }
 
     fn lower_id(&mut self, id: ast::NodeId) -> hir::NodeId {
-        let new_id = self.assigner.next_id();
-        self.nodes.insert(id, new_id);
-        new_id
+        self.lowerer.nodes.get(id).copied().unwrap_or_else(|| {
+            let new_id = self.lowerer.assigner.next_id();
+            self.lowerer.nodes.insert(id, new_id);
+            new_id
+        })
     }
 }
 
