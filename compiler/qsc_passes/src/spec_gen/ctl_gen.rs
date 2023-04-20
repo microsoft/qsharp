@@ -13,7 +13,7 @@ use thiserror::Error;
 pub enum Error {
     #[error("operation does not support the controlled functor")]
     #[diagnostic(help("each operation called inside an operation with compiler-generated controlled specializations must support the controlled functor"))]
-    MissingCtlFunctor(#[label("operation missing controlled functor support")] Span),
+    MissingCtlFunctor(#[label] Span),
 }
 
 pub(super) struct CtlDistrib {

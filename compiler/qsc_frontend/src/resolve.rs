@@ -40,14 +40,14 @@ pub(super) enum Res {
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
-    NotFound(String, #[label("not found")] Span),
+    NotFound(String, #[label] Span),
 
     #[error("`{0}` is ambiguous")]
     Ambiguous(
         String,
-        #[label("ambiguous name")] Span,
-        #[label("could refer to the item in this namespace")] Span,
-        #[label("could also refer to the item in this namespace")] Span,
+        String,
+        String,
+        #[label("could refer to the item in `{1}` or `{2}`")] Span,
     ),
 }
 
@@ -392,13 +392,13 @@ fn resolve(
     }
 
     if open_candidates.len() > 1 {
-        let mut spans: Vec<_> = open_candidates.into_values().collect();
-        spans.sort();
+        let mut namespaces: Vec<_> = open_candidates.into_values().collect();
+        namespaces.sort_unstable();
         Err(Error::Ambiguous(
             name.to_string(),
+            namespaces[0].to_string(),
+            namespaces[1].to_string(),
             path.span,
-            spans[0],
-            spans[1],
         ))
     } else {
         single(open_candidates.into_keys())
@@ -424,14 +424,14 @@ fn resolve_implicit_opens(
 
 fn resolve_explicit_opens<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
-    namespaces: impl IntoIterator<Item = (impl AsRef<str>, &'a Span)>,
+    namespaces: impl IntoIterator<Item = (&'a Rc<str>, &'a Span)>,
     name: &str,
-) -> HashMap<ItemId, Span> {
+) -> HashMap<ItemId, Rc<str>> {
     let mut candidates = HashMap::new();
-    for (namespace, &span) in namespaces {
+    for (namespace, _) in namespaces {
         let namespace = namespace.as_ref();
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(id, span);
+            candidates.insert(id, namespace.into());
         }
     }
     candidates

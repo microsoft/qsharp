@@ -211,8 +211,17 @@ where
         let label = err.labels().and_then(|mut ls| ls.next());
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
-        let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
+
+        let mut message = err.to_string();
+        let label_text = label.as_ref().map_or("", |l| l.label().unwrap_or_default());
+        if !label_text.is_empty() {
+            message.push_str(format!(":\n\n{}", label_text,).as_str());
+        }
+        let help_text = err.help().map_or(String::default(), |h| h.to_string());
+        if !help_text.is_empty() {
+            message.push_str(format!("\n\nhelp: {}", help_text).as_str());
+        }
 
         VSDiagnostic {
             start_pos: offset,
@@ -413,7 +422,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "missing type in item signature");
+        assert_eq!(err.message, "missing type in item signature:\n\nexplicit type required\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -457,7 +466,10 @@ mod test {
         let error = errors.first().unwrap();
         assert_eq!(error.start_pos, 111);
         assert_eq!(error.end_pos, 117);
-        assert_eq!(error.message, "mismatched types");
+        assert_eq!(
+            error.message,
+            "mismatched types:\n\nexpected (Double, Qubit), found Qubit"
+        );
     }
 
     #[test]
@@ -504,7 +516,7 @@ mod test {
     }
 
     #[test]
-    fn test_mising_entrypoint() {
+    fn test_missing_entrypoint() {
         let code = "namespace Sample {
             operation main() : Result[] {
                 use q1 = Qubit();
@@ -518,7 +530,7 @@ mod test {
             expr,
             |_msg_| {
                 assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-                assert!(_msg_.contains(r#""message": "entry point not found""#));
+                assert!(_msg_.contains(r#""message": "entry point not found"#));
                 assert!(_msg_.contains(r#""start_pos": 0"#));
             },
             1,

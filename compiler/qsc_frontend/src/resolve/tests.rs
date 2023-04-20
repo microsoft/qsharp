@@ -825,7 +825,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Ambiguous("A", Span { lo: 171, hi: 172 }, Span { lo: 117, hi: 120 }, Span { lo: 131, hi: 134 })
+            // Ambiguous("A", "Bar", "Foo", Span { lo: 171, hi: 172 })
         "#]],
     );
 }
@@ -865,7 +865,7 @@ fn open_ambiguous_tys() {
                 function item5(local24 : A) : Unit {}
             }
 
-            // Ambiguous("A", Span { lo: 146, hi: 147 }, Span { lo: 107, hi: 110 }, Span { lo: 121, hi: 124 })
+            // Ambiguous("A", "Bar", "Foo", Span { lo: 146, hi: 147 })
         "#]],
     );
 }
@@ -909,7 +909,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Ambiguous("A", Span { lo: 189, hi: 196 }, Span { lo: 117, hi: 120 }, Span { lo: 140, hi: 143 })
+            // Ambiguous("A", "Bar", "Foo", Span { lo: 189, hi: 196 })
         "#]],
     );
 }
@@ -949,7 +949,7 @@ fn merged_aliases_ambiguous_tys() {
                 function item5(local26 : Alias.A) : Unit {}
             }
 
-            // Ambiguous("A", Span { lo: 164, hi: 171 }, Span { lo: 107, hi: 110 }, Span { lo: 130, hi: 133 })
+            // Ambiguous("A", "Bar", "Foo", Span { lo: 164, hi: 171 })
         "#]],
     );
 }

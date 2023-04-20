@@ -17,13 +17,13 @@ use thiserror::Error;
 pub enum Error {
     #[error("duplicate entry point callable `{0}`")]
     #[diagnostic(help("only one callable should be annotated with the entry point attribute"))]
-    DuplicateEntryPoint(String, #[label("duplicate entry point")] Span),
+    DuplicateEntryPoint(String, #[label] Span),
 
     #[error("entry point cannot have paramters")]
-    EntryPointArgs(#[label("entry point cannot have paramters")] Span),
+    EntryPointArgs(#[label] Span),
 
     #[error("entry point must have single body implementation")]
-    EntryPointBody(#[label("entry point cannot have specialization implementation")] Span),
+    EntryPointBody(#[label("cannot have specialization implementation")] Span),
 
     #[error("entry point not found")]
     #[diagnostic(help("a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided"))]
