@@ -51,21 +51,27 @@ fn validate_example(path: impl AsRef<Path>) {
 }
 
 fn validate_item(path: impl AsRef<Path>) {
-    let mut exerciseSources: collections::HashMap<&str, std::option::Option<PathBuf>> =
+    let mut example_sources: collections::HashMap<String, std::option::Option<PathBuf>> =
+        collections::HashMap::from([("example.qs".to_string(), None)]);
+
+    let mut exercise_sources: collections::HashMap<String, std::option::Option<PathBuf>> =
         collections::HashMap::from([
-            ("placeholder.qs", None),
-            ("reference.qs", None),
-            ("verify.qs", None),
+            ("placeholder.qs".to_string(), None),
+            ("reference.qs".to_string(), None),
+            ("verify.qs".to_string(), None),
         ]);
 
     for entry in fs::read_dir(path).expect("directory should be readable") {
         let path = entry.expect("entry should be usable").path();
         if path.is_file() {
             let filename = path.file_name().expect("file name should be readable");
-            let key = filename.to_str().expect("file name string should be valid");
-            if exerciseSources.contains_key(key) {
-                let file_path = Some(path.clone());
-                exerciseSources.insert(key, file_path);
+            let key = filename.to_str().expect("file name str should be valid");
+            if exercise_sources.contains_key(key) {
+                exercise_sources.insert(key.to_string(), Some(path.clone()));
+            }
+
+            if example_sources.contains_key(key) {
+                example_sources.insert(key.to_string(), Some(path.clone()));
             }
         }
     }
