@@ -119,7 +119,7 @@ fn empty_callable() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (()) -> (())
+            #5 27-30 "Foo" : (() -> ())
             #6 30-32 "()" : ()
             #7 40-42 "{}" : ()
         "##]],
@@ -136,7 +136,7 @@ fn return_constant() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (()) -> (Int)
+            #5 27-30 "Foo" : (() -> Int)
             #6 30-32 "()" : ()
             #7 39-44 "{ 4 }" : Int
             #8 41-42 "4" : Int
@@ -155,7 +155,7 @@ fn return_wrong_type() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (()) -> (Int)
+            #5 27-30 "Foo" : (() -> Int)
             #6 30-32 "()" : ()
             #7 39-47 "{ true }" : Bool
             #8 41-45 "true" : Bool
@@ -175,7 +175,7 @@ fn return_semi() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (()) -> (Int)
+            #5 27-30 "Foo" : (() -> Int)
             #6 30-32 "()" : ()
             #7 39-45 "{ 4; }" : ()
             #8 41-43 "4;" : ()
@@ -198,7 +198,7 @@ fn return_var() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (()) -> (Int)
+            #5 27-30 "Foo" : (() -> Int)
             #6 30-32 "()" : ()
             #7 39-75 "{\n        let x = 4;\n        x\n    }" : Int
             #8 49-59 "let x = 4;" : ()
@@ -222,19 +222,19 @@ fn call_function() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (Int) -> (Int)
+            #5 27-30 "Foo" : (Int -> Int)
             #6 30-39 "(x : Int)" : Int
             #7 31-38 "x : Int" : Int
             #8 31-32 "x" : Int
             #9 46-51 "{ x }" : Int
             #10 48-49 "x" : Int
             #11 48-49 "x" : Int
-            #14 65-68 "Bar" : (()) -> (Int)
+            #14 65-68 "Bar" : (() -> Int)
             #15 68-70 "()" : ()
             #16 77-87 "{ Foo(4) }" : Int
             #17 79-85 "Foo(4)" : Int
             #18 79-85 "Foo(4)" : Int
-            #19 79-82 "Foo" : (Int) -> (Int)
+            #19 79-82 "Foo" : (Int -> Int)
             #20 82-85 "(4)" : Int
             #21 83-84 "4" : Int
         "##]],
@@ -252,19 +252,19 @@ fn call_generic_identity() {
         "},
         "",
         &expect![[r##"
-            #5 27-35 "Identity" : ('T) -> ('T)
+            #5 27-35 "Identity" : ('T -> 'T)
             #7 39-47 "(x : 'T)" : 'T
             #8 40-46 "x : 'T" : 'T
             #9 40-41 "x" : 'T
             #10 53-58 "{ x }" : 'T
             #11 55-56 "x" : 'T
             #12 55-56 "x" : 'T
-            #15 72-75 "Foo" : (()) -> (Int)
+            #15 72-75 "Foo" : (() -> Int)
             #16 75-77 "()" : ()
             #17 84-99 "{ Identity(4) }" : Int
             #18 86-97 "Identity(4)" : Int
             #19 86-97 "Identity(4)" : Int
-            #20 86-94 "Identity" : (Int) -> (Int)
+            #20 86-94 "Identity" : (Int -> Int)
             #21 94-97 "(4)" : Int
             #22 95-96 "4" : Int
         "##]],
@@ -278,7 +278,7 @@ fn call_generic_length() {
         "Length([true, false, true])",
         &expect![[r##"
             #1 0-27 "Length([true, false, true])" : Int
-            #2 0-6 "Length" : ((Bool)[]) -> (Int)
+            #2 0-6 "Length" : ((Bool)[] -> Int)
             #3 6-27 "([true, false, true])" : (Bool)[]
             #4 7-26 "[true, false, true]" : (Bool)[]
             #5 8-12 "true" : Bool
@@ -298,7 +298,7 @@ fn add_wrong_types() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (()) -> (())
+            #5 27-30 "Foo" : (() -> ())
             #6 30-32 "()" : ()
             #7 40-52 "{ 1 + [2]; }" : ()
             #8 42-50 "1 + [2];" : ()
@@ -318,7 +318,7 @@ fn int_as_double_error() {
         "Microsoft.Quantum.Convert.IntAsDouble(false)",
         &expect![[r##"
             #1 0-44 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
-            #2 0-37 "Microsoft.Quantum.Convert.IntAsDouble" : (Int) -> (Double)
+            #2 0-37 "Microsoft.Quantum.Convert.IntAsDouble" : (Int -> Double)
             #3 37-44 "(false)" : Bool
             #4 38-43 "false" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 0, hi: 44 }))))
@@ -333,7 +333,7 @@ fn length_type_error() {
         "Length((1, 2, 3))",
         &expect![[r##"
             #1 0-17 "Length((1, 2, 3))" : Int
-            #2 0-6 "Length" : ((?0)[]) -> (Int)
+            #2 0-6 "Length" : ((?0)[] -> Int)
             #3 6-17 "((1, 2, 3))" : (Int, Int, Int)
             #4 7-16 "(1, 2, 3)" : (Int, Int, Int)
             #5 8-9 "1" : Int
@@ -363,7 +363,7 @@ fn single_arg_for_tuple() {
             #6 14-21 "Qubit()" : Qubit
             #7 27-33 "Ry(q);" : ()
             #8 27-32 "Ry(q)" : ()
-            #9 27-29 "Ry" : ((Double, Qubit)) => (()) is Adj + Ctl
+            #9 27-29 "Ry" : ((Double, Qubit) => () is Adj + Ctl)
             #10 29-32 "(q)" : Qubit
             #11 30-31 "q" : Qubit
             Error(Type(Error(TypeMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 27, hi: 32 }))))
@@ -488,15 +488,15 @@ fn binop_equal_callable() {
         "},
         "Test.A == Test.B",
         &expect![[r##"
-            #5 30-31 "A" : (()) -> (())
+            #5 30-31 "A" : (() -> ())
             #6 31-33 "()" : ()
             #7 41-43 "{}" : ()
-            #10 57-58 "B" : (()) -> (())
+            #10 57-58 "B" : (() -> ())
             #11 58-60 "()" : ()
             #12 68-70 "{}" : ()
             #13 73-89 "Test.A == Test.B" : Bool
-            #14 73-79 "Test.A" : (()) -> (())
-            #15 83-89 "Test.B" : (()) -> (())
+            #14 73-79 "Test.A" : (() -> ())
+            #15 83-89 "Test.B" : (() -> ())
             Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 }))))
         "##]],
     );
@@ -924,7 +924,7 @@ fn controlled_spec_impl() {
         "},
         "",
         &expect![[r##"
-            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
+            #5 28-31 "Foo" : (Qubit => () is Ctl)
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -958,7 +958,7 @@ fn call_controlled() {
             }
         "},
         &expect![[r##"
-            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
+            #5 28-31 "Foo" : (Qubit => () is Ctl)
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -981,8 +981,8 @@ fn call_controlled() {
             #28 156-163 "Qubit()" : Qubit
             #29 169-196 "Controlled A.Foo([q1], q2);" : ()
             #30 169-195 "Controlled A.Foo([q1], q2)" : ()
-            #31 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #32 180-185 "A.Foo" : (Qubit) => (()) is Ctl
+            #31 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit) => () is Ctl)
+            #32 180-185 "A.Foo" : (Qubit => () is Ctl)
             #33 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
             #34 186-190 "[q1]" : (Qubit)[]
             #35 187-189 "q1" : Qubit
@@ -1011,7 +1011,7 @@ fn call_controlled_nested() {
             }
         "},
         &expect![[r##"
-            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
+            #5 28-31 "Foo" : (Qubit => () is Ctl)
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -1038,9 +1038,9 @@ fn call_controlled_nested() {
             #32 178-185 "Qubit()" : Qubit
             #33 191-237 "Controlled Controlled A.Foo([q1], ([q2], q3));" : ()
             #34 191-236 "Controlled Controlled A.Foo([q1], ([q2], q3))" : ()
-            #35 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit))) => (()) is Ctl
-            #36 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #37 213-218 "A.Foo" : (Qubit) => (()) is Ctl
+            #35 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit)) => () is Ctl)
+            #36 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit) => () is Ctl)
+            #37 213-218 "A.Foo" : (Qubit => () is Ctl)
             #38 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
             #39 219-223 "[q1]" : (Qubit)[]
             #40 220-222 "q1" : Qubit
@@ -1070,7 +1070,7 @@ fn call_controlled_error() {
             }
         "},
         &expect![[r##"
-            #5 28-31 "Foo" : (Qubit) => (()) is Ctl
+            #5 28-31 "Foo" : (Qubit => () is Ctl)
             #6 31-42 "(q : Qubit)" : Qubit
             #7 32-41 "q : Qubit" : Qubit
             #8 32-33 "q" : Qubit
@@ -1089,8 +1089,8 @@ fn call_controlled_error() {
             #24 133-140 "Qubit()" : Qubit
             #25 146-171 "Controlled A.Foo([1], q);" : ()
             #26 146-170 "Controlled A.Foo([1], q)" : ()
-            #27 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #28 157-162 "A.Foo" : (Qubit) => (()) is Ctl
+            #27 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit) => () is Ctl)
+            #28 157-162 "A.Foo" : (Qubit => () is Ctl)
             #29 162-170 "([1], q)" : ((Int)[], Qubit)
             #30 163-166 "[1]" : (Int)[]
             #31 164-165 "1" : Int
@@ -1110,7 +1110,7 @@ fn adj_requires_unit_return() {
         "},
         "",
         &expect![[r##"
-            #5 28-31 "Foo" : (()) => (Int) is Adj
+            #5 28-31 "Foo" : (() => Int is Adj)
             #6 31-33 "()" : ()
             #8 47-52 "{ 1 }" : Int
             #9 49-50 "1" : Int
@@ -1130,7 +1130,7 @@ fn ctl_requires_unit_return() {
         "},
         "",
         &expect![[r##"
-            #5 28-31 "Foo" : (()) => (Int) is Ctl
+            #5 28-31 "Foo" : (() => Int is Ctl)
             #6 31-33 "()" : ()
             #8 47-52 "{ 1 }" : Int
             #9 49-50 "1" : Int
@@ -1150,7 +1150,7 @@ fn adj_ctl_requires_unit_return() {
         "},
         "",
         &expect![[r##"
-            #5 28-31 "Foo" : (()) => (Int) is Adj + Ctl
+            #5 28-31 "Foo" : (() => Int is Adj + Ctl)
             #6 31-33 "()" : ()
             #10 53-58 "{ 1 }" : Int
             #11 55-56 "1" : Int
@@ -1203,7 +1203,7 @@ fn return_diverges() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (Bool) -> (Int)
+            #5 27-30 "Foo" : (Bool -> Int)
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
@@ -1243,7 +1243,7 @@ fn return_diverges_stmt_after() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (Bool) -> (Int)
+            #5 27-30 "Foo" : (Bool -> Int)
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
@@ -1276,7 +1276,7 @@ fn return_mismatch() {
         "},
         "",
         &expect![[r##"
-            #5 27-30 "Foo" : (Bool) -> (Int)
+            #5 27-30 "Foo" : (Bool -> Int)
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
