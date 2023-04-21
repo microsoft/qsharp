@@ -16,6 +16,5 @@
 - [ ] Convert samples.py to unit tests
 - [ ] Rename test file (test_interpreter.py?)
 - [ ] Check in sample notebook and sample.qs
-- [ ] Eliminate pip/qsharp subdirectory?
 - [ ] Panic handler
 - [ ] Clean up TODOs across the board

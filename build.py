@@ -57,7 +57,6 @@ npm_src = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
 pip_dir = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
-py_src = os.path.join(pip_dir, "qsharp")
 
 if npm_install_needed:
     subprocess.run([npm_cmd, 'install'], check=True, text=True, cwd=root_dir)
@@ -79,7 +78,7 @@ if build_cli:
 
 if build_pip:
     print("Building the pip package")
-    pip_build_args = ["pip", "wheel", "--wheel-dir", wheels_dir, py_src]
+    pip_build_args = ["pip", "wheel", "--wheel-dir", wheels_dir, pip_dir]
     result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
 
     if run_tests:
@@ -103,12 +102,12 @@ if build_pip:
             python_bin = sys.executable
 
         pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=py_src)
+        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_dir)
         pip_install_args = [python_bin, "-m", "pip",
                             "install", "-r", "test_requirements.txt"]
         subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir)
         pytest_args = [python_bin, "-m", "pytest"]
-        result = subprocess.run(pytest_args, check=True, text=True, cwd=py_src)
+        result = subprocess.run(pytest_args, check=True, text=True, cwd=pip_dir)
 
 if build_wasm:
     print("Building the wasm crate")
