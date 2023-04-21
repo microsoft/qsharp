@@ -174,26 +174,8 @@ impl<'a> SpecImplPass<'a> {
     }
 
     fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
-        let ctls_id = self.context.assigner_mut().next_id();
-        self.context
-            .tys_mut()
-            .insert(ctls_id, Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))));
-
-        let ctls_pat = Pat {
-            id: self.context.assigner_mut().next_id(),
-            span: spec_decl.span,
-            ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-            kind: PatKind::Bind(Ident {
-                id: ctls_id,
-                span: spec_decl.span,
-                name: "ctls".to_string(),
-            }),
-        };
-        self.context
-            .tys_mut()
-            .insert(ctls_pat.id, Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))));
-
         // Clone the reference block and use the pass to update the calls inside.
+        let ctls_id = self.context.assigner_mut().next_id();
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
             ctls: Res::Internal(ctls_id),
@@ -214,7 +196,16 @@ impl<'a> SpecImplPass<'a> {
                     input_ty.clone(),
                 ]),
                 kind: PatKind::Tuple(vec![
-                    ctls_pat,
+                    Pat {
+                        id: self.context.assigner_mut().next_id(),
+                        span: spec_decl.span,
+                        ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                        kind: PatKind::Bind(Ident {
+                            id: ctls_id,
+                            span: spec_decl.span,
+                            name: "ctls".to_string(),
+                        }),
+                    },
                     Pat {
                         id: self.context.assigner_mut().next_id(),
                         span: spec_decl.span,

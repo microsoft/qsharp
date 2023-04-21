@@ -23,20 +23,12 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn with<'a>(
-        &'a mut self,
-        resolutions: &'a Resolutions,
-        tys: &'a Tys<ast::NodeId>,
-    ) -> With {
+    pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions, tys: &'a Tys) -> With {
         With {
             lowerer: self,
             resolutions,
             tys,
         }
-    }
-
-    pub(super) fn get_id(&self, id: ast::NodeId) -> Option<hir::NodeId> {
-        self.nodes.get(id).copied()
     }
 
     pub(super) fn into_assigner(self) -> Assigner {
@@ -47,7 +39,7 @@ impl Lowerer {
 pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
     resolutions: &'a Resolutions,
-    tys: &'a Tys<ast::NodeId>,
+    tys: &'a Tys,
 }
 
 impl With<'_> {

@@ -65,17 +65,13 @@ struct Context<'a> {
     resolutions: &'a Resolutions,
     globals: &'a HashMap<Res, Ty>,
     return_ty: Option<&'a Ty>,
-    tys: &'a mut Tys<NodeId>,
+    tys: &'a mut Tys,
     nodes: Vec<NodeId>,
     inferrer: Inferrer,
 }
 
 impl<'a> Context<'a> {
-    fn new(
-        resolutions: &'a Resolutions,
-        globals: &'a HashMap<Res, Ty>,
-        tys: &'a mut Tys<NodeId>,
-    ) -> Self {
+    fn new(resolutions: &'a Resolutions, globals: &'a HashMap<Res, Ty>, tys: &'a mut Tys) -> Self {
         Self {
             resolutions,
             globals,
@@ -607,7 +603,7 @@ pub(super) struct SpecImpl<'a> {
 pub(super) fn spec(
     resolutions: &Resolutions,
     globals: &HashMap<Res, Ty>,
-    tys: &mut Tys<NodeId>,
+    tys: &mut Tys,
     spec: SpecImpl,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);
@@ -618,7 +614,7 @@ pub(super) fn spec(
 pub(super) fn expr(
     resolutions: &Resolutions,
     globals: &HashMap<Res, Ty>,
-    tys: &mut Tys<NodeId>,
+    tys: &mut Tys,
     expr: &Expr,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);
@@ -629,7 +625,7 @@ pub(super) fn expr(
 pub(super) fn stmt(
     resolutions: &Resolutions,
     globals: &HashMap<Res, Ty>,
-    tys: &mut Tys<NodeId>,
+    tys: &mut Tys,
     stmt: &Stmt,
 ) -> Vec<Error> {
     let mut context = Context::new(resolutions, globals, tys);

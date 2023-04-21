@@ -10,6 +10,7 @@ mod tests;
 
 use self::infer::Class;
 use miette::Diagnostic;
+use qsc_ast::ast;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::Ty;
 use std::fmt::Debug;
@@ -17,7 +18,7 @@ use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
-pub type Tys<Id> = IndexMap<Id, Ty>;
+pub type Tys = IndexMap<ast::NodeId, Ty>;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]

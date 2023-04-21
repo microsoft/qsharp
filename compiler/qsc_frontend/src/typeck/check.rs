@@ -73,12 +73,12 @@ impl HirVisitor<'_> for GlobalTable {
 
 pub(crate) struct Checker {
     globals: HashMap<Res, Ty>,
-    tys: Tys<ast::NodeId>,
+    tys: Tys,
     errors: Vec<Error>,
 }
 
 impl Checker {
-    pub(crate) fn tys(&self) -> &Tys<ast::NodeId> {
+    pub(crate) fn tys(&self) -> &Tys {
         &self.tys
     }
 
@@ -94,7 +94,7 @@ impl Checker {
         }
     }
 
-    pub(crate) fn into_tys(self) -> (Tys<ast::NodeId>, Vec<Error>) {
+    pub(crate) fn into_tys(self) -> (Tys, Vec<Error>) {
         (self.tys, self.errors)
     }
 
