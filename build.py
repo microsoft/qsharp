@@ -6,15 +6,16 @@
 import argparse
 import os
 import platform
+import sys
+import venv
 import shutil
 import subprocess
 
 from prereqs import check_prereqs
 check_prereqs()
 
-parser = argparse.ArgumentParser(description=
-"Builds all projects in the repo, unless specific projects to build are passed "
-"as options, in which case only those projects are built.")
+parser = argparse.ArgumentParser(description="Builds all projects in the repo, unless specific projects to build are passed "
+                                 "as options, in which case only those projects are built.")
 
 parser.add_argument('--cli', action='store_true',
                     help='Build the command-line compiler')
@@ -52,7 +53,7 @@ run_tests = args.test
 root_dir = os.path.dirname(os.path.abspath(__file__))
 wasm_src = os.path.join(root_dir, "compiler", "qsc_wasm")
 wasm_bld = os.path.join(root_dir, 'target', 'wasm32', build_type)
-npm_src  = os.path.join(root_dir, "npm")
+npm_src = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
 pip_dir = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
@@ -62,47 +63,80 @@ if npm_install_needed:
     subprocess.run([npm_cmd, 'install'], check=True, text=True, cwd=root_dir)
 
 if build_cli:
+    print("Building the command line compiler")
     cargo_build_args = ['cargo', 'build']
     if args.release:
         cargo_build_args.append('--release')
-    result = subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
+    result = subprocess.run(cargo_build_args, check=True,
+                            text=True, cwd=root_dir)
 
     if run_tests:
         cargo_test_args = ['cargo', 'test']
         if args.release:
             cargo_test_args.append('--release')
-        result = subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
+        result = subprocess.run(
+            cargo_test_args, check=True, text=True, cwd=root_dir)
 
 if build_pip:
-    pip_build_args = ["pip", "wheel", "--wheel-dir", wheels_dir, py_src]
+    print("Building the pip package")
+    # Check if in a virtual environment
+    if os.environ.get('VIRTUAL_ENV') is None and os.environ.get('CONDA_PREFIX') is None and os.environ.get('CI') is None:
+        print("Not in a virtual python environment")
+
+        venv_dir = os.path.join(pip_dir, ".venv")
+        # Create virtual environment under repo root
+        if not os.path.exists(venv_dir):
+            print(f"Creating a virtual python environment under {venv_dir}")
+            venv.main([venv_dir])
+
+        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
+        python_bin = os.path.join(venv_dir, "bin", "python")
+        if not os.path.exists(python_bin):
+            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
+        print(f"Using python from {python_bin}")
+    else:
+        # Already in a virtual environment, use current Python
+        python_bin = sys.executable
+
+    pip_build_args = [python_bin, "-m", "pip",
+                      "wheel", "--wheel-dir", wheels_dir, py_src]
+    result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
+
+    pip_build_args = [python_bin, "-m", "pip",
+                      "wheel", "--wheel-dir", wheels_dir, py_src]
     result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
 
     if run_tests:
-        pip_install_args = ["pip", "install", "-e", "."]
+        pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
         subprocess.run(pip_install_args, check=True, text=True, cwd=py_src)
-        pip_install_args = ["pip", "install", "-r", "test_requirements.txt"]
+        pip_install_args = [python_bin, "-m", "pip",
+                            "install", "-r", "test_requirements.txt"]
         subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir)
-        pytest_args = ["pytest"]
+        pytest_args = [python_bin, "-m", "pytest"]
         result = subprocess.run(pytest_args, check=True, text=True, cwd=py_src)
 
 if build_wasm:
+    print("Building the wasm crate")
     # wasm-pack can't build for web and node in the same build, so need to run twice.
     # Hopefully not needed if https://github.com/rustwasm/wasm-pack/issues/313 lands.
     build_type = ('--release' if args.release else '--dev')
 
     wasm_pack_args = ['wasm-pack', 'build', build_type]
-    web_build_args = ['--target', 'web', '--out-dir', os.path.join(wasm_bld, 'web')]
-    node_build_args = ['--target', 'nodejs', '--out-dir', os.path.join(wasm_bld, 'node')]
+    web_build_args = ['--target', 'web',
+                      '--out-dir', os.path.join(wasm_bld, 'web')]
+    node_build_args = ['--target', 'nodejs',
+                       '--out-dir', os.path.join(wasm_bld, 'node')]
     subprocess.run(wasm_pack_args + web_build_args,
                    check=True, text=True, cwd=wasm_src)
     subprocess.run(wasm_pack_args + node_build_args,
                    check=True, text=True, cwd=wasm_src)
 
 if build_npm:
+    print("Building the npm package")
     # Copy the wasm build files over for web and node targets
     for target in ['web', 'node']:
         lib_dir = os.path.join(npm_src, 'lib', target)
-        os.makedirs(lib_dir, exist_ok = True)
+        os.makedirs(lib_dir, exist_ok=True)
 
         for filename in ['qsc_wasm_bg.wasm', 'qsc_wasm.d.ts', 'qsc_wasm.js']:
             fullpath = os.path.join(wasm_bld, target, filename)
@@ -121,8 +155,10 @@ if build_npm:
 
     if run_tests:
         npm_test_args = ['node', '--test']
-        result = subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
+        result = subprocess.run(
+            npm_test_args, check=True, text=True, cwd=npm_src)
 
 if build_play:
+    print("Building the playground")
     play_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(play_args, check=True, text=True, cwd=play_src)
