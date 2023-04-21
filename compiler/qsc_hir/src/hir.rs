@@ -1007,9 +1007,9 @@ impl Display for Pat {
 /// A pattern kind.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatKind {
-    /// A binding with an optional type annotation.
+    /// A binding.
     Bind(Ident),
-    /// A discarded binding, `_`, with an optional type annotation.
+    /// A discarded binding, `_`.
     Discard,
     /// An elided pattern, `...`, used by specializations.
     Elided,
