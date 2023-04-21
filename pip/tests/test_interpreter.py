@@ -1,24 +1,24 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qsharp import Evaluator
+from qsharp._native import Interpreter
 
 
 def test_int_lit() -> None:
-    e = Evaluator()
-    (value, out, err) = e.eval("5")
+    e = Interpreter()
+    (value, out, err) = e.interpret("5")
     assert value == 5
 
 
 def test_output_follows() -> None:
-    e = Evaluator()
-    (value, out, err) = e.eval('Message("Hello, world!")')
+    e = Interpreter()
+    (value, out, err) = e.interpret('Message("Hello, world!")')
     assert out[0].__repr__() == "Hello, world!"
 
 
 def test_unknown_ident() -> None:
-    e = Evaluator()
+    e = Interpreter()
     expr = "a864"
-    (value, out, err) = e.eval(expr)
+    (value, out, err) = e.interpret(expr)
     assert len(err) == 1
     assert err[0].message == f"`{expr}` not found in this scope"

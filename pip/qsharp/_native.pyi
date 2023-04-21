@@ -1,37 +1,64 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Tuple
-from typing import List
-from typing import Literal
-from enum import Enum
 
-class Evaluator:
-    """A Q# evaluator."""
+from enum import Enum
+from typing import Any, List, Literal, Tuple
+
+
+class Interpreter:
+    """A Q# interpreter."""
 
     def __init__(self) -> None:
-        """Initializes a new Q# evaluator."""
+        """Initializes a new Q# interpreter."""
         ...
-    def eval(self, expr: str) -> Tuple[str, str, List[ExecutionError]]:
-        """Evaluates a Q# expression.
-        returns: A tuple of the expression's result and simulation data.
-        .0 is the result of the expression.
-        .1 is the output from the simulation.
-        .2 is the error output.
+
+    def interpret(self, expr: str) -> Tuple[Any,
+                                            List[Output], List[Error]]:
+        """ Interprets a line of Q#.
+
+        :param expr: The line of Q# to interpret.
+
+        :returns (value, outputs, errors):
+            value: The value of the last statement in the line.
+            outputs: A list of outputs from the line. An output can be a state or a message.
+            errors: A list of errors from the line. Errors can be compilation or runtime errors.
         """
         ...
 
+
 class Result(Enum):
-    """A measurement result."""
-    Zero = 0
-    One = 1
+    """
+    A Q# measurement result.
+    """
+    Zero: int
+    One: int
+
 
 class Pauli(Enum):
-    I = 0
-    X = 1
-    Y = 2
-    Z = 3
+    """
+    A Q# Pauli operator.
+    """
+    I: int
+    X: int
+    Y: int
+    Z: int
 
-class ExecutionError:
-    error_type: Literal["CompilationError", "RuntimeError"]
+
+class Output:
+    """
+    An output returned from the Q# interpreter.
+    Outputs can be a state dumps or messages. These are normally printed to the console.
+    """
+
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
+    def _repr_html_(self) -> str: ...
+
+
+class Error:
+    """An error returned from the Q# interpreter."""
+    error_type: Literal['CompilationError', 'RuntimeError']
     message: str
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...

@@ -1,27 +1,24 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qsharp.qsharp import (
+from ._qsharp import (
     interpret,
     interpret_file,
-    interpret_with_dumps,
     QSharpException,
     CompilationException,
     RuntimeException
 )
 
-from qsharp._native import (
-    Evaluator, # Temporarily keeping this for tests
+from ._native import (
     Result,
     Pauli
 )
 
-# If using IPython, forward some useful IQ# magic commands as IPython magic
-# commands and define a couple new magic commands for IPython.
+# Register the IPython magic if we're in an IPython session
 try:
-    if __IPYTHON__:
-        import qsharp.ipython
-        qsharp.ipython.register_magic()
+    if __IPYTHON__: # type: ignore
+        from ._ipython import register_magic
+        register_magic()
 except NameError:
     pass
 
@@ -29,7 +26,6 @@ except NameError:
 __all__ = [
     "interpret",
     "interpret_file",
-    "interpret_with_dumps",
     "Result",
     "Pauli",
     "QSharpException",

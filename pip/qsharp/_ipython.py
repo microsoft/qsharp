@@ -1,16 +1,17 @@
-from qsharp import ( interpret_with_dumps, QSharpException )
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
-# TODO: pylance complains about this import, but it works. Thanks copilot!
+from pip.qsharp._qsharp import (_interpret_with_outputs, QSharpException)
+
 from IPython.core.magic import (register_cell_magic)
 
 
 def register_magic():
-    # Register the magic on module import. 
     @register_cell_magic
     def qsharp(line, cell):
         "interpret q# code"
         try:
-            (value, out) = interpret_with_dumps(cell)
+            (value, out) = _interpret_with_outputs(cell)
             return DisplayableOutput(out, value)
         except QSharpException as ex:
             for diagnostic in ex.diagnostics:

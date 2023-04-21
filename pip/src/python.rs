@@ -3,48 +3,49 @@
 
 use crate::formatting::{DisplayableOutput, FormattingReceiver};
 use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
-use qsc_eval::{
-    stateful::{Error, Interpreter},
-    val::Value,
-};
+use qsc_eval::stateful;
+use qsc_eval::val::Value;
 
 #[pymodule]
 fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Evaluator>()?;
+    m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
     m.add_class::<Output>()?;
-    m.add_class::<ExecutionError>()?;
+    m.add_class::<Error>()?;
 
     Ok(())
 }
 
 #[pyclass(unsendable)]
-pub(crate) struct Evaluator {
-    pub(crate) interpreter: Interpreter,
+pub(crate) struct Interpreter {
+    pub(crate) interpreter: stateful::Interpreter,
 }
 
 #[pymethods]
-impl Evaluator {
+/// A Q# interpreter.
+impl Interpreter {
     #[new]
-    /// Initializes a new Q# evaluator.
+    /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
         const SOURCES: [&str; 0] = [];
-        let result = Interpreter::new(true, SOURCES);
+        let result = stateful::Interpreter::new(true, SOURCES);
         match result {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err((err, _)) => Err(PyException::new_err(format!("{:?}", err))),
         }
     }
 
-    /// Evaluates a Q# expression.
+    /// Interprets a line of Q#.
     ///
-    /// returns: A tuple of the expression's result and simulation data.
-    /// .0 is the result of the expression.
-    /// .1 is the output from the simulation.
-    /// .2 is the error output.
+    /// :param expr: The line of Q# to interpret.
+    ///
+    /// :returns (value, outputs, errors):
+    ///    value: The value of the last statement in the line.
+    ///    outputs: A list of outputs from the line. An output can be a state or a message.
+    ///    errors: A list of errors from the line. Errors can be compilation or runtime errors.
     #[pyo3(text_signature = "(expr)")]
-    fn eval(&mut self, py: Python, expr: String) -> PyResult<(PyObject, PyObject, PyObject)> {
+    fn interpret(&mut self, py: Python, expr: String) -> PyResult<(PyObject, PyObject, PyObject)> {
         let mut receiver = FormattingReceiver::new();
         let results = self
             .interpreter
@@ -55,10 +56,10 @@ impl Evaluator {
         // TODO: Figure out what to do with multiple statements
         let (value, errors) = match results.last() {
             Some(r) => match r.to_owned() {
-                Ok(value) => (value, Vec::<Error>::new()),
+                Ok(value) => (value, Vec::<stateful::Error>::new()),
                 Err(err) => (Value::UNIT, { err.0 }),
             },
-            None => (Value::UNIT, Vec::<Error>::new()),
+            None => (Value::UNIT, Vec::<stateful::Error>::new()),
         };
 
         Ok((
@@ -72,7 +73,7 @@ impl Evaluator {
                 py,
                 errors
                     .into_iter()
-                    .map(|e| Py::new(py, ExecutionError::from(e)).unwrap()),
+                    .map(|e| Py::new(py, Error::from(e)).unwrap()),
             )
             .into_py(py),
         ))
@@ -80,7 +81,8 @@ impl Evaluator {
 }
 
 #[pyclass(unsendable)]
-pub(crate) struct ExecutionError {
+/// An error returned from the Q# interpreter.
+pub(crate) struct Error {
     #[pyo3(get, set)]
     error_type: String,
     #[pyo3(get, set)]
@@ -88,7 +90,8 @@ pub(crate) struct ExecutionError {
 }
 
 #[pymethods]
-impl ExecutionError {
+/// An error returned from the Q# interpreter.
+impl Error {
     fn __repr__(&self) -> String {
         format!("{}: {}", self.error_type, self.message)
     }
@@ -98,21 +101,21 @@ impl ExecutionError {
     }
 }
 
-impl From<Error> for ExecutionError {
-    fn from(e: Error) -> ExecutionError {
+impl From<stateful::Error> for Error {
+    fn from(e: stateful::Error) -> Error {
         match e {
-            Error::Compile(e) => {
+            stateful::Error::Compile(e) => {
                 panic!("Did not expect compilation error {}", e)
             }
-            Error::Eval(e) => ExecutionError {
+            stateful::Error::Eval(e) => Error {
                 error_type: String::from("RuntimeError"),
                 message: e.to_string(),
             },
-            Error::Incremental(e) => ExecutionError {
+            stateful::Error::Incremental(e) => Error {
                 error_type: String::from("CompilationError"),
                 message: e.to_string(),
             },
-            Error::Pass(e) => ExecutionError {
+            stateful::Error::Pass(e) => Error {
                 error_type: String::from("CompilationError"),
                 message: e.to_string(),
             },
@@ -124,6 +127,8 @@ impl From<Error> for ExecutionError {
 pub(crate) struct Output(DisplayableOutput);
 
 #[pymethods]
+/// An output returned from the Q# interpreter.
+/// Outputs can be a state dumps or messages. These are normally printed to the console.
 impl Output {
     fn __repr__(&self) -> String {
         match &self.0 {
@@ -145,12 +150,14 @@ impl Output {
 }
 
 #[pyclass(unsendable)]
+/// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
     One,
 }
 
 #[pyclass(unsendable)]
+/// A Q# Pauli operator.
 pub(crate) enum Pauli {
     I,
     X,

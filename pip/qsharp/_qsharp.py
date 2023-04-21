@@ -1,22 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Evaluator
-import sys
+from ._native import Interpreter
 
-# debug output to stderr
-
-
-def print_dbg(str, **kwargs):
-#    print("\x1b[2m<debug>: " + str.replace("\n", "\n<debug>: ") + "\x1b[0m", file=sys.stderr, **kwargs)
-    pass
-
-
-# Create a Q# evaluator.
-# TODO: Q: Should this be a singleton or should we allow multiple prgograms?
-evaluator = Evaluator()
-
-# TODO: Many shots
+# Create a Q# interpreter singleton.
+interpreter = Interpreter()
 
 
 def interpret(expr):
@@ -26,7 +14,7 @@ def interpret(expr):
     Prints any output to stderr.
     Throws RuntimeException or CompilationException
     """
-    (value, outputs) = interpret_with_dumps(expr)
+    (value, outputs) = _interpret_with_outputs(expr)
 
     for output in outputs:
         print(output)
@@ -34,15 +22,11 @@ def interpret(expr):
     return value
 
 
-def interpret_with_dumps(expr):
-    (value, outputs, err) = evaluator.eval(expr)
+def _interpret_with_outputs(expr):
+    (value, outputs, err) = interpreter.interpret(expr)
 
-    print_dbg(f"value: {value} (type: {type(value).__name__})")
-    print_dbg(f"out: {outputs}")
-    print_dbg(f"err: {err}")
-
-    # iterate over the list err, and throw CompilationException if any of the errors are of type CompilationError
-    # TODO: Multiple compilationerrors, handle more gracefully. Also, do we really need multiple exception types?
+    # TODO: The interpreter will be updated to return a single
+    # compilation/runtime error, so this will be unnecessary.
     for error in err:
         if error.error_type == "CompilationError":
             raise CompilationException(err)
