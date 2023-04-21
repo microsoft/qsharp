@@ -243,7 +243,13 @@ fn parse_all(
         Some(entry)
     };
 
-    (ast::Package::new(namespaces, entry), errors, offsets)
+    let package = ast::Package {
+        id: ast::NodeId::default(),
+        namespaces,
+        entry,
+    };
+
+    (package, errors, offsets)
 }
 
 fn resolve_all(

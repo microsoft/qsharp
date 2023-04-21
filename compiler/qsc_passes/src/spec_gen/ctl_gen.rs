@@ -3,9 +3,8 @@
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::Context;
 use qsc_hir::{
-    hir::{CallableKind, Expr, ExprKind, Functor, PrimTy, Res, Ty, UnOp},
+    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, PrimTy, Res, Ty, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
 use thiserror::Error;
@@ -17,13 +16,12 @@ pub enum Error {
     MissingCtlFunctor(#[label("operation missing controlled functor support")] Span),
 }
 
-pub(super) struct CtlDistrib<'a> {
+pub(super) struct CtlDistrib {
     pub(super) ctls: Res,
-    pub(super) context: &'a mut Context,
     pub(super) errors: Vec<Error>,
 }
 
-impl<'a> MutVisitor for CtlDistrib<'a> {
+impl MutVisitor for CtlDistrib {
     fn visit_expr(&mut self, expr: &mut Expr) {
         if let ExprKind::Call(op, args) = &mut expr.kind {
             match &op.ty {
@@ -43,7 +41,7 @@ impl<'a> MutVisitor for CtlDistrib<'a> {
 
                     args.kind = ExprKind::Tuple(vec![
                         Expr {
-                            id: self.context.assigner_mut().next_id(),
+                            id: NodeId::default(),
                             span: args.span,
                             ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
                             kind: ExprKind::Name(self.ctls),

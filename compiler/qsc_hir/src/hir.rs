@@ -32,37 +32,32 @@ fn set_indentation<'a, 'b>(
 pub struct NodeId(usize);
 
 impl NodeId {
-    const PLACEHOLDER: Self = Self(usize::MAX);
-
-    /// Whether this ID is a placeholder.
-    #[must_use]
-    pub fn is_placeholder(self) -> bool {
-        self == Self::PLACEHOLDER
-    }
-
-    /// The initial node ID.
-    #[must_use]
-    pub fn zero() -> Self {
-        NodeId(0)
-    }
+    /// The ID of the first node.
+    pub const FIRST: Self = Self(0);
 
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
         Self(self.0 + 1)
     }
+
+    /// True if this is the default ID.
+    #[must_use]
+    pub fn is_default(self) -> bool {
+        self == Self::default()
+    }
 }
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self::PLACEHOLDER
+        Self(usize::MAX)
     }
 }
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if self.0 == Self::PLACEHOLDER.0 {
-            write!(f, "_id_")
+        if self.is_default() {
+            f.write_str("_id_")
         } else {
             Display::fmt(&self.0, f)
         }
@@ -132,18 +127,6 @@ pub struct Package {
     pub namespaces: Vec<Namespace>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
-}
-
-impl Package {
-    /// Creates a new package.
-    #[must_use]
-    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
-        Self {
-            id: NodeId::default(),
-            namespaces,
-            entry,
-        }
-    }
 }
 
 impl Display for Package {

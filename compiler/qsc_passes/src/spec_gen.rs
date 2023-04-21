@@ -12,8 +12,8 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{CompileUnit, Context};
 use qsc_hir::{
     hir::{
-        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, Package, Pat, PatKind,
-        PrimTy, Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen, Ty,
+        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, NodeId, Package, Pat,
+        PatKind, PrimTy, Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -42,25 +42,12 @@ pub fn generate_specs(unit: &mut CompileUnit) -> Vec<Error> {
 }
 
 fn generate_placeholders(unit: &mut CompileUnit) {
-    let mut pass = SpecPlacePass {
-        context: &mut unit.context,
-    };
-    pass.transform(&mut unit.package);
+    SpecPlacePass.visit_package(&mut unit.package);
 }
 
-struct SpecPlacePass<'a> {
-    context: &'a mut Context,
-}
+struct SpecPlacePass;
 
-impl<'a> SpecPlacePass<'a> {
-    fn transform(&mut self, package: &mut Package) {
-        for ns in &mut package.namespaces {
-            self.visit_namespace(ns);
-        }
-    }
-}
-
-impl<'a> MutVisitor for SpecPlacePass<'a> {
+impl MutVisitor for SpecPlacePass {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
         if let Some(functors) = &decl.functors {
             let mut func_set = HashSet::new();
@@ -71,12 +58,12 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
 
             let mut spec_decl = match &decl.body {
                 CallableBody::Block(body) => vec![SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: body.span,
                     spec: Spec::Body,
                     body: SpecBody::Impl(
                         Pat {
-                            id: self.context.assigner_mut().next_id(),
+                            id: NodeId::default(),
                             span: body.span,
                             ty: decl.input.ty.clone(),
                             kind: PatKind::Elided,
@@ -89,7 +76,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
 
             if is_adj && spec_decl.iter().all(|s| s.spec != Spec::Adj) {
                 spec_decl.push(SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: decl.span,
                     spec: Spec::Adj,
                     body: SpecBody::Gen(SpecGen::Invert),
@@ -98,7 +85,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
 
             if is_ctl && spec_decl.iter().all(|s| s.spec != Spec::Ctl) {
                 spec_decl.push(SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: decl.span,
                     spec: Spec::Ctl,
                     body: SpecBody::Gen(SpecGen::Distribute),
@@ -112,7 +99,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
                     SpecGen::Distribute
                 };
                 spec_decl.push(SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: decl.span,
                     spec: Spec::CtlAdj,
                     body: SpecBody::Gen(gen),
@@ -179,7 +166,6 @@ impl<'a> SpecImplPass<'a> {
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
             ctls: Res::Internal(ctls_id),
-            context: self.context,
             errors: Vec::new(),
         };
         distrib.visit_block(&mut ctl_block);
@@ -189,7 +175,7 @@ impl<'a> SpecImplPass<'a> {
         // Update the specialization body to reflect the generated block.
         spec_decl.body = SpecBody::Impl(
             Pat {
-                id: self.context.assigner_mut().next_id(),
+                id: NodeId::default(),
                 span: spec_decl.span,
                 ty: Ty::Tuple(vec![
                     Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
@@ -197,7 +183,7 @@ impl<'a> SpecImplPass<'a> {
                 ]),
                 kind: PatKind::Tuple(vec![
                     Pat {
-                        id: self.context.assigner_mut().next_id(),
+                        id: NodeId::default(),
                         span: spec_decl.span,
                         ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
                         kind: PatKind::Bind(Ident {
@@ -207,7 +193,7 @@ impl<'a> SpecImplPass<'a> {
                         }),
                     },
                     Pat {
-                        id: self.context.assigner_mut().next_id(),
+                        id: NodeId::default(),
                         span: spec_decl.span,
                         ty: input_ty,
                         kind: PatKind::Elided,
