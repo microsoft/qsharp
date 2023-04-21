@@ -1024,9 +1024,7 @@ impl Display for PatKind {
         let mut indent = set_indentation(indented(f), 0);
         match self {
             PatKind::Bind(id) => {
-                write!(indent, "Bind:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{id}")?;
+                write!(indent, "Bind: {id}")?;
             }
             PatKind::Discard => write!(indent, "Discard")?,
             PatKind::Elided => write!(indent, "Elided")?,
@@ -1177,7 +1175,7 @@ impl Display for Ty {
                     (false, true) => " is Ctl",
                     (false, false) => "",
                 };
-                write!(f, "({input}) {arrow} ({output}){is}")
+                write!(f, "({input} {arrow} {output}{is})")
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
