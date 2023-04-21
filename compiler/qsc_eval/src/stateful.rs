@@ -63,11 +63,15 @@ impl Interpreter {
         Ok(Self { context })
     }
 
+    /// # Errors
+    /// If the parsing of the line fails, an error is returned.
+    /// If the compilation of the line fails, an error is returned.
+    /// If there is a runtime error when interpreting the line, an error is returned.
     pub fn line(
         &mut self,
         receiver: &mut dyn Receiver,
         line: impl AsRef<str>,
-    ) -> impl Iterator<Item = Result<Value, AggregateError<Error>>> {
+    ) -> Result<Value, AggregateError<Error>> {
         self.context
             .with_mut(|fields| eval_line_in_context(receiver, line, fields))
     }
@@ -137,8 +141,8 @@ fn eval_line_in_context(
     receiver: &mut dyn Receiver,
     line: impl AsRef<str>,
     fields: BorrowedMutFields,
-) -> impl Iterator<Item = Result<Value, AggregateError<Error>>> {
-    let mut results = vec![];
+) -> Result<Value, AggregateError<Error>> {
+    let mut final_result = Value::UNIT;
     let fragments = fields.compiler.compile_fragment(line);
     for fragment in fragments {
         match fragment {
@@ -149,11 +153,10 @@ fn eval_line_in_context(
 
                 match result {
                     Ok(v) => {
-                        results.push(Ok(v));
+                        final_result = v;
                     }
                     Err(e) => {
-                        results.push(Err(AggregateError(vec![Error::Eval(e)])));
-                        return results.into_iter();
+                        return Err(AggregateError(vec![Error::Eval(e)]));
                     }
                 }
             }
@@ -163,16 +166,16 @@ fn eval_line_in_context(
                     node: decl.name.id,
                 };
                 fields.globals.insert(id, Box::leak(Box::new(decl)));
-                results.push(Ok(Value::UNIT));
+                final_result = Value::UNIT;
             }
             Fragment::Error(errors) => {
                 let e = errors
                     .iter()
                     .map(|e| Error::Incremental(e.clone()))
                     .collect();
-                results.push(Err(AggregateError(e)));
+                return Err(AggregateError(e));
             }
         }
     }
-    results.into_iter()
+    Ok(final_result)
 }
