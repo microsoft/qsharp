@@ -291,7 +291,7 @@ fn typeck_all(
     }
 
     let mut checker = globals.into_checker();
-    checker.with(resolutions).visit_package(package);
+    checker.with(resolutions).check_package(package);
     checker.into_tys()
 }
 

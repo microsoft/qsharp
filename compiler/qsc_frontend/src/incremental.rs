@@ -115,7 +115,7 @@ impl<'a> Compiler<'a> {
         self.checker.add_global_callable(decl);
         self.checker
             .with(self.resolver.resolutions())
-            .visit_callable_decl(decl);
+            .check_callable_decl(decl);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
@@ -137,7 +137,7 @@ impl<'a> Compiler<'a> {
         });
         self.checker
             .with(self.resolver.resolutions())
-            .visit_stmt(stmt);
+            .check_stmt(stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {

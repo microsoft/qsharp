@@ -112,33 +112,13 @@ pub(crate) struct With<'a> {
 }
 
 impl With<'_> {
-    fn check_callable_signature(&mut self, decl: &ast::CallableDecl) {
-        if !convert::ast_callable_functors(decl).is_empty() {
-            match &decl.output.kind {
-                ast::TyKind::Tuple(items) if items.is_empty() => {}
-                _ => self.checker.errors.push(Error(ErrorKind::TypeMismatch(
-                    Ty::UNIT,
-                    convert::ty_from_ast(&decl.output).0,
-                    decl.output.span,
-                ))),
-            }
-        }
-    }
-
-    fn check_spec(&mut self, spec: SpecImpl) {
-        self.checker.errors.append(&mut rules::spec(
-            self.resolutions,
-            &self.checker.globals,
-            &mut self.checker.tys,
-            spec,
-        ));
-    }
-}
-
-impl AstVisitor<'_> for With<'_> {
-    fn visit_package(&mut self, package: &ast::Package) {
+    pub(crate) fn check_package(&mut self, package: &ast::Package) {
         for namespace in &package.namespaces {
-            self.visit_namespace(namespace);
+            for item in &namespace.items {
+                if let ast::ItemKind::Callable(decl) = &item.kind {
+                    self.check_callable_decl(decl);
+                }
+            }
         }
 
         if let Some(entry) = &package.entry {
@@ -151,7 +131,7 @@ impl AstVisitor<'_> for With<'_> {
         }
     }
 
-    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+    pub(crate) fn check_callable_decl(&mut self, decl: &ast::CallableDecl) {
         self.checker
             .tys
             .insert(decl.name.id, convert::ast_callable_ty(decl).0);
@@ -182,8 +162,34 @@ impl AstVisitor<'_> for With<'_> {
         }
     }
 
-    fn visit_stmt(&mut self, stmt: &ast::Stmt) {
-        // TODO: Probably more correct for the REPL to keep the Inferrer around.
+    fn check_callable_signature(&mut self, decl: &ast::CallableDecl) {
+        if !convert::ast_callable_functors(decl).is_empty() {
+            match &decl.output.kind {
+                ast::TyKind::Tuple(items) if items.is_empty() => {}
+                _ => self.checker.errors.push(Error(ErrorKind::TypeMismatch(
+                    Ty::UNIT,
+                    convert::ty_from_ast(&decl.output).0,
+                    decl.output.span,
+                ))),
+            }
+        }
+    }
+
+    fn check_spec(&mut self, spec: SpecImpl) {
+        self.checker.errors.append(&mut rules::spec(
+            self.resolutions,
+            &self.checker.globals,
+            &mut self.checker.tys,
+            spec,
+        ));
+    }
+
+    pub(crate) fn check_stmt(&mut self, stmt: &ast::Stmt) {
+        // TODO: Normally, all statements in a specialization are type checked in the same inference
+        // context. However, during incremental compilation, each statement is type checked with a
+        // new inference context. This can cause issues if inference variables aren't fully solved
+        // for within each statement. Either those variables should cause an error, or the
+        // incremental compiler should be able to persist the inference context across statements.
         self.checker.errors.append(&mut rules::stmt(
             self.resolutions,
             &self.checker.globals,
