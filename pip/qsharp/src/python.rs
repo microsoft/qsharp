@@ -165,6 +165,7 @@ impl IntoPy<PyObject> for ValueWrapper {
     fn into_py(self, py: Python) -> PyObject {
         match self.0 {
             Value::Int(val) => val.into_py(py),
+            Value::Double(val) => val.into_py(py),
             Value::Bool(val) => val.into_py(py),
             Value::String(val) => val.into_py(py),
             Value::Result(val) => if val { Result::One } else { Result::Zero }.into_py(py),
