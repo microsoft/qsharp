@@ -211,6 +211,7 @@ impl With<'_> {
         hir::Block {
             id: self.lower_id(block.id),
             span: block.span,
+            ty: self.tys.get(block.id).map_or(hir::Ty::Err, Clone::clone),
             stmts: block.stmts.iter().map(|s| self.lower_stmt(s)).collect(),
         }
     }
@@ -376,6 +377,7 @@ impl With<'_> {
 
     fn lower_qubit_init(&mut self, init: &ast::QubitInit) -> hir::QubitInit {
         let id = self.lower_id(init.id);
+        let ty = self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone);
         let kind = match &init.kind {
             ast::QubitInitKind::Array(length) => {
                 hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))
@@ -392,6 +394,7 @@ impl With<'_> {
         hir::QubitInit {
             id,
             span: init.span,
+            ty,
             kind,
         }
     }

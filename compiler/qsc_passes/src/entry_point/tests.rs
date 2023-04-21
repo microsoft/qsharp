@@ -31,7 +31,7 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr _id_ [0-0] [Type Int]: Expr Block: Block 10 [62-72]:
+            Expr _id_ [0-0] [Type Int]: Expr Block: Block 10 [62-72] [Type Int]:
                 Stmt 11 [64-70]: Expr: Expr 12 [64-70] [Type Int]: BinOp (Add):
                     Expr 13 [64-66] [Type Int]: Lit: Int(41)
                     Expr 14 [69-70] [Type Int]: Lit: Int(1)"#]],

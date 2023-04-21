@@ -541,6 +541,8 @@ pub struct Block {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The block type.
+    pub ty: Ty,
     /// The statements in the block.
     pub stmts: Vec<Stmt>,
 }
@@ -551,7 +553,11 @@ impl Display for Block {
             write!(f, "Block {} {}: <empty>", self.id, self.span)?;
         } else {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Block {} {}:", self.id, self.span)?;
+            write!(
+                indent,
+                "Block {} {} [Type {}]:",
+                self.id, self.span, self.ty
+            )?;
             indent = set_indentation(indent, 1);
             for s in &self.stmts {
                 write!(indent, "\n{s}")?;
@@ -562,7 +568,7 @@ impl Display for Block {
 }
 
 /// A statement.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Stmt {
     /// The node ID.
     pub id: NodeId,
@@ -1052,13 +1058,19 @@ pub struct QubitInit {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The qubit initializer type.
+    pub ty: Ty,
     /// The qubit initializer kind.
     pub kind: QubitInitKind,
 }
 
 impl Display for QubitInit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QubitInit {} {} {}", self.id, self.span, self.kind)
+        write!(
+            f,
+            "QubitInit {} {} [Type {}]: {}",
+            self.id, self.span, self.ty, self.kind
+        )
     }
 }
 

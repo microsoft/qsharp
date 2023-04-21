@@ -257,7 +257,7 @@ fn replace_node() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
 
     expect![[r#"
-        Block 7 [39-56]:
+        Block 7 [39-56] [Type Int]:
             Stmt 8 [49-50]: Expr: Expr 10 [49-50] [Type Int]: Lit: Int(2)"#]]
     .assert_eq(&block.to_string());
 }
