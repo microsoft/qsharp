@@ -523,7 +523,7 @@ pub enum TyKind {
     /// A named type.
     Path(Path),
     /// A primitive type.
-    Prim(TyPrim),
+    Prim(PrimTy),
     /// A tuple type.
     Tuple(Vec<Ty>),
     /// A type variable.
@@ -1217,7 +1217,7 @@ pub enum QubitSource {
 
 /// A primitive type.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum TyPrim {
+pub enum PrimTy {
     /// The big integer type.
     BigInt,
     /// The boolean type.

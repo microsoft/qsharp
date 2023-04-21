@@ -12,7 +12,7 @@ use super::{
 };
 use crate::lex::{ClosedBinOp, Delim, TokenKind};
 use qsc_ast::ast::{
-    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind, TyPrim,
+    CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, PrimTy, SetOp, Ty, TyKind,
 };
 
 pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
@@ -70,23 +70,23 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     let kind = if keyword(s, Keyword::Underscore).is_ok() {
         Ok(TyKind::Hole)
     } else if keyword(s, Keyword::BigInt).is_ok() {
-        Ok(TyKind::Prim(TyPrim::BigInt))
+        Ok(TyKind::Prim(PrimTy::BigInt))
     } else if keyword(s, Keyword::Bool).is_ok() {
-        Ok(TyKind::Prim(TyPrim::Bool))
+        Ok(TyKind::Prim(PrimTy::Bool))
     } else if keyword(s, Keyword::Double).is_ok() {
-        Ok(TyKind::Prim(TyPrim::Double))
+        Ok(TyKind::Prim(PrimTy::Double))
     } else if keyword(s, Keyword::Int).is_ok() {
-        Ok(TyKind::Prim(TyPrim::Int))
+        Ok(TyKind::Prim(PrimTy::Int))
     } else if keyword(s, Keyword::Pauli).is_ok() {
-        Ok(TyKind::Prim(TyPrim::Pauli))
+        Ok(TyKind::Prim(PrimTy::Pauli))
     } else if keyword(s, Keyword::Qubit).is_ok() {
-        Ok(TyKind::Prim(TyPrim::Qubit))
+        Ok(TyKind::Prim(PrimTy::Qubit))
     } else if keyword(s, Keyword::Range).is_ok() {
-        Ok(TyKind::Prim(TyPrim::Range))
+        Ok(TyKind::Prim(PrimTy::Range))
     } else if keyword(s, Keyword::Result).is_ok() {
-        Ok(TyKind::Prim(TyPrim::Result))
+        Ok(TyKind::Prim(PrimTy::Result))
     } else if keyword(s, Keyword::String).is_ok() {
-        Ok(TyKind::Prim(TyPrim::String))
+        Ok(TyKind::Prim(PrimTy::String))
     } else if keyword(s, Keyword::Unit).is_ok() {
         Ok(TyKind::Tuple(Vec::new()))
     } else if let Some(ident) = opt(s, var)? {

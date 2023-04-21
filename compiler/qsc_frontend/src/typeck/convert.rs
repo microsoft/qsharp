@@ -131,17 +131,17 @@ pub(super) fn functor_from_ast(functor: ast::Functor) -> hir::Functor {
     }
 }
 
-pub(super) fn prim_from_ast(prim: ast::TyPrim) -> hir::PrimTy {
+pub(super) fn prim_from_ast(prim: ast::PrimTy) -> hir::PrimTy {
     match prim {
-        ast::TyPrim::BigInt => hir::PrimTy::BigInt,
-        ast::TyPrim::Bool => hir::PrimTy::Bool,
-        ast::TyPrim::Double => hir::PrimTy::Double,
-        ast::TyPrim::Int => hir::PrimTy::Int,
-        ast::TyPrim::Pauli => hir::PrimTy::Pauli,
-        ast::TyPrim::Qubit => hir::PrimTy::Qubit,
-        ast::TyPrim::Range => hir::PrimTy::Range,
-        ast::TyPrim::Result => hir::PrimTy::Result,
-        ast::TyPrim::String => hir::PrimTy::String,
+        ast::PrimTy::BigInt => hir::PrimTy::BigInt,
+        ast::PrimTy::Bool => hir::PrimTy::Bool,
+        ast::PrimTy::Double => hir::PrimTy::Double,
+        ast::PrimTy::Int => hir::PrimTy::Int,
+        ast::PrimTy::Pauli => hir::PrimTy::Pauli,
+        ast::PrimTy::Qubit => hir::PrimTy::Qubit,
+        ast::PrimTy::Range => hir::PrimTy::Range,
+        ast::PrimTy::Result => hir::PrimTy::Result,
+        ast::PrimTy::String => hir::PrimTy::String,
     }
 }
 
