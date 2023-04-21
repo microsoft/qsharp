@@ -522,12 +522,12 @@ pub enum TyKind {
     Paren(Box<Ty>),
     /// A named type.
     Path(Path),
+    /// A type parameter.
+    Param(Ident),
     /// A primitive type.
     Prim(PrimTy),
     /// A tuple type.
     Tuple(Vec<Ty>),
-    /// A type variable.
-    Var(Ident),
 }
 
 impl Display for TyKind {
@@ -547,6 +547,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
+            TyKind::Param(name) => write!(indent, "\nType Param {name}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
@@ -561,7 +562,6 @@ impl Display for TyKind {
                     }
                 }
             }
-            TyKind::Var(name) => write!(indent, "\nType Var {name}")?,
         }
         Ok(())
     }

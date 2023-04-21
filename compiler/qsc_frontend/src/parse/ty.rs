@@ -44,7 +44,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     }
 }
 
-pub(super) fn var(s: &mut Scanner) -> Result<Ident> {
+pub(super) fn param(s: &mut Scanner) -> Result<Ident> {
     token(s, TokenKind::Apos)?;
     ident(s)
 }
@@ -89,8 +89,8 @@ fn base(s: &mut Scanner) -> Result<Ty> {
         Ok(TyKind::Prim(PrimTy::String))
     } else if keyword(s, Keyword::Unit).is_ok() {
         Ok(TyKind::Tuple(Vec::new()))
-    } else if let Some(ident) = opt(s, var)? {
-        Ok(TyKind::Var(ident))
+    } else if let Some(name) = opt(s, param)? {
+        Ok(TyKind::Param(name))
     } else if let Some(path) = opt(s, path)? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
