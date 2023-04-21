@@ -42,49 +42,26 @@ impl LoopUni {
         span: Span,
     ) -> Expr {
         let cond_span = cond.span;
+
         let continue_cond_id = self.gen_ident(cond_span);
-        let continue_cond_init = Stmt {
-            id: NodeId::default(),
-            span: cond_span,
-            kind: StmtKind::Local(
-                Mutability::Immutable,
-                Pat {
-                    id: NodeId::default(),
-                    span: cond_span,
-                    kind: PatKind::Bind(continue_cond_id.clone(), None),
-                },
-                Expr {
-                    id: NodeId::default(),
-                    span: cond_span,
-                    kind: ExprKind::Lit(Lit::Bool(true)),
-                },
-            ),
-        };
-        let update = Stmt {
-            id: NodeId::default(),
-            span: cond_span,
-            kind: StmtKind::Semi(Expr {
+        let continue_cond_init = LoopUni::gen_id_init(
+            Mutability::Mutable,
+            continue_cond_id.clone(),
+            Expr {
                 id: NodeId::default(),
                 span: cond_span,
-                kind: ExprKind::Assign(
-                    Box::new(Expr {
-                        id: NodeId::default(),
-                        span: cond_span,
-                        kind: ExprKind::Path(Path {
-                            id: NodeId::default(),
-                            span: cond_span,
-                            namespace: None,
-                            name: continue_cond_id.clone(),
-                        }),
-                    }),
-                    Box::new(Expr {
-                        id: NodeId::default(),
-                        span: cond_span,
-                        kind: ExprKind::UnOp(UnOp::Neg, cond),
-                    }),
-                ),
-            }),
-        };
+                kind: ExprKind::Lit(Lit::Bool(true)),
+            },
+        );
+
+        let update = LoopUni::gen_id_update(
+            continue_cond_id.clone(),
+            Expr {
+                id: NodeId::default(),
+                span: cond_span,
+                kind: ExprKind::UnOp(UnOp::Neg, cond),
+            },
+        );
         block.stmts.push(update);
 
         if let Some(fix_body) = fixup {
@@ -95,16 +72,7 @@ impl LoopUni {
                     id: NodeId::default(),
                     span: fix_body.span,
                     kind: ExprKind::If(
-                        Box::new(Expr {
-                            id: NodeId::default(),
-                            span: continue_cond_id.span,
-                            kind: ExprKind::Path(Path {
-                                id: NodeId::default(),
-                                span: continue_cond_id.span,
-                                namespace: None,
-                                name: continue_cond_id.clone(),
-                            }),
-                        }),
+                        Box::new(LoopUni::gen_path(None, continue_cond_id.clone())),
                         fix_body,
                         None,
                     ),
@@ -125,16 +93,7 @@ impl LoopUni {
                         id: NodeId::default(),
                         span,
                         kind: ExprKind::While(
-                            Box::new(Expr {
-                                id: NodeId::default(),
-                                span,
-                                kind: ExprKind::Path(Path {
-                                    id: NodeId::default(),
-                                    span: cond_span,
-                                    namespace: None,
-                                    name: continue_cond_id,
-                                }),
-                            }),
+                            Box::new(LoopUni::gen_path(None, continue_cond_id)),
                             block,
                         ),
                     }),
@@ -158,86 +117,32 @@ impl LoopUni {
         span: Span,
     ) -> Expr {
         let iterable_span = iterable.span;
+
         let array_id = self.gen_ident(iterable_span);
-        let array_capture = Stmt {
-            id: NodeId::default(),
-            span: iterable_span,
-            kind: StmtKind::Local(
-                Mutability::Immutable,
-                Pat {
-                    id: NodeId::default(),
-                    span: iterable_span,
-                    kind: PatKind::Bind(array_id.clone(), None),
-                },
-                *iterable,
-            ),
-        };
+        let array_capture =
+            LoopUni::gen_id_init(Mutability::Immutable, array_id.clone(), *iterable);
+
         let len_id = self.gen_ident(iterable_span);
-        let len_capture = Stmt {
-            id: NodeId::default(),
-            span: iterable_span,
-            kind: StmtKind::Local(
-                Mutability::Immutable,
-                Pat {
-                    id: NodeId::default(),
-                    span: iterable_span,
-                    kind: PatKind::Bind(len_id.clone(), None),
-                },
-                Expr {
-                    id: NodeId::default(),
-                    span: iterable_span,
-                    kind: ExprKind::Call(
-                        Box::new(Expr {
-                            id: NodeId::default(),
-                            span: iterable_span,
-                            kind: ExprKind::Path(Path {
-                                id: NodeId::default(),
-                                span: iterable_span,
-                                namespace: None,
-                                name: Ident {
-                                    id: NodeId::default(),
-                                    span: iterable_span,
-                                    name: "Length".to_owned(),
-                                },
-                            }),
-                        }),
-                        Box::new(Expr {
-                            id: NodeId::default(),
-                            span: iterable_span,
-                            kind: ExprKind::Paren(Box::new(Expr {
-                                id: NodeId::default(),
-                                span: iterable_span,
-                                kind: ExprKind::Path(Path {
-                                    id: NodeId::default(),
-                                    span: iterable_span,
-                                    namespace: None,
-                                    name: len_id.clone(),
-                                }),
-                            })),
-                        }),
-                    ),
-                },
+        let len_capture = LoopUni::gen_id_init(
+            Mutability::Immutable,
+            len_id.clone(),
+            LoopUni::gen_call(
+                "Microsoft.Quantum.Core".to_owned(),
+                "Length".to_owned(),
+                array_id.clone(),
             ),
-        };
+        );
 
         let index_id = self.gen_ident(iterable_span);
-        let index_init = Stmt {
-            id: NodeId::default(),
-            span: iterable_span,
-            kind: StmtKind::Local(
-                Mutability::Mutable,
-                Pat {
-                    id: NodeId::default(),
-                    span: iterable_span,
-                    kind: PatKind::Bind(index_id.clone(), None),
-                },
-                Expr {
-                    id: NodeId::default(),
-                    span: iterable_span,
-                    kind: ExprKind::Lit(Lit::Int(0)),
-                },
-            ),
-        };
+        let index_init = LoopUni::gen_id_init(
+            Mutability::Mutable,
+            index_id.clone(),
+            Expr {
+                id: NodeId::default(),
+                span: iterable_span,
+                kind: ExprKind::Lit(Lit::Int(0)),
+            },
+        );
 
         let pat_init = Stmt {
             id: NodeId::default(),
@@ -249,57 +154,21 @@ impl LoopUni {
                     id: NodeId::default(),
                     span: iterable_span,
                     kind: ExprKind::Index(
-                        Box::new(Expr {
-                            id: NodeId::default(),
-                            span: iterable_span,
-                            kind: ExprKind::Path(Path {
-                                id: NodeId::default(),
-                                span: iterable_span,
-                                namespace: None,
-                                name: array_id,
-                            }),
-                        }),
-                        Box::new(Expr {
-                            id: NodeId::default(),
-                            span: iterable_span,
-                            kind: ExprKind::Path(Path {
-                                id: NodeId::default(),
-                                span: iterable_span,
-                                namespace: None,
-                                name: index_id.clone(),
-                            }),
-                        }),
+                        Box::new(LoopUni::gen_path(None, array_id)),
+                        Box::new(LoopUni::gen_path(None, index_id.clone())),
                     ),
                 },
             ),
         };
 
-        let update_index = Stmt {
-            id: NodeId::default(),
-            span: iterable_span,
-            kind: StmtKind::Semi(Expr {
+        let update_index = LoopUni::gen_id_update(
+            index_id.clone(),
+            Expr {
                 id: NodeId::default(),
                 span: iterable_span,
-                kind: ExprKind::AssignOp(
-                    BinOp::Add,
-                    Box::new(Expr {
-                        id: NodeId::default(),
-                        span: iterable_span,
-                        kind: ExprKind::Path(Path {
-                            id: NodeId::default(),
-                            span: iterable_span,
-                            namespace: None,
-                            name: index_id.clone(),
-                        }),
-                    }),
-                    Box::new(Expr {
-                        id: NodeId::default(),
-                        span: iterable_span,
-                        kind: ExprKind::Lit(Lit::Int(1)),
-                    }),
-                ),
-            }),
-        };
+                kind: ExprKind::Lit(Lit::Int(1)),
+            },
+        );
 
         block.stmts.insert(0, pat_init);
         block.stmts.push(update_index);
@@ -309,26 +178,8 @@ impl LoopUni {
             span: iterable_span,
             kind: ExprKind::BinOp(
                 BinOp::Lt,
-                Box::new(Expr {
-                    id: NodeId::default(),
-                    span: iterable_span,
-                    kind: ExprKind::Path(Path {
-                        id: NodeId::default(),
-                        span: iterable_span,
-                        namespace: None,
-                        name: index_id,
-                    }),
-                }),
-                Box::new(Expr {
-                    id: NodeId::default(),
-                    span: iterable_span,
-                    kind: ExprKind::Path(Path {
-                        id: NodeId::default(),
-                        span: iterable_span,
-                        namespace: None,
-                        name: len_id,
-                    }),
-                }),
+                Box::new(LoopUni::gen_path(None, index_id)),
+                Box::new(LoopUni::gen_path(None, len_id)),
             ),
         };
 
@@ -353,6 +204,7 @@ impl LoopUni {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn visit_for_range(
         &mut self,
         iter: Pat,
@@ -360,7 +212,213 @@ impl LoopUni {
         mut block: Block,
         span: Span,
     ) -> Expr {
-        todo!();
+        let iterable_span = iterable.span;
+
+        let range_id = self.gen_ident(iterable_span);
+        let range_capture =
+            LoopUni::gen_id_init(Mutability::Immutable, range_id.clone(), *iterable);
+
+        let index_id = self.gen_ident(iterable_span);
+        let index_init = LoopUni::gen_id_init(
+            Mutability::Mutable,
+            index_id.clone(),
+            LoopUni::gen_call(
+                "Microsoft.Quantum.Core".to_owned(),
+                "RangeStart".to_owned(),
+                range_id.clone(),
+            ),
+        );
+
+        let step_id = self.gen_ident(iterable_span);
+        let step_init = LoopUni::gen_id_init(
+            Mutability::Immutable,
+            step_id.clone(),
+            LoopUni::gen_call(
+                "Microsoft.Quantum.Core".to_owned(),
+                "RangeStep".to_owned(),
+                range_id.clone(),
+            ),
+        );
+
+        let end_id = self.gen_ident(iterable_span);
+        let end_init = LoopUni::gen_id_init(
+            Mutability::Immutable,
+            end_id.clone(),
+            LoopUni::gen_call(
+                "Microsoft.Quantum.Core".to_owned(),
+                "RangeEnd".to_owned(),
+                range_id,
+            ),
+        );
+
+        let pat_init = Stmt {
+            id: NodeId::default(),
+            span,
+            kind: StmtKind::Local(
+                Mutability::Immutable,
+                iter,
+                LoopUni::gen_path(None, index_id.clone()),
+            ),
+        };
+
+        let update_index =
+            LoopUni::gen_id_update(index_id.clone(), LoopUni::gen_path(None, step_id.clone()));
+
+        block.stmts.insert(0, pat_init);
+        block.stmts.push(update_index);
+
+        let cond = Expr {
+            id: NodeId::default(),
+            span: iterable_span,
+            kind: ExprKind::BinOp(
+                BinOp::OrL,
+                Box::new(Expr {
+                    id: NodeId::default(),
+                    span: iterable_span,
+                    kind: ExprKind::BinOp(
+                        BinOp::AndL,
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span: iterable_span,
+                            kind: ExprKind::BinOp(
+                                BinOp::Gt,
+                                Box::new(LoopUni::gen_path(None, step_id.clone())),
+                                Box::new(Expr {
+                                    id: NodeId::default(),
+                                    span: iterable_span,
+                                    kind: ExprKind::Lit(Lit::Int(0)),
+                                }),
+                            ),
+                        }),
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span: iterable_span,
+                            kind: ExprKind::BinOp(
+                                BinOp::Lte,
+                                Box::new(LoopUni::gen_path(None, index_id.clone())),
+                                Box::new(LoopUni::gen_path(None, end_id.clone())),
+                            ),
+                        }),
+                    ),
+                }),
+                Box::new(Expr {
+                    id: NodeId::default(),
+                    span: iterable_span,
+                    kind: ExprKind::BinOp(
+                        BinOp::AndL,
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span: iterable_span,
+                            kind: ExprKind::BinOp(
+                                BinOp::Lt,
+                                Box::new(LoopUni::gen_path(None, step_id)),
+                                Box::new(Expr {
+                                    id: NodeId::default(),
+                                    span: iterable_span,
+                                    kind: ExprKind::Lit(Lit::Int(0)),
+                                }),
+                            ),
+                        }),
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span: iterable_span,
+                            kind: ExprKind::BinOp(
+                                BinOp::Gte,
+                                Box::new(LoopUni::gen_path(None, index_id)),
+                                Box::new(LoopUni::gen_path(None, end_id)),
+                            ),
+                        }),
+                    ),
+                }),
+            ),
+        };
+
+        let while_stmt = Stmt {
+            id: NodeId::default(),
+            span,
+            kind: StmtKind::Expr(Expr {
+                id: NodeId::default(),
+                span,
+                kind: ExprKind::While(Box::new(cond), block),
+            }),
+        };
+
+        Expr {
+            id: NodeId::default(),
+            span,
+            kind: ExprKind::Block(Block {
+                id: NodeId::default(),
+                span,
+                stmts: vec![range_capture, index_init, step_init, end_init, while_stmt],
+            }),
+        }
+    }
+
+    fn gen_path(namespace: Option<Ident>, name: Ident) -> Expr {
+        Expr {
+            id: NodeId::default(),
+            span: name.span,
+            kind: ExprKind::Path(Path {
+                id: NodeId::default(),
+                span: name.span,
+                namespace,
+                name,
+            }),
+        }
+    }
+
+    fn gen_id_init(mutability: Mutability, ident: Ident, expr: Expr) -> Stmt {
+        Stmt {
+            id: NodeId::default(),
+            span: ident.span,
+            kind: StmtKind::Local(
+                mutability,
+                Pat {
+                    id: NodeId::default(),
+                    span: ident.span,
+                    kind: PatKind::Bind(ident, None),
+                },
+                expr,
+            ),
+        }
+    }
+
+    fn gen_call(call_namespace: String, call_name: String, arg: Ident) -> Expr {
+        Expr {
+            id: NodeId::default(),
+            span: arg.span,
+            kind: ExprKind::Call(
+                Box::new(LoopUni::gen_path(
+                    Some(Ident {
+                        id: NodeId::default(),
+                        span: arg.span,
+                        name: call_namespace,
+                    }),
+                    Ident {
+                        id: NodeId::default(),
+                        span: arg.span,
+                        name: call_name,
+                    },
+                )),
+                Box::new(LoopUni::gen_path(None, arg)),
+            ),
+        }
+    }
+
+    fn gen_id_update(ident: Ident, expr: Expr) -> Stmt {
+        Stmt {
+            id: NodeId::default(),
+            span: ident.span,
+            kind: StmtKind::Semi(Expr {
+                id: NodeId::default(),
+                span: ident.span,
+                kind: ExprKind::AssignOp(
+                    BinOp::Add,
+                    Box::new(LoopUni::gen_path(None, ident)),
+                    Box::new(expr),
+                ),
+            }),
+        }
     }
 }
 
