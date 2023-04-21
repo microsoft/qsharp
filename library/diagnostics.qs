@@ -21,4 +21,12 @@ namespace Microsoft.Quantum.Diagnostics {
 
         return true;
     }
+
+    /// Checks whether a classical condition is true, and throws an exception if it is not.
+    function Fact(actual : Bool, message : String) : Unit {
+        if (not actual) {
+            fail message;
+        }
+    }
+
 }
