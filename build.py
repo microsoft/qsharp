@@ -79,34 +79,29 @@ if build_cli:
 
 if build_pip:
     print("Building the pip package")
-    # Check if in a virtual environment
-    if os.environ.get('VIRTUAL_ENV') is None and os.environ.get('CONDA_PREFIX') is None and os.environ.get('CI') is None:
-        print("Not in a virtual python environment")
-
-        venv_dir = os.path.join(pip_dir, ".venv")
-        # Create virtual environment under repo root
-        if not os.path.exists(venv_dir):
-            print(f"Creating a virtual python environment under {venv_dir}")
-            venv.main([venv_dir])
-
-        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
-        python_bin = os.path.join(venv_dir, "bin", "python")
-        if not os.path.exists(python_bin):
-            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
-        print(f"Using python from {python_bin}")
-    else:
-        # Already in a virtual environment, use current Python
-        python_bin = sys.executable
-
-    pip_build_args = [python_bin, "-m", "pip",
-                      "wheel", "--wheel-dir", wheels_dir, py_src]
-    result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
-
-    pip_build_args = [python_bin, "-m", "pip",
-                      "wheel", "--wheel-dir", wheels_dir, py_src]
+    pip_build_args = ["pip", "wheel", "--wheel-dir", wheels_dir, py_src]
     result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
 
     if run_tests:
+        # Check if in a virtual environment
+        if os.environ.get('VIRTUAL_ENV') is None and os.environ.get('CONDA_PREFIX') is None and os.environ.get('CI') is None:
+            print("Not in a virtual python environment")
+
+            venv_dir = os.path.join(pip_dir, ".venv")
+            # Create virtual environment under repo root
+            if not os.path.exists(venv_dir):
+                print(f"Creating a virtual environment under {venv_dir}")
+                venv.main([venv_dir])
+
+            # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
+            python_bin = os.path.join(venv_dir, "bin", "python")
+            if not os.path.exists(python_bin):
+                python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
+            print(f"Using python from {python_bin}")
+        else:
+            # Already in a virtual environment, use current Python
+            python_bin = sys.executable
+
         pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
         subprocess.run(pip_install_args, check=True, text=True, cwd=py_src)
         pip_install_args = [python_bin, "-m", "pip",
