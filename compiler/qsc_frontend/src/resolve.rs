@@ -48,6 +48,8 @@ pub(super) enum Error {
         String,
         String,
         #[label("could refer to the item in `{1}` or `{2}`")] Span,
+        #[label("found in this namespace")] Span,
+        #[label("and also in this namespace")] Span,
     ),
 }
 
@@ -396,9 +398,11 @@ fn resolve(
         namespaces.sort_unstable();
         Err(Error::Ambiguous(
             name.to_string(),
-            namespaces[0].to_string(),
-            namespaces[1].to_string(),
+            namespaces[0].1.to_string(),
+            namespaces[1].1.to_string(),
             path.span,
+            *namespaces[0].0,
+            *namespaces[1].0,
         ))
     } else {
         single(open_candidates.into_keys())
@@ -426,12 +430,11 @@ fn resolve_explicit_opens<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
     namespaces: impl IntoIterator<Item = (&'a Rc<str>, &'a Span)>,
     name: &str,
-) -> HashMap<ItemId, Rc<str>> {
+) -> HashMap<ItemId, (&'a Span, &'a Rc<str>)> {
     let mut candidates = HashMap::new();
-    for (namespace, _) in namespaces {
-        let namespace = namespace.as_ref();
+    for (namespace, span) in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(id, namespace.into());
+            candidates.insert(id, (span, namespace));
         }
     }
     candidates
