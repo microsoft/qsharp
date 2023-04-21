@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.Samples.Teleportation {
     //////////////////////////////////////////////////////////////////////////
 
     // Quantum teleportation provides a way of moving a quantum state from one
-    // location  to another without having to move physical particle(s) along
+    // location to another without having to move physical particle(s) along
     // with it. This is done with the help of previously shared quantum
     // entanglement between the sending and the receiving locations and
     // classical communication.
@@ -47,8 +47,6 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         // Measure the qubits to extract the classical data we need to
         // decode the message by applying the corrections on
         // the target qubit accordingly.
-        // We use MResetZ from the Microsoft.Quantum.Measurement namespace
-        // to reset our qubits as we go.
         if (M(msg) == One) { Z(target); }
         // Correction step
         if (M(register) == One) {
@@ -91,7 +89,8 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         let result = (M(target) == One);
         
         // Reset qubits to Zero state before releasing
-        ResetAll([msg, target]);
+        Reset(msg);
+        Reset(target);
 
         return result;
     }
