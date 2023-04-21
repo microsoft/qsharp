@@ -339,7 +339,7 @@ fn length_type_error() {
             #5 8-9 "1" : Int
             #6 11-12 "2" : Int
             #7 14-15 "3" : Int
-            Error(Type(Error(TypeMismatch(Array(Var(TyVar(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
+            Error(Type(Error(TypeMismatch(Array(Infer(InferTy(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
         "##]],
     );
 }
@@ -383,7 +383,7 @@ fn array_index_error() {
             #4 4-5 "2" : Int
             #5 7-8 "3" : Int
             #6 10-15 "false" : Bool
-            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Var(TyVar(0)) }, Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Infer(InferTy(0)) }, Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -659,7 +659,7 @@ fn let_tuple_arity_error() {
             #11 18-24 "(0, 1)" : (Int, Int)
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
-            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Var(TyVar(0)), Var(TyVar(1)), Var(TyVar(2))]), Span { lo: 6, hi: 15 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 6, hi: 15 }))))
         "##]],
     );
 }
@@ -740,7 +740,7 @@ fn qubit_tuple_arity_error() {
             #11 23-24 "3" : Int
             #12 27-34 "Qubit()" : Qubit
             #13 36-43 "Qubit()" : Qubit
-            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Var(TyVar(0)), Var(TyVar(1))]), Span { lo: 6, hi: 13 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1))]), Span { lo: 6, hi: 13 }))))
         "##]],
     );
 }
@@ -759,7 +759,7 @@ fn for_loop_not_iterable() {
             #6 13-17 "true" : Bool
             #7 19-22 "One" : Result
             #8 24-26 "{}" : ()
-            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Var(TyVar(0)) }, Span { lo: 9, hi: 23 }))))
+            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Infer(InferTy(0)) }, Span { lo: 9, hi: 23 }))))
         "##]],
     );
 }

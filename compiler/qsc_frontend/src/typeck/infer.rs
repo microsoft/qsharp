@@ -3,13 +3,13 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, PrimTy, Ty, TyVar};
+use qsc_hir::hir::{Functor, InferTy, PrimTy, Ty};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
-pub(super) type Substitutions = IndexMap<TyVar, Ty>;
+pub(super) type Substitutions = IndexMap<InferTy, Ty>;
 
 #[derive(Clone, Debug)]
 pub(super) enum Class {
@@ -174,14 +174,14 @@ struct UnifyError(Ty, Ty);
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
-    next_var: TyVar,
+    next_fresh: InferTy,
 }
 
 impl Inferrer {
     pub(super) fn new() -> Self {
         Self {
             constraints: VecDeque::new(),
-            next_var: TyVar(0),
+            next_fresh: InferTy::from(0),
         }
     }
 
@@ -201,16 +201,16 @@ impl Inferrer {
 
     /// Returns a unique unconstrained type variable.
     pub(super) fn fresh(&mut self) -> Ty {
-        let var = self.next_var;
-        self.next_var = TyVar(var.0 + 1);
-        Ty::Var(var)
+        let fresh = self.next_fresh;
+        self.next_fresh = InferTy::from(usize::from(fresh) + 1);
+        Ty::Infer(fresh)
     }
 
     /// Replaces all type parameters with fresh types.
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::Err | Ty::Prim(_) | Ty::Var(_) => {}
+                Ty::Err | Ty::Infer(_) | Ty::Prim(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
                 Ty::Arrow(_, input, output, _) => {
                     freshen(solver, params, input);
@@ -249,7 +249,7 @@ impl Inferrer {
 
 struct Solver {
     substs: Substitutions,
-    pending: HashMap<TyVar, Vec<Class>>,
+    pending: HashMap<InferTy, Vec<Class>>,
     errors: Vec<Error>,
 }
 
@@ -276,8 +276,8 @@ impl Solver {
     fn class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
         let mut unknown_dependency = false;
         for ty in class.dependencies() {
-            if let Some(var) = unknown_var(&self.substs, ty) {
-                self.pending.entry(var).or_default().push(class.clone());
+            if let Some(infer) = unknown_ty(&self.substs, ty) {
+                self.pending.entry(infer).or_default().push(class.clone());
                 unknown_dependency = true;
             }
         }
@@ -341,8 +341,8 @@ pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
                 substitute(substs, item);
             }
         }
-        &mut Ty::Var(var) => {
-            if let Some(new_ty) = substs.get(var) {
+        &mut Ty::Infer(infer) => {
+            if let Some(new_ty) = substs.get(infer) {
                 *ty = new_ty.clone();
                 substitute(substs, ty);
             }
@@ -355,7 +355,7 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
     ty
 }
 
-fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(TyVar, Ty)) -> Result<(), UnifyError> {
+fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferTy, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
         (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2, bind),
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
@@ -368,6 +368,15 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(TyVar, Ty)) -> Result<(), Uni
             unify(output1, output2, bind)?;
             Ok(())
         }
+        (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Ok(()),
+        (&Ty::Infer(infer), _) => {
+            bind(infer, ty2.clone());
+            Ok(())
+        }
+        (_, &Ty::Infer(infer)) => {
+            bind(infer, ty1.clone());
+            Ok(())
+        }
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
@@ -376,24 +385,15 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(TyVar, Ty)) -> Result<(), Uni
             }
             Ok(())
         }
-        (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => Ok(()),
-        (&Ty::Var(var), _) => {
-            bind(var, ty2.clone());
-            Ok(())
-        }
-        (_, &Ty::Var(var)) => {
-            bind(var, ty1.clone());
-            Ok(())
-        }
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
 }
 
-fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<TyVar> {
+fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferTy> {
     match ty {
-        &Ty::Var(var) => match substs.get(var) {
-            None => Some(var),
-            Some(ty) => unknown_var(substs, ty),
+        &Ty::Infer(infer) => match substs.get(infer) {
+            None => Some(infer),
+            Some(ty) => unknown_ty(substs, ty),
         },
         _ => None,
     }

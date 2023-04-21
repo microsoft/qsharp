@@ -1142,16 +1142,16 @@ pub enum Ty {
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
     Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
-    /// An unknown type caused by an error.
+    /// An invalid type caused by an error.
     Err,
+    /// A placeholder type variable used during type inference.
+    Infer(InferTy),
     /// A type parameter.
     Param(String),
     /// A primitive type.
     Prim(PrimTy),
     /// A tuple type.
     Tuple(Vec<Ty>),
-    /// A type variable.
-    Var(TyVar),
 }
 
 impl Ty {
@@ -1180,6 +1180,7 @@ impl Display for Ty {
                 write!(f, "({input}) {arrow} ({output}){is}")
             }
             Ty::Err => f.write_str("?"),
+            Ty::Infer(infer) => Display::fmt(infer, f),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => prim.fmt(f),
             Ty::Tuple(items) => {
@@ -1197,7 +1198,6 @@ impl Display for Ty {
                 }
                 f.write_str(")")
             }
-            Ty::Var(id) => Display::fmt(id, f),
         }
     }
 }
@@ -1225,24 +1225,24 @@ pub enum PrimTy {
     String,
 }
 
-/// A type variable.
+/// A placeholder type variable used during type inference.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct TyVar(pub usize);
+pub struct InferTy(usize);
 
-impl Display for TyVar {
+impl Display for InferTy {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "?{}", self.0)
     }
 }
 
-impl From<usize> for TyVar {
+impl From<usize> for InferTy {
     fn from(value: usize) -> Self {
-        TyVar(value)
+        InferTy(value)
     }
 }
 
-impl From<TyVar> for usize {
-    fn from(value: TyVar) -> Self {
+impl From<InferTy> for usize {
+    fn from(value: InferTy) -> Self {
         value.0
     }
 }
