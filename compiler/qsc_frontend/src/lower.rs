@@ -4,7 +4,10 @@
 use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::{assigner::Assigner, hir};
+use qsc_hir::{
+    assigner::Assigner,
+    hir::{self, PackageDefId},
+};
 
 pub(super) struct Lowerer {
     assigner: Assigner,
@@ -41,51 +44,63 @@ pub(super) struct With<'a> {
 
 impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
+        let mut items = IndexMap::new();
+        for namespace in &package.namespaces {
+            for item in &namespace.items {
+                if let Some((def, item)) = self.lower_item(namespace.name.name.clone(), item) {
+                    items.insert(def, item);
+                }
+            }
+        }
+
         hir::Package {
             id: self.lower_id(package.id),
-            namespaces: package
-                .namespaces
-                .iter()
-                .map(|n| self.lower_namespace(n))
-                .collect(),
+            items,
             entry: package.entry.as_ref().map(|e| self.lower_expr(e)),
         }
     }
 
-    fn lower_namespace(&mut self, namespace: &ast::Namespace) -> hir::Namespace {
-        hir::Namespace {
-            id: self.lower_id(namespace.id),
-            span: namespace.span,
-            name: self.lower_ident(&namespace.name),
-            items: namespace.items.iter().map(|i| self.lower_item(i)).collect(),
+    fn lower_item(
+        &mut self,
+        parent: String,
+        item: &ast::Item,
+    ) -> Option<(PackageDefId, hir::Item)> {
+        if matches!(item.kind, ast::ItemKind::Open(..)) {
+            return None;
         }
-    }
 
-    fn lower_item(&mut self, item: &ast::Item) -> hir::Item {
         let id = self.lower_id(item.id);
         let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let kind = match &item.kind {
+        let (def, kind) = match &item.kind {
             ast::ItemKind::Callable(decl) => {
-                hir::ItemKind::Callable(self.lower_callable_decl(decl))
+                let Some(&resolve::Res::Def(def_id)) = self.resolutions.get(decl.name.id) else {
+                    panic!("callable declaration should have definition ID");
+                };
+                let kind = hir::ItemKind::Callable(self.lower_callable_decl(decl));
+                (def_id.def, kind)
             }
-            ast::ItemKind::Err => hir::ItemKind::Err,
-            ast::ItemKind::Open(name, alias) => hir::ItemKind::Open(
-                self.lower_ident(name),
-                alias.as_ref().map(|a| self.lower_ident(a)),
-            ),
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Ty(name, def) => {
-                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def))
+                let Some(&resolve::Res::Def(def_id)) = self.resolutions.get(name.id) else {
+                    panic!("type declaration should have definition ID");
+                };
+                let kind = hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def));
+                (def_id.def, kind)
             }
         };
 
-        hir::Item {
-            id,
-            span: item.span,
-            attrs,
-            visibility,
-            kind,
-        }
+        Some((
+            def,
+            hir::Item {
+                id,
+                span: item.span,
+                parent,
+                attrs,
+                visibility,
+                kind,
+            },
+        ))
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> hir::Attr {
@@ -420,8 +435,8 @@ impl With<'_> {
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.resolutions.get(path.id) {
             None => hir::Res::Err,
-            Some(&resolve::Res::Internal(node)) => hir::Res::Internal(self.lower_id(node)),
-            Some(&resolve::Res::External(package, node)) => hir::Res::External(package, node),
+            Some(&resolve::Res::Def(def)) => hir::Res::Def(def),
+            Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
         }
     }
 

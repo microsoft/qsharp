@@ -4,9 +4,10 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
-use qsc_passes::{globals::extract_callables, run_default_passes};
+use qsc_hir::hir::ItemKind;
+use qsc_passes::run_default_passes;
 
-use crate::{eval_expr, output::GenericReceiver, Env};
+use crate::{eval_expr, output::GenericReceiver, Env, GlobalDefId};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -18,13 +19,22 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     );
     assert!(run_default_passes(&mut unit).is_empty());
     let id = store.insert(unit);
-    let globals = extract_callables(&store);
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     let expr = store
         .get_entry_expr(id)
         .expect("entry expression shouild be present");
-    match eval_expr(expr, &globals, id, &mut Env::default(), &mut out) {
+    let global = |id: GlobalDefId| {
+        store.get(id.package).and_then(|unit| {
+            let item = unit.package.items.get(id.def)?;
+            if let ItemKind::Callable(callable) = &item.kind {
+                Some(callable)
+            } else {
+                None
+            }
+        })
+    };
+    match eval_expr(expr, &global, id, &mut Env::default(), &mut out) {
         Ok(result) => expect.assert_eq(&result.to_string()),
         Err(e) => expect.assert_debug_eq(&e),
     }
@@ -1824,7 +1834,7 @@ fn unop_adjoint_functor_expr() {
             }
         "},
         "Adjoint Test.Foo",
-        &expect!["Adjoint <node 5 in package 0>"],
+        &expect!["Adjoint <definition 0 in package 0>"],
     );
 }
 
@@ -1839,7 +1849,7 @@ fn unop_controlled_functor_expr() {
             }
         "},
         "Controlled Test.Foo",
-        &expect!["Controlled <node 5 in package 0>"],
+        &expect!["Controlled <definition 0 in package 0>"],
     );
 }
 
@@ -1854,7 +1864,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "},
         "Adjoint (Adjoint Test.Foo)",
-        &expect!["<node 5 in package 0>"],
+        &expect!["<definition 0 in package 0>"],
     );
 }
 
@@ -1869,7 +1879,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "},
         "Controlled Adjoint Test.Foo",
-        &expect!["Controlled Adjoint <node 5 in package 0>"],
+        &expect!["Controlled Adjoint <definition 0 in package 0>"],
     );
 }
 
@@ -1884,7 +1894,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "},
         "Adjoint Controlled Test.Foo",
-        &expect!["Controlled Adjoint <node 5 in package 0>"],
+        &expect!["Controlled Adjoint <definition 0 in package 0>"],
     );
 }
 
@@ -1899,7 +1909,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "},
         "Controlled (Controlled Test.Foo)",
-        &expect!["Controlled Controlled <node 5 in package 0>"],
+        &expect!["Controlled Controlled <definition 0 in package 0>"],
     );
 }
 

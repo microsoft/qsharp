@@ -12,6 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
+use qsc_hir::hir::DefId;
 use std::{
     collections::{HashMap, HashSet},
     convert::Into,
@@ -65,7 +66,7 @@ impl<T> Fallible<T> {
 
 struct Context<'a> {
     resolutions: &'a Resolutions,
-    globals: &'a HashMap<Res, Ty>,
+    globals: &'a HashMap<DefId, Ty>,
     return_ty: Option<&'a Ty>,
     tys: &'a mut Tys<NodeId>,
     nodes: Vec<NodeId>,
@@ -75,7 +76,7 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions,
-        globals: &'a HashMap<Res, Ty>,
+        globals: &'a HashMap<DefId, Ty>,
         tys: &'a mut Tys<NodeId>,
     ) -> Self {
         Self {
@@ -313,23 +314,20 @@ impl<'a> Context<'a> {
             ExprKind::Paren(expr) => term.then(self.infer_expr(expr)),
             ExprKind::Path(path) => match self.resolutions.get(path.id) {
                 None => Ty::Err,
-                Some(res) => match self.globals.get(res) {
-                    Some(ty) => {
-                        let mut ty = ty.clone();
-                        self.inferrer.freshen(&mut ty);
-                        ty
-                    }
-                    None => match res {
-                        &Res::Internal(id) => self
-                            .tys
-                            .get(id)
-                            .expect("local variable should have inferred type")
-                            .clone(),
-                        Res::External(..) => {
-                            panic!("path resolves to external package but definition not found")
-                        }
-                    },
-                },
+                Some(Res::Def(def)) => {
+                    let mut ty = self
+                        .globals
+                        .get(def)
+                        .expect("global definition should have type")
+                        .clone();
+                    self.inferrer.freshen(&mut ty);
+                    ty
+                }
+                Some(&Res::Local(node)) => self
+                    .tys
+                    .get(node)
+                    .expect("local variable should have inferred type")
+                    .clone(),
             },
             ExprKind::Range(start, step, end) => {
                 for expr in start.iter().chain(step).chain(end) {
@@ -602,7 +600,7 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     resolutions: &Resolutions,
-    globals: &HashMap<Res, Ty>,
+    globals: &HashMap<DefId, Ty>,
     tys: &mut Tys<NodeId>,
     spec: SpecImpl,
 ) -> Vec<Error> {
@@ -613,7 +611,7 @@ pub(super) fn spec(
 
 pub(super) fn entry_expr(
     resolutions: &Resolutions,
-    globals: &HashMap<Res, Ty>,
+    globals: &HashMap<DefId, Ty>,
     tys: &mut Tys<NodeId>,
     entry: &Expr,
 ) -> Vec<Error> {

@@ -5,20 +5,18 @@ mod tests;
 
 use crate::{
     eval_stmt, output::Receiver, stateful::ouroboros_impl_execution_context::BorrowedMutFields,
-    val::Value, AggregateError, Env,
+    val::Value, AggregateError, Env, GlobalDefId,
 };
 use miette::Diagnostic;
 use ouroboros::self_referencing;
+use qsc_data_structures::index_map::IndexMap;
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, PackageStore},
     incremental::{Compiler, Fragment},
 };
-use qsc_hir::hir::{CallableDecl, PackageId};
-use qsc_passes::{
-    globals::{extract_callables, GlobalId},
-    run_default_passes,
-};
-use std::{collections::HashMap, string::String};
+use qsc_hir::hir::{CallableDecl, ItemKind, PackageDefId, PackageId};
+use qsc_passes::run_default_passes;
+use std::string::String;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -34,13 +32,12 @@ pub enum Error {
 #[self_referencing]
 pub struct ExecutionContext {
     store: PackageStore,
-    package: PackageId,
     #[borrows(store)]
     #[covariant]
     compiler: Compiler<'this>,
-    #[borrows(store)]
-    #[not_covariant]
-    globals: HashMap<GlobalId, &'this CallableDecl>,
+    package: PackageId,
+    next_def_id: PackageDefId,
+    callables: IndexMap<PackageDefId, CallableDecl>,
     env: Option<Env>,
 }
 
@@ -124,9 +121,10 @@ fn create_execution_context(
     let session_package = store.insert(compile(&store, [], sources, ""));
     let context = ExecutionContextBuilder {
         store,
-        package: session_package,
         compiler_builder: |store| Compiler::new(store, session_deps),
-        globals_builder: extract_callables,
+        package: session_package,
+        next_def_id: PackageDefId(0),
+        callables: IndexMap::new(),
         env: None,
     }
     .build();
@@ -148,9 +146,23 @@ fn eval_line_in_context(
         match fragment {
             Fragment::Stmt(stmt) => {
                 let mut env = fields.env.take().unwrap_or(Env::with_empty_scope());
-                let result = eval_stmt(&stmt, fields.globals, *fields.package, &mut env, receiver);
-                let _ = fields.env.insert(env);
+                let global = |id: GlobalDefId| {
+                    if id.package == *fields.package {
+                        fields.callables.get(id.def)
+                    } else {
+                        fields.store.get(id.package).and_then(|unit| {
+                            let item = unit.package.items.get(id.def)?;
+                            if let ItemKind::Callable(callable) = &item.kind {
+                                Some(callable)
+                            } else {
+                                None
+                            }
+                        })
+                    }
+                };
 
+                let result = eval_stmt(&stmt, &global, *fields.package, &mut env, receiver);
+                let _ = fields.env.insert(env);
                 match result {
                     Ok(v) => {
                         final_result = v;
@@ -161,11 +173,9 @@ fn eval_line_in_context(
                 }
             }
             Fragment::Callable(decl) => {
-                let id = GlobalId {
-                    package: *fields.package,
-                    node: decl.name.id,
-                };
-                fields.globals.insert(id, Box::leak(Box::new(decl)));
+                let id = *fields.next_def_id;
+                *fields.next_def_id = PackageDefId(id.0 + 1);
+                fields.callables.insert(id, decl);
                 final_result = Value::UNIT;
             }
             Fragment::Error(errors) => {

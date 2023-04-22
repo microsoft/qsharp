@@ -11,8 +11,8 @@ use qsc_ast::{
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
-    hir::{self, PackageId},
-    visit::{self as hir_visit, Visitor as HirVisitor},
+    hir::{self, DefId, PackageDefId, PackageId},
+    visit::Visitor as HirVisitor,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -32,10 +32,10 @@ pub(super) type Resolutions = IndexMap<ast::NodeId, Res>;
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(super) enum Res {
-    /// A resolution to a name declared in the same package as the usage.
-    Internal(ast::NodeId),
-    /// A resolution to a name declared in another package.
-    External(PackageId, hir::NodeId),
+    /// A resolution to a global definition.
+    Def(DefId),
+    /// A resolution to a local variable.
+    Local(ast::NodeId),
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -54,12 +54,13 @@ pub(super) enum Error {
 
 pub(super) struct Resolver<'a> {
     resolutions: Resolutions,
-    tys: HashMap<&'a str, HashMap<&'a str, Res>>,
-    terms: HashMap<&'a str, HashMap<&'a str, Res>>,
+    tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
     opens: HashMap<&'a str, HashMap<&'a str, Span>>,
     namespace: &'a str,
     locals: Vec<HashMap<&'a str, ast::NodeId>>,
     errors: Vec<Error>,
+    next_def_id: PackageDefId,
 }
 
 impl<'a> Resolver<'a> {
@@ -72,12 +73,14 @@ impl<'a> Resolver<'a> {
     }
 
     pub(super) fn add_global_callable(&mut self, decl: &'a ast::CallableDecl) {
-        let res = Res::Internal(decl.name.id);
-        self.resolutions.insert(decl.name.id, res);
+        let def = self.next_def_id;
+        self.next_def_id = PackageDefId(def.0 + 1);
+        let def_id = DefId { package: None, def };
+        self.resolutions.insert(decl.name.id, Res::Def(def_id));
         self.terms
             .entry(self.namespace)
             .or_default()
-            .insert(&decl.name.name, res);
+            .insert(&decl.name.name, def_id);
     }
 
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
@@ -126,7 +129,7 @@ impl<'a> Resolver<'a> {
                     .locals
                     .last_mut()
                     .expect("binding should have environment");
-                self.resolutions.insert(name.id, Res::Internal(name.id));
+                self.resolutions.insert(name.id, Res::Local(name.id));
                 env.insert(name.name.as_str(), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
@@ -233,10 +236,11 @@ impl<'a> AstVisitor<'a> for Resolver<'a> {
 
 pub(super) struct GlobalTable<'a> {
     resolutions: Resolutions,
-    tys: HashMap<&'a str, HashMap<&'a str, Res>>,
-    terms: HashMap<&'a str, HashMap<&'a str, Res>>,
+    tys: HashMap<&'a str, HashMap<&'a str, DefId>>,
+    terms: HashMap<&'a str, HashMap<&'a str, DefId>>,
     package: Option<PackageId>,
     namespace: &'a str,
+    next_def_id: PackageDefId,
 }
 
 impl<'a> GlobalTable<'a> {
@@ -247,6 +251,7 @@ impl<'a> GlobalTable<'a> {
             terms: HashMap::new(),
             package: None,
             namespace: "",
+            next_def_id: PackageDefId(0),
         }
     }
 
@@ -263,6 +268,7 @@ impl<'a> GlobalTable<'a> {
             namespace: "",
             locals: Vec::new(),
             errors: Vec::new(),
+            next_def_id: self.next_def_id,
         }
     }
 }
@@ -282,24 +288,34 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
 
         match &item.kind {
             ast::ItemKind::Callable(decl) => {
-                let res = Res::Internal(decl.name.id);
-                self.resolutions.insert(decl.name.id, res);
+                let def = self.next_def_id;
+                self.next_def_id = PackageDefId(def.0 + 1);
+                let def_id = DefId {
+                    package: self.package,
+                    def,
+                };
+                self.resolutions.insert(decl.name.id, Res::Def(def_id));
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&decl.name.name, res);
+                    .insert(&decl.name.name, def_id);
             }
             ast::ItemKind::Ty(name, _) => {
-                let res = Res::Internal(name.id);
-                self.resolutions.insert(name.id, res);
+                let def = self.next_def_id;
+                self.next_def_id = PackageDefId(def.0 + 1);
+                let def_id = DefId {
+                    package: self.package,
+                    def,
+                };
+                self.resolutions.insert(name.id, Res::Def(def_id));
                 self.tys
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, res);
+                    .insert(&name.name, def_id);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, res);
+                    .insert(&name.name, def_id);
             }
             ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
         }
@@ -307,46 +323,46 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
 }
 
 impl<'a> HirVisitor<'a> for GlobalTable<'a> {
-    fn visit_namespace(&mut self, namespace: &'a hir::Namespace) {
-        self.namespace = &namespace.name.name;
-        hir_visit::walk_namespace(self, namespace);
-        self.namespace = "";
-    }
-
-    fn visit_item(&mut self, item: &'a hir::Item) {
-        let package = self
+    fn visit_package(&mut self, package: &'a hir::Package) {
+        let package_id = self
             .package
             .expect("package ID should be set before visiting HIR");
 
-        if item.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
-            return;
-        }
+        for (def, item) in package.items.iter() {
+            if item.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
+                continue;
+            }
 
-        match &item.kind {
-            hir::ItemKind::Callable(decl) => {
-                self.terms
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&decl.name.name, Res::External(package, decl.name.id));
+            let def_id = DefId {
+                package: Some(package_id),
+                def,
+            };
+
+            match &item.kind {
+                hir::ItemKind::Callable(decl) => {
+                    self.terms
+                        .entry(&item.parent)
+                        .or_default()
+                        .insert(&decl.name.name, def_id);
+                }
+                hir::ItemKind::Ty(name, _) => {
+                    self.tys
+                        .entry(&item.parent)
+                        .or_default()
+                        .insert(&name.name, def_id);
+                    self.terms
+                        .entry(&item.parent)
+                        .or_default()
+                        .insert(&name.name, def_id);
+                }
+                hir::ItemKind::Err => {}
             }
-            hir::ItemKind::Ty(name, _) => {
-                let res = Res::External(package, name.id);
-                self.tys
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&name.name, res);
-                self.terms
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&name.name, res);
-            }
-            hir::ItemKind::Err | hir::ItemKind::Open(..) => {}
         }
     }
 }
 
 fn resolve(
-    globals: &HashMap<&str, HashMap<&str, Res>>,
+    globals: &HashMap<&str, HashMap<&str, DefId>>,
     opens: &HashMap<&str, HashMap<&str, Span>>,
     parent: &str,
     locals: &[HashMap<&str, ast::NodeId>],
@@ -357,10 +373,10 @@ fn resolve(
     if namespace.is_empty() {
         if let Some(&id) = locals.iter().rev().find_map(|env| env.get(name)) {
             // Locals shadow everything.
-            return Ok(Res::Internal(id));
+            return Ok(Res::Local(id));
         } else if let Some(&id) = globals.get(parent).and_then(|env| env.get(name)) {
             // Items in the parent namespace shadow opens.
-            return Ok(id);
+            return Ok(Res::Def(id));
         }
     }
 
@@ -373,16 +389,16 @@ fn resolve(
     if open_candidates.is_empty() && namespace.is_empty() {
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(globals, PRELUDE, name);
-        assert!(candidates.len() <= 1, "Ambiguity in prelude resolution.");
+        assert!(candidates.len() <= 1, "ambiguity in prelude resolution");
         if let Some(id) = single(candidates) {
-            return Ok(id);
+            return Ok(Res::Def(id));
         }
     }
 
     if open_candidates.is_empty() {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
             // An unopened global is the last resort.
-            return Ok(id);
+            return Ok(Res::Def(id));
         }
     }
 
@@ -397,15 +413,16 @@ fn resolve(
         ))
     } else {
         single(open_candidates.into_keys())
+            .map(Res::Def)
             .ok_or_else(|| Error::NotFound(name.to_string(), path.span))
     }
 }
 
 fn resolve_implicit_opens<'a>(
-    globals: &HashMap<&str, HashMap<&str, Res>>,
+    globals: &HashMap<&str, HashMap<&str, DefId>>,
     namespaces: impl IntoIterator<Item = &'a &'a str>,
     name: &str,
-) -> HashSet<Res> {
+) -> HashSet<DefId> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
@@ -416,10 +433,10 @@ fn resolve_implicit_opens<'a>(
 }
 
 fn resolve_explicit_opens<'a>(
-    globals: &HashMap<&str, HashMap<&str, Res>>,
+    globals: &HashMap<&str, HashMap<&str, DefId>>,
     namespaces: impl IntoIterator<Item = (&'a &'a str, &'a Span)>,
     name: &str,
-) -> HashMap<Res, Span> {
+) -> HashMap<DefId, Span> {
     let mut candidates = HashMap::new();
     for (&namespace, &span) in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {

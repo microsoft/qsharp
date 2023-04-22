@@ -7,9 +7,9 @@ use std::{
     iter,
 };
 
+use crate::GlobalDefId;
 use num_bigint::BigInt;
 use qsc_hir::hir::Pauli;
-use qsc_passes::globals::GlobalId;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -18,7 +18,7 @@ pub enum Value {
     Bool(bool),
     Closure,
     Double(f64),
-    Global(GlobalId, FunctorApp),
+    Global(GlobalDefId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
     Qubit(Qubit),

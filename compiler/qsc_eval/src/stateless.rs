@@ -1,17 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::Receiver, val::Value, AggregateError, Env};
+use crate::{eval_expr, output::Receiver, val::Value, AggregateError, Env, GlobalDefId};
 use miette::Diagnostic;
-use ouroboros::self_referencing;
 use qsc_frontend::compile::{self, compile, PackageStore};
-use qsc_hir::hir::{CallableDecl, Expr, PackageId};
-use qsc_passes::{
-    entry_point::extract_entry,
-    globals::{extract_callables, GlobalId},
-    run_default_passes,
-};
-use std::collections::HashMap;
+use qsc_hir::hir::{Expr, ItemKind, PackageId};
+use qsc_passes::{entry_point::extract_entry, run_default_passes};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -74,11 +68,20 @@ pub fn eval(
     let basis_package = store.insert(unit);
     session_deps.push(basis_package);
 
-    let globals = extract_callables(&store);
+    let global = |id: GlobalDefId| {
+        store.get(id.package).and_then(|unit| {
+            let item = unit.package.items.get(id.def)?;
+            if let ItemKind::Callable(callable) = &item.kind {
+                Some(callable)
+            } else {
+                None
+            }
+        })
+    };
 
     let expr = get_entry_expr(&store, basis_package)?;
     let mut env = Env::with_empty_scope();
-    let result = eval_expr(&expr, &globals, basis_package, &mut env, receiver);
+    let result = eval_expr(&expr, &global, basis_package, &mut env, receiver);
     match result {
         Ok(v) => Ok(v),
         Err(e) => Err(AggregateError(vec![Error::Eval(e)])),
@@ -105,21 +108,26 @@ pub fn eval_in_context(
 ) -> Result<Value, AggregateError<Error>> {
     crate::init();
 
-    context.with(|f| {
-        let expr = get_entry_expr(f.store, *f.package)?;
-        let mut env = Env::with_empty_scope();
-        eval_expr(&expr, f.globals, *f.package, &mut env, receiver)
-            .map_err(|e| AggregateError(vec![Error::Eval(e)]))
-    })
+    let expr = get_entry_expr(&context.store, context.package)?;
+    let global = |id: GlobalDefId| {
+        context.store.get(id.package).and_then(|unit| {
+            let item = unit.package.items.get(id.def)?;
+            if let ItemKind::Callable(callable) = &item.kind {
+                Some(callable)
+            } else {
+                None
+            }
+        })
+    };
+
+    let mut env = Env::with_empty_scope();
+    eval_expr(&expr, &global, context.package, &mut env, receiver)
+        .map_err(|e| AggregateError(vec![Error::Eval(e)]))
 }
 
-#[self_referencing]
 pub struct ExecutionContext {
     store: PackageStore,
     package: PackageId,
-    #[borrows(store)]
-    #[not_covariant]
-    globals: HashMap<GlobalId, &'this CallableDecl>,
 }
 
 fn create_execution_context(
@@ -161,13 +169,10 @@ fn create_execution_context(
     }
     let basis_package = store.insert(unit);
 
-    let context = ExecutionContextBuilder {
+    Ok(ExecutionContext {
         store,
         package: basis_package,
-        globals_builder: extract_callables,
-    }
-    .build();
-    Ok(context)
+    })
 }
 
 fn get_entry_expr(

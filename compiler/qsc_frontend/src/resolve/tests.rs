@@ -12,6 +12,7 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_data_structures::span::Span;
+use qsc_hir::hir::DefId;
 use std::fmt::Write;
 
 struct Renamer<'a> {
@@ -30,8 +31,12 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, res) in self.changes.iter().rev() {
             let name = match res {
-                Res::Internal(node) => format!("_{node}"),
-                Res::External(package, node) => format!("_{package}_{node}"),
+                Res::Def(DefId { package: None, def }) => format!("def{}", def.0),
+                Res::Def(DefId {
+                    package: Some(package),
+                    def,
+                }) => format!("pkg{}_def{}", package, def.0),
+                Res::Local(node) => format!("local{node}"),
             };
             input.replace_range(span, &name);
         }
@@ -99,10 +104,10 @@ fn global_callable() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
 
-                function _11() : Unit {
-                    _5();
+                function def1() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -121,8 +126,8 @@ fn global_callable_recursive() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {
-                    _5();
+                function def0() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -143,10 +148,10 @@ fn global_callable_internal() {
         "},
         &expect![[r#"
             namespace Foo {
-                internal function _6() : Unit {}
+                internal function def0() : Unit {}
 
-                function _12() : Unit {
-                    _6();
+                function def1() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -169,12 +174,12 @@ fn global_path() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
-                function _13() : Unit {
-                    _5();
+                function def1() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -199,14 +204,14 @@ fn open_namespace() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
                 open Foo;
 
-                function _15() : Unit {
-                    _5();
+                function def1() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -231,14 +236,14 @@ fn open_alias() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
                 open Foo as F;
 
-                function _16() : Unit {
-                    _5();
+                function def1() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -261,12 +266,12 @@ fn prelude_callable() {
         "},
         &expect![[r#"
             namespace Microsoft.Quantum.Core {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Foo {
-                function _13() : Unit {
-                    _5();
+                function def1() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -291,14 +296,14 @@ fn parent_namespace_shadows_prelude() {
         "},
         &expect![[r#"
             namespace Microsoft.Quantum.Core {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Foo {
-                function _13() : Unit {}
+                function def1() : Unit {}
 
-                function _19() : Unit {
-                    _13();
+                function def2() : Unit {
+                    def1();
                 }
             }
         "#]],
@@ -327,18 +332,18 @@ fn open_shadows_prelude() {
         "},
         &expect![[r#"
             namespace Microsoft.Quantum.Core {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Foo {
-                function _13() : Unit {}
+                function def1() : Unit {}
             }
 
             namespace Bar {
                 open Foo;
 
-                function _23() : Unit {
-                    _13();
+                function def2() : Unit {
+                    def1();
                 }
             }
         "#]],
@@ -346,7 +351,7 @@ fn open_shadows_prelude() {
 }
 
 #[test]
-#[should_panic(expected = "Ambiguity in prelude resolution.")]
+#[should_panic(expected = "ambiguity in prelude resolution")]
 fn ambiguous_prelude() {
     resolve_names(indoc! {"
         namespace Microsoft.Quantum.Canon {
@@ -378,9 +383,9 @@ fn local_var() {
         "},
         &expect![[r#"
             namespace Foo { 
-                function _5() : Int {
-                    let _11 = 0;
-                    _11
+                function def0() : Int {
+                    let local11 = 0;
+                    local11
                 }
             }
         "#]],
@@ -404,13 +409,13 @@ fn shadow_local() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Int {
-                    let _11 = 0;
-                    let _15 = {
-                        let _20 = 1;
-                        _20
+                function def0() : Int {
+                    let local11 = 0;
+                    let local15 = {
+                        let local20 = 1;
+                        local20
                     };
-                    _11 + _15
+                    local11 + local15
                 }
             }
         "#]],
@@ -429,8 +434,8 @@ fn callable_param() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5(_8 : Int) : Int {
-                    _8
+                function def0(local8 : Int) : Int {
+                    local8
                 }
             }
         "#]],
@@ -451,9 +456,9 @@ fn spec_param() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _5(_8 : Qubit) : (Qubit[], Qubit) {
-                    controlled (_17, ...) {
-                        (_17, _8)
+                operation def0(local8 : Qubit) : (Qubit[], Qubit) {
+                    controlled (local17, ...) {
+                        (local17, local8)
                     }
                 }
             }
@@ -478,12 +483,12 @@ fn spec_param_shadow() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _5(_8 : Qubit[]) : Qubit[] {
-                    controlled (_16, ...) {
-                        _16
+                operation def0(local8 : Qubit[]) : Qubit[] {
+                    controlled (local16, ...) {
+                        local16
                     }
                     body ... {
-                        _8
+                        local8
                     }
                 }
             }
@@ -507,12 +512,12 @@ fn local_shadows_global() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
 
-                function _11() : Int {
-                    _5();
-                    let _23 = 1;
-                    _23
+                function def1() : Int {
+                    def0();
+                    let local23 = 1;
+                    local23
                 }
             }
         "#]],
@@ -533,10 +538,10 @@ fn shadow_same_block() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Int {
-                    let _11 = 0;
-                    let _15 = _11 + 1;
-                    _15
+                function def0() : Int {
+                    let local11 = 0;
+                    let local15 = local11 + 1;
+                    local15
                 }
             }
         "#]],
@@ -563,16 +568,16 @@ fn parent_namespace_shadows_open() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
                 open Foo;
 
-                function _15() : Unit {}
+                function def1() : Unit {}
 
-                function _21() : Unit {
-                    _15();
+                function def2() : Unit {
+                    def1();
                 }
             }
         "#]],
@@ -601,18 +606,18 @@ fn open_alias_shadows_global() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
-                function _13() : Unit {}
+                function def1() : Unit {}
             }
 
             namespace Baz {
                 open Foo as Bar;
 
-                function _24() : Unit {
-                    _5();
+                function def2() : Unit {
+                    def0();
                 }
             }
         "#]],
@@ -643,20 +648,20 @@ fn merged_aliases() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
-                function _13() : Unit {}
+                function def1() : Unit {}
             }
 
             namespace Baz {
                 open Foo as Alias;
                 open Bar as Alias;
 
-                function _27() : Unit {
-                    _5();
-                    _13();
+                function def2() : Unit {
+                    def0();
+                    def1();
                 }
             }
         "#]],
@@ -674,8 +679,8 @@ fn ty_decl() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _4 = Unit;
-                function _9(_12 : _4) : Unit {}
+                newtype def0 = Unit;
+                function def1(local12 : def0) : Unit {}
             }
         "#]],
     );
@@ -692,8 +697,8 @@ fn ty_decl_in_ty_decl() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _4 = Unit;
-                newtype _8 = _4;
+                newtype def0 = Unit;
+                newtype def1 = def0;
             }
         "#]],
     );
@@ -709,7 +714,7 @@ fn ty_decl_recursive() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _4 = _4;
+                newtype def0 = def0;
             }
         "#]],
     );
@@ -729,10 +734,10 @@ fn ty_decl_cons() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _4 = Unit;
+                newtype def0 = Unit;
 
-                function _9() : _4 {
-                    _4()
+                function def1() : def0 {
+                    def0()
                 }
             }
         "#]],
@@ -751,7 +756,7 @@ fn unknown_term() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {
+                function def0() : Unit {
                     B();
                 }
             }
@@ -771,7 +776,7 @@ fn unknown_ty() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5(_8 : B) : Unit {}
+                function def0(local8 : B) : Unit {}
             }
 
             // NotFound("B", Span { lo: 35, hi: 36 })
@@ -802,18 +807,18 @@ fn open_ambiguous_terms() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
-                function _13() : Unit {}
+                function def1() : Unit {}
             }
 
             namespace Baz {
                 open Foo;
                 open Bar;
 
-                function _25() : Unit {
+                function def2() : Unit {
                     A();
                 }
             }
@@ -844,18 +849,18 @@ fn open_ambiguous_tys() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _4 = Unit;
+                newtype def0 = Unit;
             }
 
             namespace Bar {
-                newtype _10 = Unit;
+                newtype def1 = Unit;
             }
 
             namespace Baz {
                 open Foo;
                 open Bar;
 
-                function _21(_24 : A) : Unit {}
+                function def2(local24 : A) : Unit {}
             }
 
             // Ambiguous("A", Span { lo: 146, hi: 147 }, Span { lo: 107, hi: 110 }, Span { lo: 121, hi: 124 })
@@ -886,18 +891,18 @@ fn merged_aliases_ambiguous_terms() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {}
+                function def0() : Unit {}
             }
 
             namespace Bar {
-                function _13() : Unit {}
+                function def1() : Unit {}
             }
 
             namespace Baz {
                 open Foo as Alias;
                 open Bar as Alias;
 
-                function _27() : Unit {
+                function def2() : Unit {
                     Alias.A();
                 }
             }
@@ -928,18 +933,18 @@ fn merged_aliases_ambiguous_tys() {
         "},
         &expect![[r#"
             namespace Foo {
-                newtype _4 = Unit;
+                newtype def0 = Unit;
             }
 
             namespace Bar {
-                newtype _10 = Unit;
+                newtype def1 = Unit;
             }
 
             namespace Baz {
                 open Foo as Alias;
                 open Bar as Alias;
 
-                function _23(_26 : Alias.A) : Unit {}
+                function def2(local26 : Alias.A) : Unit {}
             }
 
             // Ambiguous("A", Span { lo: 164, hi: 171 }, Span { lo: 107, hi: 110 }, Span { lo: 130, hi: 133 })
@@ -959,8 +964,8 @@ fn lambda_param() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {
-                    let _11 = _14 -> _14 + 1;
+                function def0() : Unit {
+                    let local11 = local14 -> local14 + 1;
                 }
             }
         "#]],
@@ -981,10 +986,10 @@ fn lambda_shadows_local() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Int {
-                    let _11 = 1;
-                    let _15 = _18 -> _18 + 1;
-                    _11
+                function def0() : Int {
+                    let local11 = 1;
+                    let local15 = local18 -> local18 + 1;
+                    local11
                 }
             }
         "#]],
@@ -1005,9 +1010,9 @@ fn for_loop_range() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5() : Unit {
-                    for _12 in 0..9 {
-                        let _ = _12;
+                function def0() : Unit {
+                    for local12 in 0..9 {
+                        let _ = local12;
                     }
                 }
             }
@@ -1029,9 +1034,9 @@ fn for_loop_var() {
         "},
         &expect![[r#"
             namespace Foo {
-                function _5(_8 : Int[]) : Unit {
-                    for _16 in _8 {
-                        let _ = _16;
+                function def0(local8 : Int[]) : Unit {
+                    for local16 in local8 {
+                        let _ = local16;
                     }
                 }
             }
@@ -1053,10 +1058,10 @@ fn repeat_until() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _5() : Unit {
+                operation def0() : Unit {
                     repeat {
-                        let _14 = true;
-                    } until _14;
+                        let local14 = true;
+                    } until local14;
                 }
             }
         "#]],
@@ -1080,12 +1085,12 @@ fn repeat_until_fixup() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _5() : Unit {
+                operation def0() : Unit {
                     repeat {
-                        mutable _14 = false;
-                    } until _14
+                        mutable local14 = false;
+                    } until local14
                     fixup {
-                        set _14 = true;
+                        set local14 = true;
                     }
                 }
             }
@@ -1109,12 +1114,12 @@ fn use_qubit() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _5(_8 : Qubit) : Unit {
+                operation def0(local8 : Qubit) : Unit {
                     body intrinsic;
                 }
-                operation _14() : Unit {
-                    use _20 = Qubit();
-                    _5(_20);
+                operation def1() : Unit {
+                    use local20 = Qubit();
+                    def0(local20);
                 }
             }
         "#]],
@@ -1138,12 +1143,12 @@ fn use_qubit_block() {
         "},
         &expect![[r#"
             namespace Foo {
-                operation _5(_8 : Qubit) : Unit {
+                operation def0(local8 : Qubit) : Unit {
                     body intrinsic;
                 }
-                operation _14() : Unit {
-                    use _20 = Qubit() {
-                        _5(_20);
+                operation def1() : Unit {
+                    use local20 = Qubit() {
+                        def0(local20);
                     }
                 }
             }

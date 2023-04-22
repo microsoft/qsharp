@@ -12,14 +12,14 @@ use crate::{
 };
 use qsc_ast::{ast, visit::Visitor as AstVisitor};
 use qsc_hir::{
-    hir::{self, PackageId},
+    hir::{self, DefId, PackageId},
     visit::Visitor as HirVisitor,
 };
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<Res, Ty>,
+    globals: HashMap<DefId, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
@@ -56,7 +56,10 @@ impl AstVisitor<'_> for GlobalTable<'_> {
         );
 
         let (ty, errors) = Ty::of_ast_callable(decl);
-        self.globals.insert(Res::Internal(decl.name.id), ty);
+        let Some(&Res::Def(def)) = self.resolutions.get(decl.name.id) else {
+            panic!("callable declaration should have definition ID");
+        };
+        self.globals.insert(def, ty);
         for MissingTyError(span) in errors {
             self.errors.push(Error(ErrorKind::MissingItemTy(span)));
         }
@@ -64,23 +67,30 @@ impl AstVisitor<'_> for GlobalTable<'_> {
 }
 
 impl HirVisitor<'_> for GlobalTable<'_> {
-    fn visit_callable_decl(&mut self, decl: &hir::CallableDecl) {
-        let package = self
+    fn visit_package(&mut self, package: &hir::Package) {
+        let package_id = self
             .package
             .expect("package ID should be set before visiting HIR");
 
-        let (ty, errors) = Ty::of_hir_callable(decl);
-        self.globals
-            .insert(Res::External(package, decl.name.id), ty);
-        for MissingTyError(span) in errors {
-            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+        for (def, item) in package.items.iter() {
+            if let hir::ItemKind::Callable(decl) = &item.kind {
+                let (ty, errors) = Ty::of_hir_callable(decl);
+                let def = DefId {
+                    package: Some(package_id),
+                    def,
+                };
+                self.globals.insert(def, ty);
+                for MissingTyError(span) in errors {
+                    self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                }
+            }
         }
     }
 }
 
 pub(crate) struct Checker<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<Res, Ty>,
+    globals: HashMap<DefId, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }

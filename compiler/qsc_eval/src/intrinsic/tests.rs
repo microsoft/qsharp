@@ -6,13 +6,14 @@ use std::f64::consts;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
-use qsc_passes::{globals::extract_callables, run_default_passes};
+use qsc_hir::hir::ItemKind;
+use qsc_passes::run_default_passes;
 
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
     val::Value,
-    Env, Error,
+    Env, Error, GlobalDefId,
 };
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
@@ -29,11 +30,22 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     );
     assert!(run_default_passes(&mut unit).is_empty());
     let id = store.insert(unit);
-    let globals = extract_callables(&store);
     let expr = store
         .get_entry_expr(id)
         .expect("entry expression shouild be present");
-    eval_expr(expr, &globals, id, &mut Env::default(), out)
+
+    let global = |id: GlobalDefId| {
+        store.get(id.package).and_then(|unit| {
+            let item = unit.package.items.get(id.def)?;
+            if let ItemKind::Callable(callable) = &item.kind {
+                Some(callable)
+            } else {
+                None
+            }
+        })
+    };
+
+    eval_expr(expr, &global, id, &mut Env::default(), out)
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {

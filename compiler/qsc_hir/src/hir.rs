@@ -7,7 +7,7 @@
 
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
     collections::HashSet,
     fmt::{self, Display, Formatter, Write},
@@ -111,39 +111,47 @@ impl From<usize> for PackageId {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct PackageDefId(pub usize);
+
+impl From<usize> for PackageDefId {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PackageDefId> for usize {
+    fn from(value: PackageDefId) -> Self {
+        value.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct DefId {
+    pub package: Option<PackageId>,
+    pub def: PackageDefId,
+}
+
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Res {
-    /// A resolution to a name declared in the same package as the usage.
-    Internal(NodeId),
-    /// A resolution to a name declared in another package.
-    External(PackageId, NodeId),
+    /// A resolution to a global definition.
+    Def(DefId),
     /// An unresolved name.
     Err,
+    /// A resolution to a local variable.
+    Local(NodeId),
 }
 
 /// The root node of the HIR.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct Package {
     /// The node ID.
     pub id: NodeId,
-    /// The namespaces in the package.
-    pub namespaces: Vec<Namespace>,
+    pub items: IndexMap<PackageDefId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
-}
-
-impl Package {
-    /// Creates a new package.
-    #[must_use]
-    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
-        Self {
-            id: NodeId::default(),
-            namespaces,
-            entry,
-        }
-    }
 }
 
 impl Display for Package {
@@ -154,37 +162,8 @@ impl Display for Package {
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for ns in &self.namespaces {
-            write!(indent, "\n{ns}")?;
-        }
-        Ok(())
-    }
-}
-
-/// A namespace.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Namespace {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The namespace name.
-    pub name: Ident,
-    /// The items in the namespace.
-    pub items: Vec<Item>,
-}
-
-impl Display for Namespace {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(
-            indent,
-            "Namespace {} {} ({}):",
-            self.id, self.span, self.name
-        )?;
-        indent = set_indentation(indent, 1);
-        for i in &self.items {
-            write!(indent, "\n{i}")?;
+        for (_, item) in self.items.iter() {
+            write!(indent, "\n{item}")?;
         }
         Ok(())
     }
@@ -197,6 +176,8 @@ pub struct Item {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The parent namespace.
+    pub parent: String,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -229,8 +210,6 @@ pub enum ItemKind {
     /// Default item when nothing has been parsed.
     #[default]
     Err,
-    /// An `open` item for a namespace with an optional alias.
-    Open(Ident, Option<Ident>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
 }
@@ -240,10 +219,6 @@ impl Display for ItemKind {
         match &self {
             ItemKind::Callable(decl) => write!(f, "{decl}")?,
             ItemKind::Err => write!(f, "Err")?,
-            ItemKind::Open(name, alias) => match alias {
-                Some(a) => write!(f, "Open ({name}) ({a})")?,
-                None => write!(f, "Open ({name})")?,
-            },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
         }
         Ok(())
