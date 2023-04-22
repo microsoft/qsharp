@@ -468,7 +468,7 @@ mod test {
         assert_eq!(error.end_pos, 117);
         assert_eq!(
             error.message,
-            "mismatched types:\n\nexpected (Double, Qubit), found Qubit"
+            "expected (Double, Qubit), found Qubit:\n\nmismatched types"
         );
     }
 

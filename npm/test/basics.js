@@ -63,7 +63,7 @@ test('type error', t => {
     assert.equal(result.length, 1);
     assert.equal(result[0].start_pos, 99);
     assert.equal(result[0].end_pos, 105);
-    assert.equal(result[0].message, "mismatched types:\n\nexpected (Double, Qubit), found Qubit");
+    assert.equal(result[0].message, "expected (Double, Qubit), found Qubit:\n\nmismatched types");
 });
 
 test('message output', t => {
