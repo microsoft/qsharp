@@ -42,12 +42,12 @@ pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
     NotFound(String, #[label] Span),
 
-    #[error("`{0}` is ambiguous")]
+    #[error("`{0}` could refer to the item in `{1}` or `{2}`")]
     Ambiguous(
         String,
         String,
         String,
-        #[label("could refer to the item in `{1}` or `{2}`")] Span,
+        #[label("`{0}` is ambiguous")] Span,
         #[label("found in this namespace")] Span,
         #[label("and also in this namespace")] Span,
     ),

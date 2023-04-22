@@ -22,7 +22,7 @@ pub enum Error {
     #[error("entry point cannot have paramters")]
     EntryPointArgs(#[label] Span),
 
-    #[error("entry point must have single body implementation")]
+    #[error("entry point must have body implementation only")]
     EntryPointBody(#[label("cannot have specialization implementation")] Span),
 
     #[error("entry point not found")]
