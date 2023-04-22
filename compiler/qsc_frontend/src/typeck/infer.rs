@@ -548,7 +548,7 @@ fn check_num(ty: &Ty) -> bool {
     matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
 }
 
-fn check_hasfield(
+fn check_has_field(
     record: Ty,
     name: String,
     item: Ty,
