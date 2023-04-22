@@ -101,10 +101,7 @@ pub enum Error {
     Output(#[label("failed to generate output")] Span),
 
     #[error("range missing `{0}` field")]
-    RangeFieldMissing(
-        &'static str,
-        #[label] Span,
-    ),
+    RangeFieldMissing(&'static str, #[label] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -853,7 +850,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 ControlFlow::Continue(Value::Int(len))
             }
             (Value::Range(start, _, _), "Start") => start.map_or_else(
-                || ControlFlow::Break(Reason::Error(Error::RangeEntryMissing("Start", item.span))),
+                || ControlFlow::Break(Reason::Error(Error::RangeFieldMissing("Start", item.span))),
                 |start| ControlFlow::Continue(Value::Int(start)),
             ),
             (Value::Range(_, step, _), "Step") => step.map_or_else(
@@ -861,7 +858,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 |step| ControlFlow::Continue(Value::Int(step)),
             ),
             (Value::Range(_, _, end), "End") => end.map_or_else(
-                || ControlFlow::Break(Reason::Error(Error::RangeEntryMissing("End", item.span))),
+                || ControlFlow::Break(Reason::Error(Error::RangeFieldMissing("End", item.span))),
                 |end| ControlFlow::Continue(Value::Int(end)),
             ),
             _ => ControlFlow::Break(Reason::Error(Error::Unimplemented(

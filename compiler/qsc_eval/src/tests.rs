@@ -1214,7 +1214,7 @@ fn field_range_start_missing_expr() {
         "",
         "(...2..8)::Start",
         &expect![[r#"
-            RangeEntryMissing(
+            RangeFieldMissing(
                 "Start",
                 Span {
                     lo: 11,
@@ -1246,7 +1246,7 @@ fn field_range_end_missing_expr() {
         "",
         "(0..2...)::End",
         &expect![[r#"
-            RangeEntryMissing(
+            RangeFieldMissing(
                 "End",
                 Span {
                     lo: 11,
