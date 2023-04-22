@@ -102,7 +102,7 @@ impl<'a> Context<'a> {
         let mut last = None;
         for stmt in &block.stmts {
             let stmt = self.infer_stmt(stmt);
-            diverges |= stmt.diverges;
+            diverges = diverges || stmt.diverges;
             last = Some(stmt);
         }
 
