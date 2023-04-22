@@ -103,7 +103,7 @@ pub enum Error {
     #[error("range entry missing")]
     RangeEntryMissing(
         &'static str,
-        #[label("range does not include {0} entry")] Span,
+        #[label("range does not include {0} field")] Span,
     ),
 
     #[error("range with step size of zero")]

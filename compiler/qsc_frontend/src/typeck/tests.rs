@@ -1295,7 +1295,7 @@ fn return_mismatch() {
 }
 
 #[test]
-fn array_length_field_converges() {
+fn array_length_field_is_int() {
     check(
         indoc! {"
             namespace A {
@@ -1319,7 +1319,7 @@ fn array_length_field_converges() {
 }
 
 #[test]
-fn array_length_generic_converges() {
+fn array_length_generic_is_int() {
     check(
         indoc! {"
             namespace A {
@@ -1403,6 +1403,35 @@ fn array_unknown_field_error() {
             #14 60-67 "x::Size" : Int
             #15 60-61 "x" : (Qubit)[]
             Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Var(Var(0)) }, Span { lo: 60, hi: 67 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_fiels_are_int() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(r : Range) : (Int, Int, Int) {
+                    (r::Start, r::Step, r::End)
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : (Range) -> ((Int, Int, Int))
+            #6 30-41 "(r : Range)" : Range
+            #7 31-40 "r : Range" : Range
+            #8 31-32 "r" : Range
+            #14 60-103 "{\n        (r::Start, r::Step, r::End)\n    }" : (Int, Int, Int)
+            #15 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
+            #16 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
+            #17 71-79 "r::Start" : Int
+            #18 71-72 "r" : Range
+            #20 81-88 "r::Step" : Int
+            #21 81-82 "r" : Range
+            #23 90-96 "r::End" : Int
+            #24 90-91 "r" : Range
         "##]],
     );
 }

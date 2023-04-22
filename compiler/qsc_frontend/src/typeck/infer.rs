@@ -113,7 +113,7 @@ impl Class {
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
             Class::HasField { record, name, item } => {
-                check_hasfield(record, name, item, span).map(|c| vec![c])
+                check_has_field(record, name, item, span).map(|c| vec![c])
             }
             Class::HasIndex {
                 container,
