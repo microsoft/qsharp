@@ -795,6 +795,94 @@ fn if_no_else_must_be_unit() {
 }
 
 #[test]
+fn if_else_fail() {
+    check(
+        "",
+        r#"if false {} else { fail "error"; }"#,
+        &expect![[r##"
+            #1 0-34 "if false {} else { fail \"error\"; }" : ()
+            #2 3-8 "false" : Bool
+            #3 9-11 "{}" : ()
+            #4 12-34 "else { fail \"error\"; }" : ()
+            #5 17-34 "{ fail \"error\"; }" : ()
+            #6 19-32 "fail \"error\";" : ()
+            #7 19-31 "fail \"error\"" : ?0
+            #8 24-31 "\"error\"" : String
+        "##]],
+    );
+}
+
+#[test]
+fn if_cond_fail() {
+    check(
+        indoc! {r#"
+            namespace A {
+                function F() : Int {
+                    if fail "error" {
+                        "this type doesn't matter"
+                    } else {
+                        "foo"
+                    }
+                }
+            }
+        "#},
+        "",
+        &expect![[r##"
+            #2 27-28 "F" : (()) -> (Int)
+            #3 28-30 "()" : ()
+            #5 37-154 "{\n        if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }\n    }" : Int
+            #6 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
+            #7 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
+            #8 50-62 "fail \"error\"" : Bool
+            #9 55-62 "\"error\"" : String
+            #10 63-113 "{\n            \"this type doesn't matter\"\n        }" : String
+            #11 77-103 "\"this type doesn't matter\"" : String
+            #12 77-103 "\"this type doesn't matter\"" : String
+            #13 114-148 "else {\n            \"foo\"\n        }" : String
+            #14 119-148 "{\n            \"foo\"\n        }" : String
+            #15 133-138 "\"foo\"" : String
+            #16 133-138 "\"foo\"" : String
+        "##]],
+    );
+}
+
+#[test]
+fn if_all_diverge() {
+    check(
+        indoc! {r#"
+            namespace A {
+                function F() : Int {
+                    if fail "cond" {
+                        fail "true"
+                    } else {
+                        fail "false"
+                    }
+                }
+            }
+        "#},
+        "",
+        &expect![[r##"
+            #2 27-28 "F" : (()) -> (Int)
+            #3 28-30 "()" : ()
+            #5 37-145 "{\n        if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }\n    }" : Int
+            #6 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
+            #7 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
+            #8 50-61 "fail \"cond\"" : Bool
+            #9 55-61 "\"cond\"" : String
+            #10 62-97 "{\n            fail \"true\"\n        }" : Int
+            #11 76-87 "fail \"true\"" : Int
+            #12 76-87 "fail \"true\"" : Int
+            #13 81-87 "\"true\"" : String
+            #14 98-139 "else {\n            fail \"false\"\n        }" : Int
+            #15 103-139 "{\n            fail \"false\"\n        }" : Int
+            #16 117-129 "fail \"false\"" : Int
+            #17 117-129 "fail \"false\"" : Int
+            #18 122-129 "\"false\"" : String
+        "##]],
+    );
+}
+
+#[test]
 fn ternop_cond_error() {
     check(
         "",
@@ -1175,8 +1263,8 @@ fn fail_diverges() {
             #1 0-42 "if true {\n    fail \"true\"\n} else {\n    4\n}" : Int
             #2 3-7 "true" : Bool
             #3 8-27 "{\n    fail \"true\"\n}" : Int
-            #4 14-25 "fail \"true\"" : ?1
-            #5 14-25 "fail \"true\"" : ?0
+            #4 14-25 "fail \"true\"" : Int
+            #5 14-25 "fail \"true\"" : Int
             #6 19-25 "\"true\"" : String
             #7 28-42 "else {\n    4\n}" : Int
             #8 33-42 "{\n    4\n}" : Int
@@ -1214,8 +1302,8 @@ fn return_diverges() {
             #12 65-136 "if x {\n            return 1\n        } else {\n            true\n        }" : Bool
             #13 68-69 "x" : Bool
             #14 70-102 "{\n            return 1\n        }" : Bool
-            #15 84-92 "return 1" : ?2
-            #16 84-92 "return 1" : ?1
+            #15 84-92 "return 1" : Bool
+            #16 84-92 "return 1" : Bool
             #17 91-92 "1" : Int
             #18 103-136 "else {\n            true\n        }" : Bool
             #19 108-136 "{\n            true\n        }" : Bool
@@ -1248,11 +1336,11 @@ fn return_diverges_stmt_after() {
             #4 31-39 "x : Bool" : Bool
             #5 31-32 "x" : Bool
             #8 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #9 57-116 "let x = {\n            return 1;\n            true\n        };" : ?5
+            #9 57-116 "let x = {\n            return 1;\n            true\n        };" : ?4
             #10 61-62 "x" : ?0
             #11 61-62 "x" : ?0
             #12 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #13 65-115 "{\n            return 1;\n            true\n        }" : ?3
+            #13 65-115 "{\n            return 1;\n            true\n        }" : ?0
             #14 79-88 "return 1;" : ?2
             #15 79-87 "return 1" : ?1
             #16 86-87 "1" : Int
@@ -1281,7 +1369,7 @@ fn return_mismatch() {
             #4 31-39 "x : Bool" : Bool
             #5 31-32 "x" : Bool
             #8 47-75 "{\n        return true;\n    }" : Int
-            #9 57-69 "return true;" : ?1
+            #9 57-69 "return true;" : Int
             #10 57-68 "return true" : ?0
             #11 64-68 "true" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
