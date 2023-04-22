@@ -1408,7 +1408,7 @@ fn array_unknown_field_error() {
 }
 
 #[test]
-fn range_fiels_are_int() {
+fn range_fields_are_int() {
     check(
         indoc! {"
             namespace A {
