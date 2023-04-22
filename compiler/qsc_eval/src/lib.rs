@@ -100,10 +100,10 @@ pub enum Error {
     #[error("output failure")]
     Output(#[label("failed to generate output")] Span),
 
-    #[error("range entry missing")]
+    #[error("range missing `{0}` field")]
     RangeEntryMissing(
         &'static str,
-        #[label("range does not include {0} field")] Span,
+        #[label] Span,
     ),
 
     #[error("range with step size of zero")]
