@@ -23,7 +23,8 @@ export function getCompilerWorker(callbacks: CompilerEvents) : ICompilerWorker {
     const thisDir = dirname(fileURLToPath(import.meta.url));
     const worker = new Worker(join(thisDir,"node-worker.js"));
 
-    const postMessage = (val: any) => worker.postMessage(val);
+    // If you lose the 'this' binding, some environments have issues.
+    const postMessage = worker.postMessage.bind(worker);
     const setMsgHandler = (handler: (e: any) => void) => worker.on("message", handler);
     const onTerminate = () => worker.terminate();
 

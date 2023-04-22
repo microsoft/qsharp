@@ -34,7 +34,8 @@ export function getCompilerWorker(script: string, callbacks: CompilerEvents): IC
     // Send it the Wasm module to instantiate
     worker.postMessage({ "type": "init", wasmModule });
 
-    const postMessage = (val: any) => worker.postMessage(val);
+    // If you lose the 'this' binding, some environments have issues
+    const postMessage = worker.postMessage.bind(worker);
     const setMsgHandler = (handler: (e: any) => void) => 
             worker.onmessage = (ev) => handler(ev.data);
     const onTerminate = () => worker.terminate();

@@ -1,19 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { ICompletionList } from "../lib/web/qsc_wasm.js";
+import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerEvents, ICompiler, ICompilerWorker } from "./compiler.js";
 
 export function createWorkerProxy(
             callbacks: CompilerEvents,
-            postMessage: (msg: any) => void, 
+            postMessage: (msg: CompilerReqMsg) => void, 
             setMsgHandler: (handler: (e: any) => void) => void,
             terminator: () => void): ICompilerWorker
 {
     // Used to resolve the in-flight promise (or null if nothing in-flight)
-    let resolver: ((val: any) => void) | null = null;
+    let resolver: ((val: RespResultTypes) => void) | null = null;
 
     // Used to contruct the Promise that represents the WebWorker request
-    function invoker(msg: any): Promise<any> {
+    function invoker(msg: CompilerReqMsg): Promise<any> {
         if (resolver) throw "Compiler operation in progress";
         return new Promise((resolve) => {
             resolver = resolve;
@@ -39,7 +41,7 @@ export function createWorkerProxy(
         terminate: () => terminator()
     }
         
-    setMsgHandler( (msg: any) => {
+    setMsgHandler( (msg: CompilerRespMsg | CompilerEventMsg) => {
         switch (msg.type) {
             case "checkCode-result":
             case "getCompletions-result":
@@ -66,7 +68,7 @@ export function createWorkerProxy(
     return proxy;
 }
 
-export function getWorkerEventHandlers(postMessage: (msg: any) => void): CompilerEvents {
+export function getWorkerEventHandlers(postMessage: (msg: CompilerEventMsg) => void): CompilerEvents {
     return {
         onMessage(msg) {
             postMessage( {"type": "message-event", "event": msg} );
@@ -83,7 +85,7 @@ export function getWorkerEventHandlers(postMessage: (msg: any) => void): Compile
     }
 }
 
-export function handleMessageInWorker(data: any, compiler: ICompiler, postMessage: (msg: any) => void) {
+export function handleMessageInWorker(data: CompilerReqMsg, compiler: ICompiler, postMessage: (msg: CompilerRespMsg) => void) {
     switch (data.type) {
         case "checkCode":
             compiler.checkCode(data.code)
@@ -104,3 +106,25 @@ export function handleMessageInWorker(data: any, compiler: ICompiler, postMessag
             console.error(`Unrecognized msg type: ${data}`);
     }
 }
+
+type CompilerReqMsg = 
+    { type: "checkCode", code: string } |
+    { type: "getCompletions" } |
+    { type: "run", code: string, expr: string, shots: number } |
+    { type: "runKata", user_code: string, verify_code: string };
+
+type CompilerRespMsg = 
+    {type: "checkCode-result", result: VSDiagnostic[]} |
+    {type: "getCompletions-result", result: ICompletionList} |
+    {type: "run-result", result: void} |
+    {type: "runKata-result", result: void};
+
+// Get the possible 'result' types from a compiler response
+type ExtractResult<T> = T extends { result: infer R } ? R : never;
+type RespResultTypes = ExtractResult<CompilerRespMsg>;
+
+type CompilerEventMsg = 
+    {type: "message-event", "event": MessageMsg} |
+    {type: "dumpMachine-event", "event": DumpMsg} |
+    {type: "success-event", "event": string} |
+    {type: "failure-event", "event": any};

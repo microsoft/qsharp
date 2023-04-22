@@ -54,7 +54,7 @@ export class Compiler implements ICompiler {
         this.isRunning = true;
         this.currentSource = code;
         try {
-            this.wasm.run(code, expr, (ev: string) => this.mapEvent(ev), shots);
+            this.wasm.run(code, expr, this.mapEvent.bind(this), shots);
         } finally {
             this.isRunning = false;
             this.currentSource = "";
@@ -67,7 +67,7 @@ export class Compiler implements ICompiler {
         this.isRunning = true;
         this.currentSource = user_code;
         try {
-            this.wasm.run_kata_exercise(verify_code, user_code, (ev: string) => this.mapEvent(ev));
+            this.wasm.run_kata_exercise(verify_code, user_code, this.mapEvent.bind(this));
         } finally {
             this.isRunning = false;
             this.currentSource = "";
