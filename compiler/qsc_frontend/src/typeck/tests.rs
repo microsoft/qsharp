@@ -852,6 +852,42 @@ fn if_cond_fail() {
 }
 
 #[test]
+fn if_all_diverge() {
+    check(
+        indoc! {r#"
+            namespace A {
+                function F() : Int {
+                    if fail "cond" {
+                        fail "true"
+                    } else {
+                        fail "false"
+                    }
+                }
+            }
+        "#},
+        "",
+        &expect![[r##"
+            #5 27-28 "F" : (()) -> (Int)
+            #6 28-30 "()" : ()
+            #8 37-145 "{\n        if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }\n    }" : Int
+            #9 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
+            #10 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
+            #11 50-61 "fail \"cond\"" : Bool
+            #12 55-61 "\"cond\"" : String
+            #13 62-97 "{\n            fail \"true\"\n        }" : Int
+            #14 76-87 "fail \"true\"" : Int
+            #15 76-87 "fail \"true\"" : Int
+            #16 81-87 "\"true\"" : String
+            #17 98-139 "else {\n            fail \"false\"\n        }" : Int
+            #18 103-139 "{\n            fail \"false\"\n        }" : Int
+            #19 117-129 "fail \"false\"" : Int
+            #20 117-129 "fail \"false\"" : Int
+            #21 122-129 "\"false\"" : String
+        "##]],
+    );
+}
+
+#[test]
 fn ternop_cond_error() {
     check(
         "",
