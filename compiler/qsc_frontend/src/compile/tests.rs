@@ -201,7 +201,7 @@ fn entry_call_operation() {
     assert_eq!(
         Res::Def(DefId {
             package: None,
-            def: PackageDefId(0)
+            def: PackageDefId(1)
         }),
         res
     );
@@ -255,14 +255,14 @@ fn replace_node() {
 
     Replacer.visit_package(&mut unit.package);
     unit.context.assigner_mut().visit_package(&mut unit.package);
-    let ItemKind::Callable(callable)= &unit.package.items.get(PackageDefId(0)).expect("").kind else {
+    let ItemKind::Callable(callable)= &unit.package.items.get(PackageDefId(1)).expect("").kind else {
         panic!("item should be a callable");
     };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
 
     expect![[r#"
         Block 5 [39-56]:
-            Stmt 6 [49-50]: Expr: Expr 9 [49-50]: Lit: Int(2)"#]]
+            Stmt 6 [49-50]: Expr: Expr 11 [49-50]: Lit: Int(2)"#]]
     .assert_eq(&block.to_string());
 }
 
@@ -296,7 +296,7 @@ fn package_dependency() {
         "",
     );
 
-    let ItemKind::Callable(callable) = &unit2.package.items.get(PackageDefId(0)).expect("").kind else {
+    let ItemKind::Callable(callable) = &unit2.package.items.get(PackageDefId(1)).expect("").kind else {
         panic!("item should be a callable");
     };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
@@ -306,7 +306,7 @@ fn package_dependency() {
     assert_eq!(
         &Res::Def(DefId {
             package: Some(package1),
-            def: PackageDefId(0)
+            def: PackageDefId(1)
         }),
         res
     );
@@ -342,7 +342,7 @@ fn package_dependency_internal() {
         "",
     );
 
-    let ItemKind::Callable(callable) = &unit2.package.items.get(PackageDefId(0)).expect("").kind else {
+    let ItemKind::Callable(callable) = &unit2.package.items.get(PackageDefId(1)).expect("").kind else {
         panic!("item should be a callable");
     };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };

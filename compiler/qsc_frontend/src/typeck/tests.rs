@@ -494,9 +494,9 @@ fn binop_equal_callable() {
             #8 57-58 "B" : (()) -> (())
             #9 58-60 "()" : ()
             #11 68-70 "{}" : ()
-            #13 73-89 "Test.A == Test.B" : Bool
-            #14 73-79 "Test.A" : (()) -> (())
-            #15 83-89 "Test.B" : (()) -> (())
+            #15 73-89 "Test.A == Test.B" : Bool
+            #16 73-79 "Test.A" : (()) -> (())
+            #17 83-89 "Test.B" : (()) -> (())
             Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 }))))
         "##]],
     );
@@ -1057,24 +1057,24 @@ fn call_controlled() {
             #15 99-101 "cs" : (Qubit)[]
             #16 103-106 "..." : Qubit
             #17 108-110 "{}" : ()
-            #19 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
-            #20 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
-            #21 125-142 "use q1 = Qubit();" : ()
-            #22 129-131 "q1" : Qubit
-            #23 129-131 "q1" : Qubit
-            #24 134-141 "Qubit()" : Qubit
-            #25 147-164 "use q2 = Qubit();" : ()
-            #26 151-153 "q2" : Qubit
-            #27 151-153 "q2" : Qubit
-            #28 156-163 "Qubit()" : Qubit
-            #29 169-196 "Controlled A.Foo([q1], q2);" : ()
-            #30 169-195 "Controlled A.Foo([q1], q2)" : ()
-            #31 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #32 180-185 "A.Foo" : (Qubit) => (()) is Ctl
-            #33 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
-            #34 186-190 "[q1]" : (Qubit)[]
-            #35 187-189 "q1" : Qubit
-            #36 192-194 "q2" : Qubit
+            #21 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
+            #22 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
+            #23 125-142 "use q1 = Qubit();" : ()
+            #24 129-131 "q1" : Qubit
+            #25 129-131 "q1" : Qubit
+            #26 134-141 "Qubit()" : Qubit
+            #27 147-164 "use q2 = Qubit();" : ()
+            #28 151-153 "q2" : Qubit
+            #29 151-153 "q2" : Qubit
+            #30 156-163 "Qubit()" : Qubit
+            #31 169-196 "Controlled A.Foo([q1], q2);" : ()
+            #32 169-195 "Controlled A.Foo([q1], q2)" : ()
+            #33 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
+            #34 180-185 "A.Foo" : (Qubit) => (()) is Ctl
+            #35 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
+            #36 186-190 "[q1]" : (Qubit)[]
+            #37 187-189 "q1" : Qubit
+            #38 192-194 "q2" : Qubit
         "##]],
     );
 }
@@ -1110,32 +1110,32 @@ fn call_controlled_nested() {
             #15 99-101 "cs" : (Qubit)[]
             #16 103-106 "..." : Qubit
             #17 108-110 "{}" : ()
-            #19 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
-            #20 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
-            #21 125-142 "use q1 = Qubit();" : ()
-            #22 129-131 "q1" : Qubit
-            #23 129-131 "q1" : Qubit
-            #24 134-141 "Qubit()" : Qubit
-            #25 147-164 "use q2 = Qubit();" : ()
-            #26 151-153 "q2" : Qubit
-            #27 151-153 "q2" : Qubit
-            #28 156-163 "Qubit()" : Qubit
-            #29 169-186 "use q3 = Qubit();" : ()
-            #30 173-175 "q3" : Qubit
-            #31 173-175 "q3" : Qubit
-            #32 178-185 "Qubit()" : Qubit
-            #33 191-237 "Controlled Controlled A.Foo([q1], ([q2], q3));" : ()
-            #34 191-236 "Controlled Controlled A.Foo([q1], ([q2], q3))" : ()
-            #35 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit))) => (()) is Ctl
-            #36 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #37 213-218 "A.Foo" : (Qubit) => (()) is Ctl
-            #38 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
-            #39 219-223 "[q1]" : (Qubit)[]
-            #40 220-222 "q1" : Qubit
-            #41 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
-            #42 226-230 "[q2]" : (Qubit)[]
-            #43 227-229 "q2" : Qubit
-            #44 232-234 "q3" : Qubit
+            #21 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
+            #22 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
+            #23 125-142 "use q1 = Qubit();" : ()
+            #24 129-131 "q1" : Qubit
+            #25 129-131 "q1" : Qubit
+            #26 134-141 "Qubit()" : Qubit
+            #27 147-164 "use q2 = Qubit();" : ()
+            #28 151-153 "q2" : Qubit
+            #29 151-153 "q2" : Qubit
+            #30 156-163 "Qubit()" : Qubit
+            #31 169-186 "use q3 = Qubit();" : ()
+            #32 173-175 "q3" : Qubit
+            #33 173-175 "q3" : Qubit
+            #34 178-185 "Qubit()" : Qubit
+            #35 191-237 "Controlled Controlled A.Foo([q1], ([q2], q3));" : ()
+            #36 191-236 "Controlled Controlled A.Foo([q1], ([q2], q3))" : ()
+            #37 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit))) => (()) is Ctl
+            #38 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
+            #39 213-218 "A.Foo" : (Qubit) => (()) is Ctl
+            #40 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
+            #41 219-223 "[q1]" : (Qubit)[]
+            #42 220-222 "q1" : Qubit
+            #43 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
+            #44 226-230 "[q2]" : (Qubit)[]
+            #45 227-229 "q2" : Qubit
+            #46 232-234 "q3" : Qubit
         "##]],
     );
 }
@@ -1169,20 +1169,20 @@ fn call_controlled_error() {
             #15 99-101 "cs" : (Qubit)[]
             #16 103-106 "..." : Qubit
             #17 108-110 "{}" : ()
-            #19 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
-            #20 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
-            #21 125-141 "use q = Qubit();" : ()
-            #22 129-130 "q" : Qubit
-            #23 129-130 "q" : Qubit
-            #24 133-140 "Qubit()" : Qubit
-            #25 146-171 "Controlled A.Foo([1], q);" : ()
-            #26 146-170 "Controlled A.Foo([1], q)" : ()
-            #27 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #28 157-162 "A.Foo" : (Qubit) => (()) is Ctl
-            #29 162-170 "([1], q)" : ((Int)[], Qubit)
-            #30 163-166 "[1]" : (Int)[]
-            #31 164-165 "1" : Int
-            #32 168-169 "q" : Qubit
+            #21 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
+            #22 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
+            #23 125-141 "use q = Qubit();" : ()
+            #24 129-130 "q" : Qubit
+            #25 129-130 "q" : Qubit
+            #26 133-140 "Qubit()" : Qubit
+            #27 146-171 "Controlled A.Foo([1], q);" : ()
+            #28 146-170 "Controlled A.Foo([1], q)" : ()
+            #29 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
+            #30 157-162 "A.Foo" : (Qubit) => (()) is Ctl
+            #31 162-170 "([1], q)" : ((Int)[], Qubit)
+            #32 163-166 "[1]" : (Int)[]
+            #33 164-165 "1" : Int
+            #34 168-169 "q" : Qubit
             Error(Type(Error(TypeMismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 }))))
         "##]],
     );

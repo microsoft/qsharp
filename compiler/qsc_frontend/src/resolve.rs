@@ -276,6 +276,13 @@ impl<'a> GlobalTable<'a> {
 impl<'a> AstVisitor<'a> for GlobalTable<'a> {
     fn visit_namespace(&mut self, namespace: &'a ast::Namespace) {
         self.namespace = &namespace.name.name;
+        let def = self.next_def_id;
+        self.next_def_id = PackageDefId(def.0 + 1);
+        let def_id = DefId {
+            package: self.package,
+            def,
+        };
+        self.resolutions.insert(namespace.name.id, Res::Def(def_id));
         ast_visit::walk_namespace(self, namespace);
         self.namespace = "";
     }
@@ -333,29 +340,35 @@ impl<'a> HirVisitor<'a> for GlobalTable<'a> {
                 continue;
             }
 
+            let Some(parent) = item.parent else { continue; };
+
             let def_id = DefId {
                 package: Some(package_id),
                 def,
             };
 
+            let hir::ItemKind::Namespace(namespace, _) = &package.items.get(parent).expect("").kind else {
+                panic!("parent item is not a namespace");
+            };
+
             match &item.kind {
                 hir::ItemKind::Callable(decl) => {
                     self.terms
-                        .entry(&item.parent)
+                        .entry(&namespace.name)
                         .or_default()
                         .insert(&decl.name.name, def_id);
                 }
                 hir::ItemKind::Ty(name, _) => {
                     self.tys
-                        .entry(&item.parent)
+                        .entry(&namespace.name)
                         .or_default()
                         .insert(&name.name, def_id);
                     self.terms
-                        .entry(&item.parent)
+                        .entry(&namespace.name)
                         .or_default()
                         .insert(&name.name, def_id);
                 }
-                hir::ItemKind::Err => {}
+                hir::ItemKind::Err | hir::ItemKind::Namespace(..) => {}
             }
         }
     }

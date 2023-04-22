@@ -74,8 +74,9 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.attrs.iter().for_each(|a| vis.visit_attr(a));
     item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &item.kind {
-        ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
+        ItemKind::Err => {}
+        ItemKind::Namespace(name, _) => vis.visit_ident(name),
         ItemKind::Ty(ident, def) => {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);

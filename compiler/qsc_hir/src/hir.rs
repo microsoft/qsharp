@@ -175,14 +175,14 @@ impl Display for Package {
 }
 
 /// An item.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// The parent namespace.
-    pub parent: String,
+    /// The parent item.
+    pub parent: Option<PackageDefId>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -215,18 +215,20 @@ pub enum ItemKind {
     /// Default item when nothing has been parsed.
     #[default]
     Err,
+    /// A namespace declaration.
+    Namespace(Ident, Vec<PackageDefId>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
 }
 
 impl Display for ItemKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self {
-            ItemKind::Callable(decl) => write!(f, "{decl}")?,
-            ItemKind::Err => write!(f, "Err")?,
-            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+        match self {
+            ItemKind::Callable(decl) => write!(f, "{decl}"),
+            ItemKind::Err => write!(f, "Err"),
+            ItemKind::Namespace(name, items) => write!(f, "Namespace ({name}): {items:?}"),
+            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
         }
-        Ok(())
     }
 }
 

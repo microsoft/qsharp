@@ -46,11 +46,33 @@ impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
         let mut items = IndexMap::new();
         for namespace in &package.namespaces {
+            let Some(&resolve::Res::Def(parent)) = self.resolutions.get(namespace.name.id) else {
+                panic!("namespace should resolve to definition ID");
+            };
+
+            let mut namespace_items = Vec::new();
+
             for item in &namespace.items {
-                if let Some((def, item)) = self.lower_item(namespace.name.name.clone(), item) {
+                if let Some((def, item)) = self.lower_item(parent.def, item) {
+                    namespace_items.push(def);
                     items.insert(def, item);
                 }
             }
+
+            items.insert(
+                parent.def,
+                hir::Item {
+                    id: self.lower_id(namespace.id),
+                    span: namespace.span,
+                    parent: None,
+                    attrs: Vec::new(),
+                    visibility: None,
+                    kind: hir::ItemKind::Namespace(
+                        self.lower_ident(&namespace.name),
+                        namespace_items,
+                    ),
+                },
+            );
         }
 
         hir::Package {
@@ -62,7 +84,7 @@ impl With<'_> {
 
     fn lower_item(
         &mut self,
-        parent: String,
+        parent: PackageDefId,
         item: &ast::Item,
     ) -> Option<(PackageDefId, hir::Item)> {
         if matches!(item.kind, ast::ItemKind::Open(..)) {
@@ -95,7 +117,7 @@ impl With<'_> {
             hir::Item {
                 id,
                 span: item.span,
-                parent,
+                parent: Some(parent),
                 attrs,
                 visibility,
                 kind,

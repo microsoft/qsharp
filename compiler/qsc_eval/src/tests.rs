@@ -1834,7 +1834,7 @@ fn unop_adjoint_functor_expr() {
             }
         "},
         "Adjoint Test.Foo",
-        &expect!["Adjoint <definition 0 in package 0>"],
+        &expect!["Adjoint <definition 1 in package 0>"],
     );
 }
 
@@ -1849,7 +1849,7 @@ fn unop_controlled_functor_expr() {
             }
         "},
         "Controlled Test.Foo",
-        &expect!["Controlled <definition 0 in package 0>"],
+        &expect!["Controlled <definition 1 in package 0>"],
     );
 }
 
@@ -1864,7 +1864,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "},
         "Adjoint (Adjoint Test.Foo)",
-        &expect!["<definition 0 in package 0>"],
+        &expect!["<definition 1 in package 0>"],
     );
 }
 
@@ -1879,7 +1879,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "},
         "Controlled Adjoint Test.Foo",
-        &expect!["Controlled Adjoint <definition 0 in package 0>"],
+        &expect!["Controlled Adjoint <definition 1 in package 0>"],
     );
 }
 
@@ -1894,7 +1894,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "},
         "Adjoint Controlled Test.Foo",
-        &expect!["Controlled Adjoint <definition 0 in package 0>"],
+        &expect!["Controlled Adjoint <definition 1 in package 0>"],
     );
 }
 
@@ -1909,7 +1909,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "},
         "Controlled (Controlled Test.Foo)",
-        &expect!["Controlled Controlled <definition 0 in package 0>"],
+        &expect!["Controlled Controlled <definition 1 in package 0>"],
     );
 }
 
