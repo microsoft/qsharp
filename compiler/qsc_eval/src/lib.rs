@@ -101,7 +101,7 @@ pub enum Error {
     Output(#[label("failed to generate output")] Span),
 
     #[error("range missing `{0}` field")]
-    RangeEntryMissing(
+    RangeFieldMissing(
         &'static str,
         #[label] Span,
     ),
