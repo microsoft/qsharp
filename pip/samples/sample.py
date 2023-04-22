@@ -6,7 +6,6 @@ sample_qs = pathlib.Path(__file__).parent.resolve().joinpath("./sample.qs")
 
 # Interpret some code.
 # Just defining an operation.
-# TODO: Q: namespace suport?
 qsharp.interpret("""
 operation Main() : Unit {
     use q = Qubit();
@@ -17,7 +16,6 @@ operation Main() : Unit {
 
 # Interpret some more code.
 # Should output Message output to stdout.
-# TODO: Do something fancy for notebooks
 qsharp.interpret("Main()")
 
 # Add some source from a file
@@ -62,7 +60,7 @@ except RuntimeException as ex:
         print("\x1b[31m" + diagnostic.message + "\x1b[0m")
 
 # State visualization
-(value, outputs) = qsharp._qsharp._interpret_with_dumps(
+(value, outputs) = qsharp._qsharp._interpret_with_outputs(
     "AllBasisVectorsWithPhases_TwoQubits()")
 print(f"States: {outputs}")
 

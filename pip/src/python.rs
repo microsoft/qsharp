@@ -53,7 +53,7 @@ impl Interpreter {
             .collect::<Vec<_>>();
         let outputs = receiver.outputs;
 
-        // TODO: Figure out what to do with multiple statements
+        // TODO: This will be simplified when the stateful evaluator returns a single error.
         let (value, errors) = match results.last() {
             Some(r) => match r.to_owned() {
                 Ok(value) => (value, Vec::<stateful::Error>::new()),

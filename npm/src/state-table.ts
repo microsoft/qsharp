@@ -31,14 +31,14 @@ export function renderDump(dump: Dump): string {
   let table = `
     <thead>
       <tr>
-        <th>Basis State<br/>(|&#x1D713;&#x2099;&#x2026;&#x1D713;&#x2080;⟩)</th>
+        <th>Basis State<br/>(|𝜓ₙ…𝜓₁⟩)</th>
         <th>Amplitude</th>
         <th>Measurement Probability</th>
         <th colspan="2">Phase</th>
       </tr>
     </thead>
     <tbody>`;
-    
+
   function probability(real: number, imag: number) {
     return (real * real + imag * imag);
   }
@@ -47,8 +47,8 @@ export function renderDump(dump: Dump): string {
     // toLocaleString() correctly identifies -0 in JavaScript
     // String interpolation drops minus sign from -0
     // &#x2212; is the unicode minus sign, &#x1D456; is the mathematical i
-    const realPart = `${real.toLocaleString()[0] === "-" ? "&#x2212;" : ""}${Math.abs(real).toFixed(4)}`;
-    const imagPart = `${imag.toLocaleString()[0] === "-" ? "&#x2212;" : "+"}${Math.abs(imag).toFixed(4)}&#x1D456;`;
+    const realPart = `${real.toLocaleString()[0] === "-" ? "−" : ""}${Math.abs(real).toFixed(4)}`;
+    const imagPart = `${imag.toLocaleString()[0] === "-" ? "−" : "+"}${Math.abs(imag).toFixed(4)}&#x1D456;`;
     return `${realPart}${imagPart}`;
   }
 
@@ -65,7 +65,7 @@ export function renderDump(dump: Dump): string {
               <progress max="100" value="${probabilityPercent}"></progress>
               <span>${probabilityPercent.toFixed(4)}%</span>
           </td>
-          <td style="transform: rotate(${phase.toFixed(4)}rad)">&uarr;</td>
+          <td style="transform: rotate(${phase.toFixed(4)}rad)">↑</td>
           <td>
               <span">${phase.toFixed(4)}</span>
           </td>
