@@ -257,13 +257,11 @@ impl<'a> Context<'a> {
                     .map_or(converge(Ty::UNIT), |e| self.infer_expr(e));
                 self.inferrer
                     .eq(expr.span, partial_true.ty.clone(), partial_false.ty);
-                let diverges =
-                    partial_cond.diverges || partial_true.diverges && partial_false.diverges;
                 self.diverge_if(
-                    diverges,
+                    partial_cond.diverges,
                     Partial {
-                        ty: partial_true.ty,
-                        diverges,
+                        diverges: partial_true.diverges && partial_false.diverges,
+                        ..partial_true
                     },
                 )
             }
@@ -362,13 +360,11 @@ impl<'a> Context<'a> {
                 let partial_false = self.infer_expr(if_false);
                 self.inferrer
                     .eq(expr.span, partial_true.ty.clone(), partial_false.ty);
-                let diverges =
-                    partial_cond.diverges || partial_true.diverges && partial_false.diverges;
                 self.diverge_if(
-                    diverges,
+                    partial_cond.diverges,
                     Partial {
-                        ty: partial_true.ty,
-                        diverges,
+                        diverges: partial_true.diverges && partial_false.diverges,
+                        ..partial_true
                     },
                 )
             }

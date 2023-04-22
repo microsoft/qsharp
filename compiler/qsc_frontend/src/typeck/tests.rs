@@ -818,6 +818,40 @@ fn if_else_fail() {
 }
 
 #[test]
+fn if_cond_fail() {
+    check(
+        indoc! {r#"
+            namespace A {
+                function F() : Int {
+                    if fail "error" {
+                        "this type doesn't matter"
+                    } else {
+                        "foo"
+                    }
+                }
+            }
+        "#},
+        "",
+        &expect![[r##"
+            #5 27-28 "F" : (()) -> (Int)
+            #6 28-30 "()" : ()
+            #8 37-154 "{\n        if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }\n    }" : Int
+            #9 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
+            #10 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
+            #11 50-62 "fail \"error\"" : Bool
+            #12 55-62 "\"error\"" : String
+            #13 63-113 "{\n            \"this type doesn't matter\"\n        }" : String
+            #14 77-103 "\"this type doesn't matter\"" : String
+            #15 77-103 "\"this type doesn't matter\"" : String
+            #16 114-148 "else {\n            \"foo\"\n        }" : String
+            #17 119-148 "{\n            \"foo\"\n        }" : String
+            #18 133-138 "\"foo\"" : String
+            #19 133-138 "\"foo\"" : String
+        "##]],
+    );
+}
+
+#[test]
 fn ternop_cond_error() {
     check(
         "",
