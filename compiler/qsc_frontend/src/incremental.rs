@@ -114,8 +114,7 @@ impl<'a> Compiler<'a> {
         });
         self.checker.add_global_callable(decl);
         self.checker
-            .with(self.resolver.resolutions())
-            .check_callable_decl(decl);
+            .check_callable_decl(self.resolver.resolutions(), decl);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
@@ -135,9 +134,7 @@ impl<'a> Compiler<'a> {
         self.resolver.with_scope(&mut self.scope, |resolver| {
             resolver.visit_stmt(stmt);
         });
-        self.checker
-            .with(self.resolver.resolutions())
-            .check_stmt(stmt);
+        self.checker.check_stmt(self.resolver.resolutions(), stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
