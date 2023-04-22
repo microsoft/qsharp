@@ -162,7 +162,7 @@ fn eval_line_in_context(
                 };
 
                 let result = eval_stmt(&stmt, &global, *fields.package, &mut env, receiver);
-                let _ = fields.env.insert(env);
+                *fields.env = Some(env);
                 match result {
                     Ok(v) => {
                         final_result = v;

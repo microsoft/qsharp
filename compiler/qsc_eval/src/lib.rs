@@ -382,7 +382,7 @@ impl<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
             }
             ExprKind::While(cond, block) => {
                 while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
-                    let _ = self.eval_block(block)?;
+                    self.eval_block(block)?;
                 }
                 ControlFlow::Continue(Value::UNIT)
             }
@@ -429,7 +429,7 @@ impl<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
         self.enter_scope();
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
-                let _ = self.eval_stmt(stmt)?;
+                self.eval_stmt(stmt)?;
             }
             self.eval_stmt(last)
         } else {
@@ -449,7 +449,7 @@ impl<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Semi(expr) => {
-                let _ = self.eval_expr(expr)?;
+                self.eval_expr(expr)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
@@ -458,7 +458,7 @@ impl<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
                     self.enter_scope();
                     self.track_qubits(qubits);
                     self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
-                    let _ = self.eval_block(block)?;
+                    self.eval_block(block)?;
                     self.leave_scope();
                 } else {
                     self.track_qubits(qubits);
@@ -500,7 +500,7 @@ impl<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
         for value in iterable {
             self.enter_scope();
             self.bind_value(pat, value, expr.span, Mutability::Immutable);
-            let _ = self.eval_block(block)?;
+            self.eval_block(block)?;
             self.leave_scope();
         }
 

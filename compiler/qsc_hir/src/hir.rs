@@ -111,6 +111,7 @@ impl From<usize> for PackageId {
     }
 }
 
+/// A definition ID within a package.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageDefId(pub usize);
 
@@ -126,9 +127,12 @@ impl From<PackageDefId> for usize {
     }
 }
 
+/// An inter-package definition ID.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DefId {
+    /// The package ID or `None` for the local package.
     pub package: Option<PackageId>,
+    /// The definition ID.
     pub def: PackageDefId,
 }
 
@@ -149,6 +153,7 @@ pub enum Res {
 pub struct Package {
     /// The node ID.
     pub id: NodeId,
+    /// The items in the package.
     pub items: IndexMap<PackageDefId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
