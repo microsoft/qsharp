@@ -1,31 +1,31 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as wasm from "../lib/node/qsc_wasm.cjs";
-import { Compiler } from "./compiler.js";
-import { mapDiagnostics, run_shot_internal, ShotResult } from "./common.js";
+import { createRequire } from "node:module";
+import { Worker } from "node:worker_threads";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { Compiler, CompilerEvents, ICompiler, ICompilerWorker } from "./compiler.js";
+import { createWorkerProxy } from "./worker-common.js";
 
-export function getCompiler() : Compiler {
-    return new Compiler(wasm);
+// Only load the Wasm module when first needed, as it may only be used in a Worker,
+// and not in the main thread.
+type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
+let wasm: Wasm | null = null;
+const require = createRequire(import.meta.url);
+
+export function getCompiler(callbacks: CompilerEvents) : ICompiler {
+    if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+    return new Compiler(wasm, callbacks);
 }
 
-export function getCompletions(): wasm.ICompletionList {
-    let completions = wasm.get_completions() as wasm.ICompletionList;
-    return completions;
-}
+export function getCompilerWorker(callbacks: CompilerEvents) : ICompilerWorker {
+    const thisDir = dirname(fileURLToPath(import.meta.url));
+    const worker = new Worker(join(thisDir,"node-worker.js"));
 
-export function checkCode(code: string): wasm.IDiagnostic[] {
-    let result = wasm.check_code(code) as wasm.IDiagnostic[];
-    return mapDiagnostics(result, code);
-}
+    const postMessage = (val: any) => worker.postMessage(val);
+    const setMsgHandler = (handler: (e: any) => void) => worker.on("message", handler);
+    const onTerminate = () => worker.terminate();
 
-export function evaluate(code: string, expr: string, cb: Function, shots: number): string {
-    let result = wasm.run(code, expr, cb, shots) as string;
-    return result;
+    return createWorkerProxy(callbacks, postMessage, setMsgHandler, onTerminate);
 }
-
-export function run_shot(code: string, expr: string): ShotResult {
-    return run_shot_internal(code, expr, wasm.run);
-}
-
-export { mapDiagnostics } from "./common.js";

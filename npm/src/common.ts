@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 // Each DumpMachine output is represented as an object where each key is a basis
 // state, e.g., "|3>" and the value is the [real, imag] parts of the complex amplitude.
 export type Dump = {
@@ -25,12 +28,6 @@ export interface ResultMsg {
     type: "Result";
     success: boolean;
     result: string | VSDiagnostic;
-}
-
-export type ShotResult = {
-    success: boolean;
-    result: string | VSDiagnostic;
-    events: Array<MessageMsg | DumpMsg>;
 }
 
 export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
@@ -75,31 +72,45 @@ export function eventStringToMsg(msg: string) : EventMsg | null {
     return outputAsResult(msg) || outputAsMessage(msg) || outputAsDump(msg);
 }
 
-export type RunFn = (code: string, expr: string, event_cb: Function, shots: number) => void;
+export type ShotResult = {
+    success: boolean;
+    result: string | VSDiagnostic;
+    events: Array<MessageMsg | DumpMsg>;
+}
 
-export function run_shot_internal(code: string, expr: string, run: RunFn) : ShotResult {
-    let result : ShotResult = {
-        success: false,
-        result: "pending",
-        events: [],
-    };
-
-    run(code, expr, (msg:string) => {
-        let eventObj = eventStringToMsg(msg);
-        if (!eventObj) return;
-
-        switch (eventObj.type) {
-            case "Result":
-                result.success = eventObj.success;
-                result.result = eventObj.result;
-                break;
-            default:
-                result.events.push(eventObj);
-                break;
+export function getResultsHandler() {
+    function getFreshResult(): ShotResult {
+        return {
+            success: false,
+            result: "",
+            events: [],
         }
-    }, 1);
+    }
 
-    return result;
+    let results: ShotResult[] = [];
+    let result = getFreshResult();
+
+    return {
+        onSuccess: (res: string) => {
+            result.success = true;
+            result.result = res;
+            results.push(result);
+            result = getFreshResult();
+        },
+        onFailure: (err: any) => {
+            result.success = false;
+            result.result = err;
+            results.push(result);
+            result = getFreshResult();
+        },
+        onMessage: (msg: MessageMsg) => result.events.push(msg),
+        onDumpMachine: (dump: DumpMsg) => result.events.push(dump),
+        getResults: () => results,
+        clearResults: () => {
+            results.length = 0;
+            result = getFreshResult();
+        }
+    } 
 }
 
 // The QSharp compiler returns positions in utf-8 code unit positions (basically a byte[]

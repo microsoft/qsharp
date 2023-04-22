@@ -3,12 +3,15 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompiler, checkCode, eventStringToMsg, mapDiagnostics, evaluate,
+import {getCompiler, loadWasmModule, checkCode, eventStringToMsg, mapDiagnostics, evaluate,
     getCompletions, ShotResult, Dump, renderDump, IDiagnostic} from "qsharp";
 
 import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
 import { base64ToCode, codeToBase64 } from "./utils.js";
 import { PopulateKatasList, RenderKatas } from "./katas.js";
+import { getCompilerWorker } from "qsharp";
+
+const wasmPromise = loadWasmModule("libs/qsharp/qsc_wasm_bg.wasm");
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -56,7 +59,8 @@ function squiggleDiagnostics(errors: IDiagnostic[]) {
 
 // This runs after the Monaco editor is initialized
 async function loaded() {
-    await init(`libs/qsharp/qsc_wasm_bg.wasm`);
+    await wasmPromise; // Ensure the Wasm Module is done loading
+    const compiler = getCompilerWorker('libs/worker.js', null as any); // TODO
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
