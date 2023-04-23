@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use num_bigint::BigInt;
-use qsc_hir::hir::{ItemId, PackageId, Pauli};
+use qsc_hir::hir::{LocalItemId, PackageId, Pauli};
 use std::{
     ffi::c_void,
     fmt::{self, Display, Formatter},
@@ -30,7 +30,7 @@ pub enum Value {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GlobalId {
     pub package: PackageId,
-    pub item: ItemId,
+    pub item: LocalItemId,
 }
 
 impl Display for GlobalId {

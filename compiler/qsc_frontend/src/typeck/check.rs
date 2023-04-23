@@ -12,14 +12,14 @@ use crate::{
 };
 use qsc_ast::{ast, visit::Visitor as AstVisitor};
 use qsc_hir::{
-    hir::{self, ItemLoc, PackageId},
+    hir::{self, ItemId, PackageId},
     visit::Visitor as HirVisitor,
 };
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<ItemLoc, Ty>,
+    globals: HashMap<ItemId, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
@@ -75,11 +75,11 @@ impl HirVisitor<'_> for GlobalTable<'_> {
         for (id, item) in package.items.iter() {
             if let hir::ItemKind::Callable(decl) = &item.kind {
                 let (ty, errors) = Ty::of_hir_callable(decl);
-                let loc = ItemLoc {
+                let item_id = ItemId {
                     package: Some(package_id),
                     item: id,
                 };
-                self.globals.insert(loc, ty);
+                self.globals.insert(item_id, ty);
                 for MissingTyError(span) in errors {
                     self.errors.push(Error(ErrorKind::MissingItemTy(span)));
                 }
@@ -90,7 +90,7 @@ impl HirVisitor<'_> for GlobalTable<'_> {
 
 pub(crate) struct Checker<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<ItemLoc, Ty>,
+    globals: HashMap<ItemId, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }

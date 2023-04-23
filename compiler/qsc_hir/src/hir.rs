@@ -113,27 +113,27 @@ impl From<usize> for PackageId {
 
 /// A unique identifier for an item within a package.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ItemId(usize);
+pub struct LocalItemId(usize);
 
-impl From<usize> for ItemId {
+impl From<usize> for LocalItemId {
     fn from(value: usize) -> Self {
         Self(value)
     }
 }
 
-impl From<ItemId> for usize {
-    fn from(value: ItemId) -> Self {
+impl From<LocalItemId> for usize {
+    fn from(value: LocalItemId) -> Self {
         value.0
     }
 }
 
-/// A locator for an item within a package store.
+/// A unique identifier for an item within a package store.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ItemLoc {
+pub struct ItemId {
     /// The package ID or `None` for the local package.
     pub package: Option<PackageId>,
     /// The item ID.
-    pub item: ItemId,
+    pub item: LocalItemId,
 }
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
@@ -143,7 +143,7 @@ pub enum Res {
     /// An invalid resolution.
     Err,
     /// A global item.
-    Item(ItemLoc),
+    Item(ItemId),
     /// A local variable.
     Local(NodeId),
 }
@@ -154,7 +154,7 @@ pub struct Package {
     /// The node ID.
     pub id: NodeId,
     /// The items in the package.
-    pub items: IndexMap<ItemId, Item>,
+    pub items: IndexMap<LocalItemId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
 }
@@ -182,7 +182,7 @@ pub struct Item {
     /// The span.
     pub span: Span,
     /// The parent item.
-    pub parent: Option<ItemId>,
+    pub parent: Option<LocalItemId>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -216,7 +216,7 @@ pub enum ItemKind {
     #[default]
     Err,
     /// A `namespace` declaration.
-    Namespace(Ident, Vec<ItemId>),
+    Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
 }

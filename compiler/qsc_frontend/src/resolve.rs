@@ -11,7 +11,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
-    hir::{self, ItemId, ItemLoc, PackageId},
+    hir::{self, ItemId, LocalItemId, PackageId},
     visit::Visitor as HirVisitor,
 };
 use std::{
@@ -33,7 +33,7 @@ pub(super) type Resolutions = IndexMap<ast::NodeId, Res>;
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(super) enum Res {
     /// A global item.
-    Item(ItemLoc),
+    Item(ItemId),
     /// A local variable.
     Local(ast::NodeId),
 }
@@ -54,11 +54,11 @@ pub(super) enum Error {
 
 pub(super) struct Resolver<'a> {
     resolutions: Resolutions,
-    tys: HashMap<&'a str, HashMap<&'a str, ItemLoc>>,
-    terms: HashMap<&'a str, HashMap<&'a str, ItemLoc>>,
+    tys: HashMap<&'a str, HashMap<&'a str, ItemId>>,
+    terms: HashMap<&'a str, HashMap<&'a str, ItemId>>,
     opens: HashMap<&'a str, HashMap<&'a str, Span>>,
     namespace: &'a str,
-    next_item: ItemId,
+    next_item: LocalItemId,
     locals: Vec<HashMap<&'a str, ast::NodeId>>,
     errors: Vec<Error>,
 }
@@ -74,16 +74,16 @@ impl<'a> Resolver<'a> {
 
     pub(super) fn add_global_callable(&mut self, decl: &'a ast::CallableDecl) {
         let id = self.next_item;
-        self.next_item = ItemId::from(usize::from(id) + 1);
-        let loc = ItemLoc {
+        self.next_item = LocalItemId::from(usize::from(id) + 1);
+        let item = ItemId {
             package: None,
             item: id,
         };
-        self.resolutions.insert(decl.name.id, Res::Item(loc));
+        self.resolutions.insert(decl.name.id, Res::Item(item));
         self.terms
             .entry(self.namespace)
             .or_default()
-            .insert(&decl.name.name, loc);
+            .insert(&decl.name.name, item);
     }
 
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
@@ -239,11 +239,11 @@ impl<'a> AstVisitor<'a> for Resolver<'a> {
 
 pub(super) struct GlobalTable<'a> {
     resolutions: Resolutions,
-    tys: HashMap<&'a str, HashMap<&'a str, ItemLoc>>,
-    terms: HashMap<&'a str, HashMap<&'a str, ItemLoc>>,
+    tys: HashMap<&'a str, HashMap<&'a str, ItemId>>,
+    terms: HashMap<&'a str, HashMap<&'a str, ItemId>>,
     package: Option<PackageId>,
     namespace: &'a str,
-    next_item: ItemId,
+    next_item: LocalItemId,
 }
 
 impl<'a> GlobalTable<'a> {
@@ -254,7 +254,7 @@ impl<'a> GlobalTable<'a> {
             terms: HashMap::new(),
             package: None,
             namespace: "",
-            next_item: ItemId::from(0),
+            next_item: LocalItemId::from(0),
         }
     }
 
@@ -280,12 +280,12 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
     fn visit_namespace(&mut self, namespace: &'a ast::Namespace) {
         self.namespace = &namespace.name.name;
         let id = self.next_item;
-        self.next_item = ItemId::from(usize::from(id) + 1);
-        let loc = ItemLoc {
+        self.next_item = LocalItemId::from(usize::from(id) + 1);
+        let item = ItemId {
             package: self.package,
             item: id,
         };
-        self.resolutions.insert(namespace.name.id, Res::Item(loc));
+        self.resolutions.insert(namespace.name.id, Res::Item(item));
         ast_visit::walk_namespace(self, namespace);
         self.namespace = "";
     }
@@ -299,35 +299,35 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
         match &item.kind {
             ast::ItemKind::Callable(decl) => {
                 let id = self.next_item;
-                self.next_item = ItemId::from(usize::from(id) + 1);
-                let loc = ItemLoc {
+                self.next_item = LocalItemId::from(usize::from(id) + 1);
+                let item_id = ItemId {
                     package: self.package,
                     item: id,
                 };
 
-                self.resolutions.insert(decl.name.id, Res::Item(loc));
+                self.resolutions.insert(decl.name.id, Res::Item(item_id));
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&decl.name.name, loc);
+                    .insert(&decl.name.name, item_id);
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = self.next_item;
-                self.next_item = ItemId::from(usize::from(id) + 1);
-                let loc = ItemLoc {
+                self.next_item = LocalItemId::from(usize::from(id) + 1);
+                let item_id = ItemId {
                     package: self.package,
                     item: id,
                 };
 
-                self.resolutions.insert(name.id, Res::Item(loc));
+                self.resolutions.insert(name.id, Res::Item(item_id));
                 self.tys
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, loc);
+                    .insert(&name.name, item_id);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
-                    .insert(&name.name, loc);
+                    .insert(&name.name, item_id);
             }
             ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
         }
@@ -346,7 +346,7 @@ impl<'a> HirVisitor<'a> for GlobalTable<'a> {
             }
 
             let Some(parent) = item.parent else { continue; };
-            let loc = ItemLoc {
+            let item_id = ItemId {
                 package: Some(package_id),
                 item: id,
             };
@@ -360,17 +360,17 @@ impl<'a> HirVisitor<'a> for GlobalTable<'a> {
                     self.terms
                         .entry(&namespace.name)
                         .or_default()
-                        .insert(&decl.name.name, loc);
+                        .insert(&decl.name.name, item_id);
                 }
                 hir::ItemKind::Ty(name, _) => {
                     self.tys
                         .entry(&namespace.name)
                         .or_default()
-                        .insert(&name.name, loc);
+                        .insert(&name.name, item_id);
                     self.terms
                         .entry(&namespace.name)
                         .or_default()
-                        .insert(&name.name, loc);
+                        .insert(&name.name, item_id);
                 }
                 hir::ItemKind::Err | hir::ItemKind::Namespace(..) => {}
             }
@@ -379,7 +379,7 @@ impl<'a> HirVisitor<'a> for GlobalTable<'a> {
 }
 
 fn resolve(
-    globals: &HashMap<&str, HashMap<&str, ItemLoc>>,
+    globals: &HashMap<&str, HashMap<&str, ItemId>>,
     opens: &HashMap<&str, HashMap<&str, Span>>,
     parent: &str,
     locals: &[HashMap<&str, ast::NodeId>],
@@ -436,10 +436,10 @@ fn resolve(
 }
 
 fn resolve_implicit_opens<'a>(
-    globals: &HashMap<&str, HashMap<&str, ItemLoc>>,
+    globals: &HashMap<&str, HashMap<&str, ItemId>>,
     namespaces: impl IntoIterator<Item = &'a &'a str>,
     name: &str,
-) -> HashSet<ItemLoc> {
+) -> HashSet<ItemId> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
@@ -450,10 +450,10 @@ fn resolve_implicit_opens<'a>(
 }
 
 fn resolve_explicit_opens<'a>(
-    globals: &HashMap<&str, HashMap<&str, ItemLoc>>,
+    globals: &HashMap<&str, HashMap<&str, ItemId>>,
     namespaces: impl IntoIterator<Item = (&'a &'a str, &'a Span)>,
     name: &str,
-) -> HashMap<ItemLoc, Span> {
+) -> HashMap<ItemId, Span> {
     let mut candidates = HashMap::new();
     for (&namespace, &span) in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {

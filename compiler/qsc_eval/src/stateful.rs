@@ -17,7 +17,7 @@ use qsc_frontend::{
     compile::{self, compile, CompileUnit, PackageStore},
     incremental::{Compiler, Fragment},
 };
-use qsc_hir::hir::{CallableDecl, ItemId, ItemKind, PackageId};
+use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId};
 use qsc_passes::run_default_passes;
 use std::string::String;
 use thiserror::Error;
@@ -39,8 +39,8 @@ pub struct ExecutionContext {
     #[covariant]
     compiler: Compiler<'this>,
     package: PackageId,
-    next_item: ItemId,
-    callables: IndexMap<ItemId, CallableDecl>,
+    next_item: LocalItemId,
+    callables: IndexMap<LocalItemId, CallableDecl>,
     env: Option<Env>,
 }
 
@@ -126,7 +126,7 @@ fn create_execution_context(
         store,
         compiler_builder: |store| Compiler::new(store, session_deps),
         package: session_package,
-        next_item: ItemId::from(0),
+        next_item: LocalItemId::from(0),
         callables: IndexMap::new(),
         env: None,
     }
@@ -177,7 +177,7 @@ fn eval_line_in_context(
             }
             Fragment::Callable(decl) => {
                 let id = *fields.next_item;
-                *fields.next_item = ItemId::from(usize::from(id) + 1);
+                *fields.next_item = LocalItemId::from(usize::from(id) + 1);
                 fields.callables.insert(id, decl);
                 final_result = Value::UNIT;
             }

@@ -6,7 +6,7 @@ use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, ItemId},
+    hir::{self, LocalItemId},
 };
 
 pub(super) struct Lowerer {
@@ -82,7 +82,11 @@ impl With<'_> {
         }
     }
 
-    fn lower_item(&mut self, parent: ItemId, item: &ast::Item) -> Option<(ItemId, hir::Item)> {
+    fn lower_item(
+        &mut self,
+        parent: LocalItemId,
+        item: &ast::Item,
+    ) -> Option<(LocalItemId, hir::Item)> {
         if matches!(item.kind, ast::ItemKind::Open(..)) {
             return None;
         }
@@ -92,19 +96,19 @@ impl With<'_> {
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
         let (item_id, kind) = match &item.kind {
             ast::ItemKind::Callable(decl) => {
-                let Some(&resolve::Res::Item(loc)) = self.resolutions.get(decl.name.id) else {
+                let Some(&resolve::Res::Item(id)) = self.resolutions.get(decl.name.id) else {
                     panic!("callable declaration should resolve to item");
                 };
                 let kind = hir::ItemKind::Callable(self.lower_callable_decl(decl));
-                (loc.item, kind)
+                (id.item, kind)
             }
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Ty(name, def) => {
-                let Some(&resolve::Res::Item(loc)) = self.resolutions.get(name.id) else {
+                let Some(&resolve::Res::Item(id)) = self.resolutions.get(name.id) else {
                     panic!("type declaration should resolve to item");
                 };
                 let kind = hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def));
-                (loc.item, kind)
+                (id.item, kind)
             }
         };
 
@@ -453,7 +457,7 @@ impl With<'_> {
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.resolutions.get(path.id) {
             None => hir::Res::Err,
-            Some(&resolve::Res::Item(loc)) => hir::Res::Item(loc),
+            Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
         }
     }

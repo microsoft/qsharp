@@ -12,7 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::ItemLoc;
+use qsc_hir::hir::ItemId;
 use std::{
     collections::{HashMap, HashSet},
     convert::Into,
@@ -27,7 +27,7 @@ struct Partial {
 
 struct Context<'a> {
     resolutions: &'a Resolutions,
-    globals: &'a HashMap<ItemLoc, Ty>,
+    globals: &'a HashMap<ItemId, Ty>,
     return_ty: Option<&'a Ty>,
     tys: &'a mut Tys<NodeId>,
     nodes: Vec<NodeId>,
@@ -37,7 +37,7 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions,
-        globals: &'a HashMap<ItemLoc, Ty>,
+        globals: &'a HashMap<ItemId, Ty>,
         tys: &'a mut Tys<NodeId>,
     ) -> Self {
         Self {
@@ -601,7 +601,7 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     resolutions: &Resolutions,
-    globals: &HashMap<ItemLoc, Ty>,
+    globals: &HashMap<ItemId, Ty>,
     tys: &mut Tys<NodeId>,
     spec: SpecImpl,
 ) -> Vec<Error> {
@@ -612,7 +612,7 @@ pub(super) fn spec(
 
 pub(super) fn entry_expr(
     resolutions: &Resolutions,
-    globals: &HashMap<ItemLoc, Ty>,
+    globals: &HashMap<ItemId, Ty>,
     tys: &mut Tys<NodeId>,
     entry: &Expr,
 ) -> Vec<Error> {
