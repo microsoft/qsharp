@@ -215,18 +215,28 @@ impl Range {
     }
 }
 
+pub trait GlobalLookup<'a> {
+    fn get_callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
+}
+
+impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
+    fn get_callable(&self, id: GlobalId) -> Option<&'a CallableDecl> {
+        self(id)
+    }
+}
+
 /// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_stmt<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>>(
+pub fn eval_stmt<'a>(
     stmt: &Stmt,
-    global: &'a G,
+    globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, Error> {
     let mut eval = Evaluator {
-        global,
+        globals,
         package,
         env: take(env),
         out: Some(out),
@@ -242,15 +252,15 @@ pub fn eval_stmt<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>>(
 /// Evaluates the given expression with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_expr<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>>(
+pub fn eval_expr<'a>(
     expr: &Expr,
-    global: &'a G,
+    globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, Error> {
     let mut eval = Evaluator {
-        global,
+        globals,
         package,
         env: take(env),
         out: Some(out),
@@ -270,6 +280,22 @@ pub fn init() {
 #[derive(Default)]
 pub struct Env(Vec<Scope>);
 
+impl Env {
+    fn get(&self, id: NodeId) -> Option<&Variable> {
+        self.0
+            .iter()
+            .rev()
+            .find_map(|scope| scope.bindings.get(&id))
+    }
+
+    fn get_mut(&mut self, id: NodeId) -> Option<&mut Variable> {
+        self.0
+            .iter_mut()
+            .rev()
+            .find_map(|scope| scope.bindings.get_mut(&id))
+    }
+}
+
 #[derive(Default)]
 struct Scope {
     bindings: HashMap<NodeId, Variable>,
@@ -284,13 +310,13 @@ impl Env {
 }
 
 struct Evaluator<'a, G> {
-    global: &'a G,
+    globals: &'a G,
     package: PackageId,
     env: Env,
     out: Option<&'a mut dyn Receiver>,
 }
 
-impl<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
+impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     #[allow(clippy::too_many_lines)]
     fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
@@ -567,14 +593,17 @@ impl<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
         let call_span = call.span;
         let (call, functor) = value_to_call_id(call_val, call.span)?;
         let args_val = self.eval_expr(args)?;
-        let decl = (self.global)(call).expect("call should resolve to global");
+        let decl = self
+            .globals
+            .get_callable(call)
+            .expect("call should resolve");
         let spec = specialization_from_functor_app(&functor);
 
         let mut new_self = Self {
-            env: Env::default(),
+            globals: self.globals,
             package: call.package,
+            env: Env::default(),
             out: self.out.take(),
-            ..*self
         };
         let call_res = new_self.eval_call_spec(
             decl,
@@ -934,12 +963,10 @@ impl<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
             ),
             Res::Local(node) => self
                 .env
-                .0
-                .iter()
-                .rev()
-                .find_map(|s| s.bindings.get(&node))
-                .map(|v| v.value.clone())
-                .expect("local variable should be bound"),
+                .get(node)
+                .expect("local should be bound")
+                .value
+                .clone(),
         }
     }
 
@@ -949,16 +976,9 @@ impl<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (&ExprKind::Name(Res::Local(node)), rhs) => {
-                let mut variable = self
-                    .env
-                    .0
-                    .iter_mut()
-                    .rev()
-                    .find_map(|scope| scope.bindings.get_mut(&node))
-                    .unwrap_or_else(|| panic!("path is not bound: {node}"));
-
-                if variable.is_mutable() {
-                    variable.value = rhs;
+                let mut var = self.env.get_mut(node).expect("local should be bound");
+                if var.is_mutable() {
+                    var.value = rhs;
                     ControlFlow::Continue(Value::UNIT)
                 } else {
                     ControlFlow::Break(Reason::Error(Error::Mutability(lhs.span)))
