@@ -112,8 +112,22 @@ impl From<usize> for PackageId {
 }
 
 /// A unique identifier for an item within a package.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct LocalItemId(usize);
+
+impl LocalItemId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for LocalItemId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
 
 impl From<usize> for LocalItemId {
     fn from(value: usize) -> Self {
@@ -136,6 +150,15 @@ pub struct ItemId {
     pub item: LocalItemId,
 }
 
+impl Display for ItemId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self.package {
+            None => write!(f, "Item {}", self.item),
+            Some(package) => write!(f, "Item {} (Package {package})", self.item),
+        }
+    }
+}
+
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -148,11 +171,19 @@ pub enum Res {
     Local(NodeId),
 }
 
+impl Display for Res {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Res::Err => f.write_str("Err"),
+            Res::Item(item) => Display::fmt(item, f),
+            Res::Local(node) => write!(f, "Local {node}"),
+        }
+    }
+}
+
 /// The root node of the HIR.
 #[derive(Clone, Debug, Default)]
 pub struct Package {
-    /// The node ID.
-    pub id: NodeId,
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
     /// The entry expression for an executable package.
@@ -160,9 +191,9 @@ pub struct Package {
 }
 
 impl Display for Package {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Package {}:", self.id)?;
+        write!(indent, "Package:")?;
         indent = set_indentation(indent, 1);
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
@@ -178,7 +209,7 @@ impl Display for Package {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
-    pub id: NodeId,
+    pub id: LocalItemId,
     /// The span.
     pub span: Span,
     /// The parent item.
@@ -192,10 +223,13 @@ pub struct Item {
 }
 
 impl Display for Item {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
         indent = set_indentation(indent, 1);
+        if let Some(parent) = self.parent {
+            write!(indent, "\nParent: {parent}")?;
+        }
         for attr in &self.attrs {
             write!(indent, "\n{attr}")?;
         }
@@ -222,11 +256,23 @@ pub enum ItemKind {
 }
 
 impl Display for ItemKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             ItemKind::Callable(decl) => write!(f, "{decl}"),
             ItemKind::Err => write!(f, "Err"),
-            ItemKind::Namespace(name, items) => write!(f, "Namespace ({name}): {items:?}"),
+            ItemKind::Namespace(name, items) => {
+                write!(f, "Namespace ({name}):")?;
+                let mut items = items.iter();
+                if let Some(item) = items.next() {
+                    write!(f, " Item {item}")?;
+                    for item in items {
+                        write!(f, ", Item {item}")?;
+                    }
+                    Ok(())
+                } else {
+                    write!(f, " <empty>")
+                }
+            }
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
         }
     }
@@ -569,7 +615,7 @@ impl Display for TyKind {
                 }
             }
             TyKind::Hole => write!(indent, "Hole")?,
-            TyKind::Name(res) => write!(indent, "Name: {res:?}")?,
+            TyKind::Name(res) => write!(indent, "Name: {res}")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
             TyKind::Tuple(ts) => {
@@ -783,7 +829,7 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Name(res) => write!(indent, "Name: {res:?}")?,
+            ExprKind::Name(res) => write!(indent, "Name: {res}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,

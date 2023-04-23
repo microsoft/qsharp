@@ -53,16 +53,16 @@ impl With<'_> {
             let mut namespace_items = Vec::new();
 
             for item in &namespace.items {
-                if let Some((id, item)) = self.lower_item(parent.item, item) {
-                    namespace_items.push(id);
-                    items.insert(id, item);
+                if let Some(item) = self.lower_item(parent.item, item) {
+                    namespace_items.push(item.id);
+                    items.insert(item.id, item);
                 }
             }
 
             items.insert(
                 parent.item,
                 hir::Item {
-                    id: self.lower_id(namespace.id),
+                    id: parent.item,
                     span: namespace.span,
                     parent: None,
                     attrs: Vec::new(),
@@ -76,25 +76,19 @@ impl With<'_> {
         }
 
         hir::Package {
-            id: self.lower_id(package.id),
             items,
             entry: package.entry.as_ref().map(|e| self.lower_expr(e)),
         }
     }
 
-    fn lower_item(
-        &mut self,
-        parent: LocalItemId,
-        item: &ast::Item,
-    ) -> Option<(LocalItemId, hir::Item)> {
+    fn lower_item(&mut self, parent: LocalItemId, item: &ast::Item) -> Option<hir::Item> {
         if matches!(item.kind, ast::ItemKind::Open(..)) {
             return None;
         }
 
-        let node_id = self.lower_id(item.id);
         let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let (item_id, kind) = match &item.kind {
+        let (id, kind) = match &item.kind {
             ast::ItemKind::Callable(decl) => {
                 let Some(&resolve::Res::Item(id)) = self.resolutions.get(decl.name.id) else {
                     panic!("callable declaration should resolve to item");
@@ -112,17 +106,14 @@ impl With<'_> {
             }
         };
 
-        Some((
-            item_id,
-            hir::Item {
-                id: node_id,
-                span: item.span,
-                parent: Some(parent),
-                attrs,
-                visibility,
-                kind,
-            },
-        ))
+        Some(hir::Item {
+            id,
+            span: item.span,
+            parent: Some(parent),
+            attrs,
+            visibility,
+            kind,
+        })
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> hir::Attr {
