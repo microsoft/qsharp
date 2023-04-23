@@ -1367,3 +1367,145 @@ fn return_mismatch() {
         "##]],
     );
 }
+
+#[test]
+fn array_length_field_is_int() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Int {
+                    x::Length
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #1 27-30 "Foo" : ((Qubit)[]) -> (Int)
+            #2 30-43 "(x : Qubit[])" : (Qubit)[]
+            #3 31-42 "x : Qubit[]" : (Qubit)[]
+            #4 31-32 "x" : (Qubit)[]
+            #8 50-75 "{\n        x::Length\n    }" : Int
+            #9 60-69 "x::Length" : Int
+            #10 60-69 "x::Length" : Int
+            #11 60-61 "x" : (Qubit)[]
+        "##]],
+    );
+}
+
+#[test]
+fn array_length_generic_is_int() {
+    check(
+        indoc! {"
+            namespace A {
+                function Length<'T>(a : 'T[]) : Int {
+                    a::Length
+                }
+                function Foo(x : Qubit[]) : Int {
+                    Length(x)
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #1 27-33 "Length" : (('T)[]) -> (Int)
+            #3 37-47 "(a : 'T[])" : ('T)[]
+            #4 38-46 "a : 'T[]" : ('T)[]
+            #5 38-39 "a" : ('T)[]
+            #10 54-79 "{\n        a::Length\n    }" : Int
+            #11 64-73 "a::Length" : Int
+            #12 64-73 "a::Length" : Int
+            #13 64-65 "a" : ('T)[]
+            #16 93-96 "Foo" : ((Qubit)[]) -> (Int)
+            #17 96-109 "(x : Qubit[])" : (Qubit)[]
+            #18 97-108 "x : Qubit[]" : (Qubit)[]
+            #19 97-98 "x" : (Qubit)[]
+            #23 116-141 "{\n        Length(x)\n    }" : Int
+            #24 126-135 "Length(x)" : Int
+            #25 126-135 "Length(x)" : Int
+            #26 126-132 "Length" : ((Qubit)[]) -> (Int)
+            #27 132-135 "(x)" : (Qubit)[]
+            #28 133-134 "x" : (Qubit)[]
+        "##]],
+    );
+}
+
+#[test]
+fn array_length_field_used_as_double_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Double {
+                    x::Length * 2.0
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #1 27-30 "Foo" : ((Qubit)[]) -> (Double)
+            #2 30-43 "(x : Qubit[])" : (Qubit)[]
+            #3 31-42 "x : Qubit[]" : (Qubit)[]
+            #4 31-32 "x" : (Qubit)[]
+            #8 53-84 "{\n        x::Length * 2.0\n    }" : Double
+            #9 63-78 "x::Length * 2.0" : Double
+            #10 63-78 "x::Length * 2.0" : Double
+            #11 63-72 "x::Length" : Double
+            #12 63-64 "x" : (Qubit)[]
+            #14 75-78 "2.0" : Double
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 63, hi: 72 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn array_unknown_field_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Int {
+                    x::Size
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #1 27-30 "Foo" : ((Qubit)[]) -> (Int)
+            #2 30-43 "(x : Qubit[])" : (Qubit)[]
+            #3 31-42 "x : Qubit[]" : (Qubit)[]
+            #4 31-32 "x" : (Qubit)[]
+            #8 50-73 "{\n        x::Size\n    }" : Int
+            #9 60-67 "x::Size" : Int
+            #10 60-67 "x::Size" : Int
+            #11 60-61 "x" : (Qubit)[]
+            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Var(Var(0)) }, Span { lo: 60, hi: 67 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_fields_are_int() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(r : Range) : (Int, Int, Int) {
+                    (r::Start, r::Step, r::End)
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #1 27-30 "Foo" : (Range) -> ((Int, Int, Int))
+            #2 30-41 "(r : Range)" : Range
+            #3 31-40 "r : Range" : Range
+            #4 31-32 "r" : Range
+            #10 60-103 "{\n        (r::Start, r::Step, r::End)\n    }" : (Int, Int, Int)
+            #11 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
+            #12 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
+            #13 71-79 "r::Start" : Int
+            #14 71-72 "r" : Range
+            #16 81-88 "r::Step" : Int
+            #17 81-82 "r" : Range
+            #19 90-96 "r::End" : Int
+            #20 90-91 "r" : Range
+        "##]],
+    );
+}

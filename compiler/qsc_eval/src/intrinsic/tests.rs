@@ -78,11 +78,6 @@ fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
 }
 
 #[test]
-fn length() {
-    check_intrinsic_result("", "Length([1, 2, 3])", &expect!["3"]);
-}
-
-#[test]
 fn int_as_double() {
     check_intrinsic_result(
         "",
