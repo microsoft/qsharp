@@ -202,7 +202,7 @@ fn entry_call_operation() {
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
-            item: 1.into(),
+            item: LocalItemId::from(1),
         }),
         res
     );
