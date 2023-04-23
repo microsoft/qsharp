@@ -34,11 +34,6 @@ pub(crate) fn invoke_intrinsic(
         invoke_quantum_intrinsic(name, name_span, args, args_span)
     } else {
         match name {
-            "Length" => match args.try_into_array().with_span(args_span)?.len().try_into() {
-                Ok(len) => ControlFlow::Continue(Value::Int(len)),
-                Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(args_span))),
-            },
-
             #[allow(clippy::cast_precision_loss)]
             "IntAsDouble" => {
                 let val: i64 = args.try_into().with_span(args_span)?;

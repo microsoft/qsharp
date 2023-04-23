@@ -1199,6 +1199,65 @@ fn fail_shortcut_expr() {
 }
 
 #[test]
+fn field_array_len_expr() {
+    check_expr("", "[1, 2, 3]::Length", &expect!["3"]);
+}
+
+#[test]
+fn field_range_start_expr() {
+    check_expr("", "(0..2..8)::Start", &expect!["0"]);
+}
+
+#[test]
+fn field_range_start_missing_expr() {
+    check_expr(
+        "",
+        "(...2..8)::Start",
+        &expect![[r#"
+            RangeFieldMissing(
+                "Start",
+                Span {
+                    lo: 11,
+                    hi: 16,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn field_range_step_expr() {
+    check_expr("", "(0..2..8)::Step", &expect!["2"]);
+}
+
+#[test]
+fn field_range_step_missing_treated_as_1_expr() {
+    check_expr("", "(0..8)::Step", &expect!["1"]);
+}
+
+#[test]
+fn field_range_end_expr() {
+    check_expr("", "(0..2..8)::End", &expect!["8"]);
+}
+
+#[test]
+fn field_range_end_missing_expr() {
+    check_expr(
+        "",
+        "(0..2...)::End",
+        &expect![[r#"
+            RangeFieldMissing(
+                "End",
+                Span {
+                    lo: 11,
+                    hi: 14,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn for_loop_range_expr() {
     check_expr(
         "",
@@ -2190,14 +2249,11 @@ fn check_ctls_count_expr() {
     check_expr(
         indoc! {r#"
             namespace Test {
-                function Length<'T>(a : 'T[]) : Int {
-                    body intrinsic;
-                }
                 operation Foo() : Unit is Adj + Ctl {
                     body (...) {}
                     adjoint self;
                     controlled (ctls, ...) {
-                        if Length(ctls) != 3 {
+                        if ctls::Length != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2219,14 +2275,11 @@ fn check_ctls_count_nested_expr() {
     check_expr(
         indoc! {r#"
             namespace Test {
-                function Length<'T>(a : 'T[]) : Int {
-                    body intrinsic;
-                }
                 operation Foo() : Unit is Adj + Ctl {
                     body (...) {}
                     adjoint self;
                     controlled (ctls, ...) {
-                        if Length(ctls) != 3 {
+                        if ctls::Length != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2249,13 +2302,10 @@ fn check_generated_ctl_expr() {
     check_expr(
         indoc! {r#"
             namespace Test {
-                function Length<'T>(a : 'T[]) : Int {
-                    body intrinsic;
-                }
                 operation A() : Unit is Ctl {
                     body ... {}
                     controlled (ctls, ...) {
-                        if Length(ctls) != 3 {
+                        if ctls::Length != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2275,19 +2325,16 @@ fn check_generated_ctladj_distrib_expr() {
     check_expr(
         indoc! {r#"
             namespace Test {
-                function Length<'T>(a : 'T[]) : Int {
-                    body intrinsic;
-                }
                 operation A() : Unit is Ctl + Adj {
                     body ... { fail "Shouldn't get here"; }
                     adjoint self;
                     controlled (ctls, ...) {
-                        if Length(ctls) != 3 {
+                        if ctls::Length != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
                     controlled adjoint (ctls, ...) {
-                        if Length(ctls) != 2 {
+                        if ctls::Length != 2 {
                             fail "Incorrect ctls count!";
                         }
                     }
