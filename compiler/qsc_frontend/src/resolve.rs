@@ -285,7 +285,7 @@ impl<'a> GlobalTable<'a> {
     }
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &'a hir::Package) {
-        for (_, item) in package.items.iter() {
+        for item in package.items.values() {
             if item.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
                 continue;
             }

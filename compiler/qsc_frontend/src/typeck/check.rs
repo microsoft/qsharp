@@ -72,12 +72,12 @@ impl HirVisitor<'_> for GlobalTable<'_> {
             .package
             .expect("package ID should be set before visiting HIR");
 
-        for (id, item) in package.items.iter() {
+        for item in package.items.values() {
             if let hir::ItemKind::Callable(decl) = &item.kind {
                 let (ty, errors) = Ty::of_hir_callable(decl);
                 let item_id = ItemId {
                     package: Some(package_id),
-                    item: id,
+                    item: item.id,
                 };
                 self.globals.insert(item_id, ty);
                 for MissingTyError(span) in errors {

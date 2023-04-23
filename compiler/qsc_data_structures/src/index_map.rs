@@ -38,6 +38,19 @@ impl<K, V> IndexMap<K, V> {
             base: self.values.iter_mut().enumerate(),
         }
     }
+
+    #[must_use]
+    pub fn values(&self) -> Values<V> {
+        Values {
+            base: self.values.iter(),
+        }
+    }
+
+    pub fn values_mut(&mut self) -> ValuesMut<V> {
+        ValuesMut {
+            base: self.values.iter_mut(),
+        }
+    }
 }
 
 impl<K: Into<usize>, V> IndexMap<K, V> {
@@ -118,7 +131,6 @@ impl<K: Into<usize>, V> FromIterator<(K, V)> for IndexMap<K, V> {
         for (key, value) in iter {
             map.insert(key, value);
         }
-
         map
     }
 }
@@ -169,6 +181,38 @@ impl<K: From<usize>, V> Iterator for IntoIter<K, V> {
         loop {
             if let (index, Some(value)) = self.base.next()? {
                 break Some((index.into(), value));
+            }
+        }
+    }
+}
+
+pub struct Values<'a, V> {
+    base: slice::Iter<'a, Option<V>>,
+}
+
+impl<'a, V> Iterator for Values<'a, V> {
+    type Item = &'a V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(value) = self.base.next()? {
+                break Some(value);
+            }
+        }
+    }
+}
+
+pub struct ValuesMut<'a, V> {
+    base: slice::IterMut<'a, Option<V>>,
+}
+
+impl<'a, V> Iterator for ValuesMut<'a, V> {
+    type Item = &'a mut V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(value) = self.base.next()? {
+                break Some(value);
             }
         }
     }

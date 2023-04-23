@@ -198,7 +198,7 @@ impl Display for Package {
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for (_, item) in self.items.iter() {
+        for item in self.items.values() {
             write!(indent, "\n{item}")?;
         }
         Ok(())
