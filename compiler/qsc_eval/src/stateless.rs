@@ -18,7 +18,7 @@ use thiserror::Error;
 #[diagnostic(transparent)]
 pub enum Error {
     Eval(crate::Error),
-    Compile(qsc_frontend::compile::Error),
+    Compile(compile::Error),
     Pass(qsc_passes::Error),
 }
 
@@ -43,14 +43,14 @@ pub fn eval(
         if unit.context.errors().is_empty() && pass_errs.is_empty() {
             session_deps.push(store.insert(unit));
         } else {
-            let mut errors: Vec<Error> = unit
-                .context
-                .errors()
-                .iter()
-                .map(|e| Error::Compile(e.clone()))
-                .collect();
-            errors.extend(pass_errs.into_iter().map(Error::Pass));
-            return Err(AggregateError(errors));
+            return Err(AggregateError(
+                unit.context
+                    .errors()
+                    .iter()
+                    .map(|e| Error::Compile(e.clone()))
+                    .chain(pass_errs.into_iter().map(Error::Pass))
+                    .collect(),
+            ));
         }
     }
 
@@ -123,7 +123,7 @@ fn create_execution_context(
     expr: &str,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
     let mut store = PackageStore::new();
-    let mut session_deps: Vec<_> = vec![];
+    let mut session_deps = Vec::new();
 
     if stdlib {
         let mut unit = compile::std();
@@ -131,35 +131,32 @@ fn create_execution_context(
         if unit.context.errors().is_empty() && pass_errs.is_empty() {
             session_deps.push(store.insert(unit));
         } else {
-            let mut errors: Vec<Error> = unit
-                .context
-                .errors()
-                .iter()
-                .map(|e| Error::Compile(e.clone()))
-                .collect();
-            errors.extend(pass_errs.into_iter().map(Error::Pass));
-            return Err(AggregateError(errors));
+            return Err(AggregateError(
+                unit.context
+                    .errors()
+                    .iter()
+                    .map(|e| Error::Compile(e.clone()))
+                    .chain(pass_errs.into_iter().map(Error::Pass))
+                    .collect(),
+            ));
         }
     }
 
     let mut unit = compile(&store, session_deps.clone(), sources, expr);
     let pass_errs = run_default_passes(&mut unit);
     if !unit.context.errors().is_empty() || !pass_errs.is_empty() {
-        let mut errors: Vec<Error> = unit
-            .context
-            .errors()
-            .iter()
-            .map(|e| Error::Compile(e.clone()))
-            .collect();
-        errors.extend(pass_errs.into_iter().map(Error::Pass));
-        return Err(AggregateError(errors));
+        return Err(AggregateError(
+            unit.context
+                .errors()
+                .iter()
+                .map(|e| Error::Compile(e.clone()))
+                .chain(pass_errs.into_iter().map(Error::Pass))
+                .collect(),
+        ));
     }
-    let basis_package = store.insert(unit);
 
-    Ok(ExecutionContext {
-        store,
-        package: basis_package,
-    })
+    let package = store.insert(unit);
+    Ok(ExecutionContext { store, package })
 }
 
 fn get_entry_expr(
