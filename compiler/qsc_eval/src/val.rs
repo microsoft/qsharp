@@ -35,12 +35,7 @@ pub struct GlobalId {
 
 impl Display for GlobalId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(
-            f,
-            "<item {} in package {}>",
-            usize::from(self.item),
-            self.package,
-        )
+        write!(f, "<item {} in package {}>", self.item, self.package)
     }
 }
 
