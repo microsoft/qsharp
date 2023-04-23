@@ -12,7 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::DefId;
+use qsc_hir::hir::ItemLoc;
 use std::{
     collections::{HashMap, HashSet},
     convert::Into,
@@ -27,7 +27,7 @@ struct Partial {
 
 struct Context<'a> {
     resolutions: &'a Resolutions,
-    globals: &'a HashMap<DefId, Ty>,
+    globals: &'a HashMap<ItemLoc, Ty>,
     return_ty: Option<&'a Ty>,
     tys: &'a mut Tys<NodeId>,
     nodes: Vec<NodeId>,
@@ -37,7 +37,7 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions,
-        globals: &'a HashMap<DefId, Ty>,
+        globals: &'a HashMap<ItemLoc, Ty>,
         tys: &'a mut Tys<NodeId>,
     ) -> Self {
         Self {
@@ -296,11 +296,11 @@ impl<'a> Context<'a> {
             ExprKind::Paren(expr) => self.infer_expr(expr),
             ExprKind::Path(path) => match self.resolutions.get(path.id) {
                 None => converge(Ty::Err),
-                Some(Res::Def(def)) => {
+                Some(Res::Item(item)) => {
                     let mut ty = self
                         .globals
-                        .get(def)
-                        .expect("global definition should have type")
+                        .get(item)
+                        .expect("global item should have type")
                         .clone();
                     self.inferrer.freshen(&mut ty);
                     converge(ty)
@@ -601,7 +601,7 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
+    globals: &HashMap<ItemLoc, Ty>,
     tys: &mut Tys<NodeId>,
     spec: SpecImpl,
 ) -> Vec<Error> {
@@ -612,7 +612,7 @@ pub(super) fn spec(
 
 pub(super) fn entry_expr(
     resolutions: &Resolutions,
-    globals: &HashMap<DefId, Ty>,
+    globals: &HashMap<ItemLoc, Ty>,
     tys: &mut Tys<NodeId>,
     entry: &Expr,
 ) -> Vec<Error> {

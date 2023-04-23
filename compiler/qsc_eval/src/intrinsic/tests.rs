@@ -13,7 +13,7 @@ use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
     val::Value,
-    Env, Error, GlobalDefId,
+    Env, Error, GlobalId,
 };
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
@@ -34,9 +34,9 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
         .get_entry_expr(id)
         .expect("entry expression shouild be present");
 
-    let global = |id: GlobalDefId| {
+    let global = |id: GlobalId| {
         store.get(id.package).and_then(|unit| {
-            let item = unit.package.items.get(id.def)?;
+            let item = unit.package.items.get(id.item)?;
             if let ItemKind::Callable(callable) = &item.kind {
                 Some(callable)
             } else {

@@ -1,7 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::Receiver, val::Value, AggregateError, Env, GlobalDefId};
+use crate::{
+    eval_expr,
+    output::Receiver,
+    val::{GlobalId, Value},
+    AggregateError, Env,
+};
 use miette::Diagnostic;
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_hir::hir::{Expr, ItemKind, PackageId};
@@ -68,9 +73,9 @@ pub fn eval(
     let basis_package = store.insert(unit);
     session_deps.push(basis_package);
 
-    let global = |id: GlobalDefId| {
+    let global = |id: GlobalId| {
         store.get(id.package).and_then(|unit| {
-            let item = unit.package.items.get(id.def)?;
+            let item = unit.package.items.get(id.item)?;
             if let ItemKind::Callable(callable) = &item.kind {
                 Some(callable)
             } else {
@@ -109,9 +114,9 @@ pub fn eval_in_context(
     crate::init();
 
     let expr = get_entry_expr(&context.store, context.package)?;
-    let global = |id: GlobalDefId| {
+    let global = |id: GlobalId| {
         context.store.get(id.package).and_then(|unit| {
-            let item = unit.package.items.get(id.def)?;
+            let item = unit.package.items.get(id.item)?;
             if let ItemKind::Callable(callable) = &item.kind {
                 Some(callable)
             } else {

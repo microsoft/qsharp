@@ -6,7 +6,7 @@ use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, PackageDefId},
+    hir::{self, ItemId},
 };
 
 pub(super) struct Lowerer {
@@ -46,21 +46,21 @@ impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
         let mut items = IndexMap::new();
         for namespace in &package.namespaces {
-            let Some(&resolve::Res::Def(parent)) = self.resolutions.get(namespace.name.id) else {
-                panic!("namespace should resolve to definition ID");
+            let Some(&resolve::Res::Item(parent)) = self.resolutions.get(namespace.name.id) else {
+                panic!("namespace should resolve to item");
             };
 
             let mut namespace_items = Vec::new();
 
             for item in &namespace.items {
-                if let Some((def, item)) = self.lower_item(parent.def, item) {
-                    namespace_items.push(def);
-                    items.insert(def, item);
+                if let Some((id, item)) = self.lower_item(parent.item, item) {
+                    namespace_items.push(id);
+                    items.insert(id, item);
                 }
             }
 
             items.insert(
-                parent.def,
+                parent.item,
                 hir::Item {
                     id: self.lower_id(namespace.id),
                     span: namespace.span,
@@ -82,40 +82,36 @@ impl With<'_> {
         }
     }
 
-    fn lower_item(
-        &mut self,
-        parent: PackageDefId,
-        item: &ast::Item,
-    ) -> Option<(PackageDefId, hir::Item)> {
+    fn lower_item(&mut self, parent: ItemId, item: &ast::Item) -> Option<(ItemId, hir::Item)> {
         if matches!(item.kind, ast::ItemKind::Open(..)) {
             return None;
         }
 
-        let id = self.lower_id(item.id);
+        let node_id = self.lower_id(item.id);
         let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let (def, kind) = match &item.kind {
+        let (item_id, kind) = match &item.kind {
             ast::ItemKind::Callable(decl) => {
-                let Some(&resolve::Res::Def(def_id)) = self.resolutions.get(decl.name.id) else {
-                    panic!("callable declaration should have definition ID");
+                let Some(&resolve::Res::Item(loc)) = self.resolutions.get(decl.name.id) else {
+                    panic!("callable declaration should resolve to item");
                 };
                 let kind = hir::ItemKind::Callable(self.lower_callable_decl(decl));
-                (def_id.def, kind)
+                (loc.item, kind)
             }
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Ty(name, def) => {
-                let Some(&resolve::Res::Def(def_id)) = self.resolutions.get(name.id) else {
-                    panic!("type declaration should have definition ID");
+                let Some(&resolve::Res::Item(loc)) = self.resolutions.get(name.id) else {
+                    panic!("type declaration should resolve to item");
                 };
                 let kind = hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def));
-                (def_id.def, kind)
+                (loc.item, kind)
             }
         };
 
         Some((
-            def,
+            item_id,
             hir::Item {
-                id,
+                id: node_id,
                 span: item.span,
                 parent: Some(parent),
                 attrs,
@@ -457,7 +453,7 @@ impl With<'_> {
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.resolutions.get(path.id) {
             None => hir::Res::Err,
-            Some(&resolve::Res::Def(def)) => hir::Res::Def(def),
+            Some(&resolve::Res::Item(loc)) => hir::Res::Item(loc),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
         }
     }

@@ -4,8 +4,11 @@
 mod tests;
 
 use crate::{
-    eval_stmt, output::Receiver, stateful::ouroboros_impl_execution_context::BorrowedMutFields,
-    val::Value, AggregateError, Env, GlobalDefId,
+    eval_stmt,
+    output::Receiver,
+    stateful::ouroboros_impl_execution_context::BorrowedMutFields,
+    val::{GlobalId, Value},
+    AggregateError, Env,
 };
 use miette::Diagnostic;
 use ouroboros::self_referencing;
@@ -14,7 +17,7 @@ use qsc_frontend::{
     compile::{self, compile, CompileUnit, PackageStore},
     incremental::{Compiler, Fragment},
 };
-use qsc_hir::hir::{CallableDecl, ItemKind, PackageDefId, PackageId};
+use qsc_hir::hir::{CallableDecl, ItemId, ItemKind, PackageId};
 use qsc_passes::run_default_passes;
 use std::string::String;
 use thiserror::Error;
@@ -36,8 +39,8 @@ pub struct ExecutionContext {
     #[covariant]
     compiler: Compiler<'this>,
     package: PackageId,
-    next_def_id: PackageDefId,
-    callables: IndexMap<PackageDefId, CallableDecl>,
+    next_item: ItemId,
+    callables: IndexMap<ItemId, CallableDecl>,
     env: Option<Env>,
 }
 
@@ -123,7 +126,7 @@ fn create_execution_context(
         store,
         compiler_builder: |store| Compiler::new(store, session_deps),
         package: session_package,
-        next_def_id: PackageDefId(0),
+        next_item: ItemId::from(0),
         callables: IndexMap::new(),
         env: None,
     }
@@ -146,12 +149,12 @@ fn eval_line_in_context(
         match fragment {
             Fragment::Stmt(stmt) => {
                 let mut env = fields.env.take().unwrap_or(Env::with_empty_scope());
-                let global = |id: GlobalDefId| {
+                let global = |id: GlobalId| {
                     if id.package == *fields.package {
-                        fields.callables.get(id.def)
+                        fields.callables.get(id.item)
                     } else {
                         fields.store.get(id.package).and_then(|unit| {
-                            let item = unit.package.items.get(id.def)?;
+                            let item = unit.package.items.get(id.item)?;
                             if let ItemKind::Callable(callable) = &item.kind {
                                 Some(callable)
                             } else {
@@ -173,8 +176,8 @@ fn eval_line_in_context(
                 }
             }
             Fragment::Callable(decl) => {
-                let id = *fields.next_def_id;
-                *fields.next_def_id = PackageDefId(id.0 + 1);
+                let id = *fields.next_item;
+                *fields.next_item = ItemId::from(usize::from(id) + 1);
                 fields.callables.insert(id, decl);
                 final_result = Value::UNIT;
             }

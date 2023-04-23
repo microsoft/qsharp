@@ -88,7 +88,7 @@ fn generate_ctl() {
         &expect![[r#"
             Package 35:
                 Item 33 [0-184]:
-                    Namespace (Ident 34 [10-14] "test"): [PackageDefId(1), PackageDefId(2)]
+                    Namespace (Ident 34 [10-14] "test"): [ItemId(1), ItemId(2)]
                 Item 0 [21-119]:
                     Callable 1 [21-119] (Operation):
                         name: Ident 2 [31-32] "A"
@@ -122,7 +122,7 @@ fn generate_ctl() {
                                 Pat 37 [161-182]: Elided
                                 Block 27 [161-182]:
                                     Stmt 28 [171-176]: Semi: Expr 29 [171-175]: Call:
-                                        Expr 30 [171-172]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 30 [171-172]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 31 [172-175]: Paren: Expr 32 [173-174]: Name: Local(NodeId(23))
                             SpecDecl 38 [124-182] (Ctl): Impl:
                                 Pat 44 [124-182]: Tuple:
@@ -132,7 +132,7 @@ fn generate_ctl() {
                                 Block 27 [161-182]:
                                     Stmt 28 [171-176]: Semi: Expr 29 [171-175]: Call:
                                         Expr 41 [171-172]: UnOp (Functor Ctl):
-                                            Expr 30 [171-172]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                            Expr 30 [171-172]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 42 [172-175]: Tuple:
                                             Expr 43 [172-175]: Name: Local(NodeId(39))
                                             Expr 31 [172-175]: Paren: Expr 32 [173-174]: Name: Local(NodeId(23))"#]],
@@ -162,7 +162,7 @@ fn generate_ctladj_distrib() {
         &expect![[r#"
             Package 53:
                 Item 51 [0-310]:
-                    Namespace (Ident 52 [10-14] "test"): [PackageDefId(1), PackageDefId(2)]
+                    Namespace (Ident 52 [10-14] "test"): [ItemId(1), ItemId(2)]
                 Item 0 [21-148]:
                     Callable 1 [21-148] (Operation):
                         name: Ident 2 [31-32] "A"
@@ -205,14 +205,14 @@ fn generate_ctladj_distrib() {
                                 Pat 35 [211-214]: Elided
                                 Block 36 [215-244]:
                                     Stmt 37 [229-234]: Semi: Expr 38 [229-233]: Call:
-                                        Expr 39 [229-230]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 39 [229-230]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 40 [230-233]: Paren: Expr 41 [231-232]: Name: Local(NodeId(28))
                             SpecDecl 42 [253-302] (Adj): Impl:
                                 Pat 43 [261-264]: Elided
                                 Block 44 [265-302]:
                                     Stmt 45 [279-292]: Semi: Expr 46 [279-291]: Call:
                                         Expr 47 [279-288]: UnOp (Functor Adj):
-                                            Expr 48 [287-288]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                            Expr 48 [287-288]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 49 [288-291]: Paren: Expr 50 [289-290]: Name: Local(NodeId(28))
                             SpecDecl 55 [153-308] (Ctl): Impl:
                                 Pat 66 [153-308]: Tuple:
@@ -222,7 +222,7 @@ fn generate_ctladj_distrib() {
                                 Block 36 [215-244]:
                                     Stmt 37 [229-234]: Semi: Expr 38 [229-233]: Call:
                                         Expr 63 [229-230]: UnOp (Functor Ctl):
-                                            Expr 39 [229-230]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                            Expr 39 [229-230]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 64 [230-233]: Tuple:
                                             Expr 65 [230-233]: Name: Local(NodeId(61))
                                             Expr 40 [230-233]: Paren: Expr 41 [231-232]: Name: Local(NodeId(28))
@@ -235,7 +235,7 @@ fn generate_ctladj_distrib() {
                                     Stmt 45 [279-292]: Semi: Expr 46 [279-291]: Call:
                                         Expr 70 [279-288]: UnOp (Functor Ctl):
                                             Expr 47 [279-288]: UnOp (Functor Adj):
-                                                Expr 48 [287-288]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                                Expr 48 [287-288]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 71 [288-291]: Tuple:
                                             Expr 72 [288-291]: Name: Local(NodeId(68))
                                             Expr 49 [288-291]: Paren: Expr 50 [289-290]: Name: Local(NodeId(28))"#]],
@@ -264,7 +264,7 @@ fn generate_ctl_skip_conjugate_apply_block() {
         &expect![[r#"
             Package 44:
                 Item 42 [0-259]:
-                    Namespace (Ident 43 [10-14] "test"): [PackageDefId(1), PackageDefId(2)]
+                    Namespace (Ident 43 [10-14] "test"): [ItemId(1), ItemId(2)]
                 Item 0 [21-119]:
                     Callable 1 [21-119] (Operation):
                         name: Ident 2 [31-32] "A"
@@ -300,11 +300,11 @@ fn generate_ctl_skip_conjugate_apply_block() {
                                     Stmt 28 [171-251]: Expr: Expr 29 [171-251]: Conjugate:
                                         Block 30 [178-207]:
                                             Stmt 31 [192-197]: Semi: Expr 32 [192-196]: Call:
-                                                Expr 33 [192-193]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                                Expr 33 [192-193]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                                 Expr 34 [193-196]: Paren: Expr 35 [194-195]: Name: Local(NodeId(23))
                                         Block 36 [222-251]:
                                             Stmt 37 [236-241]: Semi: Expr 38 [236-240]: Call:
-                                                Expr 39 [236-237]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                                Expr 39 [236-237]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                                 Expr 40 [237-240]: Paren: Expr 41 [238-239]: Name: Local(NodeId(23))
                             SpecDecl 47 [124-257] (Ctl): Impl:
                                 Pat 53 [124-257]: Tuple:
@@ -315,12 +315,12 @@ fn generate_ctl_skip_conjugate_apply_block() {
                                     Stmt 28 [171-251]: Expr: Expr 29 [171-251]: Conjugate:
                                         Block 30 [178-207]:
                                             Stmt 31 [192-197]: Semi: Expr 32 [192-196]: Call:
-                                                Expr 33 [192-193]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                                Expr 33 [192-193]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                                 Expr 34 [193-196]: Paren: Expr 35 [194-195]: Name: Local(NodeId(23))
                                         Block 36 [222-251]:
                                             Stmt 37 [236-241]: Semi: Expr 38 [236-240]: Call:
                                                 Expr 50 [236-237]: UnOp (Functor Ctl):
-                                                    Expr 39 [236-237]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                                    Expr 39 [236-237]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                                 Expr 51 [237-240]: Tuple:
                                                     Expr 52 [237-240]: Name: Local(NodeId(48))
                                                     Expr 40 [237-240]: Paren: Expr 41 [238-239]: Name: Local(NodeId(23))"#]],
@@ -370,7 +370,7 @@ fn generate_ctl_with_function_calls() {
         &expect![[r#"
             Package 30:
                 Item 28 [0-150]:
-                    Namespace (Ident 29 [10-14] "test"): [PackageDefId(1), PackageDefId(2), PackageDefId(3)]
+                    Namespace (Ident 29 [10-14] "test"): [ItemId(1), ItemId(2), ItemId(3)]
                 Item 0 [21-45]:
                     Callable 1 [21-45] (Function):
                         name: Ident 2 [30-33] "Foo"
@@ -404,10 +404,10 @@ fn generate_ctl_with_function_calls() {
                                 Pat 35 [113-148]: Elided
                                 Block 19 [113-148]:
                                     Stmt 20 [123-129]: Semi: Expr 21 [123-128]: Call:
-                                        Expr 22 [123-126]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 22 [123-126]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 23 [126-128]: Unit
                                     Stmt 24 [138-142]: Semi: Expr 25 [138-141]: Call:
-                                        Expr 26 [138-139]: Name: Def(DefId { package: None, def: PackageDefId(2) })
+                                        Expr 26 [138-139]: Name: Item(ItemLoc { package: None, item: ItemId(2) })
                                         Expr 27 [139-141]: Unit
                             SpecDecl 36 [85-148] (Ctl): Impl:
                                 Pat 46 [85-148]: Tuple:
@@ -416,11 +416,11 @@ fn generate_ctl_with_function_calls() {
                                     Pat 47 [85-148]: Elided
                                 Block 19 [113-148]:
                                     Stmt 20 [123-129]: Semi: Expr 21 [123-128]: Call:
-                                        Expr 22 [123-126]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 22 [123-126]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 23 [126-128]: Unit
                                     Stmt 24 [138-142]: Semi: Expr 25 [138-141]: Call:
                                         Expr 43 [138-139]: UnOp (Functor Ctl):
-                                            Expr 26 [138-139]: Name: Def(DefId { package: None, def: PackageDefId(2) })
+                                            Expr 26 [138-139]: Name: Item(ItemLoc { package: None, item: ItemId(2) })
                                         Expr 44 [139-141]: Tuple:
                                             Expr 45 [139-141]: Name: Local(NodeId(41))
                                             Expr 27 [139-141]: Unit"#]],
@@ -442,7 +442,7 @@ fn generate_adj_self() {
         &expect![[r#"
             Package 35:
                 Item 33 [0-168]:
-                    Namespace (Ident 34 [10-14] "test"): [PackageDefId(1), PackageDefId(2)]
+                    Namespace (Ident 34 [10-14] "test"): [ItemId(1), ItemId(2)]
                 Item 0 [21-62]:
                     Callable 1 [21-62] (Operation):
                         name: Ident 2 [31-32] "B"
@@ -471,19 +471,19 @@ fn generate_adj_self() {
                                 Pat 20 [119-122]: Elided
                                 Block 21 [123-138]:
                                     Stmt 22 [125-130]: Semi: Expr 23 [125-129]: Call:
-                                        Expr 24 [125-126]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 24 [125-126]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 25 [126-129]: Paren: Expr 26 [127-128]: Lit: Int(1)
                                     Stmt 27 [131-136]: Semi: Expr 28 [131-135]: Call:
-                                        Expr 29 [131-132]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 29 [131-132]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 30 [132-135]: Paren: Expr 31 [133-134]: Lit: Int(2)
                             SpecDecl 32 [147-160] (Adj): Impl:
                                 Pat 20 [119-122]: Elided
                                 Block 21 [123-138]:
                                     Stmt 22 [125-130]: Semi: Expr 23 [125-129]: Call:
-                                        Expr 24 [125-126]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 24 [125-126]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 25 [126-129]: Paren: Expr 26 [127-128]: Lit: Int(1)
                                     Stmt 27 [131-136]: Semi: Expr 28 [131-135]: Call:
-                                        Expr 29 [131-132]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 29 [131-132]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 30 [132-135]: Paren: Expr 31 [133-134]: Lit: Int(2)"#]],
     );
 }
@@ -503,7 +503,7 @@ fn generate_ctladj_self() {
         &expect![[r#"
             Package 39:
                 Item 37 [0-180]:
-                    Namespace (Ident 38 [10-14] "test"): [PackageDefId(1), PackageDefId(2)]
+                    Namespace (Ident 38 [10-14] "test"): [ItemId(1), ItemId(2)]
                 Item 0 [21-68]:
                     Callable 1 [21-68] (Operation):
                         name: Ident 2 [31-32] "B"
@@ -539,19 +539,19 @@ fn generate_ctladj_self() {
                                 Pat 24 [131-134]: Elided
                                 Block 25 [135-150]:
                                     Stmt 26 [137-142]: Semi: Expr 27 [137-141]: Call:
-                                        Expr 28 [137-138]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 28 [137-138]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 29 [138-141]: Paren: Expr 30 [139-140]: Lit: Int(1)
                                     Stmt 31 [143-148]: Semi: Expr 32 [143-147]: Call:
-                                        Expr 33 [143-144]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 33 [143-144]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 34 [144-147]: Paren: Expr 35 [145-146]: Lit: Int(2)
                             SpecDecl 36 [159-172] (Adj): Impl:
                                 Pat 24 [131-134]: Elided
                                 Block 25 [135-150]:
                                     Stmt 26 [137-142]: Semi: Expr 27 [137-141]: Call:
-                                        Expr 28 [137-138]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 28 [137-138]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 29 [138-141]: Paren: Expr 30 [139-140]: Lit: Int(1)
                                     Stmt 31 [143-148]: Semi: Expr 32 [143-147]: Call:
-                                        Expr 33 [143-144]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                        Expr 33 [143-144]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 34 [144-147]: Paren: Expr 35 [145-146]: Lit: Int(2)
                             SpecDecl 45 [73-178] (Ctl): Impl:
                                 Pat 59 [73-178]: Tuple:
@@ -561,13 +561,13 @@ fn generate_ctladj_self() {
                                 Block 25 [135-150]:
                                     Stmt 26 [137-142]: Semi: Expr 27 [137-141]: Call:
                                         Expr 53 [137-138]: UnOp (Functor Ctl):
-                                            Expr 28 [137-138]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                            Expr 28 [137-138]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 54 [138-141]: Tuple:
                                             Expr 55 [138-141]: Name: Local(NodeId(51))
                                             Expr 29 [138-141]: Paren: Expr 30 [139-140]: Lit: Int(1)
                                     Stmt 31 [143-148]: Semi: Expr 32 [143-147]: Call:
                                         Expr 56 [143-144]: UnOp (Functor Ctl):
-                                            Expr 33 [143-144]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                            Expr 33 [143-144]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 57 [144-147]: Tuple:
                                             Expr 58 [144-147]: Name: Local(NodeId(51))
                                             Expr 34 [144-147]: Paren: Expr 35 [145-146]: Lit: Int(2)
@@ -579,13 +579,13 @@ fn generate_ctladj_self() {
                                 Block 25 [135-150]:
                                     Stmt 26 [137-142]: Semi: Expr 27 [137-141]: Call:
                                         Expr 53 [137-138]: UnOp (Functor Ctl):
-                                            Expr 28 [137-138]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                            Expr 28 [137-138]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 54 [138-141]: Tuple:
                                             Expr 55 [138-141]: Name: Local(NodeId(51))
                                             Expr 29 [138-141]: Paren: Expr 30 [139-140]: Lit: Int(1)
                                     Stmt 31 [143-148]: Semi: Expr 32 [143-147]: Call:
                                         Expr 56 [143-144]: UnOp (Functor Ctl):
-                                            Expr 33 [143-144]: Name: Def(DefId { package: None, def: PackageDefId(1) })
+                                            Expr 33 [143-144]: Name: Item(ItemLoc { package: None, item: ItemId(1) })
                                         Expr 57 [144-147]: Tuple:
                                             Expr 58 [144-147]: Name: Local(NodeId(51))
                                             Expr 34 [144-147]: Paren: Expr 35 [145-146]: Lit: Int(2)"#]],

@@ -12,14 +12,14 @@ use crate::{
 };
 use qsc_ast::{ast, visit::Visitor as AstVisitor};
 use qsc_hir::{
-    hir::{self, DefId, PackageId},
+    hir::{self, ItemLoc, PackageId},
     visit::Visitor as HirVisitor,
 };
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<DefId, Ty>,
+    globals: HashMap<ItemLoc, Ty>,
     package: Option<PackageId>,
     errors: Vec<Error>,
 }
@@ -56,10 +56,10 @@ impl AstVisitor<'_> for GlobalTable<'_> {
         );
 
         let (ty, errors) = Ty::of_ast_callable(decl);
-        let Some(&Res::Def(def)) = self.resolutions.get(decl.name.id) else {
-            panic!("callable declaration should have definition ID");
+        let Some(&Res::Item(item)) = self.resolutions.get(decl.name.id) else {
+            panic!("callable declaration should have item resolution");
         };
-        self.globals.insert(def, ty);
+        self.globals.insert(item, ty);
         for MissingTyError(span) in errors {
             self.errors.push(Error(ErrorKind::MissingItemTy(span)));
         }
@@ -72,14 +72,14 @@ impl HirVisitor<'_> for GlobalTable<'_> {
             .package
             .expect("package ID should be set before visiting HIR");
 
-        for (def, item) in package.items.iter() {
+        for (id, item) in package.items.iter() {
             if let hir::ItemKind::Callable(decl) = &item.kind {
                 let (ty, errors) = Ty::of_hir_callable(decl);
-                let def = DefId {
+                let loc = ItemLoc {
                     package: Some(package_id),
-                    def,
+                    item: id,
                 };
-                self.globals.insert(def, ty);
+                self.globals.insert(loc, ty);
                 for MissingTyError(span) in errors {
                     self.errors.push(Error(ErrorKind::MissingItemTy(span)));
                 }
@@ -90,7 +90,7 @@ impl HirVisitor<'_> for GlobalTable<'_> {
 
 pub(crate) struct Checker<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<DefId, Ty>,
+    globals: HashMap<ItemLoc, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }

@@ -27,7 +27,7 @@ fn set_indentation<'a, 'b>(
     })
 }
 
-/// The unique identifier for an HIR node.
+/// A unique identifier for an HIR node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(usize);
 
@@ -111,40 +111,40 @@ impl From<usize> for PackageId {
     }
 }
 
-/// A definition ID within a package.
+/// A unique identifier for an item within a package.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct PackageDefId(pub usize);
+pub struct ItemId(usize);
 
-impl From<usize> for PackageDefId {
+impl From<usize> for ItemId {
     fn from(value: usize) -> Self {
         Self(value)
     }
 }
 
-impl From<PackageDefId> for usize {
-    fn from(value: PackageDefId) -> Self {
+impl From<ItemId> for usize {
+    fn from(value: ItemId) -> Self {
         value.0
     }
 }
 
-/// An inter-package definition ID.
+/// A locator for an item within a package store.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct DefId {
+pub struct ItemLoc {
     /// The package ID or `None` for the local package.
     pub package: Option<PackageId>,
-    /// The definition ID.
-    pub def: PackageDefId,
+    /// The item ID.
+    pub item: ItemId,
 }
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Res {
-    /// A resolution to a global definition.
-    Def(DefId),
-    /// An unresolved name.
+    /// An invalid resolution.
     Err,
-    /// A resolution to a local variable.
+    /// A global item.
+    Item(ItemLoc),
+    /// A local variable.
     Local(NodeId),
 }
 
@@ -154,7 +154,7 @@ pub struct Package {
     /// The node ID.
     pub id: NodeId,
     /// The items in the package.
-    pub items: IndexMap<PackageDefId, Item>,
+    pub items: IndexMap<ItemId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
 }
@@ -182,7 +182,7 @@ pub struct Item {
     /// The span.
     pub span: Span,
     /// The parent item.
-    pub parent: Option<PackageDefId>,
+    pub parent: Option<ItemId>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -215,8 +215,8 @@ pub enum ItemKind {
     /// Default item when nothing has been parsed.
     #[default]
     Err,
-    /// A namespace declaration.
-    Namespace(Ident, Vec<PackageDefId>),
+    /// A `namespace` declaration.
+    Namespace(Ident, Vec<ItemId>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
 }

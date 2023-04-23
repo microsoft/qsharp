@@ -7,9 +7,7 @@ use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{
-        CallableBody, DefId, Expr, ExprKind, ItemKind, Lit, NodeId, PackageDefId, Res, StmtKind,
-    },
+    hir::{CallableBody, Expr, ExprKind, ItemId, ItemKind, ItemLoc, Lit, NodeId, Res, StmtKind},
     mut_visit::MutVisitor,
 };
 
@@ -199,9 +197,9 @@ fn entry_call_operation() {
     let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
     let ExprKind::Name(res) = callee.kind else { panic!("callee should be a name") };
     assert_eq!(
-        Res::Def(DefId {
+        Res::Item(ItemLoc {
             package: None,
-            def: PackageDefId(1)
+            item: ItemId::from(1)
         }),
         res
     );
@@ -255,7 +253,7 @@ fn replace_node() {
 
     Replacer.visit_package(&mut unit.package);
     unit.context.assigner_mut().visit_package(&mut unit.package);
-    let ItemKind::Callable(callable)= &unit.package.items.get(PackageDefId(1)).expect("").kind else {
+    let ItemKind::Callable(callable)= &unit.package.items.get(ItemId::from(1)).expect("").kind else {
         panic!("item should be a callable");
     };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
@@ -296,7 +294,7 @@ fn package_dependency() {
         "",
     );
 
-    let ItemKind::Callable(callable) = &unit2.package.items.get(PackageDefId(1)).expect("").kind else {
+    let ItemKind::Callable(callable) = &unit2.package.items.get(ItemId::from(1)).expect("").kind else {
         panic!("item should be a callable");
     };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
@@ -304,9 +302,9 @@ fn package_dependency() {
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
     assert_eq!(
-        &Res::Def(DefId {
+        &Res::Item(ItemLoc {
             package: Some(package1),
-            def: PackageDefId(1)
+            item: ItemId::from(1)
         }),
         res
     );
@@ -342,7 +340,7 @@ fn package_dependency_internal() {
         "",
     );
 
-    let ItemKind::Callable(callable) = &unit2.package.items.get(PackageDefId(1)).expect("").kind else {
+    let ItemKind::Callable(callable) = &unit2.package.items.get(ItemId::from(1)).expect("").kind else {
         panic!("item should be a callable");
     };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };

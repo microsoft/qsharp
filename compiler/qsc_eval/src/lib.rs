@@ -23,30 +23,18 @@ use qir_backend::{
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
-    NodeId, PackageDefId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody,
-    SpecGen, Stmt, StmtKind, TernOp, UnOp,
+    NodeId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody, SpecGen, Stmt,
+    StmtKind, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
-    fmt::{self, Display, Formatter},
+    fmt::{Display, Formatter},
     mem::take,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
 };
 use thiserror::Error;
-use val::Qubit;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct GlobalDefId {
-    pub package: PackageId,
-    pub def: PackageDefId,
-}
-
-impl Display for GlobalDefId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "<definition {} in package {}>", self.def.0, self.package)
-    }
-}
+use val::{GlobalId, Qubit};
 
 #[derive(Debug, Error)]
 pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
@@ -227,7 +215,7 @@ impl Range {
 /// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_stmt<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>>(
+pub fn eval_stmt<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>>(
     stmt: &Stmt,
     global: &'a G,
     package: PackageId,
@@ -251,7 +239,7 @@ pub fn eval_stmt<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>>(
 /// Evaluates the given expression with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_expr<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>>(
+pub fn eval_expr<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>>(
     expr: &Expr,
     global: &'a G,
     package: PackageId,
@@ -299,7 +287,7 @@ struct Evaluator<'a, G> {
     out: Option<&'a mut dyn Receiver>,
 }
 
-impl<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
+impl<'a, G: Fn(GlobalId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
     #[allow(clippy::too_many_lines)]
     fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
@@ -905,14 +893,14 @@ impl<'a, G: Fn(GlobalDefId) -> Option<&'a CallableDecl>> Evaluator<'a, G> {
 
     fn resolve_binding(&mut self, res: Res) -> Value {
         match res {
-            Res::Def(def) => Value::Global(
-                GlobalDefId {
-                    package: def.package.unwrap_or(self.package),
-                    def: def.def,
+            Res::Err => panic!("resolution error"),
+            Res::Item(item) => Value::Global(
+                GlobalId {
+                    package: item.package.unwrap_or(self.package),
+                    item: item.item,
                 },
                 FunctorApp::default(),
             ),
-            Res::Err => panic!("resolution error"),
             Res::Local(node) => self
                 .env
                 .0
@@ -973,7 +961,7 @@ fn specialization_from_functor_app(functor: &FunctorApp) -> Spec {
     }
 }
 
-fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalDefId, FunctorApp)> {
+fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
     match val {
         Value::Closure => ControlFlow::Break(Reason::Error(Error::Unimplemented("closure", span))),
         Value::Global(global, functor) => ControlFlow::Continue((global, functor)),

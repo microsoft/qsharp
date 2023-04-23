@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::{eval_expr, output::GenericReceiver, Env, GlobalId};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
 use qsc_hir::hir::ItemKind;
 use qsc_passes::run_default_passes;
-
-use crate::{eval_expr, output::GenericReceiver, Env, GlobalDefId};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
@@ -24,9 +23,9 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let expr = store
         .get_entry_expr(id)
         .expect("entry expression shouild be present");
-    let global = |id: GlobalDefId| {
+    let global = |id: GlobalId| {
         store.get(id.package).and_then(|unit| {
-            let item = unit.package.items.get(id.def)?;
+            let item = unit.package.items.get(id.item)?;
             if let ItemKind::Callable(callable) = &item.kind {
                 Some(callable)
             } else {
@@ -1834,7 +1833,7 @@ fn unop_adjoint_functor_expr() {
             }
         "},
         "Adjoint Test.Foo",
-        &expect!["Adjoint <definition 1 in package 0>"],
+        &expect!["Adjoint <item 1 in package 0>"],
     );
 }
 
@@ -1849,7 +1848,7 @@ fn unop_controlled_functor_expr() {
             }
         "},
         "Controlled Test.Foo",
-        &expect!["Controlled <definition 1 in package 0>"],
+        &expect!["Controlled <item 1 in package 0>"],
     );
 }
 
@@ -1864,7 +1863,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "},
         "Adjoint (Adjoint Test.Foo)",
-        &expect!["<definition 1 in package 0>"],
+        &expect!["<item 1 in package 0>"],
     );
 }
 
@@ -1879,7 +1878,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "},
         "Controlled Adjoint Test.Foo",
-        &expect!["Controlled Adjoint <definition 1 in package 0>"],
+        &expect!["Controlled Adjoint <item 1 in package 0>"],
     );
 }
 
@@ -1894,7 +1893,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "},
         "Adjoint Controlled Test.Foo",
-        &expect!["Controlled Adjoint <definition 1 in package 0>"],
+        &expect!["Controlled Adjoint <item 1 in package 0>"],
     );
 }
 
@@ -1909,7 +1908,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "},
         "Controlled (Controlled Test.Foo)",
-        &expect!["Controlled Controlled <definition 1 in package 0>"],
+        &expect!["Controlled Controlled <item 1 in package 0>"],
     );
 }
 
