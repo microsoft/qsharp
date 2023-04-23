@@ -12,7 +12,6 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::ItemId;
 use std::fmt::Write;
 
 struct Renamer<'a> {
@@ -31,14 +30,10 @@ impl<'a> Renamer<'a> {
     fn rename(&self, input: &mut String) {
         for (span, res) in self.changes.iter().rev() {
             let name = match *res {
-                Res::Item(ItemId {
-                    package: None,
-                    item,
-                }) => format!("item{}", usize::from(item)),
-                Res::Item(ItemId {
-                    package: Some(package),
-                    item,
-                }) => format!("pkg{}_item{}", package, usize::from(item)),
+                Res::Item(item) => match item.package {
+                    None => format!("item{}", item.item),
+                    Some(package) => format!("package{package}_item{}", item.item),
+                },
                 Res::Local(node) => format!("local{node}"),
             };
             input.replace_range(span, &name);
