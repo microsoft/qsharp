@@ -267,14 +267,13 @@ fn resolve_all(
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    AstVisitor::visit_package(&mut globals, package);
+    globals.add_local_package(package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be in package store before compilation");
-        globals.set_package(dependency);
-        HirVisitor::visit_package(&mut globals, &unit.package);
+        globals.add_external_package(id, &unit.package);
     }
 
     let mut resolver = globals.into_resolver();
@@ -291,11 +290,11 @@ fn typeck_all(
     let mut globals = typeck::GlobalTable::new(resolutions);
     AstVisitor::visit_package(&mut globals, package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be added to package store before compilation");
-        globals.set_package(dependency);
+        globals.set_package(id);
         HirVisitor::visit_package(&mut globals, &unit.package);
     }
 

@@ -68,7 +68,7 @@ fn resolve_names(input: &str) -> String {
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let mut globals = GlobalTable::new();
-    globals.visit_package(&package);
+    globals.add_local_package(&package);
     let mut resolver = globals.into_resolver();
     resolver.visit_package(&package);
     let (resolutions, errors) = resolver.into_resolutions();

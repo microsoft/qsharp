@@ -10,10 +10,7 @@ use qsc_ast::{
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::{
-    hir::{self, ItemId, LocalItemId, PackageId},
-    visit::Visitor as HirVisitor,
-};
+use qsc_hir::hir::{self, ItemId, LocalItemId, PackageId};
 use std::{
     collections::{HashMap, HashSet},
     mem, vec,
@@ -58,7 +55,7 @@ pub(super) struct Resolver<'a> {
     terms: HashMap<&'a str, HashMap<&'a str, ItemId>>,
     opens: HashMap<&'a str, HashMap<&'a str, Span>>,
     namespace: &'a str,
-    next_item: LocalItemId,
+    next_item_id: LocalItemId,
     locals: Vec<HashMap<&'a str, ast::NodeId>>,
     errors: Vec<Error>,
 }
@@ -73,17 +70,16 @@ impl<'a> Resolver<'a> {
     }
 
     pub(super) fn add_global_callable(&mut self, decl: &'a ast::CallableDecl) {
-        let id = self.next_item;
-        self.next_item = LocalItemId::from(usize::from(id) + 1);
-        let item = ItemId {
+        let item_id = ItemId {
             package: None,
-            item: id,
+            item: self.next_item_id,
         };
-        self.resolutions.insert(decl.name.id, Res::Item(item));
+        self.next_item_id = self.next_item_id.successor();
+        self.resolutions.insert(decl.name.id, Res::Item(item_id));
         self.terms
             .entry(self.namespace)
             .or_default()
-            .insert(&decl.name.name, item);
+            .insert(&decl.name.name, item_id);
     }
 
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
@@ -241,9 +237,7 @@ pub(super) struct GlobalTable<'a> {
     resolutions: Resolutions,
     tys: HashMap<&'a str, HashMap<&'a str, ItemId>>,
     terms: HashMap<&'a str, HashMap<&'a str, ItemId>>,
-    package: Option<PackageId>,
-    namespace: &'a str,
-    next_item: LocalItemId,
+    next_item_id: LocalItemId,
 }
 
 impl<'a> GlobalTable<'a> {
@@ -252,107 +246,55 @@ impl<'a> GlobalTable<'a> {
             resolutions: Resolutions::new(),
             tys: HashMap::new(),
             terms: HashMap::new(),
-            package: None,
-            namespace: "",
-            next_item: LocalItemId::from(0),
+            next_item_id: LocalItemId::default(),
         }
     }
 
-    pub(super) fn set_package(&mut self, package: PackageId) {
-        self.package = Some(package);
-    }
+    pub(super) fn add_local_package(&mut self, package: &'a ast::Package) {
+        for namespace in &package.namespaces {
+            let item_id = self.next_item_id();
+            self.resolutions
+                .insert(namespace.name.id, Res::Item(item_id));
 
-    pub(super) fn into_resolver(self) -> Resolver<'a> {
-        Resolver {
-            resolutions: self.resolutions,
-            tys: self.tys,
-            terms: self.terms,
-            opens: HashMap::new(),
-            namespace: "",
-            next_item: self.next_item,
-            locals: Vec::new(),
-            errors: Vec::new(),
-        }
-    }
-}
-
-impl<'a> AstVisitor<'a> for GlobalTable<'a> {
-    fn visit_namespace(&mut self, namespace: &'a ast::Namespace) {
-        self.namespace = &namespace.name.name;
-        let id = self.next_item;
-        self.next_item = LocalItemId::from(usize::from(id) + 1);
-        let item = ItemId {
-            package: self.package,
-            item: id,
-        };
-        self.resolutions.insert(namespace.name.id, Res::Item(item));
-        ast_visit::walk_namespace(self, namespace);
-        self.namespace = "";
-    }
-
-    fn visit_item(&mut self, item: &'a ast::Item) {
-        assert!(
-            self.package.is_none(),
-            "package ID should not be set before visiting AST"
-        );
-
-        match &item.kind {
-            ast::ItemKind::Callable(decl) => {
-                let id = self.next_item;
-                self.next_item = LocalItemId::from(usize::from(id) + 1);
-                let item_id = ItemId {
-                    package: self.package,
-                    item: id,
-                };
-
-                self.resolutions.insert(decl.name.id, Res::Item(item_id));
-                self.terms
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&decl.name.name, item_id);
+            for item in &namespace.items {
+                match &item.kind {
+                    ast::ItemKind::Callable(decl) => {
+                        let item_id = self.next_item_id();
+                        self.resolutions.insert(decl.name.id, Res::Item(item_id));
+                        self.terms
+                            .entry(&namespace.name.name)
+                            .or_default()
+                            .insert(&decl.name.name, item_id);
+                    }
+                    ast::ItemKind::Ty(name, _) => {
+                        let item_id = self.next_item_id();
+                        self.resolutions.insert(name.id, Res::Item(item_id));
+                        self.tys
+                            .entry(&namespace.name.name)
+                            .or_default()
+                            .insert(&name.name, item_id);
+                        self.terms
+                            .entry(&namespace.name.name)
+                            .or_default()
+                            .insert(&name.name, item_id);
+                    }
+                    ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
+                }
             }
-            ast::ItemKind::Ty(name, _) => {
-                let id = self.next_item;
-                self.next_item = LocalItemId::from(usize::from(id) + 1);
-                let item_id = ItemId {
-                    package: self.package,
-                    item: id,
-                };
-
-                self.resolutions.insert(name.id, Res::Item(item_id));
-                self.tys
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&name.name, item_id);
-                self.terms
-                    .entry(self.namespace)
-                    .or_default()
-                    .insert(&name.name, item_id);
-            }
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
         }
     }
-}
 
-impl<'a> HirVisitor<'a> for GlobalTable<'a> {
-    fn visit_package(&mut self, package: &'a hir::Package) {
-        let package_id = self
-            .package
-            .expect("package ID should be set before visiting HIR");
-
-        for (id, item) in package.items.iter() {
+    pub(super) fn add_external_package(&mut self, id: PackageId, package: &'a hir::Package) {
+        for (_, item) in package.items.iter() {
             if item.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
                 continue;
             }
-
             let Some(parent) = item.parent else { continue; };
+            let hir::ItemKind::Namespace(namespace, _) =
+                &package.items.get(parent).expect("parent should exist").kind else { continue; };
             let item_id = ItemId {
-                package: Some(package_id),
-                item: id,
-            };
-
-            let hir::ItemKind::Namespace(namespace, _) = &package.items.get(parent).expect("").kind else {
-                panic!("parent item is not a namespace");
+                package: Some(id),
+                item: item.id,
             };
 
             match &item.kind {
@@ -375,6 +317,28 @@ impl<'a> HirVisitor<'a> for GlobalTable<'a> {
                 hir::ItemKind::Err | hir::ItemKind::Namespace(..) => {}
             }
         }
+    }
+
+    pub(super) fn into_resolver(self) -> Resolver<'a> {
+        Resolver {
+            resolutions: self.resolutions,
+            tys: self.tys,
+            terms: self.terms,
+            opens: HashMap::new(),
+            namespace: "",
+            next_item_id: self.next_item_id,
+            locals: Vec::new(),
+            errors: Vec::new(),
+        }
+    }
+
+    fn next_item_id(&mut self) -> ItemId {
+        let item = ItemId {
+            package: None,
+            item: self.next_item_id,
+        };
+        self.next_item_id = self.next_item_id.successor();
+        item
     }
 }
 
