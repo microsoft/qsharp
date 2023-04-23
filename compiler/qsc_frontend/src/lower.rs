@@ -46,32 +46,23 @@ impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
         let mut items = IndexMap::new();
         for namespace in &package.namespaces {
-            let Some(&resolve::Res::Item(parent)) = self.resolutions.get(namespace.name.id) else {
-                panic!("namespace should resolve to item");
+            let Some(&resolve::Res::Item(hir::ItemId {
+                item: namespace_id, ..
+            })) = self.resolutions.get(namespace.name.id) else {
+                panic!("namespace should have item ID");
             };
 
             let mut namespace_items = Vec::new();
-
             for item in &namespace.items {
-                if let Some(item) = self.lower_item(parent.item, item) {
+                if let Some(item) = self.lower_item(namespace_id, item) {
                     namespace_items.push(item.id);
                     items.insert(item.id, item);
                 }
             }
 
             items.insert(
-                parent.item,
-                hir::Item {
-                    id: parent.item,
-                    span: namespace.span,
-                    parent: None,
-                    attrs: Vec::new(),
-                    visibility: None,
-                    kind: hir::ItemKind::Namespace(
-                        self.lower_ident(&namespace.name),
-                        namespace_items,
-                    ),
-                },
+                namespace_id,
+                self.lower_namespace(namespace_id, namespace_items, namespace),
             );
         }
 
@@ -81,30 +72,39 @@ impl With<'_> {
         }
     }
 
-    fn lower_item(&mut self, parent: LocalItemId, item: &ast::Item) -> Option<hir::Item> {
-        if matches!(item.kind, ast::ItemKind::Open(..)) {
-            return None;
+    fn lower_namespace(
+        &mut self,
+        id: LocalItemId,
+        items: Vec<LocalItemId>,
+        namespace: &ast::Namespace,
+    ) -> hir::Item {
+        hir::Item {
+            id,
+            span: namespace.span,
+            parent: None,
+            attrs: Vec::new(),
+            visibility: None,
+            kind: hir::ItemKind::Namespace(self.lower_ident(&namespace.name), items),
         }
+    }
 
+    fn lower_item(&mut self, parent: LocalItemId, item: &ast::Item) -> Option<hir::Item> {
         let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let (id, kind) = match &item.kind {
-            ast::ItemKind::Callable(decl) => {
-                let Some(&resolve::Res::Item(id)) = self.resolutions.get(decl.name.id) else {
-                    panic!("callable declaration should resolve to item");
-                };
-                let kind = hir::ItemKind::Callable(self.lower_callable_decl(decl));
-                (id.item, kind)
-            }
+        let (name_id, kind) = match &item.kind {
+            ast::ItemKind::Callable(decl) => (
+                decl.name.id,
+                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
+            ),
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
-            ast::ItemKind::Ty(name, def) => {
-                let Some(&resolve::Res::Item(id)) = self.resolutions.get(name.id) else {
-                    panic!("type declaration should resolve to item");
-                };
-                let kind = hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def));
-                (id.item, kind)
-            }
+            ast::ItemKind::Ty(name, def) => (
+                name.id,
+                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def)),
+            ),
         };
+
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) = self.resolutions.get(name_id)
+            else { panic!("item should have item ID"); };
 
         Some(hir::Item {
             id,

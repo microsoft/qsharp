@@ -35,7 +35,7 @@ impl<'a> GlobalTable<'a> {
                 if let ast::ItemKind::Callable(decl) = &item.kind {
                     let (ty, errors) = Ty::of_ast_callable(decl);
                     let Some(&Res::Item(item)) = self.resolutions.get(decl.name.id) else {
-                        panic!("callable should have item ID")
+                        panic!("callable should have item ID");
                     };
                     self.globals.insert(item, ty);
                     for MissingTyError(span) in errors {
