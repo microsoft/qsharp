@@ -1,41 +1,30 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, Env, GlobalId};
+use crate::{eval_expr, output::GenericReceiver, stateless::get_callable, Env};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
-use qsc_hir::hir::ItemKind;
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let mut unit = compile(&store, [], [file], expr);
-    assert!(
-        unit.context.errors().is_empty(),
-        "Compilation errors: {:?}",
-        unit.context.errors()
-    );
+    assert!(unit.context.errors().is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
+
     let id = store.insert(unit);
-    let mut stdout = vec![];
-    let mut out = GenericReceiver::new(&mut stdout);
-    let expr = store
-        .get_entry_expr(id)
-        .expect("entry expression shouild be present");
-    let global = |id: GlobalId| {
-        store.get(id.package).and_then(|unit| {
-            let item = unit.package.items.get(id.item)?;
-            if let ItemKind::Callable(callable) = &item.kind {
-                Some(callable)
-            } else {
-                None
-            }
-        })
-    };
-    match eval_expr(expr, &global, id, &mut Env::default(), &mut out) {
-        Ok(result) => expect.assert_eq(&result.to_string()),
-        Err(e) => expect.assert_debug_eq(&e),
+    let expr = store.get_entry_expr(id).expect("package should have entry");
+    let mut out = Vec::new();
+    match eval_expr(
+        expr,
+        &|id| get_callable(&store, id),
+        id,
+        &mut Env::default(),
+        &mut GenericReceiver::new(&mut out),
+    ) {
+        Ok(value) => expect.assert_eq(&value.to_string()),
+        Err(err) => expect.assert_debug_eq(&err),
     }
 }
 
