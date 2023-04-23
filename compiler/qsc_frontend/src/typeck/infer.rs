@@ -555,9 +555,9 @@ fn check_has_field(
     // TODO: If the record type is a user-defined type, look up its fields.
     // https://github.com/microsoft/qsharp/issues/148
     match (&record, name.as_str(), &item) {
-        (Ty::Prim(Prim::Range), "Start" | "Step" | "End", _) | (Ty::Array(..), "Length", _) => {
+        (Ty::Prim(PrimTy::Range), "Start" | "Step" | "End", _) | (Ty::Array(..), "Length", _) => {
             Ok(Constraint::Eq {
-                expected: Ty::Prim(Prim::Int),
+                expected: Ty::Prim(PrimTy::Int),
                 actual: item,
                 span,
             })
