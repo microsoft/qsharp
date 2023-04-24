@@ -15,7 +15,7 @@ use qsc_ast::{
     visit::Visitor,
 };
 use qsc_hir::hir::{self, PackageId};
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -37,15 +37,15 @@ pub enum Fragment {
     Error(Vec<Error>),
 }
 
-pub struct Compiler<'a> {
+pub struct Compiler {
     assigner: Assigner,
-    resolver: Resolver<'a>,
-    scope: HashMap<&'a str, NodeId>,
+    resolver: Resolver,
+    scope: HashMap<Rc<str>, NodeId>,
     lowerer: Lowerer,
 }
 
-impl<'a> Compiler<'a> {
-    pub fn new(store: &'a PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
+impl Compiler {
+    pub fn new(store: &PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut globals = GlobalTable::new();
         for id in dependencies {
             let unit = store
@@ -96,10 +96,9 @@ impl<'a> Compiler<'a> {
 
     fn compile_callable_decl(&mut self, mut decl: ast::CallableDecl) -> Fragment {
         self.assigner.visit_callable_decl(&mut decl);
-        let decl = Box::leak(Box::new(decl));
         self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.add_global_callable(decl);
-            resolver.visit_callable_decl(decl);
+            resolver.add_global_callable(&decl);
+            resolver.visit_callable_decl(&decl);
         });
 
         let errors: Vec<_> = self
@@ -111,7 +110,7 @@ impl<'a> Compiler<'a> {
         let decl = self
             .lowerer
             .with(self.resolver.resolutions())
-            .lower_callable_decl(decl);
+            .lower_callable_decl(&decl);
 
         if errors.is_empty() {
             Fragment::Callable(decl)
@@ -122,9 +121,8 @@ impl<'a> Compiler<'a> {
 
     fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Fragment {
         self.assigner.visit_stmt(&mut stmt);
-        let stmt = Box::leak(Box::new(stmt));
         self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.visit_stmt(stmt);
+            resolver.visit_stmt(&stmt);
         });
 
         let errors: Vec<_> = self
@@ -136,7 +134,7 @@ impl<'a> Compiler<'a> {
         let stmt = self
             .lowerer
             .with(self.resolver.resolutions())
-            .lower_stmt(stmt);
+            .lower_stmt(&stmt);
 
         if errors.is_empty() {
             Fragment::Stmt(stmt)
