@@ -7,7 +7,7 @@ mod tests;
 use super::{
     expr::{self, expr, expr_stmt},
     keyword::Keyword,
-    prim::{keyword, many, opt, pat, seq, token},
+    prim::{ident, keyword, many, opt, pat, seq, token},
     scan::Scanner,
     Error, Result,
 };
@@ -99,7 +99,7 @@ fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
 
 fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, Keyword::Qubit).is_ok() {
+    let kind = if ident(s).map_or(false, |i| i.name.as_ref() == "Qubit") {
         if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
             token(s, TokenKind::Close(Delim::Paren))?;
             Ok(QubitInitKind::Single)

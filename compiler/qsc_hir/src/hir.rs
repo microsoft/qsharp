@@ -157,7 +157,7 @@ impl Display for ItemId {
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// An invalid resolution.
     Err,
@@ -1168,6 +1168,8 @@ pub enum Ty {
     Err,
     /// A placeholder type variable used during type inference.
     Infer(InferId),
+    /// A resolved name.
+    Name(Res),
     /// A type parameter.
     Param(String),
     /// A primitive type.
@@ -1203,8 +1205,9 @@ impl Display for Ty {
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
+            Ty::Name(res) => Debug::fmt(res, f),
             Ty::Param(name) => write!(f, "'{name}"),
-            Ty::Prim(prim) => prim.fmt(f),
+            Ty::Prim(prim) => Display::fmt(prim, f),
             Ty::Tuple(items) => {
                 f.write_str("(")?;
                 if let Some((first, rest)) = items.split_first() {
@@ -1245,6 +1248,22 @@ pub enum PrimTy {
     Result,
     /// The string type.
     String,
+}
+
+impl Display for PrimTy {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            PrimTy::BigInt => f.write_str("BigInt"),
+            PrimTy::Bool => f.write_str("Bool"),
+            PrimTy::Double => f.write_str("Double"),
+            PrimTy::Int => f.write_str("Int"),
+            PrimTy::Pauli => f.write_str("Pauli"),
+            PrimTy::Qubit => f.write_str("Qubit"),
+            PrimTy::Range => f.write_str("Range"),
+            PrimTy::Result => f.write_str("Result"),
+            PrimTy::String => f.write_str("String"),
+        }
+    }
 }
 
 /// A placeholder type variable used during type inference.

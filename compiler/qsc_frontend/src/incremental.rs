@@ -59,10 +59,12 @@ impl Compiler {
             typeck_globals.add_external_package(id, &unit.package);
         }
 
+        let resolver = resolve_globals.into_resolver();
+        let checker = typeck_globals.into_checker();
         Self {
             assigner: Assigner::new(),
-            resolver: resolve_globals.into_resolver(),
-            checker: typeck_globals.into_checker(),
+            resolver,
+            checker,
             scope: HashMap::new(),
             lowerer: Lowerer::new(),
         }

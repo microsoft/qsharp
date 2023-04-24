@@ -147,7 +147,7 @@ impl With<'_> {
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(&decl.input),
-            output: convert::ty_from_ast(&decl.output).0,
+            output: convert::ty_from_ast(self.resolutions, &decl.output).0,
             functors: decl.functors.as_ref().map(|f| self.lower_functor_expr(f)),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
@@ -192,7 +192,7 @@ impl With<'_> {
             kind: match &def.kind {
                 ast::TyDefKind::Field(name, ty) => hir::TyDefKind::Field(
                     name.as_ref().map(|n| self.lower_ident(n)),
-                    convert::ty_from_ast(ty).0,
+                    convert::ty_from_ast(self.resolutions, ty).0,
                 ),
                 ast::TyDefKind::Paren(inner) => {
                     hir::TyDefKind::Paren(Box::new(self.lower_ty_def(inner)))
@@ -372,10 +372,10 @@ impl With<'_> {
 
     fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
         let id = self.lower_id(pat.id);
-        let ty = self
-            .tys
-            .get(pat.id)
-            .map_or_else(|| convert::ast_pat_ty(pat).0, Clone::clone);
+        let ty = self.tys.get(pat.id).map_or_else(
+            || convert::ast_pat_ty(self.resolutions, pat).0,
+            Clone::clone,
+        );
 
         let kind = match &pat.kind {
             ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
@@ -424,6 +424,9 @@ impl With<'_> {
             None => hir::Res::Err,
             Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
+            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) => {
+                panic!("type should be lowered using crate::typeck::convert")
+            }
         }
     }
 
