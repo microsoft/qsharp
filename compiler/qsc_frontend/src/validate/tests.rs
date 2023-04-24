@@ -158,13 +158,6 @@ fn test_newtype_syntax_not_supported() {
                         hi: 101,
                     },
                 ),
-                NotCurrentlySupported(
-                    "field access",
-                    Span {
-                        lo: 119,
-                        hi: 125,
-                    },
-                ),
             ]
         "#]],
     );

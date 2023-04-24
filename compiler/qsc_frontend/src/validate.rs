@@ -36,16 +36,17 @@ struct Validator {
 impl Validator {
     fn validate_attrs(&mut self, attrs: &[Attr]) {
         for attr in attrs {
-            match attr.name.name.as_str() {
+            match attr.name.name.as_ref() {
                 "EntryPoint" => match &attr.arg.kind {
                     ExprKind::Tuple(args) if args.is_empty() => {}
                     _ => self
                         .errors
                         .push(Error::InvalidAttrArgs("()", attr.arg.span)),
                 },
-                _ => self
-                    .errors
-                    .push(Error::UnrecognizedAttr(attr.name.name.clone(), attr.span)),
+                _ => self.errors.push(Error::UnrecognizedAttr(
+                    attr.name.name.to_string(),
+                    attr.span,
+                )),
             }
         }
     }
@@ -69,9 +70,6 @@ impl Visitor<'_> for Validator {
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
-            ExprKind::Field(..) => self
-                .errors
-                .push(Error::NotCurrentlySupported("field access", expr.span)),
             ExprKind::UnOp(UnOp::Unwrap, _) => self
                 .errors
                 .push(Error::NotCurrentlySupported("unwrap operator", expr.span)),

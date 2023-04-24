@@ -57,7 +57,7 @@ pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
     }
 
     let span = s.peek().span;
-    let name = s.read().to_string();
+    let name = s.read().into();
     s.advance();
     Ok(Ident {
         id: NodeId::default(),
@@ -68,11 +68,17 @@ pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
 
 pub(super) fn dot_ident(s: &mut Scanner) -> Result<Ident> {
     let p = path(s)?;
-    let name = p.namespace.map_or(String::new(), |i| i.name + ".") + &p.name.name;
+    let mut name = String::new();
+    if let Some(namespace) = p.namespace {
+        name.push_str(&namespace.name);
+        name.push('.');
+    }
+    name.push_str(&p.name.name);
+
     Ok(Ident {
         id: p.id,
         span: p.span,
-        name,
+        name: name.into(),
     })
 }
 
@@ -91,7 +97,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
             Some(Ident {
                 id: NodeId::default(),
                 span: Span { lo, hi },
-                name: join(parts.iter().map(|i| &i.name), "."),
+                name: join(parts.iter().map(|i| &i.name), ".").into(),
             })
         }
         _ => None,
