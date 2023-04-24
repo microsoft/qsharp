@@ -94,7 +94,7 @@ impl<'a> Context<'a> {
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
-            TyKind::Var(name) => Ty::Param(name.name.clone()),
+            TyKind::Var(name) => Ty::Param(name.name.to_string()),
         }
     }
 
@@ -223,7 +223,7 @@ impl<'a> Context<'a> {
                     expr.span,
                     Class::HasField {
                         record: record.ty,
-                        name: name.name.clone(),
+                        name: name.name.to_string(),
                         item: item_ty.clone(),
                     },
                 );

@@ -6,12 +6,10 @@ mod tests;
 use crate::{
     eval_stmt,
     output::Receiver,
-    stateful::ouroboros_impl_execution_context::BorrowedMutFields,
     val::{GlobalId, Value},
     AggregateError, Env,
 };
 use miette::Diagnostic;
-use ouroboros::self_referencing;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, PackageStore},
@@ -32,12 +30,9 @@ pub enum Error {
     Incremental(incremental::Error),
 }
 
-#[self_referencing]
 pub struct ExecutionContext {
     store: PackageStore,
-    #[borrows(store)]
-    #[covariant]
-    compiler: Compiler<'this>,
+    compiler: Compiler,
     package: PackageId,
     next_item_id: LocalItemId,
     callables: IndexMap<LocalItemId, CallableDecl>,
@@ -70,8 +65,7 @@ impl Interpreter {
         receiver: &mut dyn Receiver,
         line: impl AsRef<str>,
     ) -> Result<Value, AggregateError<Error>> {
-        self.context
-            .with_mut(|fields| eval_line_in_context(receiver, line, fields))
+        eval_line_in_context(receiver, line, &mut self.context)
     }
 }
 
@@ -123,15 +117,15 @@ fn create_execution_context(
 
     let sources: [&str; 0] = [];
     let session_package = store.insert(compile(&store, [], sources, ""));
-    Ok(ExecutionContextBuilder {
+    let compiler = Compiler::new(&store, session_deps);
+    Ok(ExecutionContext {
         store,
-        compiler_builder: |store| Compiler::new(store, session_deps),
+        compiler,
         package: session_package,
         next_item_id: LocalItemId::default(),
         callables: IndexMap::new(),
         env: None,
-    }
-    .build())
+    })
 }
 
 // We can't take a mutable reference to the BorrowedMutFields
@@ -141,29 +135,29 @@ fn create_execution_context(
 fn eval_line_in_context(
     receiver: &mut dyn Receiver,
     line: impl AsRef<str>,
-    fields: BorrowedMutFields,
+    context: &mut ExecutionContext,
 ) -> Result<Value, AggregateError<Error>> {
     let mut result = Value::UNIT;
-    for fragment in fields.compiler.compile_fragment(line) {
+    for fragment in context.compiler.compile_fragment(line) {
         match fragment {
             Fragment::Stmt(stmt) => {
-                let mut env = fields.env.take().unwrap_or(Env::with_empty_scope());
+                let mut env = context.env.take().unwrap_or(Env::with_empty_scope());
                 let eval_result = eval_stmt(
                     &stmt,
-                    &|id| get_callable(fields.store, fields.callables, *fields.package, id),
-                    *fields.package,
+                    &|id| get_callable(&context.store, &context.callables, context.package, id),
+                    context.package,
                     &mut env,
                     receiver,
                 );
-                *fields.env = Some(env);
+                context.env = Some(env);
                 match eval_result {
                     Ok(value) => result = value,
                     Err(err) => return Err(AggregateError(vec![Error::Eval(err)])),
                 }
             }
             Fragment::Callable(decl) => {
-                fields.callables.insert(*fields.next_item_id, decl);
-                *fields.next_item_id = fields.next_item_id.successor();
+                context.callables.insert(context.next_item_id, decl);
+                context.next_item_id = context.next_item_id.successor();
                 result = Value::UNIT;
             }
             Fragment::Error(errors) => {

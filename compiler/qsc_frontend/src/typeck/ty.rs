@@ -55,7 +55,7 @@ impl Ty {
                 }
                 (Ty::Tuple(tys), errors)
             }
-            ast::TyKind::Var(name) => (Ty::Param(name.name.clone()), Vec::new()),
+            ast::TyKind::Var(name) => (Ty::Param(name.name.to_string()), Vec::new()),
         }
     }
 
@@ -89,7 +89,7 @@ impl Ty {
                 }
                 (Ty::Tuple(tys), errors)
             }
-            hir::TyKind::Var(name) => (Ty::Param(name.name.clone()), Vec::new()),
+            hir::TyKind::Var(name) => (Ty::Param(name.name.to_string()), Vec::new()),
         }
     }
 

@@ -7,6 +7,7 @@ use std::{
     ffi::c_void,
     fmt::{self, Display, Formatter},
     iter,
+    rc::Rc,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,7 +23,7 @@ pub enum Value {
     Qubit(Qubit),
     Range(Option<i64>, Option<i64>, Option<i64>),
     Result(bool),
-    String(String),
+    String(Rc<str>),
     Tuple(Vec<Value>),
     Udt,
 }
@@ -172,7 +173,7 @@ impl TryFrom<Value> for bool {
     }
 }
 
-impl TryFrom<Value> for String {
+impl TryFrom<Value> for Rc<str> {
     type Error = ConversionError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {

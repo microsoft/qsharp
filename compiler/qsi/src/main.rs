@@ -198,7 +198,7 @@ impl Receiver for TerminalReceiver {
         Ok(())
     }
 
-    fn message(&mut self, msg: String) -> Result<(), qsc_eval::output::Error> {
+    fn message(&mut self, msg: &str) -> Result<(), qsc_eval::output::Error> {
         println!("{msg}");
         Ok(())
     }

@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::ops::ControlFlow;
+use std::{ops::ControlFlow, rc::Rc};
 
 use qir_backend::{
     __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body,
@@ -48,12 +48,12 @@ pub(crate) fn invoke_intrinsic(
                 }
             }
 
-            "Message" => match out.message(args.try_into().with_span(args_span)?) {
+            "Message" => match out.message(&Rc::<str>::try_from(args).with_span(args_span)?) {
                 Ok(_) => ControlFlow::Continue(Value::UNIT),
                 Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
             },
 
-            "AsString" => ControlFlow::Continue(Value::String(args.to_string())),
+            "AsString" => ControlFlow::Continue(Value::String(args.to_string().into())),
 
             "CheckZero" => ControlFlow::Continue(Value::Bool(qubit_is_zero(
                 args.try_into().with_span(args_span)?,

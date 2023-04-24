@@ -174,7 +174,7 @@ impl<'a> SpecImplPass<'a> {
                 Ident {
                     id: ctls_id,
                     span: spec_decl.span,
-                    name: "ctls".to_string(),
+                    name: "ctls".into(),
                 },
                 None,
             ),

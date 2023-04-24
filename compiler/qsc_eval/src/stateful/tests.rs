@@ -67,7 +67,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::UNIT);
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_value(&result, &output, &Value::String("Hello".to_string()));
+            is_only_value(&result, &output, &Value::String("Hello".into()));
         }
 
         #[test]
@@ -127,17 +127,9 @@ mod given_interpreter {
             let mut interpreter =
                 Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test.Main()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
         }
 
         #[test]
@@ -158,17 +150,9 @@ mod given_interpreter {
             let mut interpreter =
                 Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
         }
     }
 

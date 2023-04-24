@@ -32,6 +32,7 @@ use std::{
     mem::take,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
+    rc::Rc,
 };
 use thiserror::Error;
 use val::{GlobalId, Qubit};
@@ -351,10 +352,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
-            ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
-                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
-                expr.span,
-            ))),
+            ExprKind::Fail(msg) => {
+                let msg: Rc<str> = self.eval_expr(msg)?.try_into().with_span(msg.span)?;
+                ControlFlow::Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
+            }
             ExprKind::Field(record, item) => self.eval_field(record, item),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
@@ -859,7 +860,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         let record_span = record.span;
         let record = self.eval_expr(record)?;
         // For now we only support built-in fields for Arrays and Ranges.
-        match (record, item.name.as_str()) {
+        match (record, item.name.as_ref()) {
             (Value::Array(arr), "Length") => {
                 let len: i64 = match arr.len().try_into() {
                     Ok(len) => ControlFlow::Continue(len),
@@ -1109,8 +1110,8 @@ fn eval_binop_add(
             ControlFlow::Continue(Value::Int(val + rhs))
         }
         Value::String(val) => {
-            let rhs: String = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::String(val + &rhs))
+            let rhs: Rc<str> = rhs_val.try_into().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::String((val.to_string() + &rhs).into()))
         }
         _ => ControlFlow::Break(Reason::Error(Error::Type(
             "Array, BigInt, Double, Int, or String",
