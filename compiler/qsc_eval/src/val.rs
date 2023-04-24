@@ -173,21 +173,6 @@ impl TryFrom<Value> for bool {
     }
 }
 
-impl TryFrom<Value> for Rc<str> {
-    type Error = ConversionError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::String(v) = value {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "String",
-                actual: value.type_name(),
-            })
-        }
-    }
-}
-
 impl TryFrom<Value> for *mut c_void {
     type Error = ConversionError;
 
@@ -230,6 +215,17 @@ impl Value {
         } else {
             Err(ConversionError {
                 expected: "Array",
+                actual: self.type_name(),
+            })
+        }
+    }
+
+    pub(super) fn try_into_string(self) -> Result<Rc<str>, ConversionError> {
+        if let Value::String(s) = self {
+            Ok(s)
+        } else {
+            Err(ConversionError {
+                expected: "String",
                 actual: self.type_name(),
             })
         }

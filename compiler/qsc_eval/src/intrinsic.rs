@@ -4,8 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::{ops::ControlFlow, rc::Rc};
-
+use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
 use qir_backend::{
     __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body,
     __quantum__qis__cz__body, __quantum__qis__h__body, __quantum__qis__m__body,
@@ -18,10 +17,8 @@ use qir_backend::{
     result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
 };
 use qsc_data_structures::span::Span;
-
-use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
-
 use rand::Rng;
+use std::ops::ControlFlow;
 
 pub(crate) fn invoke_intrinsic(
     name: &str,
@@ -48,7 +45,7 @@ pub(crate) fn invoke_intrinsic(
                 }
             }
 
-            "Message" => match out.message(&Rc::<str>::try_from(args).with_span(args_span)?) {
+            "Message" => match out.message(&args.try_into_string().with_span(args_span)?) {
                 Ok(_) => ControlFlow::Continue(Value::UNIT),
                 Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
             },

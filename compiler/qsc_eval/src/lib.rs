@@ -32,7 +32,6 @@ use std::{
     mem::take,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
-    rc::Rc,
 };
 use thiserror::Error;
 use val::{GlobalId, Qubit};
@@ -353,7 +352,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => {
-                let msg: Rc<str> = self.eval_expr(msg)?.try_into().with_span(msg.span)?;
+                let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
                 ControlFlow::Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
             }
             ExprKind::Field(record, item) => self.eval_field(record, item),
@@ -1110,7 +1109,7 @@ fn eval_binop_add(
             ControlFlow::Continue(Value::Int(val + rhs))
         }
         Value::String(val) => {
-            let rhs: Rc<str> = rhs_val.try_into().with_span(rhs_span)?;
+            let rhs = rhs_val.try_into_string().with_span(rhs_span)?;
             ControlFlow::Continue(Value::String((val.to_string() + &rhs).into()))
         }
         _ => ControlFlow::Break(Reason::Error(Error::Type(
