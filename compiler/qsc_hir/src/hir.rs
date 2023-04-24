@@ -1207,7 +1207,7 @@ impl Display for Ty {
             Ty::Infer(infer) => Display::fmt(infer, f),
             Ty::Name(res) => Debug::fmt(res, f),
             Ty::Param(name) => write!(f, "'{name}"),
-            Ty::Prim(prim) => Display::fmt(prim, f),
+            Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 f.write_str("(")?;
                 if let Some((first, rest)) = items.split_first() {
@@ -1248,22 +1248,6 @@ pub enum PrimTy {
     Result,
     /// The string type.
     String,
-}
-
-impl Display for PrimTy {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            PrimTy::BigInt => f.write_str("BigInt"),
-            PrimTy::Bool => f.write_str("Bool"),
-            PrimTy::Double => f.write_str("Double"),
-            PrimTy::Int => f.write_str("Int"),
-            PrimTy::Pauli => f.write_str("Pauli"),
-            PrimTy::Qubit => f.write_str("Qubit"),
-            PrimTy::Range => f.write_str("Range"),
-            PrimTy::Result => f.write_str("Result"),
-            PrimTy::String => f.write_str("String"),
-        }
-    }
 }
 
 /// A placeholder type variable used during type inference.
