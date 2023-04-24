@@ -21,17 +21,17 @@ namespace Microsoft.Quantum.Samples.Qrng {
                | sample;
     }
 
+    /// Produces a non-negative integer from a string of bits in little endian format.
     function ResultArrayAsInt(input : Result[]) : Int {
         let nBits = Length(input);
-        Fact(nBits < 64, "`Length(bits)` must be less than 64, but was " +
-            AsString(nBits) + ".");
+        // We are constructing a 64-bit integer, and we won't use the highest (sign) bit.
+        Fact(nBits < 64, "Input length must be less than 64.");
         mutable number = 0;
-        mutable power = 1;
-        for idxBit in 0 .. nBits - 1 {
-            if (input[idxBit] == One) {
-                set number = number ||| power;
+        for i in 0..nBits-1 {
+            if input[i] == One {
+                // If we assume loop unrolling, 2^i will be optimized to a constant.
+                set number |||= 2^i;
             }
-            set power = power <<< 1;
         }
         return number;
     }
