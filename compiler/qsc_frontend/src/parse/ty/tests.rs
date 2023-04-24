@@ -7,52 +7,92 @@ use expect_test::expect;
 
 #[test]
 fn ty_big_int() {
-    check(ty, "BigInt", &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "BigInt")"#]]);
+    check(
+        ty,
+        "BigInt",
+        &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "BigInt")"#]],
+    );
 }
 
 #[test]
 fn ty_bool() {
-    check(ty, "Bool", &expect![[r#"Type _id_ [0-4]: Path: Path _id_ [0-4] (Ident _id_ [0-4] "Bool")"#]]);
+    check(
+        ty,
+        "Bool",
+        &expect![[r#"Type _id_ [0-4]: Path: Path _id_ [0-4] (Ident _id_ [0-4] "Bool")"#]],
+    );
 }
 
 #[test]
 fn ty_double() {
-    check(ty, "Double", &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "Double")"#]]);
+    check(
+        ty,
+        "Double",
+        &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "Double")"#]],
+    );
 }
 
 #[test]
 fn ty_int() {
-    check(ty, "Int", &expect![[r#"Type _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Int")"#]]);
+    check(
+        ty,
+        "Int",
+        &expect![[r#"Type _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Int")"#]],
+    );
 }
 
 #[test]
 fn ty_pauli() {
-    check(ty, "Pauli", &expect![[r#"Type _id_ [0-5]: Path: Path _id_ [0-5] (Ident _id_ [0-5] "Pauli")"#]]);
+    check(
+        ty,
+        "Pauli",
+        &expect![[r#"Type _id_ [0-5]: Path: Path _id_ [0-5] (Ident _id_ [0-5] "Pauli")"#]],
+    );
 }
 
 #[test]
 fn ty_qubit() {
-    check(ty, "Qubit", &expect![[r#"Type _id_ [0-5]: Path: Path _id_ [0-5] (Ident _id_ [0-5] "Qubit")"#]]);
+    check(
+        ty,
+        "Qubit",
+        &expect![[r#"Type _id_ [0-5]: Path: Path _id_ [0-5] (Ident _id_ [0-5] "Qubit")"#]],
+    );
 }
 
 #[test]
 fn ty_range() {
-    check(ty, "Range", &expect![[r#"Type _id_ [0-5]: Path: Path _id_ [0-5] (Ident _id_ [0-5] "Range")"#]]);
+    check(
+        ty,
+        "Range",
+        &expect![[r#"Type _id_ [0-5]: Path: Path _id_ [0-5] (Ident _id_ [0-5] "Range")"#]],
+    );
 }
 
 #[test]
 fn ty_result() {
-    check(ty, "Result", &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "Result")"#]]);
+    check(
+        ty,
+        "Result",
+        &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "Result")"#]],
+    );
 }
 
 #[test]
 fn ty_string() {
-    check(ty, "String", &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "String")"#]]);
+    check(
+        ty,
+        "String",
+        &expect![[r#"Type _id_ [0-6]: Path: Path _id_ [0-6] (Ident _id_ [0-6] "String")"#]],
+    );
 }
 
 #[test]
 fn ty_unit() {
-    check(ty, "Unit", &expect![[r#"Type _id_ [0-4]: Path: Path _id_ [0-4] (Ident _id_ [0-4] "Unit")"#]]);
+    check(
+        ty,
+        "Unit",
+        &expect![[r#"Type _id_ [0-4]: Path: Path _id_ [0-4] (Ident _id_ [0-4] "Unit")"#]],
+    );
 }
 
 #[test]
@@ -94,7 +134,9 @@ fn ty_paren() {
     check(
         ty,
         "(Int)",
-        &expect![[r#"Type _id_ [0-5]: Paren: Type _id_ [1-4]: Path: Path _id_ [1-4] (Ident _id_ [1-4] "Int")"#]],
+        &expect![[
+            r#"Type _id_ [0-5]: Paren: Type _id_ [1-4]: Path: Path _id_ [1-4] (Ident _id_ [1-4] "Int")"#
+        ]],
     );
 }
 
@@ -140,7 +182,9 @@ fn ty_array() {
     check(
         ty,
         "Int[]",
-        &expect![[r#"Type _id_ [0-5]: Array: Type _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Int")"#]],
+        &expect![[
+            r#"Type _id_ [0-5]: Array: Type _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Int")"#
+        ]],
     );
 }
 
@@ -149,7 +193,9 @@ fn ty_array2() {
     check(
         ty,
         "Int[][]",
-        &expect![[r#"Type _id_ [0-7]: Array: Type _id_ [0-5]: Array: Type _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Int")"#]],
+        &expect![[
+            r#"Type _id_ [0-7]: Array: Type _id_ [0-5]: Array: Type _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Int")"#
+        ]],
     );
 }
 
