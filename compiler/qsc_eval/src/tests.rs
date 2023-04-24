@@ -10,8 +10,10 @@ use qsc_passes::run_default_passes;
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let mut unit = compile(&store, [], [file], expr);
-    assert!(unit.context.errors().is_empty());
-    assert!(run_default_passes(&mut unit).is_empty());
+    let compile_errors = unit.context.errors();
+    assert!(compile_errors.is_empty(), "{compile_errors:?}");
+    let pass_errors = run_default_passes(&mut unit);
+    assert!(pass_errors.is_empty(), "{pass_errors:?}");
 
     let id = store.insert(unit);
     let expr = store.get_entry_expr(id).expect("package should have entry");
