@@ -16,7 +16,7 @@ use qsc_ast::{
     visit::Visitor,
 };
 use qsc_hir::hir::{self, PackageId};
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -39,16 +39,16 @@ pub enum Fragment {
     Error(Vec<Error>),
 }
 
-pub struct Compiler<'a> {
+pub struct Compiler {
     assigner: Assigner,
-    resolver: Resolver<'a>,
+    resolver: Resolver,
     checker: Checker,
-    scope: HashMap<&'a str, NodeId>,
+    scope: HashMap<Rc<str>, NodeId>,
     lowerer: Lowerer,
 }
 
-impl<'a> Compiler<'a> {
-    pub fn new(store: &'a PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
+impl Compiler {
+    pub fn new(store: &PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
         for id in dependencies {
@@ -100,44 +100,42 @@ impl<'a> Compiler<'a> {
         fragments
     }
 
-    fn compile_callable_decl(&mut self, decl: ast::CallableDecl) -> Fragment {
-        let decl = Box::leak(Box::new(decl));
-        self.assigner.visit_callable_decl(decl);
+    fn compile_callable_decl(&mut self, mut decl: ast::CallableDecl) -> Fragment {
+        self.assigner.visit_callable_decl(&mut decl);
         self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.add_global_callable(decl);
-            resolver.visit_callable_decl(decl);
+            resolver.add_global_callable(&decl);
+            resolver.visit_callable_decl(&decl);
         });
         self.checker
-            .add_global_callable(self.resolver.resolutions(), decl);
+            .add_global_callable(self.resolver.resolutions(), &decl);
         self.checker
-            .check_callable_decl(self.resolver.resolutions(), decl);
+            .check_callable_decl(self.resolver.resolutions(), &decl);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
             Fragment::Callable(
                 self.lowerer
                     .with(self.resolver.resolutions(), self.checker.tys())
-                    .lower_callable_decl(decl),
+                    .lower_callable_decl(&decl),
             )
         } else {
             Fragment::Error(errors)
         }
     }
 
-    fn compile_stmt(&mut self, stmt: ast::Stmt) -> Fragment {
-        let stmt = Box::leak(Box::new(stmt));
-        self.assigner.visit_stmt(stmt);
+    fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Fragment {
+        self.assigner.visit_stmt(&mut stmt);
         self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.visit_stmt(stmt);
+            resolver.visit_stmt(&stmt);
         });
-        self.checker.check_stmt(self.resolver.resolutions(), stmt);
+        self.checker.check_stmt(self.resolver.resolutions(), &stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
             Fragment::Stmt(
                 self.lowerer
                     .with(self.resolver.resolutions(), self.checker.tys())
-                    .lower_stmt(stmt),
+                    .lower_stmt(&stmt),
             )
         } else {
             Fragment::Error(errors)

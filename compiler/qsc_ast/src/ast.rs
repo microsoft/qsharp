@@ -11,6 +11,7 @@ use qsc_data_structures::span::Span;
 use std::{
     collections::HashSet,
     fmt::{self, Display, Formatter, Write},
+    rc::Rc,
 };
 
 fn set_indentation<'a, 'b>(
@@ -1152,7 +1153,7 @@ pub struct Ident {
     /// The span.
     pub span: Span,
     /// The identifier name.
-    pub name: String,
+    pub name: Rc<str>,
 }
 
 impl Display for Ident {
@@ -1237,7 +1238,7 @@ pub enum Lit {
     /// A measurement result literal.
     Result(Result),
     /// A string literal.
-    String(String),
+    String(Rc<str>),
 }
 
 impl Display for Lit {

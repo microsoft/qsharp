@@ -32,7 +32,7 @@ pub(crate) fn ty_from_ast(ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
         ast::TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
         ast::TyKind::Paren(inner) => ty_from_ast(inner),
         ast::TyKind::Path(_) => (Ty::Err, Vec::new()), // TODO: Resolve user-defined types.
-        ast::TyKind::Param(name) => (Ty::Param(name.name.clone()), Vec::new()),
+        ast::TyKind::Param(name) => (Ty::Param(name.name.to_string()), Vec::new()),
         &ast::TyKind::Prim(prim) => (Ty::Prim(prim_from_ast(prim)), Vec::new()),
         ast::TyKind::Tuple(items) => {
             let mut tys = Vec::new();

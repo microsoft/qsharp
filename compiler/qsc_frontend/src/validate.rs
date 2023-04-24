@@ -36,16 +36,17 @@ struct Validator {
 impl Validator {
     fn validate_attrs(&mut self, attrs: &[Attr]) {
         for attr in attrs {
-            match attr.name.name.as_str() {
+            match attr.name.name.as_ref() {
                 "EntryPoint" => match &attr.arg.kind {
                     ExprKind::Tuple(args) if args.is_empty() => {}
                     _ => self
                         .errors
                         .push(Error::InvalidAttrArgs("()", attr.arg.span)),
                 },
-                _ => self
-                    .errors
-                    .push(Error::UnrecognizedAttr(attr.name.name.clone(), attr.span)),
+                _ => self.errors.push(Error::UnrecognizedAttr(
+                    attr.name.name.to_string(),
+                    attr.span,
+                )),
             }
         }
     }

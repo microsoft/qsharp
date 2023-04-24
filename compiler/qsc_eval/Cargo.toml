@@ -12,7 +12,6 @@ license.workspace = true
 miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
-ouroboros = { workspace = true }
 qir-backend = { git = "https://github.com/qir-alliance/qir-runner", rev = "8a7ee42401ef23092c5ecd5e92877948f4b8e017" }
 qir-stdlib = { git = "https://github.com/qir-alliance/qir-runner", rev = "8a7ee42401ef23092c5ecd5e92877948f4b8e017" }
 qsc_data_structures = { path = "../qsc_data_structures" }

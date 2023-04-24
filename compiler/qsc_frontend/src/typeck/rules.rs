@@ -87,7 +87,7 @@ impl<'a> Context<'a> {
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(_) => Ty::Err, // TODO: Resolve user-defined types.
-            TyKind::Param(name) => Ty::Param(name.name.clone()),
+            TyKind::Param(name) => Ty::Param(name.name.to_string()),
             &TyKind::Prim(prim) => Ty::Prim(convert::prim_from_ast(prim)),
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
@@ -220,7 +220,7 @@ impl<'a> Context<'a> {
                     expr.span,
                     Class::HasField {
                         record: record.ty,
-                        name: name.name.clone(),
+                        name: name.name.to_string(),
                         item: item_ty.clone(),
                     },
                 );

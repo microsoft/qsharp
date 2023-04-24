@@ -183,7 +183,7 @@ impl<'a> SpecImplPass<'a> {
                         kind: PatKind::Bind(Ident {
                             id: ctls_id,
                             span: spec_decl.span,
-                            name: "ctls".to_string(),
+                            name: "ctls".into(),
                         }),
                     },
                     Pat {

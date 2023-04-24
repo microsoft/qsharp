@@ -69,7 +69,7 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
             .into_iter()
             .map(|ep| {
                 PassErr::EntryPoint(Error::DuplicateEntryPoint(
-                    ep.name.name.clone(),
+                    ep.name.name.to_string(),
                     ep.name.span,
                 ))
             })
@@ -84,7 +84,11 @@ struct EntryPointVisitor<'a, 'b> {
 impl<'a, 'b> Visitor<'b> for EntryPointVisitor<'a, 'b> {
     fn visit_item(&mut self, item: &'b Item) {
         if let ItemKind::Callable(decl) = &item.kind {
-            if item.attrs.iter().any(|attr| attr.name.name == "EntryPoint") {
+            if item
+                .attrs
+                .iter()
+                .any(|attr| attr.name.name.as_ref() == "EntryPoint")
+            {
                 self.entry_points.push(decl);
             }
         }

@@ -5,13 +5,12 @@ use katas::run_kata;
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use once_cell::sync::OnceCell;
 use qsc_eval::{
     output,
     output::{format_state_id, Receiver},
     stateless::{compile_execution_context, eval_in_context, Error},
 };
-use qsc_frontend::compile::{compile, std, PackageStore};
+use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_hir::hir::PackageId;
 use qsc_passes::run_default_passes;
 use serde::{Deserialize, Serialize};
@@ -225,27 +224,26 @@ where
 }
 
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
-    static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
-    let (std, ref store) = STDLIB_STORE.get_or_init(|| {
-        let mut store = PackageStore::new();
-        let mut std = std();
-        run_default_passes(&mut std);
-        let std = store.insert(std);
-        (std, store)
-    });
-    let mut unit = compile(store, [*std], [code], "");
-    let pass_errs = run_default_passes(&mut unit);
-
-    let mut result: Vec<VSDiagnostic> = vec![];
-
-    for err in unit.context.errors() {
-        result.push(err.into());
-    }
-    for err in &pass_errs {
-        result.push(err.into());
+    thread_local! {
+        static STORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new();
+            let mut std_unit = compile::std();
+            run_default_passes(&mut std_unit);
+            let std_id = store.insert(std_unit);
+            (store, std_id)
+        };
     }
 
-    result
+    STORE_STD.with(|(store, std)| {
+        let mut unit = compile(store, [*std], [code], "");
+        let pass_errs = run_default_passes(&mut unit);
+        unit.context
+            .errors()
+            .iter()
+            .map(Into::into)
+            .chain(pass_errs.iter().map(Into::into))
+            .collect()
+    })
 }
 
 #[wasm_bindgen]
@@ -298,7 +296,7 @@ where
         Ok(())
     }
 
-    fn message(&mut self, msg: String) -> Result<(), output::Error> {
+    fn message(&mut self, msg: &str) -> Result<(), output::Error> {
         let mut msg_str = String::new();
         write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
             .expect("Writing to a string should succeed");

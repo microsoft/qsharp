@@ -554,7 +554,7 @@ fn check_has_field(
 ) -> Result<Constraint, ClassError> {
     // TODO: If the record type is a user-defined type, look up its fields.
     // https://github.com/microsoft/qsharp/issues/148
-    match (&record, name.as_str(), &item) {
+    match (&record, name.as_ref(), &item) {
         (Ty::Prim(PrimTy::Range), "Start" | "Step" | "End", _) | (Ty::Array(..), "Length", _) => {
             Ok(Constraint::Eq {
                 expected: Ty::Prim(PrimTy::Int),
