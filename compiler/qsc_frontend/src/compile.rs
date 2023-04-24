@@ -13,9 +13,7 @@ use crate::{
     validate::{self, validate},
 };
 use miette::Diagnostic;
-use qsc_ast::{
-    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor as AstVisitor,
-};
+use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::{
     index_map::{self, IndexMap},
     span::Span,
@@ -23,7 +21,6 @@ use qsc_data_structures::{
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},
-    visit::Visitor as HirVisitor,
 };
 use std::fmt::Debug;
 use thiserror::Error;
@@ -258,18 +255,17 @@ fn resolve_all(
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    AstVisitor::visit_package(&mut globals, package);
+    globals.add_local_package(package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be in package store before compilation");
-        globals.set_package(dependency);
-        HirVisitor::visit_package(&mut globals, &unit.package);
+        globals.add_external_package(id, &unit.package);
     }
 
     let mut resolver = globals.into_resolver();
-    AstVisitor::visit_package(&mut resolver, package);
+    resolver.visit_package(package);
     resolver.into_resolutions()
 }
 
@@ -280,14 +276,13 @@ fn typeck_all(
     resolutions: &Resolutions,
 ) -> (Tys, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
-    AstVisitor::visit_package(&mut globals, package);
+    globals.add_local_package(resolutions, package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be added to package store before compilation");
-        globals.set_package(dependency);
-        HirVisitor::visit_package(&mut globals, &unit.package);
+        globals.add_external_package(id, &unit.package);
     }
 
     let mut checker = globals.into_checker();

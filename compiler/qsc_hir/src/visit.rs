@@ -3,17 +3,13 @@
 
 use crate::hir::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl,
-    Stmt, StmtKind, TyDef, TyDefKind, Visibility,
+    Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
+    StmtKind, TyDef, TyDefKind, Visibility,
 };
 
 pub trait Visitor<'a>: Sized {
     fn visit_package(&mut self, package: &'a Package) {
         walk_package(self, package);
-    }
-
-    fn visit_namespace(&mut self, namespace: &'a Namespace) {
-        walk_namespace(self, namespace);
     }
 
     fn visit_item(&mut self, item: &'a Item) {
@@ -66,28 +62,17 @@ pub trait Visitor<'a>: Sized {
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
-    package
-        .namespaces
-        .iter()
-        .for_each(|n| vis.visit_namespace(n));
+    package.items.values().for_each(|i| vis.visit_item(i));
     package.entry.iter().for_each(|e| vis.visit_expr(e));
-}
-
-pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) {
-    vis.visit_ident(&namespace.name);
-    namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.attrs.iter().for_each(|a| vis.visit_attr(a));
     item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &item.kind {
-        ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Open(ns, alias) => {
-            vis.visit_ident(ns);
-            alias.iter().for_each(|a| vis.visit_ident(a));
-        }
+        ItemKind::Err => {}
+        ItemKind::Namespace(name, _) => vis.visit_ident(name),
         ItemKind::Ty(ident, def) => {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);

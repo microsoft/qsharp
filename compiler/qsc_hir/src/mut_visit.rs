@@ -3,18 +3,14 @@
 
 use crate::hir::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl,
-    Stmt, StmtKind, TyDef, TyDefKind, Visibility,
+    Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
+    StmtKind, TyDef, TyDefKind, Visibility,
 };
 use qsc_data_structures::span::Span;
 
 pub trait MutVisitor: Sized {
     fn visit_package(&mut self, package: &mut Package) {
         walk_package(self, package);
-    }
-
-    fn visit_namespace(&mut self, namespace: &mut Namespace) {
-        walk_namespace(self, namespace);
     }
 
     fn visit_item(&mut self, item: &mut Item) {
@@ -71,17 +67,8 @@ pub trait MutVisitor: Sized {
 }
 
 pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
-    package
-        .namespaces
-        .iter_mut()
-        .for_each(|n| vis.visit_namespace(n));
+    package.items.values_mut().for_each(|i| vis.visit_item(i));
     package.entry.iter_mut().for_each(|e| vis.visit_expr(e));
-}
-
-pub fn walk_namespace(vis: &mut impl MutVisitor, namespace: &mut Namespace) {
-    vis.visit_span(&mut namespace.span);
-    vis.visit_ident(&mut namespace.name);
-    namespace.items.iter_mut().for_each(|i| vis.visit_item(i));
 }
 
 pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
@@ -94,10 +81,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Err => {}
-        ItemKind::Open(ns, alias) => {
-            vis.visit_ident(ns);
-            alias.iter_mut().for_each(|a| vis.visit_ident(a));
-        }
+        ItemKind::Namespace(name, _) => vis.visit_ident(name),
         ItemKind::Ty(ident, def) => {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);

@@ -12,8 +12,8 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{CompileUnit, Context};
 use qsc_hir::{
     hir::{
-        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, NodeId, Package, Pat,
-        PatKind, PrimTy, Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen, Ty,
+        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, NodeId, Pat, PatKind,
+        PrimTy, Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -144,7 +144,7 @@ fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
         context: &mut unit.context,
         errors: Vec::new(),
     };
-    pass.transform(&mut unit.package);
+    pass.visit_package(&mut unit.package);
     pass.errors
 }
 
@@ -154,18 +154,12 @@ struct SpecImplPass<'a> {
 }
 
 impl<'a> SpecImplPass<'a> {
-    fn transform(&mut self, package: &mut Package) {
-        for ns in &mut package.namespaces {
-            self.visit_namespace(ns);
-        }
-    }
-
     fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
         // Clone the reference block and use the pass to update the calls inside.
         let ctls_id = self.context.assigner_mut().next_id();
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
-            ctls: Res::Internal(ctls_id),
+            ctls: Res::Local(ctls_id),
             errors: Vec::new(),
         };
         distrib.visit_block(&mut ctl_block);

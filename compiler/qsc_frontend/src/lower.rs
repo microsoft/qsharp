@@ -7,7 +7,10 @@ use crate::{
 };
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::{assigner::Assigner, hir};
+use qsc_hir::{
+    assigner::Assigner,
+    hir::{self, LocalItemId},
+};
 use std::clone::Clone;
 
 pub(super) struct Lowerer {
@@ -44,51 +47,76 @@ pub(super) struct With<'a> {
 
 impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
+        let mut items = IndexMap::new();
+        for namespace in &package.namespaces {
+            let Some(&resolve::Res::Item(hir::ItemId {
+                item: namespace_id, ..
+            })) = self.resolutions.get(namespace.name.id) else {
+                panic!("namespace should have item ID");
+            };
+
+            let mut namespace_items = Vec::new();
+            for item in &namespace.items {
+                if let Some(item) = self.lower_item(namespace_id, item) {
+                    namespace_items.push(item.id);
+                    items.insert(item.id, item);
+                }
+            }
+
+            items.insert(
+                namespace_id,
+                self.lower_namespace(namespace_id, namespace_items, namespace),
+            );
+        }
+
         hir::Package {
-            id: self.lower_id(package.id),
-            namespaces: package
-                .namespaces
-                .iter()
-                .map(|n| self.lower_namespace(n))
-                .collect(),
+            items,
             entry: package.entry.as_ref().map(|e| self.lower_expr(e)),
         }
     }
 
-    fn lower_namespace(&mut self, namespace: &ast::Namespace) -> hir::Namespace {
-        hir::Namespace {
-            id: self.lower_id(namespace.id),
+    fn lower_namespace(
+        &mut self,
+        id: LocalItemId,
+        items: Vec<LocalItemId>,
+        namespace: &ast::Namespace,
+    ) -> hir::Item {
+        hir::Item {
+            id,
             span: namespace.span,
-            name: self.lower_ident(&namespace.name),
-            items: namespace.items.iter().map(|i| self.lower_item(i)).collect(),
+            parent: None,
+            attrs: Vec::new(),
+            visibility: None,
+            kind: hir::ItemKind::Namespace(self.lower_ident(&namespace.name), items),
         }
     }
 
-    fn lower_item(&mut self, item: &ast::Item) -> hir::Item {
-        let id = self.lower_id(item.id);
+    fn lower_item(&mut self, parent: LocalItemId, item: &ast::Item) -> Option<hir::Item> {
         let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let kind = match &item.kind {
-            ast::ItemKind::Callable(decl) => {
-                hir::ItemKind::Callable(self.lower_callable_decl(decl))
-            }
-            ast::ItemKind::Err => hir::ItemKind::Err,
-            ast::ItemKind::Open(name, alias) => hir::ItemKind::Open(
-                self.lower_ident(name),
-                alias.as_ref().map(|a| self.lower_ident(a)),
+        let (name_id, kind) = match &item.kind {
+            ast::ItemKind::Callable(decl) => (
+                decl.name.id,
+                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
             ),
-            ast::ItemKind::Ty(name, def) => {
-                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def))
-            }
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            ast::ItemKind::Ty(name, def) => (
+                name.id,
+                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def)),
+            ),
         };
 
-        hir::Item {
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) = self.resolutions.get(name_id)
+            else { panic!("item should have item ID"); };
+
+        Some(hir::Item {
             id,
             span: item.span,
+            parent: Some(parent),
             attrs,
             visibility,
             kind,
-        }
+        })
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> hir::Attr {
@@ -394,8 +422,8 @@ impl With<'_> {
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.resolutions.get(path.id) {
             None => hir::Res::Err,
-            Some(&resolve::Res::Internal(node)) => hir::Res::Internal(self.lower_id(node)),
-            Some(&resolve::Res::External(package, node)) => hir::Res::External(package, node),
+            Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
+            Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
         }
     }
 

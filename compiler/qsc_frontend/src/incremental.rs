@@ -13,12 +13,9 @@ use qsc_ast::{
     assigner::Assigner,
     ast::{self, ItemKind, NodeId},
     mut_visit::MutVisitor,
-    visit::Visitor as AstVisitor,
+    visit::Visitor,
 };
-use qsc_hir::{
-    hir::{self, PackageId},
-    visit::Visitor as HirVisitor,
-};
+use qsc_hir::hir::{self, PackageId};
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -54,14 +51,12 @@ impl<'a> Compiler<'a> {
     pub fn new(store: &'a PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
-        for dependency in dependencies {
+        for id in dependencies {
             let unit = store
-                .get(dependency)
+                .get(id)
                 .expect("dependency should be added to package store before compilation");
-            resolve_globals.set_package(dependency);
-            HirVisitor::visit_package(&mut resolve_globals, &unit.package);
-            typeck_globals.set_package(dependency);
-            HirVisitor::visit_package(&mut typeck_globals, &unit.package);
+            resolve_globals.add_external_package(id, &unit.package);
+            typeck_globals.add_external_package(id, &unit.package);
         }
 
         Self {
@@ -110,9 +105,10 @@ impl<'a> Compiler<'a> {
         self.assigner.visit_callable_decl(decl);
         self.resolver.with_scope(&mut self.scope, |resolver| {
             resolver.add_global_callable(decl);
-            AstVisitor::visit_callable_decl(resolver, decl);
+            resolver.visit_callable_decl(decl);
         });
-        self.checker.add_global_callable(decl);
+        self.checker
+            .add_global_callable(self.resolver.resolutions(), decl);
         self.checker
             .check_callable_decl(self.resolver.resolutions(), decl);
 

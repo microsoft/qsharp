@@ -46,7 +46,9 @@ mod given_interpreter {
         #[test]
         fn let_bindings_update_interpreter() {
             let mut interpreter = get_interpreter();
-            let _ = line(&mut interpreter, "let y = 7;");
+            line(&mut interpreter, "let y = 7;")
+                .0
+                .expect("line should succeed");
             let (result, output) = line(&mut interpreter, "y");
             is_only_value(&result, &output, &Value::Int(7));
         }
