@@ -254,9 +254,25 @@ pub(super) struct GlobalTable {
 
 impl GlobalTable {
     pub(super) fn new() -> Self {
+        let tys = HashMap::from([(
+            "Microsoft.Quantum.Core".into(),
+            HashMap::from([
+                ("BigInt".into(), Res::PrimTy(hir::PrimTy::BigInt)),
+                ("Bool".into(), Res::PrimTy(hir::PrimTy::Bool)),
+                ("Double".into(), Res::PrimTy(hir::PrimTy::Double)),
+                ("Int".into(), Res::PrimTy(hir::PrimTy::Int)),
+                ("Pauli".into(), Res::PrimTy(hir::PrimTy::Pauli)),
+                ("Qubit".into(), Res::PrimTy(hir::PrimTy::Qubit)),
+                ("Range".into(), Res::PrimTy(hir::PrimTy::Range)),
+                ("Result".into(), Res::PrimTy(hir::PrimTy::Result)),
+                ("String".into(), Res::PrimTy(hir::PrimTy::String)),
+                ("Unit".into(), Res::UnitTy),
+            ]),
+        )]);
+
         Self {
             resolutions: Resolutions::new(),
-            tys: HashMap::new(),
+            tys,
             terms: HashMap::new(),
             next_item_id: LocalItemId::default(),
         }
