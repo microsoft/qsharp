@@ -29,6 +29,28 @@ impl<K, V> IndexMap<K, V> {
             base: self.values.iter().enumerate(),
         }
     }
+
+    // `Iter` does implement `Iterator`, but it has an additional bound on `K`.
+    #[allow(clippy::iter_not_returning_iterator)]
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+        IterMut {
+            _keys: PhantomData,
+            base: self.values.iter_mut().enumerate(),
+        }
+    }
+
+    #[must_use]
+    pub fn values(&self) -> Values<V> {
+        Values {
+            base: self.values.iter(),
+        }
+    }
+
+    pub fn values_mut(&mut self) -> ValuesMut<V> {
+        ValuesMut {
+            base: self.values.iter_mut(),
+        }
+    }
 }
 
 impl<K: Into<usize>, V> IndexMap<K, V> {
@@ -48,6 +70,15 @@ impl<K: Into<usize>, V> IndexMap<K, V> {
     pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
         let index: usize = key.into();
         self.values.get_mut(index).and_then(Option::as_mut)
+    }
+}
+
+impl<K, V: Clone> Clone for IndexMap<K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            _keys: PhantomData,
+            values: self.values.clone(),
+        }
     }
 }
 
@@ -100,7 +131,6 @@ impl<K: Into<usize>, V> FromIterator<(K, V)> for IndexMap<K, V> {
         for (key, value) in iter {
             map.insert(key, value);
         }
-
         map
     }
 }
@@ -112,6 +142,23 @@ pub struct Iter<'a, K, V> {
 
 impl<'a, K: From<usize>, V> Iterator for Iter<'a, K, V> {
     type Item = (K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let (index, Some(value)) = self.base.next()? {
+                break Some((index.into(), value));
+            }
+        }
+    }
+}
+
+pub struct IterMut<'a, K, V> {
+    _keys: PhantomData<K>,
+    base: Enumerate<slice::IterMut<'a, Option<V>>>,
+}
+
+impl<'a, K: From<usize>, V> Iterator for IterMut<'a, K, V> {
+    type Item = (K, &'a mut V);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -134,6 +181,38 @@ impl<K: From<usize>, V> Iterator for IntoIter<K, V> {
         loop {
             if let (index, Some(value)) = self.base.next()? {
                 break Some((index.into(), value));
+            }
+        }
+    }
+}
+
+pub struct Values<'a, V> {
+    base: slice::Iter<'a, Option<V>>,
+}
+
+impl<'a, V> Iterator for Values<'a, V> {
+    type Item = &'a V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(value) = self.base.next()? {
+                break Some(value);
+            }
+        }
+    }
+}
+
+pub struct ValuesMut<'a, V> {
+    base: slice::IterMut<'a, Option<V>>,
+}
+
+impl<'a, V> Iterator for ValuesMut<'a, V> {
+    type Item = &'a mut V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(value) = self.base.next()? {
+                break Some(value);
             }
         }
     }

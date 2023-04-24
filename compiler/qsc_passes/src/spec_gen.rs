@@ -15,8 +15,8 @@ use qsc_frontend::{
 };
 use qsc_hir::{
     hir::{
-        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, Package, Pat, PatKind,
-        Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen,
+        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, Pat, PatKind, Res,
+        SetOp, Spec, SpecBody, SpecDecl, SpecGen,
     },
     mut_visit::MutVisitor,
 };
@@ -48,19 +48,11 @@ fn generate_placeholders(unit: &mut CompileUnit) {
     let mut pass = SpecPlacePass {
         context: &mut unit.context,
     };
-    pass.transform(&mut unit.package);
+    pass.visit_package(&mut unit.package);
 }
 
 struct SpecPlacePass<'a> {
     context: &'a mut Context,
-}
-
-impl<'a> SpecPlacePass<'a> {
-    fn transform(&mut self, package: &mut Package) {
-        for ns in &mut package.namespaces {
-            self.visit_namespace(ns);
-        }
-    }
 }
 
 impl<'a> MutVisitor for SpecPlacePass<'a> {
@@ -159,7 +151,7 @@ fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
         context: &mut unit.context,
         errors: Vec::new(),
     };
-    pass.transform(&mut unit.package);
+    pass.visit_package(&mut unit.package);
     pass.errors
 }
 
@@ -169,12 +161,6 @@ struct SpecImplPass<'a> {
 }
 
 impl<'a> SpecImplPass<'a> {
-    fn transform(&mut self, package: &mut Package) {
-        for ns in &mut package.namespaces {
-            self.visit_namespace(ns);
-        }
-    }
-
     fn ctl_distrib(&mut self, spec_decl: &mut SpecDecl, block: &Block) {
         let ctls_id = self.context.assigner_mut().next_id();
         self.context
@@ -200,7 +186,7 @@ impl<'a> SpecImplPass<'a> {
         // Clone the reference block and use the pass to update the calls inside.
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
-            ctls: Res::Internal(ctls_id),
+            ctls: Res::Local(ctls_id),
             context: self.context,
             errors: Vec::new(),
         };

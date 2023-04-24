@@ -3,8 +3,8 @@
 
 use crate::{
     hir::{
-        Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
-        QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
+        Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, NodeId, Pat, QubitInit, SpecDecl,
+        Stmt, Ty, TyDef, Visibility,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -42,21 +42,6 @@ impl Default for Assigner {
 }
 
 impl MutVisitor for Assigner {
-    fn visit_package(&mut self, package: &mut Package) {
-        self.assign(&mut package.id);
-        mut_visit::walk_package(self, package);
-    }
-
-    fn visit_namespace(&mut self, namespace: &mut Namespace) {
-        self.assign(&mut namespace.id);
-        mut_visit::walk_namespace(self, namespace);
-    }
-
-    fn visit_item(&mut self, item: &mut Item) {
-        self.assign(&mut item.id);
-        mut_visit::walk_item(self, item);
-    }
-
     fn visit_attr(&mut self, attr: &mut Attr) {
         self.assign(&mut attr.id);
         mut_visit::walk_attr(self, attr);

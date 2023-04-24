@@ -7,7 +7,7 @@
 
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
     collections::HashSet,
     fmt::{self, Display, Formatter, Write},
@@ -27,7 +27,7 @@ fn set_indentation<'a, 'b>(
     })
 }
 
-/// The unique identifier for an HIR node.
+/// A unique identifier for an HIR node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(usize);
 
@@ -111,92 +111,109 @@ impl From<usize> for PackageId {
     }
 }
 
+/// A unique identifier for an item within a package.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct LocalItemId(usize);
+
+impl LocalItemId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for LocalItemId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<usize> for LocalItemId {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<LocalItemId> for usize {
+    fn from(value: LocalItemId) -> Self {
+        value.0
+    }
+}
+
+/// A unique identifier for an item within a package store.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ItemId {
+    /// The package ID or `None` for the local package.
+    pub package: Option<PackageId>,
+    /// The item ID.
+    pub item: LocalItemId,
+}
+
+impl Display for ItemId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self.package {
+            None => write!(f, "Item {}", self.item),
+            Some(package) => write!(f, "Item {} (Package {package})", self.item),
+        }
+    }
+}
+
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Res {
-    /// A resolution to a name declared in the same package as the usage.
-    Internal(NodeId),
-    /// A resolution to a name declared in another package.
-    External(PackageId, NodeId),
-    /// An unresolved name.
+    /// An invalid resolution.
     Err,
+    /// A global item.
+    Item(ItemId),
+    /// A local variable.
+    Local(NodeId),
+}
+
+impl Display for Res {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Res::Err => f.write_str("Err"),
+            Res::Item(item) => Display::fmt(item, f),
+            Res::Local(node) => write!(f, "Local {node}"),
+        }
+    }
 }
 
 /// The root node of the HIR.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct Package {
-    /// The node ID.
-    pub id: NodeId,
-    /// The namespaces in the package.
-    pub namespaces: Vec<Namespace>,
+    /// The items in the package.
+    pub items: IndexMap<LocalItemId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
 }
 
-impl Package {
-    /// Creates a new package.
-    #[must_use]
-    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
-        Self {
-            id: NodeId::default(),
-            namespaces,
-            entry,
-        }
-    }
-}
-
 impl Display for Package {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Package {}:", self.id)?;
+        write!(indent, "Package:")?;
         indent = set_indentation(indent, 1);
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for ns in &self.namespaces {
-            write!(indent, "\n{ns}")?;
-        }
-        Ok(())
-    }
-}
-
-/// A namespace.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Namespace {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The namespace name.
-    pub name: Ident,
-    /// The items in the namespace.
-    pub items: Vec<Item>,
-}
-
-impl Display for Namespace {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(
-            indent,
-            "Namespace {} {} ({}):",
-            self.id, self.span, self.name
-        )?;
-        indent = set_indentation(indent, 1);
-        for i in &self.items {
-            write!(indent, "\n{i}")?;
+        for item in self.items.values() {
+            write!(indent, "\n{item}")?;
         }
         Ok(())
     }
 }
 
 /// An item.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
-    pub id: NodeId,
+    pub id: LocalItemId,
     /// The span.
     pub span: Span,
+    /// The parent item.
+    pub parent: Option<LocalItemId>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -206,10 +223,13 @@ pub struct Item {
 }
 
 impl Display for Item {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
         indent = set_indentation(indent, 1);
+        if let Some(parent) = self.parent {
+            write!(indent, "\nParent: {parent}")?;
+        }
         for attr in &self.attrs {
             write!(indent, "\n{attr}")?;
         }
@@ -229,24 +249,32 @@ pub enum ItemKind {
     /// Default item when nothing has been parsed.
     #[default]
     Err,
-    /// An `open` item for a namespace with an optional alias.
-    Open(Ident, Option<Ident>),
+    /// A `namespace` declaration.
+    Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
 }
 
 impl Display for ItemKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self {
-            ItemKind::Callable(decl) => write!(f, "{decl}")?,
-            ItemKind::Err => write!(f, "Err")?,
-            ItemKind::Open(name, alias) => match alias {
-                Some(a) => write!(f, "Open ({name}) ({a})")?,
-                None => write!(f, "Open ({name})")?,
-            },
-            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            ItemKind::Callable(decl) => write!(f, "{decl}"),
+            ItemKind::Err => write!(f, "Err"),
+            ItemKind::Namespace(name, items) => {
+                write!(f, "Namespace ({name}):")?;
+                let mut items = items.iter();
+                if let Some(item) = items.next() {
+                    write!(f, " Item {item}")?;
+                    for item in items {
+                        write!(f, ", Item {item}")?;
+                    }
+                    Ok(())
+                } else {
+                    write!(f, " <empty>")
+                }
+            }
+            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
         }
-        Ok(())
     }
 }
 
@@ -587,7 +615,7 @@ impl Display for TyKind {
                 }
             }
             TyKind::Hole => write!(indent, "Hole")?,
-            TyKind::Name(res) => write!(indent, "Name: {res:?}")?,
+            TyKind::Name(res) => write!(indent, "Name: {res}")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
             TyKind::Tuple(ts) => {
@@ -801,7 +829,7 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Name(res) => write!(indent, "Name: {res:?}")?,
+            ExprKind::Name(res) => write!(indent, "Name: {res}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
