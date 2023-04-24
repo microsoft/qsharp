@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from pip.qsharp._qsharp import (_interpret_with_outputs, QSharpException)
+from ._qsharp import (_interpret_with_outputs, QSharpException)
 
 from IPython.core.magic import (register_cell_magic)
 
