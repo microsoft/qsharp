@@ -3,13 +3,11 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {getCompiler, loadWasmModule, checkCode, eventStringToMsg, mapDiagnostics, evaluate,
-    getCompletions, ShotResult, Dump, renderDump, IDiagnostic} from "qsharp";
+import { getCompiler, getResultsHandler, loadWasmModule, ShotResult, renderDump, VSDiagnostic } from "qsharp";
 
-import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
+import { generateHistogramData, generateHistogramSvg } from "./histogram.js";
 import { base64ToCode, codeToBase64 } from "./utils.js";
 import { PopulateKatasList, RenderKatas } from "./katas.js";
-import { getCompilerWorker } from "qsharp";
 
 const wasmPromise = loadWasmModule("libs/qsharp/qsc_wasm_bg.wasm");
 
@@ -42,7 +40,7 @@ let editor: monaco.editor.IStandaloneCodeEditor;
 
 // Helpers to turn errors into editor squiggles
 let currentsquiggles: string[] = [];
-function squiggleDiagnostics(errors: IDiagnostic[]) {
+function squiggleDiagnostics(errors: VSDiagnostic[]) {
     let srcModel = editor.getModel()!;
     let newDecorations = errors.map(err => {
         let startPos = srcModel.getPositionAt(err.start_pos);
@@ -60,7 +58,8 @@ function squiggleDiagnostics(errors: IDiagnostic[]) {
 // This runs after the Monaco editor is initialized
 async function loaded() {
     await wasmPromise; // Ensure the Wasm Module is done loading
-    const compiler = getCompilerWorker('libs/worker.js', null as any); // TODO
+    const resultsHandler = getResultsHandler();
+    const compiler = await getCompiler(resultsHandler);
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
@@ -88,12 +87,20 @@ async function loaded() {
     editor.setModel(srcModel);
 
     // As code is edited check it for errors and update the error list
-    function check() {
+    async function check() {
+        // As this is async, code may be being edited while earlier check calls are still running.
+        // Need to ensure that if this occurs, wait and try again on the next animation frame.
+        if (compiler.isRunning()) {
+            diagnosticsFrame = requestAnimationFrame(check);
+            return;
+        }
         diagnosticsFrame = 0;
         let code = srcModel.getValue();
-        let errs = checkCode(code);
+        let errs = await compiler.checkCode(code);
         errorsDiv.innerText = JSON.stringify(errs, null, 2);
 
+        // Note that as this is async, the code may have changed since checkCode was called.
+        // TODO: Account for this scenario (e.g. delta positions with old source version)
         squiggleDiagnostics(errs);
         errs.length ?
             runButton.setAttribute("disabled", "true") : runButton.removeAttribute("disabled");
@@ -112,7 +119,10 @@ async function loaded() {
     window.addEventListener('resize', _ => editor.layout());
 
     // Try to evaluate the code when the run button is clicked
-    runButton.addEventListener('click', _ => {
+    runButton.addEventListener('click', async _ => {
+        // TODO: Handle if compiler is already running.
+        // TODO: Make the editor read only while code is running. (Maybe?) Perhaps
+        // the simulator and the editor intellisense should run in different workers?
         let code = srcModel.getValue();
         let expr = exprInput.value;
         let shots = parseInt(shotCount.value);
@@ -123,44 +133,15 @@ async function loaded() {
             result: "pending",
             events: []
         };
-        runResults = [];
-
-        let event_cb = (ev: string) => {
-            let result = eventStringToMsg(ev);
-            if (!result) {
-                console.error("Unrecognized message: " + ev);
-                return;
-            }
-            switch (result.type) {
-                case "Result":
-                    currentShotResult.success = result.success;
-
-                    // If there was an error, map the diagnostic location
-                    let resultObj = result.result;
-                    if(typeof resultObj === "object") {
-                        resultObj = mapDiagnostics([resultObj], code)[0];
-                    }
-
-                    currentShotResult.result = resultObj;
-                    // Push this result and prep for the next
-                    runResults.push(currentShotResult);
-                    currentShotResult = { success: false, result: "pending", events: [] };
-                    break;
-                case "Message":
-                    currentShotResult.events.push(result);
-                    break;
-                case "DumpMachine":
-                    currentShotResult.events.push(result);
-                    break;
-            }
-        }
 
         try {
             performance.mark("start-shots");
-            let result = evaluate(code, expr, event_cb, shots);
+            resultsHandler.clearResults();
+            // TODO: Update the handler to show results as they come in.
+            await compiler.run(code, expr, shots);
+            runResults = resultsHandler.getResults();
         } catch (e: any) {
             // TODO: Should only happen on crash. Telmetry?
-
         }
         performance.mark("end-shots");
         let measure = performance.measure("shots-duration", "start-shots", "end-shots");
@@ -174,17 +155,22 @@ async function loaded() {
             // @ts-ignore : This is required in the defintion, but not needed.
             var range: monaco.IRange = undefined;
 
-            let result = getCompletions();
+            if (compiler.isRunning()) {
+                // TODO: Wait and retry rather than just abort
+                return null;
+            }
 
-            let mapped: monaco.languages.CompletionList = {
-                suggestions: result.items.map(item => ({
-                    label: item.label,
-                    kind: item.kind, // TODO: Monaco seems to use different values than VS Code.
-                    insertText: item.label,
-                    range
-                }))
-            };
-            return mapped;
+            return compiler.getCompletions().then(rawList => {
+                let mapped: monaco.languages.CompletionList = {
+                    suggestions: rawList.items.map(item => ({
+                        label: item.label,
+                        kind: item.kind, // TODO: Monaco seems to use different values than VS Code.
+                        insertText: item.label,
+                        range
+                    }))
+                };
+                return mapped;
+            });
         }
     });
 
@@ -213,7 +199,7 @@ async function loaded() {
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/
-function resultToKet(result: string | IDiagnostic): string {
+function resultToKet(result: string | VSDiagnostic): string {
     if (typeof result !== 'string') return "ERROR";
 
     if (reKetResult.test(result)) {

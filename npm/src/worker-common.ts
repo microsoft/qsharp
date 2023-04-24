@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { log } from "./log.js";
 import { ICompletionList } from "../lib/web/qsc_wasm.js";
 import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerEvents, ICompiler, ICompilerWorker } from "./compiler.js";
@@ -19,6 +20,7 @@ export function createWorkerProxy(
         if (resolver) throw "Compiler operation in progress";
         return new Promise((resolve) => {
             resolver = resolve;
+            log.debug("Posting message to worker: %o", msg);
             postMessage(msg);
         });
     }
@@ -37,11 +39,18 @@ export function createWorkerProxy(
         runKata(user_code, verify_code) {
             return invoker({ "type": "runKata", user_code, verify_code });
         },
+        isRunning() {
+            return !!resolver;
+        },
         // Kill the worker without a chance to shutdown. May be needed if it is not responding.
-        terminate: () => terminator()
+        terminate: () => {
+            log.info("Terminating the worker");
+            terminator();
+        }
     }
         
     setMsgHandler( (msg: CompilerRespMsg | CompilerEventMsg) => {
+        log.debug("Message handler received: %o", msg);
         switch (msg.type) {
             case "checkCode-result":
             case "getCompletions-result":
@@ -69,39 +78,51 @@ export function createWorkerProxy(
 }
 
 export function getWorkerEventHandlers(postMessage: (msg: CompilerEventMsg) => void): CompilerEvents {
+    const logIntercepter = (msg: CompilerEventMsg) => {
+        log.debug("Sending event message from worker: %o", msg);
+        postMessage(msg);
+    };
     return {
         onMessage(msg) {
-            postMessage( {"type": "message-event", "event": msg} );
+            logIntercepter( {"type": "message-event", "event": msg} );
         },
         onDumpMachine(dump) {
-            postMessage( {"type": "dumpMachine-event", "event": dump} );
+            logIntercepter( {"type": "dumpMachine-event", "event": dump} );
         },
         onSuccess(result) {
-            postMessage( {"type": "success-event", "event": result} );
+            logIntercepter( {"type": "success-event", "event": result} );
         },
         onFailure(err) {
-            postMessage( {"type": "failure-event", "event": err} );
+            logIntercepter( {"type": "failure-event", "event": err} );
         },
     }
 }
 
 export function handleMessageInWorker(data: CompilerReqMsg, compiler: ICompiler, postMessage: (msg: CompilerRespMsg) => void) {
+    log.debug("Handling message in worker: %o", data);
+    const logIntercepter = (msg: CompilerRespMsg) => {
+        log.debug("Sending response message from worker: %o", msg);
+        postMessage(msg);
+    };
+
+    // TODO: Handle error cases and ensure a message is sent to indicate failure
     switch (data.type) {
         case "checkCode":
             compiler.checkCode(data.code)
-                .then(result => postMessage({"type": "checkCode-result", result}));
+                .then(result => logIntercepter({"type": "checkCode-result", result}));
             break;
         case "getCompletions":
             compiler.getCompletions()
-                .then(result => postMessage({"type": "getCompletions-result", result}));
+                .then(result => logIntercepter({"type": "getCompletions-result", result}));
             break;
         case "run":
             compiler.run(data.code, data.expr, data.shots)
-                .then(result => postMessage({"type": "run-result", result}));
+                .then(result => logIntercepter({"type": "run-result", result}));
             break;
         case "runKata":
             compiler.runKata(data.user_code, data.verify_code)
-                .then(result => postMessage({"type": "runKata-result", result}));
+                .then(result => logIntercepter({"type": "runKata-result", result}));
+            break;
         default:
             console.error(`Unrecognized msg type: ${data}`);
     }
@@ -117,7 +138,7 @@ type CompilerRespMsg =
     {type: "checkCode-result", result: VSDiagnostic[]} |
     {type: "getCompletions-result", result: ICompletionList} |
     {type: "run-result", result: void} |
-    {type: "runKata-result", result: void};
+    {type: "runKata-result", result: boolean};
 
 // Get the possible 'result' types from a compiler response
 type ExtractResult<T> = T extends { result: infer R } ? R : never;

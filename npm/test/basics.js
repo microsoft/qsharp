@@ -5,13 +5,18 @@
 
 import assert from "node:assert";
 import { test } from "node:test";
+import { log } from "../dist/log.js";
 import { getCompiler, getCompilerWorker } from "../dist/node.js"
 import { getResultsHandler } from "../dist/common.js";
+import { getKata } from "../dist/katas.js";
+
+log.setLogLevel('warn');
 
 /**
  * 
  * @param {string} code 
  * @param {string} expr
+ * @param {boolean} useWorker
  * @returns {Promise<import("../dist/common.js").ShotResult>}
  */
 export function runSingleShot(code, expr, useWorker) {
@@ -38,6 +43,20 @@ test('basic eval', async t => {
     const result = await runSingleShot(code, expr, false);
     assert(result.success);
     assert.equal(result.result, "42");
+});
+
+test('EntryPoint only', async t => {
+    const code = `
+namespace Test {
+    @EntryPoint()
+    operation MyEntry() : Result {
+        use q1 = Qubit();
+        return M(q1);
+    }
+}`;
+    const result = await runSingleShot(code, "", false);
+    assert(result.success === true);
+    assert(result.result === "Zero");
 });
 
 test('one syntax error', async t => {
@@ -95,6 +114,72 @@ test('type error', async t => {
     assert.equal(result[0].start_pos, 99);
     assert.equal(result[0].end_pos, 105);
     assert.equal(result[0].message, "mismatched types");
+});
+
+test('kata success', async t => {
+    const resultsHandler = getResultsHandler();
+    const compiler = getCompilerWorker(resultsHandler);
+    const code = `
+namespace Kata {
+  operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
+    Y(q);
+  }
+}`;
+    const theKata = await getKata("single_qubit_gates");
+    const firstExercise = theKata.items[0];
+    const verifyCode = firstExercise.verificationImplementation;
+
+    await compiler.runKata(code, verifyCode);
+    const results = resultsHandler.getResults();
+    compiler.terminate();
+
+    assert(results.length === 1);
+    assert(results[0].events.length === 2);
+    assert(results[0].success);
+});
+
+test('kata incorrect', async t => {
+    const resultsHandler = getResultsHandler();
+    const compiler = getCompilerWorker(resultsHandler);
+    const code = `
+namespace Kata {
+  operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
+    Z(q);
+  }
+}`;
+    const theKata = await getKata("single_qubit_gates");
+    const firstExercise = theKata.items[0];
+    const verifyCode = firstExercise.verificationImplementation;
+
+    await compiler.runKata(code, verifyCode);
+    const results = resultsHandler.getResults();
+    compiler.terminate();
+
+    assert(results.length === 1);
+    assert(results[0].events.length === 4);
+    assert(!results[0].success); 
+});
+
+test('kata syntax error', async t => {
+    const resultsHandler = getResultsHandler();
+    const compiler = getCompilerWorker(resultsHandler);
+    const code = `
+namespace Kata {
+  operaion ApplyY(q : Qubit) : Unt is Adj + Ctl {
+    Z(q);
+  }
+}`;
+    const theKata = await getKata("single_qubit_gates");
+    const firstExercise = theKata.items[0];
+    const verifyCode = firstExercise.verificationImplementation;
+
+    await compiler.runKata(code, verifyCode);
+    const results = resultsHandler.getResults();
+    compiler.terminate();
+
+    assert(results.length === 1);
+    assert(results[0].events.length === 0);
+    assert(!results[0].success); 
 });
 
 test('worker check', async t => {

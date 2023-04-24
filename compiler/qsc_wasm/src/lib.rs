@@ -394,6 +394,8 @@ pub fn run_kata_exercise(
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     }) {
         Ok(v) => Ok(JsValue::from_bool(v)),
+        // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
+        // should be reported with a Result event (also for success) and not an exception.
         Err(e) => {
             // TODO: Handle multiple errors.
             let first_error = e

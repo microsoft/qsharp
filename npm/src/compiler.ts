@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import type {IDiagnostic, ICompletionList} from "../lib/node/qsc_wasm.cjs";
+import { log } from "./log.js";
 import { DumpMsg, MessageMsg, eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
@@ -14,7 +15,8 @@ export interface ICompiler {
     checkCode(code: string): Promise<VSDiagnostic[]>;
     getCompletions(): Promise<ICompletionList>;
     run(code: string, expr: string, shots: number): Promise<void>;
-    runKata(user_code: string, verify_code: string): Promise<void>;
+    runKata(user_code: string, verify_code: string): Promise<boolean>;
+    isRunning(): boolean;
 }
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -30,49 +32,67 @@ export interface CompilerEvents {
 export class Compiler implements ICompiler {
     private wasm: Wasm;
     private callbacks: CompilerEvents;
-    private isRunning: boolean = false; // To avoid reentrancy when processing a callback
-    private currentSource: string = ""; // Store to map any source positions in events
+    private _isRunning: boolean = false; // To avoid reentrancy when processing a callback
+    private currentSource: string = ""; // Store when running to map any source positions in events
 
     constructor(wasm: Wasm, callbacks: CompilerEvents) {
+        log.info("Constructing a Compiler instance");
         this.wasm = wasm;
         this.callbacks = callbacks;
     }
 
-    checkCode(code: string): Promise<VSDiagnostic[]> {
-        if (this.isRunning) throw "Compiler invoked while already running";
-        let result = this.wasm.check_code(code) as IDiagnostic[];
-        return Promise.resolve(mapDiagnostics(result, code));
+    async checkCode(code: string): Promise<VSDiagnostic[]> {
+        if (this._isRunning) throw "Compiler invoked while already running";
+        let raw_result = this.wasm.check_code(code) as IDiagnostic[];
+        return mapDiagnostics(raw_result, code);
     }
 
-    getCompletions(): Promise<ICompletionList> {
-        if (this.isRunning) throw "Compiler invoked while already running";
-        return Promise.resolve(this.wasm.get_completions());
+    async getCompletions(): Promise<ICompletionList> {
+        if (this._isRunning) throw "Compiler invoked while already running";
+        return this.wasm.get_completions();
     }
 
-    run(code: string, expr: string, shots: number): Promise<void> {
-        if (this.isRunning) throw "Compiler invoked while already running";
-        this.isRunning = true;
+    async run(code: string, expr: string, shots: number): Promise<void> {
+        if (this._isRunning) throw "Compiler invoked while already running";
+        this._isRunning = true;
         this.currentSource = code;
         try {
             this.wasm.run(code, expr, this.mapEvent.bind(this), shots);
+        } catch(e) {
+            // Likely something failed before success/failure got reported.
+            this.callbacks.onFailure(e);
+            throw e;
         } finally {
-            this.isRunning = false;
+            this._isRunning = false;
             this.currentSource = "";
         }
-        return Promise.resolve();
     }
 
-    runKata(user_code: string, verify_code: string) {
-        if (this.isRunning) throw "Compiler invoked while running other code";
-        this.isRunning = true;
+    async runKata(user_code: string, verify_code: string): Promise<boolean> {
+        if (this._isRunning) throw "Compiler invoked while running other code";
+        this._isRunning = true;
         this.currentSource = user_code;
+        let success = false;
+        let err: any = null;
         try {
-            this.wasm.run_kata_exercise(verify_code, user_code, this.mapEvent.bind(this));
+            success = this.wasm.run_kata_exercise(verify_code, user_code, this.mapEvent.bind(this));
+        } catch(e) {
+            err = e;
         } finally {
-            this.isRunning = false;
+            this._isRunning = false;
             this.currentSource = "";
         }
-        return Promise.resolve();
+        // Currently the kata wasm doesn't emit the success/failure events, so do those here.
+        if (success) {
+            this.callbacks.onSuccess("true");
+        } else {
+            this.callbacks.onFailure(JSON.stringify(err));
+        }
+        return success;
+    }
+
+    isRunning(): boolean {
+        return this._isRunning;
     }
 
     private mapEvent(eventMsg: string): void {
@@ -100,7 +120,7 @@ export class Compiler implements ICompiler {
                 }
                 break;
             default:
-                console.error(`Unrecognized event: ${msg}`);
+                log.error(`Unrecognized event: ${msg}`);
                 break;
         }
     }

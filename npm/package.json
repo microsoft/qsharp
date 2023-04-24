@@ -20,7 +20,8 @@
         "./worker": "./dist/worker.js"
     },
     "scripts":{
-        "build": "node generate_katas_content.js && node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json"
+        "build": "node generate_katas_content.js && node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
+        "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch"
     },
     "type": "module",
     "files": ["dist", "lib"]

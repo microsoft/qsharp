@@ -1,4 +1,4 @@
-import { eventStringToMsg, getAllKatas, getKata, renderDump, runExercise, type Kata, type KataItem, type Exercise } from "qsharp";
+import { getAllKatas, getKata, renderDump, type Kata, type KataItem, type Exercise } from "qsharp";
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
 declare var MathJax: { typeset: () => void; };
@@ -49,7 +49,7 @@ function renderExercise(exercise: Exercise): HTMLDivElement {
 
     // This callback is the one that processes output produced when running the kata.
     let outputCallback = (ev: string) => {
-        let result = eventStringToMsg(ev);
+        let result = "" as any; // eventStringToMsg(ev);
         if (!result) {
             console.error("Unrecognized message: " + ev);
             return;
@@ -74,7 +74,7 @@ function renderExercise(exercise: Exercise): HTMLDivElement {
         outputDiv.innerHTML = "";
         let exerciseImplementation = sourceCodeArea.value;
         try {
-            let result = await runExercise(exercise, exerciseImplementation, outputCallback);
+            let result = true; // await runExercise(exercise, exerciseImplementation, outputCallback);
             let verificationResult: VerificationResult = { kind: "VerificationResult", result: result };
             let renderedResult = renderKataOutput(verificationResult);
             outputDiv.prepend(renderedResult);
@@ -118,6 +118,7 @@ function renderKata(kata: Kata): HTMLDivElement {
 }
 
 export async function RenderKatas() {
+    /*
     // Katas are rendered inside a div element with "katas-canvas" as id.
     let canvasDiv = document.querySelector('#katas-canvas') as HTMLDivElement;
 
@@ -133,9 +134,11 @@ export async function RenderKatas() {
 
     // Render math stuff.
     MathJax.typeset();
+    */
 }
 
 export async function PopulateKatasList() {
+    /*
     let katasDropdown = document.querySelector('#katas-list') as HTMLSelectElement;
     let katas = await getAllKatas();
     for (let kata of await getAllKatas()) {
@@ -144,4 +147,5 @@ export async function PopulateKatasList() {
         option.text = kata.title;
         katasDropdown.add(option);
     }
+    */
 }

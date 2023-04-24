@@ -5,6 +5,8 @@ import { createRequire } from "node:module";
 import { Worker } from "node:worker_threads";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { log } from "./log.js";
 import { Compiler, CompilerEvents, ICompiler, ICompilerWorker } from "./compiler.js";
 import { createWorkerProxy } from "./worker-common.js";
 
@@ -21,7 +23,9 @@ export function getCompiler(callbacks: CompilerEvents) : ICompiler {
 
 export function getCompilerWorker(callbacks: CompilerEvents) : ICompilerWorker {
     const thisDir = dirname(fileURLToPath(import.meta.url));
-    const worker = new Worker(join(thisDir,"node-worker.js"));
+    const worker = new Worker(join(thisDir,"node-worker.js"), {
+        workerData: {qscLogLevel: log.getLogLevel() }
+    });
 
     // If you lose the 'this' binding, some environments have issues.
     const postMessage = worker.postMessage.bind(worker);
