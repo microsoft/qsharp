@@ -832,6 +832,8 @@ version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc_ast",
  "qsc_eval",
  "qsc_frontend",
