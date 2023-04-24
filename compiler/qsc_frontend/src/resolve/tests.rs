@@ -7,7 +7,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner,
-    ast::{Ident, Package, Path},
+    ast::{Ident, NodeId, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -64,7 +64,11 @@ fn check(input: &str, expect: &Expect) {
 fn resolve_names(input: &str) -> String {
     let (namespaces, errors) = parse::namespaces(input);
     assert!(errors.is_empty(), "Program has syntax errors: {errors:#?}");
-    let mut package = Package::new(namespaces, None);
+    let mut package = Package {
+        id: NodeId::default(),
+        namespaces,
+        entry: None,
+    };
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let mut globals = GlobalTable::new();

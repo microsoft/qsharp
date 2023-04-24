@@ -35,7 +35,6 @@ pub struct CompileUnit {
 #[derive(Debug)]
 pub struct Context {
     assigner: HirAssigner,
-    tys: Tys<hir::NodeId>,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
@@ -43,15 +42,6 @@ pub struct Context {
 impl Context {
     pub fn assigner_mut(&mut self) -> &mut HirAssigner {
         &mut self.assigner
-    }
-
-    #[must_use]
-    pub fn tys(&self) -> &Tys<hir::NodeId> {
-        &self.tys
-    }
-
-    pub fn tys_mut(&mut self) -> &mut Tys<hir::NodeId> {
-        &mut self.tys
     }
 
     #[must_use]
@@ -177,17 +167,12 @@ pub fn compile(
     );
 
     let mut lowerer = Lowerer::new();
-    let package = lowerer.with(&resolutions).lower_package(&package);
-    let tys = tys
-        .into_iter()
-        .filter_map(|(ast_id, ty)| lowerer.get_id(ast_id).map(|hir_id| (hir_id, ty)))
-        .collect();
+    let package = lowerer.with(&resolutions, &tys).lower_package(&package);
 
     CompileUnit {
         package,
         context: Context {
             assigner: lowerer.into_assigner(),
-            tys,
             errors,
             offsets,
         },
@@ -255,7 +240,13 @@ fn parse_all(
         Some(entry)
     };
 
-    (ast::Package::new(namespaces, entry), errors, offsets)
+    let package = ast::Package {
+        id: ast::NodeId::default(),
+        namespaces,
+        entry,
+    };
+
+    (package, errors, offsets)
 }
 
 fn resolve_all(
@@ -283,9 +274,9 @@ fn typeck_all(
     dependencies: impl IntoIterator<Item = PackageId>,
     package: &ast::Package,
     resolutions: &Resolutions,
-) -> (Tys<ast::NodeId>, Vec<typeck::Error>) {
-    let mut globals = typeck::GlobalTable::new(resolutions);
-    globals.add_local_package(package);
+) -> (Tys, Vec<typeck::Error>) {
+    let mut globals = typeck::GlobalTable::new();
+    globals.add_local_package(resolutions, package);
 
     for id in dependencies {
         let unit = store
@@ -295,7 +286,7 @@ fn typeck_all(
     }
 
     let mut checker = globals.into_checker();
-    checker.visit_package(package);
+    checker.check_package(resolutions, package);
     checker.into_tys()
 }
 

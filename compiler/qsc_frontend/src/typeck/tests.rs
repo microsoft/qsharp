@@ -6,74 +6,34 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{
-        self, Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, NodeId, Pat, QubitInit,
-        SpecDecl, Stmt, TyDef,
-    },
+    hir::{Block, Expr, NodeId, Pat, QubitInit, Ty},
     visit::{self, Visitor},
 };
-use std::{collections::HashMap, fmt::Write};
+use std::fmt::Write;
 
-struct SpanCollector(HashMap<NodeId, Span>);
+struct TyCollector<'a> {
+    tys: Vec<(NodeId, Span, &'a Ty)>,
+}
 
-impl Visitor<'_> for SpanCollector {
-    fn visit_attr(&mut self, attr: &Attr) {
-        self.0.insert(attr.id, attr.span);
-        visit::walk_attr(self, attr);
-    }
-
-    fn visit_ty_def(&mut self, def: &TyDef) {
-        self.0.insert(def.id, def.span);
-        visit::walk_ty_def(self, def);
-    }
-
-    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        self.0.insert(decl.id, decl.span);
-        visit::walk_callable_decl(self, decl);
-    }
-
-    fn visit_spec_decl(&mut self, decl: &SpecDecl) {
-        self.0.insert(decl.id, decl.span);
-        visit::walk_spec_decl(self, decl);
-    }
-
-    fn visit_functor_expr(&mut self, expr: &FunctorExpr) {
-        self.0.insert(expr.id, expr.span);
-        visit::walk_functor_expr(self, expr);
-    }
-
-    fn visit_ty(&mut self, ty: &hir::Ty) {
-        self.0.insert(ty.id, ty.span);
-        visit::walk_ty(self, ty);
-    }
-
-    fn visit_block(&mut self, block: &Block) {
-        self.0.insert(block.id, block.span);
+impl<'a> Visitor<'a> for TyCollector<'a> {
+    fn visit_block(&mut self, block: &'a Block) {
+        self.tys.push((block.id, block.span, &block.ty));
         visit::walk_block(self, block);
     }
 
-    fn visit_stmt(&mut self, stmt: &Stmt) {
-        self.0.insert(stmt.id, stmt.span);
-        visit::walk_stmt(self, stmt);
-    }
-
-    fn visit_expr(&mut self, expr: &Expr) {
-        self.0.insert(expr.id, expr.span);
+    fn visit_expr(&mut self, expr: &'a Expr) {
+        self.tys.push((expr.id, expr.span, &expr.ty));
         visit::walk_expr(self, expr);
     }
 
-    fn visit_pat(&mut self, pat: &Pat) {
-        self.0.insert(pat.id, pat.span);
+    fn visit_pat(&mut self, pat: &'a Pat) {
+        self.tys.push((pat.id, pat.span, &pat.ty));
         visit::walk_pat(self, pat);
     }
 
-    fn visit_qubit_init(&mut self, init: &QubitInit) {
-        self.0.insert(init.id, init.span);
+    fn visit_qubit_init(&mut self, init: &'a QubitInit) {
+        self.tys.push((init.id, init.span, &init.ty));
         visit::walk_qubit_init(self, init);
-    }
-
-    fn visit_ident(&mut self, ident: &Ident) {
-        self.0.insert(ident.id, ident.span);
     }
 }
 
@@ -81,12 +41,11 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
     let unit = compile(&store, [std], [source], entry_expr);
-    let mut spans = SpanCollector(HashMap::new());
-    spans.visit_package(&unit.package);
+    let mut tys = TyCollector { tys: Vec::new() };
+    tys.visit_package(&unit.package);
 
     let mut actual = String::new();
-    for (id, ty) in unit.context.tys() {
-        let span = spans.0.get(&id).expect("node should have span");
+    for (id, span, ty) in tys.tys {
         let (index, offset) = unit.context.source(span.lo);
         let code = &[source, entry_expr][index.0][span.lo - offset..span.hi - offset];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
@@ -110,9 +69,8 @@ fn empty_callable() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (()) -> (())
             #2 30-32 "()" : ()
-            #4 40-42 "{}" : ()
+            #3 40-42 "{}" : ()
         "##]],
     );
 }
@@ -127,11 +85,9 @@ fn return_constant() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (()) -> (Int)
             #2 30-32 "()" : ()
-            #4 39-44 "{ 4 }" : Int
+            #3 39-44 "{ 4 }" : Int
             #5 41-42 "4" : Int
-            #6 41-42 "4" : Int
         "##]],
     );
 }
@@ -146,11 +102,9 @@ fn return_wrong_type() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (()) -> (Int)
             #2 30-32 "()" : ()
-            #4 39-47 "{ true }" : Bool
+            #3 39-47 "{ true }" : Bool
             #5 41-45 "true" : Bool
-            #6 41-45 "true" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 39, hi: 47 }))))
         "##]],
     );
@@ -166,11 +120,9 @@ fn return_semi() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (()) -> (Int)
             #2 30-32 "()" : ()
-            #4 39-45 "{ 4; }" : ()
-            #5 41-43 "4;" : ()
-            #6 41-42 "4" : Int
+            #3 39-45 "{ 4; }" : ()
+            #5 41-42 "4" : Int
             Error(Type(Error(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 45 }))))
         "##]],
     );
@@ -189,15 +141,11 @@ fn return_var() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (()) -> (Int)
             #2 30-32 "()" : ()
-            #4 39-75 "{\n        let x = 4;\n        x\n    }" : Int
-            #5 49-59 "let x = 4;" : ()
-            #6 53-54 "x" : Int
-            #7 53-54 "x" : Int
-            #8 57-58 "4" : Int
+            #3 39-75 "{\n        let x = 4;\n        x\n    }" : Int
+            #5 53-54 "x" : Int
+            #7 57-58 "4" : Int
             #9 68-69 "x" : Int
-            #10 68-69 "x" : Int
         "##]],
     );
 }
@@ -213,21 +161,16 @@ fn call_function() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (Int) -> (Int)
             #2 30-39 "(x : Int)" : Int
             #3 31-38 "x : Int" : Int
-            #4 31-32 "x" : Int
-            #7 46-51 "{ x }" : Int
-            #8 48-49 "x" : Int
-            #9 48-49 "x" : Int
-            #11 65-68 "Bar" : (()) -> (Int)
-            #12 68-70 "()" : ()
-            #14 77-87 "{ Foo(4) }" : Int
-            #15 79-85 "Foo(4)" : Int
-            #16 79-85 "Foo(4)" : Int
-            #17 79-82 "Foo" : (Int) -> (Int)
-            #18 82-85 "(4)" : Int
-            #19 83-84 "4" : Int
+            #5 46-51 "{ x }" : Int
+            #7 48-49 "x" : Int
+            #10 68-70 "()" : ()
+            #11 77-87 "{ Foo(4) }" : Int
+            #13 79-85 "Foo(4)" : Int
+            #14 79-82 "Foo" : (Int -> Int)
+            #15 82-85 "(4)" : Int
+            #16 83-84 "4" : Int
         "##]],
     );
 }
@@ -243,21 +186,16 @@ fn call_generic_identity() {
         "},
         "",
         &expect![[r##"
-            #1 27-35 "Identity" : ('T) -> ('T)
             #3 39-47 "(x : 'T)" : 'T
             #4 40-46 "x : 'T" : 'T
-            #5 40-41 "x" : 'T
-            #10 53-58 "{ x }" : 'T
-            #11 55-56 "x" : 'T
-            #12 55-56 "x" : 'T
-            #14 72-75 "Foo" : (()) -> (Int)
-            #15 75-77 "()" : ()
-            #17 84-99 "{ Identity(4) }" : Int
-            #18 86-97 "Identity(4)" : Int
-            #19 86-97 "Identity(4)" : Int
-            #20 86-94 "Identity" : (Int) -> (Int)
-            #21 94-97 "(4)" : Int
-            #22 95-96 "4" : Int
+            #6 53-58 "{ x }" : 'T
+            #8 55-56 "x" : 'T
+            #11 75-77 "()" : ()
+            #12 84-99 "{ Identity(4) }" : Int
+            #14 86-97 "Identity(4)" : Int
+            #15 86-94 "Identity" : (Int -> Int)
+            #16 94-97 "(4)" : Int
+            #17 95-96 "4" : Int
         "##]],
     );
 }
@@ -269,7 +207,7 @@ fn call_generic_length() {
         "Length([true, false, true])",
         &expect![[r##"
             #0 0-27 "Length([true, false, true])" : Int
-            #1 0-6 "Length" : ((Bool)[]) -> (Int)
+            #1 0-6 "Length" : ((Bool)[] -> Int)
             #2 6-27 "([true, false, true])" : (Bool)[]
             #3 7-26 "[true, false, true]" : (Bool)[]
             #4 8-12 "true" : Bool
@@ -289,14 +227,12 @@ fn add_wrong_types() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (()) -> (())
             #2 30-32 "()" : ()
-            #4 40-52 "{ 1 + [2]; }" : ()
-            #5 42-50 "1 + [2];" : ()
-            #6 42-49 "1 + [2]" : Int
-            #7 42-43 "1" : Int
-            #8 46-49 "[2]" : (Int)[]
-            #9 47-48 "2" : Int
+            #3 40-52 "{ 1 + [2]; }" : ()
+            #5 42-49 "1 + [2]" : Int
+            #6 42-43 "1" : Int
+            #7 46-49 "[2]" : (Int)[]
+            #8 47-48 "2" : Int
             Error(Type(Error(TypeMismatch(Prim(Int), Array(Prim(Int)), Span { lo: 42, hi: 49 }))))
         "##]],
     );
@@ -309,7 +245,7 @@ fn int_as_double_error() {
         "Microsoft.Quantum.Convert.IntAsDouble(false)",
         &expect![[r##"
             #0 0-44 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
-            #1 0-37 "Microsoft.Quantum.Convert.IntAsDouble" : (Int) -> (Double)
+            #1 0-37 "Microsoft.Quantum.Convert.IntAsDouble" : (Int -> Double)
             #2 37-44 "(false)" : Bool
             #3 38-43 "false" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 0, hi: 44 }))))
@@ -324,13 +260,13 @@ fn length_type_error() {
         "Length((1, 2, 3))",
         &expect![[r##"
             #0 0-17 "Length((1, 2, 3))" : Int
-            #1 0-6 "Length" : ((?0)[]) -> (Int)
+            #1 0-6 "Length" : ((?0)[] -> Int)
             #2 6-17 "((1, 2, 3))" : (Int, Int, Int)
             #3 7-16 "(1, 2, 3)" : (Int, Int, Int)
             #4 8-9 "1" : Int
             #5 11-12 "2" : Int
             #6 14-15 "3" : Int
-            Error(Type(Error(TypeMismatch(Array(Var(Var(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
+            Error(Type(Error(TypeMismatch(Array(Infer(InferId(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
         "##]],
     );
 }
@@ -348,13 +284,10 @@ fn single_arg_for_tuple() {
         &expect![[r##"
             #0 0-35 "{\n    use q = Qubit();\n    Ry(q);\n}" : ()
             #1 0-35 "{\n    use q = Qubit();\n    Ry(q);\n}" : ()
-            #2 6-22 "use q = Qubit();" : ()
             #3 10-11 "q" : Qubit
-            #4 10-11 "q" : Qubit
             #5 14-21 "Qubit()" : Qubit
-            #6 27-33 "Ry(q);" : ()
             #7 27-32 "Ry(q)" : ()
-            #8 27-29 "Ry" : ((Double, Qubit)) => (()) is Adj + Ctl
+            #8 27-29 "Ry" : ((Double, Qubit) => () is Adj + Ctl)
             #9 29-32 "(q)" : Qubit
             #10 30-31 "q" : Qubit
             Error(Type(Error(TypeMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 27, hi: 32 }))))
@@ -374,7 +307,7 @@ fn array_index_error() {
             #3 4-5 "2" : Int
             #4 7-8 "3" : Int
             #5 10-15 "false" : Bool
-            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Var(Var(0)) }, Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Infer(InferId(0)) }, Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -407,15 +340,11 @@ fn assignop_error() {
         &expect![[r##"
             #0 0-48 "{\n    mutable x = false;\n    set x += 1;\n    x\n}" : Bool
             #1 0-48 "{\n    mutable x = false;\n    set x += 1;\n    x\n}" : Bool
-            #2 6-24 "mutable x = false;" : ()
             #3 14-15 "x" : Bool
-            #4 14-15 "x" : Bool
             #5 18-23 "false" : Bool
-            #6 29-40 "set x += 1;" : ()
             #7 29-39 "set x += 1" : ()
             #8 33-34 "x" : Bool
             #9 38-39 "1" : Int
-            #10 45-46 "x" : Bool
             #11 45-46 "x" : Bool
             Error(Type(Error(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 }))))
             Error(Type(Error(MissingClass(Add(Prim(Bool)), Span { lo: 33, hi: 34 }))))
@@ -479,15 +408,13 @@ fn binop_equal_callable() {
         "},
         "Test.A == Test.B",
         &expect![[r##"
-            #1 30-31 "A" : (()) -> (())
             #2 31-33 "()" : ()
-            #4 41-43 "{}" : ()
-            #6 57-58 "B" : (()) -> (())
-            #7 58-60 "()" : ()
-            #9 68-70 "{}" : ()
-            #11 73-89 "Test.A == Test.B" : Bool
-            #12 73-79 "Test.A" : (()) -> (())
-            #13 83-89 "Test.B" : (()) -> (())
+            #3 41-43 "{}" : ()
+            #6 58-60 "()" : ()
+            #7 68-70 "{}" : ()
+            #9 73-89 "Test.A == Test.B" : Bool
+            #10 73-79 "Test.A" : (() -> ())
+            #11 83-89 "Test.B" : (() -> ())
             Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 }))))
         "##]],
     );
@@ -639,18 +566,14 @@ fn let_tuple_arity_error() {
         &expect![[r##"
             #0 0-27 "{ let (x, y, z) = (0, 1); }" : ()
             #1 0-27 "{ let (x, y, z) = (0, 1); }" : ()
-            #2 2-25 "let (x, y, z) = (0, 1);" : ()
             #3 6-15 "(x, y, z)" : (?0, ?1, ?2)
             #4 7-8 "x" : ?0
-            #5 7-8 "x" : ?0
             #6 10-11 "y" : ?1
-            #7 10-11 "y" : ?1
             #8 13-14 "z" : ?2
-            #9 13-14 "z" : ?2
             #10 18-24 "(0, 1)" : (Int, Int)
             #11 19-20 "0" : Int
             #12 22-23 "1" : Int
-            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Var(Var(0)), Var(Var(1)), Var(Var(2))]), Span { lo: 6, hi: 15 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferId(0)), Infer(InferId(1)), Infer(InferId(2))]), Span { lo: 6, hi: 15 }))))
         "##]],
     );
 }
@@ -669,16 +592,12 @@ fn set_tuple_arity_error() {
         &expect![[r##"
             #0 0-66 "{\n    mutable (x, y) = (0, 1);\n    set (x, y) = (1, 2, 3);\n    x\n}" : Int
             #1 0-66 "{\n    mutable (x, y) = (0, 1);\n    set (x, y) = (1, 2, 3);\n    x\n}" : Int
-            #2 6-30 "mutable (x, y) = (0, 1);" : ()
             #3 14-20 "(x, y)" : (Int, Int)
             #4 15-16 "x" : Int
-            #5 15-16 "x" : Int
             #6 18-19 "y" : Int
-            #7 18-19 "y" : Int
             #8 23-29 "(0, 1)" : (Int, Int)
             #9 24-25 "0" : Int
             #10 27-28 "1" : Int
-            #11 35-58 "set (x, y) = (1, 2, 3);" : ()
             #12 35-57 "set (x, y) = (1, 2, 3)" : ()
             #13 39-45 "(x, y)" : (Int, Int)
             #14 40-41 "x" : Int
@@ -687,7 +606,6 @@ fn set_tuple_arity_error() {
             #17 49-50 "1" : Int
             #18 52-53 "2" : Int
             #19 55-56 "3" : Int
-            #20 63-64 "x" : Int
             #21 63-64 "x" : Int
             Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 }))))
         "##]],
@@ -702,9 +620,7 @@ fn qubit_array_length_error() {
         &expect![[r##"
             #0 0-25 "{ use q = Qubit[false]; }" : ()
             #1 0-25 "{ use q = Qubit[false]; }" : ()
-            #2 2-23 "use q = Qubit[false];" : ()
             #3 6-7 "q" : (Qubit)[]
-            #4 6-7 "q" : (Qubit)[]
             #5 10-22 "Qubit[false]" : (Qubit)[]
             #6 16-21 "false" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 16, hi: 21 }))))
@@ -720,18 +636,15 @@ fn qubit_tuple_arity_error() {
         &expect![[r##"
             #0 0-47 "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }" : ()
             #1 0-47 "{ use (q, q1) = (Qubit[3], Qubit(), Qubit()); }" : ()
-            #2 2-45 "use (q, q1) = (Qubit[3], Qubit(), Qubit());" : ()
             #3 6-13 "(q, q1)" : (?0, ?1)
             #4 7-8 "q" : ?0
-            #5 7-8 "q" : ?0
             #6 10-12 "q1" : ?1
-            #7 10-12 "q1" : ?1
             #8 16-44 "(Qubit[3], Qubit(), Qubit())" : ((Qubit)[], Qubit, Qubit)
             #9 17-25 "Qubit[3]" : (Qubit)[]
             #10 23-24 "3" : Int
             #11 27-34 "Qubit()" : Qubit
             #12 36-43 "Qubit()" : Qubit
-            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Var(Var(0)), Var(Var(1))]), Span { lo: 6, hi: 13 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferId(0)), Infer(InferId(1))]), Span { lo: 6, hi: 13 }))))
         "##]],
     );
 }
@@ -744,13 +657,12 @@ fn for_loop_not_iterable() {
         &expect![[r##"
             #0 0-26 "for i in (1, true, One) {}" : ()
             #1 4-5 "i" : ?0
-            #2 4-5 "i" : ?0
             #3 9-23 "(1, true, One)" : (Int, Bool, Result)
             #4 10-11 "1" : Int
             #5 13-17 "true" : Bool
             #6 19-22 "One" : Result
             #7 24-26 "{}" : ()
-            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Var(Var(0)) }, Span { lo: 9, hi: 23 }))))
+            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Infer(InferId(0)) }, Span { lo: 9, hi: 23 }))))
         "##]],
     );
 }
@@ -778,7 +690,6 @@ fn if_no_else_must_be_unit() {
             #0 0-13 "if true { 4 }" : Int
             #1 3-7 "true" : Bool
             #2 8-13 "{ 4 }" : Int
-            #3 10-11 "4" : Int
             #4 10-11 "4" : Int
             Error(Type(Error(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 }))))
         "##]],
@@ -796,7 +707,6 @@ fn if_else_fail() {
             #2 9-11 "{}" : ()
             #3 12-34 "else { fail \"error\"; }" : ()
             #4 17-34 "{ fail \"error\"; }" : ()
-            #5 19-32 "fail \"error\";" : ()
             #6 19-31 "fail \"error\"" : ?0
             #7 24-31 "\"error\"" : String
         "##]],
@@ -819,20 +729,16 @@ fn if_cond_fail() {
         "#},
         "",
         &expect![[r##"
-            #1 27-28 "F" : (()) -> (Int)
             #2 28-30 "()" : ()
-            #4 37-154 "{\n        if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }\n    }" : Int
+            #3 37-154 "{\n        if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }\n    }" : Int
             #5 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
-            #6 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
-            #7 50-62 "fail \"error\"" : Bool
-            #8 55-62 "\"error\"" : String
-            #9 63-113 "{\n            \"this type doesn't matter\"\n        }" : String
+            #6 50-62 "fail \"error\"" : Bool
+            #7 55-62 "\"error\"" : String
+            #8 63-113 "{\n            \"this type doesn't matter\"\n        }" : String
             #10 77-103 "\"this type doesn't matter\"" : String
-            #11 77-103 "\"this type doesn't matter\"" : String
-            #12 114-148 "else {\n            \"foo\"\n        }" : String
-            #13 119-148 "{\n            \"foo\"\n        }" : String
+            #11 114-148 "else {\n            \"foo\"\n        }" : String
+            #12 119-148 "{\n            \"foo\"\n        }" : String
             #14 133-138 "\"foo\"" : String
-            #15 133-138 "\"foo\"" : String
         "##]],
     );
 }
@@ -853,22 +759,18 @@ fn if_all_diverge() {
         "#},
         "",
         &expect![[r##"
-            #1 27-28 "F" : (()) -> (Int)
             #2 28-30 "()" : ()
-            #4 37-145 "{\n        if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }\n    }" : Int
+            #3 37-145 "{\n        if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }\n    }" : Int
             #5 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
-            #6 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
-            #7 50-61 "fail \"cond\"" : Bool
-            #8 55-61 "\"cond\"" : String
-            #9 62-97 "{\n            fail \"true\"\n        }" : Int
+            #6 50-61 "fail \"cond\"" : Bool
+            #7 55-61 "\"cond\"" : String
+            #8 62-97 "{\n            fail \"true\"\n        }" : Int
             #10 76-87 "fail \"true\"" : Int
-            #11 76-87 "fail \"true\"" : Int
-            #12 81-87 "\"true\"" : String
-            #13 98-139 "else {\n            fail \"false\"\n        }" : Int
-            #14 103-139 "{\n            fail \"false\"\n        }" : Int
+            #11 81-87 "\"true\"" : String
+            #12 98-139 "else {\n            fail \"false\"\n        }" : Int
+            #13 103-139 "{\n            fail \"false\"\n        }" : Int
             #15 117-129 "fail \"false\"" : Int
-            #16 117-129 "fail \"false\"" : Int
-            #17 122-129 "\"false\"" : String
+            #16 122-129 "\"false\"" : String
         "##]],
     );
 }
@@ -1003,17 +905,14 @@ fn controlled_spec_impl() {
         "},
         "",
         &expect![[r##"
-            #1 28-31 "Foo" : (Qubit) => (()) is Ctl
             #2 31-42 "(q : Qubit)" : Qubit
             #3 32-41 "q : Qubit" : Qubit
-            #4 32-33 "q" : Qubit
-            #9 72-75 "..." : Qubit
-            #10 76-78 "{}" : ()
-            #12 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #13 99-101 "cs" : (Qubit)[]
-            #14 99-101 "cs" : (Qubit)[]
-            #15 103-106 "..." : Qubit
-            #16 108-110 "{}" : ()
+            #7 72-75 "..." : Qubit
+            #8 76-78 "{}" : ()
+            #10 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #11 99-101 "cs" : (Qubit)[]
+            #13 103-106 "..." : Qubit
+            #14 108-110 "{}" : ()
         "##]],
     );
 }
@@ -1037,35 +936,27 @@ fn call_controlled() {
             }
         "},
         &expect![[r##"
-            #1 28-31 "Foo" : (Qubit) => (()) is Ctl
             #2 31-42 "(q : Qubit)" : Qubit
             #3 32-41 "q : Qubit" : Qubit
-            #4 32-33 "q" : Qubit
-            #9 72-75 "..." : Qubit
-            #10 76-78 "{}" : ()
-            #12 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #13 99-101 "cs" : (Qubit)[]
-            #14 99-101 "cs" : (Qubit)[]
-            #15 103-106 "..." : Qubit
-            #16 108-110 "{}" : ()
-            #18 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
-            #19 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
-            #20 125-142 "use q1 = Qubit();" : ()
-            #21 129-131 "q1" : Qubit
-            #22 129-131 "q1" : Qubit
-            #23 134-141 "Qubit()" : Qubit
-            #24 147-164 "use q2 = Qubit();" : ()
-            #25 151-153 "q2" : Qubit
-            #26 151-153 "q2" : Qubit
-            #27 156-163 "Qubit()" : Qubit
-            #28 169-196 "Controlled A.Foo([q1], q2);" : ()
-            #29 169-195 "Controlled A.Foo([q1], q2)" : ()
-            #30 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #31 180-185 "A.Foo" : (Qubit) => (()) is Ctl
-            #32 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
-            #33 186-190 "[q1]" : (Qubit)[]
-            #34 187-189 "q1" : Qubit
-            #35 192-194 "q2" : Qubit
+            #7 72-75 "..." : Qubit
+            #8 76-78 "{}" : ()
+            #10 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #11 99-101 "cs" : (Qubit)[]
+            #13 103-106 "..." : Qubit
+            #14 108-110 "{}" : ()
+            #16 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
+            #17 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : ()
+            #19 129-131 "q1" : Qubit
+            #21 134-141 "Qubit()" : Qubit
+            #23 151-153 "q2" : Qubit
+            #25 156-163 "Qubit()" : Qubit
+            #27 169-195 "Controlled A.Foo([q1], q2)" : ()
+            #28 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit) => () is Ctl)
+            #29 180-185 "A.Foo" : (Qubit => () is Ctl)
+            #30 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
+            #31 186-190 "[q1]" : (Qubit)[]
+            #32 187-189 "q1" : Qubit
+            #33 192-194 "q2" : Qubit
         "##]],
     );
 }
@@ -1090,43 +981,33 @@ fn call_controlled_nested() {
             }
         "},
         &expect![[r##"
-            #1 28-31 "Foo" : (Qubit) => (()) is Ctl
             #2 31-42 "(q : Qubit)" : Qubit
             #3 32-41 "q : Qubit" : Qubit
-            #4 32-33 "q" : Qubit
-            #9 72-75 "..." : Qubit
-            #10 76-78 "{}" : ()
-            #12 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #13 99-101 "cs" : (Qubit)[]
-            #14 99-101 "cs" : (Qubit)[]
-            #15 103-106 "..." : Qubit
-            #16 108-110 "{}" : ()
-            #18 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
-            #19 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
-            #20 125-142 "use q1 = Qubit();" : ()
-            #21 129-131 "q1" : Qubit
-            #22 129-131 "q1" : Qubit
-            #23 134-141 "Qubit()" : Qubit
-            #24 147-164 "use q2 = Qubit();" : ()
-            #25 151-153 "q2" : Qubit
-            #26 151-153 "q2" : Qubit
-            #27 156-163 "Qubit()" : Qubit
-            #28 169-186 "use q3 = Qubit();" : ()
-            #29 173-175 "q3" : Qubit
-            #30 173-175 "q3" : Qubit
-            #31 178-185 "Qubit()" : Qubit
-            #32 191-237 "Controlled Controlled A.Foo([q1], ([q2], q3));" : ()
-            #33 191-236 "Controlled Controlled A.Foo([q1], ([q2], q3))" : ()
-            #34 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit))) => (()) is Ctl
-            #35 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #36 213-218 "A.Foo" : (Qubit) => (()) is Ctl
-            #37 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
-            #38 219-223 "[q1]" : (Qubit)[]
-            #39 220-222 "q1" : Qubit
-            #40 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
-            #41 226-230 "[q2]" : (Qubit)[]
-            #42 227-229 "q2" : Qubit
-            #43 232-234 "q3" : Qubit
+            #7 72-75 "..." : Qubit
+            #8 76-78 "{}" : ()
+            #10 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #11 99-101 "cs" : (Qubit)[]
+            #13 103-106 "..." : Qubit
+            #14 108-110 "{}" : ()
+            #16 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
+            #17 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : ()
+            #19 129-131 "q1" : Qubit
+            #21 134-141 "Qubit()" : Qubit
+            #23 151-153 "q2" : Qubit
+            #25 156-163 "Qubit()" : Qubit
+            #27 173-175 "q3" : Qubit
+            #29 178-185 "Qubit()" : Qubit
+            #31 191-236 "Controlled Controlled A.Foo([q1], ([q2], q3))" : ()
+            #32 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit)) => () is Ctl)
+            #33 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit) => () is Ctl)
+            #34 213-218 "A.Foo" : (Qubit => () is Ctl)
+            #35 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
+            #36 219-223 "[q1]" : (Qubit)[]
+            #37 220-222 "q1" : Qubit
+            #38 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
+            #39 226-230 "[q2]" : (Qubit)[]
+            #40 227-229 "q2" : Qubit
+            #41 232-234 "q3" : Qubit
         "##]],
     );
 }
@@ -1149,31 +1030,25 @@ fn call_controlled_error() {
             }
         "},
         &expect![[r##"
-            #1 28-31 "Foo" : (Qubit) => (()) is Ctl
             #2 31-42 "(q : Qubit)" : Qubit
             #3 32-41 "q : Qubit" : Qubit
-            #4 32-33 "q" : Qubit
-            #9 72-75 "..." : Qubit
-            #10 76-78 "{}" : ()
-            #12 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #13 99-101 "cs" : (Qubit)[]
-            #14 99-101 "cs" : (Qubit)[]
-            #15 103-106 "..." : Qubit
-            #16 108-110 "{}" : ()
-            #18 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
-            #19 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
-            #20 125-141 "use q = Qubit();" : ()
-            #21 129-130 "q" : Qubit
-            #22 129-130 "q" : Qubit
-            #23 133-140 "Qubit()" : Qubit
-            #24 146-171 "Controlled A.Foo([1], q);" : ()
-            #25 146-170 "Controlled A.Foo([1], q)" : ()
-            #26 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
-            #27 157-162 "A.Foo" : (Qubit) => (()) is Ctl
-            #28 162-170 "([1], q)" : ((Int)[], Qubit)
-            #29 163-166 "[1]" : (Int)[]
-            #30 164-165 "1" : Int
-            #31 168-169 "q" : Qubit
+            #7 72-75 "..." : Qubit
+            #8 76-78 "{}" : ()
+            #10 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #11 99-101 "cs" : (Qubit)[]
+            #13 103-106 "..." : Qubit
+            #14 108-110 "{}" : ()
+            #16 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
+            #17 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : ()
+            #19 129-130 "q" : Qubit
+            #21 133-140 "Qubit()" : Qubit
+            #23 146-170 "Controlled A.Foo([1], q)" : ()
+            #24 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit) => () is Ctl)
+            #25 157-162 "A.Foo" : (Qubit => () is Ctl)
+            #26 162-170 "([1], q)" : ((Int)[], Qubit)
+            #27 163-166 "[1]" : (Int)[]
+            #28 164-165 "1" : Int
+            #29 168-169 "q" : Qubit
             Error(Type(Error(TypeMismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 }))))
         "##]],
     );
@@ -1189,11 +1064,9 @@ fn adj_requires_unit_return() {
         "},
         "",
         &expect![[r##"
-            #1 28-31 "Foo" : (()) => (Int) is Adj
             #2 31-33 "()" : ()
-            #5 47-52 "{ 1 }" : Int
+            #4 47-52 "{ 1 }" : Int
             #6 49-50 "1" : Int
-            #7 49-50 "1" : Int
             Error(Type(Error(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
@@ -1209,11 +1082,9 @@ fn ctl_requires_unit_return() {
         "},
         "",
         &expect![[r##"
-            #1 28-31 "Foo" : (()) => (Int) is Ctl
             #2 31-33 "()" : ()
-            #5 47-52 "{ 1 }" : Int
+            #4 47-52 "{ 1 }" : Int
             #6 49-50 "1" : Int
-            #7 49-50 "1" : Int
             Error(Type(Error(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
@@ -1229,11 +1100,9 @@ fn adj_ctl_requires_unit_return() {
         "},
         "",
         &expect![[r##"
-            #1 28-31 "Foo" : (()) => (Int) is Adj + Ctl
             #2 31-33 "()" : ()
-            #7 53-58 "{ 1 }" : Int
+            #6 53-58 "{ 1 }" : Int
             #8 55-56 "1" : Int
-            #9 55-56 "1" : Int
             Error(Type(Error(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
@@ -1254,12 +1123,10 @@ fn fail_diverges() {
             #0 0-42 "if true {\n    fail \"true\"\n} else {\n    4\n}" : Int
             #1 3-7 "true" : Bool
             #2 8-27 "{\n    fail \"true\"\n}" : Int
-            #3 14-25 "fail \"true\"" : Int
             #4 14-25 "fail \"true\"" : Int
             #5 19-25 "\"true\"" : String
             #6 28-42 "else {\n    4\n}" : Int
             #7 33-42 "{\n    4\n}" : Int
-            #8 39-40 "4" : Int
             #9 39-40 "4" : Int
         "##]],
     );
@@ -1282,26 +1149,19 @@ fn return_diverges() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (Bool) -> (Int)
             #2 30-40 "(x : Bool)" : Bool
             #3 31-39 "x : Bool" : Bool
-            #4 31-32 "x" : Bool
-            #7 47-153 "{\n        let x = if x {\n            return 1\n        } else {\n            true\n        };\n        2\n    }" : Int
-            #8 57-137 "let x = if x {\n            return 1\n        } else {\n            true\n        };" : ()
-            #9 61-62 "x" : Bool
-            #10 61-62 "x" : Bool
-            #11 65-136 "if x {\n            return 1\n        } else {\n            true\n        }" : Bool
-            #12 68-69 "x" : Bool
-            #13 70-102 "{\n            return 1\n        }" : Bool
-            #14 84-92 "return 1" : Bool
-            #15 84-92 "return 1" : Bool
-            #16 91-92 "1" : Int
-            #17 103-136 "else {\n            true\n        }" : Bool
-            #18 108-136 "{\n            true\n        }" : Bool
-            #19 122-126 "true" : Bool
-            #20 122-126 "true" : Bool
-            #21 146-147 "2" : Int
-            #22 146-147 "2" : Int
+            #5 47-153 "{\n        let x = if x {\n            return 1\n        } else {\n            true\n        };\n        2\n    }" : Int
+            #7 61-62 "x" : Bool
+            #9 65-136 "if x {\n            return 1\n        } else {\n            true\n        }" : Bool
+            #10 68-69 "x" : Bool
+            #11 70-102 "{\n            return 1\n        }" : Bool
+            #13 84-92 "return 1" : Bool
+            #14 91-92 "1" : Int
+            #15 103-136 "else {\n            true\n        }" : Bool
+            #16 108-136 "{\n            true\n        }" : Bool
+            #18 122-126 "true" : Bool
+            #20 146-147 "2" : Int
         "##]],
     );
 }
@@ -1322,23 +1182,16 @@ fn return_diverges_stmt_after() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (Bool) -> (Int)
             #2 30-40 "(x : Bool)" : Bool
             #3 31-39 "x : Bool" : Bool
-            #4 31-32 "x" : Bool
-            #7 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #8 57-116 "let x = {\n            return 1;\n            true\n        };" : ?4
-            #9 61-62 "x" : ?0
-            #10 61-62 "x" : ?0
-            #11 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #12 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #13 79-88 "return 1;" : ?2
-            #14 79-87 "return 1" : ?1
-            #15 86-87 "1" : Int
-            #16 101-105 "true" : Bool
-            #17 101-105 "true" : Bool
-            #18 125-126 "x" : ?0
-            #19 125-126 "x" : ?0
+            #5 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
+            #7 61-62 "x" : ?0
+            #9 65-115 "{\n            return 1;\n            true\n        }" : ?0
+            #10 65-115 "{\n            return 1;\n            true\n        }" : ?0
+            #12 79-87 "return 1" : ?1
+            #13 86-87 "1" : Int
+            #15 101-105 "true" : Bool
+            #17 125-126 "x" : ?0
         "##]],
     );
 }
@@ -1355,14 +1208,11 @@ fn return_mismatch() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (Bool) -> (Int)
             #2 30-40 "(x : Bool)" : Bool
             #3 31-39 "x : Bool" : Bool
-            #4 31-32 "x" : Bool
-            #7 47-75 "{\n        return true;\n    }" : Int
-            #8 57-69 "return true;" : Int
-            #9 57-68 "return true" : ?0
-            #10 64-68 "true" : Bool
+            #5 47-75 "{\n        return true;\n    }" : Int
+            #7 57-68 "return true" : ?0
+            #8 64-68 "true" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
         "##]],
     );
@@ -1380,14 +1230,11 @@ fn array_length_field_is_int() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : ((Qubit)[]) -> (Int)
             #2 30-43 "(x : Qubit[])" : (Qubit)[]
             #3 31-42 "x : Qubit[]" : (Qubit)[]
-            #4 31-32 "x" : (Qubit)[]
-            #8 50-75 "{\n        x::Length\n    }" : Int
-            #9 60-69 "x::Length" : Int
-            #10 60-69 "x::Length" : Int
-            #11 60-61 "x" : (Qubit)[]
+            #5 50-75 "{\n        x::Length\n    }" : Int
+            #7 60-69 "x::Length" : Int
+            #8 60-61 "x" : (Qubit)[]
         "##]],
     );
 }
@@ -1407,24 +1254,18 @@ fn array_length_generic_is_int() {
         "},
         "",
         &expect![[r##"
-            #1 27-33 "Length" : (('T)[]) -> (Int)
             #3 37-47 "(a : 'T[])" : ('T)[]
             #4 38-46 "a : 'T[]" : ('T)[]
-            #5 38-39 "a" : ('T)[]
-            #10 54-79 "{\n        a::Length\n    }" : Int
-            #11 64-73 "a::Length" : Int
-            #12 64-73 "a::Length" : Int
-            #13 64-65 "a" : ('T)[]
-            #16 93-96 "Foo" : ((Qubit)[]) -> (Int)
-            #17 96-109 "(x : Qubit[])" : (Qubit)[]
-            #18 97-108 "x : Qubit[]" : (Qubit)[]
-            #19 97-98 "x" : (Qubit)[]
-            #23 116-141 "{\n        Length(x)\n    }" : Int
-            #24 126-135 "Length(x)" : Int
-            #25 126-135 "Length(x)" : Int
-            #26 126-132 "Length" : ((Qubit)[]) -> (Int)
-            #27 132-135 "(x)" : (Qubit)[]
-            #28 133-134 "x" : (Qubit)[]
+            #6 54-79 "{\n        a::Length\n    }" : Int
+            #8 64-73 "a::Length" : Int
+            #9 64-65 "a" : ('T)[]
+            #13 96-109 "(x : Qubit[])" : (Qubit)[]
+            #14 97-108 "x : Qubit[]" : (Qubit)[]
+            #16 116-141 "{\n        Length(x)\n    }" : Int
+            #18 126-135 "Length(x)" : Int
+            #19 126-132 "Length" : ((Qubit)[] -> Int)
+            #20 132-135 "(x)" : (Qubit)[]
+            #21 133-134 "x" : (Qubit)[]
         "##]],
     );
 }
@@ -1441,16 +1282,13 @@ fn array_length_field_used_as_double_error() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : ((Qubit)[]) -> (Double)
             #2 30-43 "(x : Qubit[])" : (Qubit)[]
             #3 31-42 "x : Qubit[]" : (Qubit)[]
-            #4 31-32 "x" : (Qubit)[]
-            #8 53-84 "{\n        x::Length * 2.0\n    }" : Double
-            #9 63-78 "x::Length * 2.0" : Double
-            #10 63-78 "x::Length * 2.0" : Double
-            #11 63-72 "x::Length" : Double
-            #12 63-64 "x" : (Qubit)[]
-            #14 75-78 "2.0" : Double
+            #5 53-84 "{\n        x::Length * 2.0\n    }" : Double
+            #7 63-78 "x::Length * 2.0" : Double
+            #8 63-72 "x::Length" : Double
+            #9 63-64 "x" : (Qubit)[]
+            #11 75-78 "2.0" : Double
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 63, hi: 72 }))))
         "##]],
     );
@@ -1468,15 +1306,12 @@ fn array_unknown_field_error() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : ((Qubit)[]) -> (Int)
             #2 30-43 "(x : Qubit[])" : (Qubit)[]
             #3 31-42 "x : Qubit[]" : (Qubit)[]
-            #4 31-32 "x" : (Qubit)[]
-            #8 50-73 "{\n        x::Size\n    }" : Int
-            #9 60-67 "x::Size" : Int
-            #10 60-67 "x::Size" : Int
-            #11 60-61 "x" : (Qubit)[]
-            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Var(Var(0)) }, Span { lo: 60, hi: 67 }))))
+            #5 50-73 "{\n        x::Size\n    }" : Int
+            #7 60-67 "x::Size" : Int
+            #8 60-61 "x" : (Qubit)[]
+            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Infer(InferId(0)) }, Span { lo: 60, hi: 67 }))))
         "##]],
     );
 }
@@ -1493,19 +1328,16 @@ fn range_fields_are_int() {
         "},
         "",
         &expect![[r##"
-            #1 27-30 "Foo" : (Range) -> ((Int, Int, Int))
             #2 30-41 "(r : Range)" : Range
             #3 31-40 "r : Range" : Range
-            #4 31-32 "r" : Range
-            #10 60-103 "{\n        (r::Start, r::Step, r::End)\n    }" : (Int, Int, Int)
-            #11 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
-            #12 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
-            #13 71-79 "r::Start" : Int
-            #14 71-72 "r" : Range
-            #16 81-88 "r::Step" : Int
-            #17 81-82 "r" : Range
-            #19 90-96 "r::End" : Int
-            #20 90-91 "r" : Range
+            #5 60-103 "{\n        (r::Start, r::Step, r::End)\n    }" : (Int, Int, Int)
+            #7 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
+            #8 71-79 "r::Start" : Int
+            #9 71-72 "r" : Range
+            #11 81-88 "r::Step" : Int
+            #12 81-82 "r" : Range
+            #14 90-96 "r::End" : Int
+            #15 90-91 "r" : Range
         "##]],
     );
 }

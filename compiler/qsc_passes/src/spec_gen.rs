@@ -9,14 +9,11 @@ mod tests;
 use self::ctl_gen::CtlDistrib;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::{
-    compile::{CompileUnit, Context},
-    typeck::ty::{Prim, Ty},
-};
+use qsc_frontend::compile::{CompileUnit, Context};
 use qsc_hir::{
     hir::{
-        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, Pat, PatKind, Res,
-        SetOp, Spec, SpecBody, SpecDecl, SpecGen,
+        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, NodeId, Pat, PatKind,
+        PrimTy, Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -45,17 +42,12 @@ pub fn generate_specs(unit: &mut CompileUnit) -> Vec<Error> {
 }
 
 fn generate_placeholders(unit: &mut CompileUnit) {
-    let mut pass = SpecPlacePass {
-        context: &mut unit.context,
-    };
-    pass.visit_package(&mut unit.package);
+    SpecPlacePass.visit_package(&mut unit.package);
 }
 
-struct SpecPlacePass<'a> {
-    context: &'a mut Context,
-}
+struct SpecPlacePass;
 
-impl<'a> MutVisitor for SpecPlacePass<'a> {
+impl MutVisitor for SpecPlacePass {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
         if let Some(functors) = &decl.functors {
             let mut func_set = HashSet::new();
@@ -66,13 +58,14 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
 
             let mut spec_decl = match &decl.body {
                 CallableBody::Block(body) => vec![SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: body.span,
                     spec: Spec::Body,
                     body: SpecBody::Impl(
                         Pat {
-                            id: self.context.assigner_mut().next_id(),
+                            id: NodeId::default(),
                             span: body.span,
+                            ty: decl.input.ty.clone(),
                             kind: PatKind::Elided,
                         },
                         body.clone(),
@@ -83,7 +76,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
 
             if is_adj && spec_decl.iter().all(|s| s.spec != Spec::Adj) {
                 spec_decl.push(SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: decl.span,
                     spec: Spec::Adj,
                     body: SpecBody::Gen(SpecGen::Invert),
@@ -92,7 +85,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
 
             if is_ctl && spec_decl.iter().all(|s| s.spec != Spec::Ctl) {
                 spec_decl.push(SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: decl.span,
                     spec: Spec::Ctl,
                     body: SpecBody::Gen(SpecGen::Distribute),
@@ -106,7 +99,7 @@ impl<'a> MutVisitor for SpecPlacePass<'a> {
                     SpecGen::Distribute
                 };
                 spec_decl.push(SpecDecl {
-                    id: self.context.assigner_mut().next_id(),
+                    id: NodeId::default(),
                     span: decl.span,
                     spec: Spec::CtlAdj,
                     body: SpecBody::Gen(gen),
@@ -161,33 +154,12 @@ struct SpecImplPass<'a> {
 }
 
 impl<'a> SpecImplPass<'a> {
-    fn ctl_distrib(&mut self, spec_decl: &mut SpecDecl, block: &Block) {
-        let ctls_id = self.context.assigner_mut().next_id();
-        self.context
-            .tys_mut()
-            .insert(ctls_id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
-
-        let ctls_pat = Pat {
-            id: self.context.assigner_mut().next_id(),
-            span: spec_decl.span,
-            kind: PatKind::Bind(
-                Ident {
-                    id: ctls_id,
-                    span: spec_decl.span,
-                    name: "ctls".into(),
-                },
-                None,
-            ),
-        };
-        self.context
-            .tys_mut()
-            .insert(ctls_pat.id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
-
+    fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
         // Clone the reference block and use the pass to update the calls inside.
+        let ctls_id = self.context.assigner_mut().next_id();
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
             ctls: Res::Local(ctls_id),
-            context: self.context,
             errors: Vec::new(),
         };
         distrib.visit_block(&mut ctl_block);
@@ -197,13 +169,27 @@ impl<'a> SpecImplPass<'a> {
         // Update the specialization body to reflect the generated block.
         spec_decl.body = SpecBody::Impl(
             Pat {
-                id: self.context.assigner_mut().next_id(),
+                id: NodeId::default(),
                 span: spec_decl.span,
+                ty: Ty::Tuple(vec![
+                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                    input_ty.clone(),
+                ]),
                 kind: PatKind::Tuple(vec![
-                    ctls_pat,
                     Pat {
-                        id: self.context.assigner_mut().next_id(),
+                        id: NodeId::default(),
                         span: spec_decl.span,
+                        ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                        kind: PatKind::Bind(Ident {
+                            id: ctls_id,
+                            span: spec_decl.span,
+                            name: "ctls".into(),
+                        }),
+                    },
+                    Pat {
+                        id: NodeId::default(),
+                        span: spec_decl.span,
+                        ty: input_ty,
                         kind: PatKind::Elided,
                     },
                 ]),
@@ -243,7 +229,7 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 if ctl.body == SpecBody::Gen(SpecGen::Distribute)
                     || ctl.body == SpecBody::Gen(SpecGen::Auto)
                 {
-                    self.ctl_distrib(ctl, body_block);
+                    self.ctl_distrib(decl.input.ty.clone(), ctl, body_block);
                 }
             };
 
@@ -257,7 +243,7 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 match &ctladj.body {
                     SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
                         if let SpecBody::Impl(_, adj_block) = &adj.body {
-                            self.ctl_distrib(ctladj, adj_block);
+                            self.ctl_distrib(decl.input.ty.clone(), ctladj, adj_block);
                         }
                     }
                     SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),

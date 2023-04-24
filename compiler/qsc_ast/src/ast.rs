@@ -33,37 +33,32 @@ fn set_indentation<'a, 'b>(
 pub struct NodeId(usize);
 
 impl NodeId {
-    const PLACEHOLDER: Self = Self(usize::MAX);
-
-    /// Whether this ID is a placeholder.
-    #[must_use]
-    pub fn is_placeholder(self) -> bool {
-        self == Self::PLACEHOLDER
-    }
-
-    /// The initial node ID.
-    #[must_use]
-    pub fn zero() -> Self {
-        NodeId(0)
-    }
+    /// The ID of the first node.
+    pub const FIRST: Self = Self(0);
 
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
         Self(self.0 + 1)
     }
+
+    /// True if this is the default ID.
+    #[must_use]
+    pub fn is_default(self) -> bool {
+        self == Self::default()
+    }
 }
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self::PLACEHOLDER
+        Self(usize::MAX)
     }
 }
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if self.0 == Self::PLACEHOLDER.0 {
-            write!(f, "_id_")
+        if self.is_default() {
+            f.write_str("_id_")
         } else {
             self.0.fmt(f)
         }
@@ -91,18 +86,6 @@ pub struct Package {
     pub namespaces: Vec<Namespace>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
-}
-
-impl Package {
-    /// Creates a new package.
-    #[must_use]
-    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
-        Self {
-            id: NodeId::default(),
-            namespaces,
-            entry,
-        }
-    }
 }
 
 impl Display for Package {
@@ -523,12 +506,12 @@ pub enum TyKind {
     Paren(Box<Ty>),
     /// A named type.
     Path(Path),
+    /// A type parameter.
+    Param(Ident),
     /// A primitive type.
-    Prim(TyPrim),
+    Prim(PrimTy),
     /// A tuple type.
     Tuple(Vec<Ty>),
-    /// A type variable.
-    Var(Ident),
 }
 
 impl Display for TyKind {
@@ -548,6 +531,7 @@ impl Display for TyKind {
             TyKind::Hole => write!(indent, "Hole")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
+            TyKind::Param(name) => write!(indent, "\nType Param {name}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
@@ -562,7 +546,6 @@ impl Display for TyKind {
                     }
                 }
             }
-            TyKind::Var(name) => write!(indent, "\nType Var {name}")?,
         }
         Ok(())
     }
@@ -1218,7 +1201,7 @@ pub enum QubitSource {
 
 /// A primitive type.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum TyPrim {
+pub enum PrimTy {
     /// The big integer type.
     BigInt,
     /// The boolean type.

@@ -675,7 +675,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         ctl_count: u8,
     ) -> ControlFlow<Reason, ()> {
         match &spec_pat.kind {
-            PatKind::Bind(_, _) | PatKind::Discard(_) => {
+            PatKind::Bind(_) | PatKind::Discard => {
                 panic!("spec pattern should be elided or elided tuple, found bind/discard")
             }
             PatKind::Elided => {
@@ -919,7 +919,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         mutability: Mutability,
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
-            PatKind::Bind(variable, _) => {
+            PatKind::Bind(variable) => {
                 let scope = self.env.0.last_mut().expect("binding should have a scope");
                 match scope.bindings.entry(variable.id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
@@ -927,7 +927,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 };
                 ControlFlow::Continue(())
             }
-            PatKind::Discard(_) => ControlFlow::Continue(()),
+            PatKind::Discard => ControlFlow::Continue(()),
             PatKind::Elided => panic!("elision used in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {

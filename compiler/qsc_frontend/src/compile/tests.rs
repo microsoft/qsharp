@@ -8,7 +8,8 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, Res, StmtKind,
+        CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy, Res,
+        StmtKind, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -236,6 +237,7 @@ fn replace_node() {
             *expr = Expr {
                 id: NodeId::default(),
                 span: expr.span,
+                ty: Ty::Prim(PrimTy::Int),
                 kind: ExprKind::Lit(Lit::Int(2)),
             };
         }
@@ -265,8 +267,8 @@ fn replace_node() {
         .kind else { panic!("item should be a callable"); };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     expect![[r#"
-        Block 4 [39-56]:
-            Stmt 5 [49-50]: Expr: Expr 8 [49-50]: Lit: Int(2)"#]]
+        Block 3 [39-56] [Type Int]:
+            Stmt 4 [49-50]: Expr: Expr 7 [49-50] [Type Int]: Lit: Int(2)"#]]
     .assert_eq(&block.to_string());
 }
 
