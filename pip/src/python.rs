@@ -47,20 +47,11 @@ impl Interpreter {
     #[pyo3(text_signature = "(expr)")]
     fn interpret(&mut self, py: Python, expr: String) -> PyResult<(PyObject, PyObject, PyObject)> {
         let mut receiver = FormattingReceiver::new();
-        let results = self
-            .interpreter
-            .line(&mut receiver, expr)
-            .collect::<Vec<_>>();
-        let outputs = receiver.outputs;
-
-        // TODO: This will be simplified when the stateful evaluator returns a single error.
-        let (value, errors) = match results.last() {
-            Some(r) => match r.to_owned() {
-                Ok(value) => (value, Vec::<stateful::Error>::new()),
-                Err(err) => (Value::UNIT, { err.0 }),
-            },
-            None => (Value::UNIT, Vec::<stateful::Error>::new()),
+        let (value, errors) = match self.interpreter.line(&mut receiver, expr) {
+            Ok(value) => (value, Vec::<stateful::Error>::new()),
+            Err(err) => (Value::UNIT, { err.0 }),
         };
+        let outputs = receiver.outputs;
 
         Ok((
             ValueWrapper(value).into_py(py),
