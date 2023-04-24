@@ -216,11 +216,11 @@ impl Range {
 }
 
 pub trait GlobalLookup<'a> {
-    fn get_callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
+    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
 }
 
 impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
-    fn get_callable(&self, id: GlobalId) -> Option<&'a CallableDecl> {
+    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl> {
         self(id)
     }
 }
@@ -593,11 +593,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         let call_span = call.span;
         let (call, functor) = value_to_call_id(call_val, call.span)?;
         let args_val = self.eval_expr(args)?;
-        let decl = self
-            .globals
-            .get_callable(call)
-            .expect("call should resolve");
-        let spec = specialization_from_functor_app(&functor);
+        let decl = self.globals.callable(call).expect("call should resolve");
+        let spec = spec_from_functor_app(&functor);
 
         let mut new_self = Self {
             globals: self.globals,
@@ -1003,7 +1000,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     }
 }
 
-fn specialization_from_functor_app(functor: &FunctorApp) -> Spec {
+fn spec_from_functor_app(functor: &FunctorApp) -> Spec {
     match (functor.adjoint, functor.controlled) {
         (false, 0) => Spec::Body,
         (true, 0) => Spec::Adj,
