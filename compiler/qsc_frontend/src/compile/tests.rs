@@ -7,7 +7,9 @@ use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableBody, Expr, ExprKind, ItemKind, Lit, NodeId, Res, StmtKind},
+    hir::{
+        CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, Res, StmtKind,
+    },
     mut_visit::MutVisitor,
 };
 
@@ -193,13 +195,17 @@ fn entry_call_operation() {
 
     let errors = unit.context.errors();
     assert!(errors.is_empty(), "{errors:#?}");
-    let ItemKind::Callable(callable) = &unit.package.namespaces[0].items[0].kind else {
-        panic!("item should be a callable");
-    };
-    let entry = unit.package.entry.expect("package should have entry");
-    let ExprKind::Call(callee, _) = entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Name(res) = callee.kind else { panic!("callee should be a name") };
-    assert_eq!(Res::Internal(callable.name.id), res);
+
+    let entry = &unit.package.entry.expect("package should have entry");
+    let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
+    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    assert_eq!(
+        &Res::Item(ItemId {
+            package: None,
+            item: LocalItemId::from(1),
+        }),
+        res
+    );
 }
 
 #[test]
@@ -239,8 +245,8 @@ fn replace_node() {
         &PackageStore::new(),
         [],
         [indoc! {"
-            namespace Foo {
-                function A() : Int {
+            namespace A {
+                function Foo() : Int {
                     1
                 }
             }
@@ -250,14 +256,17 @@ fn replace_node() {
 
     Replacer.visit_package(&mut unit.package);
     unit.context.assigner_mut().visit_package(&mut unit.package);
-    let ItemKind::Callable(callable)= &unit.package.namespaces[0].items[0].kind else {
-        panic!("item should be a callable");
-    };
-    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
 
+    let ItemKind::Callable(callable) = &unit
+        .package
+        .items
+        .get(LocalItemId::from(1))
+        .expect("package should have item")
+        .kind else { panic!("item should be a callable"); };
+    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     expect![[r#"
-        Block 8 [39-56]:
-            Stmt 9 [49-50]: Expr: Expr 11 [49-50]: Lit: Int(2)"#]]
+        Block 4 [39-56]:
+            Stmt 5 [49-50]: Expr: Expr 8 [49-50]: Lit: Int(2)"#]]
     .assert_eq(&block.to_string());
 }
 
@@ -276,13 +285,6 @@ fn package_dependency() {
         "}],
         "",
     );
-
-    let foo = if let ItemKind::Callable(foo) = &unit1.package.namespaces[0].items[0].kind {
-        foo.name.id
-    } else {
-        panic!("item should be a callable");
-    };
-
     let package1 = store.insert(unit1);
     let unit2 = compile(
         &store,
@@ -297,14 +299,24 @@ fn package_dependency() {
         "",
     );
 
-    let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
-        panic!("item should be a callable");
-    };
+    let foo_id = LocalItemId::from(1);
+    let ItemKind::Callable(callable) = &unit2
+        .package
+        .items
+        .get(foo_id)
+        .expect("package should have item")
+        .kind else { panic!("item should be a callable"); };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
-    assert_eq!(res, &Res::External(package1, foo));
+    assert_eq!(
+        &Res::Item(ItemId {
+            package: Some(package1),
+            item: foo_id,
+        }),
+        res
+    );
 }
 
 #[test]
@@ -337,9 +349,12 @@ fn package_dependency_internal() {
         "",
     );
 
-    let ItemKind::Callable(callable) = &unit2.package.namespaces[0].items[0].kind else {
-        panic!("item should be a callable");
-    };
+    let ItemKind::Callable(callable) = &unit2
+        .package
+        .items
+        .get(LocalItemId::from(1))
+        .expect("package should have item")
+        .kind else { panic!("item should be a callable"); };
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };

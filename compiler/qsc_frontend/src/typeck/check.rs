@@ -10,17 +10,13 @@ use crate::{
     resolve::{Res, Resolutions},
     typeck::ty::MissingTyError,
 };
-use qsc_ast::{ast, visit::Visitor as AstVisitor};
-use qsc_hir::{
-    hir::{self, PackageId},
-    visit::Visitor as HirVisitor,
-};
+use qsc_ast::{ast, visit::Visitor};
+use qsc_hir::hir::{self, ItemId, PackageId};
 use std::collections::HashMap;
 
 pub(crate) struct GlobalTable<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<Res, Ty>,
-    package: Option<PackageId>,
+    globals: HashMap<ItemId, Ty>,
     errors: Vec<Error>,
 }
 
@@ -29,13 +25,41 @@ impl<'a> GlobalTable<'a> {
         Self {
             resolutions,
             globals: HashMap::new(),
-            package: None,
             errors: Vec::new(),
         }
     }
 
-    pub(crate) fn set_package(&mut self, package: PackageId) {
-        self.package = Some(package);
+    pub(crate) fn add_local_package(&mut self, package: &ast::Package) {
+        for namespace in &package.namespaces {
+            for item in &namespace.items {
+                if let ast::ItemKind::Callable(decl) = &item.kind {
+                    let (ty, errors) = Ty::of_ast_callable(decl);
+                    let Some(&Res::Item(item)) = self.resolutions.get(decl.name.id) else {
+                        panic!("callable should have item ID");
+                    };
+                    self.globals.insert(item, ty);
+                    for MissingTyError(span) in errors {
+                        self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                    }
+                }
+            }
+        }
+    }
+
+    pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
+        for item in package.items.values() {
+            if let hir::ItemKind::Callable(decl) = &item.kind {
+                let item_id = ItemId {
+                    package: Some(id),
+                    item: item.id,
+                };
+                let (ty, errors) = Ty::of_hir_callable(decl);
+                self.globals.insert(item_id, ty);
+                for MissingTyError(span) in errors {
+                    self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                }
+            }
+        }
     }
 
     pub(crate) fn into_checker(self) -> Checker<'a> {
@@ -48,39 +72,9 @@ impl<'a> GlobalTable<'a> {
     }
 }
 
-impl AstVisitor<'_> for GlobalTable<'_> {
-    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        assert!(
-            self.package.is_none(),
-            "package ID should not be set before visiting AST"
-        );
-
-        let (ty, errors) = Ty::of_ast_callable(decl);
-        self.globals.insert(Res::Internal(decl.name.id), ty);
-        for MissingTyError(span) in errors {
-            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-        }
-    }
-}
-
-impl HirVisitor<'_> for GlobalTable<'_> {
-    fn visit_callable_decl(&mut self, decl: &hir::CallableDecl) {
-        let package = self
-            .package
-            .expect("package ID should be set before visiting HIR");
-
-        let (ty, errors) = Ty::of_hir_callable(decl);
-        self.globals
-            .insert(Res::External(package, decl.name.id), ty);
-        for MissingTyError(span) in errors {
-            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-        }
-    }
-}
-
 pub(crate) struct Checker<'a> {
     resolutions: &'a Resolutions,
-    globals: HashMap<Res, Ty>,
+    globals: HashMap<ItemId, Ty>,
     tys: Tys<ast::NodeId>,
     errors: Vec<Error>,
 }
@@ -114,7 +108,7 @@ impl Checker<'_> {
     }
 }
 
-impl AstVisitor<'_> for Checker<'_> {
+impl Visitor<'_> for Checker<'_> {
     fn visit_package(&mut self, package: &ast::Package) {
         for namespace in &package.namespaces {
             self.visit_namespace(namespace);

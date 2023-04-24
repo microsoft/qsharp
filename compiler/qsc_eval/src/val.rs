@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use num_bigint::BigInt;
+use qsc_hir::hir::{LocalItemId, PackageId, Pauli};
 use std::{
     ffi::c_void,
     fmt::{self, Display, Formatter},
     iter,
 };
-
-use num_bigint::BigInt;
-use qsc_hir::hir::Pauli;
-use qsc_passes::globals::GlobalId;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -27,6 +25,18 @@ pub enum Value {
     String(String),
     Tuple(Vec<Value>),
     Udt,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GlobalId {
+    pub package: PackageId,
+    pub item: LocalItemId,
+}
+
+impl Display for GlobalId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<item {} in package {}>", self.item, self.package)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

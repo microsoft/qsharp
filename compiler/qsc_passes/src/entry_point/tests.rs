@@ -31,10 +31,10 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr _id_ [0-0]: Expr Block: Block 11 [62-72]:
-                Stmt 12 [64-70]: Expr: Expr 13 [64-70]: BinOp (Add):
-                    Expr 14 [64-66]: Lit: Int(41)
-                    Expr 15 [69-70]: Lit: Int(1)"#]],
+            Expr _id_ [0-0]: Expr Block: Block 7 [62-72]:
+                Stmt 8 [64-70]: Expr: Expr 9 [64-70]: BinOp (Add):
+                    Expr 10 [64-66]: Lit: Int(41)
+                    Expr 11 [69-70]: Lit: Int(1)"#]],
     );
 }
 

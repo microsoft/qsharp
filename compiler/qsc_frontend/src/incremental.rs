@@ -12,12 +12,9 @@ use qsc_ast::{
     assigner::Assigner,
     ast::{self, ItemKind, NodeId},
     mut_visit::MutVisitor,
-    visit::Visitor as AstVisitor,
+    visit::Visitor,
 };
-use qsc_hir::{
-    hir::{self, PackageId},
-    visit::Visitor as HirVisitor,
-};
+use qsc_hir::hir::{self, PackageId};
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -50,12 +47,11 @@ pub struct Compiler<'a> {
 impl<'a> Compiler<'a> {
     pub fn new(store: &'a PackageStore, dependencies: impl IntoIterator<Item = PackageId>) -> Self {
         let mut globals = GlobalTable::new();
-        for dependency in dependencies {
+        for id in dependencies {
             let unit = store
-                .get(dependency)
+                .get(id)
                 .expect("dependency should be added to package store before compilation");
-            globals.set_package(dependency);
-            HirVisitor::visit_package(&mut globals, &unit.package);
+            globals.add_external_package(id, &unit.package);
         }
 
         Self {
@@ -103,7 +99,7 @@ impl<'a> Compiler<'a> {
         let decl = Box::leak(Box::new(decl));
         self.resolver.with_scope(&mut self.scope, |resolver| {
             resolver.add_global_callable(decl);
-            AstVisitor::visit_callable_decl(resolver, decl);
+            resolver.visit_callable_decl(decl);
         });
 
         let errors: Vec<_> = self
