@@ -17,7 +17,6 @@ qsc_passes = { path = "../compiler/qsc_passes" }
 qsc_hir = { path = "../compiler/qsc_hir" }
 
 pyo3 = { workspace = true }
-ouroboros = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 

@@ -940,7 +940,6 @@ version = "0.0.0"
 dependencies = [
  "num-bigint",
  "num-complex",
- "ouroboros",
  "pyo3",
  "qsc_ast",
  "qsc_eval",
