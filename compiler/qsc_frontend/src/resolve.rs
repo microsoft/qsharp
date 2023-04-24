@@ -348,8 +348,7 @@ impl GlobalTable {
         }
     }
 
-    pub(super) fn into_resolver(mut self) -> Resolver {
-        self.add_builtin_tys();
+    pub(super) fn into_resolver(self) -> Resolver {
         Resolver {
             resolutions: self.resolutions,
             tys: self.tys,
@@ -369,24 +368,6 @@ impl GlobalTable {
         };
         self.next_item_id = self.next_item_id.successor();
         item
-    }
-
-    fn add_builtin_tys(&mut self) {
-        self.tys
-            .entry("Microsoft.Quantum.Core".into())
-            .or_default()
-            .extend([
-                ("BigInt".into(), Res::PrimTy(hir::PrimTy::BigInt)),
-                ("Bool".into(), Res::PrimTy(hir::PrimTy::Bool)),
-                ("Double".into(), Res::PrimTy(hir::PrimTy::Double)),
-                ("Int".into(), Res::PrimTy(hir::PrimTy::Int)),
-                ("Pauli".into(), Res::PrimTy(hir::PrimTy::Pauli)),
-                ("Qubit".into(), Res::PrimTy(hir::PrimTy::Qubit)),
-                ("Range".into(), Res::PrimTy(hir::PrimTy::Range)),
-                ("Result".into(), Res::PrimTy(hir::PrimTy::Result)),
-                ("String".into(), Res::PrimTy(hir::PrimTy::String)),
-                ("Unit".into(), Res::UnitTy),
-            ]);
     }
 }
 
