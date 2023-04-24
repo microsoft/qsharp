@@ -3,8 +3,7 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import { getCompiler, getResultsHandler, loadWasmModule, ShotResult, renderDump, VSDiagnostic } from "qsharp";
-
+import { getCompilerWorker, getResultsHandler, loadWasmModule, ShotResult, renderDump, VSDiagnostic } from "qsharp";
 import { generateHistogramData, generateHistogramSvg } from "./histogram.js";
 import { base64ToCode, codeToBase64 } from "./utils.js";
 import { PopulateKatasList, RenderKatas } from "./katas.js";
@@ -59,7 +58,7 @@ function squiggleDiagnostics(errors: VSDiagnostic[]) {
 async function loaded() {
     await wasmPromise; // Ensure the Wasm Module is done loading
     const resultsHandler = getResultsHandler();
-    const compiler = await getCompiler(resultsHandler);
+    const compiler = await getCompilerWorker("libs/worker.js", resultsHandler);
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
