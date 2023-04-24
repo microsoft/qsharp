@@ -421,12 +421,9 @@ impl With<'_> {
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
         match self.resolutions.get(path.id) {
-            None => hir::Res::Err,
             Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
-            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) => {
-                panic!("type should be lowered using crate::typeck::convert")
-            }
+            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) | None => hir::Res::Err,
         }
     }
 
