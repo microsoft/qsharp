@@ -3,13 +3,13 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferTy, PrimTy, Ty};
+use qsc_hir::hir::{Functor, InferId, PrimTy, Ty};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
-pub(super) type Substitutions = IndexMap<InferTy, Ty>;
+pub(super) type Substitutions = IndexMap<InferId, Ty>;
 
 #[derive(Clone, Debug)]
 pub(super) enum Class {
@@ -172,14 +172,14 @@ struct UnifyError(Ty, Ty);
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
-    next_fresh: InferTy,
+    next_fresh: InferId,
 }
 
 impl Inferrer {
     pub(super) fn new() -> Self {
         Self {
             constraints: VecDeque::new(),
-            next_fresh: InferTy::from(0),
+            next_fresh: InferId::default(),
         }
     }
 
@@ -200,7 +200,7 @@ impl Inferrer {
     /// Returns a unique unconstrained type variable.
     pub(super) fn fresh(&mut self) -> Ty {
         let fresh = self.next_fresh;
-        self.next_fresh = InferTy::from(usize::from(fresh) + 1);
+        self.next_fresh = fresh.successor();
         Ty::Infer(fresh)
     }
 
@@ -247,7 +247,7 @@ impl Inferrer {
 
 struct Solver {
     substs: Substitutions,
-    pending: HashMap<InferTy, Vec<Class>>,
+    pending: HashMap<InferId, Vec<Class>>,
     errors: Vec<Error>,
 }
 
@@ -353,7 +353,7 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
     ty
 }
 
-fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferTy, Ty)) -> Result<(), UnifyError> {
+fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
         (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2, bind),
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
@@ -387,7 +387,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferTy, Ty)) -> Result<(), U
     }
 }
 
-fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferTy> {
+fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferId> {
     match ty {
         &Ty::Infer(infer) => match substs.get(infer) {
             None => Some(infer),

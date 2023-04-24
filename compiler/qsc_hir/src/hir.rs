@@ -1166,7 +1166,7 @@ pub enum Ty {
     /// An invalid type caused by an error.
     Err,
     /// A placeholder type variable used during type inference.
-    Infer(InferTy),
+    Infer(InferId),
     /// A type parameter.
     Param(String),
     /// A primitive type.
@@ -1247,23 +1247,31 @@ pub enum PrimTy {
 }
 
 /// A placeholder type variable used during type inference.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct InferTy(usize);
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct InferId(usize);
 
-impl Display for InferTy {
+impl InferId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for InferId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "?{}", self.0)
     }
 }
 
-impl From<usize> for InferTy {
+impl From<usize> for InferId {
     fn from(value: usize) -> Self {
-        InferTy(value)
+        InferId(value)
     }
 }
 
-impl From<InferTy> for usize {
-    fn from(value: InferTy) -> Self {
+impl From<InferId> for usize {
+    fn from(value: InferId) -> Self {
         value.0
     }
 }

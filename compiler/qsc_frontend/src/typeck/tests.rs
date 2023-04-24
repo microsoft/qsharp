@@ -266,7 +266,7 @@ fn length_type_error() {
             #4 8-9 "1" : Int
             #5 11-12 "2" : Int
             #6 14-15 "3" : Int
-            Error(Type(Error(TypeMismatch(Array(Infer(InferTy(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
+            Error(Type(Error(TypeMismatch(Array(Infer(InferId(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
         "##]],
     );
 }
@@ -307,7 +307,7 @@ fn array_index_error() {
             #3 4-5 "2" : Int
             #4 7-8 "3" : Int
             #5 10-15 "false" : Bool
-            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Infer(InferTy(0)) }, Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Infer(InferId(0)) }, Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -573,7 +573,7 @@ fn let_tuple_arity_error() {
             #10 18-24 "(0, 1)" : (Int, Int)
             #11 19-20 "0" : Int
             #12 22-23 "1" : Int
-            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 6, hi: 15 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferId(0)), Infer(InferId(1)), Infer(InferId(2))]), Span { lo: 6, hi: 15 }))))
         "##]],
     );
 }
@@ -644,7 +644,7 @@ fn qubit_tuple_arity_error() {
             #10 23-24 "3" : Int
             #11 27-34 "Qubit()" : Qubit
             #12 36-43 "Qubit()" : Qubit
-            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1))]), Span { lo: 6, hi: 13 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferId(0)), Infer(InferId(1))]), Span { lo: 6, hi: 13 }))))
         "##]],
     );
 }
@@ -662,7 +662,7 @@ fn for_loop_not_iterable() {
             #5 13-17 "true" : Bool
             #6 19-22 "One" : Result
             #7 24-26 "{}" : ()
-            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Infer(InferTy(0)) }, Span { lo: 9, hi: 23 }))))
+            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Infer(InferId(0)) }, Span { lo: 9, hi: 23 }))))
         "##]],
     );
 }
@@ -1311,7 +1311,7 @@ fn array_unknown_field_error() {
             #5 50-73 "{\n        x::Size\n    }" : Int
             #7 60-67 "x::Size" : Int
             #8 60-61 "x" : (Qubit)[]
-            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Infer(InferTy(0)) }, Span { lo: 60, hi: 67 }))))
+            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Infer(InferId(0)) }, Span { lo: 60, hi: 67 }))))
         "##]],
     );
 }
