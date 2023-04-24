@@ -215,7 +215,7 @@ impl Range {
     }
 }
 
-pub trait GlobalLookup<'a> {
+trait GlobalLookup<'a> {
     fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
 }
 
@@ -228,7 +228,7 @@ impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
 /// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_stmt<'a>(
+fn eval_stmt<'a>(
     stmt: &Stmt,
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
@@ -252,7 +252,7 @@ pub fn eval_stmt<'a>(
 /// Evaluates the given expression with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_expr<'a>(
+fn eval_expr<'a>(
     expr: &Expr,
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
@@ -273,12 +273,12 @@ pub fn eval_expr<'a>(
     res
 }
 
-pub fn init() {
+fn init() {
     __quantum__rt__initialize(null_mut());
 }
 
 #[derive(Default)]
-pub struct Env(Vec<Scope>);
+struct Env(Vec<Scope>);
 
 impl Env {
     fn get(&self, id: NodeId) -> Option<&Variable> {
