@@ -18,7 +18,7 @@ impl Assigner {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            next_id: NodeId::zero(),
+            next_id: NodeId::FIRST,
         }
     }
 
@@ -29,7 +29,7 @@ impl Assigner {
     }
 
     fn assign(&mut self, id: &mut NodeId) {
-        if id.is_placeholder() {
+        if id.is_default() {
             *id = self.next_id();
         }
     }

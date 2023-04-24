@@ -11,13 +11,14 @@ mod given_interpreter {
         val::Value,
         AggregateError,
     };
+
     fn line(
         interpreter: &mut Interpreter,
-        line: impl AsRef<str>,
+        line: &str,
     ) -> (Result<Value, AggregateError<Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.line(&mut receiver, line), receiver.dump())
+        (interpreter.line(line, &mut receiver), receiver.dump())
     }
 
     mod without_sources {
@@ -46,7 +47,9 @@ mod given_interpreter {
         #[test]
         fn let_bindings_update_interpreter() {
             let mut interpreter = get_interpreter();
-            let _ = line(&mut interpreter, "let y = 7;");
+            line(&mut interpreter, "let y = 7;")
+                .0
+                .expect("line should succeed");
             let (result, output) = line(&mut interpreter, "y");
             is_only_value(&result, &output, &Value::Int(7));
         }
@@ -65,7 +68,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::UNIT);
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_value(&result, &output, &Value::String("Hello".to_string()));
+            is_only_value(&result, &output, &Value::String("Hello".into()));
         }
 
         #[test]
@@ -125,17 +128,9 @@ mod given_interpreter {
             let mut interpreter =
                 Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test.Main()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
         }
 
         #[test]
@@ -156,17 +151,9 @@ mod given_interpreter {
             let mut interpreter =
                 Interpreter::new(true, [source]).expect("Failed to compile base environment.");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
-            is_only_value(
-                &result,
-                &output,
-                &Value::String("hello there...".to_string()),
-            );
+            is_only_value(&result, &output, &Value::String("hello there...".into()));
         }
     }
 
