@@ -11,13 +11,14 @@ mod given_interpreter {
         val::Value,
         AggregateError,
     };
+
     fn line(
         interpreter: &mut Interpreter,
-        line: impl AsRef<str>,
+        line: &str,
     ) -> (Result<Value, AggregateError<Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.line(&mut receiver, line), receiver.dump())
+        (interpreter.line(line, &mut receiver), receiver.dump())
     }
 
     mod without_sources {
