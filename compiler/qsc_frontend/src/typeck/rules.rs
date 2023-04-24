@@ -86,7 +86,7 @@ impl<'a> Context<'a> {
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            ast::TyKind::Path(path) => match self.resolutions.get(path.id) {
+            TyKind::Path(path) => match self.resolutions.get(path.id) {
                 Some(&Res::Item(item)) => Ty::Name(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
