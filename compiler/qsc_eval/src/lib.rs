@@ -22,7 +22,7 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Ident, Lit,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldId, Functor, Lit,
     Mutability, NodeId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody,
     SpecGen, Stmt, StmtKind, TernOp, UnOp,
 };
@@ -97,9 +97,6 @@ pub enum Error {
 
     #[error("output failure")]
     Output(#[label("failed to generate output")] Span),
-
-    #[error("range missing `{0}` field")]
-    RangeFieldMissing(&'static str, #[label] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -355,7 +352,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
                 ControlFlow::Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
             }
-            ExprKind::Field(record, item) => self.eval_field(record, item),
+            ExprKind::Field(record, field) => self.eval_field(expr.span, record, *field),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
@@ -855,34 +852,34 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_field(&mut self, record: &Expr, item: &Ident) -> ControlFlow<Reason, Value> {
+    fn eval_field(
+        &mut self,
+        span: Span,
+        record: &Expr,
+        field: FieldId,
+    ) -> ControlFlow<Reason, Value> {
         let record_span = record.span;
         let record = self.eval_expr(record)?;
         // For now we only support built-in fields for Arrays and Ranges.
-        match (record, item.name.as_ref()) {
-            (Value::Array(arr), "Length") => {
+        match (record, field) {
+            (Value::Array(arr), FieldId::ARRAY_LENGTH) => {
                 let len: i64 = match arr.len().try_into() {
                     Ok(len) => ControlFlow::Continue(len),
                     Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(record_span))),
                 }?;
                 ControlFlow::Continue(Value::Int(len))
             }
-            (Value::Range(start, _, _), "Start") => start.map_or_else(
-                || ControlFlow::Break(Reason::Error(Error::RangeFieldMissing("Start", item.span))),
-                |start| ControlFlow::Continue(Value::Int(start)),
-            ),
-            (Value::Range(_, step, _), "Step") => step.map_or_else(
+            (Value::Range(Some(start), _, _), FieldId::RANGE_START) => {
+                ControlFlow::Continue(Value::Int(start))
+            }
+            (Value::Range(_, step, _), FieldId::RANGE_STEP) => step.map_or_else(
                 || ControlFlow::Continue(Value::Int(1)),
                 |step| ControlFlow::Continue(Value::Int(step)),
             ),
-            (Value::Range(_, _, end), "End") => end.map_or_else(
-                || ControlFlow::Break(Reason::Error(Error::RangeFieldMissing("End", item.span))),
-                |end| ControlFlow::Continue(Value::Int(end)),
-            ),
-            _ => ControlFlow::Break(Reason::Error(Error::Unimplemented(
-                "field access",
-                item.span,
-            ))),
+            (Value::Range(_, _, Some(end)), FieldId::RANGE_END) => {
+                ControlFlow::Continue(Value::Int(end))
+            }
+            _ => ControlFlow::Break(Reason::Error(Error::Unimplemented("field access", span))),
         }
     }
 

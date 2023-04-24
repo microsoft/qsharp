@@ -506,7 +506,10 @@ fn check_has_index(
             actual: item,
             span,
         }),
-        (container @ Ty::Array(_), Ty::Prim(PrimTy::Range)) => Ok(Constraint::Eq {
+        (
+            container @ Ty::Array(_),
+            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+        ) => Ok(Constraint::Eq {
             expected: container,
             actual: item,
             span,

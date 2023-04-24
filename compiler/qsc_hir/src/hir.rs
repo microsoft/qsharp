@@ -701,7 +701,7 @@ pub enum ExprKind {
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
-    Field(Box<Expr>, Ident),
+    Field(Box<Expr>, FieldId),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -755,7 +755,7 @@ impl Display for ExprKind {
             ExprKind::Conjugate(within, apply) => display_conjugate(indent, within, apply)?,
             ExprKind::Err => write!(indent, "Err")?,
             ExprKind::Fail(e) => write!(indent, "Fail: {e}")?,
-            ExprKind::Field(expr, id) => display_field(indent, expr, id)?,
+            ExprKind::Field(expr, field) => display_field(indent, expr, *field)?,
             ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
             ExprKind::Hole => write!(indent, "Hole")?,
             ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
@@ -863,11 +863,11 @@ fn display_conjugate(
     Ok(())
 }
 
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, id: &Ident) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: FieldId) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
-    write!(indent, "\n{id}")?;
+    write!(indent, "\nIndex: {field}")?;
     Ok(())
 }
 
@@ -1241,6 +1241,12 @@ pub enum PrimTy {
     Qubit,
     /// The range type.
     Range,
+    /// The range type without a lower bound.
+    RangeTo,
+    /// The range type without an upper bound.
+    RangeFrom,
+    /// The range type without lower and upper bounds.
+    RangeFull,
     /// The measurement result type.
     Result,
     /// The string type.
@@ -1274,6 +1280,25 @@ impl From<usize> for InferId {
 impl From<InferId> for usize {
     fn from(value: InferId) -> Self {
         value.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct FieldId(u32);
+
+impl FieldId {
+    pub const ARRAY_LENGTH: Self = FieldId(0);
+
+    pub const RANGE_START: Self = FieldId(0);
+
+    pub const RANGE_STEP: Self = FieldId(1);
+
+    pub const RANGE_END: Self = FieldId(2);
+}
+
+impl Display for FieldId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
     }
 }
 

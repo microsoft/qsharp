@@ -268,6 +268,7 @@ impl With<'_> {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
         let id = self.lower_id(expr.id);
         let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
@@ -309,7 +310,10 @@ impl With<'_> {
             ast::ExprKind::Err => hir::ExprKind::Err,
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
-                hir::ExprKind::Field(Box::new(self.lower_expr(container)), self.lower_ident(name))
+                let container = self.lower_expr(container);
+                lower_field_name(&container.ty, &name.name).map_or(hir::ExprKind::Err, |field| {
+                    hir::ExprKind::Field(Box::new(container), field)
+                })
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
                 self.lower_pat(pat),
@@ -441,6 +445,16 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
+    }
+}
+
+fn lower_field_name(ty: &hir::Ty, name: &str) -> Option<hir::FieldId> {
+    match (ty, name) {
+        (hir::Ty::Array(..), "Length") => Some(hir::FieldId::ARRAY_LENGTH),
+        (hir::Ty::Prim(hir::PrimTy::Range), "Start") => Some(hir::FieldId::RANGE_START),
+        (hir::Ty::Prim(hir::PrimTy::Range), "Step") => Some(hir::FieldId::RANGE_STEP),
+        (hir::Ty::Prim(hir::PrimTy::Range), "End") => Some(hir::FieldId::RANGE_END),
+        _ => None,
     }
 }
 
