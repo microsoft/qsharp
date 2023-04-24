@@ -5,7 +5,6 @@ use katas::run_kata;
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use once_cell::sync::OnceCell;
 use qsc_eval::{
     output,
     output::{format_state_id, Receiver},
@@ -226,17 +225,16 @@ where
 
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     thread_local! {
-        static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
+        static STORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new();
+            let mut std_unit = compile::std();
+            run_default_passes(&mut std_unit);
+            let std_id = store.insert(std_unit);
+            (store, std_id)
+        };
     }
 
-    STDLIB_STORE.with(|stdlib_store| {
-        let (std, store) = stdlib_store.get_or_init(|| {
-            let mut store = PackageStore::new();
-            let mut std = compile::std();
-            run_default_passes(&mut std);
-            (store.insert(std), store)
-        });
-
+    STORE_STD.with(|(store, std)| {
         let mut unit = compile(store, [*std], [code], "");
         let pass_errs = run_default_passes(&mut unit);
         unit.context
