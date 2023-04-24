@@ -185,6 +185,7 @@ impl Checker {
         // new inference context. This can cause issues if inference variables aren't fully solved
         // for within each statement. Either those variables should cause an error, or the
         // incremental compiler should be able to persist the inference context across statements.
+        // https://github.com/microsoft/qsharp/issues/205
         self.errors.append(&mut rules::stmt(
             resolutions,
             &self.globals,
