@@ -214,10 +214,6 @@ where
         let severity = err.severity().unwrap_or(Severity::Error);
 
         let mut message = err.to_string();
-        let label_text = label.as_ref().map_or("", |l| l.label().unwrap_or_default());
-        if !label_text.is_empty() {
-            message.push_str(format!(":\n\n{}", label_text,).as_str());
-        }
         let help_text = err.help().map_or(String::default(), |h| h.to_string());
         if !help_text.is_empty() {
             message.push_str(format!("\n\nhelp: {}", help_text).as_str());
@@ -422,7 +418,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "missing type in item signature:\n\nexplicit type required\n\nhelp: types cannot be inferred for global declarations");
+        assert_eq!(err.message, "missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -466,10 +462,7 @@ mod test {
         let error = errors.first().unwrap();
         assert_eq!(error.start_pos, 111);
         assert_eq!(error.end_pos, 117);
-        assert_eq!(
-            error.message,
-            "expected (Double, Qubit), found Qubit:\n\nmismatched types"
-        );
+        assert_eq!(error.message, "expected (Double, Qubit), found Qubit");
     }
 
     #[test]

@@ -28,10 +28,10 @@ pub(super) struct Error(ErrorKind);
 #[derive(Clone, Debug, Diagnostic, Error)]
 enum ErrorKind {
     #[error("expected {0}, found {1}")]
-    TypeMismatch(Ty, Ty, #[label("mismatched types")] Span),
+    TypeMismatch(Ty, Ty, #[label] Span),
     #[error("missing class instance {0}")]
     MissingClass(Class, #[label] Span),
     #[error("missing type in item signature")]
     #[diagnostic(help("types cannot be inferred for global declarations"))]
-    MissingItemTy(#[label("explicit type required")] Span),
+    MissingItemTy(#[label] Span),
 }
