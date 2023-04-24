@@ -3,23 +3,22 @@
 
 mod tests;
 
-use crate::val::Value;
-use crate::{eval_stmt, AggregateError, Env};
-use qsc_hir::hir::CallableDecl;
-use qsc_passes::globals::GlobalId;
-use qsc_passes::run_default_passes;
-use std::collections::HashMap;
-use std::string::String;
-
-use qsc_frontend::compile::{self, CompileUnit, PackageStore};
-use qsc_frontend::incremental::{Compiler, Fragment};
-
-use crate::output::Receiver;
-use crate::stateful::ouroboros_impl_execution_context::BorrowedMutFields;
+use crate::{
+    eval_stmt, output::Receiver, stateful::ouroboros_impl_execution_context::BorrowedMutFields,
+    val::Value, AggregateError, Env,
+};
 use miette::Diagnostic;
 use ouroboros::self_referencing;
-use qsc_frontend::compile::compile;
-use qsc_passes::globals::extract_callables;
+use qsc_frontend::{
+    compile::{self, compile, CompileUnit, PackageStore},
+    incremental::{Compiler, Fragment},
+};
+use qsc_hir::hir::{CallableDecl, PackageId};
+use qsc_passes::{
+    globals::{extract_callables, GlobalId},
+    run_default_passes,
+};
+use std::{collections::HashMap, string::String};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -35,7 +34,7 @@ pub enum Error {
 #[self_referencing]
 pub struct ExecutionContext {
     store: PackageStore,
-    package: compile::PackageId,
+    package: PackageId,
     #[borrows(store)]
     #[covariant]
     compiler: Compiler<'this>,
@@ -64,11 +63,15 @@ impl Interpreter {
         Ok(Self { context })
     }
 
+    /// # Errors
+    /// If the parsing of the line fails, an error is returned.
+    /// If the compilation of the line fails, an error is returned.
+    /// If there is a runtime error when interpreting the line, an error is returned.
     pub fn line(
         &mut self,
         receiver: &mut dyn Receiver,
         line: impl AsRef<str>,
-    ) -> impl Iterator<Item = Result<Value, AggregateError<Error>>> {
+    ) -> Result<Value, AggregateError<Error>> {
         self.context
             .with_mut(|fields| eval_line_in_context(receiver, line, fields))
     }
@@ -138,31 +141,22 @@ fn eval_line_in_context(
     receiver: &mut dyn Receiver,
     line: impl AsRef<str>,
     fields: BorrowedMutFields,
-) -> impl Iterator<Item = Result<Value, AggregateError<Error>>> {
-    let mut results = vec![];
+) -> Result<Value, AggregateError<Error>> {
+    let mut final_result = Value::UNIT;
     let fragments = fields.compiler.compile_fragment(line);
     for fragment in fragments {
         match fragment {
             Fragment::Stmt(stmt) => {
                 let mut env = fields.env.take().unwrap_or(Env::with_empty_scope());
-                let result = eval_stmt(
-                    &stmt,
-                    fields.store,
-                    fields.globals,
-                    fields.compiler.resolutions(),
-                    *fields.package,
-                    &mut env,
-                    receiver,
-                );
+                let result = eval_stmt(&stmt, fields.globals, *fields.package, &mut env, receiver);
                 let _ = fields.env.insert(env);
 
                 match result {
                     Ok(v) => {
-                        results.push(Ok(v));
+                        final_result = v;
                     }
                     Err(e) => {
-                        results.push(Err(AggregateError(vec![Error::Eval(e)])));
-                        return results.into_iter();
+                        return Err(AggregateError(vec![Error::Eval(e)]));
                     }
                 }
             }
@@ -172,16 +166,16 @@ fn eval_line_in_context(
                     node: decl.name.id,
                 };
                 fields.globals.insert(id, Box::leak(Box::new(decl)));
-                results.push(Ok(Value::UNIT));
+                final_result = Value::UNIT;
             }
             Fragment::Error(errors) => {
                 let e = errors
                     .iter()
                     .map(|e| Error::Incremental(e.clone()))
                     .collect();
-                results.push(Err(AggregateError(e)));
+                return Err(AggregateError(e));
             }
         }
     }
-    results.into_iter()
+    Ok(final_result)
 }

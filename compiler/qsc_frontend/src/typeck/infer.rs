@@ -113,9 +113,7 @@ impl Class {
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
             Class::HasField { record, name, item } => {
-                // TODO: If the record type is a user-defined type, look up its fields.
-                // https://github.com/microsoft/qsharp/issues/148
-                Err(ClassError(Class::HasField { record, name, item }, span))
+                check_has_field(record, name, item, span).map(|c| vec![c])
             }
             Class::HasIndex {
                 container,
@@ -548,4 +546,24 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, Cla
 
 fn check_num(ty: &Ty) -> bool {
     matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
+}
+
+fn check_has_field(
+    record: Ty,
+    name: String,
+    item: Ty,
+    span: Span,
+) -> Result<Constraint, ClassError> {
+    // TODO: If the record type is a user-defined type, look up its fields.
+    // https://github.com/microsoft/qsharp/issues/148
+    match (&record, name.as_str(), &item) {
+        (Ty::Prim(Prim::Range), "Start" | "Step" | "End", _) | (Ty::Array(..), "Length", _) => {
+            Ok(Constraint::Eq {
+                expected: Ty::Prim(Prim::Int),
+                actual: item,
+                span,
+            })
+        }
+        _ => Err(ClassError(Class::HasField { record, name, item }, span)),
+    }
 }

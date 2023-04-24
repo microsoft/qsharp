@@ -33,18 +33,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     let expr = store
         .get_entry_expr(id)
         .expect("entry expression shouild be present");
-    let resolutions = store
-        .get_resolutions(id)
-        .expect("package should be present in store");
-    eval_expr(
-        expr,
-        &store,
-        &globals,
-        resolutions,
-        id,
-        &mut Env::default(),
-        out,
-    )
+    eval_expr(expr, &globals, id, &mut Env::default(), out)
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
@@ -74,11 +63,6 @@ fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
         Ok(result) => assert_eq!(&result, val),
         Err(e) => panic!("{e:?}"),
     }
-}
-
-#[test]
-fn length() {
-    check_intrinsic_result("", "Length([1, 2, 3])", &expect!["3"]);
 }
 
 #[test]

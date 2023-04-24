@@ -11,13 +11,12 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_frontend::{
     compile::{CompileUnit, Context},
-    resolve::Res,
     typeck::ty::{Prim, Ty},
 };
 use qsc_hir::{
     hir::{
         Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, Package, Pat, PatKind,
-        Path, SetOp, Spec, SpecBody, SpecDecl, SpecGen,
+        Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen,
     },
     mut_visit::MutVisitor,
 };
@@ -177,38 +176,31 @@ impl<'a> SpecImplPass<'a> {
     }
 
     fn ctl_distrib(&mut self, spec_decl: &mut SpecDecl, block: &Block) {
-        // Create the Path that will be used when inserting controls into call args.
-        let ctls_path_id = self.context.assigner_mut().next_id();
-        let ctls_ident_id = self.context.assigner_mut().next_id();
+        let ctls_id = self.context.assigner_mut().next_id();
         self.context
             .tys_mut()
-            .insert(ctls_path_id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
-        self.context
-            .tys_mut()
-            .insert(ctls_ident_id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
-        let ctls = Path {
-            id: ctls_path_id,
-            span: spec_decl.span,
-            namespace: None,
-            name: Ident {
-                id: ctls_ident_id,
-                span: spec_decl.span,
-                name: "ctls".to_string(),
-            },
-        };
+            .insert(ctls_id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
 
-        // Add both the Ident for the controls array and the Path to the resolutions.
+        let ctls_pat = Pat {
+            id: self.context.assigner_mut().next_id(),
+            span: spec_decl.span,
+            kind: PatKind::Bind(
+                Ident {
+                    id: ctls_id,
+                    span: spec_decl.span,
+                    name: "ctls".to_string(),
+                },
+                None,
+            ),
+        };
         self.context
-            .resolutions_mut()
-            .insert(ctls.name.id, Res::Internal(ctls.name.id));
-        self.context
-            .resolutions_mut()
-            .insert(ctls.id, Res::Internal(ctls.name.id));
+            .tys_mut()
+            .insert(ctls_pat.id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
 
         // Clone the reference block and use the pass to update the calls inside.
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
-            ctls: &ctls,
+            ctls: Res::Internal(ctls_id),
             context: self.context,
             errors: Vec::new(),
         };
@@ -222,11 +214,7 @@ impl<'a> SpecImplPass<'a> {
                 id: self.context.assigner_mut().next_id(),
                 span: spec_decl.span,
                 kind: PatKind::Tuple(vec![
-                    Pat {
-                        id: self.context.assigner_mut().next_id(),
-                        span: spec_decl.span,
-                        kind: PatKind::Bind(ctls.name, None),
-                    },
+                    ctls_pat,
                     Pat {
                         id: self.context.assigner_mut().next_id(),
                         span: spec_decl.span,

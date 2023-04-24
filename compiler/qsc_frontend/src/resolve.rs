@@ -4,7 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compile::PackageId;
 use miette::Diagnostic;
 use qsc_ast::{
     ast,
@@ -12,7 +11,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
-    hir,
+    hir::{self, PackageId},
     visit::{self as hir_visit, Visitor as HirVisitor},
 };
 use std::{
@@ -27,13 +26,15 @@ const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Intrinsic",
 ];
 
-pub type Resolutions<Id> = IndexMap<Id, Res<Id>>;
+pub(super) type Resolutions = IndexMap<ast::NodeId, Res>;
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Res<Id> {
-    Internal(Id),
+pub(super) enum Res {
+    /// A resolution to a name declared in the same package as the usage.
+    Internal(ast::NodeId),
+    /// A resolution to a name declared in another package.
     External(PackageId, hir::NodeId),
 }
 
@@ -52,9 +53,9 @@ pub(super) enum Error {
 }
 
 pub(super) struct Resolver<'a> {
-    resolutions: Vec<(ast::NodeId, Res<ast::NodeId>)>,
-    tys: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
-    terms: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
+    resolutions: Resolutions,
+    tys: HashMap<&'a str, HashMap<&'a str, Res>>,
+    terms: HashMap<&'a str, HashMap<&'a str, Res>>,
     opens: HashMap<&'a str, HashMap<&'a str, Span>>,
     namespace: &'a str,
     locals: Vec<HashMap<&'a str, ast::NodeId>>,
@@ -62,8 +63,8 @@ pub(super) struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub(super) fn drain_resolutions(&mut self) -> vec::Drain<(ast::NodeId, Res<ast::NodeId>)> {
-        self.resolutions.drain(..)
+    pub(super) fn resolutions(&self) -> &Resolutions {
+        &self.resolutions
     }
 
     pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
@@ -72,27 +73,27 @@ impl<'a> Resolver<'a> {
 
     pub(super) fn add_global_callable(&mut self, decl: &'a ast::CallableDecl) {
         let res = Res::Internal(decl.name.id);
-        self.resolutions.push((decl.name.id, res));
+        self.resolutions.insert(decl.name.id, res);
         self.terms
             .entry(self.namespace)
             .or_default()
             .insert(&decl.name.name, res);
     }
 
-    pub(super) fn into_resolutions(self) -> (Resolutions<ast::NodeId>, Vec<Error>) {
-        (self.resolutions.into_iter().collect(), self.errors)
+    pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
+        (self.resolutions, self.errors)
     }
 
     fn resolve_ty(&mut self, path: &ast::Path) {
         match resolve(&self.tys, &self.opens, self.namespace, &[], path) {
-            Ok(id) => self.resolutions.push((path.id, id)),
+            Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
 
     fn resolve_term(&mut self, path: &ast::Path) {
         match resolve(&self.terms, &self.opens, self.namespace, &self.locals, path) {
-            Ok(id) => self.resolutions.push((path.id, id)),
+            Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
@@ -125,7 +126,7 @@ impl<'a> Resolver<'a> {
                     .locals
                     .last_mut()
                     .expect("binding should have environment");
-                self.resolutions.push((name.id, Res::Internal(name.id)));
+                self.resolutions.insert(name.id, Res::Internal(name.id));
                 env.insert(name.name.as_str(), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
@@ -231,9 +232,9 @@ impl<'a> AstVisitor<'a> for Resolver<'a> {
 }
 
 pub(super) struct GlobalTable<'a> {
-    resolutions: Vec<(ast::NodeId, Res<ast::NodeId>)>,
-    tys: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
-    terms: HashMap<&'a str, HashMap<&'a str, Res<ast::NodeId>>>,
+    resolutions: Resolutions,
+    tys: HashMap<&'a str, HashMap<&'a str, Res>>,
+    terms: HashMap<&'a str, HashMap<&'a str, Res>>,
     package: Option<PackageId>,
     namespace: &'a str,
 }
@@ -241,7 +242,7 @@ pub(super) struct GlobalTable<'a> {
 impl<'a> GlobalTable<'a> {
     pub(super) fn new() -> Self {
         Self {
-            resolutions: Vec::new(),
+            resolutions: Resolutions::new(),
             tys: HashMap::new(),
             terms: HashMap::new(),
             package: None,
@@ -282,7 +283,7 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
         match &item.kind {
             ast::ItemKind::Callable(decl) => {
                 let res = Res::Internal(decl.name.id);
-                self.resolutions.push((decl.name.id, res));
+                self.resolutions.insert(decl.name.id, res);
                 self.terms
                     .entry(self.namespace)
                     .or_default()
@@ -290,7 +291,7 @@ impl<'a> AstVisitor<'a> for GlobalTable<'a> {
             }
             ast::ItemKind::Ty(name, _) => {
                 let res = Res::Internal(name.id);
-                self.resolutions.push((name.id, res));
+                self.resolutions.insert(name.id, res);
                 self.tys
                     .entry(self.namespace)
                     .or_default()
@@ -345,12 +346,12 @@ impl<'a> HirVisitor<'a> for GlobalTable<'a> {
 }
 
 fn resolve(
-    globals: &HashMap<&str, HashMap<&str, Res<ast::NodeId>>>,
+    globals: &HashMap<&str, HashMap<&str, Res>>,
     opens: &HashMap<&str, HashMap<&str, Span>>,
     parent: &str,
     locals: &[HashMap<&str, ast::NodeId>],
     path: &ast::Path,
-) -> Result<Res<ast::NodeId>, Error> {
+) -> Result<Res, Error> {
     let name = path.name.name.as_str();
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     if namespace.is_empty() {
@@ -401,10 +402,10 @@ fn resolve(
 }
 
 fn resolve_implicit_opens<'a>(
-    globals: &HashMap<&str, HashMap<&str, Res<ast::NodeId>>>,
+    globals: &HashMap<&str, HashMap<&str, Res>>,
     namespaces: impl IntoIterator<Item = &'a &'a str>,
     name: &str,
-) -> HashSet<Res<ast::NodeId>> {
+) -> HashSet<Res> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
@@ -415,10 +416,10 @@ fn resolve_implicit_opens<'a>(
 }
 
 fn resolve_explicit_opens<'a>(
-    globals: &HashMap<&str, HashMap<&str, Res<ast::NodeId>>>,
+    globals: &HashMap<&str, HashMap<&str, Res>>,
     namespaces: impl IntoIterator<Item = (&'a &'a str, &'a Span)>,
     name: &str,
-) -> HashMap<Res<ast::NodeId>, Span> {
+) -> HashMap<Res, Span> {
     let mut candidates = HashMap::new();
     for (&namespace, &span) in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {

@@ -7,7 +7,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner,
-    ast::{Ident, NodeId, Package, Path},
+    ast::{Ident, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -15,12 +15,12 @@ use qsc_data_structures::span::Span;
 use std::fmt::Write;
 
 struct Renamer<'a> {
-    resolutions: &'a Resolutions<NodeId>,
-    changes: Vec<(Span, Res<NodeId>)>,
+    resolutions: &'a Resolutions,
+    changes: Vec<(Span, Res)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(resolutions: &'a Resolutions<NodeId>) -> Self {
+    fn new(resolutions: &'a Resolutions) -> Self {
         Self {
             resolutions,
             changes: Vec::new(),

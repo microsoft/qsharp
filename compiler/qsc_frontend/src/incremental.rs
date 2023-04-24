@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
-    compile::{PackageId, PackageStore},
+    compile::PackageStore,
     lower::Lowerer,
     parse,
-    resolve::{self, GlobalTable, Res, Resolutions, Resolver},
+    resolve::{self, GlobalTable, Resolver},
 };
 use miette::Diagnostic;
 use qsc_ast::{
@@ -14,8 +14,10 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::Visitor as AstVisitor,
 };
-use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::{hir, visit::Visitor as HirVisitor};
+use qsc_hir::{
+    hir::{self, PackageId},
+    visit::Visitor as HirVisitor,
+};
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -41,7 +43,6 @@ pub enum Fragment {
 pub struct Compiler<'a> {
     assigner: Assigner,
     resolver: Resolver<'a>,
-    resolutions: Resolutions<hir::NodeId>,
     scope: HashMap<&'a str, NodeId>,
     lowerer: Lowerer,
 }
@@ -60,15 +61,9 @@ impl<'a> Compiler<'a> {
         Self {
             assigner: Assigner::new(),
             resolver: globals.into_resolver(),
-            resolutions: IndexMap::new(),
             scope: HashMap::new(),
             lowerer: Lowerer::new(),
         }
-    }
-
-    #[must_use]
-    pub fn resolutions(&self) -> &Resolutions<hir::NodeId> {
-        &self.resolutions
     }
 
     /// Compile a single string as either a callable declaration or a statement into a `Fragment`.
@@ -117,8 +112,11 @@ impl<'a> Compiler<'a> {
             .map(|e| Error(ErrorKind::Resolve(e)))
             .collect();
 
-        let decl = self.lowerer.lower_callable_decl(decl);
-        self.lower_resolutions();
+        let decl = self
+            .lowerer
+            .with(self.resolver.resolutions())
+            .lower_callable_decl(decl);
+
         if errors.is_empty() {
             Fragment::Callable(decl)
         } else {
@@ -139,27 +137,15 @@ impl<'a> Compiler<'a> {
             .map(|e| Error(ErrorKind::Resolve(e)))
             .collect();
 
-        let stmt = self.lowerer.lower_stmt(stmt);
-        self.lower_resolutions();
+        let stmt = self
+            .lowerer
+            .with(self.resolver.resolutions())
+            .lower_stmt(stmt);
+
         if errors.is_empty() {
             Fragment::Stmt(stmt)
         } else {
             Fragment::Error(errors)
-        }
-    }
-
-    fn lower_resolutions(&mut self) {
-        for (id, res) in self.resolver.drain_resolutions() {
-            let Some(id) = self.lowerer.get_id(id) else { continue; };
-            let res = match res {
-                Res::Internal(node) => Res::Internal(
-                    self.lowerer
-                        .get_id(node)
-                        .expect("lowered node should not resolve to deleted node"),
-                ),
-                Res::External(package, node) => Res::External(package, node),
-            };
-            self.resolutions.insert(id, res);
         }
     }
 }

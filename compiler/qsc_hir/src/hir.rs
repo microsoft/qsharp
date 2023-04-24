@@ -81,6 +81,48 @@ impl From<usize> for NodeId {
     }
 }
 
+/// A unique identifier for a package within a package store.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct PackageId(usize);
+
+impl PackageId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for PackageId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<PackageId> for usize {
+    fn from(value: PackageId) -> Self {
+        value.0
+    }
+}
+
+impl From<usize> for PackageId {
+    fn from(value: usize) -> Self {
+        PackageId(value)
+    }
+}
+
+/// A resolution. This connects a usage of a name with the declaration of that name by uniquely
+/// identifying the node that declared it.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum Res {
+    /// A resolution to a name declared in the same package as the usage.
+    Internal(NodeId),
+    /// A resolution to a name declared in another package.
+    External(PackageId, NodeId),
+    /// An unresolved name.
+    Err,
+}
+
 /// The root node of the HIR.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Package {
@@ -518,10 +560,10 @@ pub enum TyKind {
     Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
     /// An unspecified type, `_`, which may be inferred.
     Hole,
+    /// A resolved name.
+    Name(Res),
     /// A type wrapped in parentheses.
     Paren(Box<Ty>),
-    /// A named type.
-    Path(Path),
     /// A primitive type.
     Prim(TyPrim),
     /// A tuple type.
@@ -545,8 +587,8 @@ impl Display for TyKind {
                 }
             }
             TyKind::Hole => write!(indent, "Hole")?,
+            TyKind::Name(res) => write!(indent, "Name: {res:?}")?,
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
-            TyKind::Path(p) => write!(indent, "Path: {p}")?,
             TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
@@ -715,10 +757,10 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
+    /// A resolved name.
+    Name(Res),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
-    /// A path: `a` or `a.b`.
-    Path(Path),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
@@ -759,8 +801,8 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
+            ExprKind::Name(res) => write!(indent, "Name: {res:?}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
-            ExprKind::Path(p) => write!(indent, "Path: {p}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
@@ -1132,30 +1174,6 @@ impl Display for QubitInitKind {
                     }
                 }
             }
-        }
-        Ok(())
-    }
-}
-
-/// A path to a declaration.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Path {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The namespace.
-    pub namespace: Option<Ident>,
-    /// The declaration name.
-    pub name: Ident,
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
-        } else {
-            write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
         }
         Ok(())
     }

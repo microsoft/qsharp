@@ -8,7 +8,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
         self, Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId,
-        Package, Pat, Path, QubitInit, SpecDecl, Stmt, TyDef,
+        Package, Pat, QubitInit, SpecDecl, Stmt, TyDef,
     },
     visit::{self, Visitor},
 };
@@ -84,11 +84,6 @@ impl Visitor<'_> for SpanCollector {
     fn visit_qubit_init(&mut self, init: &QubitInit) {
         self.0.insert(init.id, init.span);
         visit::walk_qubit_init(self, init);
-    }
-
-    fn visit_path(&mut self, path: &Path) {
-        self.0.insert(path.id, path.span);
-        visit::walk_path(self, path);
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
@@ -239,14 +234,14 @@ fn call_function() {
             #11 46-51 "{ x }" : Int
             #12 48-49 "x" : Int
             #13 48-49 "x" : Int
-            #18 65-68 "Bar" : (()) -> (Int)
-            #19 68-70 "()" : ()
-            #21 77-87 "{ Foo(4) }" : Int
-            #22 79-85 "Foo(4)" : Int
-            #23 79-85 "Foo(4)" : Int
-            #24 79-82 "Foo" : (Int) -> (Int)
-            #27 82-85 "(4)" : Int
-            #28 83-84 "4" : Int
+            #16 65-68 "Bar" : (()) -> (Int)
+            #17 68-70 "()" : ()
+            #19 77-87 "{ Foo(4) }" : Int
+            #20 79-85 "Foo(4)" : Int
+            #21 79-85 "Foo(4)" : Int
+            #22 79-82 "Foo" : (Int) -> (Int)
+            #23 82-85 "(4)" : Int
+            #24 83-84 "4" : Int
         "##]],
     );
 }
@@ -269,14 +264,14 @@ fn call_generic_identity() {
             #14 53-58 "{ x }" : 'T
             #15 55-56 "x" : 'T
             #16 55-56 "x" : 'T
-            #21 72-75 "Foo" : (()) -> (Int)
-            #22 75-77 "()" : ()
-            #24 84-99 "{ Identity(4) }" : Int
-            #25 86-97 "Identity(4)" : Int
-            #26 86-97 "Identity(4)" : Int
-            #27 86-94 "Identity" : (Int) -> (Int)
-            #30 94-97 "(4)" : Int
-            #31 95-96 "4" : Int
+            #19 72-75 "Foo" : (()) -> (Int)
+            #20 75-77 "()" : ()
+            #22 84-99 "{ Identity(4) }" : Int
+            #23 86-97 "Identity(4)" : Int
+            #24 86-97 "Identity(4)" : Int
+            #25 86-94 "Identity" : (Int) -> (Int)
+            #26 94-97 "(4)" : Int
+            #27 95-96 "4" : Int
         "##]],
     );
 }
@@ -289,11 +284,11 @@ fn call_generic_length() {
         &expect![[r##"
             #1 0-27 "Length([true, false, true])" : Int
             #2 0-6 "Length" : ((Bool)[]) -> (Int)
-            #5 6-27 "([true, false, true])" : (Bool)[]
-            #6 7-26 "[true, false, true]" : (Bool)[]
-            #7 8-12 "true" : Bool
-            #8 14-19 "false" : Bool
-            #9 21-25 "true" : Bool
+            #3 6-27 "([true, false, true])" : (Bool)[]
+            #4 7-26 "[true, false, true]" : (Bool)[]
+            #5 8-12 "true" : Bool
+            #6 14-19 "false" : Bool
+            #7 21-25 "true" : Bool
         "##]],
     );
 }
@@ -329,8 +324,8 @@ fn int_as_double_error() {
         &expect![[r##"
             #1 0-44 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
             #2 0-37 "Microsoft.Quantum.Convert.IntAsDouble" : (Int) -> (Double)
-            #6 37-44 "(false)" : Bool
-            #7 38-43 "false" : Bool
+            #3 37-44 "(false)" : Bool
+            #4 38-43 "false" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 0, hi: 44 }))))
         "##]],
     );
@@ -344,11 +339,11 @@ fn length_type_error() {
         &expect![[r##"
             #1 0-17 "Length((1, 2, 3))" : Int
             #2 0-6 "Length" : ((?0)[]) -> (Int)
-            #5 6-17 "((1, 2, 3))" : (Int, Int, Int)
-            #6 7-16 "(1, 2, 3)" : (Int, Int, Int)
-            #7 8-9 "1" : Int
-            #8 11-12 "2" : Int
-            #9 14-15 "3" : Int
+            #3 6-17 "((1, 2, 3))" : (Int, Int, Int)
+            #4 7-16 "(1, 2, 3)" : (Int, Int, Int)
+            #5 8-9 "1" : Int
+            #6 11-12 "2" : Int
+            #7 14-15 "3" : Int
             Error(Type(Error(TypeMismatch(Array(Var(Var(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
         "##]],
     );
@@ -374,8 +369,8 @@ fn single_arg_for_tuple() {
             #7 27-33 "Ry(q);" : ()
             #8 27-32 "Ry(q)" : ()
             #9 27-29 "Ry" : ((Double, Qubit)) => (()) is Adj + Ctl
-            #12 29-32 "(q)" : Qubit
-            #13 30-31 "q" : Qubit
+            #10 29-32 "(q)" : Qubit
+            #11 30-31 "q" : Qubit
             Error(Type(Error(TypeMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 27, hi: 32 }))))
         "##]],
     );
@@ -433,9 +428,9 @@ fn assignop_error() {
             #7 29-40 "set x += 1;" : ()
             #8 29-39 "set x += 1" : ()
             #9 33-34 "x" : Bool
-            #12 38-39 "1" : Int
-            #13 45-46 "x" : Bool
-            #14 45-46 "x" : Bool
+            #10 38-39 "1" : Int
+            #11 45-46 "x" : Bool
+            #12 45-46 "x" : Bool
             Error(Type(Error(TypeMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 }))))
             Error(Type(Error(MissingClass(Add(Prim(Bool)), Span { lo: 33, hi: 34 }))))
         "##]],
@@ -506,7 +501,7 @@ fn binop_equal_callable() {
             #14 68-70 "{}" : ()
             #15 73-89 "Test.A == Test.B" : Bool
             #16 73-79 "Test.A" : (()) -> (())
-            #20 83-89 "Test.B" : (()) -> (())
+            #17 83-89 "Test.B" : (()) -> (())
             Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 }))))
         "##]],
     );
@@ -701,13 +696,13 @@ fn set_tuple_arity_error() {
             #13 35-57 "set (x, y) = (1, 2, 3)" : ()
             #14 39-45 "(x, y)" : (Int, Int)
             #15 40-41 "x" : Int
-            #18 43-44 "y" : Int
-            #21 48-57 "(1, 2, 3)" : (Int, Int, Int)
-            #22 49-50 "1" : Int
-            #23 52-53 "2" : Int
-            #24 55-56 "3" : Int
-            #25 63-64 "x" : Int
-            #26 63-64 "x" : Int
+            #16 43-44 "y" : Int
+            #17 48-57 "(1, 2, 3)" : (Int, Int, Int)
+            #18 49-50 "1" : Int
+            #19 52-53 "2" : Int
+            #20 55-56 "3" : Int
+            #21 63-64 "x" : Int
+            #22 63-64 "x" : Int
             Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 }))))
         "##]],
     );
@@ -800,6 +795,94 @@ fn if_no_else_must_be_unit() {
             #4 10-11 "4" : Int
             #5 10-11 "4" : Int
             Error(Type(Error(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn if_else_fail() {
+    check(
+        "",
+        r#"if false {} else { fail "error"; }"#,
+        &expect![[r##"
+            #1 0-34 "if false {} else { fail \"error\"; }" : ()
+            #2 3-8 "false" : Bool
+            #3 9-11 "{}" : ()
+            #4 12-34 "else { fail \"error\"; }" : ()
+            #5 17-34 "{ fail \"error\"; }" : ()
+            #6 19-32 "fail \"error\";" : ()
+            #7 19-31 "fail \"error\"" : ?0
+            #8 24-31 "\"error\"" : String
+        "##]],
+    );
+}
+
+#[test]
+fn if_cond_fail() {
+    check(
+        indoc! {r#"
+            namespace A {
+                function F() : Int {
+                    if fail "error" {
+                        "this type doesn't matter"
+                    } else {
+                        "foo"
+                    }
+                }
+            }
+        "#},
+        "",
+        &expect![[r##"
+            #5 27-28 "F" : (()) -> (Int)
+            #6 28-30 "()" : ()
+            #8 37-154 "{\n        if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }\n    }" : Int
+            #9 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
+            #10 47-148 "if fail \"error\" {\n            \"this type doesn't matter\"\n        } else {\n            \"foo\"\n        }" : Int
+            #11 50-62 "fail \"error\"" : Bool
+            #12 55-62 "\"error\"" : String
+            #13 63-113 "{\n            \"this type doesn't matter\"\n        }" : String
+            #14 77-103 "\"this type doesn't matter\"" : String
+            #15 77-103 "\"this type doesn't matter\"" : String
+            #16 114-148 "else {\n            \"foo\"\n        }" : String
+            #17 119-148 "{\n            \"foo\"\n        }" : String
+            #18 133-138 "\"foo\"" : String
+            #19 133-138 "\"foo\"" : String
+        "##]],
+    );
+}
+
+#[test]
+fn if_all_diverge() {
+    check(
+        indoc! {r#"
+            namespace A {
+                function F() : Int {
+                    if fail "cond" {
+                        fail "true"
+                    } else {
+                        fail "false"
+                    }
+                }
+            }
+        "#},
+        "",
+        &expect![[r##"
+            #5 27-28 "F" : (()) -> (Int)
+            #6 28-30 "()" : ()
+            #8 37-145 "{\n        if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }\n    }" : Int
+            #9 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
+            #10 47-139 "if fail \"cond\" {\n            fail \"true\"\n        } else {\n            fail \"false\"\n        }" : Int
+            #11 50-61 "fail \"cond\"" : Bool
+            #12 55-61 "\"cond\"" : String
+            #13 62-97 "{\n            fail \"true\"\n        }" : Int
+            #14 76-87 "fail \"true\"" : Int
+            #15 76-87 "fail \"true\"" : Int
+            #16 81-87 "\"true\"" : String
+            #17 98-139 "else {\n            fail \"false\"\n        }" : Int
+            #18 103-139 "{\n            fail \"false\"\n        }" : Int
+            #19 117-129 "fail \"false\"" : Int
+            #20 117-129 "fail \"false\"" : Int
+            #21 122-129 "\"false\"" : String
         "##]],
     );
 }
@@ -993,10 +1076,10 @@ fn call_controlled() {
             #32 169-195 "Controlled A.Foo([q1], q2)" : ()
             #33 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
             #34 180-185 "A.Foo" : (Qubit) => (()) is Ctl
-            #38 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
-            #39 186-190 "[q1]" : (Qubit)[]
-            #40 187-189 "q1" : Qubit
-            #43 192-194 "q2" : Qubit
+            #35 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
+            #36 186-190 "[q1]" : (Qubit)[]
+            #37 187-189 "q1" : Qubit
+            #38 192-194 "q2" : Qubit
         "##]],
     );
 }
@@ -1051,13 +1134,13 @@ fn call_controlled_nested() {
             #37 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit))) => (()) is Ctl
             #38 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
             #39 213-218 "A.Foo" : (Qubit) => (()) is Ctl
-            #43 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
-            #44 219-223 "[q1]" : (Qubit)[]
-            #45 220-222 "q1" : Qubit
-            #48 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
-            #49 226-230 "[q2]" : (Qubit)[]
-            #50 227-229 "q2" : Qubit
-            #53 232-234 "q3" : Qubit
+            #40 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
+            #41 219-223 "[q1]" : (Qubit)[]
+            #42 220-222 "q1" : Qubit
+            #43 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
+            #44 226-230 "[q2]" : (Qubit)[]
+            #45 227-229 "q2" : Qubit
+            #46 232-234 "q3" : Qubit
         "##]],
     );
 }
@@ -1101,10 +1184,10 @@ fn call_controlled_error() {
             #28 146-170 "Controlled A.Foo([1], q)" : ()
             #29 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit)) => (()) is Ctl
             #30 157-162 "A.Foo" : (Qubit) => (()) is Ctl
-            #34 162-170 "([1], q)" : ((Int)[], Qubit)
-            #35 163-166 "[1]" : (Int)[]
-            #36 164-165 "1" : Int
-            #37 168-169 "q" : Qubit
+            #31 162-170 "([1], q)" : ((Int)[], Qubit)
+            #32 163-166 "[1]" : (Int)[]
+            #33 164-165 "1" : Int
+            #34 168-169 "q" : Qubit
             Error(Type(Error(TypeMismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 }))))
         "##]],
     );
@@ -1185,8 +1268,8 @@ fn fail_diverges() {
             #1 0-42 "if true {\n    fail \"true\"\n} else {\n    4\n}" : Int
             #2 3-7 "true" : Bool
             #3 8-27 "{\n    fail \"true\"\n}" : Int
-            #4 14-25 "fail \"true\"" : ?1
-            #5 14-25 "fail \"true\"" : ?0
+            #4 14-25 "fail \"true\"" : Int
+            #5 14-25 "fail \"true\"" : Int
             #6 19-25 "\"true\"" : String
             #7 28-42 "else {\n    4\n}" : Int
             #8 33-42 "{\n    4\n}" : Int
@@ -1223,16 +1306,16 @@ fn return_diverges() {
             #14 61-62 "x" : Bool
             #15 65-136 "if x {\n            return 1\n        } else {\n            true\n        }" : Bool
             #16 68-69 "x" : Bool
-            #19 70-102 "{\n            return 1\n        }" : Bool
-            #20 84-92 "return 1" : ?2
-            #21 84-92 "return 1" : ?1
-            #22 91-92 "1" : Int
-            #23 103-136 "else {\n            true\n        }" : Bool
-            #24 108-136 "{\n            true\n        }" : Bool
-            #25 122-126 "true" : Bool
-            #26 122-126 "true" : Bool
-            #27 146-147 "2" : Int
-            #28 146-147 "2" : Int
+            #17 70-102 "{\n            return 1\n        }" : Bool
+            #18 84-92 "return 1" : Bool
+            #19 84-92 "return 1" : Bool
+            #20 91-92 "1" : Int
+            #21 103-136 "else {\n            true\n        }" : Bool
+            #22 108-136 "{\n            true\n        }" : Bool
+            #23 122-126 "true" : Bool
+            #24 122-126 "true" : Bool
+            #25 146-147 "2" : Int
+            #26 146-147 "2" : Int
         "##]],
     );
 }
@@ -1258,11 +1341,11 @@ fn return_diverges_stmt_after() {
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
             #11 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #12 57-116 "let x = {\n            return 1;\n            true\n        };" : ?5
+            #12 57-116 "let x = {\n            return 1;\n            true\n        };" : ?4
             #13 61-62 "x" : ?0
             #14 61-62 "x" : ?0
             #15 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #16 65-115 "{\n            return 1;\n            true\n        }" : ?3
+            #16 65-115 "{\n            return 1;\n            true\n        }" : ?0
             #17 79-88 "return 1;" : ?2
             #18 79-87 "return 1" : ?1
             #19 86-87 "1" : Int
@@ -1291,10 +1374,152 @@ fn return_mismatch() {
             #7 31-39 "x : Bool" : Bool
             #8 31-32 "x" : Bool
             #11 47-75 "{\n        return true;\n    }" : Int
-            #12 57-69 "return true;" : ?1
+            #12 57-69 "return true;" : Int
             #13 57-68 "return true" : ?0
             #14 64-68 "true" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn array_length_field_is_int() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Int {
+                    x::Length
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : ((Qubit)[]) -> (Int)
+            #6 30-43 "(x : Qubit[])" : (Qubit)[]
+            #7 31-42 "x : Qubit[]" : (Qubit)[]
+            #8 31-32 "x" : (Qubit)[]
+            #12 50-75 "{\n        x::Length\n    }" : Int
+            #13 60-69 "x::Length" : Int
+            #14 60-69 "x::Length" : Int
+            #15 60-61 "x" : (Qubit)[]
+        "##]],
+    );
+}
+
+#[test]
+fn array_length_generic_is_int() {
+    check(
+        indoc! {"
+            namespace A {
+                function Length<'T>(a : 'T[]) : Int {
+                    a::Length
+                }
+                function Foo(x : Qubit[]) : Int {
+                    Length(x)
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-33 "Length" : (('T)[]) -> (Int)
+            #7 37-47 "(a : 'T[])" : ('T)[]
+            #8 38-46 "a : 'T[]" : ('T)[]
+            #9 38-39 "a" : ('T)[]
+            #14 54-79 "{\n        a::Length\n    }" : Int
+            #15 64-73 "a::Length" : Int
+            #16 64-73 "a::Length" : Int
+            #17 64-65 "a" : ('T)[]
+            #21 93-96 "Foo" : ((Qubit)[]) -> (Int)
+            #22 96-109 "(x : Qubit[])" : (Qubit)[]
+            #23 97-108 "x : Qubit[]" : (Qubit)[]
+            #24 97-98 "x" : (Qubit)[]
+            #28 116-141 "{\n        Length(x)\n    }" : Int
+            #29 126-135 "Length(x)" : Int
+            #30 126-135 "Length(x)" : Int
+            #31 126-132 "Length" : ((Qubit)[]) -> (Int)
+            #32 132-135 "(x)" : (Qubit)[]
+            #33 133-134 "x" : (Qubit)[]
+        "##]],
+    );
+}
+
+#[test]
+fn array_length_field_used_as_double_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Double {
+                    x::Length * 2.0
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : ((Qubit)[]) -> (Double)
+            #6 30-43 "(x : Qubit[])" : (Qubit)[]
+            #7 31-42 "x : Qubit[]" : (Qubit)[]
+            #8 31-32 "x" : (Qubit)[]
+            #12 53-84 "{\n        x::Length * 2.0\n    }" : Double
+            #13 63-78 "x::Length * 2.0" : Double
+            #14 63-78 "x::Length * 2.0" : Double
+            #15 63-72 "x::Length" : Double
+            #16 63-64 "x" : (Qubit)[]
+            #18 75-78 "2.0" : Double
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 63, hi: 72 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn array_unknown_field_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Qubit[]) : Int {
+                    x::Size
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : ((Qubit)[]) -> (Int)
+            #6 30-43 "(x : Qubit[])" : (Qubit)[]
+            #7 31-42 "x : Qubit[]" : (Qubit)[]
+            #8 31-32 "x" : (Qubit)[]
+            #12 50-73 "{\n        x::Size\n    }" : Int
+            #13 60-67 "x::Size" : Int
+            #14 60-67 "x::Size" : Int
+            #15 60-61 "x" : (Qubit)[]
+            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Var(Var(0)) }, Span { lo: 60, hi: 67 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_fields_are_int() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(r : Range) : (Int, Int, Int) {
+                    (r::Start, r::Step, r::End)
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 27-30 "Foo" : (Range) -> ((Int, Int, Int))
+            #6 30-41 "(r : Range)" : Range
+            #7 31-40 "r : Range" : Range
+            #8 31-32 "r" : Range
+            #14 60-103 "{\n        (r::Start, r::Step, r::End)\n    }" : (Int, Int, Int)
+            #15 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
+            #16 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
+            #17 71-79 "r::Start" : Int
+            #18 71-72 "r" : Range
+            #20 81-88 "r::Step" : Int
+            #21 81-82 "r" : Range
+            #23 90-96 "r::End" : Int
+            #24 90-91 "r" : Range
         "##]],
     );
 }
