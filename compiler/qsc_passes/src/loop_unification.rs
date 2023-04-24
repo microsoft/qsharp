@@ -7,7 +7,7 @@ use std::mem::take;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, Path, Stmt,
+        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, Res, Stmt,
         StmtKind, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
@@ -23,11 +23,11 @@ impl LoopUni {
         LoopUni { gen_id_count: 0 }
     }
 
-    fn gen_ident(&mut self, span: Span) -> Ident {
+    fn gen_ident(&mut self, label: String, span: Span) -> Ident {
         let new_id = Ident {
             id: NodeId::default(),
             span,
-            name: format!("__continue_cond_{}__", self.gen_id_count),
+            name: format!("__{}_{}__", label, self.gen_id_count),
         };
         self.gen_id_count += 1;
         new_id
@@ -43,7 +43,7 @@ impl LoopUni {
     ) -> Expr {
         let cond_span = cond.span;
 
-        let continue_cond_id = self.gen_ident(cond_span);
+        let continue_cond_id = self.gen_ident("continue_cond".to_owned(), cond_span);
         let continue_cond_init = LoopUni::gen_id_init(
             Mutability::Mutable,
             continue_cond_id.clone(),
@@ -118,11 +118,11 @@ impl LoopUni {
     ) -> Expr {
         let iterable_span = iterable.span;
 
-        let array_id = self.gen_ident(iterable_span);
+        let array_id = self.gen_ident("array_id".to_owned(), iterable_span);
         let array_capture =
             LoopUni::gen_id_init(Mutability::Immutable, array_id.clone(), *iterable);
 
-        let len_id = self.gen_ident(iterable_span);
+        let len_id = self.gen_ident("len_id".to_owned(), iterable_span);
         let len_capture = LoopUni::gen_id_init(
             Mutability::Immutable,
             len_id.clone(),
@@ -133,7 +133,7 @@ impl LoopUni {
             ),
         );
 
-        let index_id = self.gen_ident(iterable_span);
+        let index_id = self.gen_ident("index_id".to_owned(), iterable_span);
         let index_init = LoopUni::gen_id_init(
             Mutability::Mutable,
             index_id.clone(),
@@ -214,11 +214,11 @@ impl LoopUni {
     ) -> Expr {
         let iterable_span = iterable.span;
 
-        let range_id = self.gen_ident(iterable_span);
+        let range_id = self.gen_ident("range_id".to_owned(), iterable_span);
         let range_capture =
             LoopUni::gen_id_init(Mutability::Immutable, range_id.clone(), *iterable);
 
-        let index_id = self.gen_ident(iterable_span);
+        let index_id = self.gen_ident("index_id".to_owned(), iterable_span);
         let index_init = LoopUni::gen_id_init(
             Mutability::Mutable,
             index_id.clone(),
@@ -229,7 +229,7 @@ impl LoopUni {
             ),
         );
 
-        let step_id = self.gen_ident(iterable_span);
+        let step_id = self.gen_ident("step_id".to_owned(), iterable_span);
         let step_init = LoopUni::gen_id_init(
             Mutability::Immutable,
             step_id.clone(),
@@ -240,7 +240,7 @@ impl LoopUni {
             ),
         );
 
-        let end_id = self.gen_ident(iterable_span);
+        let end_id = self.gen_ident("end_id".to_owned(), iterable_span);
         let end_init = LoopUni::gen_id_init(
             Mutability::Immutable,
             end_id.clone(),
@@ -358,12 +358,13 @@ impl LoopUni {
         Expr {
             id: NodeId::default(),
             span: name.span,
-            kind: ExprKind::Path(Path {
-                id: NodeId::default(),
-                span: name.span,
-                namespace,
-                name,
-            }),
+            kind: ExprKind::Name(Res::Err),
+            // kind: ExprKind::Path(Path {
+            //     id: NodeId::default(),
+            //     span: name.span,
+            //     namespace,
+            //     name,
+            // }),
         }
     }
 
