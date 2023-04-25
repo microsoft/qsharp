@@ -189,7 +189,9 @@ fn op_call_in_non_unit_block_forbidden() {
         &expect![[r#"
             [
                 NonUnitBlock(
-                    "Int",
+                    Prim(
+                        Int,
+                    ),
                     Span {
                         lo: 0,
                         hi: 26,
@@ -408,7 +410,11 @@ fn return_forbidden() {
         &expect![[r#"
             [
                 NonUnitBlock(
-                    "?1",
+                    Infer(
+                        InferId(
+                            1,
+                        ),
+                    ),
                     Span {
                         lo: 0,
                         hi: 11,
