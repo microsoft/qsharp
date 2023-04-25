@@ -1283,16 +1283,21 @@ impl From<InferId> for usize {
     }
 }
 
+/// A unique identifier for a field within a type.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct FieldId(u32);
 
 impl FieldId {
+    /// The `Length` field for array types.
     pub const ARRAY_LENGTH: Self = FieldId(0);
 
+    /// The `Start` field for range types.
     pub const RANGE_START: Self = FieldId(0);
 
+    /// The `Step` field for range types.
     pub const RANGE_STEP: Self = FieldId(1);
 
+    /// The `End` field for range types.
     pub const RANGE_END: Self = FieldId(2);
 }
 

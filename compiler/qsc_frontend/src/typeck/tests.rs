@@ -1354,6 +1354,50 @@ fn range_to_field_start() {
 }
 
 #[test]
+fn range_to_field_step() {
+    check(
+        "",
+        "(...2..8)::Step",
+        &expect![[r##"
+            #0 0-15 "(...2..8)::Step" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_to_field_end() {
+    check(
+        "",
+        "(...2..8)::End",
+        &expect![[r##"
+            #0 0-14 "(...2..8)::End" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_from_field_start() {
+    check(
+        "",
+        "(0..2...)::Start",
+        &expect![[r##"
+            #0 0-16 "(0..2...)::Start" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_from_field_step() {
+    check(
+        "",
+        "(0..2...)::Step",
+        &expect![[r##"
+            #0 0-15 "(0..2...)::Step" : Int
+        "##]],
+    );
+}
+
+#[test]
 fn range_from_field_end() {
     check(
         "",
@@ -1361,6 +1405,52 @@ fn range_from_field_end() {
         &expect![[r##"
             #0 0-14 "(0..2...)::End" : ?0
             Error(Type(Error(MissingClass(HasField { record: Prim(RangeFrom), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 14 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_field_start() {
+    check(
+        "",
+        "...::Start",
+        &expect![[r##"
+            #0 0-10 "...::Start" : ?0
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "Start", item: Infer(InferId(0)) }, Span { lo: 0, hi: 10 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_implicit_step() {
+    check(
+        "",
+        "...::Step",
+        &expect![[r##"
+            #0 0-9 "...::Step" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_explicit_step() {
+    check(
+        "",
+        "(...2...)::Step",
+        &expect![[r##"
+            #0 0-15 "(...2...)::Step" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_field_end() {
+    check(
+        "",
+        "...::End",
+        &expect![[r##"
+            #0 0-8 "...::End" : ?0
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 8 }))))
         "##]],
     );
 }
