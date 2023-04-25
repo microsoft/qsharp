@@ -2245,6 +2245,37 @@ fn call_adjoint_self_expr() {
 }
 
 #[test]
+fn call_adjoint_with_range_loop_expr() {
+    check_expr(
+        indoc! {r#"
+            namespace Test {
+                function AsString<'T>(val : 'T) : String {
+                    body intrinsic;
+                }
+                operation AdjFail(i : Int) : Unit is Adj {
+                    fail AsString(i);
+                }
+                operation Foo() : Unit is Adj {
+                    for i in 0..3..8 {
+                        AdjFail(i);
+                    }
+                }
+            }
+        "#},
+        "Adjoint Test.Foo()",
+        &expect![[r#"
+            UserFail(
+                "6",
+                Span {
+                    lo: 149,
+                    hi: 165,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn check_ctls_count_expr() {
     check_expr(
         indoc! {r#"

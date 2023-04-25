@@ -3,33 +3,47 @@
 
 use std::collections::HashSet;
 
+use qsc_data_structures::span::Span;
+use qsc_frontend::compile::Context;
 use qsc_hir::{
-    hir::{Block, Expr, ExprKind, NodeId},
+    hir::{
+        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimTy, Res,
+        Stmt, StmtKind, Ty, UnOp,
+    },
     mut_visit::{walk_expr, MutVisitor},
 };
 
 use crate::logic_sep::{check_block_separatable, Error};
 
-pub(crate) fn adj_invert_block(block: &mut Block) -> Result<(), Vec<Error>> {
+pub(crate) fn adj_invert_block(context: &mut Context, block: &mut Block) -> Result<(), Vec<Error>> {
     let op_call_stmts = check_block_separatable(block)?;
-    let mut pass = BlockInverter { op_call_stmts };
+    let mut pass = BlockInverter {
+        context,
+        op_call_stmts,
+        should_reverse_loop: false,
+    };
     pass.visit_block(block);
     Ok(())
 }
 
-struct BlockInverter {
+struct BlockInverter<'a> {
+    context: &'a mut Context,
     op_call_stmts: HashSet<NodeId>,
+    should_reverse_loop: bool,
 }
 
-impl MutVisitor for BlockInverter {
+impl<'a> MutVisitor for BlockInverter<'a> {
     fn visit_block(&mut self, block: &mut Block) {
         let mut determ = Vec::new();
         let mut nondeterm = Vec::new();
         for mut stmt in block.stmts.drain(..) {
-            self.visit_stmt(&mut stmt);
             if self.op_call_stmts.contains(&stmt.id) {
+                self.should_reverse_loop = true;
+                self.visit_stmt(&mut stmt);
                 nondeterm.push(stmt);
+                self.should_reverse_loop = false;
             } else {
+                self.visit_stmt(&mut stmt);
                 determ.push(stmt);
             }
         }
@@ -39,13 +53,321 @@ impl MutVisitor for BlockInverter {
     }
 
     fn visit_expr(&mut self, expr: &mut Expr) {
-        // TODO: This should also handle the inversion of for-loop expressions.
         match &mut expr.kind {
+            ExprKind::For(pat, iterable, block) if self.should_reverse_loop => {
+                self.visit_block(block);
+                *expr = self.reverse_loop(pat, iterable, block);
+            }
             ExprKind::Conjugate(_, apply) => {
                 // Only invert the apply block, within block inversion handled by a different pass.
                 self.visit_block(apply);
             }
             _ => walk_expr(self, expr),
         }
+    }
+}
+
+impl<'a> BlockInverter<'a> {
+    fn reverse_loop(&mut self, pat: &mut Pat, iterable: &mut Expr, block: &mut Block) -> Expr {
+        let mut wrapper = Block {
+            id: NodeId::default(),
+            span: Span::default(),
+            ty: Ty::UNIT,
+            stmts: Vec::new(),
+        };
+        match &iterable.ty {
+            Ty::Prim(PrimTy::Range) => self.reverse_range_loop(&mut wrapper, iterable, pat, block),
+
+            Ty::Array(arr_ty) => {
+                self.reverse_array_loop(
+                    &mut wrapper,
+                    arr_ty,
+                    iterable.clone(),
+                    pat.clone(),
+                    block.clone(),
+                );
+            }
+
+            _ => panic!("iterable should be array or range"),
+        }
+
+        Expr {
+            id: NodeId::default(),
+            span: Span::default(),
+            ty: Ty::UNIT,
+            kind: ExprKind::Block(wrapper),
+        }
+    }
+
+    fn reverse_array_loop(
+        &mut self,
+        wrapper: &mut Block,
+        arr_ty: &Ty,
+        iterable: Expr,
+        pat: Pat,
+        mut block: Block,
+    ) {
+        // Create a new binding for the array expr.
+        let new_arr_id = self.context.assigner_mut().next_id();
+        wrapper.stmts.push(Stmt {
+            id: NodeId::default(),
+            span: Span::default(),
+            kind: StmtKind::Local(
+                Mutability::Immutable,
+                Pat {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    ty: Ty::Array(Box::new(arr_ty.clone())),
+                    kind: PatKind::Bind(Ident {
+                        id: new_arr_id,
+                        span: Span::default(),
+                        name: "generated_array".into(),
+                    }),
+                },
+                iterable,
+            ),
+        });
+
+        // Create a pattern for binding the index iterator.
+        let index_id = self.context.assigner_mut().next_id();
+        let index_pat = Pat {
+            id: NodeId::default(),
+            span: Span::default(),
+            ty: Ty::Prim(PrimTy::Int),
+            kind: PatKind::Bind(Ident {
+                id: index_id,
+                span: Span::default(),
+                name: "generated_index".into(),
+            }),
+        };
+
+        // Create a binding from the previous loop iterator variable and the array index expr.
+        let iterator_bind = Stmt {
+            id: NodeId::default(),
+            span: Span::default(),
+            kind: StmtKind::Local(
+                Mutability::Immutable,
+                pat,
+                Expr {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    ty: arr_ty.clone(),
+                    kind: ExprKind::Index(
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span: Span::default(),
+                            ty: Ty::Array(Box::new(arr_ty.clone())),
+                            kind: ExprKind::Name(Res::Local(new_arr_id)),
+                        }),
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span: Span::default(),
+                            ty: Ty::Prim(PrimTy::Int),
+                            kind: ExprKind::Name(Res::Local(index_id)),
+                        }),
+                    ),
+                },
+            ),
+        };
+
+        // Add the new binding to the front of the block statements.
+        let mut new_stmts = vec![iterator_bind];
+        new_stmts.append(&mut block.stmts);
+        block.stmts = new_stmts;
+
+        // Put in the new for-loop
+        wrapper.stmts.push(Stmt {
+            id: NodeId::default(),
+            span: Span::default(),
+            kind: StmtKind::Expr(Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::UNIT,
+                kind: ExprKind::For(
+                    index_pat,
+                    Box::new(make_array_index_range_reverse(new_arr_id, arr_ty)),
+                    block,
+                ),
+            }),
+        });
+    }
+
+    fn reverse_range_loop(
+        &mut self,
+        wrapper: &mut Block,
+        iterable: &mut Expr,
+        pat: &mut Pat,
+        block: &mut Block,
+    ) {
+        // Create a new binding for the range expr.
+        let new_range_id = self.context.assigner_mut().next_id();
+        wrapper.stmts.push(Stmt {
+            id: NodeId::default(),
+            span: Span::default(),
+            kind: StmtKind::Local(
+                Mutability::Immutable,
+                Pat {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    ty: Ty::Prim(PrimTy::Range),
+                    kind: PatKind::Bind(Ident {
+                        id: new_range_id,
+                        span: Span::default(),
+                        name: "generated_range".into(),
+                    }),
+                },
+                iterable.clone(),
+            ),
+        });
+
+        // Create the new for-loop that iterates over the reversed range.
+        wrapper.stmts.push(Stmt {
+            id: NodeId::default(),
+            span: Span::default(),
+            kind: StmtKind::Expr(Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::UNIT,
+                kind: ExprKind::For(
+                    pat.clone(),
+                    Box::new(make_range_reverse_expr(new_range_id)),
+                    block.clone(),
+                ),
+            }),
+        });
+    }
+}
+
+fn make_range_reverse_expr(range_id: NodeId) -> Expr {
+    let start = make_range_field(range_id, "Start");
+    let step = make_range_field(range_id, "Step");
+    let end = make_range_field(range_id, "End");
+
+    // A reversed range is `(start + (end - start) / step * step) .. -step .. start`.
+    let new_start = Box::new(Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::BinOp(
+            BinOp::Add,
+            Box::new(start.clone()),
+            Box::new(Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::Prim(PrimTy::Int),
+                kind: ExprKind::BinOp(
+                    BinOp::Mul,
+                    Box::new(Expr {
+                        id: NodeId::default(),
+                        span: Span::default(),
+                        ty: Ty::Prim(PrimTy::Int),
+                        kind: ExprKind::BinOp(
+                            BinOp::Div,
+                            Box::new(Expr {
+                                id: NodeId::default(),
+                                span: Span::default(),
+                                ty: Ty::Prim(PrimTy::Int),
+                                kind: ExprKind::BinOp(
+                                    BinOp::Sub,
+                                    Box::new(end),
+                                    Box::new(start.clone()),
+                                ),
+                            }),
+                            Box::new(step.clone()),
+                        ),
+                    }),
+                    Box::new(step.clone()),
+                ),
+            }),
+        ),
+    });
+    let new_step = Box::new(Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::UnOp(UnOp::Neg, Box::new(step)),
+    });
+    let new_end = Box::new(start);
+
+    Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Range),
+        kind: ExprKind::Range(Some(new_start), Some(new_step), Some(new_end)),
+    }
+}
+
+fn make_range_field(range_id: NodeId, field: &str) -> Expr {
+    Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::Field(
+            Box::new(Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::Prim(PrimTy::Range),
+                kind: ExprKind::Name(Res::Local(range_id)),
+            }),
+            Ident {
+                id: NodeId::default(),
+                span: Span::default(),
+                name: field.into(),
+            },
+        ),
+    }
+}
+
+fn make_array_index_range_reverse(arr_id: NodeId, arr_ty: &Ty) -> Expr {
+    let len = Box::new(Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::Field(
+            Box::new(Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::Array(Box::new(arr_ty.clone())),
+                kind: ExprKind::Name(Res::Local(arr_id)),
+            }),
+            Ident {
+                id: NodeId::default(),
+                span: Span::default(),
+                name: "Length".into(),
+            },
+        ),
+    });
+    let start = Box::new(Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::BinOp(
+            BinOp::Sub,
+            len,
+            Box::new(Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::Prim(PrimTy::Int),
+                kind: ExprKind::Lit(Lit::Int(1)),
+            }),
+        ),
+    });
+    let step = Box::new(Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::Lit(Lit::Int(-1)),
+    });
+    let end = Box::new(Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::Lit(Lit::Int(0)),
+    });
+    Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        ty: Ty::Prim(PrimTy::Range),
+        kind: ExprKind::Range(Some(start), Some(step), Some(end)),
     }
 }

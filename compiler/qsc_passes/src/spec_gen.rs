@@ -208,7 +208,7 @@ impl<'a> SpecImplPass<'a> {
     fn adj_invert(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
         // Clone the reference block and use the pass to update the calls inside.
         let mut adj_block = block.clone();
-        if let Err(invert_errors) = adj_invert_block(&mut adj_block) {
+        if let Err(invert_errors) = adj_invert_block(self.context, &mut adj_block) {
             self.errors.extend(
                 invert_errors
                     .into_iter()
