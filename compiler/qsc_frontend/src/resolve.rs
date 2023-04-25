@@ -44,15 +44,20 @@ pub(super) enum Res {
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
-    NotFound(String, #[label("not found")] Span),
+    NotFound(String, #[label] Span),
 
-    #[error("`{0}` is ambiguous")]
-    Ambiguous(
-        String,
-        #[label("ambiguous name")] Span,
-        #[label("could refer to the item in this namespace")] Span,
-        #[label("could also refer to the item in this namespace")] Span,
-    ),
+    #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
+    Ambiguous {
+        name: String,
+        first_open: String,
+        second_open: String,
+        #[label("ambiguous name")]
+        name_span: Span,
+        #[label("found in this namespace")]
+        first_open_span: Span,
+        #[label("and also in this namespace")]
+        second_open_span: Span,
+    },
 }
 
 pub(super) struct Resolver {
@@ -413,14 +418,16 @@ fn resolve(
     }
 
     if open_candidates.len() > 1 {
-        let mut spans: Vec<_> = open_candidates.into_values().collect();
-        spans.sort();
-        Err(Error::Ambiguous(
-            name.to_string(),
-            path.span,
-            spans[0],
-            spans[1],
-        ))
+        let mut namespaces: Vec<_> = open_candidates.into_values().collect();
+        namespaces.sort_unstable_by_key(|n| n.1);
+        Err(Error::Ambiguous {
+            name: name.to_string(),
+            first_open: namespaces[0].0.to_string(),
+            second_open: namespaces[1].0.to_string(),
+            name_span: path.span,
+            first_open_span: *namespaces[0].1,
+            second_open_span: *namespaces[1].1,
+        })
     } else {
         single(open_candidates.into_keys())
             .ok_or_else(|| Error::NotFound(name.to_string(), path.span))
@@ -435,8 +442,8 @@ fn resolve_implicit_opens(
     let mut candidates = HashSet::new();
     for namespace in namespaces {
         let namespace = namespace.as_ref();
-        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(id);
+        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
+            candidates.insert(res);
         }
     }
     candidates
@@ -444,14 +451,13 @@ fn resolve_implicit_opens(
 
 fn resolve_explicit_opens<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    namespaces: impl IntoIterator<Item = (impl AsRef<str>, &'a Span)>,
+    namespaces: impl IntoIterator<Item = (&'a Rc<str>, &'a Span)>,
     name: &str,
-) -> HashMap<Res, Span> {
+) -> HashMap<Res, (&'a Rc<str>, &'a Span)> {
     let mut candidates = HashMap::new();
-    for (namespace, &span) in namespaces {
-        let namespace = namespace.as_ref();
-        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(id, span);
+    for (namespace, span) in namespaces {
+        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
+            candidates.insert(res, (namespace, span));
         }
     }
     candidates

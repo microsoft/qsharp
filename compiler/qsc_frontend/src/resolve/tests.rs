@@ -827,7 +827,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Ambiguous("A", Span { lo: 171, hi: 172 }, Span { lo: 117, hi: 120 }, Span { lo: 131, hi: 134 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 171, hi: 172 }, first_open_span: Span { lo: 117, hi: 120 }, second_open_span: Span { lo: 131, hi: 134 } }
         "#]],
     );
 }
@@ -867,7 +867,7 @@ fn open_ambiguous_tys() {
                 function item5(local28 : A) : Unit {}
             }
 
-            // Ambiguous("A", Span { lo: 146, hi: 147 }, Span { lo: 107, hi: 110 }, Span { lo: 121, hi: 124 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 146, hi: 147 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 121, hi: 124 } }
         "#]],
     );
 }
@@ -911,7 +911,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Ambiguous("A", Span { lo: 189, hi: 196 }, Span { lo: 117, hi: 120 }, Span { lo: 140, hi: 143 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 189, hi: 196 }, first_open_span: Span { lo: 117, hi: 120 }, second_open_span: Span { lo: 140, hi: 143 } }
         "#]],
     );
 }
@@ -951,7 +951,7 @@ fn merged_aliases_ambiguous_tys() {
                 function item5(local30 : Alias.A) : Unit {}
             }
 
-            // Ambiguous("A", Span { lo: 164, hi: 171 }, Span { lo: 107, hi: 110 }, Span { lo: 130, hi: 133 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 164, hi: 171 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 130, hi: 133 } }
         "#]],
     );
 }

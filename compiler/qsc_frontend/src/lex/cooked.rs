@@ -36,12 +36,7 @@ pub(crate) struct Token {
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub(crate) enum Error {
     #[error("expected `{0}` to complete {1}, found {2}")]
-    Incomplete(
-        raw::Single,
-        TokenKind,
-        raw::TokenKind,
-        #[label("expected `{0}`")] Span,
-    ),
+    Incomplete(raw::Single, TokenKind, raw::TokenKind, #[label] Span),
 
     #[error("expected `{0}` to complete {1}, found EOF")]
     IncompleteEof(raw::Single, TokenKind, #[label] Span),
@@ -50,7 +45,7 @@ pub(crate) enum Error {
     UnterminatedString(#[label] Span),
 
     #[error("unrecognized character `{0}`")]
-    Unknown(char, #[label("unrecognized character")] Span),
+    Unknown(char, #[label] Span),
 }
 
 /// A token kind.
