@@ -1360,6 +1360,10 @@ fn range_to_field_step() {
         "(...2..8)::Step",
         &expect![[r##"
             #0 0-15 "(...2..8)::Step" : Int
+            #1 0-9 "(...2..8)" : RangeTo
+            #2 1-8 "...2..8" : RangeTo
+            #3 4-5 "2" : Int
+            #4 7-8 "8" : Int
         "##]],
     );
 }
@@ -1371,6 +1375,10 @@ fn range_to_field_end() {
         "(...2..8)::End",
         &expect![[r##"
             #0 0-14 "(...2..8)::End" : Int
+            #1 0-9 "(...2..8)" : RangeTo
+            #2 1-8 "...2..8" : RangeTo
+            #3 4-5 "2" : Int
+            #4 7-8 "8" : Int
         "##]],
     );
 }
@@ -1382,6 +1390,10 @@ fn range_from_field_start() {
         "(0..2...)::Start",
         &expect![[r##"
             #0 0-16 "(0..2...)::Start" : Int
+            #1 0-9 "(0..2...)" : RangeFrom
+            #2 1-8 "0..2..." : RangeFrom
+            #3 1-2 "0" : Int
+            #4 4-5 "2" : Int
         "##]],
     );
 }
@@ -1393,6 +1405,10 @@ fn range_from_field_step() {
         "(0..2...)::Step",
         &expect![[r##"
             #0 0-15 "(0..2...)::Step" : Int
+            #1 0-9 "(0..2...)" : RangeFrom
+            #2 1-8 "0..2..." : RangeFrom
+            #3 1-2 "0" : Int
+            #4 4-5 "2" : Int
         "##]],
     );
 }
@@ -1428,6 +1444,7 @@ fn range_full_implicit_step() {
         "...::Step",
         &expect![[r##"
             #0 0-9 "...::Step" : Int
+            #1 0-3 "..." : RangeFull
         "##]],
     );
 }
@@ -1439,6 +1456,9 @@ fn range_full_explicit_step() {
         "(...2...)::Step",
         &expect![[r##"
             #0 0-15 "(...2...)::Step" : Int
+            #1 0-9 "(...2...)" : RangeFull
+            #2 1-8 "...2..." : RangeFull
+            #3 4-5 "2" : Int
         "##]],
     );
 }
