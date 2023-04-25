@@ -36,7 +36,7 @@ mod given_interpreter {
                 is_only_error(
                     &result,
                     &output,
-                    "incremental compilation error: name error: `Message` not found in this scope",
+                    "could not compile line: name error: `Message` not found in this scope",
                 );
             }
         }
@@ -83,24 +83,26 @@ mod given_interpreter {
             is_only_error(
                 &result,
                 &output,
-                "incremental compilation error: parse error: expected `;`, found EOF",
+                "could not compile line: syntax error: expected `;`, found EOF",
             );
 
             let (result, output) = line(&mut interpreter, "y");
             is_only_error(
                 &result,
                 &output,
-                "incremental compilation error: name error: `y` not found in this scope",
+                "could not compile line: name error: `y` not found in this scope",
             );
         }
 
         #[test]
         fn failing_statements_return_early_error() {
             let mut interpreter = get_interpreter();
-
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");
-
-            is_only_error(&result, &output, "evaluation error: division by zero");
+            is_only_error(
+                &result,
+                &output,
+                "program encountered an error while running: division by zero",
+            );
         }
     }
 

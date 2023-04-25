@@ -27,7 +27,7 @@ pub struct Error(ErrorKind);
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 enum ErrorKind {
-    #[error("parse error")]
+    #[error("syntax error")]
     Parse(#[from] parse::Error),
     #[error("name error")]
     Resolve(#[from] resolve::Error),

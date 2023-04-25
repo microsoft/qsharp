@@ -22,13 +22,13 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 pub enum Error {
-    #[error("evaluation error")]
+    #[error("program encountered an error while running")]
     Eval(#[from] crate::Error),
-    #[error("compilation error")]
+    #[error("could not compile sources")]
     Compile(#[from] compile::Error),
-    #[error("pass error")]
+    #[error("could not compile sources")]
     Pass(#[from] qsc_passes::Error),
-    #[error("incremental compilation error")]
+    #[error("could not compile line")]
     Incremental(#[from] incremental::Error),
 }
 
