@@ -36,15 +36,21 @@ use std::{
 use thiserror::Error;
 use val::{GlobalId, Qubit};
 
-#[derive(Clone, Debug, Error)]
-pub struct AggregateError<T>(pub Vec<T>);
+#[derive(Debug, Error)]
+pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
 
-impl<T: std::error::Error> Display for AggregateError<T> {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+impl<T: std::error::Error + Clone> Display for AggregateError<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for error in &self.0 {
             writeln!(f, "{error}")?;
         }
         Ok(())
+    }
+}
+
+impl<T: std::error::Error + Clone> Clone for AggregateError<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
     }
 }
 
