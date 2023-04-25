@@ -26,8 +26,8 @@ pub enum Error {
     #[error(transparent)]
     CtlGen(ctl_gen::Error),
 
-    #[error("missing body implementation")]
-    MissingBody(#[label("specialization generation requires body implementation")] Span),
+    #[error("specialization generation missing required body implementation")]
+    MissingBody(#[label] Span),
 }
 
 /// Generates specializations for the given compile unit, updating it in-place.
