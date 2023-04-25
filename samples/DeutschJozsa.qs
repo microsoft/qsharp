@@ -45,14 +45,12 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
         // The last qubit needs to be flipped so that the function will
         // actually be computed into the phase when Uf is applied.
         X(target);
-        H(target);
 
         // Now, a Hadamard transform is applied to each of the qubits.
-        // As the last step before the measurement, a Hadamard transform is
-        // but the very last one. We could apply the Hadamard transform to
-        // the last qubit also, but this would not affect the final outcome.
+
+        H(target);
         // We use a within-apply block to ensure that the Hadamard transform is
-        // correctly inverted.
+        // correctly inverted on |𝑥〉 register.
         for q in queryRegister {
             H(q);
         }
@@ -65,24 +63,12 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
             H(q);
         }
 
-        // Finally, the last qubit, which held the 𝑦-register, is reset.
-        Reset(target);
-
-        // OLD:
         // The following for-loop measures all qubits and resets them to
-        // zero so that they can be safely returned at the end of the
-        // using-block.
-        // OLD: let resultArray = ForEach(MResetZ, queryRegister);
-
-        // OLD:
-        // We use the predicate `IsResultZero` from Microsoft.Quantum.Canon
-        // and compose it with the All function from
-        // Microsoft.Quantum.Arrays. This will return
-        // `true` if the all zero string has been measured, i.e., if the function
-        // was a constant function and `false` if not, which according to the
-        // promise on 𝑓 means that it must have been balanced.
-        // OLD: return All(IsResultZero, resultArray);
-
+        // zero so that they can be safely returned at the end of the using-block.
+        // The loop also leaves result as `true` if all measurement results
+        // are `Zero`, i.e., if the function was a constant function and sets
+        // result to `false` if not, which according to the promise on 𝑓 means
+        // that it must have been balanced.
         mutable result = true;
         for q in queryRegister {
             if M(q) == One {
@@ -90,6 +76,10 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
                 set result = false;
             }
         }
+
+        // Finally, the last qubit, which held the 𝑦-register, is reset.
+        Reset(target);
+
         return result;
     }
 
