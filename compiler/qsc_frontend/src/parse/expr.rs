@@ -283,7 +283,7 @@ fn expr_array_core(s: &mut Scanner) -> Result<ExprKind> {
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
-    matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name == name)
+    matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name.as_ref() == name)
 }
 
 fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
@@ -345,7 +345,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
         }
         TokenKind::String => {
             let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
-            Ok(Some(Lit::String(lexeme.to_string())))
+            Ok(Some(Lit::String(lexeme.into())))
         }
         _ => Ok(None),
     }

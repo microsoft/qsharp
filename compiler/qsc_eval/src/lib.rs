@@ -351,10 +351,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
-            ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
-                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
-                expr.span,
-            ))),
+            ExprKind::Fail(msg) => {
+                let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
+                ControlFlow::Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
+            }
             ExprKind::Field(record, item) => self.eval_field(record, item),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
@@ -675,7 +675,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         ctl_count: u8,
     ) -> ControlFlow<Reason, ()> {
         match &spec_pat.kind {
-            PatKind::Bind(_, _) | PatKind::Discard(_) => {
+            PatKind::Bind(_) | PatKind::Discard => {
                 panic!("spec pattern should be elided or elided tuple, found bind/discard")
             }
             PatKind::Elided => {
@@ -859,7 +859,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         let record_span = record.span;
         let record = self.eval_expr(record)?;
         // For now we only support built-in fields for Arrays and Ranges.
-        match (record, item.name.as_str()) {
+        match (record, item.name.as_ref()) {
             (Value::Array(arr), "Length") => {
                 let len: i64 = match arr.len().try_into() {
                     Ok(len) => ControlFlow::Continue(len),
@@ -919,7 +919,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         mutability: Mutability,
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
-            PatKind::Bind(variable, _) => {
+            PatKind::Bind(variable) => {
                 let scope = self.env.0.last_mut().expect("binding should have a scope");
                 match scope.bindings.entry(variable.id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
@@ -927,7 +927,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 };
                 ControlFlow::Continue(())
             }
-            PatKind::Discard(_) => ControlFlow::Continue(()),
+            PatKind::Discard => ControlFlow::Continue(()),
             PatKind::Elided => panic!("elision used in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
@@ -1109,8 +1109,8 @@ fn eval_binop_add(
             ControlFlow::Continue(Value::Int(val + rhs))
         }
         Value::String(val) => {
-            let rhs: String = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::String(val + &rhs))
+            let rhs = rhs_val.try_into_string().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::String((val.to_string() + &rhs).into()))
         }
         _ => ControlFlow::Break(Reason::Error(Error::Type(
             "Array, BigInt, Double, Int, or String",

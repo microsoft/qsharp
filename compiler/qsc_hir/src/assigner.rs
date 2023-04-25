@@ -4,7 +4,7 @@
 use crate::{
     hir::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, NodeId, Pat, QubitInit, SpecDecl,
-        Stmt, Ty, TyDef, Visibility,
+        Stmt, TyDef, Visibility,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -18,7 +18,7 @@ impl Assigner {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            next_id: NodeId::zero(),
+            next_id: NodeId::FIRST,
         }
     }
 
@@ -29,7 +29,7 @@ impl Assigner {
     }
 
     fn assign(&mut self, id: &mut NodeId) {
-        if id.is_placeholder() {
+        if id.is_default() {
             *id = self.next_id();
         }
     }
@@ -69,11 +69,6 @@ impl MutVisitor for Assigner {
     fn visit_functor_expr(&mut self, expr: &mut FunctorExpr) {
         self.assign(&mut expr.id);
         mut_visit::walk_functor_expr(self, expr);
-    }
-
-    fn visit_ty(&mut self, ty: &mut Ty) {
-        self.assign(&mut ty.id);
-        mut_visit::walk_ty(self, ty);
     }
 
     fn visit_block(&mut self, block: &mut Block) {

@@ -7,7 +7,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner,
-    ast::{Ident, Package, Path},
+    ast::{Ident, NodeId, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -64,7 +64,11 @@ fn check(input: &str, expect: &Expect) {
 fn resolve_names(input: &str) -> String {
     let (namespaces, errors) = parse::namespaces(input);
     assert!(errors.is_empty(), "Program has syntax errors: {errors:#?}");
-    let mut package = Package::new(namespaces, None);
+    let mut package = Package {
+        id: NodeId::default(),
+        namespaces,
+        entry: None,
+    };
     let mut assigner = Assigner::new();
     assigner.visit_package(&mut package);
     let mut globals = GlobalTable::new();
@@ -821,7 +825,7 @@ fn open_ambiguous_terms() {
                 }
             }
 
-            // Ambiguous("A", Span { lo: 171, hi: 172 }, Span { lo: 117, hi: 120 }, Span { lo: 131, hi: 134 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 171, hi: 172 }, first_open_span: Span { lo: 117, hi: 120 }, second_open_span: Span { lo: 131, hi: 134 } }
         "#]],
     );
 }
@@ -861,7 +865,7 @@ fn open_ambiguous_tys() {
                 function item5(local24 : A) : Unit {}
             }
 
-            // Ambiguous("A", Span { lo: 146, hi: 147 }, Span { lo: 107, hi: 110 }, Span { lo: 121, hi: 124 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 146, hi: 147 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 121, hi: 124 } }
         "#]],
     );
 }
@@ -905,7 +909,7 @@ fn merged_aliases_ambiguous_terms() {
                 }
             }
 
-            // Ambiguous("A", Span { lo: 189, hi: 196 }, Span { lo: 117, hi: 120 }, Span { lo: 140, hi: 143 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 189, hi: 196 }, first_open_span: Span { lo: 117, hi: 120 }, second_open_span: Span { lo: 140, hi: 143 } }
         "#]],
     );
 }
@@ -945,7 +949,7 @@ fn merged_aliases_ambiguous_tys() {
                 function item5(local26 : Alias.A) : Unit {}
             }
 
-            // Ambiguous("A", Span { lo: 164, hi: 171 }, Span { lo: 107, hi: 110 }, Span { lo: 130, hi: 133 })
+            // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 164, hi: 171 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 130, hi: 133 } }
         "#]],
     );
 }

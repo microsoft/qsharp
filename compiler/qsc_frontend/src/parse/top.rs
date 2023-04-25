@@ -158,9 +158,9 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
 
     let name = ident(s)?;
     let ty_params = if token(s, TokenKind::Lt).is_ok() {
-        let vars = seq(s, ty::var)?.0;
+        let params = seq(s, ty::param)?.0;
         token(s, TokenKind::Gt)?;
-        vars
+        params
     } else {
         Vec::new()
     };

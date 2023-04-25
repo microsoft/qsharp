@@ -56,11 +56,11 @@ fn ty_unit() {
 }
 
 #[test]
-fn ty_var() {
+fn ty_param() {
     check(
         ty,
         "'T",
-        &expect![[r#"Type _id_ [0-2]: Type Var Ident _id_ [1-2] "T""#]],
+        &expect![[r#"Type _id_ [0-2]: Type Param Ident _id_ [1-2] "T""#]],
     );
 }
 
