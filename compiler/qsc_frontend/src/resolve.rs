@@ -42,15 +42,18 @@ pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
     NotFound(String, #[label] Span),
 
-    #[error("`{0}` could refer to the item in `{1}` or `{2}`")]
-    Ambiguous(
-        String,
-        String,
-        String,
-        #[label("`{0}` is ambiguous")] Span,
-        #[label("found in this namespace")] Span,
-        #[label("and also in this namespace")] Span,
-    ),
+    #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
+    Ambiguous {
+        name: String,
+        first_open: String,
+        second_open: String,
+        #[label("ambiguous name")]
+        name_span: Span,
+        #[label("found in this namespace")]
+        first_open_span: Span,
+        #[label("and also in this namespace")]
+        second_open_span: Span,
+    },
 }
 
 pub(super) struct Resolver {
@@ -395,15 +398,15 @@ fn resolve(
 
     if open_candidates.len() > 1 {
         let mut namespaces: Vec<_> = open_candidates.into_values().collect();
-        namespaces.sort_unstable();
-        Err(Error::Ambiguous(
-            name.to_string(),
-            namespaces[0].1.to_string(),
-            namespaces[1].1.to_string(),
-            path.span,
-            *namespaces[0].0,
-            *namespaces[1].0,
-        ))
+        namespaces.sort_unstable_by_key(|n| n.1);
+        Err(Error::Ambiguous {
+            name: name.to_string(),
+            first_open: namespaces[0].0.to_string(),
+            second_open: namespaces[1].0.to_string(),
+            name_span: path.span,
+            first_open_span: *namespaces[0].1,
+            second_open_span: *namespaces[1].1,
+        })
     } else {
         single(open_candidates.into_keys())
             .map(Res::Item)
@@ -430,11 +433,11 @@ fn resolve_explicit_opens<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
     namespaces: impl IntoIterator<Item = (&'a Rc<str>, &'a Span)>,
     name: &str,
-) -> HashMap<ItemId, (&'a Span, &'a Rc<str>)> {
+) -> HashMap<ItemId, (&'a Rc<str>, &'a Span)> {
     let mut candidates = HashMap::new();
     for (namespace, span) in namespaces {
         if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(id, (span, namespace));
+            candidates.insert(id, (namespace, span));
         }
     }
     candidates

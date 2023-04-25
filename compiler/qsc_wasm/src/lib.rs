@@ -212,11 +212,9 @@ where
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
         let severity = err.severity().unwrap_or(Severity::Error);
-
         let mut message = err.to_string();
-        let help_text = err.help().map_or(String::default(), |h| h.to_string());
-        if !help_text.is_empty() {
-            message.push_str(format!("\n\nhelp: {}", help_text).as_str());
+        if let Some(help) = err.help() {
+            write!(message, "\n\nhelp: {help}").expect("message should be writable");
         }
 
         VSDiagnostic {
