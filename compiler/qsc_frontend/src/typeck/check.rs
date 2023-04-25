@@ -30,7 +30,7 @@ impl GlobalTable {
         for namespace in &package.namespaces {
             for item in &namespace.items {
                 if let ast::ItemKind::Callable(decl) = &item.kind {
-                    let (ty, errors) = convert::ast_callable_ty(decl);
+                    let (ty, errors) = convert::ast_callable_ty(resolutions, decl);
                     let Some(&Res::Item(item)) = resolutions.get(decl.name.id) else {
                         panic!("callable should have item ID");
                     };
@@ -88,7 +88,7 @@ impl Checker {
         resolutions: &Resolutions,
         decl: &ast::CallableDecl,
     ) {
-        let (ty, errors) = convert::ast_callable_ty(decl);
+        let (ty, errors) = convert::ast_callable_ty(resolutions, decl);
         let Some(&Res::Item(item)) = resolutions.get(decl.name.id) else {
             panic!("callable should have item ID");
         };
@@ -123,10 +123,10 @@ impl Checker {
         decl: &ast::CallableDecl,
     ) {
         self.tys
-            .insert(decl.name.id, convert::ast_callable_ty(decl).0);
-        self.check_callable_signature(decl);
+            .insert(decl.name.id, convert::ast_callable_ty(resolutions, decl).0);
+        self.check_callable_signature(resolutions, decl);
 
-        let output = convert::ty_from_ast(&decl.output).0;
+        let output = convert::ty_from_ast(resolutions, &decl.output).0;
         match &decl.body {
             ast::CallableBody::Block(block) => self.check_spec(
                 resolutions,
@@ -157,13 +157,14 @@ impl Checker {
         }
     }
 
-    fn check_callable_signature(&mut self, decl: &ast::CallableDecl) {
+    fn check_callable_signature(&mut self, resolutions: &Resolutions, decl: &ast::CallableDecl) {
         if !convert::ast_callable_functors(decl).is_empty() {
-            match &decl.output.kind {
-                ast::TyKind::Tuple(items) if items.is_empty() => {}
+            let output = convert::ty_from_ast(resolutions, &decl.output).0;
+            match &output {
+                Ty::Tuple(items) if items.is_empty() => {}
                 _ => self.errors.push(Error(ErrorKind::TypeMismatch(
                     Ty::UNIT,
-                    convert::ty_from_ast(&decl.output).0,
+                    output,
                     decl.output.span,
                 ))),
             }

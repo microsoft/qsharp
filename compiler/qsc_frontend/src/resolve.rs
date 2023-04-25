@@ -10,7 +10,7 @@ use qsc_ast::{
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, ItemId, LocalItemId, PackageId};
+use qsc_hir::hir::{self, ItemId, LocalItemId, PackageId, PrimTy};
 use std::{
     collections::{HashMap, HashSet},
     mem,
@@ -29,32 +29,41 @@ pub(super) type Resolutions = IndexMap<ast::NodeId, Res>;
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(super) enum Res {
     /// A global item.
     Item(ItemId),
     /// A local variable.
     Local(ast::NodeId),
+    /// A primitive type.
+    PrimTy(PrimTy),
+    /// The unit type.
+    UnitTy,
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("`{0}` not found in this scope")]
-    NotFound(String, #[label("not found")] Span),
+    NotFound(String, #[label] Span),
 
-    #[error("`{0}` is ambiguous")]
-    Ambiguous(
-        String,
-        #[label("ambiguous name")] Span,
-        #[label("could refer to the item in this namespace")] Span,
-        #[label("could also refer to the item in this namespace")] Span,
-    ),
+    #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
+    Ambiguous {
+        name: String,
+        first_open: String,
+        second_open: String,
+        #[label("ambiguous name")]
+        name_span: Span,
+        #[label("found in this namespace")]
+        first_open_span: Span,
+        #[label("and also in this namespace")]
+        second_open_span: Span,
+    },
 }
 
 pub(super) struct Resolver {
     resolutions: Resolutions,
-    tys: HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
-    terms: HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
+    tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     opens: HashMap<Rc<str>, HashMap<Rc<str>, Span>>,
     namespace: Rc<str>,
     next_item_id: LocalItemId,
@@ -72,16 +81,16 @@ impl Resolver {
     }
 
     pub(super) fn add_global_callable(&mut self, decl: &ast::CallableDecl) {
-        let item_id = ItemId {
+        let res = Res::Item(ItemId {
             package: None,
             item: self.next_item_id,
-        };
+        });
         self.next_item_id = self.next_item_id.successor();
-        self.resolutions.insert(decl.name.id, Res::Item(item_id));
+        self.resolutions.insert(decl.name.id, res);
         self.terms
             .entry(Rc::clone(&self.namespace))
             .or_default()
-            .insert(Rc::clone(&decl.name.name), item_id);
+            .insert(Rc::clone(&decl.name.name), res);
     }
 
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
@@ -243,16 +252,32 @@ impl AstVisitor<'_> for Resolver {
 
 pub(super) struct GlobalTable {
     resolutions: Resolutions,
-    tys: HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
-    terms: HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
+    tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     next_item_id: LocalItemId,
 }
 
 impl GlobalTable {
     pub(super) fn new() -> Self {
+        let tys = HashMap::from([(
+            "Microsoft.Quantum.Core".into(),
+            HashMap::from([
+                ("BigInt".into(), Res::PrimTy(PrimTy::BigInt)),
+                ("Bool".into(), Res::PrimTy(PrimTy::Bool)),
+                ("Double".into(), Res::PrimTy(PrimTy::Double)),
+                ("Int".into(), Res::PrimTy(PrimTy::Int)),
+                ("Pauli".into(), Res::PrimTy(PrimTy::Pauli)),
+                ("Qubit".into(), Res::PrimTy(PrimTy::Qubit)),
+                ("Range".into(), Res::PrimTy(PrimTy::Range)),
+                ("Result".into(), Res::PrimTy(PrimTy::Result)),
+                ("String".into(), Res::PrimTy(PrimTy::String)),
+                ("Unit".into(), Res::UnitTy),
+            ]),
+        )]);
+
         Self {
             resolutions: Resolutions::new(),
-            tys: HashMap::new(),
+            tys,
             terms: HashMap::new(),
             next_item_id: LocalItemId::default(),
         }
@@ -267,24 +292,24 @@ impl GlobalTable {
             for item in &namespace.items {
                 match &item.kind {
                     ast::ItemKind::Callable(decl) => {
-                        let item_id = self.next_item_id();
-                        self.resolutions.insert(decl.name.id, Res::Item(item_id));
+                        let res = Res::Item(self.next_item_id());
+                        self.resolutions.insert(decl.name.id, res);
                         self.terms
                             .entry(Rc::clone(&namespace.name.name))
                             .or_default()
-                            .insert(Rc::clone(&decl.name.name), item_id);
+                            .insert(Rc::clone(&decl.name.name), res);
                     }
                     ast::ItemKind::Ty(name, _) => {
-                        let item_id = self.next_item_id();
-                        self.resolutions.insert(name.id, Res::Item(item_id));
+                        let res = Res::Item(self.next_item_id());
+                        self.resolutions.insert(name.id, res);
                         self.tys
                             .entry(Rc::clone(&namespace.name.name))
                             .or_default()
-                            .insert(Rc::clone(&name.name), item_id);
+                            .insert(Rc::clone(&name.name), res);
                         self.terms
                             .entry(Rc::clone(&namespace.name.name))
                             .or_default()
-                            .insert(Rc::clone(&name.name), item_id);
+                            .insert(Rc::clone(&name.name), res);
                     }
                     ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
                 }
@@ -300,27 +325,28 @@ impl GlobalTable {
             let Some(parent) = item.parent else { continue; };
             let hir::ItemKind::Namespace(namespace, _) =
                 &package.items.get(parent).expect("parent should exist").kind else { continue; };
-            let item_id = ItemId {
+
+            let res = Res::Item(ItemId {
                 package: Some(id),
                 item: item.id,
-            };
+            });
 
             match &item.kind {
                 hir::ItemKind::Callable(decl) => {
                     self.terms
                         .entry(Rc::clone(&namespace.name))
                         .or_default()
-                        .insert(Rc::clone(&decl.name.name), item_id);
+                        .insert(Rc::clone(&decl.name.name), res);
                 }
                 hir::ItemKind::Ty(name, _) => {
                     self.tys
                         .entry(Rc::clone(&namespace.name))
                         .or_default()
-                        .insert(Rc::clone(&name.name), item_id);
+                        .insert(Rc::clone(&name.name), res);
                     self.terms
                         .entry(Rc::clone(&namespace.name))
                         .or_default()
-                        .insert(Rc::clone(&name.name), item_id);
+                        .insert(Rc::clone(&name.name), res);
                 }
                 hir::ItemKind::Err | hir::ItemKind::Namespace(..) => {}
             }
@@ -351,7 +377,7 @@ impl GlobalTable {
 }
 
 fn resolve(
-    globals: &HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
+    globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     opens: &HashMap<Rc<str>, HashMap<Rc<str>, Span>>,
     parent: &Rc<str>,
     locals: &[HashMap<Rc<str>, ast::NodeId>],
@@ -363,9 +389,9 @@ fn resolve(
         if let Some(&node) = locals.iter().rev().find_map(|env| env.get(name)) {
             // Locals shadow everything.
             return Ok(Res::Local(node));
-        } else if let Some(&item) = globals.get(parent).and_then(|env| env.get(name)) {
+        } else if let Some(&res) = globals.get(parent).and_then(|env| env.get(name)) {
             // Items in the parent namespace shadow opens.
-            return Ok(Res::Item(item));
+            return Ok(res);
         }
     }
 
@@ -379,59 +405,59 @@ fn resolve(
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(globals, PRELUDE, name);
         assert!(candidates.len() <= 1, "ambiguity in prelude resolution");
-        if let Some(item) = single(candidates) {
-            return Ok(Res::Item(item));
+        if let Some(res) = single(candidates) {
+            return Ok(res);
         }
     }
 
     if open_candidates.is_empty() {
-        if let Some(&item) = globals.get(namespace).and_then(|env| env.get(name)) {
+        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
             // An unopened global is the last resort.
-            return Ok(Res::Item(item));
+            return Ok(res);
         }
     }
 
     if open_candidates.len() > 1 {
-        let mut spans: Vec<_> = open_candidates.into_values().collect();
-        spans.sort();
-        Err(Error::Ambiguous(
-            name.to_string(),
-            path.span,
-            spans[0],
-            spans[1],
-        ))
+        let mut namespaces: Vec<_> = open_candidates.into_values().collect();
+        namespaces.sort_unstable_by_key(|n| n.1);
+        Err(Error::Ambiguous {
+            name: name.to_string(),
+            first_open: namespaces[0].0.to_string(),
+            second_open: namespaces[1].0.to_string(),
+            name_span: path.span,
+            first_open_span: *namespaces[0].1,
+            second_open_span: *namespaces[1].1,
+        })
     } else {
         single(open_candidates.into_keys())
-            .map(Res::Item)
             .ok_or_else(|| Error::NotFound(name.to_string(), path.span))
     }
 }
 
 fn resolve_implicit_opens(
-    globals: &HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
+    globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     namespaces: impl IntoIterator<Item = impl AsRef<str>>,
     name: &str,
-) -> HashSet<ItemId> {
+) -> HashSet<Res> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
         let namespace = namespace.as_ref();
-        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(id);
+        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
+            candidates.insert(res);
         }
     }
     candidates
 }
 
 fn resolve_explicit_opens<'a>(
-    globals: &HashMap<Rc<str>, HashMap<Rc<str>, ItemId>>,
-    namespaces: impl IntoIterator<Item = (impl AsRef<str>, &'a Span)>,
+    globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    namespaces: impl IntoIterator<Item = (&'a Rc<str>, &'a Span)>,
     name: &str,
-) -> HashMap<ItemId, Span> {
+) -> HashMap<Res, (&'a Rc<str>, &'a Span)> {
     let mut candidates = HashMap::new();
-    for (namespace, &span) in namespaces {
-        let namespace = namespace.as_ref();
-        if let Some(&id) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(id, span);
+    for (namespace, span) in namespaces {
+        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
+            candidates.insert(res, (namespace, span));
         }
     }
     candidates

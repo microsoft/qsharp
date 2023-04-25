@@ -211,8 +211,11 @@ where
         let label = err.labels().and_then(|mut ls| ls.next());
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
-        let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
+        let mut message = err.to_string();
+        if let Some(help) = err.help() {
+            write!(message, "\n\nhelp: {help}").expect("message should be writable");
+        }
 
         VSDiagnostic {
             start_pos: offset,
@@ -413,7 +416,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "missing type in item signature");
+        assert_eq!(err.message, "missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -457,7 +460,7 @@ mod test {
         let error = errors.first().unwrap();
         assert_eq!(error.start_pos, 111);
         assert_eq!(error.end_pos, 117);
-        assert_eq!(error.message, "mismatched types");
+        assert_eq!(error.message, "expected (Double, Qubit), found Qubit");
     }
 
     #[test]
@@ -504,7 +507,7 @@ mod test {
     }
 
     #[test]
-    fn test_mising_entrypoint() {
+    fn test_missing_entrypoint() {
         let code = "namespace Sample {
             operation main() : Result[] {
                 use q1 = Qubit();
@@ -518,7 +521,7 @@ mod test {
             expr,
             |_msg_| {
                 assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-                assert!(_msg_.contains(r#""message": "entry point not found""#));
+                assert!(_msg_.contains(r#""message": "entry point not found"#));
                 assert!(_msg_.contains(r#""start_pos": 0"#));
             },
             1,

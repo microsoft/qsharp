@@ -157,7 +157,7 @@ impl Display for ItemId {
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// An invalid resolution.
     Err,
@@ -1168,6 +1168,8 @@ pub enum Ty {
     Err,
     /// A placeholder type variable used during type inference.
     Infer(InferId),
+    /// A resolved name.
+    Name(Res),
     /// A type parameter.
     Param(String),
     /// A primitive type.
@@ -1203,8 +1205,9 @@ impl Display for Ty {
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
+            Ty::Name(res) => Debug::fmt(res, f),
             Ty::Param(name) => write!(f, "'{name}"),
-            Ty::Prim(prim) => prim.fmt(f),
+            Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
                 f.write_str("(")?;
                 if let Some((first, rest)) = items.split_first() {

@@ -160,11 +160,11 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
             vis.visit_ty(rhs);
             functors.iter().for_each(|f| vis.visit_functor_expr(f));
         }
+        TyKind::Hole => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
         TyKind::Path(path) => vis.visit_path(path),
         TyKind::Param(name) => vis.visit_ident(name),
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
-        TyKind::Hole | TyKind::Prim(_) => {}
     }
 }
 
