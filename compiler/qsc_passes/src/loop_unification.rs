@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 use core::panic;
-use std::mem::take;
+use std::{mem::take, rc::Rc};
 
 use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{CompileUnit, Context};
 use qsc_hir::{
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, Res, Stmt,
-        StmtKind, UnOp,
+        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimTy, Res,
+        Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
@@ -44,9 +44,11 @@ impl LoopUni<'_> {
         let continue_cond_init = LoopUni::gen_id_init(
             Mutability::Mutable,
             continue_cond_id.clone(),
+            Ty::Prim(PrimTy::Bool),
             Expr {
                 id: NodeId::default(),
                 span: cond_span,
+                ty: Ty::Prim(PrimTy::Bool),
                 kind: ExprKind::Lit(Lit::Bool(true)),
             },
         );
@@ -56,6 +58,7 @@ impl LoopUni<'_> {
             Expr {
                 id: NodeId::default(),
                 span: cond_span,
+                ty: Ty::Prim(PrimTy::Bool),
                 kind: ExprKind::UnOp(UnOp::Neg, cond),
             },
         );
@@ -68,8 +71,12 @@ impl LoopUni<'_> {
                 kind: StmtKind::Expr(Expr {
                     id: NodeId::default(),
                     span: fix_body.span,
+                    ty: Ty::UNIT,
                     kind: ExprKind::If(
-                        Box::new(LoopUni::gen_local_ref(&continue_cond_id)),
+                        Box::new(LoopUni::gen_local_ref(
+                            &continue_cond_id,
+                            Ty::Prim(PrimTy::Bool),
+                        )),
                         fix_body,
                         None,
                     ),
@@ -81,6 +88,7 @@ impl LoopUni<'_> {
         let new_block = Block {
             id: NodeId::default(),
             span,
+            ty: Ty::UNIT,
             stmts: vec![
                 continue_cond_init,
                 Stmt {
@@ -89,8 +97,12 @@ impl LoopUni<'_> {
                     kind: StmtKind::Expr(Expr {
                         id: NodeId::default(),
                         span,
+                        ty: Ty::UNIT,
                         kind: ExprKind::While(
-                            Box::new(LoopUni::gen_local_ref(&continue_cond_id)),
+                            Box::new(LoopUni::gen_local_ref(
+                                &continue_cond_id,
+                                Ty::Prim(PrimTy::Bool),
+                            )),
                             block,
                         ),
                     }),
@@ -101,6 +113,7 @@ impl LoopUni<'_> {
         Expr {
             id: NodeId::default(),
             span,
+            ty: Ty::UNIT,
             kind: ExprKind::Block(new_block),
         }
     }
@@ -113,29 +126,43 @@ impl LoopUni<'_> {
         span: Span,
     ) -> Expr {
         let iterable_span = iterable.span;
+        let iterable_ty = iterable.ty.clone();
 
         let array_id = self.gen_ident("array_id", iterable_span);
-        let array_capture =
-            LoopUni::gen_id_init(Mutability::Immutable, array_id.clone(), *iterable);
+        let array_capture = LoopUni::gen_id_init(
+            Mutability::Immutable,
+            array_id.clone(),
+            iterable_ty.clone(),
+            *iterable,
+        );
 
         let len_id = self.gen_ident("len_id", iterable_span);
         let len_capture = LoopUni::gen_id_init(
             Mutability::Immutable,
             len_id.clone(),
-            LoopUni::gen_field_access("Length".to_owned(), &array_id),
+            Ty::Prim(PrimTy::Int),
+            LoopUni::gen_field_access(
+                "Length".to_owned(),
+                Ty::Prim(PrimTy::Int),
+                &array_id,
+                iterable_ty.clone(),
+            ),
         );
 
         let index_id = self.gen_ident("index_id", iterable_span);
         let index_init = LoopUni::gen_id_init(
             Mutability::Mutable,
             index_id.clone(),
+            Ty::Prim(PrimTy::Int),
             Expr {
                 id: NodeId::default(),
                 span: iterable_span,
+                ty: Ty::Prim(PrimTy::Int),
                 kind: ExprKind::Lit(Lit::Int(0)),
             },
         );
 
+        let pat_ty = iter.ty.clone();
         let pat_init = Stmt {
             id: NodeId::default(),
             span,
@@ -145,9 +172,10 @@ impl LoopUni<'_> {
                 Expr {
                     id: NodeId::default(),
                     span: iterable_span,
+                    ty: pat_ty,
                     kind: ExprKind::Index(
-                        Box::new(LoopUni::gen_local_ref(&array_id)),
-                        Box::new(LoopUni::gen_local_ref(&index_id)),
+                        Box::new(LoopUni::gen_local_ref(&array_id, iterable_ty)),
+                        Box::new(LoopUni::gen_local_ref(&index_id, Ty::Prim(PrimTy::Int))),
                     ),
                 },
             ),
@@ -158,6 +186,7 @@ impl LoopUni<'_> {
             Expr {
                 id: NodeId::default(),
                 span: iterable_span,
+                ty: Ty::Prim(PrimTy::Int),
                 kind: ExprKind::Lit(Lit::Int(1)),
             },
         );
@@ -168,10 +197,11 @@ impl LoopUni<'_> {
         let cond = Expr {
             id: NodeId::default(),
             span: iterable_span,
+            ty: Ty::Prim(PrimTy::Bool),
             kind: ExprKind::BinOp(
                 BinOp::Lt,
-                Box::new(LoopUni::gen_local_ref(&index_id)),
-                Box::new(LoopUni::gen_local_ref(&len_id)),
+                Box::new(LoopUni::gen_local_ref(&index_id, Ty::Prim(PrimTy::Int))),
+                Box::new(LoopUni::gen_local_ref(&len_id, Ty::Prim(PrimTy::Int))),
             ),
         };
 
@@ -181,6 +211,7 @@ impl LoopUni<'_> {
             kind: StmtKind::Expr(Expr {
                 id: NodeId::default(),
                 span,
+                ty: Ty::UNIT,
                 kind: ExprKind::While(Box::new(cond), block),
             }),
         };
@@ -188,9 +219,11 @@ impl LoopUni<'_> {
         Expr {
             id: NodeId::default(),
             span,
+            ty: Ty::UNIT,
             kind: ExprKind::Block(Block {
                 id: NodeId::default(),
                 span,
+                ty: Ty::UNIT,
                 stmts: vec![array_capture, len_capture, index_init, while_stmt],
             }),
         }
@@ -206,28 +239,50 @@ impl LoopUni<'_> {
         let iterable_span = iterable.span;
 
         let range_id = self.gen_ident("range_id", iterable_span);
-        let range_capture =
-            LoopUni::gen_id_init(Mutability::Immutable, range_id.clone(), *iterable);
+        let range_capture = LoopUni::gen_id_init(
+            Mutability::Immutable,
+            range_id.clone(),
+            Ty::Prim(PrimTy::Range),
+            *iterable,
+        );
 
         let index_id = self.gen_ident("index_id", iterable_span);
         let index_init = LoopUni::gen_id_init(
             Mutability::Mutable,
             index_id.clone(),
-            LoopUni::gen_field_access("Start".to_owned(), &range_id),
+            Ty::Prim(PrimTy::Int),
+            LoopUni::gen_field_access(
+                "Start".to_owned(),
+                Ty::Prim(PrimTy::Int),
+                &range_id,
+                Ty::Prim(PrimTy::Range),
+            ),
         );
 
         let step_id = self.gen_ident("step_id", iterable_span);
         let step_init = LoopUni::gen_id_init(
             Mutability::Immutable,
             step_id.clone(),
-            LoopUni::gen_field_access("Step".to_owned(), &range_id),
+            Ty::Prim(PrimTy::Int),
+            LoopUni::gen_field_access(
+                "Step".to_owned(),
+                Ty::Prim(PrimTy::Int),
+                &range_id,
+                Ty::Prim(PrimTy::Range),
+            ),
         );
 
         let end_id = self.gen_ident("end_id", iterable_span);
         let end_init = LoopUni::gen_id_init(
             Mutability::Immutable,
             end_id.clone(),
-            LoopUni::gen_field_access("End".to_owned(), &range_id),
+            Ty::Prim(PrimTy::Int),
+            LoopUni::gen_field_access(
+                "End".to_owned(),
+                Ty::Prim(PrimTy::Int),
+                &range_id,
+                Ty::Prim(PrimTy::Range),
+            ),
         );
 
         let pat_init = Stmt {
@@ -236,11 +291,14 @@ impl LoopUni<'_> {
             kind: StmtKind::Local(
                 Mutability::Immutable,
                 iter,
-                LoopUni::gen_local_ref(&index_id),
+                LoopUni::gen_local_ref(&index_id, Ty::Prim(PrimTy::Int)),
             ),
         };
 
-        let update_index = LoopUni::gen_id_update(&index_id, LoopUni::gen_local_ref(&step_id));
+        let update_index = LoopUni::gen_id_update(
+            &index_id,
+            LoopUni::gen_local_ref(&step_id, Ty::Prim(PrimTy::Int)),
+        );
 
         block.stmts.insert(0, pat_init);
         block.stmts.push(update_index);
@@ -253,6 +311,7 @@ impl LoopUni<'_> {
             kind: StmtKind::Expr(Expr {
                 id: NodeId::default(),
                 span,
+                ty: Ty::UNIT,
                 kind: ExprKind::While(Box::new(cond), block),
             }),
         };
@@ -260,9 +319,11 @@ impl LoopUni<'_> {
         Expr {
             id: NodeId::default(),
             span,
+            ty: Ty::UNIT,
             kind: ExprKind::Block(Block {
                 id: NodeId::default(),
                 span,
+                ty: Ty::UNIT,
                 stmts: vec![range_capture, index_init, step_init, end_init, while_stmt],
             }),
         }
@@ -272,7 +333,7 @@ impl LoopUni<'_> {
         let new_id = Ident {
             id: self.context.assigner_mut().next_id(),
             span,
-            name: format!("__{}_{}__", label, self.gen_id_count),
+            name: Rc::from(format!("__{}_{}__", label, self.gen_id_count)),
         };
         self.gen_id_count += 1;
         new_id
@@ -282,22 +343,26 @@ impl LoopUni<'_> {
         Expr {
             id: NodeId::default(),
             span,
+            ty: Ty::Prim(PrimTy::Bool),
             kind: ExprKind::BinOp(
                 BinOp::OrL,
                 Box::new(Expr {
                     id: NodeId::default(),
                     span,
+                    ty: Ty::Prim(PrimTy::Bool),
                     kind: ExprKind::BinOp(
                         BinOp::AndL,
                         Box::new(Expr {
                             id: NodeId::default(),
                             span,
+                            ty: Ty::Prim(PrimTy::Bool),
                             kind: ExprKind::BinOp(
                                 BinOp::Gt,
-                                Box::new(LoopUni::gen_local_ref(step)),
+                                Box::new(LoopUni::gen_local_ref(step, Ty::Prim(PrimTy::Int))),
                                 Box::new(Expr {
                                     id: NodeId::default(),
                                     span,
+                                    ty: Ty::Prim(PrimTy::Int),
                                     kind: ExprKind::Lit(Lit::Int(0)),
                                 }),
                             ),
@@ -305,10 +370,11 @@ impl LoopUni<'_> {
                         Box::new(Expr {
                             id: NodeId::default(),
                             span,
+                            ty: Ty::Prim(PrimTy::Bool),
                             kind: ExprKind::BinOp(
                                 BinOp::Lte,
-                                Box::new(LoopUni::gen_local_ref(index)),
-                                Box::new(LoopUni::gen_local_ref(end)),
+                                Box::new(LoopUni::gen_local_ref(index, Ty::Prim(PrimTy::Int))),
+                                Box::new(LoopUni::gen_local_ref(end, Ty::Prim(PrimTy::Int))),
                             ),
                         }),
                     ),
@@ -316,17 +382,20 @@ impl LoopUni<'_> {
                 Box::new(Expr {
                     id: NodeId::default(),
                     span,
+                    ty: Ty::Prim(PrimTy::Bool),
                     kind: ExprKind::BinOp(
                         BinOp::AndL,
                         Box::new(Expr {
                             id: NodeId::default(),
                             span,
+                            ty: Ty::Prim(PrimTy::Bool),
                             kind: ExprKind::BinOp(
                                 BinOp::Lt,
-                                Box::new(LoopUni::gen_local_ref(step)),
+                                Box::new(LoopUni::gen_local_ref(step, Ty::Prim(PrimTy::Int))),
                                 Box::new(Expr {
                                     id: NodeId::default(),
                                     span,
+                                    ty: Ty::Prim(PrimTy::Int),
                                     kind: ExprKind::Lit(Lit::Int(0)),
                                 }),
                             ),
@@ -334,10 +403,11 @@ impl LoopUni<'_> {
                         Box::new(Expr {
                             id: NodeId::default(),
                             span,
+                            ty: Ty::Prim(PrimTy::Bool),
                             kind: ExprKind::BinOp(
                                 BinOp::Gte,
-                                Box::new(LoopUni::gen_local_ref(index)),
-                                Box::new(LoopUni::gen_local_ref(end)),
+                                Box::new(LoopUni::gen_local_ref(index, Ty::Prim(PrimTy::Int))),
+                                Box::new(LoopUni::gen_local_ref(end, Ty::Prim(PrimTy::Int))),
                             ),
                         }),
                     ),
@@ -346,15 +416,16 @@ impl LoopUni<'_> {
         }
     }
 
-    fn gen_local_ref(name: &Ident) -> Expr {
+    fn gen_local_ref(name: &Ident, ty: Ty) -> Expr {
         Expr {
             id: NodeId::default(),
             span: name.span,
+            ty,
             kind: ExprKind::Name(Res::Local(name.id)),
         }
     }
 
-    fn gen_id_init(mutability: Mutability, ident: Ident, expr: Expr) -> Stmt {
+    fn gen_id_init(mutability: Mutability, ident: Ident, ty: Ty, expr: Expr) -> Stmt {
         Stmt {
             id: NodeId::default(),
             span: ident.span,
@@ -363,23 +434,30 @@ impl LoopUni<'_> {
                 Pat {
                     id: NodeId::default(),
                     span: ident.span,
-                    kind: PatKind::Bind(ident, None),
+                    ty,
+                    kind: PatKind::Bind(ident),
                 },
                 expr,
             ),
         }
     }
 
-    fn gen_field_access(field_name: String, container: &Ident) -> Expr {
+    fn gen_field_access(
+        field_name: String,
+        field_ty: Ty,
+        container: &Ident,
+        container_ty: Ty,
+    ) -> Expr {
         Expr {
             id: NodeId::default(),
             span: container.span,
+            ty: field_ty,
             kind: ExprKind::Field(
-                Box::new(LoopUni::gen_local_ref(container)),
+                Box::new(LoopUni::gen_local_ref(container, container_ty)),
                 Ident {
                     id: NodeId::default(),
                     span: container.span,
-                    name: field_name,
+                    name: Rc::from(field_name),
                 },
             ),
         }
@@ -392,9 +470,10 @@ impl LoopUni<'_> {
             kind: StmtKind::Semi(Expr {
                 id: NodeId::default(),
                 span: ident.span,
+                ty: Ty::UNIT,
                 kind: ExprKind::AssignOp(
                     BinOp::Add,
-                    Box::new(LoopUni::gen_local_ref(ident)),
+                    Box::new(LoopUni::gen_local_ref(ident, expr.ty.clone())),
                     Box::new(expr),
                 ),
             }),

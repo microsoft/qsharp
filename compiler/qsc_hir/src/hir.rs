@@ -652,7 +652,7 @@ impl Display for StmtKind {
 }
 
 /// An expression.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Expr {
     /// The node ID.
     pub id: NodeId,
@@ -1158,13 +1158,14 @@ impl Display for Ident {
 }
 
 /// A type.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
     Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
     /// An invalid type caused by an error.
+    #[default]
     Err,
     /// A placeholder type variable used during type inference.
     Infer(InferId),
