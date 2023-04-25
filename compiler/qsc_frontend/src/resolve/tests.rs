@@ -35,6 +35,8 @@ impl<'a> Renamer<'a> {
                     Some(package) => format!("package{package}_item{}", item.item),
                 },
                 Res::Local(node) => format!("local{node}"),
+                Res::PrimTy(prim) => format!("{prim:?}"),
+                Res::UnitTy => "Unit".to_string(),
             };
             input.replace_range(span, &name);
         }
@@ -386,8 +388,8 @@ fn local_var() {
         &expect![[r#"
             namespace item0 { 
                 function item1() : Int {
-                    let local11 = 0;
-                    local11
+                    let local13 = 0;
+                    local13
                 }
             }
         "#]],
@@ -412,12 +414,12 @@ fn shadow_local() {
         &expect![[r#"
             namespace item0 {
                 function item1() : Int {
-                    let local11 = 0;
-                    let local15 = {
-                        let local20 = 1;
-                        local20
+                    let local13 = 0;
+                    let local17 = {
+                        let local22 = 1;
+                        local22
                     };
-                    local11 + local15
+                    local13 + local17
                 }
             }
         "#]],
@@ -459,8 +461,8 @@ fn spec_param() {
         &expect![[r#"
             namespace item0 {
                 operation item1(local8 : Qubit) : (Qubit[], Qubit) {
-                    controlled (local17, ...) {
-                        (local17, local8)
+                    controlled (local23, ...) {
+                        (local23, local8)
                     }
                 }
             }
@@ -486,8 +488,8 @@ fn spec_param_shadow() {
         &expect![[r#"
             namespace item0 {
                 operation item1(local8 : Qubit[]) : Qubit[] {
-                    controlled (local16, ...) {
-                        local16
+                    controlled (local20, ...) {
+                        local20
                     }
                     body ... {
                         local8
@@ -518,8 +520,8 @@ fn local_shadows_global() {
 
                 function item2() : Int {
                     item1();
-                    let local23 = 1;
-                    local23
+                    let local27 = 1;
+                    local27
                 }
             }
         "#]],
@@ -541,9 +543,9 @@ fn shadow_same_block() {
         &expect![[r#"
             namespace item0 {
                 function item1() : Int {
-                    let local11 = 0;
-                    let local15 = local11 + 1;
-                    local15
+                    let local13 = 0;
+                    let local17 = local13 + 1;
+                    local17
                 }
             }
         "#]],
@@ -682,7 +684,7 @@ fn ty_decl() {
         &expect![[r#"
             namespace item0 {
                 newtype item1 = Unit;
-                function item2(local12 : item1) : Unit {}
+                function item2(local14 : item1) : Unit {}
             }
         "#]],
     );
@@ -862,7 +864,7 @@ fn open_ambiguous_tys() {
                 open Foo;
                 open Bar;
 
-                function item5(local24 : A) : Unit {}
+                function item5(local28 : A) : Unit {}
             }
 
             // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 146, hi: 147 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 121, hi: 124 } }
@@ -946,7 +948,7 @@ fn merged_aliases_ambiguous_tys() {
                 open Foo as Alias;
                 open Bar as Alias;
 
-                function item5(local26 : Alias.A) : Unit {}
+                function item5(local30 : Alias.A) : Unit {}
             }
 
             // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 164, hi: 171 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 130, hi: 133 } }
@@ -967,7 +969,7 @@ fn lambda_param() {
         &expect![[r#"
             namespace item0 {
                 function item1() : Unit {
-                    let local11 = local14 -> local14 + 1;
+                    let local13 = local16 -> local16 + 1;
                 }
             }
         "#]],
@@ -989,9 +991,9 @@ fn lambda_shadows_local() {
         &expect![[r#"
             namespace item0 {
                 function item1() : Int {
-                    let local11 = 1;
-                    let local15 = local18 -> local18 + 1;
-                    local11
+                    let local13 = 1;
+                    let local17 = local20 -> local20 + 1;
+                    local13
                 }
             }
         "#]],
@@ -1013,8 +1015,8 @@ fn for_loop_range() {
         &expect![[r#"
             namespace item0 {
                 function item1() : Unit {
-                    for local12 in 0..9 {
-                        let _ = local12;
+                    for local14 in 0..9 {
+                        let _ = local14;
                     }
                 }
             }
@@ -1037,8 +1039,8 @@ fn for_loop_var() {
         &expect![[r#"
             namespace item0 {
                 function item1(local8 : Int[]) : Unit {
-                    for local16 in local8 {
-                        let _ = local16;
+                    for local20 in local8 {
+                        let _ = local20;
                     }
                 }
             }
@@ -1062,8 +1064,8 @@ fn repeat_until() {
             namespace item0 {
                 operation item1() : Unit {
                     repeat {
-                        let local14 = true;
-                    } until local14;
+                        let local16 = true;
+                    } until local16;
                 }
             }
         "#]],
@@ -1089,10 +1091,10 @@ fn repeat_until_fixup() {
             namespace item0 {
                 operation item1() : Unit {
                     repeat {
-                        mutable local14 = false;
-                    } until local14
+                        mutable local16 = false;
+                    } until local16
                     fixup {
-                        set local14 = true;
+                        set local16 = true;
                     }
                 }
             }
@@ -1120,8 +1122,8 @@ fn use_qubit() {
                     body intrinsic;
                 }
                 operation item2() : Unit {
-                    use local20 = Qubit();
-                    item1(local20);
+                    use local26 = Qubit();
+                    item1(local26);
                 }
             }
         "#]],
@@ -1149,8 +1151,8 @@ fn use_qubit_block() {
                     body intrinsic;
                 }
                 operation item2() : Unit {
-                    use local20 = Qubit() {
-                        item1(local20);
+                    use local26 = Qubit() {
+                        item1(local26);
                     }
                 }
             }

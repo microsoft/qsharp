@@ -130,6 +130,26 @@ fn use_single_tuple() {
 }
 
 #[test]
+fn use_invalid_init() {
+    check(
+        stmt,
+        "use q = Qutrit();",
+        &expect![[r#"
+            Err(
+                Convert(
+                    "qubit initializer",
+                    "identifier",
+                    Span {
+                        lo: 8,
+                        hi: 14,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn borrow_stmt() {
     check(
         stmt,
