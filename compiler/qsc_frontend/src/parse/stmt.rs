@@ -99,8 +99,10 @@ fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
 
 fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
     let lo = s.peek().span.lo;
-    let kind = if ident(s).map_or(false, |i| i.name.as_ref() == "Qubit") {
-        if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
+    let kind = if let Ok(name) = ident(s) {
+        if name.name.as_ref() != "Qubit" {
+            Err(Error::Convert("qubit initializer", "identifier", name.span))
+        } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
             token(s, TokenKind::Close(Delim::Paren))?;
             Ok(QubitInitKind::Single)
         } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
@@ -109,7 +111,7 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
             Ok(QubitInitKind::Array(Box::new(size)))
         } else {
             let token = s.peek();
-            Err(Error::Rule("qubit initializer", token.kind, token.span))
+            Err(Error::Rule("qubit suffix", token.kind, token.span))
         }
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (inits, final_sep) = seq(s, qubit_init)?;
