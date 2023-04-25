@@ -138,7 +138,7 @@ fn pat_bind_ty() {
         &expect![[r#"
             Pat _id_ [0-9]: Bind:
                 Ident _id_ [0-3] "foo"
-                Type _id_ [6-9]: Prim (Int)"#]],
+                Type _id_ [6-9]: Path: Path _id_ [6-9] (Ident _id_ [6-9] "Int")"#]],
     );
 }
 
@@ -154,7 +154,7 @@ fn pat_discard_ty() {
         "_ : Int",
         &expect![[r#"
             Pat _id_ [0-7]: Discard:
-                Type _id_ [4-7]: Prim (Int)"#]],
+                Type _id_ [4-7]: Path: Path _id_ [4-7] (Ident _id_ [4-7] "Int")"#]],
     );
 }
 
@@ -205,7 +205,7 @@ fn pat_tuple_ty_discard() {
             Pat _id_ [0-14]: Tuple:
                 Pat _id_ [1-10]: Bind:
                     Ident _id_ [1-4] "foo"
-                    Type _id_ [7-10]: Prim (Int)
+                    Type _id_ [7-10]: Path: Path _id_ [7-10] (Ident _id_ [7-10] "Int")
                 Pat _id_ [12-13]: Discard"#]],
     );
 }

@@ -208,7 +208,7 @@ impl Inferrer {
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::Err | Ty::Infer(_) | Ty::Prim(_) => {}
+                Ty::Err | Ty::Name(_) | Ty::Infer(_) | Ty::Prim(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
                 Ty::Arrow(_, input, output, _) => {
                     freshen(solver, params, input);
@@ -328,7 +328,7 @@ impl Solver {
 
 pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
     match ty {
-        Ty::Err | Ty::Param(_) | Ty::Prim(_) => {}
+        Ty::Err | Ty::Name(_) | Ty::Param(_) | Ty::Prim(_) => {}
         Ty::Array(item) => substitute(substs, item),
         Ty::Arrow(_, input, output, _) => {
             substitute(substs, input);
