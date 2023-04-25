@@ -1064,6 +1064,156 @@ fn generate_adj_invert_with_array_loop() {
 }
 
 #[test]
+fn generate_adj_invert_with_nested_loops() {
+    check(
+        indoc! {r#"
+            namespace test {
+                operation B(input : Int) : Unit is Adj {}
+                operation A(q : Qubit) : Unit is Adj {
+                    for val in [0, 1, 2] {
+                        B(1);
+                        let arr = [true, false, true];
+                        for val in arr {
+                            B(2);
+                            B(3);
+                        }
+                        B(4);
+                    }
+                }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-320]:
+                    Namespace (Ident 56 [10-14] "test"): Item 1, Item 2
+                Item 1 [21-62]:
+                    Parent: 0
+                    Callable 0 [21-62] (Operation):
+                        name: Ident 1 [31-32] "B"
+                        input: Pat 2 [32-45] [Type Int]: Paren:
+                            Pat 3 [33-44] [Type Int]: Bind: Ident 4 [33-38] "input"
+                        output: ()
+                        functors: Functor Expr 5 [56-59]: Adj
+                        body: Specializations:
+                            SpecDecl _id_ [60-62] (Body): Impl:
+                                Pat _id_ [60-62] [Type Int]: Elided
+                                Block 6 [60-62]: <empty>
+                            SpecDecl _id_ [21-62] (Adj): Impl:
+                                Pat _id_ [21-62] [Type Int]: Elided
+                                Block 6 [60-62]: <empty>
+                Item 2 [67-318]:
+                    Parent: 0
+                    Callable 7 [67-318] (Operation):
+                        name: Ident 8 [77-78] "A"
+                        input: Pat 9 [78-89] [Type Qubit]: Paren:
+                            Pat 10 [79-88] [Type Qubit]: Bind: Ident 11 [79-80] "q"
+                        output: ()
+                        functors: Functor Expr 12 [100-103]: Adj
+                        body: Specializations:
+                            SpecDecl _id_ [104-318] (Body): Impl:
+                                Pat _id_ [104-318] [Type Qubit]: Elided
+                                Block 13 [104-318] [Type ()]:
+                                    Stmt 14 [114-312]: Expr: Expr 15 [114-312] [Type ()]: For:
+                                        Pat 16 [118-121] [Type Int]: Bind: Ident 17 [118-121] "val"
+                                        Expr 18 [125-134] [Type (Int)[]]: Array:
+                                            Expr 19 [126-127] [Type Int]: Lit: Int(0)
+                                            Expr 20 [129-130] [Type Int]: Lit: Int(1)
+                                            Expr 21 [132-133] [Type Int]: Lit: Int(2)
+                                        Block 22 [135-312] [Type ()]:
+                                            Stmt 23 [149-154]: Semi: Expr 24 [149-153] [Type ()]: Call:
+                                                Expr 25 [149-150] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 26 [150-153] [Type Int]: Paren: Expr 27 [151-152] [Type Int]: Lit: Int(1)
+                                            Stmt 28 [167-197]: Local (Immutable):
+                                                Pat 29 [171-174] [Type (Bool)[]]: Bind: Ident 30 [171-174] "arr"
+                                                Expr 31 [177-196] [Type (Bool)[]]: Array:
+                                                    Expr 32 [178-182] [Type Bool]: Lit: Bool(true)
+                                                    Expr 33 [184-189] [Type Bool]: Lit: Bool(false)
+                                                    Expr 34 [191-195] [Type Bool]: Lit: Bool(true)
+                                            Stmt 35 [210-284]: Expr: Expr 36 [210-284] [Type ()]: For:
+                                                Pat 37 [214-217] [Type Bool]: Bind: Ident 38 [214-217] "val"
+                                                Expr 39 [221-224] [Type (Bool)[]]: Name: Local 30
+                                                Block 40 [225-284] [Type ()]:
+                                                    Stmt 41 [243-248]: Semi: Expr 42 [243-247] [Type ()]: Call:
+                                                        Expr 43 [243-244] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 44 [244-247] [Type Int]: Paren: Expr 45 [245-246] [Type Int]: Lit: Int(2)
+                                                    Stmt 46 [265-270]: Semi: Expr 47 [265-269] [Type ()]: Call:
+                                                        Expr 48 [265-266] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 49 [266-269] [Type Int]: Paren: Expr 50 [267-268] [Type Int]: Lit: Int(3)
+                                            Stmt 51 [297-302]: Semi: Expr 52 [297-301] [Type ()]: Call:
+                                                Expr 53 [297-298] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 54 [298-301] [Type Int]: Paren: Expr 55 [299-300] [Type Int]: Lit: Int(4)
+                            SpecDecl _id_ [67-318] (Adj): Impl:
+                                Pat _id_ [67-318] [Type Qubit]: Elided
+                                Block 13 [104-318] [Type ()]:
+                                    Stmt 14 [114-312]: Expr: Expr _id_ [0-0] [Type ()]: Expr Block: Block _id_ [0-0] [Type ()]:
+                                        Stmt _id_ [0-0]: Local (Immutable):
+                                            Pat _id_ [0-0] [Type (Int)[]]: Bind: Ident 59 [0-0] "generated_array"
+                                            Expr 18 [125-134] [Type (Int)[]]: Array:
+                                                Expr 19 [126-127] [Type Int]: Lit: Int(0)
+                                                Expr 20 [129-130] [Type Int]: Lit: Int(1)
+                                                Expr 21 [132-133] [Type Int]: Lit: Int(2)
+                                        Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type ()]: For:
+                                            Pat _id_ [0-0] [Type Int]: Bind: Ident 60 [0-0] "generated_index"
+                                            Expr _id_ [0-0] [Type Range]: Range:
+                                                Expr _id_ [0-0] [Type Int]: BinOp (Sub):
+                                                    Expr _id_ [0-0] [Type Int]: Field:
+                                                        Expr _id_ [0-0] [Type (Int)[]]: Name: Local 59
+                                                        Ident _id_ [0-0] "Length"
+                                                    Expr _id_ [0-0] [Type Int]: Lit: Int(1)
+                                                Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
+                                                Expr _id_ [0-0] [Type Int]: Lit: Int(0)
+                                            Block 22 [135-312] [Type ()]:
+                                                Stmt _id_ [0-0]: Local (Immutable):
+                                                    Pat 16 [118-121] [Type Int]: Bind: Ident 17 [118-121] "val"
+                                                    Expr _id_ [0-0] [Type Int]: Index:
+                                                        Expr _id_ [0-0] [Type (Int)[]]: Name: Local 59
+                                                        Expr _id_ [0-0] [Type Int]: Name: Local 60
+                                                Stmt 28 [167-197]: Local (Immutable):
+                                                    Pat 29 [171-174] [Type (Bool)[]]: Bind: Ident 30 [171-174] "arr"
+                                                    Expr 31 [177-196] [Type (Bool)[]]: Array:
+                                                        Expr 32 [178-182] [Type Bool]: Lit: Bool(true)
+                                                        Expr 33 [184-189] [Type Bool]: Lit: Bool(false)
+                                                        Expr 34 [191-195] [Type Bool]: Lit: Bool(true)
+                                                Stmt 51 [297-302]: Semi: Expr 52 [297-301] [Type ()]: Call:
+                                                    Expr _id_ [297-298] [Type (Int => () is Adj)]: UnOp (Functor Adj):
+                                                        Expr 53 [297-298] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 54 [298-301] [Type Int]: Paren: Expr 55 [299-300] [Type Int]: Lit: Int(4)
+                                                Stmt 35 [210-284]: Expr: Expr _id_ [0-0] [Type ()]: Expr Block: Block _id_ [0-0] [Type ()]:
+                                                    Stmt _id_ [0-0]: Local (Immutable):
+                                                        Pat _id_ [0-0] [Type (Bool)[]]: Bind: Ident 57 [0-0] "generated_array"
+                                                        Expr 39 [221-224] [Type (Bool)[]]: Name: Local 30
+                                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type ()]: For:
+                                                        Pat _id_ [0-0] [Type Int]: Bind: Ident 58 [0-0] "generated_index"
+                                                        Expr _id_ [0-0] [Type Range]: Range:
+                                                            Expr _id_ [0-0] [Type Int]: BinOp (Sub):
+                                                                Expr _id_ [0-0] [Type Int]: Field:
+                                                                    Expr _id_ [0-0] [Type (Bool)[]]: Name: Local 57
+                                                                    Ident _id_ [0-0] "Length"
+                                                                Expr _id_ [0-0] [Type Int]: Lit: Int(1)
+                                                            Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
+                                                            Expr _id_ [0-0] [Type Int]: Lit: Int(0)
+                                                        Block 40 [225-284] [Type ()]:
+                                                            Stmt _id_ [0-0]: Local (Immutable):
+                                                                Pat 37 [214-217] [Type Bool]: Bind: Ident 38 [214-217] "val"
+                                                                Expr _id_ [0-0] [Type Bool]: Index:
+                                                                    Expr _id_ [0-0] [Type (Bool)[]]: Name: Local 57
+                                                                    Expr _id_ [0-0] [Type Int]: Name: Local 58
+                                                            Stmt 46 [265-270]: Semi: Expr 47 [265-269] [Type ()]: Call:
+                                                                Expr _id_ [265-266] [Type (Int => () is Adj)]: UnOp (Functor Adj):
+                                                                    Expr 48 [265-266] [Type (Int => () is Adj)]: Name: Item 1
+                                                                Expr 49 [266-269] [Type Int]: Paren: Expr 50 [267-268] [Type Int]: Lit: Int(3)
+                                                            Stmt 41 [243-248]: Semi: Expr 42 [243-247] [Type ()]: Call:
+                                                                Expr _id_ [243-244] [Type (Int => () is Adj)]: UnOp (Functor Adj):
+                                                                    Expr 43 [243-244] [Type (Int => () is Adj)]: Name: Item 1
+                                                                Expr 44 [244-247] [Type Int]: Paren: Expr 45 [245-246] [Type Int]: Lit: Int(2)
+                                                Stmt 23 [149-154]: Semi: Expr 24 [149-153] [Type ()]: Call:
+                                                    Expr _id_ [149-150] [Type (Int => () is Adj)]: UnOp (Functor Adj):
+                                                        Expr 25 [149-150] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 26 [150-153] [Type Int]: Paren: Expr 27 [151-152] [Type Int]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
 fn generate_ctladj_distribute() {
     check(
         indoc! {r#"
