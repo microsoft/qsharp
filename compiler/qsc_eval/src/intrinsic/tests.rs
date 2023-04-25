@@ -290,6 +290,20 @@ fn check_bitsize_i() {
 }
 
 #[test]
+fn check_fst_snd() {
+    check_intrinsic_value("", "Fst(7,6)", &Value::Int(7));
+    check_intrinsic_value("", "Snd(7,6)", &Value::Int(6));
+}
+
+#[test]
+fn check_index_range() {
+    check_intrinsic_value("", "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Start", &Value::Int(0));
+    check_intrinsic_value("", "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Step", &Value::Int(1));
+    check_intrinsic_value("", "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::End", &Value::Int(3));
+}
+
+
+#[test]
 fn ccx() {
     check_intrinsic_result(
         "",
