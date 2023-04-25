@@ -368,7 +368,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let index_val = self.eval_expr(index_expr)?;
                 match &index_val {
                     Value::Int(index) => index_array(&arr, *index, index_expr.span),
-                    Value::Range(start, step, end) => {
+                    &Value::Range(start, step, end) => {
                         slice_array(&arr, start, step, end, index_expr.span)
                     }
                     _ => ControlFlow::Break(Reason::Error(Error::Type(
@@ -431,7 +431,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         };
         ControlFlow::Continue(Value::Range(
             to_opt_i64(start)?,
-            to_opt_i64(step)?,
+            to_opt_i64(step)?.unwrap_or(val::DEFAULT_RANGE_STEP),
             to_opt_i64(end)?,
         ))
     }
@@ -494,7 +494,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
                     ControlFlow::Continue,
                 )?,
-                step.unwrap_or(1),
+                step,
                 end.map_or_else(
                     || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
                     ControlFlow::Continue,
@@ -872,10 +872,9 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             (Value::Range(Some(start), _, _), FieldId::RANGE_START) => {
                 ControlFlow::Continue(Value::Int(start))
             }
-            (Value::Range(_, step, _), FieldId::RANGE_STEP) => step.map_or_else(
-                || ControlFlow::Continue(Value::Int(1)),
-                |step| ControlFlow::Continue(Value::Int(step)),
-            ),
+            (Value::Range(_, step, _), FieldId::RANGE_STEP) => {
+                ControlFlow::Continue(Value::Int(step))
+            }
             (Value::Range(_, _, Some(end)), FieldId::RANGE_END) => {
                 ControlFlow::Continue(Value::Int(end))
             }
@@ -1040,19 +1039,18 @@ fn index_array(arr: &[Value], index: i64, span: Span) -> ControlFlow<Reason, Val
 
 fn slice_array(
     arr: &[Value],
-    start: &Option<i64>,
-    step: &Option<i64>,
-    end: &Option<i64>,
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
     span: Span,
 ) -> ControlFlow<Reason, Value> {
-    if let Some(0) = step {
+    if step == 0 {
         ControlFlow::Break(Reason::Error(Error::RangeStepZero(span)))
     } else {
         let len: i64 = match arr.len().try_into() {
             Ok(len) => ControlFlow::Continue(len),
             Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(span))),
         }?;
-        let step = step.unwrap_or(1);
         let (start, end) = if step > 0 {
             (start.unwrap_or(0), end.unwrap_or(len - 1))
         } else {
