@@ -277,6 +277,19 @@ fn draw_random_int() {
 }
 
 #[test]
+fn check_bitsize_i() {
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
+        &Value::Int(63),
+    );
+}
+
+#[test]
 fn ccx() {
     check_intrinsic_result(
         "",
