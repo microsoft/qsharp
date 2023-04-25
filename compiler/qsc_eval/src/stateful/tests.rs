@@ -3,11 +3,11 @@
 
 #[cfg(test)]
 mod given_interpreter {
-    use std::io::Cursor;
+    use std::{error::Error, fmt::Write, io::Cursor, iter};
 
     use crate::{
         output::CursorReceiver,
-        stateful::{Error, Interpreter},
+        stateful::{self, Interpreter},
         val::Value,
         AggregateError,
     };
@@ -15,7 +15,7 @@ mod given_interpreter {
     fn line(
         interpreter: &mut Interpreter,
         line: &str,
-    ) -> (Result<Value, AggregateError<Error>>, String) {
+    ) -> (Result<Value, AggregateError<stateful::Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.line(line, &mut receiver), receiver.dump())
@@ -33,7 +33,11 @@ mod given_interpreter {
                     Interpreter::new(false, SOURCES).expect("Failed to compile base environment.");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
-                is_only_error(&result, &output, "`Message` not found in this scope");
+                is_only_error(
+                    &result,
+                    &output,
+                    "incremental compilation error: name error: `Message` not found in this scope",
+                );
             }
         }
 
@@ -76,10 +80,18 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7");
-            is_only_error(&result, &output, "expected `;`, found EOF");
+            is_only_error(
+                &result,
+                &output,
+                "incremental compilation error: parse error: expected `;`, found EOF",
+            );
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(&result, &output, "`y` not found in this scope");
+            is_only_error(
+                &result,
+                &output,
+                "incremental compilation error: name error: `y` not found in this scope",
+            );
         }
 
         #[test]
@@ -88,7 +100,7 @@ mod given_interpreter {
 
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");
 
-            is_only_error(&result, &output, "division by zero");
+            is_only_error(&result, &output, "evaluation error: division by zero");
         }
     }
 
@@ -162,7 +174,11 @@ mod given_interpreter {
         Interpreter::new(true, SOURCES).expect("Failed to compile base environment.")
     }
 
-    fn is_only_value(result: &Result<Value, AggregateError<Error>>, output: &str, value: &Value) {
+    fn is_only_value(
+        result: &Result<Value, AggregateError<stateful::Error>>,
+        output: &str,
+        value: &Value,
+    ) {
         assert_eq!("", output);
 
         match result {
@@ -172,7 +188,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output(
-        result: &Result<Value, AggregateError<Error>>,
+        result: &Result<Value, AggregateError<stateful::Error>>,
         output: &str,
         expected_output: &str,
     ) {
@@ -184,12 +200,22 @@ mod given_interpreter {
         }
     }
 
-    fn is_only_error(result: &Result<Value, AggregateError<Error>>, output: &str, error: &str) {
+    fn is_only_error(
+        result: &Result<Value, AggregateError<stateful::Error>>,
+        output: &str,
+        error: &str,
+    ) {
         assert_eq!("", output);
 
         match result {
             Ok(value) => panic!("Expected error , got {value:?}"),
-            Err(errors) => assert_eq!(error, errors.0[0].to_string()),
+            Err(errors) => {
+                let mut message = errors.0[0].to_string();
+                for source in iter::successors(errors.0[0].source(), |&e| e.source()) {
+                    write!(message, ": {source}").expect("string should be writable");
+                }
+                assert_eq!(error, message);
+            }
         }
     }
 }

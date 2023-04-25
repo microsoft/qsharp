@@ -14,7 +14,7 @@ use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_hir::hir::PackageId;
 use qsc_passes::run_default_passes;
 use serde::{Deserialize, Serialize};
-use std::fmt::Write;
+use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
 // These definitions match the values expected by VS Code and Monaco.
@@ -212,7 +212,11 @@ where
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
         let severity = err.severity().unwrap_or(Severity::Error);
+
         let mut message = err.to_string();
+        for source in iter::successors(err.source(), |e| e.source()) {
+            write!(message, ": {source}").expect("message should be writable");
+        }
         if let Some(help) = err.help() {
             write!(message, "\n\nhelp: {help}").expect("message should be writable");
         }
@@ -240,8 +244,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     STORE_STD.with(|(store, std)| {
         let mut unit = compile(store, [*std], [code], "");
         let pass_errs = run_default_passes(&mut unit);
-        unit.context
-            .errors()
+        unit.errors
             .iter()
             .map(Into::into)
             .chain(pass_errs.iter().map(Into::into))
@@ -416,7 +419,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
+        assert_eq!(err.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -460,7 +463,10 @@ mod test {
         let error = errors.first().unwrap();
         assert_eq!(error.start_pos, 111);
         assert_eq!(error.end_pos, 117);
-        assert_eq!(error.message, "expected (Double, Qubit), found Qubit");
+        assert_eq!(
+            error.message,
+            "type error: expected (Double, Qubit), found Qubit"
+        );
     }
 
     #[test]

@@ -3,25 +3,28 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-use std::sync::Arc;
-use std::{path::PathBuf, process::ExitCode};
-
 use clap::Parser;
+use miette::{
+    Diagnostic, IntoDiagnostic, MietteError, MietteSpanContents, Report, Result, SourceCode,
+    SourceSpan, SpanContents,
+};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc_eval::output::{format_state_id, Receiver};
-use qsc_eval::stateful::{Error, Interpreter};
-use qsc_eval::val::Value;
-use qsc_eval::AggregateError;
-use qsc_frontend::compile::{Context, SourceIndex};
-use qsc_frontend::diagnostic::OffsetError;
-
-use std::string::String;
-
-use miette::{Diagnostic, IntoDiagnostic, NamedSource, Report, Result};
-use std::io::prelude::BufRead;
-use std::io::Write;
-use std::{fs, io};
+use qsc_eval::{
+    output::{format_state_id, Receiver},
+    stateful::{Error, Interpreter},
+    val::Value,
+    AggregateError,
+};
+use qsc_frontend::compile::{SourceIndex, SourceMap};
+use std::{
+    fs,
+    io::{self, prelude::BufRead, Write},
+    path::PathBuf,
+    process::ExitCode,
+    string::String,
+    sync::Arc,
+};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, next_line_help = true)]
@@ -51,9 +54,9 @@ fn repl(cli: Cli) -> Result<ExitCode> {
 
     let interpreter = Interpreter::new(!cli.nostdlib, sources.clone());
     if let Err((_, unit)) = interpreter {
-        let reporter = ErrorReporter::new(cli, sources, &unit.context);
-        for error in unit.context.errors() {
-            eprintln!("{:?}", reporter.report(error.clone()));
+        let reporter = ErrorReporter::new(cli, sources, &unit.sources);
+        for error in unit.errors {
+            eprintln!("{:?}", reporter.report(Report::new(error)));
         }
         return Ok(ExitCode::FAILURE);
     }
@@ -134,36 +137,72 @@ impl InteractiveErrorReporter {
 }
 
 struct ErrorReporter<'a> {
-    context: &'a Context,
+    source_map: &'a SourceMap,
     paths: Vec<PathBuf>,
     sources: Vec<Arc<String>>,
     entry: Arc<String>,
 }
 
 impl<'a> ErrorReporter<'a> {
-    fn new(cli: Cli, sources: Vec<String>, context: &'a Context) -> Self {
+    fn new(cli: Cli, sources: Vec<String>, source_map: &'a SourceMap) -> Self {
         Self {
-            context,
+            source_map,
             paths: cli.sources,
             sources: sources.into_iter().map(Arc::new).collect(),
             entry: Arc::new(cli.entry.unwrap_or_default()),
         }
     }
 
-    fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
+    fn report(&self, error: Report) -> Report {
         let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
-            return Report::new(error);
+            return error;
         };
 
         // Use the offset of the first labeled span to find which source code to include in the report.
-        let (index, offset) = self.context.source(first_label.offset());
+        let (index, offset) = self.source_map.offset(first_label.offset());
         let name = source_name(&self.paths, index);
         let source = self.sources.get(index.0).unwrap_or(&self.entry).clone();
-        let source = NamedSource::new(name, source);
 
         // Adjust all spans in the error to be relative to the start of this source.
-        let offset = -isize::try_from(offset).expect("Could not convert offset to isize");
-        Report::new(OffsetError::new(error, offset)).with_source_code(source)
+        error.with_source_code(OffsetSource {
+            source,
+            name: name.to_string(),
+            offset,
+        })
+    }
+}
+
+struct OffsetSource {
+    source: Arc<String>,
+    name: String,
+    offset: usize,
+}
+
+impl SourceCode for OffsetSource {
+    fn read_span<'a>(
+        &'a self,
+        span: &SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        let span = SourceSpan::new((span.offset() - self.offset).into(), span.len().into());
+        let contents = self
+            .source
+            .read_span(&span, context_lines_before, context_lines_after)?;
+        let contents_span = *contents.span();
+
+        let contents_span = SourceSpan::new(
+            (contents_span.offset() + self.offset).into(),
+            contents_span.len().into(),
+        );
+        Ok(Box::new(MietteSpanContents::new_named(
+            self.name.clone(),
+            contents.data(),
+            contents_span,
+            contents.line(),
+            contents.column(),
+            contents.line_count(),
+        )))
     }
 }
 

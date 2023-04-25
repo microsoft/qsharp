@@ -40,14 +40,13 @@ pub fn eval(
     if stdlib {
         let mut unit = compile::std();
         let pass_errs = run_default_passes(&mut unit);
-        if unit.context.errors().is_empty() && pass_errs.is_empty() {
+        if unit.errors.is_empty() && pass_errs.is_empty() {
             session_deps.push(store.insert(unit));
         } else {
             return Err(AggregateError(
-                unit.context
-                    .errors()
-                    .iter()
-                    .map(|e| Error::Compile(e.clone()))
+                unit.errors
+                    .into_iter()
+                    .map(Error::Compile)
                     .chain(pass_errs.into_iter().map(Error::Pass))
                     .collect(),
             ));
@@ -57,12 +56,11 @@ pub fn eval(
     // create a package with all defined dependencies for the session
     let mut unit = compile(&store, session_deps.clone(), sources, expr.as_ref());
     let pass_errs = run_default_passes(&mut unit);
-    if !unit.context.errors().is_empty() || !pass_errs.is_empty() {
+    if !unit.errors.is_empty() || !pass_errs.is_empty() {
         return Err(AggregateError(
-            unit.context
-                .errors()
-                .iter()
-                .map(|e| Error::Compile(e.clone()))
+            unit.errors
+                .into_iter()
+                .map(Error::Compile)
                 .chain(pass_errs.into_iter().map(Error::Pass))
                 .collect(),
         ));
@@ -128,14 +126,13 @@ fn create_execution_context(
     if stdlib {
         let mut unit = compile::std();
         let pass_errs = run_default_passes(&mut unit);
-        if unit.context.errors().is_empty() && pass_errs.is_empty() {
+        if unit.errors.is_empty() && pass_errs.is_empty() {
             session_deps.push(store.insert(unit));
         } else {
             return Err(AggregateError(
-                unit.context
-                    .errors()
-                    .iter()
-                    .map(|e| Error::Compile(e.clone()))
+                unit.errors
+                    .into_iter()
+                    .map(Error::Compile)
                     .chain(pass_errs.into_iter().map(Error::Pass))
                     .collect(),
             ));
@@ -144,12 +141,11 @@ fn create_execution_context(
 
     let mut unit = compile(&store, session_deps.clone(), sources, expr);
     let pass_errs = run_default_passes(&mut unit);
-    if !unit.context.errors().is_empty() || !pass_errs.is_empty() {
+    if !unit.errors.is_empty() || !pass_errs.is_empty() {
         return Err(AggregateError(
-            unit.context
-                .errors()
-                .iter()
-                .map(|e| Error::Compile(e.clone()))
+            unit.errors
+                .into_iter()
+                .map(Error::Compile)
                 .chain(pass_errs.into_iter().map(Error::Pass))
                 .collect(),
         ));

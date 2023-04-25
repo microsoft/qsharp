@@ -4,11 +4,11 @@
 #![warn(clippy::mod_module_files, clippy::pedantic)]
 
 use clap::{error::ErrorKind, Parser, ValueEnum};
-use miette::{Diagnostic, IntoDiagnostic, NamedSource, Report, Result};
-use qsc_frontend::{
-    compile::{self, compile, Context, PackageStore, SourceIndex},
-    diagnostic::OffsetError,
+use miette::{
+    IntoDiagnostic, MietteError, MietteSpanContents, Report, Result, SourceCode, SourceSpan,
+    SpanContents,
 };
+use qsc_frontend::compile::{self, compile, PackageStore, SourceIndex, SourceMap};
 use qsc_hir::hir::Package;
 use qsc_passes::{entry_point::extract_entry, run_default_passes};
 use std::{
@@ -80,18 +80,18 @@ fn main() -> Result<ExitCode> {
         vec![]
     } else {
         let mut std = compile::std();
-        if !std.context.errors().is_empty() {
-            let reporter = ErrorReporter::new(cli, sources, &std.context);
-            for error in std.context.errors() {
-                eprintln!("{:?}", reporter.report(error.clone()));
+        if !std.errors.is_empty() {
+            let reporter = ErrorReporter::new(cli, sources, &std.sources);
+            for error in std.errors.drain(..) {
+                eprintln!("{:?}", reporter.report(Report::new(error)));
             }
             return Ok(ExitCode::FAILURE);
         }
         let pass_errs = run_default_passes(&mut std);
         if !pass_errs.is_empty() {
-            let reporter = ErrorReporter::new(cli, sources, &std.context);
+            let reporter = ErrorReporter::new(cli, sources, &std.sources);
             for error in pass_errs {
-                eprintln!("{:?}", reporter.report(error));
+                eprintln!("{:?}", reporter.report(Report::new(error)));
             }
             return Ok(ExitCode::FAILURE);
         }
@@ -117,14 +117,14 @@ fn main() -> Result<ExitCode> {
         }
     }
 
-    if unit.context.errors().is_empty() && pass_errs.is_empty() {
+    if unit.errors.is_empty() && pass_errs.is_empty() {
         if cli.entry.is_none() {
             match extract_entry(&unit.package) {
                 Ok(..) => Ok(ExitCode::SUCCESS),
                 Err(errors) => {
-                    let reporter = ErrorReporter::new(cli, sources, &unit.context);
-                    for error in &errors {
-                        eprintln!("{:?}", reporter.report(error.clone()));
+                    let reporter = ErrorReporter::new(cli, sources, &unit.sources);
+                    for error in errors {
+                        eprintln!("{:?}", reporter.report(Report::new(error)));
                     }
                     Ok(ExitCode::FAILURE)
                 }
@@ -133,48 +133,84 @@ fn main() -> Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
     } else {
-        let reporter = ErrorReporter::new(cli, sources, &unit.context);
-        for error in unit.context.errors() {
-            eprintln!("{:?}", reporter.report(error.clone()));
+        let reporter = ErrorReporter::new(cli, sources, &unit.sources);
+        for error in unit.errors.drain(..) {
+            eprintln!("{:?}", reporter.report(Report::new(error)));
         }
         for error in pass_errs {
-            eprintln!("{:?}", reporter.report(error));
+            eprintln!("{:?}", reporter.report(Report::new(error)));
         }
         Ok(ExitCode::FAILURE)
     }
 }
 
 struct ErrorReporter<'a> {
-    context: &'a Context,
+    source_map: &'a SourceMap,
     paths: Vec<PathBuf>,
     sources: Vec<Arc<String>>,
     entry: Arc<String>,
 }
 
 impl<'a> ErrorReporter<'a> {
-    fn new(cli: Cli, sources: Vec<String>, context: &'a Context) -> Self {
+    fn new(cli: Cli, sources: Vec<String>, source_map: &'a SourceMap) -> Self {
         Self {
-            context,
+            source_map,
             paths: cli.input,
             sources: sources.into_iter().map(Arc::new).collect(),
             entry: Arc::new(cli.entry.unwrap_or_default()),
         }
     }
 
-    fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
+    fn report(&self, error: Report) -> Report {
         let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
-            return Report::new(error);
+            return error;
         };
 
         // Use the offset of the first labeled span to find which source code to include in the report.
-        let (index, offset) = self.context.source(first_label.offset());
+        let (index, offset) = self.source_map.offset(first_label.offset());
         let name = source_name(&self.paths, index);
         let source = self.sources.get(index.0).unwrap_or(&self.entry).clone();
-        let source = NamedSource::new(name, source);
 
         // Adjust all spans in the error to be relative to the start of this source.
-        let offset = -isize::try_from(offset).expect("Could not convert offset to isize");
-        Report::new(OffsetError::new(error, offset)).with_source_code(source)
+        error.with_source_code(OffsetSource {
+            source,
+            name: name.to_string(),
+            offset,
+        })
+    }
+}
+
+struct OffsetSource {
+    source: Arc<String>,
+    name: String,
+    offset: usize,
+}
+
+impl SourceCode for OffsetSource {
+    fn read_span<'a>(
+        &'a self,
+        span: &SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        let span = SourceSpan::new((span.offset() - self.offset).into(), span.len().into());
+        let contents = self
+            .source
+            .read_span(&span, context_lines_before, context_lines_after)?;
+        let contents_span = *contents.span();
+
+        let contents_span = SourceSpan::new(
+            (contents_span.offset() + self.offset).into(),
+            contents_span.len().into(),
+        );
+        Ok(Box::new(MietteSpanContents::new_named(
+            self.name.clone(),
+            contents.data(),
+            contents_span,
+            contents.line(),
+            contents.column(),
+            contents.line_count(),
+        )))
     }
 }
 
