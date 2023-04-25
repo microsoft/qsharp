@@ -46,11 +46,12 @@ impl MutVisitor for AdjDistrib {
             }
         }
 
-        if let ExprKind::Conjugate(_, apply) = &mut expr.kind {
-            // Only transform the apply block, the within block can remain as-is.
-            self.visit_block(apply);
-        } else {
-            walk_expr(self, expr);
+        match &mut expr.kind {
+            ExprKind::Conjugate(_, apply) => {
+                // Only transform the apply block, the within block can remain as-is.
+                self.visit_block(apply);
+            }
+            _ => walk_expr(self, expr),
         }
     }
 }

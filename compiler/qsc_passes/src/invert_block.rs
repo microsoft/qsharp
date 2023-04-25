@@ -13,10 +13,10 @@ use qsc_hir::{
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::logic_sep::{check_block_separatable, Error};
+use crate::logic_sep::{list_separable_statements, Error};
 
 pub(crate) fn adj_invert_block(context: &mut Context, block: &mut Block) -> Result<(), Vec<Error>> {
-    let op_call_stmts = check_block_separatable(block)?;
+    let op_call_stmts = list_separable_statements(block)?;
     let mut pass = BlockInverter {
         context,
         op_call_stmts,

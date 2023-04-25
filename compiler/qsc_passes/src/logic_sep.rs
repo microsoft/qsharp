@@ -21,17 +21,17 @@ pub enum Error {
 
     #[error("cannot generate adjoint of block with {0} type")]
     #[diagnostic(help("adjoint generation can only be performed with blocks of type Unit"))]
-    NonUnitBlock(String, #[label] Span),
+    NonUnitBlock(Ty, #[label] Span),
 
     #[error("cannot generate adjoint with operation call in this position")]
-    #[diagnostic(help("in blocks that require generated adjoint, operation calls can only appear as top-level statements, a qubit allocation block, a conjugate block, a for-loop block, or a conditional block"))]
+    #[diagnostic(help("in blocks that require generated adjoint, operation calls can only appear as top-level statements or in a qubit allocation block, conjugate block, for-loop block, or conditional block"))]
     OpCallForbidden(#[label] Span),
 }
 
 /// Checks that the given block is separatable, meaning deterministic statements and nondeterministic statements
 /// across the block and any nested expressions/blocks can be logically separated. On success, returns a `HashSet` of
 /// all non-deterministic statement node ids.
-pub(crate) fn check_block_separatable(block: &Block) -> Result<HashSet<NodeId>, Vec<Error>> {
+pub(crate) fn list_separable_statements(block: &Block) -> Result<HashSet<NodeId>, Vec<Error>> {
     let mut pass = SepCheck {
         errors: Vec::new(),
         op_call_present: HashSet::new(),
@@ -59,7 +59,7 @@ impl<'a> Visitor<'a> for SepCheck {
             Ty::Tuple(tup) if tup.is_empty() => {}
             ty if self.op_call_allowed => {
                 self.errors
-                    .push(Error::NonUnitBlock(ty.to_string(), block.span));
+                    .push(Error::NonUnitBlock(ty.clone(), block.span));
                 self.op_call_allowed = false;
             }
             _ => {}

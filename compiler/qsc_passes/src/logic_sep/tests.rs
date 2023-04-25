@@ -13,7 +13,7 @@ use qsc_hir::{
     visit::{walk_stmt, Visitor},
 };
 
-use crate::logic_sep::check_block_separatable;
+use crate::logic_sep::list_separable_statements;
 
 struct StmtSpan {
     span: HashMap<NodeId, Span>,
@@ -45,7 +45,7 @@ fn check(block_str: &str, expect: &Expect) {
     };
     stmt_map.visit_block(block);
 
-    match check_block_separatable(block) {
+    match list_separable_statements(block) {
         Ok(mut nondeterm) => {
             let mut stmts = nondeterm.drain().collect::<Vec<_>>();
             stmts.sort_unstable();
