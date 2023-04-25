@@ -525,10 +525,12 @@ mod test {
         let result = crate::run_internal(
             code,
             expr,
-            |_msg_| {
-                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-                assert!(_msg_.contains(r#""message": "entry point not found"#));
-                assert!(_msg_.contains(r#""start_pos": 0"#));
+            |msg| {
+                assert!(msg.contains(r#""type": "Result", "success": false"#));
+                assert!(msg.contains(
+                    r#""message": "could not compile source code: entry point not found"#
+                ));
+                assert!(msg.contains(r#""start_pos": 0"#));
             },
             1,
         );

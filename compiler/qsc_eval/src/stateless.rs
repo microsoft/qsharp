@@ -14,12 +14,14 @@ use qsc_passes::{entry_point::extract_entry, run_default_passes};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-#[error(transparent)]
 #[diagnostic(transparent)]
 pub enum Error {
-    Eval(crate::Error),
-    Compile(compile::Error),
-    Pass(qsc_passes::Error),
+    #[error("program encountered an error while running")]
+    Eval(#[from] crate::Error),
+    #[error("could not compile source code")]
+    Compile(#[from] compile::Error),
+    #[error("could not compile source code")]
+    Pass(#[from] qsc_passes::Error),
 }
 
 /// # Errors
