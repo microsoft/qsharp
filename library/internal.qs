@@ -122,15 +122,28 @@ namespace Microsoft.Quantum.Intrinsic {
     /// For example, if the controls list is 6 qubits, the auxiliary list must be 5 qubits, and the
     /// state from the 6 control qubits will be collected into the last qubit of the auxiliary array.
     internal operation CollectControls(ctls : Qubit[], aux : Qubit[], adjustment : Int) : Unit is Adj {
-        // First collect the controls into the first part of the auxiliary list.
-        for i in 0..2..(Length(ctls) - 2) {
-            PhaseCCX(ctls[i], ctls[i + 1], aux[i / 2]);
+        body (...) {
+            // First collect the controls into the first part of the auxiliary list.
+            for i in 0..2..(Length(ctls) - 2) {
+                PhaseCCX(ctls[i], ctls[i + 1], aux[i / 2]);
+            }
+            // Then collect the auxiliary qubits in the first part of the list forward into the last
+            // qubit of the auxiliary list. The adjustment is used to allow the caller to reduce or increase
+            // the number of times this is run based on the eventual number of control qubits needed.
+            for i in 0..((Length(ctls) / 2) - 2 - adjustment) {
+                PhaseCCX(aux[i * 2], aux[(i * 2) + 1], aux[i + Length(ctls) / 2]);
+            }
         }
-        // Then collect the auxiliary qubits in the first part of the list forward into the last
-        // qubit of the auxiliary list. The adjustment is used to allow the caller to reduce or increase
-        // the number of times this is run based on the eventual number of control qubits needed.
-        for i in 0..((Length(ctls) / 2) - 2 - adjustment) {
-            PhaseCCX(aux[i * 2], aux[(i * 2) + 1], aux[i + Length(ctls) / 2]);
+        adjoint (...) {
+            // BLOCKED ON: adjoint auto
+            // TODO: Remove manual adjoint
+            for i in ((Length(ctls) / 2) - 2 - adjustment)..-1..0 {
+                Adjoint PhaseCCX(aux[i * 2], aux[(i * 2) + 1], aux[i + Length(ctls) / 2]);
+            }
+        
+            for i in ((Length(ctls) - 2)/2)*2..-2..0 {
+                Adjoint PhaseCCX(ctls[i], ctls[i + 1], aux[i / 2]);
+            }
         }
     }
 
@@ -144,17 +157,34 @@ namespace Microsoft.Quantum.Intrinsic {
 
     internal operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         // https://arxiv.org/pdf/1210.0974.pdf#page=2
-        H(target);
-        CNOT(target,control1);
-        CNOT(control1,control2);
-        T(control2);
-        Adjoint T(control1);
-        T(target);
-        CNOT(target,control1);
-        CNOT(control1,control2);
-        Adjoint T(control2);
-        CNOT(target,control2);
-        H(target);
+        body (...) {
+            H(target);
+            CNOT(target,control1);
+            CNOT(control1,control2);
+            T(control2);
+            Adjoint T(control1);
+            T(target);
+            CNOT(target,control1);
+            CNOT(control1,control2);
+            Adjoint T(control2);
+            CNOT(target,control2);
+            H(target);
+        }
+        adjoint (...) {
+            // BLOCKED ON: adjoint auto
+            // TODO: Remove manual adjoint
+            H(target);
+            CNOT(target,control2);
+            T(control2);
+            CNOT(control1,control2);            
+            CNOT(target,control1);
+            Adjoint T(target);
+            T(control1);
+            Adjoint T(control2);
+            CNOT(control1,control2);
+            CNOT(target,control1);
+            H(target);
+        }
     }
 
     internal operation CCZ(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {

@@ -904,17 +904,16 @@ namespace Microsoft.Quantum.Intrinsic {
             }
             else {
                 use aux = Qubit[Length(ctls) - 2];
-                within {
-                    CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
+                CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
+                if Length(ctls) % 2 != 0 {
+                    __quantum__qis__ccx__body(ctls[Length(ctls) - 1], aux[Length(ctls) - 3], qubit);
                 }
-                apply {
-                    if Length(ctls) % 2 != 0 {
-                        __quantum__qis__ccx__body(ctls[Length(ctls) - 1], aux[Length(ctls) - 3], qubit);
-                    }
-                    else {
-                        __quantum__qis__ccx__body(aux[Length(ctls) - 3], aux[Length(ctls) - 4], qubit);
-                    }
+                else {
+                    __quantum__qis__ccx__body(aux[Length(ctls) - 3], aux[Length(ctls) - 4], qubit);
                 }
+                // BLOCKED ON: within
+                // TODO: Use within and remove this
+                Adjoint CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
             }
         }
         adjoint self;
