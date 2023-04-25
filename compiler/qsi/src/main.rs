@@ -54,9 +54,9 @@ fn repl(cli: Cli) -> Result<ExitCode> {
 
     let interpreter = Interpreter::new(!cli.nostdlib, sources.clone());
     if let Err((_, unit)) = interpreter {
-        let reporter = ErrorReporter::new(cli, sources, &unit.sources);
+        let reporter = ErrorReporter::new(&unit.sources, cli, sources);
         for error in unit.errors {
-            eprintln!("{:?}", reporter.report(Report::new(error)));
+            eprintln!("{:?}", reporter.report(error));
         }
         return Ok(ExitCode::FAILURE);
     }
@@ -137,44 +137,44 @@ impl InteractiveErrorReporter {
 }
 
 struct ErrorReporter<'a> {
-    source_map: &'a SourceMap,
+    offsets: &'a SourceMap,
     paths: Vec<PathBuf>,
     sources: Vec<Arc<String>>,
     entry: Arc<String>,
 }
 
 impl<'a> ErrorReporter<'a> {
-    fn new(cli: Cli, sources: Vec<String>, source_map: &'a SourceMap) -> Self {
+    fn new(offsets: &'a SourceMap, cli: Cli, sources: Vec<String>) -> Self {
         Self {
-            source_map,
+            offsets,
             paths: cli.sources,
             sources: sources.into_iter().map(Arc::new).collect(),
             entry: Arc::new(cli.entry.unwrap_or_default()),
         }
     }
 
-    fn report(&self, error: Report) -> Report {
+    fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
         let Some(first_label) = error.labels().and_then(|mut ls| ls.next()) else {
-            return error;
+            return Report::new(error);
         };
 
         // Use the offset of the first labeled span to find which source code to include in the report.
-        let (index, offset) = self.source_map.offset(first_label.offset());
+        let (index, offset) = self.offsets.offset(first_label.offset());
         let name = source_name(&self.paths, index);
         let source = self.sources.get(index.0).unwrap_or(&self.entry).clone();
 
         // Adjust all spans in the error to be relative to the start of this source.
-        error.with_source_code(OffsetSource {
-            source,
+        Report::new(error).with_source_code(OffsetSource {
             name: name.to_string(),
+            source,
             offset,
         })
     }
 }
 
 struct OffsetSource {
-    source: Arc<String>,
     name: String,
+    source: Arc<String>,
     offset: usize,
 }
 
@@ -185,20 +185,16 @@ impl SourceCode for OffsetSource {
         context_lines_before: usize,
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
-        let span = SourceSpan::new((span.offset() - self.offset).into(), span.len().into());
-        let contents = self
-            .source
-            .read_span(&span, context_lines_before, context_lines_after)?;
-        let contents_span = *contents.span();
+        let contents = self.source.read_span(
+            &with_offset(span, |o| o - self.offset),
+            context_lines_before,
+            context_lines_after,
+        )?;
 
-        let contents_span = SourceSpan::new(
-            (contents_span.offset() + self.offset).into(),
-            contents_span.len().into(),
-        );
         Ok(Box::new(MietteSpanContents::new_named(
             self.name.clone(),
             contents.data(),
-            contents_span,
+            with_offset(contents.span(), |o| o + self.offset),
             contents.line(),
             contents.column(),
             contents.line_count(),
@@ -241,4 +237,8 @@ impl Receiver for TerminalReceiver {
         println!("{msg}");
         Ok(())
     }
+}
+
+fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan {
+    SourceSpan::new(f(span.offset()).into(), span.len().into())
 }
