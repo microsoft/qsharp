@@ -375,6 +375,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             bind(infer, ty1.clone());
             Ok(())
         }
+        (Ty::Name(res1), Ty::Name(res2)) if res1 == res2 => Ok(()),
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {

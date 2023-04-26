@@ -1341,3 +1341,28 @@ fn range_fields_are_int() {
         "##]],
     );
 }
+
+#[test]
+fn newtype_constructor() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt = Int;
+
+                function Foo() : NewInt {
+                    NewInt(5)
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #4 57-59 "()" : ()
+            #5 69-94 "{\n        NewInt(5)\n    }" : Item(ItemId { package: None, item: LocalItemId(1) })
+            #7 79-88 "NewInt(5)" : Item(ItemId { package: None, item: LocalItemId(1) })
+            #8 79-85 "NewInt" : (Int -> Item(ItemId { package: None, item: LocalItemId(1) }))
+            #9 85-88 "(5)" : Int
+            #10 86-87 "5" : Int
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+        "##]],
+    );
+}

@@ -11,7 +11,10 @@ use crate::{
 };
 use qsc_ast::ast;
 use qsc_hir::hir::{self, ItemId, PackageId, Ty};
-use std::{collections::HashMap, vec};
+use std::{
+    collections::{HashMap, HashSet},
+    vec,
+};
 
 pub(crate) struct GlobalTable {
     globals: HashMap<ItemId, Ty>,
@@ -29,15 +32,40 @@ impl GlobalTable {
     pub(crate) fn add_local_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
         for namespace in &package.namespaces {
             for item in &namespace.items {
-                if let ast::ItemKind::Callable(decl) = &item.kind {
-                    let (ty, errors) = convert::ast_callable_ty(resolutions, decl);
-                    let Some(&Res::Item(item)) = resolutions.get(decl.name.id) else {
-                        panic!("callable should have item ID");
-                    };
-                    self.globals.insert(item, ty);
-                    for MissingTyError(span) in errors {
-                        self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                match &item.kind {
+                    ast::ItemKind::Callable(decl) => {
+                        let Some(&Res::Item(item)) = resolutions.get(decl.name.id) else {
+                            panic!("callable should have item ID");
+                        };
+
+                        let (ty, errors) = convert::ast_callable_ty(resolutions, decl);
+                        for MissingTyError(span) in errors {
+                            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                        }
+
+                        self.globals.insert(item, ty);
                     }
+                    ast::ItemKind::Ty(name, def) => {
+                        let Some(&Res::Item(item)) = resolutions.get(name.id) else {
+                            panic!("type should have item ID");
+                        };
+
+                        let (ty, errors) = convert::ast_ty_def_ty(resolutions, def);
+                        for MissingTyError(span) in errors {
+                            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                        }
+
+                        self.globals.insert(
+                            item,
+                            Ty::Arrow(
+                                hir::CallableKind::Function,
+                                Box::new(ty),
+                                Box::new(Ty::Name(hir::Res::Item(item))),
+                                HashSet::new(),
+                            ),
+                        );
+                    }
+                    _ => {}
                 }
             }
         }
@@ -45,12 +73,27 @@ impl GlobalTable {
 
     pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
         for item in package.items.values() {
-            if let hir::ItemKind::Callable(decl) = &item.kind {
-                let item_id = ItemId {
-                    package: Some(id),
-                    item: item.id,
-                };
-                self.globals.insert(item_id, convert::hir_callable_ty(decl));
+            let item_id = ItemId {
+                package: Some(id),
+                item: item.id,
+            };
+
+            match &item.kind {
+                hir::ItemKind::Callable(decl) => {
+                    self.globals.insert(item_id, convert::hir_callable_ty(decl));
+                }
+                hir::ItemKind::Ty(_, def) => {
+                    self.globals.insert(
+                        item_id,
+                        Ty::Arrow(
+                            hir::CallableKind::Function,
+                            Box::new(convert::hir_ty_def_ty(def)),
+                            Box::new(Ty::Name(hir::Res::Item(item_id))),
+                            HashSet::new(),
+                        ),
+                    );
+                }
+                _ => {}
             }
         }
     }

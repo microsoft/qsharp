@@ -157,7 +157,7 @@ impl Display for ItemId {
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub enum Res {
     /// An invalid resolution.
     Err,
@@ -173,6 +173,16 @@ impl Display for Res {
             Res::Err => f.write_str("Err"),
             Res::Item(item) => Display::fmt(item, f),
             Res::Local(node) => write!(f, "Local {node}"),
+        }
+    }
+}
+
+impl PartialEq for Res {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Item(item1), Self::Item(item2)) => item1 == item2,
+            (Self::Local(node1), Self::Local(node2)) => node1 == node2,
+            _ => false,
         }
     }
 }
@@ -1006,7 +1016,7 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
 }
 
 /// A pattern.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Pat {
     /// The node ID.
     pub id: NodeId,
@@ -1029,7 +1039,7 @@ impl Display for Pat {
 }
 
 /// A pattern kind.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PatKind {
     /// A binding.
     Bind(Ident),
@@ -1158,7 +1168,7 @@ impl Display for Ident {
 }
 
 /// A type.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
