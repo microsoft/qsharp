@@ -26,7 +26,7 @@ def interpret(expr):
 def _interpret_with_outputs(expr):
     (value, outputs, err) = interpreter.interpret(expr)
 
-    # TODO: The interpreter will be updated to return a single
+    # TODO(minestarks): The interpreter will be updated to return a single
     # compilation/runtime error, so this will be unnecessary.
     for error in err:
         if error.error_type == "CompilationError":
