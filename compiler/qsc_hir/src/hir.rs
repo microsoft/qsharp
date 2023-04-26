@@ -1006,7 +1006,7 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
 }
 
 /// A pattern.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pat {
     /// The node ID.
     pub id: NodeId,
@@ -1029,7 +1029,7 @@ impl Display for Pat {
 }
 
 /// A pattern kind.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatKind {
     /// A binding.
     Bind(Ident),
@@ -1158,7 +1158,7 @@ impl Display for Ident {
 }
 
 /// A type.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
