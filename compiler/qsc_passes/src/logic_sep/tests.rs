@@ -21,7 +21,7 @@ struct StmtSpans {
 
 impl<'a> Visitor<'a> for StmtSpans {
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
-        self.span.insert(stmt.id, stmt.span);
+        self.spans.insert(stmt.id, stmt.span);
         walk_stmt(self, stmt);
     }
 }
@@ -41,7 +41,7 @@ fn check(block_str: &str, expect: &Expect) {
         panic!("test should be given block expression, given {entry}");
     };
     let mut stmt_map = StmtSpans {
-        span: HashMap::new(),
+        spans: HashMap::new(),
     };
     stmt_map.visit_block(block);
 
@@ -53,7 +53,7 @@ fn check(block_str: &str, expect: &Expect) {
             for id in stmts {
                 actual.push(
                     &block_str[stmt_map
-                        .span
+                        .spans
                         .get(&id)
                         .expect("nodes should be present in tree")],
                 );
