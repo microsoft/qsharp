@@ -45,9 +45,9 @@ impl Interpreter {
     ///    outputs: A list of outputs from the line. An output can be a state or a message.
     ///    errors: A list of errors from the line. Errors can be compilation or runtime errors.
     #[pyo3(text_signature = "(expr)")]
-    fn interpret(&mut self, py: Python, expr: String) -> PyResult<(PyObject, PyObject, PyObject)> {
+    fn interpret(&mut self, py: Python, expr: &str) -> PyResult<(PyObject, PyObject, PyObject)> {
         let mut receiver = FormattingReceiver::new();
-        let (value, errors) = match self.interpreter.line(&mut receiver, expr) {
+        let (value, errors) = match self.interpreter.line(expr, &mut receiver) {
             Ok(value) => (value, Vec::<stateful::Error>::new()),
             Err(err) => (Value::UNIT, { err.0 }),
         };

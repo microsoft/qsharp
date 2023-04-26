@@ -102,8 +102,9 @@ impl Receiver for FormattingReceiver {
         Ok(())
     }
 
-    fn message(&mut self, msg: String) -> Result<(), Error> {
-        self.outputs.push(DisplayableOutput::Message(msg));
+    fn message(&mut self, msg: &str) -> Result<(), Error> {
+        self.outputs
+            .push(DisplayableOutput::Message(msg.to_owned()));
         Ok(())
     }
 }
