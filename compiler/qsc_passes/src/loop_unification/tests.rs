@@ -479,50 +479,50 @@ fn convert_repeat_nested() {
                                 Expr 15 [108-112] [Type Bool]: Lit: Bool(true)
                             Stmt 16 [122-395]: Expr: Expr _id_ [122-395] [Type ()]: Expr Block: Block _id_ [122-395] [Type ()]:
                                 Stmt _id_ [291-292]: Local (Mutable):
-                                    Pat _id_ [291-292] [Type Bool]: Bind: Ident 43 [291-292] "__continue_cond_43__"
+                                    Pat _id_ [291-292] [Type Bool]: Bind: Ident 45 [291-292] "__continue_cond_45__"
                                     Expr _id_ [291-292] [Type Bool]: Lit: Bool(true)
                                 Stmt _id_ [122-395]: Expr: Expr _id_ [122-395] [Type ()]: While:
-                                    Expr _id_ [291-292] [Type Bool]: Name: Local 43
+                                    Expr _id_ [291-292] [Type Bool]: Name: Local 45
                                     Block 18 [129-284] [Type ()]:
                                         Stmt 19 [143-274]: Expr: Expr _id_ [143-274] [Type ()]: Expr Block: Block _id_ [143-274] [Type ()]:
                                             Stmt _id_ [205-206]: Local (Mutable):
-                                                Pat _id_ [205-206] [Type Bool]: Bind: Ident 44 [205-206] "__continue_cond_44__"
+                                                Pat _id_ [205-206] [Type Bool]: Bind: Ident 43 [205-206] "__continue_cond_43__"
                                                 Expr _id_ [205-206] [Type Bool]: Lit: Bool(true)
                                             Stmt _id_ [143-274]: Expr: Expr _id_ [143-274] [Type ()]: While:
-                                                Expr _id_ [205-206] [Type Bool]: Name: Local 44
+                                                Expr _id_ [205-206] [Type Bool]: Name: Local 43
                                                 Block 21 [150-198] [Type ()]:
                                                     Stmt 22 [168-184]: Local (Immutable):
                                                         Pat 23 [172-173] [Type String]: Bind: Ident 24 [172-173] "x"
                                                         Expr 25 [176-183] [Type String]: Lit: String("First")
                                                     Stmt _id_ [205-206]: Semi: Expr _id_ [205-206] [Type ()]: Assign:
-                                                        Expr _id_ [205-206] [Type Bool]: Name: Local 44
+                                                        Expr _id_ [205-206] [Type Bool]: Name: Local 43
                                                         Expr _id_ [205-206] [Type Bool]: UnOp (NotL):
                                                             Expr 26 [205-206] [Type Bool]: Name: Local 6
                                                     Stmt _id_ [225-274]: Expr: Expr _id_ [225-274] [Type ()]: If:
-                                                        Expr _id_ [205-206] [Type Bool]: Name: Local 44
+                                                        Expr _id_ [205-206] [Type Bool]: Name: Local 43
                                                         Block 27 [225-274] [Type ()]:
                                                             Stmt 28 [243-260]: Local (Immutable):
                                                                 Pat 29 [247-248] [Type String]: Bind: Ident 30 [247-248] "y"
                                                                 Expr 31 [251-259] [Type String]: Lit: String("Second")
                                         Stmt _id_ [291-292]: Semi: Expr _id_ [291-292] [Type ()]: Assign:
-                                            Expr _id_ [291-292] [Type Bool]: Name: Local 43
+                                            Expr _id_ [291-292] [Type Bool]: Name: Local 45
                                             Expr _id_ [291-292] [Type Bool]: UnOp (NotL):
                                                 Expr 32 [291-292] [Type Bool]: Name: Local 10
                                         Stmt _id_ [307-395]: Expr: Expr _id_ [307-395] [Type ()]: If:
-                                            Expr _id_ [291-292] [Type Bool]: Name: Local 43
+                                            Expr _id_ [291-292] [Type Bool]: Name: Local 45
                                             Block 33 [307-395] [Type ()]:
                                                 Stmt 34 [321-385]: Semi: Expr _id_ [321-384] [Type ()]: Expr Block: Block _id_ [321-384] [Type ()]:
                                                     Stmt _id_ [383-384]: Local (Mutable):
-                                                        Pat _id_ [383-384] [Type Bool]: Bind: Ident 45 [383-384] "__continue_cond_45__"
+                                                        Pat _id_ [383-384] [Type Bool]: Bind: Ident 44 [383-384] "__continue_cond_44__"
                                                         Expr _id_ [383-384] [Type Bool]: Lit: Bool(true)
                                                     Stmt _id_ [321-384]: Expr: Expr _id_ [321-384] [Type ()]: While:
-                                                        Expr _id_ [383-384] [Type Bool]: Name: Local 45
+                                                        Expr _id_ [383-384] [Type Bool]: Name: Local 44
                                                         Block 36 [328-376] [Type ()]:
                                                             Stmt 37 [346-362]: Local (Immutable):
                                                                 Pat 38 [350-351] [Type String]: Bind: Ident 39 [350-351] "z"
                                                                 Expr 40 [354-361] [Type String]: Lit: String("Third")
                                                             Stmt _id_ [383-384]: Semi: Expr _id_ [383-384] [Type ()]: Assign:
-                                                                Expr _id_ [383-384] [Type Bool]: Name: Local 45
+                                                                Expr _id_ [383-384] [Type Bool]: Name: Local 44
                                                                 Expr _id_ [383-384] [Type Bool]: UnOp (NotL):
                                                                     Expr 41 [383-384] [Type Bool]: Name: Local 14"#]],
     );

@@ -344,6 +344,7 @@ impl LoopUni<'_> {
 
 impl MutVisitor for LoopUni<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
+        walk_expr(self, expr);
         let new_expr = take(expr);
         *expr = match new_expr.kind {
             ExprKind::Repeat(block, cond, fixup) => {
@@ -363,8 +364,6 @@ impl MutVisitor for LoopUni<'_> {
             }
             _ => new_expr,
         };
-
-        walk_expr(self, expr);
     }
 }
 
