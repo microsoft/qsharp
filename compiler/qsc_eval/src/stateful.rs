@@ -24,9 +24,9 @@ use thiserror::Error;
 pub enum Error {
     #[error("program encountered an error while running")]
     Eval(#[from] crate::Error),
-    #[error("could not compile sources")]
+    #[error("could not compile source code")]
     Compile(#[from] compile::Error),
-    #[error("could not compile sources")]
+    #[error("could not compile source code")]
     Pass(#[from] qsc_passes::Error),
     #[error("could not compile line")]
     Incremental(#[from] incremental::Error),
