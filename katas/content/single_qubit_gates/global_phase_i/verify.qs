@@ -3,16 +3,9 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
 
     operation GlobalPhaseIReference(q : Qubit) : Unit is Adj + Ctl {
-        body ... {
-            X(q);
-            Z(q);
-            Y(q);
-        }
-        adjoint ... {
-            Y(q);
-            Z(q);
-            X(q);
-        }
+        X(q);
+        Z(q);
+        Y(q);
     }
 
     operation Verify() : Bool {
