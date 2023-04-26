@@ -12,7 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{ItemId, PrimTy, Ty};
+use qsc_hir::hir::{self, ItemId, PrimTy, Ty};
 use std::collections::{HashMap, HashSet};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -86,9 +86,13 @@ impl<'a> Context<'a> {
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(_) => Ty::Err, // TODO: Resolve user-defined types.
+            TyKind::Path(path) => match self.resolutions.get(path.id) {
+                Some(&Res::Item(item)) => Ty::Name(hir::Res::Item(item)),
+                Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
+                Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
+                Some(Res::Local(_)) | None => Ty::Err,
+            },
             TyKind::Param(name) => Ty::Param(name.name.to_string()),
-            &TyKind::Prim(prim) => Ty::Prim(convert::prim_from_ast(prim)),
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
@@ -308,6 +312,7 @@ impl<'a> Context<'a> {
                         .expect("local variable should have inferred type")
                         .clone(),
                 ),
+                Some(Res::PrimTy(_) | Res::UnitTy) => panic!("expression resolves to type"),
             },
             ExprKind::Range(start, step, end) => {
                 let mut diverges = false;
