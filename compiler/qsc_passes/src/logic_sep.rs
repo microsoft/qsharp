@@ -28,10 +28,10 @@ pub enum Error {
     OpCallForbidden(#[label] Span),
 }
 
-/// Checks that the given block is separatable, meaning deterministic statements and nondeterministic statements
+/// Checks that the given block is separatable, meaning classical statements and quantum statements
 /// across the block and any nested expressions/blocks can be logically separated. On success, returns a `HashSet` of
-/// all non-deterministic statement node ids.
-pub(crate) fn list_separable_statements(block: &Block) -> Result<HashSet<NodeId>, Vec<Error>> {
+/// all quantum statement node ids, based on whether any operation calls are present in that statement.
+pub(crate) fn list_quantum_statements(block: &Block) -> Result<HashSet<NodeId>, Vec<Error>> {
     let mut pass = SepCheck {
         errors: Vec::new(),
         op_call_present: HashSet::new(),

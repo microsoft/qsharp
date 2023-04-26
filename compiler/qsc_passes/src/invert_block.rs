@@ -13,10 +13,10 @@ use qsc_hir::{
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::logic_sep::{list_separable_statements, Error};
+use crate::logic_sep::{list_quantum_statements, Error};
 
 pub(crate) fn adj_invert_block(context: &mut Context, block: &mut Block) -> Result<(), Vec<Error>> {
-    let op_call_stmts = list_separable_statements(block)?;
+    let op_call_stmts = list_quantum_statements(block)?;
     let mut pass = BlockInverter {
         context,
         op_call_stmts,
@@ -34,22 +34,24 @@ struct BlockInverter<'a> {
 
 impl<'a> MutVisitor for BlockInverter<'a> {
     fn visit_block(&mut self, block: &mut Block) {
-        let mut determ = Vec::new();
-        let mut nondeterm = Vec::new();
+        // Each block is split into classical and quantum statements based on the presence of operation
+        // calls, so that the quantum statements can be reversed.
+        let mut classical_stmts = Vec::new();
+        let mut quantum_stmts = Vec::new();
         for mut stmt in block.stmts.drain(..) {
             if self.op_call_stmts.contains(&stmt.id) {
                 self.should_reverse_loop = true;
                 self.visit_stmt(&mut stmt);
-                nondeterm.push(stmt);
+                quantum_stmts.push(stmt);
                 self.should_reverse_loop = false;
             } else {
                 self.visit_stmt(&mut stmt);
-                determ.push(stmt);
+                classical_stmts.push(stmt);
             }
         }
-        nondeterm.reverse();
-        block.stmts.append(&mut determ);
-        block.stmts.append(&mut nondeterm);
+        quantum_stmts.reverse();
+        block.stmts.append(&mut classical_stmts);
+        block.stmts.append(&mut quantum_stmts);
     }
 
     fn visit_expr(&mut self, expr: &mut Expr) {

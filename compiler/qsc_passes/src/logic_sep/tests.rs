@@ -13,7 +13,7 @@ use qsc_hir::{
     visit::{walk_stmt, Visitor},
 };
 
-use crate::logic_sep::list_separable_statements;
+use crate::logic_sep::list_quantum_statements;
 
 struct StmtSpan {
     span: HashMap<NodeId, Span>,
@@ -45,9 +45,9 @@ fn check(block_str: &str, expect: &Expect) {
     };
     stmt_map.visit_block(block);
 
-    match list_separable_statements(block) {
-        Ok(mut nondeterm) => {
-            let mut stmts = nondeterm.drain().collect::<Vec<_>>();
+    match list_quantum_statements(block) {
+        Ok(mut quantum_stmts) => {
+            let mut stmts = quantum_stmts.drain().collect::<Vec<_>>();
             stmts.sort_unstable();
             let mut actual = Vec::new();
             for id in stmts {
@@ -65,17 +65,17 @@ fn check(block_str: &str, expect: &Expect) {
 }
 
 #[test]
-fn empty_block_produces_empty_nondeterm() {
+fn empty_block_produces_empty_quantum_stmts() {
     check("{}", &expect![""]);
 }
 
 #[test]
-fn pure_determ_block_produces_empty_nondeterm() {
+fn pure_classical_block_produces_empty_quantum_stmts() {
     check("{let x = 4; let y = x * 3;}", &expect![""]);
 }
 
 #[test]
-fn op_calls_are_nondeterm() {
+fn op_calls_are_quantum_stmts() {
     check(
         "{use q = Qubit(); X(q); let val = 4; Z(q);}",
         &expect![[r#"
@@ -85,7 +85,7 @@ fn op_calls_are_nondeterm() {
 }
 
 #[test]
-fn if_with_op_call_is_nondeterm() {
+fn if_with_op_call_is_quantum_stmts() {
     check(
         "{use q = Qubit(); X(q); let val = true; if val {Z(q);}}",
         &expect![[r#"
@@ -96,7 +96,7 @@ fn if_with_op_call_is_nondeterm() {
 }
 
 #[test]
-fn if_else_with_op_call_is_nondeterm() {
+fn if_else_with_op_call_is_quantum_stmts() {
     check(
         "{use q = Qubit(); X(q); let val = true; if val {Z(q);} else {I(q);}}",
         &expect![[r#"
@@ -108,7 +108,7 @@ fn if_else_with_op_call_is_nondeterm() {
 }
 
 #[test]
-fn if_without_op_call_not_nondeterm() {
+fn if_without_op_call_not_quantum_stmts() {
     check(
         "{use q = Qubit(); X(q); let val = true; if val {let a = 1;} else {let a = 2;}}",
         &expect!["X(q);"],
@@ -116,7 +116,7 @@ fn if_without_op_call_not_nondeterm() {
 }
 
 #[test]
-fn qubit_scope_expr_is_nondeterm() {
+fn qubit_scope_expr_is_quantum_stmts() {
     check("{use q = Qubit(); X(q); use scope_q = Qubit() {let val = 4; CNOT(q, scope_q); let val2 = val + 1;} Z(q);}", &expect![[r#"
         X(q);
         use scope_q = Qubit() {let val = 4; CNOT(q, scope_q); let val2 = val + 1;}
@@ -125,7 +125,7 @@ fn qubit_scope_expr_is_nondeterm() {
 }
 
 #[test]
-fn conjugate_with_op_call_is_nondeterm() {
+fn conjugate_with_op_call_is_quantum_stmts() {
     check(
         "{use q = Qubit(); within {X(q); let val = 0;} apply {Y(q); let val2 = 1;} let val = 2; Z(q);}",
         &expect![[r#"
@@ -137,7 +137,7 @@ fn conjugate_with_op_call_is_nondeterm() {
 }
 
 #[test]
-fn conjugate_without_op_call_not_nondeterm() {
+fn conjugate_without_op_call_not_quantum_stmts() {
     check(
         "{use q = Qubit(); within {let val = 0;} apply {let val2 = 1;} let val = 2; Z(q);}",
         &expect![[r#"Z(q);"#]],
@@ -145,7 +145,7 @@ fn conjugate_without_op_call_not_nondeterm() {
 }
 
 #[test]
-fn for_loop_with_op_call_is_nondeterm() {
+fn for_loop_with_op_call_is_quantum_stmts() {
     check(
         "{use qs = Qubit[2]; for q in qs { X(q); let val = 4; }}",
         &expect![[r#"
@@ -155,7 +155,7 @@ fn for_loop_with_op_call_is_nondeterm() {
 }
 
 #[test]
-fn for_loop_with_func_call_and_op_call_is_nondeterm() {
+fn for_loop_with_func_call_and_op_call_is_quantum_stmts() {
     check(
         r#"{use qs = Qubit[2]; for q in qs { Message(""); X(q); }}"#,
         &expect![[r#"
@@ -165,7 +165,7 @@ fn for_loop_with_func_call_and_op_call_is_nondeterm() {
 }
 
 #[test]
-fn for_loop_with_op_call_and_func_call_is_nondeterm() {
+fn for_loop_with_op_call_and_func_call_is_quantum_stmts() {
     check(
         r#"{use qs = Qubit[2]; for q in qs { X(q); Message(""); }}"#,
         &expect![[r#"
@@ -175,7 +175,7 @@ fn for_loop_with_op_call_and_func_call_is_nondeterm() {
 }
 
 #[test]
-fn for_loop_body_no_op_call_not_nondeterm() {
+fn for_loop_body_no_op_call_not_quantum_stmts() {
     check(
         "{use qs = Qubit[2]; for q in qs { let val = 4; }}",
         &expect![""],
@@ -209,7 +209,7 @@ fn op_call_in_non_unit_block_forbidden() {
 }
 
 #[test]
-fn non_unit_block_allowed_in_deterministic_context() {
+fn non_unit_block_allowed_in_classical_context() {
     check(
         "{use q = Qubit(); let x = {let y = 1; y + 1}; X(q);}",
         &expect!["X(q);"],
