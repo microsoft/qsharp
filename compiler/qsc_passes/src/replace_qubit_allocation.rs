@@ -7,20 +7,21 @@ mod tests;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        Block, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Path, QubitInit,
-        QubitInitKind, Stmt, StmtKind,
+        Block, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, PrimTy, QubitInit,
+        QubitInitKind, Res, Stmt, StmtKind, Ty,
     },
     mut_visit::{walk_expr, walk_stmt, MutVisitor},
 };
-use std::mem::take;
+use std::{mem::take, rc::Rc};
 
 fn remove_extra_parens(pat: Pat) -> Pat {
     match pat.kind {
-        PatKind::Bind(_, _) | PatKind::Discard(_) | PatKind::Elided => pat,
+        PatKind::Bind(_) | PatKind::Discard | PatKind::Elided => pat,
         PatKind::Paren(p) => remove_extra_parens(*p),
         PatKind::Tuple(ps) => Pat {
             id: pat.id,
             span: pat.span,
+            ty: todo!(),
             kind: PatKind::Tuple(ps.into_iter().map(remove_extra_parens).collect()),
         },
     }
@@ -69,7 +70,7 @@ impl ReplaceQubitAllocation {
         let mut new_ids: Vec<QubitIdent> = vec![];
 
         if let (true, opt) = is_non_tuple(&mut init) {
-            if let PatKind::Bind(id, _) = remove_extra_parens(pat).kind {
+            if let PatKind::Bind(id) = remove_extra_parens(pat).kind {
                 new_ids.push(QubitIdent {
                     id: id.clone(),
                     is_array: opt.is_some(),
@@ -124,6 +125,7 @@ impl ReplaceQubitAllocation {
                 kind: StmtKind::Expr(Expr {
                     id: NodeId::default(),
                     span: stmt_span,
+                    ty: todo!(),
                     kind: ExprKind::Block(block),
                 }),
             }]
@@ -133,35 +135,29 @@ impl ReplaceQubitAllocation {
         }
     }
 
+    fn gen_local_ref(name: &Ident, ty: Ty) -> Expr {
+        Expr {
+            id: NodeId::default(),
+            span: name.span,
+            ty,
+            kind: ExprKind::Name(Res::Local(name.id)),
+        }
+    }
+
     fn process_qubit_init(&mut self, init: QubitInit) -> (Expr, Vec<(Ident, Option<Expr>)>) {
         match init.kind {
             QubitInitKind::Array(size) => {
                 let gen_id = self.gen_ident(init.span);
-                let expr = Expr {
-                    id: NodeId::default(),
-                    span: init.span,
-                    kind: ExprKind::Path(Path {
-                        id: NodeId::default(),
-                        span: init.span,
-                        namespace: None,
-                        name: gen_id.clone(),
-                    }),
-                };
+                let expr = ReplaceQubitAllocation::gen_local_ref(
+                    &gen_id,
+                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                );
                 (expr, vec![(gen_id, Some(*size))])
             }
             QubitInitKind::Paren(i) => self.process_qubit_init(*i),
             QubitInitKind::Single => {
                 let gen_id = self.gen_ident(init.span);
-                let expr = Expr {
-                    id: NodeId::default(),
-                    span: init.span,
-                    kind: ExprKind::Path(Path {
-                        id: NodeId::default(),
-                        span: init.span,
-                        namespace: None,
-                        name: gen_id.clone(),
-                    }),
-                };
+                let expr = ReplaceQubitAllocation::gen_local_ref(&gen_id, Ty::Prim(PrimTy::Qubit));
                 (expr, vec![(gen_id, None)])
             }
             QubitInitKind::Tuple(inits) => {
@@ -175,6 +171,7 @@ impl ReplaceQubitAllocation {
                 let tuple_expr = Expr {
                     id: NodeId::default(),
                     span: init.span,
+                    ty: todo!(),
                     kind: ExprKind::Tuple(exprs),
                 };
                 (tuple_expr, ids)
@@ -184,9 +181,9 @@ impl ReplaceQubitAllocation {
 
     fn gen_ident(&mut self, span: Span) -> Ident {
         let new_id = Ident {
-            id: NodeId::default(),
+            id: todo!(),
             span,
-            name: format!("__generated_ident_{}__", self.gen_id_count),
+            name: Rc::from(format!("__generated_ident_{}__", self.gen_id_count)),
         };
         self.gen_id_count += 1;
         new_id
@@ -268,7 +265,8 @@ impl MutVisitor for ReplaceQubitAllocation {
                                 Pat {
                                     id: NodeId::default(),
                                     span: end.span,
-                                    kind: PatKind::Bind(end_capture.clone(), None),
+                                    ty: todo!(),
+                                    kind: PatKind::Bind(end_capture.clone()),
                                 },
                                 take(end),
                             ),
@@ -276,16 +274,10 @@ impl MutVisitor for ReplaceQubitAllocation {
                         Some(Stmt {
                             id: NodeId::default(),
                             span: s.span,
-                            kind: StmtKind::Expr(Expr {
-                                id: NodeId::default(),
-                                span: s.span,
-                                kind: ExprKind::Path(Path {
-                                    id: NodeId::default(),
-                                    span: end_capture.span,
-                                    namespace: None,
-                                    name: end_capture,
-                                }),
-                            }),
+                            kind: StmtKind::Expr(ReplaceQubitAllocation::gen_local_ref(
+                                &end_capture,
+                                todo!(),
+                            )),
                         })
                     } else {
                         None
@@ -323,7 +315,8 @@ impl MutVisitor for ReplaceQubitAllocation {
                             Pat {
                                 id: NodeId::default(),
                                 span: e.span,
-                                kind: PatKind::Bind(rtrn_capture.clone(), None),
+                                ty: todo!(),
+                                kind: PatKind::Bind(rtrn_capture.clone()),
                             },
                             take(e),
                         ),
@@ -335,24 +328,20 @@ impl MutVisitor for ReplaceQubitAllocation {
                         kind: StmtKind::Semi(Expr {
                             id: NodeId::default(),
                             span: expr.span,
-                            kind: ExprKind::Return(Box::new(Expr {
-                                id: NodeId::default(),
-                                span: rtrn_capture.span,
-                                kind: ExprKind::Path(Path {
-                                    id: NodeId::default(),
-                                    span: rtrn_capture.span,
-                                    namespace: None,
-                                    name: rtrn_capture,
-                                }),
-                            })),
+                            ty: todo!(),
+                            kind: ExprKind::Return(Box::new(
+                                ReplaceQubitAllocation::gen_local_ref(&rtrn_capture, todo!()),
+                            )),
                         }),
                     });
                     let new_expr = Expr {
                         id: NodeId::default(),
                         span: expr.span,
+                        ty: todo!(),
                         kind: ExprKind::Block(Block {
                             id: NodeId::default(),
                             span: expr.span,
+                            ty: todo!(),
                             stmts,
                         }),
                     };
@@ -380,33 +369,38 @@ fn create_general_alloc_stmt(func_name: String, ident: &Ident, array_size: Optio
             Pat {
                 id: NodeId::default(),
                 span: ident.span,
-                kind: PatKind::Bind(ident.clone(), None),
+                ty: todo!(),
+                kind: PatKind::Bind(ident.clone()),
             },
             Expr {
                 id: NodeId::default(),
                 span: ident.span,
+                ty: todo!(),
                 kind: ExprKind::Call(
+                    // Box::new(Expr {
+                    //     id: NodeId::default(),
+                    //     span: ident.span,
+                    //     ty: todo!(),
+                    //     kind: ExprKind::Path(Path {
+                    //         id: NodeId::default(),
+                    //         span: ident.span,
+                    //         namespace: Some(Ident {
+                    //             id: NodeId::default(),
+                    //             span: ident.span,
+                    //             name: "QIR.Runtime".to_owned(),
+                    //         }),
+                    //         name: Ident {
+                    //             id: NodeId::default(),
+                    //             span: ident.span,
+                    //             name: func_name,
+                    //         },
+                    //     }),
+                    // }),
+                    todo!(),
                     Box::new(Expr {
                         id: NodeId::default(),
                         span: ident.span,
-                        kind: ExprKind::Path(Path {
-                            id: NodeId::default(),
-                            span: ident.span,
-                            namespace: Some(Ident {
-                                id: NodeId::default(),
-                                span: ident.span,
-                                name: "QIR.Runtime".to_owned(),
-                            }),
-                            name: Ident {
-                                id: NodeId::default(),
-                                span: ident.span,
-                                name: func_name,
-                            },
-                        }),
-                    }),
-                    Box::new(Expr {
-                        id: NodeId::default(),
-                        span: ident.span,
+                        ty: todo!(),
                         kind: ExprKind::Tuple(match array_size {
                             Some(size) => vec![size],
                             None => vec![],
@@ -437,38 +431,35 @@ fn create_general_dealloc_stmt(func_name: String, ident: &Ident) -> Stmt {
         kind: StmtKind::Semi(Expr {
             id: NodeId::default(),
             span: ident.span,
+            ty: todo!(),
             kind: ExprKind::Call(
+                // Box::new(Expr {
+                //     id: NodeId::default(),
+                //     span: ident.span,
+                //     kind: ExprKind::Path(Path {
+                //         id: NodeId::default(),
+                //         span: ident.span,
+                //         namespace: Some(Ident {
+                //             id: NodeId::default(),
+                //             span: ident.span,
+                //             name: "QIR.Runtime".to_owned(),
+                //         }),
+                //         name: Ident {
+                //             id: NodeId::default(),
+                //             span: ident.span,
+                //             name: func_name,
+                //         },
+                //     }),
+                // }),
+                todo!(),
                 Box::new(Expr {
                     id: NodeId::default(),
                     span: ident.span,
-                    kind: ExprKind::Path(Path {
-                        id: NodeId::default(),
-                        span: ident.span,
-                        namespace: Some(Ident {
-                            id: NodeId::default(),
-                            span: ident.span,
-                            name: "QIR.Runtime".to_owned(),
-                        }),
-                        name: Ident {
-                            id: NodeId::default(),
-                            span: ident.span,
-                            name: func_name,
-                        },
-                    }),
-                }),
-                Box::new(Expr {
-                    id: NodeId::default(),
-                    span: ident.span,
-                    kind: ExprKind::Tuple(vec![Expr {
-                        id: NodeId::default(),
-                        span: ident.span,
-                        kind: ExprKind::Path(Path {
-                            id: NodeId::default(),
-                            span: ident.span,
-                            namespace: None,
-                            name: ident.clone(),
-                        }),
-                    }]),
+                    ty: todo!(),
+                    kind: ExprKind::Tuple(vec![ReplaceQubitAllocation::gen_local_ref(
+                        &ident,
+                        todo!(),
+                    )]),
                 }),
             ),
         }),

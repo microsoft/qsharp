@@ -7,10 +7,9 @@ use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
 use qsc_hir::mut_visit::MutVisitor;
 
-fn check(input: &str, expected: &Expect) {
+fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new();
-    let mut unit = compile(&store, [], [input], "");
-
+    let mut unit = compile(&store, [], [file], "");
     assert!(
         unit.context.errors().is_empty(),
         "Compilation errors: {:?}",
@@ -20,13 +19,7 @@ fn check(input: &str, expected: &Expect) {
     let mut transforamtion = ReplaceQubitAllocation::new();
     transforamtion.visit_package(&mut unit.package);
 
-    let ns = unit
-        .package
-        .namespaces
-        .first()
-        .expect("Didn't find a namespace");
-
-    expected.assert_eq(&ns.to_string());
+    expect.assert_eq(&unit.package.to_string());
 }
 
 #[test]
