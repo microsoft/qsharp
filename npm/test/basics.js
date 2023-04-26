@@ -176,7 +176,7 @@ namespace Kata {
     assert(results[0].events.length === 0);
     assert(!results[0].success);
     assert(typeof results[0].result !== 'string' && 
-            results[0].result.message.includes("expected"));
+            results[0].result.message === "Error: expected `}`, found identifier");
 });
 
 test('worker check', async t => {
@@ -195,7 +195,7 @@ test('worker check', async t => {
     assert.equal(result.length, 1);
     assert.equal(result[0].start_pos, 99);
     assert.equal(result[0].end_pos, 105);
-    assert.equal(result[0].message, "mismatched types"); 
+    assert.equal(result[0].message, "expected (Double, Qubit), found Qubit"); 
 });
 
 test('worker 100 shots', async t => {
