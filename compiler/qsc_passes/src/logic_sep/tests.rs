@@ -13,13 +13,13 @@ use qsc_hir::{
     visit::{walk_stmt, Visitor},
 };
 
-use crate::logic_sep::list_quantum_statements;
+use crate::logic_sep::find_quantum_stmts;
 
-struct StmtSpan {
+struct StmtSpans {
     span: HashMap<NodeId, Span>,
 }
 
-impl<'a> Visitor<'a> for StmtSpan {
+impl<'a> Visitor<'a> for StmtSpans {
     fn visit_stmt(&mut self, stmt: &'a Stmt) {
         self.span.insert(stmt.id, stmt.span);
         walk_stmt(self, stmt);
@@ -40,12 +40,12 @@ fn check(block_str: &str, expect: &Expect) {
     let ExprKind::Block(block) = &entry.kind else {
         panic!("test should be given block expression, given {entry}");
     };
-    let mut stmt_map = StmtSpan {
+    let mut stmt_map = StmtSpans {
         span: HashMap::new(),
     };
     stmt_map.visit_block(block);
 
-    match list_quantum_statements(block) {
+    match find_quantum_stmts(block) {
         Ok(mut quantum_stmts) => {
             let mut stmts = quantum_stmts.drain().collect::<Vec<_>>();
             stmts.sort_unstable();

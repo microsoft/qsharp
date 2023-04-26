@@ -31,7 +31,7 @@ pub enum Error {
 /// Checks that the given block is separatable, meaning classical statements and quantum statements
 /// across the block and any nested expressions/blocks can be logically separated. On success, returns a `HashSet` of
 /// all quantum statement node ids, based on whether any operation calls are present in that statement.
-pub(crate) fn list_quantum_statements(block: &Block) -> Result<HashSet<NodeId>, Vec<Error>> {
+pub(crate) fn find_quantum_stmts(block: &Block) -> Result<HashSet<NodeId>, Vec<Error>> {
     let mut pass = SepCheck {
         errors: Vec::new(),
         op_call_present: HashSet::new(),

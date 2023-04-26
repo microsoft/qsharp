@@ -13,16 +13,16 @@ use qsc_hir::{
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::logic_sep::{list_quantum_statements, Error};
+use crate::logic_sep::{find_quantum_stmts, Error};
 
 pub(crate) fn adj_invert_block(
     assigner: &mut Assigner,
     block: &mut Block,
 ) -> Result<(), Vec<Error>> {
-    let op_call_stmts = list_quantum_statements(block)?;
+    let op_call_stmts = find_quantum_stmts(block)?;
     let mut pass = BlockInverter {
         assigner,
-        op_call_stmts,
+        quantum_stmts: op_call_stmts,
         should_reverse_loop: false,
     };
     pass.visit_block(block);
@@ -31,7 +31,7 @@ pub(crate) fn adj_invert_block(
 
 struct BlockInverter<'a> {
     assigner: &'a mut Assigner,
-    op_call_stmts: HashSet<NodeId>,
+    quantum_stmts: HashSet<NodeId>,
     should_reverse_loop: bool,
 }
 
@@ -42,7 +42,7 @@ impl<'a> MutVisitor for BlockInverter<'a> {
         let mut classical_stmts = Vec::new();
         let mut quantum_stmts = Vec::new();
         for mut stmt in block.stmts.drain(..) {
-            if self.op_call_stmts.contains(&stmt.id) {
+            if self.quantum_stmts.contains(&stmt.id) {
                 self.should_reverse_loop = true;
                 self.visit_stmt(&mut stmt);
                 quantum_stmts.push(stmt);
