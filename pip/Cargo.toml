@@ -1,5 +1,5 @@
 [package]
-name = "qsharp"
+name = "qsharp_python"
 version = "0.0.0"
 description = "Q# Python Bindings"
 
