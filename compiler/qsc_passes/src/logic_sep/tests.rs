@@ -16,7 +16,7 @@ use qsc_hir::{
 use crate::logic_sep::find_quantum_stmts;
 
 struct StmtSpans {
-    span: HashMap<NodeId, Span>,
+    spans: HashMap<NodeId, Span>,
 }
 
 impl<'a> Visitor<'a> for StmtSpans {
