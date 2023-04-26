@@ -40,13 +40,13 @@ pub(crate) fn invoke_intrinsic(
             "DumpMachine" => {
                 let (state, qubit_count) = capture_quantum_state();
                 match out.state(state, qubit_count) {
-                    Ok(_) => ControlFlow::Continue(Value::UNIT),
+                    Ok(_) => ControlFlow::Continue(Value::unit()),
                     Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
                 }
             }
 
             "Message" => match out.message(&args.try_into_string().with_span(args_span)?) {
-                Ok(_) => ControlFlow::Continue(Value::UNIT),
+                Ok(_) => ControlFlow::Continue(Value::unit()),
                 Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
             },
 
@@ -72,12 +72,10 @@ pub(crate) fn invoke_intrinsic(
             }
 
             "ArcTan2" => {
-                let mut args = args.try_into_tuple().with_span(args_span)?;
+                let args = args.try_into_tuple().with_span(args_span)?;
                 if args.len() == 2 {
-                    let (a2, a1) = (
-                        args.pop().expect("tuple should have 2 entries"),
-                        args.pop().expect("tuple should have 2 entries"),
-                    );
+                    let a1 = args[0].clone();
+                    let a2 = args[1].clone();
                     let val: f64 = a1.try_into().with_span(args_span)?;
                     ControlFlow::Continue(Value::Double(
                         val.atan2(a2.try_into().with_span(args_span)?),
@@ -118,12 +116,10 @@ pub(crate) fn invoke_intrinsic(
             }
 
             "DrawRandomInt" => {
-                let mut args = args.try_into_tuple().with_span(args_span)?;
+                let args = args.try_into_tuple().with_span(args_span)?;
                 if args.len() == 2 {
-                    let (a2, a1) = (
-                        args.pop().expect("tuple should have 2 entries"),
-                        args.pop().expect("tuple should have 2 entries"),
-                    );
+                    let a1 = args[0].clone();
+                    let a2 = args[1].clone();
                     invoke_draw_random_int(a1, a2, args_span)
                 } else {
                     ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
@@ -158,38 +154,34 @@ fn invoke_quantum_intrinsic(
             match $chosen_op {
                 $($(stringify!($op1) => {
                     $op1(args.try_into().with_span(args_span)?);
-                    ControlFlow::Continue(Value::UNIT)
+                    ControlFlow::Continue(Value::unit())
                 })*
                 $(stringify!($op2) => {
-                    let mut args = args.try_into_tuple().with_span(args_span)?;
+                    let args = args.try_into_tuple().with_span(args_span)?;
                     if args.len() == 2 {
-                        let (a2, a1) = (
-                            args.pop().expect("tuple should have 2 entries"),
-                            args.pop().expect("tuple should have 2 entries"),
-                        );
+                        let a1 = args[0].clone();
+                        let a2 = args[1].clone();
                         $op2(
                             a1.try_into().with_span(args_span)?,
                             a2.try_into().with_span(args_span)?,
                         );
-                        ControlFlow::Continue(Value::UNIT)
+                        ControlFlow::Continue(Value::unit())
                     } else {
                         ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                     }
                 })*
                 $(stringify!($op3) => {
-                    let mut args = args.try_into_tuple().with_span(args_span)?;
+                    let args = args.try_into_tuple().with_span(args_span)?;
                     if args.len() == 3 {
-                        let (a3, a2, a1) = (
-                            args.pop().expect("tuple should have 3 entries"),
-                            args.pop().expect("tuple should have 3 entries"),
-                            args.pop().expect("tuple should have 3 entries"),
-                        );
+                        let a1 = args[0].clone();
+                        let a2 = args[1].clone();
+                        let a3 = args[2].clone();
                         $op3(
                             a1.try_into().with_span(args_span)?,
                             a2.try_into().with_span(args_span)?,
                             a3.try_into().with_span(args_span)?,
                         );
-                        ControlFlow::Continue(Value::UNIT)
+                        ControlFlow::Continue(Value::unit())
                     } else {
                         ControlFlow::Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
                     }

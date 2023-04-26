@@ -12,7 +12,7 @@ use std::{
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
-    Array(Vec<Value>),
+    Array(Rc<[Value]>),
     BigInt(BigInt),
     Bool(bool),
     Closure,
@@ -24,7 +24,7 @@ pub enum Value {
     Range(Option<i64>, Option<i64>, Option<i64>),
     Result(bool),
     String(Rc<str>),
-    Tuple(Vec<Value>),
+    Tuple(Rc<[Value]>),
     Udt,
 }
 
@@ -204,12 +204,15 @@ impl TryFrom<Value> for f64 {
 }
 
 impl Value {
-    pub const UNIT: Self = Self::Tuple(Vec::new());
+    #[must_use]
+    pub fn unit() -> Self {
+        Self::Tuple([].as_slice().into())
+    }
 
     /// Convert the [Value] into an array of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Array`].
-    pub fn try_into_array(self) -> Result<Vec<Self>, ConversionError> {
+    pub fn try_into_array(self) -> Result<Rc<[Self]>, ConversionError> {
         if let Value::Array(v) = self {
             Ok(v)
         } else {
@@ -234,7 +237,7 @@ impl Value {
     /// Convert the [Value] into an tuple of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Tuple`].
-    pub fn try_into_tuple(self) -> Result<Vec<Self>, ConversionError> {
+    pub fn try_into_tuple(self) -> Result<Rc<[Self]>, ConversionError> {
         if let Value::Tuple(v) = self {
             Ok(v)
         } else {
