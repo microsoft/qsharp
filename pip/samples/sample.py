@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 import qsharp
 import pathlib
 from qsharp import (CompilationException, RuntimeException)
