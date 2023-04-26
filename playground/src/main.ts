@@ -3,10 +3,14 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {init, getCompletions, checkCode, evaluate, eventStringToMsg,
-    renderDump, IDiagnostic, ShotResult } from "qsharp/browser";
+import {
+    init, getCompletions, checkCode, evaluate, eventStringToMsg, mapDiagnostics,
+    renderDump, IDiagnostic, ShotResult
+} from "qsharp/browser";
 
-import {generateHistogramData, generateHistogramSvg, sampleData} from "./histogram.js";
+import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
+import { PopulateKatasList, RenderKatas } from "./katas.js";
+import { base64ToCode, codeToBase64 } from "./utils.js";
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -29,7 +33,7 @@ const sampleCode = `namespace Sample {
 `;
 
 // MathJax will already be loaded on the page. Need to call `typeset` when LaTeX content changes.
-declare var MathJax: {typeset: () => void;};
+declare var MathJax: { typeset: () => void; };
 
 let runResults: ShotResult[] = [];
 let currentFilter = "";
@@ -45,7 +49,7 @@ function squiggleDiagnostics(errors: IDiagnostic[]) {
         let range = monaco.Range.fromPositions(startPos, endPos);
         let decoration: monaco.editor.IModelDeltaDecoration = {
             range,
-            options: {className: 'err-span', hoverMessage: {value: err.message}}
+            options: { className: 'err-span', hoverMessage: { value: err.message } }
         }
         return decoration;
     });
@@ -58,14 +62,27 @@ async function loaded() {
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
-    let errorsDiv = document.querySelector('#errors') as HTMLDivElement; 
+    let errorsDiv = document.querySelector('#errors') as HTMLDivElement;
     let exprInput = document.querySelector('#expr') as HTMLInputElement;
     let shotCount = document.querySelector('#shot') as HTMLInputElement;
     let runButton = document.querySelector('#run') as HTMLButtonElement;
+    let shareButton = document.querySelector('#share') as HTMLButtonElement;
+    let shareConfirmation = document.querySelector('#share-confirmation') as HTMLDivElement;
 
-    // Create the monaco editor and set some initial code
+    // Create the monaco editor
     editor = monaco.editor.create(editorDiv);
-    let srcModel = monaco.editor.createModel(sampleCode, 'qsharp');
+
+    // If URL is a sharing link, populate the editor with the code from the link. 
+    // Otherwise, populate with sample code.
+    const params = new URLSearchParams(window.location.search);
+
+    let code = sampleCode;
+    if (params.get("code")) {
+        const base64code = decodeURIComponent(params.get("code")!);
+        code = base64ToCode(base64code);
+    }
+
+    let srcModel = monaco.editor.createModel(code, 'qsharp');
     editor.setModel(srcModel);
 
     // As code is edited check it for errors and update the error list
@@ -76,7 +93,7 @@ async function loaded() {
         errorsDiv.innerText = JSON.stringify(errs, null, 2);
 
         squiggleDiagnostics(errs);
-        errs.length ? 
+        errs.length ?
             runButton.setAttribute("disabled", "true") : runButton.removeAttribute("disabled");
     }
 
@@ -115,11 +132,17 @@ async function loaded() {
             switch (result.type) {
                 case "Result":
                     currentShotResult.success = result.success;
-                    currentShotResult.result = result.result;
 
+                    // If there was an error, map the diagnostic location
+                    let resultObj = result.result;
+                    if(typeof resultObj === "object") {
+                        resultObj = mapDiagnostics([resultObj], code)[0];
+                    }
+
+                    currentShotResult.result = resultObj;
                     // Push this result and prep for the next
                     runResults.push(currentShotResult);
-                    currentShotResult = {success: false, result: "pending", events: []};
+                    currentShotResult = { success: false, result: "pending", events: [] };
                     break;
                 case "Message":
                     currentShotResult.events.push(result);
@@ -133,9 +156,9 @@ async function loaded() {
         try {
             performance.mark("start-shots");
             let result = evaluate(code, expr, event_cb, shots);
-        } catch(e: any) {
+        } catch (e: any) {
             // TODO: Should only happen on crash. Telmetry?
-            
+
         }
         performance.mark("end-shots");
         let measure = performance.measure("shots-duration", "start-shots", "end-shots");
@@ -144,13 +167,13 @@ async function loaded() {
     });
 
     // Example of getting results from a call into the WASM module
-    monaco.languages.registerCompletionItemProvider("qsharp", { 
+    monaco.languages.registerCompletionItemProvider("qsharp", {
         provideCompletionItems(model, position, context, token) {
             // @ts-ignore : This is required in the defintion, but not needed.
             var range: monaco.IRange = undefined;
 
             let result = getCompletions();
-            
+
             let mapped: monaco.languages.CompletionList = {
                 suggestions: result.items.map(item => ({
                     label: item.label,
@@ -161,6 +184,29 @@ async function loaded() {
             };
             return mapped;
         }
+    });
+
+    // Render katas.
+    PopulateKatasList()
+        .then(() => RenderKatas())
+        .then(() => {
+            let modulesSelect = document.querySelector('#katas-list') as HTMLSelectElement;
+            modulesSelect.addEventListener('change', _ => {
+                RenderKatas();
+            });
+        });
+
+    shareButton.addEventListener('click', _ => {
+        const code = srcModel.getValue();
+        const encodedCode = codeToBase64(code);
+        const escapedCode = encodeURIComponent(encodedCode);
+
+        // Get current URL without query parameters to use as the base URL
+        const newUrl = `${window.location.href.split('?')[0]}?code=${escapedCode}`;
+        // Copy link to clipboard and update url without reloading the page
+        navigator.clipboard.writeText(newUrl);
+        window.history.pushState({}, '', newUrl);
+        shareConfirmation.style.display = "inline";
     });
 }
 
@@ -191,8 +237,8 @@ function renderOutputs(container: HTMLDivElement) {
     }));
 
     let filteredResults = currentFilter == "" ? mappedResults :
-            mappedResults.filter(entry => entry.result === currentFilter);
-    
+        mappedResults.filter(entry => entry.result === currentFilter);
+
     if (filteredResults.length === 0) return;
 
     // Show the current result and navigation.

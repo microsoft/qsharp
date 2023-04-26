@@ -8,20 +8,21 @@ use crate::{
     diagnostic::OffsetError,
     lower::Lowerer,
     parse,
-    resolve::{self, Res, Resolutions},
+    resolve::{self, Resolutions},
     typeck::{self, Tys},
     validate::{self, validate},
 };
 use miette::Diagnostic;
-use qsc_ast::{
-    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor as AstVisitor,
+use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
+use qsc_data_structures::{
+    index_map::{self, IndexMap},
+    span::Span,
 };
-use qsc_data_structures::span::Span;
-use qsc_hir::{assigner::Assigner as HirAssigner, hir, visit::Visitor as HirVisitor};
-use std::{
-    collections::{hash_map::Iter, HashMap},
-    fmt::{self, Debug, Display, Formatter},
+use qsc_hir::{
+    assigner::Assigner as HirAssigner,
+    hir::{self, PackageId},
 };
+use std::fmt::Debug;
 use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
@@ -34,8 +35,6 @@ pub struct CompileUnit {
 #[derive(Debug)]
 pub struct Context {
     assigner: HirAssigner,
-    resolutions: Resolutions<hir::NodeId>,
-    tys: Tys<hir::NodeId>,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
@@ -43,24 +42,6 @@ pub struct Context {
 impl Context {
     pub fn assigner_mut(&mut self) -> &mut HirAssigner {
         &mut self.assigner
-    }
-
-    #[must_use]
-    pub fn resolutions(&self) -> &Resolutions<hir::NodeId> {
-        &self.resolutions
-    }
-
-    pub fn resolutions_mut(&mut self) -> &mut Resolutions<hir::NodeId> {
-        &mut self.resolutions
-    }
-
-    #[must_use]
-    pub fn tys(&self) -> &Tys<hir::NodeId> {
-        &self.tys
-    }
-
-    pub fn tys_mut(&mut self) -> &mut Tys<hir::NodeId> {
-        &mut self.tys
     }
 
     #[must_use]
@@ -104,7 +85,7 @@ pub(crate) enum ErrorKind {
 
 #[derive(Default)]
 pub struct PackageStore {
-    units: HashMap<PackageId, CompileUnit>,
+    units: IndexMap<PackageId, CompileUnit>,
     next_id: PackageId,
 }
 
@@ -116,14 +97,14 @@ impl PackageStore {
 
     pub fn insert(&mut self, unit: CompileUnit) -> PackageId {
         let id = self.next_id;
-        self.next_id = PackageId(id.0 + 1);
+        self.next_id = id.successor();
         self.units.insert(id, unit);
         id
     }
 
     #[must_use]
     pub fn get(&self, id: PackageId) -> Option<&CompileUnit> {
-        self.units.get(&id)
+        self.units.get(id)
     }
 
     #[must_use]
@@ -132,22 +113,18 @@ impl PackageStore {
     }
 
     #[must_use]
-    pub fn get_resolutions(&self, id: PackageId) -> Option<&Resolutions<hir::NodeId>> {
-        self.get(id).map(|unit| unit.context.resolutions())
-    }
-
-    #[must_use]
-    pub fn iter(&self) -> Iter<PackageId, CompileUnit> {
-        self.units.iter()
+    pub fn iter(&self) -> Iter {
+        Iter(self.units.iter())
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct PackageId(u32);
+pub struct Iter<'a>(index_map::Iter<'a, PackageId, CompileUnit>);
 
-impl Display for PackageId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(&self.0, f)
+impl<'a> Iterator for Iter<'a> {
+    type Item = (PackageId, &'a CompileUnit);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }
 
@@ -190,22 +167,12 @@ pub fn compile(
     );
 
     let mut lowerer = Lowerer::new();
-    let package = lowerer.lower_package(&package);
-    let resolutions = resolutions
-        .into_iter()
-        .filter_map(|(id, res)| lower_res(&lowerer, id, res))
-        .collect();
-    let tys = tys
-        .into_iter()
-        .filter_map(|(ast_id, ty)| lowerer.get_id(ast_id).map(|hir_id| (hir_id, ty)))
-        .collect();
+    let package = lowerer.with(&resolutions, &tys).lower_package(&package);
 
     CompileUnit {
         package,
         context: Context {
             assigner: lowerer.into_assigner(),
-            resolutions,
-            tys,
             errors,
             offsets,
         },
@@ -273,27 +240,32 @@ fn parse_all(
         Some(entry)
     };
 
-    (ast::Package::new(namespaces, entry), errors, offsets)
+    let package = ast::Package {
+        id: ast::NodeId::default(),
+        namespaces,
+        entry,
+    };
+
+    (package, errors, offsets)
 }
 
 fn resolve_all(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
     package: &ast::Package,
-) -> (Resolutions<ast::NodeId>, Vec<resolve::Error>) {
+) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    AstVisitor::visit_package(&mut globals, package);
+    globals.add_local_package(package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be in package store before compilation");
-        globals.set_package(dependency);
-        HirVisitor::visit_package(&mut globals, &unit.package);
+        globals.add_external_package(id, &unit.package);
     }
 
     let mut resolver = globals.into_resolver();
-    AstVisitor::visit_package(&mut resolver, package);
+    resolver.visit_package(package);
     resolver.into_resolutions()
 }
 
@@ -301,21 +273,20 @@ fn typeck_all(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
     package: &ast::Package,
-    resolutions: &Resolutions<ast::NodeId>,
-) -> (Tys<ast::NodeId>, Vec<typeck::Error>) {
-    let mut globals = typeck::GlobalTable::new(resolutions);
-    AstVisitor::visit_package(&mut globals, package);
+    resolutions: &Resolutions,
+) -> (Tys, Vec<typeck::Error>) {
+    let mut globals = typeck::GlobalTable::new();
+    globals.add_local_package(resolutions, package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be added to package store before compilation");
-        globals.set_package(dependency);
-        HirVisitor::visit_package(&mut globals, &unit.package);
+        globals.add_external_package(id, &unit.package);
     }
 
     let mut checker = globals.into_checker();
-    AstVisitor::visit_package(&mut checker, package);
+    checker.check_package(resolutions, package);
     checker.into_tys()
 }
 
@@ -328,21 +299,4 @@ fn append_errors(
     for error in other {
         errors.push(OffsetError::new(error, offset));
     }
-}
-
-fn lower_res(
-    lowerer: &Lowerer,
-    id: ast::NodeId,
-    res: Res<ast::NodeId>,
-) -> Option<(hir::NodeId, Res<hir::NodeId>)> {
-    let id = lowerer.get_id(id)?;
-    let res = match res {
-        Res::Internal(node) => Res::Internal(
-            lowerer
-                .get_id(node)
-                .expect("lowered node should not resolve to deleted node"),
-        ),
-        Res::External(package, node) => Res::External(package, node),
-    };
-    Some((id, res))
 }

@@ -7,7 +7,9 @@ use std::sync::Arc;
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::Parser;
-use qsc_eval::output::CursorReceiver;
+use num_bigint::BigUint;
+use num_complex::Complex64;
+use qsc_eval::output::{format_state_id, Receiver};
 use qsc_eval::stateful::{Error, Interpreter};
 use qsc_eval::val::Value;
 use qsc_eval::AggregateError;
@@ -18,7 +20,7 @@ use std::string::String;
 
 use miette::{Diagnostic, IntoDiagnostic, NamedSource, Report, Result};
 use std::io::prelude::BufRead;
-use std::io::{Cursor, Write};
+use std::io::Write;
 use std::{fs, io};
 
 #[derive(Debug, Parser)]
@@ -56,12 +58,11 @@ fn repl(cli: Cli) -> Result<ExitCode> {
         return Ok(ExitCode::FAILURE);
     }
     let mut interpreter = interpreter.expect("interpreter creation failed");
-    let mut cursor = Cursor::new(Vec::<u8>::new());
-    let mut receiver = CursorReceiver::new(&mut cursor);
+    let mut receiver = TerminalReceiver {};
 
     if let Some(line) = cli.entry {
-        let results = interpreter.line(&mut receiver, line.clone());
-        print_results(results, &receiver.dump(), &line);
+        let results = interpreter.line(&line, &mut receiver);
+        print_results(results, &line);
     }
 
     if cli.exec {
@@ -82,8 +83,8 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             }
 
             if !line.trim().is_empty() {
-                let results = interpreter.line(&mut receiver, line.clone());
-                print_results(results, &receiver.dump(), &line);
+                let results = interpreter.line(&line, &mut receiver);
+                print_results(results, &line);
             }
 
             print_prompt(false);
@@ -91,22 +92,13 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 }
 
-fn print_results(
-    results: impl Iterator<Item = Result<Value, AggregateError<Error>>>,
-    output: &str,
-    line: &str,
-) {
-    for result in results {
-        if !output.is_empty() {
-            println!("{output}");
-        }
-        match result {
-            Ok(value) => println!("{value}"),
-            Err(errors) => {
-                let reporter = InteractiveErrorReporter::new(line);
-                for error in errors.0 {
-                    eprintln!("{:?}", reporter.report(error.clone()));
-                }
+fn print_results(result: Result<Value, AggregateError<Error>>, line: &str) {
+    match result {
+        Ok(value) => println!("{value}"),
+        Err(errors) => {
+            let reporter = InteractiveErrorReporter::new(line);
+            for error in errors.0 {
+                eprintln!("{:?}", reporter.report(error.clone()));
             }
         }
     }
@@ -183,4 +175,31 @@ fn source_name(paths: &[PathBuf], index: SourceIndex) -> &str {
             Some(name) => name,
             None => "<unknown>",
         })
+}
+
+struct TerminalReceiver;
+
+impl Receiver for TerminalReceiver {
+    fn state(
+        &mut self,
+        states: Vec<(BigUint, Complex64)>,
+        qubit_count: usize,
+    ) -> Result<(), qsc_eval::output::Error> {
+        println!("DumpMachine:");
+        for state in states {
+            println!(
+                "{}: [{}, {}]",
+                format_state_id(&state.0, qubit_count),
+                state.1.re,
+                state.1.im
+            );
+        }
+
+        Ok(())
+    }
+
+    fn message(&mut self, msg: &str) -> Result<(), qsc_eval::output::Error> {
+        println!("{msg}");
+        Ok(())
+    }
 }

@@ -17,13 +17,13 @@ use thiserror::Error;
 pub enum Error {
     #[error("duplicate entry point callable `{0}`")]
     #[diagnostic(help("only one callable should be annotated with the entry point attribute"))]
-    DuplicateEntryPoint(String, #[label("duplicate entry point")] Span),
+    DuplicateEntryPoint(String, #[label] Span),
 
     #[error("entry point cannot have paramters")]
-    EntryPointArgs(#[label("entry point cannot have paramters")] Span),
+    EntryPointArgs(#[label] Span),
 
-    #[error("entry point must have single body implementation")]
-    EntryPointBody(#[label("entry point cannot have specialization implementation")] Span),
+    #[error("entry point must have body implementation only")]
+    EntryPointBody(#[label("cannot have specialization implementation")] Span),
 
     #[error("entry point not found")]
     #[diagnostic(help("a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided"))]
@@ -51,6 +51,7 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
                 Ok(Expr {
                     id: NodeId::default(),
                     span: Span::default(),
+                    ty: ep.output.clone(),
                     kind: ExprKind::Block(block.clone()),
                 })
             } else {
@@ -68,7 +69,7 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
             .into_iter()
             .map(|ep| {
                 PassErr::EntryPoint(Error::DuplicateEntryPoint(
-                    ep.name.name.clone(),
+                    ep.name.name.to_string(),
                     ep.name.span,
                 ))
             })
@@ -83,7 +84,11 @@ struct EntryPointVisitor<'a, 'b> {
 impl<'a, 'b> Visitor<'b> for EntryPointVisitor<'a, 'b> {
     fn visit_item(&mut self, item: &'b Item) {
         if let ItemKind::Callable(decl) = &item.kind {
-            if item.attrs.iter().any(|attr| attr.name.name == "EntryPoint") {
+            if item
+                .attrs
+                .iter()
+                .any(|attr| attr.name.name.as_ref() == "EntryPoint")
+            {
                 self.entry_points.push(decl);
             }
         }

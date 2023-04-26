@@ -95,7 +95,7 @@ if build_npm:
                 filename = 'qsc_wasm.d.cts'
 
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
-    
+
     npm_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
 

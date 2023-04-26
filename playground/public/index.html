@@ -18,7 +18,7 @@
     // https://docs.mathjax.org/en/latest/input/tex/extensions/physics.html
     window.MathJax = {
       loader: { load: ['[tex]/physics'] },
-      tex: { packages: { '[+]': ['physics'] } }
+      tex: { packages: { '[+]': ['physics'] }, inlineMath: [['$', '$'], ['\\(', '\\)']] }
     };
   </script>
   <script src="libs/mathjax/tex-chtml.js"></script>
@@ -29,16 +29,30 @@
   <div id="container">
     <div>
       <div id="editor"></div>
-      <p>
-        <input id="expr" value="Sample.Main()" />
-        <input id="shot" type="number" value="100" max="1000" min="1" />
-        <button id="run">Run</button>
-      </p>
+      <div id="button-row">
+        <div>
+          <input id="expr" value="Sample.Main()" />
+          <input id="shot" type="number" value="100" max="1000" min="1" />
+          <button id="run">Run</button>
+        </div>
+        <div id="share-div">
+          <span id="share-confirmation">Copied to clipboard.</span>
+          <button id="share">Share</button>
+        </div>
+      </div>
     </div>
     <div id="output"></div>
   </div>
-
   <div id="errors"></div>
+
+  <div id="katas">
+    <h1>Katas</h1>
+    <div>
+      <select id="katas-list">
+      </select>
+      <div id="katas-canvas"></div>
+    </div>
+  </div>
   <script src="libs/monaco/vs/loader.js"></script>
   <script src="libs/app.js"></script>
 </body>

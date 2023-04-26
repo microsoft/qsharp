@@ -7,10 +7,11 @@
 
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
     collections::HashSet,
-    fmt::{self, Display, Formatter, Write},
+    fmt::{self, Debug, Display, Formatter, Write},
+    rc::Rc,
 };
 
 fn set_indentation<'a, 'b>(
@@ -27,44 +28,39 @@ fn set_indentation<'a, 'b>(
     })
 }
 
-/// The unique identifier for an HIR node.
+/// A unique identifier for an HIR node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct NodeId(usize);
 
 impl NodeId {
-    const PLACEHOLDER: Self = Self(usize::MAX);
-
-    /// Whether this ID is a placeholder.
-    #[must_use]
-    pub fn is_placeholder(self) -> bool {
-        self == Self::PLACEHOLDER
-    }
-
-    /// The initial node ID.
-    #[must_use]
-    pub fn zero() -> Self {
-        NodeId(0)
-    }
+    /// The ID of the first node.
+    pub const FIRST: Self = Self(0);
 
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
         Self(self.0 + 1)
     }
+
+    /// True if this is the default ID.
+    #[must_use]
+    pub fn is_default(self) -> bool {
+        self == Self::default()
+    }
 }
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self::PLACEHOLDER
+        Self(usize::MAX)
     }
 }
 
 impl Display for NodeId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        if self.0 == Self::PLACEHOLDER.0 {
-            write!(f, "_id_")
+        if self.is_default() {
+            f.write_str("_id_")
         } else {
-            self.0.fmt(f)
+            Display::fmt(&self.0, f)
         }
     }
 }
@@ -81,80 +77,139 @@ impl From<usize> for NodeId {
     }
 }
 
+/// A unique identifier for a package within a package store.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct PackageId(usize);
+
+impl PackageId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for PackageId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<PackageId> for usize {
+    fn from(value: PackageId) -> Self {
+        value.0
+    }
+}
+
+impl From<usize> for PackageId {
+    fn from(value: usize) -> Self {
+        PackageId(value)
+    }
+}
+
+/// A unique identifier for an item within a package.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct LocalItemId(usize);
+
+impl LocalItemId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for LocalItemId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<usize> for LocalItemId {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<LocalItemId> for usize {
+    fn from(value: LocalItemId) -> Self {
+        value.0
+    }
+}
+
+/// A unique identifier for an item within a package store.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ItemId {
+    /// The package ID or `None` for the local package.
+    pub package: Option<PackageId>,
+    /// The item ID.
+    pub item: LocalItemId,
+}
+
+impl Display for ItemId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self.package {
+            None => write!(f, "Item {}", self.item),
+            Some(package) => write!(f, "Item {} (Package {package})", self.item),
+        }
+    }
+}
+
+/// A resolution. This connects a usage of a name with the declaration of that name by uniquely
+/// identifying the node that declared it.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Res {
+    /// An invalid resolution.
+    Err,
+    /// A global item.
+    Item(ItemId),
+    /// A local variable.
+    Local(NodeId),
+}
+
+impl Display for Res {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Res::Err => f.write_str("Err"),
+            Res::Item(item) => Display::fmt(item, f),
+            Res::Local(node) => write!(f, "Local {node}"),
+        }
+    }
+}
+
 /// The root node of the HIR.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct Package {
-    /// The node ID.
-    pub id: NodeId,
-    /// The namespaces in the package.
-    pub namespaces: Vec<Namespace>,
+    /// The items in the package.
+    pub items: IndexMap<LocalItemId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<Expr>,
 }
 
-impl Package {
-    /// Creates a new package.
-    #[must_use]
-    pub fn new(namespaces: Vec<Namespace>, entry: Option<Expr>) -> Self {
-        Self {
-            id: NodeId::default(),
-            namespaces,
-            entry,
-        }
-    }
-}
-
 impl Display for Package {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Package {}:", self.id)?;
+        write!(indent, "Package:")?;
         indent = set_indentation(indent, 1);
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for ns in &self.namespaces {
-            write!(indent, "\n{ns}")?;
-        }
-        Ok(())
-    }
-}
-
-/// A namespace.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Namespace {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The namespace name.
-    pub name: Ident,
-    /// The items in the namespace.
-    pub items: Vec<Item>,
-}
-
-impl Display for Namespace {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(
-            indent,
-            "Namespace {} {} ({}):",
-            self.id, self.span, self.name
-        )?;
-        indent = set_indentation(indent, 1);
-        for i in &self.items {
-            write!(indent, "\n{i}")?;
+        for item in self.items.values() {
+            write!(indent, "\n{item}")?;
         }
         Ok(())
     }
 }
 
 /// An item.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
-    pub id: NodeId,
+    pub id: LocalItemId,
     /// The span.
     pub span: Span,
+    /// The parent item.
+    pub parent: Option<LocalItemId>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -164,10 +219,13 @@ pub struct Item {
 }
 
 impl Display for Item {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
         indent = set_indentation(indent, 1);
+        if let Some(parent) = self.parent {
+            write!(indent, "\nParent: {parent}")?;
+        }
         for attr in &self.attrs {
             write!(indent, "\n{attr}")?;
         }
@@ -187,24 +245,32 @@ pub enum ItemKind {
     /// Default item when nothing has been parsed.
     #[default]
     Err,
-    /// An `open` item for a namespace with an optional alias.
-    Open(Ident, Option<Ident>),
+    /// A `namespace` declaration.
+    Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, TyDef),
 }
 
 impl Display for ItemKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self {
-            ItemKind::Callable(decl) => write!(f, "{decl}")?,
-            ItemKind::Err => write!(f, "Err")?,
-            ItemKind::Open(name, alias) => match alias {
-                Some(a) => write!(f, "Open ({name}) ({a})")?,
-                None => write!(f, "Open ({name})")?,
-            },
-            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            ItemKind::Callable(decl) => write!(f, "{decl}"),
+            ItemKind::Err => write!(f, "Err"),
+            ItemKind::Namespace(name, items) => {
+                write!(f, "Namespace ({name}):")?;
+                let mut items = items.iter();
+                if let Some(item) = items.next() {
+                    write!(f, " Item {item}")?;
+                    for item in items {
+                        write!(f, ", Item {item}")?;
+                    }
+                    Ok(())
+                } else {
+                    write!(f, " <empty>")
+                }
+            }
+            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
         }
-        Ok(())
     }
 }
 
@@ -492,81 +558,6 @@ impl Display for FunctorExprKind {
     }
 }
 
-/// A type.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Ty {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The type kind.
-    pub kind: TyKind,
-}
-
-impl Display for Ty {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Type {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A type kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum TyKind {
-    /// An array type.
-    Array(Box<Ty>),
-    /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
-    /// An unspecified type, `_`, which may be inferred.
-    Hole,
-    /// A type wrapped in parentheses.
-    Paren(Box<Ty>),
-    /// A named type.
-    Path(Path),
-    /// A primitive type.
-    Prim(TyPrim),
-    /// A tuple type.
-    Tuple(Vec<Ty>),
-    /// A type variable.
-    Var(Ident),
-}
-
-impl Display for TyKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        match self {
-            TyKind::Array(item) => write!(indent, "Array: {item}")?,
-            TyKind::Arrow(ck, param, rtrn, functors) => {
-                write!(indent, "Arrow ({ck:?}):")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\nparam: {param}")?;
-                write!(indent, "\nreturn: {rtrn}")?;
-                if let Some(f) = functors {
-                    write!(indent, "\nfunctors: {f}")?;
-                }
-            }
-            TyKind::Hole => write!(indent, "Hole")?,
-            TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
-            TyKind::Path(p) => write!(indent, "Path: {p}")?,
-            TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
-            TyKind::Tuple(ts) => {
-                if ts.is_empty() {
-                    write!(indent, "Unit")?;
-                } else {
-                    write!(indent, "Tuple:")?;
-                    indent = indent.with_format(Format::Uniform {
-                        indentation: "    ",
-                    });
-                    for t in ts {
-                        write!(indent, "\n{t}")?;
-                    }
-                }
-            }
-            TyKind::Var(name) => write!(indent, "\nType Var {name}")?,
-        }
-        Ok(())
-    }
-}
-
 /// A sequenced block of statements.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block {
@@ -574,6 +565,8 @@ pub struct Block {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The block type.
+    pub ty: Ty,
     /// The statements in the block.
     pub stmts: Vec<Stmt>,
 }
@@ -584,7 +577,11 @@ impl Display for Block {
             write!(f, "Block {} {}: <empty>", self.id, self.span)?;
         } else {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Block {} {}:", self.id, self.span)?;
+            write!(
+                indent,
+                "Block {} {} [Type {}]:",
+                self.id, self.span, self.ty
+            )?;
             indent = set_indentation(indent, 1);
             for s in &self.stmts {
                 write!(indent, "\n{s}")?;
@@ -595,7 +592,7 @@ impl Display for Block {
 }
 
 /// A statement.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Stmt {
     /// The node ID.
     pub id: NodeId,
@@ -655,19 +652,25 @@ impl Display for StmtKind {
 }
 
 /// An expression.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
     /// The node ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The expression type.
+    pub ty: Ty,
     /// The expression kind.
     pub kind: ExprKind,
 }
 
 impl Display for Expr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Expr {} {}: {}", self.id, self.span, self.kind)
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Expr {} {} [Type {}]: {}",
+            self.id, self.span, self.ty, self.kind
+        )
     }
 }
 
@@ -715,10 +718,10 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
+    /// A resolved name.
+    Name(Res),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
-    /// A path: `a` or `a.b`.
-    Path(Path),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
@@ -759,8 +762,8 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
+            ExprKind::Name(res) => write!(indent, "Name: {res}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
-            ExprKind::Path(p) => write!(indent, "Path: {p}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
@@ -1003,29 +1006,35 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
 }
 
 /// A pattern.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pat {
     /// The node ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The pattern type.
+    pub ty: Ty,
     /// The pattern kind.
     pub kind: PatKind,
 }
 
 impl Display for Pat {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Pat {} {}: {}", self.id, self.span, self.kind)
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Pat {} {} [Type {}]: {}",
+            self.id, self.span, self.ty, self.kind
+        )
     }
 }
 
 /// A pattern kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatKind {
-    /// A binding with an optional type annotation.
-    Bind(Ident, Option<Ty>),
-    /// A discarded binding, `_`, with an optional type annotation.
-    Discard(Option<Ty>),
+    /// A binding.
+    Bind(Ident),
+    /// A discarded binding, `_`.
+    Discard,
     /// An elided pattern, `...`, used by specializations.
     Elided,
     /// Parentheses: `(a)`.
@@ -1038,22 +1047,10 @@ impl Display for PatKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            PatKind::Bind(id, ty) => {
-                write!(indent, "Bind:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{id}")?;
-                if let Some(t) = ty {
-                    write!(indent, "\n{t}")?;
-                }
+            PatKind::Bind(id) => {
+                write!(indent, "Bind: {id}")?;
             }
-            PatKind::Discard(d) => match d {
-                Some(t) => {
-                    write!(indent, "Discard:")?;
-                    indent = set_indentation(indent, 1);
-                    write!(indent, "\n{t}")?;
-                }
-                None => write!(indent, "Discard")?,
-            },
+            PatKind::Discard => write!(indent, "Discard")?,
             PatKind::Elided => write!(indent, "Elided")?,
             PatKind::Paren(p) => {
                 write!(indent, "Paren:")?;
@@ -1083,13 +1080,19 @@ pub struct QubitInit {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The qubit initializer type.
+    pub ty: Ty,
     /// The qubit initializer kind.
     pub kind: QubitInitKind,
 }
 
 impl Display for QubitInit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QubitInit {} {} {}", self.id, self.span, self.kind)
+        write!(
+            f,
+            "QubitInit {} {} [Type {}]: {}",
+            self.id, self.span, self.ty, self.kind
+        )
     }
 }
 
@@ -1137,30 +1140,6 @@ impl Display for QubitInitKind {
     }
 }
 
-/// A path to a declaration.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Path {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The namespace.
-    pub namespace: Option<Ident>,
-    /// The declaration name.
-    pub name: Ident,
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
-        } else {
-            write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
-        }
-        Ok(())
-    }
-}
-
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
@@ -1169,12 +1148,135 @@ pub struct Ident {
     /// The span.
     pub span: Span,
     /// The identifier name.
-    pub name: String,
+    pub name: Rc<str>,
 }
 
 impl Display for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Ident {} {} \"{}\"", self.id, self.span, self.name)
+    }
+}
+
+/// A type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Ty {
+    /// An array type.
+    Array(Box<Ty>),
+    /// An arrow type: `->` for a function or `=>` for an operation.
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    /// An invalid type caused by an error.
+    Err,
+    /// A placeholder type variable used during type inference.
+    Infer(InferId),
+    /// A resolved name.
+    Name(Res),
+    /// A type parameter.
+    Param(String),
+    /// A primitive type.
+    Prim(PrimTy),
+    /// A tuple type.
+    Tuple(Vec<Ty>),
+}
+
+impl Ty {
+    /// The unit type.
+    pub const UNIT: Self = Self::Tuple(Vec::new());
+}
+
+impl Display for Ty {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Ty::Array(item) => write!(f, "({item})[]"),
+            Ty::Arrow(kind, input, output, functors) => {
+                let arrow = match kind {
+                    CallableKind::Function => "->",
+                    CallableKind::Operation => "=>",
+                };
+                let is = match (
+                    functors.contains(&Functor::Adj),
+                    functors.contains(&Functor::Ctl),
+                ) {
+                    (true, true) => " is Adj + Ctl",
+                    (true, false) => " is Adj",
+                    (false, true) => " is Ctl",
+                    (false, false) => "",
+                };
+                write!(f, "({input} {arrow} {output}{is})")
+            }
+            Ty::Err => f.write_str("?"),
+            Ty::Infer(infer) => Display::fmt(infer, f),
+            Ty::Name(res) => Debug::fmt(res, f),
+            Ty::Param(name) => write!(f, "'{name}"),
+            Ty::Prim(prim) => Debug::fmt(prim, f),
+            Ty::Tuple(items) => {
+                f.write_str("(")?;
+                if let Some((first, rest)) = items.split_first() {
+                    Display::fmt(first, f)?;
+                    if rest.is_empty() {
+                        f.write_str(",")?;
+                    } else {
+                        for item in rest {
+                            f.write_str(", ")?;
+                            Display::fmt(item, f)?;
+                        }
+                    }
+                }
+                f.write_str(")")
+            }
+        }
+    }
+}
+
+/// A primitive type.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum PrimTy {
+    /// The big integer type.
+    BigInt,
+    /// The boolean type.
+    Bool,
+    /// The floating-point type.
+    Double,
+    /// The integer type.
+    Int,
+    /// The Pauli operator type.
+    Pauli,
+    /// The qubit type.
+    Qubit,
+    /// The range type.
+    Range,
+    /// The measurement result type.
+    Result,
+    /// The string type.
+    String,
+}
+
+/// A placeholder type variable used during type inference.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct InferId(usize);
+
+impl InferId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for InferId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "?{}", self.0)
+    }
+}
+
+impl From<usize> for InferId {
+    fn from(value: usize) -> Self {
+        InferId(value)
+    }
+}
+
+impl From<InferId> for usize {
+    fn from(value: InferId) -> Self {
+        value.0
     }
 }
 
@@ -1215,29 +1317,6 @@ pub enum QubitSource {
     Dirty,
 }
 
-/// A primitive type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum TyPrim {
-    /// The big integer type.
-    BigInt,
-    /// The boolean type.
-    Bool,
-    /// The floating-point type.
-    Double,
-    /// The integer type.
-    Int,
-    /// The Pauli operator type.
-    Pauli,
-    /// The qubit type.
-    Qubit,
-    /// The range type.
-    Range,
-    /// The measurement result type.
-    Result,
-    /// The string type.
-    String,
-}
-
 /// A literal.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Lit {
@@ -1254,7 +1333,7 @@ pub enum Lit {
     /// A measurement result literal.
     Result(Result),
     /// A string literal.
-    String(String),
+    String(Rc<str>),
 }
 
 impl Display for Lit {

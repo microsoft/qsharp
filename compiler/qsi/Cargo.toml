@@ -16,6 +16,8 @@ qsc_frontend = { path = "../qsc_frontend" }
 qsc_passes = { path = "../qsc_passes" }
 clap = { workspace = true, features = ["derive"] }
 miette = { workspace = true, features = ["fancy"] }
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
 thiserror = { workspace = true }
 
 [[bin]]

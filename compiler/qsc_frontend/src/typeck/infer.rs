@@ -1,17 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{
-    ty::{Functor, Prim, Ty, Var},
-    Error, ErrorKind,
-};
+use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_hir::hir::{Functor, InferId, PrimTy, Ty};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
-pub(super) type Substitutions = IndexMap<Var, Ty>;
+pub(super) type Substitutions = IndexMap<InferId, Ty>;
 
 #[derive(Clone, Debug)]
 pub(super) enum Class {
@@ -113,9 +111,7 @@ impl Class {
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
             Class::HasField { record, name, item } => {
-                // TODO: If the record type is a user-defined type, look up its fields.
-                // https://github.com/microsoft/qsharp/issues/148
-                Err(ClassError(Class::HasField { record, name, item }, span))
+                check_has_field(record, name, item, span).map(|c| vec![c])
             }
             Class::HasIndex {
                 container,
@@ -176,14 +172,14 @@ struct UnifyError(Ty, Ty);
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
-    next_var: Var,
+    next_fresh: InferId,
 }
 
 impl Inferrer {
     pub(super) fn new() -> Self {
         Self {
             constraints: VecDeque::new(),
-            next_var: Var(0),
+            next_fresh: InferId::default(),
         }
     }
 
@@ -203,16 +199,16 @@ impl Inferrer {
 
     /// Returns a unique unconstrained type variable.
     pub(super) fn fresh(&mut self) -> Ty {
-        let var = self.next_var;
-        self.next_var = Var(var.0 + 1);
-        Ty::Var(var)
+        let fresh = self.next_fresh;
+        self.next_fresh = fresh.successor();
+        Ty::Infer(fresh)
     }
 
     /// Replaces all type parameters with fresh types.
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::Err | Ty::Prim(_) | Ty::Var(_) => {}
+                Ty::Err | Ty::Name(_) | Ty::Infer(_) | Ty::Prim(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
                 Ty::Arrow(_, input, output, _) => {
                     freshen(solver, params, input);
@@ -251,7 +247,7 @@ impl Inferrer {
 
 struct Solver {
     substs: Substitutions,
-    pending: HashMap<Var, Vec<Class>>,
+    pending: HashMap<InferId, Vec<Class>>,
     errors: Vec<Error>,
 }
 
@@ -278,8 +274,8 @@ impl Solver {
     fn class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
         let mut unknown_dependency = false;
         for ty in class.dependencies() {
-            if let Some(var) = unknown_var(&self.substs, ty) {
-                self.pending.entry(var).or_default().push(class.clone());
+            if let Some(infer) = unknown_ty(&self.substs, ty) {
+                self.pending.entry(infer).or_default().push(class.clone());
                 unknown_dependency = true;
             }
         }
@@ -332,7 +328,7 @@ impl Solver {
 
 pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
     match ty {
-        Ty::Err | Ty::Param(_) | Ty::Prim(_) => {}
+        Ty::Err | Ty::Name(_) | Ty::Param(_) | Ty::Prim(_) => {}
         Ty::Array(item) => substitute(substs, item),
         Ty::Arrow(_, input, output, _) => {
             substitute(substs, input);
@@ -343,8 +339,8 @@ pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
                 substitute(substs, item);
             }
         }
-        &mut Ty::Var(var) => {
-            if let Some(new_ty) = substs.get(var) {
+        &mut Ty::Infer(infer) => {
+            if let Some(new_ty) = substs.get(infer) {
                 *ty = new_ty.clone();
                 substitute(substs, ty);
             }
@@ -357,7 +353,7 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
     ty
 }
 
-fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), UnifyError> {
+fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
         (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2, bind),
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
@@ -370,6 +366,15 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), Unify
             unify(output1, output2, bind)?;
             Ok(())
         }
+        (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Ok(()),
+        (&Ty::Infer(infer), _) => {
+            bind(infer, ty2.clone());
+            Ok(())
+        }
+        (_, &Ty::Infer(infer)) => {
+            bind(infer, ty1.clone());
+            Ok(())
+        }
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
@@ -378,24 +383,15 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(Var, Ty)) -> Result<(), Unify
             }
             Ok(())
         }
-        (Ty::Var(var1), Ty::Var(var2)) if var1 == var2 => Ok(()),
-        (&Ty::Var(var), _) => {
-            bind(var, ty2.clone());
-            Ok(())
-        }
-        (_, &Ty::Var(var)) => {
-            bind(var, ty1.clone());
-            Ok(())
-        }
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
 }
 
-fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<Var> {
+fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferId> {
     match ty {
-        &Ty::Var(var) => match substs.get(var) {
-            None => Some(var),
-            Some(ty) => unknown_var(substs, ty),
+        &Ty::Infer(infer) => match substs.get(infer) {
+            None => Some(infer),
+            Some(ty) => unknown_ty(substs, ty),
         },
         _ => None,
     }
@@ -404,7 +400,7 @@ fn unknown_var(substs: &Substitutions, ty: &Ty) -> Option<Var> {
 fn check_add(ty: &Ty) -> bool {
     matches!(
         ty,
-        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_)
+        Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int | PrimTy::String) | Ty::Array(_)
     )
 }
 
@@ -448,7 +444,7 @@ fn check_call(
 fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError> {
     match op {
         Ty::Arrow(kind, input, output, functors) if functors.contains(&Functor::Ctl) => {
-            let qubit_array = Ty::Array(Box::new(Ty::Prim(Prim::Qubit)));
+            let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
             Ok(Constraint::Eq {
                 expected: Ty::Arrow(kind, ctl_input, output, functors),
@@ -463,15 +459,15 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError
 fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
     match ty {
         Ty::Prim(
-            Prim::BigInt
-            | Prim::Bool
-            | Prim::Double
-            | Prim::Int
-            | Prim::Qubit
-            | Prim::Range
-            | Prim::Result
-            | Prim::String
-            | Prim::Pauli,
+            PrimTy::BigInt
+            | PrimTy::Bool
+            | PrimTy::Double
+            | PrimTy::Int
+            | PrimTy::Qubit
+            | PrimTy::Range
+            | PrimTy::Result
+            | PrimTy::String
+            | PrimTy::Pauli,
         ) => Ok(Vec::new()),
         Ty::Array(item) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
         Ty::Tuple(items) => Ok(items
@@ -484,12 +480,12 @@ fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
 
 fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> {
     match base {
-        Ty::Prim(Prim::BigInt) => Ok(Constraint::Eq {
-            expected: Ty::Prim(Prim::Int),
+        Ty::Prim(PrimTy::BigInt) => Ok(Constraint::Eq {
+            expected: Ty::Prim(PrimTy::Int),
             actual: power,
             span,
         }),
-        Ty::Prim(Prim::Double | Prim::Int) => Ok(Constraint::Eq {
+        Ty::Prim(PrimTy::Double | PrimTy::Int) => Ok(Constraint::Eq {
             expected: base,
             actual: power,
             span,
@@ -505,12 +501,12 @@ fn check_has_index(
     span: Span,
 ) -> Result<Constraint, ClassError> {
     match (container, index) {
-        (Ty::Array(container_item), Ty::Prim(Prim::Int)) => Ok(Constraint::Eq {
+        (Ty::Array(container_item), Ty::Prim(PrimTy::Int)) => Ok(Constraint::Eq {
             expected: *container_item,
             actual: item,
             span,
         }),
-        (container @ Ty::Array(_), Ty::Prim(Prim::Range)) => Ok(Constraint::Eq {
+        (container @ Ty::Array(_), Ty::Prim(PrimTy::Range)) => Ok(Constraint::Eq {
             expected: container,
             actual: item,
             span,
@@ -527,13 +523,13 @@ fn check_has_index(
 }
 
 fn check_integral(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Int))
+    matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Int))
 }
 
 fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, ClassError> {
     match container {
-        Ty::Prim(Prim::Range) => Ok(Constraint::Eq {
-            expected: Ty::Prim(Prim::Int),
+        Ty::Prim(PrimTy::Range) => Ok(Constraint::Eq {
+            expected: Ty::Prim(PrimTy::Int),
             actual: item,
             span,
         }),
@@ -547,5 +543,25 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, Cla
 }
 
 fn check_num(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
+    matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int))
+}
+
+fn check_has_field(
+    record: Ty,
+    name: String,
+    item: Ty,
+    span: Span,
+) -> Result<Constraint, ClassError> {
+    // TODO: If the record type is a user-defined type, look up its fields.
+    // https://github.com/microsoft/qsharp/issues/148
+    match (&record, name.as_ref(), &item) {
+        (Ty::Prim(PrimTy::Range), "Start" | "Step" | "End", _) | (Ty::Array(..), "Length", _) => {
+            Ok(Constraint::Eq {
+                expected: Ty::Prim(PrimTy::Int),
+                actual: item,
+                span,
+            })
+        }
+        _ => Err(ClassError(Class::HasField { record, name, item }, span)),
+    }
 }

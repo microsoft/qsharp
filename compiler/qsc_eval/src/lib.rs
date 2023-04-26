@@ -21,26 +21,20 @@ use qir_backend::{
     __quantum__rt__initialize, __quantum__rt__qubit_allocate, __quantum__rt__qubit_release,
 };
 use qsc_data_structures::span::Span;
-use qsc_frontend::{
-    compile::{PackageId, PackageStore},
-    resolve::{Res, Resolutions},
-};
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
-    NodeId, Pat, PatKind, QubitInit, QubitInitKind, Spec, SpecBody, SpecGen, Stmt, StmtKind,
-    TernOp, UnOp,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Ident, Lit,
+    Mutability, NodeId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody,
+    SpecGen, Stmt, StmtKind, TernOp, UnOp,
 };
-use qsc_passes::globals::GlobalId;
 use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::{Display, Formatter},
-    hash::BuildHasher,
     mem::take,
     ops::{ControlFlow, Neg},
     ptr::null_mut,
 };
 use thiserror::Error;
-use val::Qubit;
+use val::{GlobalId, Qubit};
 
 #[derive(Debug, Error)]
 pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
@@ -103,6 +97,9 @@ pub enum Error {
 
     #[error("output failure")]
     Output(#[label("failed to generate output")] Span),
+
+    #[error("range missing `{0}` field")]
+    RangeFieldMissing(&'static str, #[label] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -218,22 +215,28 @@ impl Range {
     }
 }
 
+trait GlobalLookup<'a> {
+    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
+}
+
+impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
+    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl> {
+        self(id)
+    }
+}
+
 /// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_stmt<'a, S: BuildHasher>(
+fn eval_stmt<'a>(
     stmt: &Stmt,
-    store: &'a PackageStore,
-    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions<NodeId>,
+    globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, Error> {
     let mut eval = Evaluator {
-        store,
         globals,
-        resolutions,
         package,
         env: take(env),
         out: Some(out),
@@ -249,19 +252,15 @@ pub fn eval_stmt<'a, S: BuildHasher>(
 /// Evaluates the given expression with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub fn eval_expr<'a, S: BuildHasher>(
+fn eval_expr<'a>(
     expr: &Expr,
-    store: &'a PackageStore,
-    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions<NodeId>,
+    globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
 ) -> Result<Value, Error> {
     let mut eval = Evaluator {
-        store,
         globals,
-        resolutions,
         package,
         env: take(env),
         out: Some(out),
@@ -274,16 +273,32 @@ pub fn eval_expr<'a, S: BuildHasher>(
     res
 }
 
-pub fn init() {
+fn init() {
     __quantum__rt__initialize(null_mut());
 }
 
 #[derive(Default)]
-pub struct Env(Vec<Scope>);
+struct Env(Vec<Scope>);
+
+impl Env {
+    fn get(&self, id: NodeId) -> Option<&Variable> {
+        self.0
+            .iter()
+            .rev()
+            .find_map(|scope| scope.bindings.get(&id))
+    }
+
+    fn get_mut(&mut self, id: NodeId) -> Option<&mut Variable> {
+        self.0
+            .iter_mut()
+            .rev()
+            .find_map(|scope| scope.bindings.get_mut(&id))
+    }
+}
 
 #[derive(Default)]
 struct Scope {
-    bindings: HashMap<GlobalId, Variable>,
+    bindings: HashMap<NodeId, Variable>,
     qubits: Vec<Qubit>,
 }
 
@@ -294,16 +309,14 @@ impl Env {
     }
 }
 
-struct Evaluator<'a, S: BuildHasher> {
-    store: &'a PackageStore,
-    globals: &'a HashMap<GlobalId, &'a CallableDecl, S>,
-    resolutions: &'a Resolutions<NodeId>,
+struct Evaluator<'a, G> {
+    globals: &'a G,
     package: PackageId,
     env: Env,
     out: Option<&'a mut dyn Receiver>,
 }
 
-impl<'a, S: BuildHasher> Evaluator<'a, S> {
+impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     #[allow(clippy::too_many_lines)]
     fn eval_expr(&mut self, expr: &Expr) -> ControlFlow<Reason, Value> {
         match &expr.kind {
@@ -338,10 +351,11 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
-            ExprKind::Fail(msg) => ControlFlow::Break(Reason::Error(Error::UserFail(
-                self.eval_expr(msg)?.try_into().with_span(msg.span)?,
-                expr.span,
-            ))),
+            ExprKind::Fail(msg) => {
+                let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
+                ControlFlow::Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
+            }
+            ExprKind::Field(record, item) => self.eval_field(record, item),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
@@ -369,9 +383,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             }
             ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
             ExprKind::Paren(expr) => self.eval_expr(expr),
-            ExprKind::Path(path) => ControlFlow::Continue(self.resolve_binding(path.id)),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
+            &ExprKind::Name(res) => ControlFlow::Continue(self.resolve_binding(res)),
             ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
@@ -386,7 +400,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             }
             ExprKind::While(cond, block) => {
                 while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
-                    let _ = self.eval_block(block)?;
+                    self.eval_block(block)?;
                 }
                 ControlFlow::Continue(Value::UNIT)
             }
@@ -397,10 +411,6 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             ExprKind::Err => {
                 ControlFlow::Break(Reason::Error(Error::Unimplemented("error", expr.span)))
             }
-            ExprKind::Field(..) => ControlFlow::Break(Reason::Error(Error::Unimplemented(
-                "field access",
-                expr.span,
-            ))),
             ExprKind::Hole => {
                 ControlFlow::Break(Reason::Error(Error::Unimplemented("hole", expr.span)))
             }
@@ -433,7 +443,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         self.enter_scope();
         let result = if let Some((last, most)) = block.stmts.split_last() {
             for stmt in most {
-                let _ = self.eval_stmt(stmt)?;
+                self.eval_stmt(stmt)?;
             }
             self.eval_stmt(last)
         } else {
@@ -453,7 +463,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Semi(expr) => {
-                let _ = self.eval_expr(expr)?;
+                self.eval_expr(expr)?;
                 ControlFlow::Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
@@ -462,7 +472,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                     self.enter_scope();
                     self.track_qubits(qubits);
                     self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
-                    let _ = self.eval_block(block)?;
+                    self.eval_block(block)?;
                     self.leave_scope();
                 } else {
                     self.track_qubits(qubits);
@@ -504,7 +514,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         for value in iterable {
             self.enter_scope();
             self.bind_value(pat, value, expr.span, Mutability::Immutable);
-            let _ = self.eval_block(block)?;
+            self.eval_block(block)?;
             self.leave_scope();
         }
 
@@ -582,32 +592,15 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         let call_val = self.eval_expr(call)?;
         let call_span = call.span;
         let (call, functor) = value_to_call_id(call_val, call.span)?;
-
         let args_val = self.eval_expr(args)?;
-
-        let decl = *self
-            .globals
-            .get(&call)
-            .unwrap_or_else(|| panic!("called unknown global value: {call}"));
-
-        let spec = specialization_from_functor_app(&functor);
-
-        let resolutions = if call.package == self.package {
-            self.resolutions
-        } else {
-            self.store
-                .get(call.package)
-                .expect("global value should refer only to stored packages")
-                .context
-                .resolutions()
-        };
+        let decl = self.globals.callable(call).expect("call should resolve");
+        let spec = spec_from_functor_app(&functor);
 
         let mut new_self = Self {
-            env: Env::default(),
+            globals: self.globals,
             package: call.package,
-            resolutions,
+            env: Env::default(),
             out: self.out.take(),
-            ..*self
         };
         let call_res = new_self.eval_call_spec(
             decl,
@@ -653,21 +646,6 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
                         self.bind_args_for_spec(&decl.input, pat, args_val, args_span, ctl_count)?;
                         self.eval_block(body_block)
                     }
-                    SpecBody::Gen(SpecGen::Slf) => {
-                        let actual_spec = if spec == Spec::Adj {
-                            Spec::Body
-                        } else {
-                            Spec::Ctl
-                        };
-                        self.eval_call_spec(
-                            decl,
-                            actual_spec,
-                            args_val,
-                            args_span,
-                            call_span,
-                            ctl_count,
-                        )
-                    }
                     SpecBody::Gen(SpecGen::Intrinsic) => invoke_intrinsic(
                         &decl.name.name,
                         call_span,
@@ -697,7 +675,7 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         ctl_count: u8,
     ) -> ControlFlow<Reason, ()> {
         match &spec_pat.kind {
-            PatKind::Bind(_, _) | PatKind::Discard(_) => {
+            PatKind::Bind(_) | PatKind::Discard => {
                 panic!("spec pattern should be elided or elided tuple, found bind/discard")
             }
             PatKind::Elided => {
@@ -877,6 +855,37 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         }
     }
 
+    fn eval_field(&mut self, record: &Expr, item: &Ident) -> ControlFlow<Reason, Value> {
+        let record_span = record.span;
+        let record = self.eval_expr(record)?;
+        // For now we only support built-in fields for Arrays and Ranges.
+        match (record, item.name.as_ref()) {
+            (Value::Array(arr), "Length") => {
+                let len: i64 = match arr.len().try_into() {
+                    Ok(len) => ControlFlow::Continue(len),
+                    Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(record_span))),
+                }?;
+                ControlFlow::Continue(Value::Int(len))
+            }
+            (Value::Range(start, _, _), "Start") => start.map_or_else(
+                || ControlFlow::Break(Reason::Error(Error::RangeFieldMissing("Start", item.span))),
+                |start| ControlFlow::Continue(Value::Int(start)),
+            ),
+            (Value::Range(_, step, _), "Step") => step.map_or_else(
+                || ControlFlow::Continue(Value::Int(1)),
+                |step| ControlFlow::Continue(Value::Int(step)),
+            ),
+            (Value::Range(_, _, end), "End") => end.map_or_else(
+                || ControlFlow::Break(Reason::Error(Error::RangeFieldMissing("End", item.span))),
+                |end| ControlFlow::Continue(Value::Int(end)),
+            ),
+            _ => ControlFlow::Break(Reason::Error(Error::Unimplemented(
+                "field access",
+                item.span,
+            ))),
+        }
+    }
+
     fn enter_scope(&mut self) {
         self.env.0.push(Scope::default());
     }
@@ -910,22 +919,15 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         mutability: Mutability,
     ) -> ControlFlow<Reason, ()> {
         match &pat.kind {
-            PatKind::Bind(variable, _) => {
-                let id = self.res_to_global_id(
-                    *self
-                        .resolutions
-                        .get(variable.id)
-                        .unwrap_or_else(|| panic!("binding is not resolved: {}", variable.id)),
-                );
-
+            PatKind::Bind(variable) => {
                 let scope = self.env.0.last_mut().expect("binding should have a scope");
-                match scope.bindings.entry(id) {
+                match scope.bindings.entry(variable.id) {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
-                    Entry::Occupied(_) => panic!("duplicate binding: {id}"),
+                    Entry::Occupied(_) => panic!("duplicate binding"),
                 };
                 ControlFlow::Continue(())
             }
-            PatKind::Discard(_) => ControlFlow::Continue(()),
+            PatKind::Discard => ControlFlow::Continue(()),
             PatKind::Elided => panic!("elision used in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
@@ -946,53 +948,39 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
         }
     }
 
-    fn resolve_binding(&mut self, id: NodeId) -> Value {
-        let res = self
-            .resolutions
-            .get(id)
-            .unwrap_or_else(|| panic!("binding is not resolved: {id}"));
-
-        let global_id = self.res_to_global_id(*res);
-        let local = if matches!(res, Res::Internal(_)) {
-            self.env
-                .0
-                .iter()
-                .rev()
-                .find_map(|s| s.bindings.get(&global_id))
-                .map(|v| v.value.clone())
-        } else {
-            None
-        };
-        local.unwrap_or_else(|| Value::Global(global_id, FunctorApp::default()))
+    fn resolve_binding(&mut self, res: Res) -> Value {
+        match res {
+            Res::Err => panic!("resolution error"),
+            Res::Item(item) => Value::Global(
+                GlobalId {
+                    package: item.package.unwrap_or(self.package),
+                    item: item.item,
+                },
+                FunctorApp::default(),
+            ),
+            Res::Local(node) => self
+                .env
+                .get(node)
+                .expect("local should be bound")
+                .value
+                .clone(),
+        }
     }
 
+    #[allow(clippy::similar_names)]
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
-            (ExprKind::Path(path), rhs) => {
-                let id = self.res_to_global_id(
-                    *self
-                        .resolutions
-                        .get(path.id)
-                        .unwrap_or_else(|| panic!("path is not resolved: {}", path.id)),
-                );
-
-                let mut variable = self
-                    .env
-                    .0
-                    .iter_mut()
-                    .rev()
-                    .find_map(|scope| scope.bindings.get_mut(&id))
-                    .unwrap_or_else(|| panic!("path is not bound: {id}"));
-
-                if variable.is_mutable() {
-                    variable.value = rhs;
-                    ControlFlow::Continue(Value::UNIT)
-                } else {
-                    ControlFlow::Break(Reason::Error(Error::Mutability(path.span)))
-                }
-            }
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
+            (&ExprKind::Name(Res::Local(node)), rhs) => {
+                let mut var = self.env.get_mut(node).expect("local should be bound");
+                if var.is_mutable() {
+                    var.value = rhs;
+                    ControlFlow::Continue(Value::UNIT)
+                } else {
+                    ControlFlow::Break(Reason::Error(Error::Mutability(lhs.span)))
+                }
+            }
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
                 if var_tup.len() == tup.len() {
                     for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
@@ -1010,19 +998,9 @@ impl<'a, S: BuildHasher> Evaluator<'a, S> {
             _ => ControlFlow::Break(Reason::Error(Error::Unassignable(lhs.span))),
         }
     }
-
-    fn res_to_global_id(&self, res: Res<NodeId>) -> GlobalId {
-        match res {
-            Res::Internal(node) => GlobalId {
-                package: self.package,
-                node,
-            },
-            Res::External(package, node) => GlobalId { package, node },
-        }
-    }
 }
 
-fn specialization_from_functor_app(functor: &FunctorApp) -> Spec {
+fn spec_from_functor_app(functor: &FunctorApp) -> Spec {
     match (functor.adjoint, functor.controlled) {
         (false, 0) => Spec::Body,
         (true, 0) => Spec::Adj,
@@ -1131,8 +1109,8 @@ fn eval_binop_add(
             ControlFlow::Continue(Value::Int(val + rhs))
         }
         Value::String(val) => {
-            let rhs: String = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::String(val + &rhs))
+            let rhs = rhs_val.try_into_string().with_span(rhs_span)?;
+            ControlFlow::Continue(Value::String((val.to_string() + &rhs).into()))
         }
         _ => ControlFlow::Break(Reason::Error(Error::Type(
             "Array, BigInt, Double, Int, or String",

@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use katas::run_kata;
+use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use once_cell::sync::OnceCell;
 use qsc_eval::{
     output,
     output::{format_state_id, Receiver},
     stateless::{compile_execution_context, eval_in_context, Error},
 };
-use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-
-use miette::{Diagnostic, Severity};
+use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_hir::hir::PackageId;
 use qsc_passes::run_default_passes;
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
@@ -211,8 +211,11 @@ where
         let label = err.labels().and_then(|mut ls| ls.next());
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
-        let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
+        let mut message = err.to_string();
+        if let Some(help) = err.help() {
+            write!(message, "\n\nhelp: {help}").expect("message should be writable");
+        }
 
         VSDiagnostic {
             start_pos: offset,
@@ -224,27 +227,26 @@ where
 }
 
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
-    static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
-    let (std, ref store) = STDLIB_STORE.get_or_init(|| {
-        let mut store = PackageStore::new();
-        let mut std = std();
-        run_default_passes(&mut std);
-        let std = store.insert(std);
-        (std, store)
-    });
-    let mut unit = compile(store, [*std], [code], "");
-    let pass_errs = run_default_passes(&mut unit);
-
-    let mut result: Vec<VSDiagnostic> = vec![];
-
-    for err in unit.context.errors() {
-        result.push(err.into());
-    }
-    for err in &pass_errs {
-        result.push(err.into());
+    thread_local! {
+        static STORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new();
+            let mut std_unit = compile::std();
+            run_default_passes(&mut std_unit);
+            let std_id = store.insert(std_unit);
+            (store, std_id)
+        };
     }
 
-    result
+    STORE_STD.with(|(store, std)| {
+        let mut unit = compile(store, [*std], [code], "");
+        let pass_errs = run_default_passes(&mut unit);
+        unit.context
+            .errors()
+            .iter()
+            .map(Into::into)
+            .chain(pass_errs.iter().map(Into::into))
+            .collect()
+    })
 }
 
 #[wasm_bindgen]
@@ -297,7 +299,7 @@ where
         Ok(())
     }
 
-    fn message(&mut self, msg: String) -> Result<(), output::Error> {
+    fn message(&mut self, msg: &str) -> Result<(), output::Error> {
         let mut msg_str = String::new();
         write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
             .expect("Writing to a string should succeed");
@@ -371,6 +373,38 @@ pub fn run(
     }
 }
 
+fn run_kata_exercise_internal<F>(
+    verification_source: &str,
+    kata_implementation: &str,
+    event_cb: F,
+) -> Result<bool, Vec<qsc_eval::stateless::Error>>
+where
+    F: Fn(&str),
+{
+    let mut out = CallbackReceiver { event_cb };
+    run_kata([verification_source, kata_implementation], &mut out)
+}
+
+#[wasm_bindgen]
+pub fn run_kata_exercise(
+    verification_source: &str,
+    kata_implementation: &str,
+    event_cb: &js_sys::Function,
+) -> Result<JsValue, JsValue> {
+    match run_kata_exercise_internal(verification_source, kata_implementation, |msg: &str| {
+        let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
+    }) {
+        Ok(v) => Ok(JsValue::from_bool(v)),
+        Err(e) => {
+            // TODO: Handle multiple errors.
+            let first_error = e
+                .first()
+                .expect("Running kata failed but no errors were reported");
+            Err(JsError::from(first_error).into())
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     #[test]
@@ -382,7 +416,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "missing type in item signature");
+        assert_eq!(err.message, "missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -426,7 +460,7 @@ mod test {
         let error = errors.first().unwrap();
         assert_eq!(error.start_pos, 111);
         assert_eq!(error.end_pos, 117);
-        assert_eq!(error.message, "mismatched types");
+        assert_eq!(error.message, "expected (Double, Qubit), found Qubit");
     }
 
     #[test]
@@ -473,7 +507,7 @@ mod test {
     }
 
     #[test]
-    fn test_mising_entrypoint() {
+    fn test_missing_entrypoint() {
         let code = "namespace Sample {
             operation main() : Result[] {
                 use q1 = Qubit();
@@ -487,7 +521,7 @@ mod test {
             expr,
             |_msg_| {
                 assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-                assert!(_msg_.contains(r#""message": "entry point not found""#));
+                assert!(_msg_.contains(r#""message": "entry point not found"#));
                 assert!(_msg_.contains(r#""start_pos": 0"#));
             },
             1,
