@@ -21,8 +21,8 @@ pub enum Error {
     LogicSep(logic_sep::Error),
 }
 
-pub(super) struct AdjDistrib {
-    pub(super) errors: Vec<Error>,
+pub(crate) struct AdjDistrib {
+    pub(crate) errors: Vec<Error>,
 }
 
 impl MutVisitor for AdjDistrib {
