@@ -19,10 +19,10 @@ pub(crate) fn adj_invert_block(
     assigner: &mut Assigner,
     block: &mut Block,
 ) -> Result<(), Vec<Error>> {
-    let op_call_stmts = find_quantum_stmts(block)?;
+    let quantum_stmts = find_quantum_stmts(block)?;
     let mut pass = BlockInverter {
         assigner,
-        quantum_stmts: op_call_stmts,
+        quantum_stmts,
         should_reverse_loop: false,
     };
     pass.visit_block(block);
