@@ -3,14 +3,14 @@
 
 mod tests;
 
+use miette::Diagnostic;
+use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
     AggregateError, Env,
 };
-use miette::Diagnostic;
-use qsc_data_structures::index_map::IndexMap;
 use qsc_frontend::{
     compile::{self, compile, CompileUnit, PackageStore},
     incremental::{self, Compiler, Fragment},
