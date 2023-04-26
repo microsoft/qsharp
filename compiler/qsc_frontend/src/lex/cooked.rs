@@ -48,6 +48,21 @@ pub(crate) enum Error {
     Unknown(char, #[label] Span),
 }
 
+impl Error {
+    pub(crate) fn with_offset(self, offset: usize) -> Self {
+        match self {
+            Self::Incomplete(expected, token, actual, span) => {
+                Self::Incomplete(expected, token, actual, span + offset)
+            }
+            Self::IncompleteEof(expected, token, span) => {
+                Self::IncompleteEof(expected, token, span + offset)
+            }
+            Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
+            Self::Unknown(c, span) => Self::Unknown(c, span + offset),
+        }
+    }
+}
+
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(crate) enum TokenKind {
