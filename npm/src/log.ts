@@ -9,7 +9,7 @@
 // the host environment after import resolution and before other logic runs.
 
 declare global {
-    // Algin with VS Code names (but not level numbers)
+    // Align with VS Code names (but not level numbers)
     // 0 = off
     // 1 = error
     // 2 = warn

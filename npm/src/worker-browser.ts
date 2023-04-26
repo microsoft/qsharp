@@ -1,14 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// Support running the compiler inside a browser WebWorker
+// This module supports running the compiler inside a browser WebWorker. This is set as
+// the "qsharp/worker" entry point using 'conditional exports' in package.json.
+// The worker script to be loaded in the browser should import the handler via
+// `import { messageHandler } from "qsharp/worker"` and assign this to 'self.onmessage'.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
 import { log } from "./log.js";
-import { Compiler, CompilerEvents } from "./compiler.js";
+import { Compiler } from "./compiler.js";
 import { getWorkerEventHandlers, handleMessageInWorker } from "./worker-common.js";
 
-let eventHandlers: CompilerEvents = getWorkerEventHandlers(self.postMessage);
+// Used to sent messages back to the client when events occur during request processing
+let evtTarget = getWorkerEventHandlers(self.postMessage);
 
 let compiler: Compiler | null = null;
 
@@ -25,13 +29,13 @@ export function messageHandler(e: MessageEvent) {
         case "init":
             log.setLogLevel(data.qscLogLevel);
             wasm.initSync(data.wasmModule);
-            compiler = new Compiler(wasm, eventHandlers);
+            compiler = new Compiler(wasm);
             break;
         default:
             if (!compiler) {
-                log.error(`Received message ${data} before the compiler was initialized`);
+                log.error(`Received message before the compiler was initialized: %o`, data);
             } else {
-                handleMessageInWorker(data, compiler, self.postMessage);
+                handleMessageInWorker(data, compiler, self.postMessage, evtTarget);
             }
     }
 }

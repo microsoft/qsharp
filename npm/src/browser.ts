@@ -1,15 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// This module is the entry point for browser environments. For Node.js environment,
+// the "./main.js" module is the entry point.
+
 import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
 import { log } from "./log.js";
-import { Compiler, ICompiler, ICompilerWorker, CompilerEvents } from "./compiler.js";
+import { Compiler, ICompiler, ICompilerWorker } from "./compiler.js";
 import { createWorkerProxy } from "./worker-common.js";
 
-// Instantiate once. A module is stateless and can be efficiently passed to WebWorkers.
+// Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
 
-// Used to track if already instantiated
+// Used to track if an instance is already instantiated
 let wasmInstance: any;
 
 export async function loadWasmModule(uri: string) {
@@ -18,15 +21,15 @@ export async function loadWasmModule(uri: string) {
     wasmModule = await WebAssembly.compile(wasmBuffer);
 }
 
-export async function getCompiler(callbacks: CompilerEvents): Promise<ICompiler> {
+export async function getCompiler(): Promise<ICompiler> {
     if (!wasmModule) throw "Wasm module must be loaded first";
     if (!wasmInstance) wasmInstance = await initWasm(wasmModule);
 
-    return new Compiler(wasm, callbacks);
+    return new Compiler(wasm);
 }
 
 // Create the compiler inside a WebWorker and proxy requests
-export function getCompilerWorker(script: string, callbacks: CompilerEvents): ICompilerWorker {
+export function getCompilerWorker(script: string): ICompilerWorker {
     if (!wasmModule) throw "Wasm module must be loaded first";
 
     // Create a WebWorker
@@ -41,9 +44,10 @@ export function getCompilerWorker(script: string, callbacks: CompilerEvents): IC
             worker.onmessage = (ev) => handler(ev.data);
     const onTerminate = () => worker.terminate();
 
-    return createWorkerProxy(callbacks, postMessage, setMsgHandler, onTerminate);
+    return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
 }
 
 export { renderDump, exampleDump } from "./state-table.js"
-export { getResultsHandler, type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
+export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
 export { getAllKatas, getKata, type Kata, type KataItem, type Exercise } from "./katas.js";
+export { QscEventTarget } from "./events.js";

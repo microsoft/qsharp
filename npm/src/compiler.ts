@@ -3,7 +3,8 @@
 
 import type {IDiagnostic, ICompletionList} from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
-import { DumpMsg, MessageMsg, eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
+import { eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
+import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
@@ -14,114 +15,99 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs")
 export interface ICompiler {
     checkCode(code: string): Promise<VSDiagnostic[]>;
     getCompletions(): Promise<ICompletionList>;
-    run(code: string, expr: string, shots: number): Promise<void>;
-    runKata(user_code: string, verify_code: string): Promise<boolean>;
-    isRunning(): boolean;
+    run(code: string, expr: string, shots: number, eventHandler: IQscEventTarget): Promise<void>;
+    runKata(user_code: string, verify_code: string, eventHandler: IQscEventTarget): Promise<boolean>;
 }
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
 export type ICompilerWorker = ICompiler & { terminate: () => void };
 
-export interface CompilerEvents {
-    onMessage: (msg: MessageMsg) => void;
-    onDumpMachine: (dump: DumpMsg) => void;
-    onSuccess: (result: string) => void;
-    onFailure: (err: any) => void;
+function errToDiagnostic(err: any): VSDiagnostic {
+    if (err && typeof err.severity === 'number' && typeof err.message === 'string') {
+        err.start_pos = err.start_pos || 0;
+        err.end_pos = err.end_pos || 0;
+        return err;
+    } else {
+        return {
+            severity: 0,
+            message: err.toString(),
+            start_pos: 0, end_pos: 0
+        };
+    }
 }
 
 export class Compiler implements ICompiler {
     private wasm: Wasm;
-    private callbacks: CompilerEvents;
-    private _isRunning: boolean = false; // To avoid reentrancy when processing a callback
-    private currentSource: string = ""; // Store when running to map any source positions in events
 
-    constructor(wasm: Wasm, callbacks: CompilerEvents) {
+    constructor(wasm: Wasm) {
         log.info("Constructing a Compiler instance");
         this.wasm = wasm;
-        this.callbacks = callbacks;
     }
 
     async checkCode(code: string): Promise<VSDiagnostic[]> {
-        if (this._isRunning) throw "Compiler invoked while already running";
         let raw_result = this.wasm.check_code(code) as IDiagnostic[];
         return mapDiagnostics(raw_result, code);
     }
 
     async getCompletions(): Promise<ICompletionList> {
-        if (this._isRunning) throw "Compiler invoked while already running";
         return this.wasm.get_completions();
     }
 
-    async run(code: string, expr: string, shots: number): Promise<void> {
-        if (this._isRunning) throw "Compiler invoked while already running";
-        this._isRunning = true;
-        this.currentSource = code;
+    async run(code: string, expr: string, shots: number, eventHandler: IQscEventTarget): Promise<void> {
         try {
-            this.wasm.run(code, expr, this.mapEvent.bind(this), shots);
-        } catch(e) {
-            // Likely something failed before success/failure got reported.
-            this.callbacks.onFailure(e);
+            // All results are communicated as events, so just check it doesn't panic/throw
+            this.wasm.run(code, expr, (msg: string) => onCompilerEvent(msg, eventHandler), shots);
+        } catch(e: any) {
+            // This shouldn't happen unless there's a compiler error.
+            log.error("Wasm 'run' call failed with: %o", e);
             throw e;
-        } finally {
-            this._isRunning = false;
-            this.currentSource = "";
         }
     }
 
-    async runKata(user_code: string, verify_code: string): Promise<boolean> {
-        if (this._isRunning) throw "Compiler invoked while running other code";
-        this._isRunning = true;
-        this.currentSource = user_code;
+    async runKata(user_code: string, verify_code: string, eventHandler: IQscEventTarget): Promise<boolean> {
         let success = false;
         let err: any = null;
         try {
-            success = this.wasm.run_kata_exercise(verify_code, user_code, this.mapEvent.bind(this));
+            success = this.wasm.run_kata_exercise(verify_code, user_code, (msg: string) => onCompilerEvent(msg, eventHandler));
         } catch(e) {
             err = e;
-        } finally {
-            this._isRunning = false;
-            this.currentSource = "";
         }
         // Currently the kata wasm doesn't emit the success/failure events, so do those here.
-        if (success) {
-            this.callbacks.onSuccess("true");
-        } else {
-            this.callbacks.onFailure(JSON.stringify(err));
+        if (!err) {
+            const evt = makeEvent("Result", { success: true, value: success.toString() });
+            eventHandler.dispatchEvent(evt);
+        }
+        else {
+            const diag = errToDiagnostic(err);
+            const evt = makeEvent("Result", { success: false, value: diag });
+            eventHandler.dispatchEvent(evt);
         }
         return success;
     }
+}
 
-    isRunning(): boolean {
-        return this._isRunning;
+export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
+    const qscMsg = eventStringToMsg(msg);
+    if (!qscMsg) {
+        log.error("Unknown event message: %s", msg);
+        return;
     }
 
-    private mapEvent(eventMsg: string): void {
-        // Take a generic event string and call the appropriate callback
-        const msg = eventStringToMsg(eventMsg);
-        if (!msg) throw `Unknown message: ${eventMsg}`;
+    let qscEvent: QscEvents;
 
-        switch (msg.type) {
-            case "Message":
-                this.callbacks.onMessage(msg);
-                break;
-            case "DumpMachine":
-                this.callbacks.onDumpMachine(msg);
-                break;
-            case "Result":
-                if (msg.success) {
-                    this.callbacks.onSuccess(msg.result as string);
-                } else {
-                    // If it's a diagnostic, positions need to be mapped.
-                    let result = msg.result;
-                    if (typeof result === "object" && typeof result.start_pos === "number") {
-                        result = mapDiagnostics([result], this.currentSource)[0];
-                    }
-                    this.callbacks.onFailure(result);
-                }
-                break;
-            default:
-                log.error(`Unrecognized event: ${msg}`);
-                break;
-        }
+    switch(qscMsg.type) {
+        case "Message":
+            qscEvent = makeEvent("Message", qscMsg.message);
+            break;
+        case "DumpMachine":
+            qscEvent = makeEvent("DumpMachine", qscMsg.state);
+            break;
+        case "Result":
+            qscEvent = makeEvent("Result", qscMsg.result);
+            break;
+        default:
+            log.error("Unexpected message type: %o", qscMsg);
+            throw "Unexpected message type";
     }
+    eventTarget.dispatchEvent(qscEvent!);
 }

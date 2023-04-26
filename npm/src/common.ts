@@ -14,6 +14,10 @@ export interface VSDiagnostic {
     severity: number;
 }
 
+export type Result = 
+    { success: true, value: string } |
+    { success: false, value: VSDiagnostic };
+
 export interface DumpMsg {
     type: "DumpMachine";
     state: Dump;
@@ -26,8 +30,7 @@ export interface MessageMsg {
 
 export interface ResultMsg {
     type: "Result";
-    success: boolean;
-    result: string | VSDiagnostic;
+    result: Result;
 }
 
 export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
@@ -36,7 +39,13 @@ export function outputAsResult(msg: string) : ResultMsg | null {
     try {
         let obj = JSON.parse(msg);
         if (obj?.type == "Result" && typeof obj.success == "boolean") {
-            return obj as ResultMsg;
+            return {
+                type: "Result",
+                result: {
+                    success: obj.success,
+                    value: obj.result
+                }
+            };
         }
     } catch {
         return null;
@@ -76,41 +85,6 @@ export type ShotResult = {
     success: boolean;
     result: string | VSDiagnostic;
     events: Array<MessageMsg | DumpMsg>;
-}
-
-export function getResultsHandler() {
-    function getFreshResult(): ShotResult {
-        return {
-            success: false,
-            result: "",
-            events: [],
-        }
-    }
-
-    let results: ShotResult[] = [];
-    let result = getFreshResult();
-
-    return {
-        onSuccess: (res: string) => {
-            result.success = true;
-            result.result = res;
-            results.push(result);
-            result = getFreshResult();
-        },
-        onFailure: (err: any) => {
-            result.success = false;
-            result.result = err;
-            results.push(result);
-            result = getFreshResult();
-        },
-        onMessage: (msg: MessageMsg) => result.events.push(msg),
-        onDumpMachine: (dump: DumpMsg) => result.events.push(dump),
-        getResults: () => results,
-        clearResults: () => {
-            results.length = 0;
-            result = getFreshResult();
-        }
-    } 
 }
 
 // The QSharp compiler returns positions in utf-8 code unit positions (basically a byte[]

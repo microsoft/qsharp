@@ -3,7 +3,7 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import { getCompilerWorker, getResultsHandler, loadWasmModule, ShotResult, renderDump, VSDiagnostic } from "qsharp";
+import { getCompilerWorker, loadWasmModule, ShotResult, renderDump, VSDiagnostic, QscEventTarget } from "qsharp";
 import { generateHistogramData, generateHistogramSvg } from "./histogram.js";
 import { base64ToCode, codeToBase64 } from "./utils.js";
 import { PopulateKatasList, RenderKatas } from "./katas.js";
@@ -41,7 +41,7 @@ let editor: monaco.editor.IStandaloneCodeEditor;
 let currentsquiggles: string[] = [];
 function squiggleDiagnostics(errors: VSDiagnostic[]) {
     let srcModel = editor.getModel()!;
-    let newDecorations = errors.map(err => {
+    let newDecorations = errors?.map(err => {
         let startPos = srcModel.getPositionAt(err.start_pos);
         let endPos = srcModel.getPositionAt(err.end_pos);
         let range = monaco.Range.fromPositions(startPos, endPos);
@@ -51,14 +51,14 @@ function squiggleDiagnostics(errors: VSDiagnostic[]) {
         }
         return decoration;
     });
-    currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations);
+    currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations || []);
 }
 
 // This runs after the Monaco editor is initialized
 async function loaded() {
     await wasmPromise; // Ensure the Wasm Module is done loading
-    const resultsHandler = getResultsHandler();
-    const compiler = await getCompilerWorker("libs/worker.js", resultsHandler);
+    const evtHander = new QscEventTarget(true);
+    const compiler = await getCompilerWorker("libs/worker.js");
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
@@ -87,12 +87,9 @@ async function loaded() {
 
     // As code is edited check it for errors and update the error list
     async function check() {
-        // As this is async, code may be being edited while earlier check calls are still running.
+        // TODO: As this is async, code may be being edited while earlier check calls are still running.
         // Need to ensure that if this occurs, wait and try again on the next animation frame.
-        if (compiler.isRunning()) {
-            diagnosticsFrame = requestAnimationFrame(check);
-            return;
-        }
+        // i.e. Don't queue a bunch of checks if some are still outstanding
         diagnosticsFrame = 0;
         let code = srcModel.getValue();
         let errs = await compiler.checkCode(code);
@@ -135,10 +132,10 @@ async function loaded() {
 
         try {
             performance.mark("start-shots");
-            resultsHandler.clearResults();
+            evtHander.clearResults();
             // TODO: Update the handler to show results as they come in.
-            await compiler.run(code, expr, shots);
-            runResults = resultsHandler.getResults();
+            await compiler.run(code, expr, shots, evtHander);
+            runResults = evtHander.getResults();
         } catch (e: any) {
             // TODO: Should only happen on crash. Telmetry?
         }
@@ -154,14 +151,10 @@ async function loaded() {
             // @ts-ignore : This is required in the defintion, but not needed.
             var range: monaco.IRange = undefined;
 
-            if (compiler.isRunning()) {
-                // TODO: Wait and retry rather than just abort
-                return null;
-            }
-
+            // TODO: CancellationToken
             return compiler.getCompletions().then(rawList => {
                 let mapped: monaco.languages.CompletionList = {
-                    suggestions: rawList.items.map(item => ({
+                    suggestions: rawList?.items?.map(item => ({
                         label: item.label,
                         kind: item.kind, // TODO: Monaco seems to use different values than VS Code.
                         insertText: item.label,

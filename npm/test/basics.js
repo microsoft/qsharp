@@ -6,8 +6,8 @@
 import assert from "node:assert";
 import { test } from "node:test";
 import { log } from "../dist/log.js";
-import { getCompiler, getCompilerWorker } from "../dist/node.js"
-import { getResultsHandler } from "../dist/common.js";
+import { getCompiler, getCompilerWorker } from "../dist/main.js"
+import { QscEventTarget } from "../dist/events.js";
 import { getKata } from "../dist/katas.js";
 
 log.setLogLevel('warn');
@@ -21,10 +21,10 @@ log.setLogLevel('warn');
  */
 export function runSingleShot(code, expr, useWorker) {
     return new Promise( (resolve, reject) => {
-        const resultsHandler = getResultsHandler();
-        const compiler = useWorker ? getCompilerWorker(resultsHandler) : getCompiler(resultsHandler);
+        const resultsHandler = new QscEventTarget(true);
+        const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
-        compiler.run(code, expr, 1)
+        compiler.run(code, expr, 1, resultsHandler)
           .then(_ => resolve(resultsHandler.getResults()[0]))
           .catch(err => reject(err))
           /** @ts-ignore : terminate is only on workers */
@@ -54,14 +54,13 @@ namespace Test {
         return M(q1);
     }
 }`;
-    const result = await runSingleShot(code, "", false);
+    const result = await runSingleShot(code, "", true);
     assert(result.success === true);
     assert(result.result === "Zero");
 });
 
 test('one syntax error', async t => {
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompiler(resultsHandler);
+    const compiler =  getCompiler();
 
     const diags = await compiler.checkCode("namespace Foo []");
     assert.equal(diags.length, 1);
@@ -70,8 +69,7 @@ test('one syntax error', async t => {
 });
 
 test('completions include CNOT', async t => {
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompiler(resultsHandler);
+    const compiler = getCompiler();
 
     let results = await compiler.getCompletions();
     let cnot = results.items.find(x => x.label === 'CNOT');
@@ -88,7 +86,7 @@ test('dump and message output', async t => {
     }`;
     let expr = `Test.Answer()`;
 
-    const result = await runSingleShot(code, expr, false);
+    const result = await runSingleShot(code, expr, true);
     assert(result.success);
     assert(result.events.length == 2);
     assert(result.events[0].type == "DumpMachine");
@@ -106,8 +104,7 @@ test('type error', async t => {
             return [m1];
         }
     }`;
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompiler(resultsHandler);
+    const compiler = getCompiler();
     let result = await compiler.checkCode(code);
 
     assert.equal(result.length, 1);
@@ -117,8 +114,8 @@ test('type error', async t => {
 });
 
 test('kata success', async t => {
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompilerWorker(resultsHandler);
+    const evtTarget = new QscEventTarget(true);
+    const compiler = getCompiler();
     const code = `
 namespace Kata {
   operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
@@ -129,18 +126,17 @@ namespace Kata {
     const firstExercise = theKata.items[0];
     const verifyCode = firstExercise.verificationImplementation;
 
-    await compiler.runKata(code, verifyCode);
-    const results = resultsHandler.getResults();
-    compiler.terminate();
+    const passed = await compiler.runKata(code, verifyCode, evtTarget);
+    const results = evtTarget.getResults();
 
     assert(results.length === 1);
     assert(results[0].events.length === 2);
-    assert(results[0].success);
+    assert(passed);
 });
 
 test('kata incorrect', async t => {
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompilerWorker(resultsHandler);
+    const evtTarget = new QscEventTarget(true);
+    const compiler = getCompilerWorker();
     const code = `
 namespace Kata {
   operation ApplyY(q : Qubit) : Unit is Adj + Ctl {
@@ -151,18 +147,18 @@ namespace Kata {
     const firstExercise = theKata.items[0];
     const verifyCode = firstExercise.verificationImplementation;
 
-    await compiler.runKata(code, verifyCode);
-    const results = resultsHandler.getResults();
+    const passed = await compiler.runKata(code, verifyCode, evtTarget);
+    const results = evtTarget.getResults();
     compiler.terminate();
 
     assert(results.length === 1);
     assert(results[0].events.length === 4);
-    assert(!results[0].success); 
+    assert(!passed);
 });
 
 test('kata syntax error', async t => {
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompilerWorker(resultsHandler);
+    const evtTarget = new QscEventTarget(true);
+    const compiler = getCompiler();
     const code = `
 namespace Kata {
   operaion ApplyY(q : Qubit) : Unt is Adj + Ctl {
@@ -173,13 +169,14 @@ namespace Kata {
     const firstExercise = theKata.items[0];
     const verifyCode = firstExercise.verificationImplementation;
 
-    await compiler.runKata(code, verifyCode);
-    const results = resultsHandler.getResults();
-    compiler.terminate();
+    const passed = await compiler.runKata(code, verifyCode, evtTarget);
+    const results = evtTarget.getResults();
 
     assert(results.length === 1);
     assert(results[0].events.length === 0);
-    assert(!results[0].success); 
+    assert(!results[0].success);
+    assert(typeof results[0].result !== 'string' && 
+            results[0].result.message.includes("expected"));
 });
 
 test('worker check', async t => {
@@ -191,8 +188,7 @@ test('worker check', async t => {
             return [m1];
         }
     }`;
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompilerWorker(resultsHandler);
+    const compiler = getCompilerWorker();
     let result = await compiler.checkCode(code);
     compiler.terminate();
 
@@ -212,9 +208,9 @@ test('worker 100 shots', async t => {
     }`;
     let expr = `Test.Answer()`;
 
-    const resultsHandler = getResultsHandler();
-    const compiler = getCompilerWorker(resultsHandler);
-    await compiler.run(code, expr, 100);
+    const resultsHandler = new QscEventTarget(true);
+    const compiler = getCompilerWorker();
+    await compiler.run(code, expr, 100, resultsHandler);
     compiler.terminate();
 
     const results = resultsHandler.getResults();
