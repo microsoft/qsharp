@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, mem::take};
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
@@ -54,44 +54,47 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
     fn visit_expr(&mut self, expr: &mut Expr) {
         mut_visit::walk_expr(self, expr);
 
-        if let ExprKind::Conjugate(within, apply) = &expr.kind {
-            let mut usage = Usage {
-                used: HashSet::new(),
-            };
-            usage.visit_block(within);
-            let mut assign_check = AssignmentCheck {
-                used: usage.used,
-                errors: Vec::new(),
-            };
-            assign_check.visit_block(apply);
-            self.errors.extend(assign_check.errors);
+        match take(&mut expr.kind) {
+            ExprKind::Conjugate(within, apply) => {
+                let mut usage = Usage {
+                    used: HashSet::new(),
+                };
+                usage.visit_block(&within);
+                let mut assign_check = AssignmentCheck {
+                    used: usage.used,
+                    errors: Vec::new(),
+                };
+                assign_check.visit_block(&apply);
+                self.errors.extend(assign_check.errors);
 
-            let mut adj_within = within.clone();
-            if let Err(invert_errors) = adj_invert_block(self.assigner, &mut adj_within) {
-                self.errors.extend(
-                    invert_errors
-                        .into_iter()
-                        .map(adj_gen::Error::LogicSep)
-                        .map(Error::AdjGen),
-                );
-                return;
+                let mut adj_within = within.clone();
+                if let Err(invert_errors) = adj_invert_block(self.assigner, &mut adj_within) {
+                    self.errors.extend(
+                        invert_errors
+                            .into_iter()
+                            .map(adj_gen::Error::LogicSep)
+                            .map(Error::AdjGen),
+                    );
+                    return;
+                }
+                let mut distrib = AdjDistrib { errors: Vec::new() };
+                distrib.visit_block(&mut adj_within);
+                self.errors
+                    .extend(distrib.errors.into_iter().map(Error::AdjGen));
+
+                let new_block = Block {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    ty: Ty::UNIT,
+                    stmts: vec![
+                        block_as_stmt(within),
+                        block_as_stmt(apply),
+                        block_as_stmt(adj_within),
+                    ],
+                };
+                *expr = block_as_expr(new_block);
             }
-            let mut distrib = AdjDistrib { errors: Vec::new() };
-            distrib.visit_block(&mut adj_within);
-            self.errors
-                .extend(distrib.errors.into_iter().map(Error::AdjGen));
-
-            let new_block = Block {
-                id: NodeId::default(),
-                span: Span::default(),
-                ty: Ty::UNIT,
-                stmts: vec![
-                    block_as_stmt(within.clone()),
-                    block_as_stmt(apply.clone()),
-                    block_as_stmt(adj_within),
-                ],
-            };
-            *expr = block_as_expr(new_block);
+            kind => expr.kind = kind,
         }
     }
 }
