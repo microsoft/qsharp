@@ -305,16 +305,15 @@ impl LoopUni<'_> {
 impl MutVisitor for LoopUni<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
         walk_expr(self, expr);
-        let new_expr = take(expr);
-        *expr = match new_expr.kind {
+        match take(&mut expr.kind) {
             ExprKind::Repeat(block, cond, fixup) => {
-                self.visit_repeat(block, cond, fixup, new_expr.span)
+                *expr = self.visit_repeat(block, cond, fixup, expr.span);
             }
             ExprKind::For(iter, iterable, block) => {
                 match iterable.ty {
-                    Ty::Array(_) => self.visit_for_array(iter, iterable, block, new_expr.span),
+                    Ty::Array(_) => *expr = self.visit_for_array(iter, iterable, block, expr.span),
                     Ty::Prim(PrimTy::Range) => {
-                        self.visit_for_range(iter, iterable, block, new_expr.span)
+                        *expr = self.visit_for_range(iter, iterable, block, expr.span);
                     }
                     _ => {
                         // This scenario should have been caught by type-checking earlier
@@ -322,7 +321,7 @@ impl MutVisitor for LoopUni<'_> {
                     }
                 }
             }
-            _ => new_expr,
+            kind => expr.kind = kind,
         };
     }
 }
