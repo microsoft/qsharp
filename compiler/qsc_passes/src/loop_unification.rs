@@ -16,6 +16,9 @@ use qsc_hir::{
 
 use crate::Error;
 
+#[cfg(test)]
+mod tests;
+
 pub fn loop_unification(unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = LoopUni {
         context: &mut unit.context,
@@ -53,15 +56,27 @@ impl LoopUni<'_> {
             },
         );
 
-        let update = LoopUni::gen_id_update(
-            &continue_cond_id,
-            Expr {
+        let update = Stmt {
+            id: NodeId::default(),
+            span: cond_span,
+            kind: StmtKind::Semi(Expr {
                 id: NodeId::default(),
                 span: cond_span,
-                ty: Ty::Prim(PrimTy::Bool),
-                kind: ExprKind::UnOp(UnOp::Neg, cond),
-            },
-        );
+                ty: Ty::UNIT,
+                kind: ExprKind::Assign(
+                    Box::new(LoopUni::gen_local_ref(
+                        &continue_cond_id,
+                        Ty::Prim(PrimTy::Bool),
+                    )),
+                    Box::new(Expr {
+                        id: NodeId::default(),
+                        span: cond_span,
+                        ty: Ty::Prim(PrimTy::Bool),
+                        kind: ExprKind::UnOp(UnOp::NotL, cond),
+                    }),
+                ),
+            }),
+        };
         block.stmts.push(update);
 
         if let Some(fix_body) = fixup {
@@ -181,7 +196,7 @@ impl LoopUni<'_> {
             ),
         };
 
-        let update_index = LoopUni::gen_id_update(
+        let update_index = LoopUni::gen_id_add_update(
             &index_id,
             Expr {
                 id: NodeId::default(),
@@ -295,7 +310,7 @@ impl LoopUni<'_> {
             ),
         };
 
-        let update_index = LoopUni::gen_id_update(
+        let update_index = LoopUni::gen_id_add_update(
             &index_id,
             LoopUni::gen_local_ref(&step_id, Ty::Prim(PrimTy::Int)),
         );
@@ -463,7 +478,7 @@ impl LoopUni<'_> {
         }
     }
 
-    fn gen_id_update(ident: &Ident, expr: Expr) -> Stmt {
+    fn gen_id_add_update(ident: &Ident, expr: Expr) -> Stmt {
         Stmt {
             id: NodeId::default(),
             span: ident.span,
@@ -484,23 +499,24 @@ impl LoopUni<'_> {
 impl MutVisitor for LoopUni<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
         let new_expr = take(expr);
-        match new_expr.kind {
+        *expr = match new_expr.kind {
             ExprKind::Repeat(block, cond, fixup) => {
-                *expr = self.visit_repeat(block, cond, fixup, expr.span);
+                self.visit_repeat(block, cond, fixup, expr.span)
             }
             ExprKind::For(iter, iterable, block) => {
-                let is_array = true; // ToDo: check the type of the iterable expression
-                if is_array {
-                    *expr = self.visit_for_array(iter, iterable, block, expr.span);
-                } else if !is_array {
-                    *expr = self.visit_for_range(iter, iterable, block, expr.span);
-                } else {
-                    // This scenario should have been caught by type-checking earlier
-                    panic!("The type of the iterable must be either array or range.");
+                match iterable.ty {
+                    Ty::Array(_) => self.visit_for_array(iter, iterable, block, expr.span),
+                    Ty::Prim(PrimTy::Range) => {
+                        self.visit_for_range(iter, iterable, block, expr.span)
+                    }
+                    _ => {
+                        // This scenario should have been caught by type-checking earlier
+                        panic!("The type of the iterable must be either array or range.")
+                    }
                 }
             }
-            _ => *expr = new_expr,
-        }
+            _ => new_expr,
+        };
 
         walk_expr(self, expr);
     }
