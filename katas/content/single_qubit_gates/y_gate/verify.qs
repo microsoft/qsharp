@@ -3,10 +3,7 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
 
     operation ApplyYReference(q : Qubit) : Unit is Adj + Ctl {
-        body ... {
-            Y(q);
-        }
-        adjoint self;
+        Y(q);
     }
 
     operation Verify() : Bool {
