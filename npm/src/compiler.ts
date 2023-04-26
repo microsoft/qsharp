@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import type {IDiagnostic, ICompletionList} from "../lib/node/qsc_wasm.cjs";
+import type { IDiagnostic, ICompletionList } from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
 import { eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
@@ -54,14 +54,10 @@ export class Compiler implements ICompiler {
     }
 
     async run(code: string, expr: string, shots: number, eventHandler: IQscEventTarget): Promise<void> {
-        try {
-            // All results are communicated as events, so just check it doesn't panic/throw
-            this.wasm.run(code, expr, (msg: string) => onCompilerEvent(msg, eventHandler), shots);
-        } catch(e: any) {
-            // This shouldn't happen unless there's a compiler error.
-            log.error("Wasm 'run' call failed with: %o", e);
-            throw e;
-        }
+        // All results are communicated as events, but if there is a compiler error (e.g. an invalid
+        // entry expression or similar), it may throw on run. The caller should expect this promise
+        // may reject without all shots running or events firing.
+        this.wasm.run(code, expr, (msg: string) => onCompilerEvent(msg, eventHandler), shots);
     }
 
     async runKata(user_code: string, verify_code: string, eventHandler: IQscEventTarget): Promise<boolean> {
@@ -69,7 +65,7 @@ export class Compiler implements ICompiler {
         let err: any = null;
         try {
             success = this.wasm.run_kata_exercise(verify_code, user_code, (msg: string) => onCompilerEvent(msg, eventHandler));
-        } catch(e) {
+        } catch (e) {
             err = e;
         }
         // Currently the kata wasm doesn't emit the success/failure events, so do those here.
@@ -95,7 +91,8 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
 
     let qscEvent: QscEvents;
 
-    switch(qscMsg.type) {
+    const msgType = qscMsg.type;
+    switch (msgType) {
         case "Message":
             qscEvent = makeEvent("Message", qscMsg.message);
             break;
@@ -106,7 +103,7 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
             qscEvent = makeEvent("Result", qscMsg.result);
             break;
         default:
-            log.error("Unexpected message type: %o", qscMsg);
+            log.never(msgType);
             throw "Unexpected message type";
     }
     eventTarget.dispatchEvent(qscEvent!);
