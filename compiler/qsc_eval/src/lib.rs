@@ -106,9 +106,6 @@ pub enum Error {
     RangeStepZero(#[label("invalid range")] Span),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
-    #[diagnostic(help(
-        "qubits must be returned to the |0⟩ (or ground) state before being released"
-    ))]
     ReleasedQubitNotZero(usize, #[label] Span),
 
     #[error("mismatched types")]
