@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.Canon {
 
     /// Given a pair, returns its first element.
     function Fst<'T, 'U> (pair : ('T, 'U)) : 'T {
-        let (fst, snd) = pair;
+        let (fst, _) = pair;
         return fst;
     }
 
