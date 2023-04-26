@@ -19,12 +19,12 @@ use crate::{
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
     let mut store = PackageStore::new();
     let mut std = compile::std();
-    assert!(std.context.errors().is_empty());
+    assert!(std.errors.is_empty());
     assert!(run_default_passes(&mut std).is_empty());
 
     let stdlib = store.insert(std);
     let mut unit = compile(&store, [stdlib], [file], expr);
-    assert!(unit.context.errors().is_empty());
+    assert!(unit.errors.is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
 
     let id = store.insert(unit);
