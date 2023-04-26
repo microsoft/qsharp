@@ -9,10 +9,11 @@ interpreter = Interpreter()
 
 def interpret(expr):
     """
-    Interprets a Q# expression.
-    Returns the result.
-    Prints any output to stderr.
-    Throws RuntimeException or CompilationException
+    Interprets a line of Q# source code.
+
+    :param expr: The Q# source code to interpret.
+    :returns: The value returned by the last statement in the line.
+    :raises: CompilationException, RuntimeException
     """
     (value, outputs) = _interpret_with_outputs(expr)
 
@@ -37,6 +38,13 @@ def _interpret_with_outputs(expr):
 
 
 def interpret_file(path) -> None:
+    """
+    Reads Q# source code from a file and interprets it.
+
+    :param path: The path to the Q# source file.
+    :returns: The value returned by the last statement in the line.
+    :raises: CompilationException, RuntimeException, OSError
+    """
     f = open(path, mode="r", encoding="utf-8")
     return interpret(f.read())
 
