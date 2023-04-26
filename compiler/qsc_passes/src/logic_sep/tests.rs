@@ -31,9 +31,9 @@ fn check(block_str: &str, expect: &Expect) {
     let stdlib = store.insert(std());
     let unit = compile(&store, [stdlib], [""], block_str);
     assert!(
-        unit.context.errors().is_empty(),
+        unit.errors.is_empty(),
         "Compilation errors: {:?}",
-        unit.context.errors()
+        unit.errors
     );
 
     let entry = unit.package.entry.expect("entry should exist");

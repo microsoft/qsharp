@@ -4,8 +4,8 @@
 use std::collections::HashSet;
 
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::Context;
 use qsc_hir::{
+    assigner::Assigner,
     hir::{
         BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimTy, Res,
         Stmt, StmtKind, Ty, UnOp,
@@ -15,10 +15,13 @@ use qsc_hir::{
 
 use crate::logic_sep::{list_quantum_statements, Error};
 
-pub(crate) fn adj_invert_block(context: &mut Context, block: &mut Block) -> Result<(), Vec<Error>> {
+pub(crate) fn adj_invert_block(
+    assigner: &mut Assigner,
+    block: &mut Block,
+) -> Result<(), Vec<Error>> {
     let op_call_stmts = list_quantum_statements(block)?;
     let mut pass = BlockInverter {
-        context,
+        assigner,
         op_call_stmts,
         should_reverse_loop: false,
     };
@@ -27,7 +30,7 @@ pub(crate) fn adj_invert_block(context: &mut Context, block: &mut Block) -> Resu
 }
 
 struct BlockInverter<'a> {
-    context: &'a mut Context,
+    assigner: &'a mut Assigner,
     op_call_stmts: HashSet<NodeId>,
     should_reverse_loop: bool,
 }
@@ -110,7 +113,7 @@ impl<'a> BlockInverter<'a> {
         mut block: Block,
     ) {
         // Create a new binding for the array expr.
-        let new_arr_id = self.context.assigner_mut().next_id();
+        let new_arr_id = self.assigner.next_id();
         wrapper.stmts.push(Stmt {
             id: NodeId::default(),
             span: Span::default(),
@@ -131,7 +134,7 @@ impl<'a> BlockInverter<'a> {
         });
 
         // Create a pattern for binding the index iterator.
-        let index_id = self.context.assigner_mut().next_id();
+        let index_id = self.assigner.next_id();
         let index_pat = Pat {
             id: NodeId::default(),
             span: Span::default(),
@@ -202,7 +205,7 @@ impl<'a> BlockInverter<'a> {
         block: &mut Block,
     ) {
         // Create a new binding for the range expr.
-        let new_range_id = self.context.assigner_mut().next_id();
+        let new_range_id = self.assigner.next_id();
         wrapper.stmts.push(Stmt {
             id: NodeId::default(),
             span: Span::default(),
