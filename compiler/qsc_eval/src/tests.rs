@@ -10,8 +10,7 @@ use qsc_passes::run_default_passes;
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let mut unit = compile(&store, [], [file], expr);
-    let compile_errors = unit.context.errors();
-    assert!(compile_errors.is_empty(), "{compile_errors:?}");
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(&mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
 

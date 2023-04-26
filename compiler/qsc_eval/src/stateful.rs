@@ -20,13 +20,16 @@ use qsc_passes::run_default_passes;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-#[error(transparent)]
 #[diagnostic(transparent)]
 pub enum Error {
-    Eval(crate::Error),
-    Compile(compile::Error),
-    Pass(qsc_passes::Error),
-    Incremental(incremental::Error),
+    #[error("program encountered an error while running")]
+    Eval(#[from] crate::Error),
+    #[error("could not compile source code")]
+    Compile(#[from] compile::Error),
+    #[error("could not compile source code")]
+    Pass(#[from] qsc_passes::Error),
+    #[error("could not compile line")]
+    Incremental(#[from] incremental::Error),
 }
 
 pub struct Interpreter {
@@ -52,12 +55,11 @@ impl Interpreter {
         if stdlib {
             let mut unit = compile::std();
             let pass_errs = run_default_passes(&mut unit);
-            if unit.context.errors().is_empty() && pass_errs.is_empty() {
+            if unit.errors.is_empty() && pass_errs.is_empty() {
                 session_deps.push(store.insert(unit));
             } else {
                 let errors = unit
-                    .context
-                    .errors()
+                    .errors
                     .iter()
                     .map(|e| Error::Compile(e.clone()))
                     .chain(pass_errs.into_iter().map(Error::Pass))
@@ -68,10 +70,9 @@ impl Interpreter {
 
         let mut unit = compile(&store, session_deps.iter().copied(), sources, "");
         let pass_errs = run_default_passes(&mut unit);
-        if !unit.context.errors().is_empty() || !pass_errs.is_empty() {
+        if !unit.errors.is_empty() || !pass_errs.is_empty() {
             let errors = unit
-                .context
-                .errors()
+                .errors
                 .iter()
                 .map(|e| Error::Compile(e.clone()))
                 .chain(pass_errs.into_iter().map(Error::Pass))
