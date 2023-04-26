@@ -6,11 +6,12 @@ use std::f64::consts;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore};
-use qsc_passes::{globals::extract_callables, run_default_passes};
+use qsc_passes::run_default_passes;
 
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
+    stateless::get_callable,
     val::Value,
     Env, Error,
 };
@@ -20,20 +21,21 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     let mut std = compile::std();
     assert!(std.context.errors().is_empty());
     assert!(run_default_passes(&mut std).is_empty());
+
     let stdlib = store.insert(std);
     let mut unit = compile(&store, [stdlib], [file], expr);
-    assert!(
-        unit.context.errors().is_empty(),
-        "compilation errors: {:?}",
-        unit.context.errors()
-    );
+    assert!(unit.context.errors().is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
+
     let id = store.insert(unit);
-    let globals = extract_callables(&store);
-    let expr = store
-        .get_entry_expr(id)
-        .expect("entry expression shouild be present");
-    eval_expr(expr, &globals, id, &mut Env::default(), out)
+    let expr = store.get_entry_expr(id).expect("package should have entry");
+    eval_expr(
+        expr,
+        &|id| get_callable(&store, id),
+        id,
+        &mut Env::default(),
+        out,
+    )
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
@@ -271,6 +273,19 @@ fn draw_random_int() {
         "",
         "Microsoft.Quantum.Random.DrawRandomInt(5,5)",
         &Value::Int(5),
+    );
+}
+
+#[test]
+fn check_bitsize_i() {
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
+        &Value::Int(63),
     );
 }
 

@@ -1,15 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use num_bigint::BigInt;
+use qsc_hir::hir::{LocalItemId, PackageId, Pauli};
 use std::{
     ffi::c_void,
     fmt::{self, Display, Formatter},
     iter,
+    rc::Rc,
 };
-
-use num_bigint::BigInt;
-use qsc_hir::hir::Pauli;
-use qsc_passes::globals::GlobalId;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -24,9 +23,21 @@ pub enum Value {
     Qubit(Qubit),
     Range(Option<i64>, Option<i64>, Option<i64>),
     Result(bool),
-    String(String),
+    String(Rc<str>),
     Tuple(Vec<Value>),
     Udt,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GlobalId {
+    pub package: PackageId,
+    pub item: LocalItemId,
+}
+
+impl Display for GlobalId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "<item {} in package {}>", self.item, self.package)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -162,21 +173,6 @@ impl TryFrom<Value> for bool {
     }
 }
 
-impl TryFrom<Value> for String {
-    type Error = ConversionError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::String(v) = value {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "String",
-                actual: value.type_name(),
-            })
-        }
-    }
-}
-
 impl TryFrom<Value> for *mut c_void {
     type Error = ConversionError;
 
@@ -219,6 +215,17 @@ impl Value {
         } else {
             Err(ConversionError {
                 expected: "Array",
+                actual: self.type_name(),
+            })
+        }
+    }
+
+    pub(super) fn try_into_string(self) -> Result<Rc<str>, ConversionError> {
+        if let Value::String(s) = self {
+            Ok(s)
+        } else {
+            Err(ConversionError {
+                expected: "String",
                 actual: self.type_name(),
             })
         }

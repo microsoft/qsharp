@@ -4,7 +4,6 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 pub mod entry_point;
-pub mod globals;
 pub mod spec_gen;
 
 use miette::Diagnostic;

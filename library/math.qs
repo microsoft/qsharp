@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Math {
+    open Microsoft.Quantum.Diagnostics;
 
     /// # Summary
     /// Represents the ratio of the circumference of a circle to its diameter.
@@ -88,5 +89,27 @@ namespace Microsoft.Quantum.Math {
     function Tanh (d : Double) : Double {
         body intrinsic;
     }
-
+    
+    /// # Summary
+    /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
+    ///
+    /// # Remarks
+    /// This function returns the smallest $n$ such that $a < 2^n$.
+    ///
+    /// # Input
+    /// ## a
+    /// The integer whose bit-size is to be computed.
+    ///
+    /// # Output
+    /// The bit-size of `a`.
+    function BitSizeI(a : Int) : Int {
+        Fact(a >= 0, "`a` must be non-negative.");
+        mutable number = a;
+        mutable size = 0;
+        while (number != 0) {
+            set size = size + 1;
+            set number = number >>> 1;
+        }
+        return size;
+    }
 }

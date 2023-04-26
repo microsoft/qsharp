@@ -13,9 +13,7 @@ use crate::{
     validate::{self, validate},
 };
 use miette::Diagnostic;
-use qsc_ast::{
-    assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor as AstVisitor,
-};
+use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::{
     index_map::{self, IndexMap},
     span::Span,
@@ -23,7 +21,6 @@ use qsc_data_structures::{
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},
-    visit::Visitor as HirVisitor,
 };
 use std::fmt::Debug;
 use thiserror::Error;
@@ -38,7 +35,6 @@ pub struct CompileUnit {
 #[derive(Debug)]
 pub struct Context {
     assigner: HirAssigner,
-    tys: Tys<hir::NodeId>,
     errors: Vec<Error>,
     offsets: Vec<usize>,
 }
@@ -46,15 +42,6 @@ pub struct Context {
 impl Context {
     pub fn assigner_mut(&mut self) -> &mut HirAssigner {
         &mut self.assigner
-    }
-
-    #[must_use]
-    pub fn tys(&self) -> &Tys<hir::NodeId> {
-        &self.tys
-    }
-
-    pub fn tys_mut(&mut self) -> &mut Tys<hir::NodeId> {
-        &mut self.tys
     }
 
     #[must_use]
@@ -180,17 +167,12 @@ pub fn compile(
     );
 
     let mut lowerer = Lowerer::new();
-    let package = lowerer.with(&resolutions).lower_package(&package);
-    let tys = tys
-        .into_iter()
-        .filter_map(|(ast_id, ty)| lowerer.get_id(ast_id).map(|hir_id| (hir_id, ty)))
-        .collect();
+    let package = lowerer.with(&resolutions, &tys).lower_package(&package);
 
     CompileUnit {
         package,
         context: Context {
             assigner: lowerer.into_assigner(),
-            tys,
             errors,
             offsets,
         },
@@ -258,7 +240,13 @@ fn parse_all(
         Some(entry)
     };
 
-    (ast::Package::new(namespaces, entry), errors, offsets)
+    let package = ast::Package {
+        id: ast::NodeId::default(),
+        namespaces,
+        entry,
+    };
+
+    (package, errors, offsets)
 }
 
 fn resolve_all(
@@ -267,18 +255,17 @@ fn resolve_all(
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    AstVisitor::visit_package(&mut globals, package);
+    globals.add_local_package(package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be in package store before compilation");
-        globals.set_package(dependency);
-        HirVisitor::visit_package(&mut globals, &unit.package);
+        globals.add_external_package(id, &unit.package);
     }
 
     let mut resolver = globals.into_resolver();
-    AstVisitor::visit_package(&mut resolver, package);
+    resolver.visit_package(package);
     resolver.into_resolutions()
 }
 
@@ -287,20 +274,19 @@ fn typeck_all(
     dependencies: impl IntoIterator<Item = PackageId>,
     package: &ast::Package,
     resolutions: &Resolutions,
-) -> (Tys<ast::NodeId>, Vec<typeck::Error>) {
-    let mut globals = typeck::GlobalTable::new(resolutions);
-    AstVisitor::visit_package(&mut globals, package);
+) -> (Tys, Vec<typeck::Error>) {
+    let mut globals = typeck::GlobalTable::new();
+    globals.add_local_package(resolutions, package);
 
-    for dependency in dependencies {
+    for id in dependencies {
         let unit = store
-            .get(dependency)
+            .get(id)
             .expect("dependency should be added to package store before compilation");
-        globals.set_package(dependency);
-        HirVisitor::visit_package(&mut globals, &unit.package);
+        globals.add_external_package(id, &unit.package);
     }
 
     let mut checker = globals.into_checker();
-    AstVisitor::visit_package(&mut checker, package);
+    checker.check_package(resolutions, package);
     checker.into_tys()
 }
 
