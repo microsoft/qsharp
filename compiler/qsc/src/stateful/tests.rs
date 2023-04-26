@@ -3,14 +3,9 @@
 
 #[cfg(test)]
 mod given_interpreter {
+    use crate::stateful::{self, Interpreter};
+    use qsc_eval::{output::CursorReceiver, val::Value, AggregateError};
     use std::{error::Error, fmt::Write, io::Cursor, iter};
-
-    use crate::{
-        output::CursorReceiver,
-        stateful::{self, Interpreter},
-        val::Value,
-        AggregateError,
-    };
 
     fn line(
         interpreter: &mut Interpreter,

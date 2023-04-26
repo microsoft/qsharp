@@ -6,8 +6,8 @@
 #[cfg(test)]
 mod tests;
 
+use qsc::stateless::{self, eval};
 use qsc_eval::output::Receiver;
-use qsc_eval::stateless::eval;
 use qsc_eval::val::Value;
 
 const KATA_VERIFY: &str = "Kata.Verify()";
@@ -21,7 +21,7 @@ const KATA_VERIFY: &str = "Kata.Verify()";
 pub fn run_kata(
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     receiver: &mut impl Receiver,
-) -> Result<bool, Vec<qsc_eval::stateless::Error>> {
+) -> Result<bool, Vec<stateless::Error>> {
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
     let stdlib = true;

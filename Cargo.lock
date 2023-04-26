@@ -439,6 +439,7 @@ name = "katas"
 version = "0.0.0"
 dependencies = [
  "indoc",
+ "qsc",
  "qsc_eval",
  "qsc_frontend",
  "qsc_passes",
@@ -680,8 +681,13 @@ version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
  "criterion",
+ "indoc",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc_codegen",
+ "qsc_data_structures",
+ "qsc_eval",
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
@@ -780,6 +786,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
+ "qsc",
  "qsc_eval",
  "qsc_frontend",
  "qsc_hir",
@@ -787,21 +794,6 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "qsi"
-version = "0.0.0"
-dependencies = [
- "clap 4.1.8",
- "miette",
- "num-bigint",
- "num-complex",
- "qsc_ast",
- "qsc_eval",
- "qsc_frontend",
- "qsc_passes",
- "thiserror",
 ]
 
 [[package]]

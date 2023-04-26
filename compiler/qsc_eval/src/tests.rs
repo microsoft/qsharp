@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, stateless::get_callable, Env};
+use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{compile, PackageStore};
+use qsc_hir::hir::{CallableDecl, ItemKind};
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
@@ -27,6 +28,17 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err(err) => expect.assert_debug_eq(&err),
     }
+}
+
+pub(super) fn get_callable(store: &PackageStore, id: GlobalId) -> Option<&CallableDecl> {
+    store.get(id.package).and_then(|unit| {
+        let item = unit.package.items.get(id.item)?;
+        if let ItemKind::Callable(callable) = &item.kind {
+            Some(callable)
+        } else {
+            None
+        }
+    })
 }
 
 #[test]

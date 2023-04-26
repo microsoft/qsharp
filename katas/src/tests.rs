@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_eval::{output::CursorReceiver, stateless};
+use qsc::stateless;
+use qsc_eval::output::CursorReceiver;
 use std::{
     env, fs,
     io::Cursor,

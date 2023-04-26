@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
+use miette::Diagnostic;
+use qsc_eval::{
     eval_expr,
     output::Receiver,
     val::{GlobalId, Value},
     AggregateError, Env,
 };
-use miette::Diagnostic;
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_hir::hir::{CallableDecl, Expr, ItemKind, PackageId};
 use qsc_passes::{entry_point::extract_entry, run_default_passes};
@@ -17,7 +17,7 @@ use thiserror::Error;
 #[diagnostic(transparent)]
 pub enum Error {
     #[error("program encountered an error while running")]
-    Eval(#[from] crate::Error),
+    Eval(#[from] qsc_eval::Error),
     #[error("could not compile source code")]
     Compile(#[from] compile::Error),
     #[error("could not compile source code")]
@@ -35,7 +35,7 @@ pub fn eval(
     receiver: &mut dyn Receiver,
     sources: impl IntoIterator<Item = impl AsRef<str>>,
 ) -> Result<Value, AggregateError<Error>> {
-    crate::init();
+    qsc_eval::init();
     let mut store = PackageStore::new();
     let mut session_deps = Vec::new();
 
@@ -100,7 +100,7 @@ pub fn eval_in_context(
     context: &ExecutionContext,
     receiver: &mut dyn Receiver,
 ) -> Result<Value, AggregateError<Error>> {
-    crate::init();
+    qsc_eval::init();
     let expr = get_entry_expr(&context.store, context.package)?;
     eval_expr(
         &expr,

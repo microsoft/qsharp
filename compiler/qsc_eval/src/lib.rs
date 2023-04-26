@@ -8,8 +8,6 @@ mod tests;
 
 mod intrinsic;
 pub mod output;
-pub mod stateful;
-pub mod stateless;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};
@@ -215,7 +213,7 @@ impl Range {
     }
 }
 
-trait GlobalLookup<'a> {
+pub trait GlobalLookup<'a> {
     fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
 }
 
@@ -228,7 +226,7 @@ impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
 /// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-fn eval_stmt<'a>(
+pub fn eval_stmt<'a>(
     stmt: &Stmt,
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
@@ -252,7 +250,7 @@ fn eval_stmt<'a>(
 /// Evaluates the given expression with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-fn eval_expr<'a>(
+pub fn eval_expr<'a>(
     expr: &Expr,
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
@@ -273,12 +271,12 @@ fn eval_expr<'a>(
     res
 }
 
-fn init() {
+pub fn init() {
     __quantum__rt__initialize(null_mut());
 }
 
 #[derive(Default)]
-struct Env(Vec<Scope>);
+pub struct Env(Vec<Scope>);
 
 impl Env {
     fn get(&self, id: NodeId) -> Option<&Variable> {

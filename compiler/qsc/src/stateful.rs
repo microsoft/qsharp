@@ -3,7 +3,7 @@
 
 mod tests;
 
-use crate::{
+use qsc_eval::{
     eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
@@ -23,7 +23,7 @@ use thiserror::Error;
 #[diagnostic(transparent)]
 pub enum Error {
     #[error("program encountered an error while running")]
-    Eval(#[from] crate::Error),
+    Eval(#[from] qsc_eval::Error),
     #[error("could not compile source code")]
     Compile(#[from] compile::Error),
     #[error("could not compile source code")]
@@ -128,7 +128,7 @@ impl Interpreter {
         Ok(result)
     }
 
-    fn stmt(&mut self, receiver: &mut dyn Receiver, stmt: &Stmt) -> Result<Value, crate::Error> {
+    fn stmt(&mut self, receiver: &mut dyn Receiver, stmt: &Stmt) -> Result<Value, qsc_eval::Error> {
         eval_stmt(
             stmt,
             &|id| get_callable(&self.store, &self.callables, self.package, id),

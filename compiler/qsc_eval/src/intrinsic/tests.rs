@@ -11,7 +11,7 @@ use qsc_passes::run_default_passes;
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
-    stateless::get_callable,
+    tests::get_callable,
     val::Value,
     Env, Error,
 };

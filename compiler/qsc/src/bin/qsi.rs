@@ -10,9 +10,9 @@ use miette::{
 };
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use qsc::stateful::{Error, Interpreter};
 use qsc_eval::{
     output::{format_state_id, Receiver},
-    stateful::{Error, Interpreter},
     val::Value,
     AggregateError,
 };

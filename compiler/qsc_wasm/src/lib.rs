@@ -5,10 +5,10 @@ use katas::run_kata;
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use qsc::stateless::{self, compile_execution_context, eval_in_context, Error};
 use qsc_eval::{
     output,
     output::{format_state_id, Receiver},
-    stateless::{compile_execution_context, eval_in_context, Error},
 };
 use qsc_frontend::compile::{self, compile, PackageStore};
 use qsc_hir::hir::PackageId;
@@ -380,7 +380,7 @@ fn run_kata_exercise_internal<F>(
     verification_source: &str,
     kata_implementation: &str,
     event_cb: F,
-) -> Result<bool, Vec<qsc_eval::stateless::Error>>
+) -> Result<bool, Vec<stateless::Error>>
 where
     F: Fn(&str),
 {
