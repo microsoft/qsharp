@@ -21,4 +21,4 @@ def test_unknown_ident() -> None:
     expr = "a864"
     (value, out, err) = e.interpret(expr)
     assert len(err) == 1
-    assert err[0].message == f"`{expr}` not found in this scope"
+    assert err[0].message == f"name error"
