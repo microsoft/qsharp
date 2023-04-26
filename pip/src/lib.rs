@@ -2,4 +2,4 @@
 // Licensed under the MIT License.
 
 mod formatting;
-mod python;
+mod interpreter;
