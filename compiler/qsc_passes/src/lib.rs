@@ -9,7 +9,6 @@ mod logic_sep;
 pub mod loop_unification;
 pub mod spec_gen;
 
-use loop_unification::loop_unification;
 use miette::Diagnostic;
 use qsc_frontend::compile::CompileUnit;
 use thiserror::Error;
@@ -31,8 +30,6 @@ pub fn run_default_passes(unit: &mut CompileUnit) -> Vec<Error> {
             .into_iter()
             .map(Error::SpecGen),
     );
-
-    errors.extend(loop_unification(unit));
 
     errors
 }
