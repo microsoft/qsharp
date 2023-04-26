@@ -127,7 +127,7 @@ namespace Microsoft.Quantum.Canon {
 
     /// Given a pair, returns its second element.
     function Snd<'T, 'U> (pair : ('T, 'U)) : 'U {
-        let (fst, snd) = pair;
+        let (_, snd) = pair;
         return snd;
     }
 }
