@@ -4,6 +4,8 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 pub mod entry_point;
+mod invert_block;
+mod logic_sep;
 pub mod loop_unification;
 pub mod spec_gen;
 

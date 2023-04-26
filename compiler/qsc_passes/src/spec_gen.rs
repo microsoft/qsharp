@@ -1,16 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod adj_gen;
 mod ctl_gen;
 
 #[cfg(test)]
 mod tests;
 
-use self::ctl_gen::CtlDistrib;
+use crate::invert_block::adj_invert_block;
+
+use self::{adj_gen::AdjDistrib, ctl_gen::CtlDistrib};
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::{CompileUnit, Context};
+use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
+    assigner::Assigner,
     hir::{
         Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, NodeId, Pat, PatKind,
         PrimTy, Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen, Ty,
@@ -25,6 +29,10 @@ pub enum Error {
     #[diagnostic(transparent)]
     #[error(transparent)]
     CtlGen(ctl_gen::Error),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    AdjGen(adj_gen::Error),
 
     #[error("specialization generation missing required body implementation")]
     MissingBody(#[label] Span),
@@ -141,7 +149,7 @@ fn is_self_adjoint(spec_decl: &[SpecDecl]) -> bool {
 
 fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = SpecImplPass {
-        context: &mut unit.context,
+        assigner: &mut unit.assigner,
         errors: Vec::new(),
     };
     pass.visit_package(&mut unit.package);
@@ -149,14 +157,14 @@ fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
 }
 
 struct SpecImplPass<'a> {
-    context: &'a mut Context,
+    assigner: &'a mut Assigner,
     errors: Vec<Error>,
 }
 
 impl<'a> SpecImplPass<'a> {
     fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
         // Clone the reference block and use the pass to update the calls inside.
-        let ctls_id = self.context.assigner_mut().next_id();
+        let ctls_id = self.assigner.next_id();
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
             ctls: Res::Local(ctls_id),
@@ -195,6 +203,35 @@ impl<'a> SpecImplPass<'a> {
                 ]),
             },
             ctl_block,
+        );
+    }
+
+    fn adj_invert(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
+        // Clone the reference block and use the pass to update the calls inside.
+        let mut adj_block = block.clone();
+        if let Err(invert_errors) = adj_invert_block(self.assigner, &mut adj_block) {
+            self.errors.extend(
+                invert_errors
+                    .into_iter()
+                    .map(adj_gen::Error::LogicSep)
+                    .map(Error::AdjGen),
+            );
+            return;
+        }
+        let mut distrib = AdjDistrib { errors: Vec::new() };
+        distrib.visit_block(&mut adj_block);
+        self.errors
+            .extend(distrib.errors.into_iter().map(Error::AdjGen));
+
+        // Update the specialization body to reflect the generated block.
+        spec_decl.body = SpecBody::Impl(
+            Pat {
+                id: NodeId::default(),
+                ty: input_ty,
+                span: spec_decl.span,
+                kind: PatKind::Elided,
+            },
+            adj_block,
         );
     }
 }
@@ -236,6 +273,8 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             if let Some(adj) = adj.as_mut() {
                 if adj.body == SpecBody::Gen(SpecGen::Slf) {
                     adj.body = body.body.clone();
+                } else if adj.body == SpecBody::Gen(SpecGen::Invert) {
+                    self.adj_invert(decl.input.ty.clone(), adj, body_block);
                 }
             }
 
@@ -247,6 +286,11 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                         }
                     }
                     SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),
+                    SpecBody::Gen(SpecGen::Invert) => {
+                        if let SpecBody::Impl(_, ctl_block) = &ctl.body {
+                            self.adj_invert(decl.input.ty.clone(), ctladj, ctl_block);
+                        }
+                    }
                     _ => {}
                 }
             };
