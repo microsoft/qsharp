@@ -27,26 +27,26 @@ pub(super) struct AdjDistrib {
 
 impl MutVisitor for AdjDistrib {
     fn visit_expr(&mut self, expr: &mut Expr) {
-        if let ExprKind::Call(op, _) = &mut expr.kind {
-            match &op.ty {
-                Ty::Arrow(CallableKind::Operation, _, _, functor)
-                    if functor.contains(&Functor::Adj) =>
-                {
-                    *op = Box::new(Expr {
-                        id: NodeId::default(),
-                        span: op.span,
-                        ty: op.ty.clone(),
-                        kind: ExprKind::UnOp(UnOp::Functor(Functor::Adj), op.clone()),
-                    });
-                }
-                Ty::Arrow(CallableKind::Operation, _, _, _) => {
-                    self.errors.push(Error::MissingAdjFunctor(op.span));
-                }
-                _ => {}
-            }
-        }
-
         match &mut expr.kind {
+            ExprKind::Call(op, _) => {
+                match &op.ty {
+                    Ty::Arrow(CallableKind::Operation, _, _, functor)
+                        if functor.contains(&Functor::Adj) =>
+                    {
+                        *op = Box::new(Expr {
+                            id: NodeId::default(),
+                            span: op.span,
+                            ty: op.ty.clone(),
+                            kind: ExprKind::UnOp(UnOp::Functor(Functor::Adj), op.clone()),
+                        });
+                    }
+                    Ty::Arrow(CallableKind::Operation, _, _, _) => {
+                        self.errors.push(Error::MissingAdjFunctor(op.span));
+                    }
+                    _ => {}
+                }
+                walk_expr(self, expr);
+            }
             ExprKind::Conjugate(_, apply) => {
                 // Only transform the apply block, the within block can remain as-is.
                 self.visit_block(apply);
