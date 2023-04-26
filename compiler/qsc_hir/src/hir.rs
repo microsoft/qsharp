@@ -157,7 +157,7 @@ impl Display for ItemId {
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Res {
     /// An invalid resolution.
     Err,
@@ -173,16 +173,6 @@ impl Display for Res {
             Res::Err => f.write_str("Err"),
             Res::Item(item) => Display::fmt(item, f),
             Res::Local(node) => write!(f, "Local {node}"),
-        }
-    }
-}
-
-impl PartialEq for Res {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Item(item1), Self::Item(item2)) => item1 == item2,
-            (Self::Local(node1), Self::Local(node2)) => node1 == node2,
-            _ => false,
         }
     }
 }
