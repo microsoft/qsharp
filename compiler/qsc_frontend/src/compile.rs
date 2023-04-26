@@ -5,7 +5,6 @@
 mod tests;
 
 use crate::{
-    diagnostic::OffsetError,
     lower::Lowerer,
     parse,
     resolve::{self, Resolutions},
@@ -29,30 +28,24 @@ use thiserror::Error;
 #[derive(Debug)]
 pub struct CompileUnit {
     pub package: hir::Package,
-    pub context: Context,
+    pub assigner: HirAssigner,
+    pub sources: SourceMap,
+    pub errors: Vec<Error>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SourceIndex(pub usize);
+
 #[derive(Debug)]
-pub struct Context {
-    assigner: HirAssigner,
-    errors: Vec<Error>,
+pub struct SourceMap {
     offsets: Vec<usize>,
 }
 
-impl Context {
-    pub fn assigner_mut(&mut self) -> &mut HirAssigner {
-        &mut self.assigner
-    }
-
-    #[must_use]
-    pub fn errors(&self) -> &[Error] {
-        &self.errors
-    }
-
+impl SourceMap {
     /// Finds the source in this context that the byte offset corresponds to. Returns the index of
     /// that source and its starting byte offset.
     #[must_use]
-    pub fn source(&self, offset: usize) -> (SourceIndex, usize) {
+    pub fn offset(&self, offset: usize) -> (SourceIndex, usize) {
         let (index, &offset) = self
             .offsets
             .iter()
@@ -65,22 +58,22 @@ impl Context {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct SourceIndex(pub usize);
-
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(pub(crate) ErrorKind);
+pub struct Error(ErrorKind);
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
-#[error(transparent)]
 pub(crate) enum ErrorKind {
-    Parse(OffsetError<parse::Error>),
-    Resolve(resolve::Error),
-    Type(typeck::Error),
-    Validate(validate::Error),
+    #[error("syntax error")]
+    Parse(#[from] parse::Error),
+    #[error("name error")]
+    Resolve(#[from] resolve::Error),
+    #[error("type error")]
+    Type(#[from] typeck::Error),
+    #[error("validation error")]
+    Validate(#[from] validate::Error),
 }
 
 #[derive(Default)]
@@ -151,31 +144,23 @@ pub fn compile(
     let (resolutions, resolve_errors) = resolve_all(store, dependencies.iter().copied(), &package);
     let (tys, ty_errors) = typeck_all(store, dependencies.iter().copied(), &package, &resolutions);
     let validate_errors = validate(&package);
-
-    let mut errors = Vec::new();
-    errors.extend(parse_errors.into_iter().map(|e| Error(ErrorKind::Parse(e))));
-    errors.extend(
-        resolve_errors
-            .into_iter()
-            .map(|e| Error(ErrorKind::Resolve(e))),
-    );
-    errors.extend(ty_errors.into_iter().map(|e| Error(ErrorKind::Type(e))));
-    errors.extend(
-        validate_errors
-            .into_iter()
-            .map(|e| Error(ErrorKind::Validate(e))),
-    );
-
     let mut lowerer = Lowerer::new();
     let package = lowerer.with(&resolutions, &tys).lower_package(&package);
 
+    let errors = parse_errors
+        .into_iter()
+        .map(Into::into)
+        .chain(resolve_errors.into_iter().map(Into::into))
+        .chain(ty_errors.into_iter().map(Into::into))
+        .chain(validate_errors.into_iter().map(Into::into))
+        .map(Error)
+        .collect();
+
     CompileUnit {
         package,
-        context: Context {
-            assigner: lowerer.into_assigner(),
-            errors,
-            offsets,
-        },
+        assigner: lowerer.into_assigner(),
+        sources: SourceMap { offsets },
+        errors,
     }
 }
 
@@ -186,6 +171,7 @@ pub fn std() -> CompileUnit {
         &PackageStore::new(),
         [],
         [
+            include_str!("../../../library/arrays.qs"),
             include_str!("../../../library/canon.qs"),
             include_str!("../../../library/convert.qs"),
             include_str!("../../../library/core.qs"),
@@ -199,19 +185,20 @@ pub fn std() -> CompileUnit {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert!(
-        errors.is_empty(),
-        "Failed to compile standard library: {errors:#?}"
-    );
+    let mut success = true;
+    for error in &unit.errors {
+        success = false;
+        eprintln!("{error:?}");
+    }
 
+    assert!(success, "standard library compiled with errors");
     unit
 }
 
 fn parse_all(
     sources: impl IntoIterator<Item = impl AsRef<str>>,
     entry_expr: &str,
-) -> (ast::Package, Vec<OffsetError<parse::Error>>, Vec<usize>) {
+) -> (ast::Package, Vec<parse::Error>, Vec<usize>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     let mut offsets = Vec::new();
@@ -225,7 +212,7 @@ fn parse_all(
             namespaces.push(namespace);
         }
 
-        append_errors(&mut errors, offset, source_errors);
+        append_parse_errors(&mut errors, offset, source_errors);
         offsets.push(offset);
         offset += source.len();
     }
@@ -235,7 +222,7 @@ fn parse_all(
     } else {
         let (mut entry, entry_errors) = parse::expr(entry_expr);
         Offsetter(offset).visit_expr(&mut entry);
-        append_errors(&mut errors, offset, entry_errors);
+        append_parse_errors(&mut errors, offset, entry_errors);
         offsets.push(offset);
         Some(entry)
     };
@@ -290,13 +277,8 @@ fn typeck_all(
     checker.into_tys()
 }
 
-fn append_errors(
-    errors: &mut Vec<OffsetError<parse::Error>>,
-    offset: usize,
-    other: Vec<parse::Error>,
-) {
-    let offset = offset.try_into().expect("offset should fit into isize");
+fn append_parse_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {
     for error in other {
-        errors.push(OffsetError::new(error, offset));
+        errors.push(error.with_offset(offset));
     }
 }

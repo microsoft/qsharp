@@ -9,11 +9,7 @@ use crate::entry_point::extract_entry;
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let unit = compile(&PackageStore::new(), [], [file], expr);
-    assert!(
-        unit.context.errors().is_empty(),
-        "Compilation errors: {:?}",
-        unit.context.errors()
-    );
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let res = extract_entry(&unit.package);
     match res {
         Ok(result) => expect.assert_eq(&result.to_string()),

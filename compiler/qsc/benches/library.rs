@@ -9,7 +9,7 @@ pub fn library(c: &mut Criterion) {
     c.bench_function("Standard library", |b| {
         b.iter(|| {
             let mut std = compile::std();
-            assert!(std.context.errors().is_empty());
+            assert!(std.errors.is_empty());
             assert!(run_default_passes(&mut std).is_empty());
         })
     });

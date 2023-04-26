@@ -4,7 +4,6 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 pub mod compile;
-pub mod diagnostic;
 pub mod incremental;
 mod lex;
 mod lower;

@@ -46,13 +46,13 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
 
     let mut actual = String::new();
     for (id, span, ty) in tys.tys {
-        let (index, offset) = unit.context.source(span.lo);
+        let (index, offset) = unit.sources.offset(span.lo);
         let code = &[source, entry_expr][index.0][span.lo - offset..span.hi - offset];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
             .expect("writing type to string should succeed");
     }
 
-    for error in unit.context.errors() {
+    for error in &unit.errors {
         writeln!(actual, "{error:?}").expect("writing error to string should succeed");
     }
 

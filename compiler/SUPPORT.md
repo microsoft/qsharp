@@ -32,37 +32,6 @@ Op(qs);
 Adjoint Prepare(qs);
 ```
 
-### Generated Adjoint Specializations
-
-```qsharp
-operation AutomaticSpec(q : Qubit) : Unit is Adj + Ctl {
-    Op(q);
-}
-operation AutomaticSpec2(q : Qubit) : Unit is Adj + Ctl {
-    body ... {
-        Op(q);
-    }
-    adjoint invert;
-    controlled adjoint invert;
-}
-```
-
-#### Alternative: Explicitly define adjoint specializations
-
-```qsharp
-operation ExplicitSpec(q : Qubit) : Unit is Adj + Ctl {
-    body ... {
-        Op(q);
-    }
-    adjoint ... {
-        Adjoint Op(q);
-    }
-    controlled adjoint (ctls, ...) {
-        Controlled Adjoint Op(ctls, q);
-    }
-}
-```
-
 ### String Interpolation
 
 ```qsharp
@@ -120,3 +89,4 @@ let opLambda = q => H(q);
 supported by the evaluator, matching the callables present in the standard library)
 - Callables as arguments to other callables (ie: `operation ApplyToEach(op : (Qubit => Unit), q : Qubit) : Unit {}`)
 - Controlled generator (`controlled distribute` and `controlled adjoint distribute`)
+- Adjoint generator (`adjoint invert` and `controlled adjoint invert`)

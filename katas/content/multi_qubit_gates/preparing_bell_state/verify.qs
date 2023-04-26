@@ -3,14 +3,8 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
 
     operation BellStateReference (qs : Qubit[]) : Unit is Adj {
-        body ... {
-            H(qs[0]);
-            CNOT(qs[0], qs[1]);
-        }
-        adjoint ... {
-            CNOT(qs[0], qs[1]);
-            H(qs[0]);
-        }
+        H(qs[0]);
+        CNOT(qs[0], qs[1]);
     }
 
     operation Verify() : Bool {
