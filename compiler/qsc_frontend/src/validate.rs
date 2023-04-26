@@ -15,12 +15,12 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("invalid attribute arguments, expected {0}")]
-    InvalidAttrArgs(&'static str, #[label("invalid attribute arguments")] Span),
+    InvalidAttrArgs(&'static str, #[label] Span),
     #[error("{0} are not currently supported")]
-    NotCurrentlySupported(&'static str, #[label("not currently supported")] Span),
+    NotCurrentlySupported(&'static str, #[label] Span),
     #[error("unrecognized attribute {0}")]
     #[diagnostic(help("supported attributes are: `EntryPoint`"))]
-    UnrecognizedAttr(String, #[label("unrecognized attribute")] Span),
+    UnrecognizedAttr(String, #[label] Span),
 }
 
 pub(super) fn validate(package: &Package) -> Vec<Error> {
@@ -36,16 +36,17 @@ struct Validator {
 impl Validator {
     fn validate_attrs(&mut self, attrs: &[Attr]) {
         for attr in attrs {
-            match attr.name.name.as_str() {
+            match attr.name.name.as_ref() {
                 "EntryPoint" => match &attr.arg.kind {
                     ExprKind::Tuple(args) if args.is_empty() => {}
                     _ => self
                         .errors
                         .push(Error::InvalidAttrArgs("()", attr.arg.span)),
                 },
-                _ => self
-                    .errors
-                    .push(Error::UnrecognizedAttr(attr.name.name.clone(), attr.span)),
+                _ => self.errors.push(Error::UnrecognizedAttr(
+                    attr.name.name.to_string(),
+                    attr.span,
+                )),
             }
         }
     }

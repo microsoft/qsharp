@@ -3,12 +3,8 @@
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
-use qsc_frontend::{
-    compile::Context,
-    typeck::ty::{CallableKind, Functor, Prim, Ty},
-};
 use qsc_hir::{
-    hir::{self, Expr, ExprKind, Res, UnOp},
+    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, PrimTy, Res, Ty, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
 use thiserror::Error;
@@ -17,60 +13,45 @@ use thiserror::Error;
 pub enum Error {
     #[error("operation does not support the controlled functor")]
     #[diagnostic(help("each operation called inside an operation with compiler-generated controlled specializations must support the controlled functor"))]
-    MissingCtlFunctor(#[label("operation missing controlled functor support")] Span),
+    MissingCtlFunctor(#[label] Span),
 }
 
-pub(super) struct CtlDistrib<'a> {
+pub(super) struct CtlDistrib {
     pub(super) ctls: Res,
-    pub(super) context: &'a mut Context,
     pub(super) errors: Vec<Error>,
 }
 
-impl<'a> MutVisitor for CtlDistrib<'a> {
+impl MutVisitor for CtlDistrib {
     fn visit_expr(&mut self, expr: &mut Expr) {
         if let ExprKind::Call(op, args) = &mut expr.kind {
-            let ty = self
-                .context
-                .tys()
-                .get(op.id)
-                .expect("type should be present in tys")
-                .clone();
-            match &ty {
-                Ty::Arrow(CallableKind::Operation, args_ty, _, functor)
-                    if functor.contains(&Functor::Ctl) =>
+            match &op.ty {
+                Ty::Arrow(CallableKind::Operation, input, output, functors)
+                    if functors.contains(&Functor::Ctl) =>
                 {
-                    let new_op_id = self.context.assigner_mut().next_id();
-                    self.context.tys_mut().insert(new_op_id, ty.clone());
-                    *op = Box::new(Expr {
-                        id: new_op_id,
-                        span: op.span,
-                        kind: ExprKind::UnOp(UnOp::Functor(hir::Functor::Ctl), op.clone()),
-                    });
-
-                    let new_args_id = self.context.assigner_mut().next_id();
-                    self.context.tys_mut().insert(
-                        new_args_id,
-                        Ty::Tuple(vec![
-                            Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
-                            *args_ty.clone(),
-                        ]),
+                    op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
+                    op.ty = Ty::Arrow(
+                        CallableKind::Operation,
+                        Box::new(Ty::Tuple(vec![
+                            Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                            Ty::clone(input),
+                        ])),
+                        output.clone(),
+                        functors.clone(),
                     );
-                    let new_ctls_path_id = self.context.assigner_mut().next_id();
-                    self.context
-                        .tys_mut()
-                        .insert(new_ctls_path_id, Ty::Array(Box::new(Ty::Prim(Prim::Qubit))));
-                    *args = Box::new(Expr {
-                        id: new_args_id,
-                        span: args.span,
-                        kind: ExprKind::Tuple(vec![
-                            Expr {
-                                id: new_ctls_path_id,
-                                span: args.span,
-                                kind: ExprKind::Name(self.ctls),
-                            },
-                            *args.clone(),
-                        ]),
-                    });
+
+                    args.kind = ExprKind::Tuple(vec![
+                        Expr {
+                            id: NodeId::default(),
+                            span: args.span,
+                            ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                            kind: ExprKind::Name(self.ctls),
+                        },
+                        Expr::clone(args),
+                    ]);
+                    args.ty = Ty::Tuple(vec![
+                        Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                        Ty::clone(&args.ty),
+                    ]);
                 }
                 Ty::Arrow(CallableKind::Operation, _, _, _) => {
                     self.errors.push(Error::MissingCtlFunctor(op.span));

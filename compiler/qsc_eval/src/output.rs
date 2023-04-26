@@ -23,7 +23,7 @@ pub trait Receiver {
     /// Receive generic message output
     /// # Errors
     /// This will return an error if handling the output fails.
-    fn message(&mut self, msg: String) -> Result<(), Error>;
+    fn message(&mut self, msg: &str) -> Result<(), Error>;
 }
 
 pub struct GenericReceiver<'a> {
@@ -51,7 +51,7 @@ impl<'a> Receiver for GenericReceiver<'a> {
         Ok(())
     }
 
-    fn message(&mut self, msg: String) -> Result<(), Error> {
+    fn message(&mut self, msg: &str) -> Result<(), Error> {
         writeln!(self.writer, "{msg}").map_err(|_| Error)
     }
 }
@@ -90,7 +90,7 @@ impl<'a> Receiver for CursorReceiver<'a> {
         Ok(())
     }
 
-    fn message(&mut self, msg: String) -> Result<(), Error> {
+    fn message(&mut self, msg: &str) -> Result<(), Error> {
         writeln!(self.cursor, "{msg}").map_err(|_| Error)
     }
 }
