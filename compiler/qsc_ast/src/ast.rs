@@ -508,8 +508,6 @@ pub enum TyKind {
     Path(Path),
     /// A type parameter.
     Param(Ident),
-    /// A primitive type.
-    Prim(PrimTy),
     /// A tuple type.
     Tuple(Vec<Ty>),
 }
@@ -532,7 +530,6 @@ impl Display for TyKind {
             TyKind::Paren(t) => write!(indent, "Paren: {t}")?,
             TyKind::Path(p) => write!(indent, "Path: {p}")?,
             TyKind::Param(name) => write!(indent, "\nType Param {name}")?,
-            TyKind::Prim(t) => write!(indent, "Prim ({t:?})")?,
             TyKind::Tuple(ts) => {
                 if ts.is_empty() {
                     write!(indent, "Unit")?;
@@ -1197,29 +1194,6 @@ pub enum QubitSource {
     /// A qubit borrowed from another part of the program that may be in any state, and is expected
     /// to be returned to that state before being released.
     Dirty,
-}
-
-/// A primitive type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum PrimTy {
-    /// The big integer type.
-    BigInt,
-    /// The boolean type.
-    Bool,
-    /// The floating-point type.
-    Double,
-    /// The integer type.
-    Int,
-    /// The Pauli operator type.
-    Pauli,
-    /// The qubit type.
-    Qubit,
-    /// The range type.
-    Range,
-    /// The measurement result type.
-    Result,
-    /// The string type.
-    String,
 }
 
 /// A literal.
