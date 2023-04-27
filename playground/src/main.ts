@@ -25,6 +25,9 @@ const sampleCode = `namespace Sample {
         let m1 = M(q1);
         let m2 = M(q2);
 
+        Reset(q1);
+        Reset(q2);
+
         return [m1, m2];
     }
 }

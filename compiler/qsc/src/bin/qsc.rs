@@ -9,7 +9,8 @@ use qsc::compile::compile;
 use qsc_frontend::compile::{PackageStore, SourceMap};
 use qsc_hir::hir::Package;
 use std::{
-    fs, io,
+    fs,
+    io::{self, Read},
     path::{Path, PathBuf},
     process::ExitCode,
     string::String,
@@ -69,7 +70,12 @@ fn validate_input(sources: &[PathBuf], entry: &str) -> Result<(), clap::Error> {
 fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
     validate_input(&cli.input, &cli.entry.clone().unwrap_or_default()).into_diagnostic()?;
-    let sources: Vec<_> = cli.input.iter().map(read_source).collect();
+    let sources: Vec<_> = cli
+        .input
+        .iter()
+        .map(read_source)
+        .map(Result::unwrap)
+        .collect();
     let entry = cli.entry.unwrap_or_default();
 
     let mut store = PackageStore::new();
@@ -108,15 +114,14 @@ fn emit_hir(package: &Package, out_dir: impl AsRef<Path>) {
     fs::write(path, format!("{package}")).unwrap();
 }
 
-fn read_source(path: impl AsRef<Path>) -> (PathBuf, String) {
+fn read_source(path: impl AsRef<Path>) -> io::Result<(PathBuf, String)> {
     if path.as_ref().as_os_str() == "-" {
-        (
-            "<stdin>".into(),
-            io::stdin().lines().map(Result::unwrap).collect(),
-        )
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input)?;
+        Ok(("<stdin>".into(), input))
     } else {
         let path = path.as_ref();
         let content = fs::read_to_string(path).unwrap();
-        (path.to_owned(), content)
+        Ok((path.to_owned(), content))
     }
 }

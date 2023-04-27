@@ -17,6 +17,7 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qir_backend::{
     __quantum__rt__initialize, __quantum__rt__qubit_allocate, __quantum__rt__qubit_release,
+    qubit_is_zero,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
@@ -101,6 +102,9 @@ pub enum Error {
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
+
+    #[error("Qubit{0} released while not in |0⟩ state")]
+    ReleasedQubitNotZero(usize, #[label] Span),
 
     #[error("mismatched types")]
     Type(
@@ -297,7 +301,7 @@ impl Env {
 #[derive(Default)]
 struct Scope {
     bindings: HashMap<NodeId, Variable>,
-    qubits: Vec<Qubit>,
+    qubits: Vec<(Qubit, Span)>,
 }
 
 impl Env {
@@ -383,7 +387,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
-            &ExprKind::Name(res) => Continue(self.resolve_binding(res)),
             ExprKind::Return(expr) => Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
@@ -396,13 +399,14 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 }
                 Continue(Value::Tuple(val_tup.into()))
             }
+            ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
+            &ExprKind::Var(res) => Continue(self.resolve_binding(res)),
             ExprKind::While(cond, block) => {
                 while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(block)?;
                 }
                 Continue(Value::unit())
             }
-            ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
             ExprKind::Conjugate(..) => {
                 Break(Reason::Error(Error::Unimplemented("conjugate", expr.span)))
             }
@@ -439,7 +443,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         } else {
             Continue(Value::unit())
         };
-        self.leave_scope();
+        self.leave_scope()?;
         result
     }
 
@@ -463,7 +467,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     self.track_qubits(qubits);
                     self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
                     self.eval_block(block)?;
-                    self.leave_scope();
+                    self.leave_scope()?;
                 } else {
                     self.track_qubits(qubits);
                     self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
@@ -507,7 +511,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             self.enter_scope();
             self.bind_value(pat, value, span, Mutability::Immutable);
             self.eval_block(block)?;
-            self.leave_scope();
+            self.leave_scope()?;
         }
 
         Continue(Value::unit())
@@ -529,7 +533,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 self.eval_block(block)?;
             }
 
-            self.leave_scope();
+            self.leave_scope()?;
             self.enter_scope();
 
             for stmt in &repeat.stmts {
@@ -537,14 +541,14 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
         }
 
-        self.leave_scope();
+        self.leave_scope()?;
         Continue(Value::unit())
     }
 
     fn eval_qubit_init(
         &mut self,
         qubit_init: &QubitInit,
-    ) -> ControlFlow<Reason, (Value, Vec<Qubit>)> {
+    ) -> ControlFlow<Reason, (Value, Vec<(Qubit, Span)>)> {
         match &qubit_init.kind {
             QubitInitKind::Array(count) => {
                 let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
@@ -553,17 +557,19 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     Err(_) => Break(Reason::Error(Error::Count(count_val, count.span))),
                 }?;
                 let mut arr = vec![];
-                arr.resize_with(count, || Qubit(__quantum__rt__qubit_allocate()));
+                arr.resize_with(count, || {
+                    (Qubit(__quantum__rt__qubit_allocate()), qubit_init.span)
+                });
 
                 Continue((
-                    Value::Array(arr.iter().copied().map(Value::Qubit).collect()),
+                    Value::Array(arr.iter().copied().map(|q| Value::Qubit(q.0)).collect()),
                     arr,
                 ))
             }
             QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
             QubitInitKind::Single => {
                 let qubit = Qubit(__quantum__rt__qubit_allocate());
-                Continue((Value::Qubit(qubit), vec![qubit]))
+                Continue((Value::Qubit(qubit), vec![(qubit, qubit_init.span)]))
             }
             QubitInitKind::Tuple(tup) => {
                 let mut tup_vec = vec![];
@@ -650,7 +656,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
             _ => Break(Reason::Error(Error::MissingSpec(spec, call_span))),
         };
-        self.leave_scope();
+        self.leave_scope()?;
         res
     }
 
@@ -861,7 +867,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         self.env.0.push(Scope::default());
     }
 
-    fn track_qubits(&mut self, mut qubits: Vec<Qubit>) {
+    fn track_qubits(&mut self, mut qubits: Vec<(Qubit, Span)>) {
         self.env
             .0
             .last_mut()
@@ -870,16 +876,23 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             .append(&mut qubits);
     }
 
-    fn leave_scope(&mut self) {
-        for qubit in self
+    fn leave_scope(&mut self) -> ControlFlow<Reason, ()> {
+        for (qubit, span) in self
             .env
             .0
             .pop()
             .expect("scope should be entered first before leaving")
             .qubits
         {
+            if !qubit_is_zero(qubit.0) {
+                return ControlFlow::Break(Reason::Error(Error::ReleasedQubitNotZero(
+                    qubit.0 as usize,
+                    span,
+                )));
+            }
             __quantum__rt__qubit_release(qubit.0);
         }
+        ControlFlow::Continue(())
     }
 
     fn bind_value(
@@ -943,7 +956,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => Continue(Value::unit()),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
-            (&ExprKind::Name(Res::Local(node)), rhs) => {
+            (&ExprKind::Var(Res::Local(node)), rhs) => {
                 let mut var = self.env.get_mut(node).expect("local should be bound");
                 if var.is_mutable() {
                     var.value = rhs;

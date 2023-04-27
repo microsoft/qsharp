@@ -45,7 +45,7 @@ impl MutVisitor for CtlDistrib {
                                 id: NodeId::default(),
                                 span: args.span,
                                 ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                                kind: ExprKind::Name(self.ctls),
+                                kind: ExprKind::Var(self.ctls),
                             },
                             Expr::clone(args),
                         ]);
