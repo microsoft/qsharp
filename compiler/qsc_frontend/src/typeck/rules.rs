@@ -322,7 +322,18 @@ impl<'a> Context<'a> {
                     diverges = diverges || expr.diverges;
                     self.inferrer.eq(span, Ty::Prim(PrimTy::Int), expr.ty);
                 }
-                self.diverge_if(diverges, converge(Ty::Prim(PrimTy::Range)))
+
+                let ty = if start.is_none() && end.is_none() {
+                    PrimTy::RangeFull
+                } else if start.is_none() {
+                    PrimTy::RangeTo
+                } else if end.is_none() {
+                    PrimTy::RangeFrom
+                } else {
+                    PrimTy::Range
+                };
+
+                self.diverge_if(diverges, converge(Ty::Prim(ty)))
             }
             ExprKind::Repeat(body, until, fixup) => {
                 let body = self.infer_block(body);

@@ -22,8 +22,8 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Ident, Lit,
-    Mutability, NodeId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
+    NodeId, PackageId, Pat, PatKind, PrimField, QubitInit, QubitInitKind, Res, Spec, SpecBody,
     SpecGen, Stmt, StmtKind, TernOp, UnOp,
 };
 use std::{
@@ -100,9 +100,6 @@ pub enum Error {
 
     #[error("output failure")]
     Output(#[label("failed to generate output")] Span),
-
-    #[error("range missing `{0}` field")]
-    RangeFieldMissing(&'static str, #[label] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -358,7 +355,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
                 Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
             }
-            ExprKind::Field(record, item) => self.eval_field(record, item),
+            ExprKind::Field(record, field) => self.eval_field(expr.span, record, *field),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
@@ -374,7 +371,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let index_val = self.eval_expr(index_expr)?;
                 match &index_val {
                     Value::Int(index) => index_array(&arr, *index, index_expr.span),
-                    Value::Range(start, step, end) => {
+                    &Value::Range(start, step, end) => {
                         slice_array(&arr, start, step, end, index_expr.span)
                     }
                     _ => Break(Reason::Error(Error::Type(
@@ -429,7 +426,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         };
         Continue(Value::Range(
             to_opt_i64(start)?,
-            to_opt_i64(step)?,
+            to_opt_i64(step)?.unwrap_or(val::DEFAULT_RANGE_STEP),
             to_opt_i64(end)?,
         ))
     }
@@ -492,7 +489,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     || Break(Reason::Error(Error::OpenEnded(expr.span))),
                     Continue,
                 )?,
-                step.unwrap_or(1),
+                step,
                 end.map_or_else(
                     || Break(Reason::Error(Error::OpenEnded(expr.span))),
                     Continue,
@@ -842,34 +839,31 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_field(&mut self, record: &Expr, item: &Ident) -> ControlFlow<Reason, Value> {
+    fn eval_field(
+        &mut self,
+        span: Span,
+        record: &Expr,
+        field: PrimField,
+    ) -> ControlFlow<Reason, Value> {
         let record_span = record.span;
         let record = self.eval_expr(record)?;
         // For now we only support built-in fields for Arrays and Ranges.
-        match (record, item.name.as_ref()) {
-            (Value::Array(arr), "Length") => {
+        match (record, field) {
+            (Value::Array(arr), PrimField::Length) => {
                 let len: i64 = match arr.len().try_into() {
                     Ok(len) => Continue(len),
                     Err(_) => Break(Reason::Error(Error::ArrayTooLarge(record_span))),
                 }?;
                 Continue(Value::Int(len))
             }
-            (Value::Range(start, _, _), "Start") => start.map_or_else(
-                || Break(Reason::Error(Error::RangeFieldMissing("Start", item.span))),
-                |start| Continue(Value::Int(start)),
-            ),
-            (Value::Range(_, step, _), "Step") => step.map_or_else(
-                || Continue(Value::Int(1)),
-                |step| Continue(Value::Int(step)),
-            ),
-            (Value::Range(_, _, end), "End") => end.map_or_else(
-                || Break(Reason::Error(Error::RangeFieldMissing("End", item.span))),
-                |end| Continue(Value::Int(end)),
-            ),
-            _ => Break(Reason::Error(Error::Unimplemented(
-                "field access",
-                item.span,
-            ))),
+            (Value::Range(Some(start), _, _), PrimField::Start) => {
+                ControlFlow::Continue(Value::Int(start))
+            }
+            (Value::Range(_, step, _), PrimField::Step) => ControlFlow::Continue(Value::Int(step)),
+            (Value::Range(_, _, Some(end)), PrimField::End) => {
+                ControlFlow::Continue(Value::Int(end))
+            }
+            _ => Break(Reason::Error(Error::Unimplemented("field access", span))),
         }
     }
 
@@ -1030,19 +1024,18 @@ fn index_array(arr: &[Value], index: i64, span: Span) -> ControlFlow<Reason, Val
 
 fn slice_array(
     arr: &[Value],
-    start: &Option<i64>,
-    step: &Option<i64>,
-    end: &Option<i64>,
+    start: Option<i64>,
+    step: i64,
+    end: Option<i64>,
     span: Span,
 ) -> ControlFlow<Reason, Value> {
-    if let Some(0) = step {
+    if step == 0 {
         Break(Reason::Error(Error::RangeStepZero(span)))
     } else {
         let len: i64 = match arr.len().try_into() {
             Ok(len) => Continue(len),
             Err(_) => Break(Reason::Error(Error::ArrayTooLarge(span))),
         }?;
-        let step = step.unwrap_or(1);
         let (start, end) = if step > 0 {
             (start.unwrap_or(0), end.unwrap_or(len - 1))
         } else {

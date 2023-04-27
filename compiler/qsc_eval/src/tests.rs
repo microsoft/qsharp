@@ -1208,23 +1208,6 @@ fn field_range_start_expr() {
 }
 
 #[test]
-fn field_range_start_missing_expr() {
-    check_expr(
-        "",
-        "(...2..8)::Start",
-        &expect![[r#"
-            RangeFieldMissing(
-                "Start",
-                Span {
-                    lo: 11,
-                    hi: 16,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn field_range_step_expr() {
     check_expr("", "(0..2..8)::Step", &expect!["2"]);
 }
@@ -1237,23 +1220,6 @@ fn field_range_step_missing_treated_as_1_expr() {
 #[test]
 fn field_range_end_expr() {
     check_expr("", "(0..2..8)::End", &expect!["8"]);
-}
-
-#[test]
-fn field_range_end_missing_expr() {
-    check_expr(
-        "",
-        "(0..2...)::End",
-        &expect![[r#"
-            RangeFieldMissing(
-                "End",
-                Span {
-                    lo: 11,
-                    hi: 14,
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]

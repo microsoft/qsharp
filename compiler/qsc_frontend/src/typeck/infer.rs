@@ -3,7 +3,7 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferId, PrimTy, Res, Ty};
+use qsc_hir::hir::{Functor, InferId, PrimField, PrimTy, Res, Ty};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -513,7 +513,10 @@ fn check_has_index(
             actual: item,
             span,
         }),
-        (container @ Ty::Array(_), Ty::Prim(PrimTy::Range)) => Ok(Constraint::Eq {
+        (
+            container @ Ty::Array(_),
+            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+        ) => Ok(Constraint::Eq {
             expected: container,
             actual: item,
             span,
@@ -561,14 +564,18 @@ fn check_has_field(
 ) -> Result<Constraint, ClassError> {
     // TODO: If the record type is a user-defined type, look up its fields.
     // https://github.com/microsoft/qsharp/issues/148
-    match (&record, name.as_ref(), &item) {
-        (Ty::Prim(PrimTy::Range), "Start" | "Step" | "End", _) | (Ty::Array(..), "Length", _) => {
-            Ok(Constraint::Eq {
-                expected: Ty::Prim(PrimTy::Int),
-                actual: item,
-                span,
-            })
-        }
+    match (name.parse(), &record) {
+        (Ok(PrimField::Start), Ty::Prim(PrimTy::Range | PrimTy::RangeFrom))
+        | (
+            Ok(PrimField::Step),
+            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+        )
+        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo))
+        | (Ok(PrimField::Length), Ty::Array(..)) => Ok(Constraint::Eq {
+            expected: Ty::Prim(PrimTy::Int),
+            actual: item,
+            span,
+        }),
         _ => Err(ClassError(Class::HasField { record, name, item }, span)),
     }
 }
