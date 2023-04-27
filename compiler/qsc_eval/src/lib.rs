@@ -323,7 +323,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 for expr in arr {
                     val_arr.push(self.eval_expr(expr)?);
                 }
-                Continue(Value::Array(val_arr))
+                Continue(Value::Array(val_arr.into()))
             }
             ExprKind::ArrayRepeat(item, size) => {
                 let item_val = self.eval_expr(item)?;
@@ -332,7 +332,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     Ok(i) => Continue(i),
                     Err(_) => Break(Reason::Error(Error::Count(size_val, size.span))),
                 }?;
-                Continue(Value::Array(vec![item_val; s]))
+                Continue(Value::Array(vec![item_val; s].into()))
             }
             ExprKind::Assign(lhs, rhs) => {
                 let val = self.eval_expr(rhs)?;
@@ -361,7 +361,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 } else if let Some(els) = els {
                     self.eval_expr(els)
                 } else {
-                    Continue(Value::UNIT)
+                    Continue(Value::unit())
                 }
             }
             ExprKind::Index(arr, index_expr) => {
@@ -394,13 +394,13 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 for expr in tup {
                     val_tup.push(self.eval_expr(expr)?);
                 }
-                Continue(Value::Tuple(val_tup))
+                Continue(Value::Tuple(val_tup.into()))
             }
             ExprKind::While(cond, block) => {
                 while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(block)?;
                 }
-                Continue(Value::UNIT)
+                Continue(Value::unit())
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
             ExprKind::Conjugate(..) => {
@@ -437,7 +437,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
             self.eval_stmt(last)
         } else {
-            Continue(Value::UNIT)
+            Continue(Value::unit())
         };
         self.leave_scope();
         result
@@ -445,16 +445,16 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
 
     fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
-            StmtKind::Empty => Continue(Value::UNIT),
+            StmtKind::Empty => Continue(Value::unit()),
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;
                 self.bind_value(pat, val, expr.span, *mutability)?;
-                Continue(Value::UNIT)
+                Continue(Value::unit())
             }
             StmtKind::Semi(expr) => {
                 self.eval_expr(expr)?;
-                Continue(Value::UNIT)
+                Continue(Value::unit())
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
                 let (qubit_val, qubits) = self.eval_qubit_init(qubit_init)?;
@@ -468,7 +468,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     self.track_qubits(qubits);
                     self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
                 }
-                Continue(Value::UNIT)
+                Continue(Value::unit())
             }
         }
     }
@@ -479,36 +479,38 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         expr: &Expr,
         block: &Block,
     ) -> ControlFlow<Reason, Value> {
-        let iterable = self.eval_expr(expr)?;
-        let iterable = match iterable {
-            Value::Array(arr) => arr,
-            Value::Range(start, step, end) => Range::new(
-                start.map_or_else(
-                    || Break(Reason::Error(Error::OpenEnded(expr.span))),
-                    Continue,
-                )?,
-                step,
-                end.map_or_else(
-                    || Break(Reason::Error(Error::OpenEnded(expr.span))),
-                    Continue,
-                )?,
-            )
-            .map(Value::Int)
-            .collect::<Vec<_>>(),
-            _ => Break(Reason::Error(Error::NotIterable(
-                iterable.type_name(),
+        match self.eval_expr(expr)? {
+            Value::Array(arr) => self.iterate_for_loop(pat, arr.iter().cloned(), expr.span, block),
+            Value::Range(start, step, end) => {
+                let start =
+                    start.map_or(Break(Reason::Error(Error::OpenEnded(expr.span))), Continue)?;
+                let end =
+                    end.map_or(Break(Reason::Error(Error::OpenEnded(expr.span))), Continue)?;
+                let range = Range::new(start, step, end);
+                self.iterate_for_loop(pat, range.map(Value::Int), expr.span, block)
+            }
+            value => Break(Reason::Error(Error::NotIterable(
+                value.type_name(),
                 expr.span,
-            )))?,
-        };
+            ))),
+        }
+    }
 
-        for value in iterable {
+    fn iterate_for_loop(
+        &mut self,
+        pat: &Pat,
+        values: impl Iterator<Item = Value>,
+        span: Span,
+        block: &Block,
+    ) -> ControlFlow<Reason, Value> {
+        for value in values {
             self.enter_scope();
-            self.bind_value(pat, value, expr.span, Mutability::Immutable);
+            self.bind_value(pat, value, span, Mutability::Immutable);
             self.eval_block(block)?;
             self.leave_scope();
         }
 
-        Continue(Value::UNIT)
+        Continue(Value::unit())
     }
 
     fn eval_repeat_loop(
@@ -536,7 +538,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
 
         self.leave_scope();
-        Continue(Value::UNIT)
+        Continue(Value::unit())
     }
 
     fn eval_qubit_init(
@@ -571,7 +573,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     tup_vec.push(t);
                     qubit_vec.append(&mut v);
                 }
-                Continue((Value::Tuple(tup_vec), qubit_vec))
+                Continue((Value::Tuple(tup_vec.into()), qubit_vec))
             }
         }
     }
@@ -680,7 +682,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let mut tup = args_val;
                 let mut ctls = vec![];
                 for _ in 0..ctl_count {
-                    let mut tup_nesting = tup.try_into_tuple().with_span(args_span)?;
+                    let tup_nesting = tup.try_into_tuple().with_span(args_span)?;
                     if tup_nesting.len() != 2 {
                         return Break(Reason::Error(Error::TupleArity(
                             2,
@@ -689,22 +691,15 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                         )));
                     }
 
-                    let (rest, c) = (
-                        tup_nesting
-                            .pop()
-                            .expect("tuple should have multiple entries"),
-                        tup_nesting
-                            .pop()
-                            .expect("tuple should have multiple entries"),
-                    );
-                    let mut c = c.try_into_array().with_span(args_span)?;
-                    ctls.append(&mut c);
+                    let c = tup_nesting[0].clone();
+                    let rest = tup_nesting[1].clone();
+                    ctls.extend_from_slice(c.try_into_array().with_span(args_span)?.as_ref());
                     tup = rest;
                 }
 
                 self.bind_value(
                     &pats[0],
-                    Value::Array(ctls),
+                    Value::Array(ctls.into()),
                     args_span,
                     Mutability::Immutable,
                 )?;
@@ -822,18 +817,19 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         mid: &Expr,
         rhs: &Expr,
     ) -> ControlFlow<Reason, Value> {
-        let mut arr = self.eval_expr(lhs)?.try_into_array().with_span(lhs.span)?;
+        let values = self.eval_expr(lhs)?.try_into_array().with_span(lhs.span)?;
         let index: i64 = self.eval_expr(mid)?.try_into().with_span(mid.span)?;
         if index < 0 {
-            Break(Reason::Error(Error::Negative(index, mid.span)))
-        } else {
-            match arr.get_mut(index.as_index(mid.span)?) {
-                Some(v) => {
-                    *v = self.eval_expr(rhs)?;
-                    Continue(Value::Array(arr))
-                }
-                None => Break(Reason::Error(Error::OutOfRange(index, mid.span))),
+            return Break(Reason::Error(Error::Negative(index, mid.span)));
+        }
+
+        let mut values: Vec<_> = values.iter().cloned().collect();
+        match values.get_mut(index.as_index(mid.span)?) {
+            Some(value) => {
+                *value = self.eval_expr(rhs)?;
+                Continue(Value::Array(values.into()))
             }
+            None => Break(Reason::Error(Error::OutOfRange(index, mid.span))),
         }
     }
 
@@ -854,13 +850,9 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 }?;
                 Continue(Value::Int(len))
             }
-            (Value::Range(Some(start), _, _), PrimField::Start) => {
-                ControlFlow::Continue(Value::Int(start))
-            }
-            (Value::Range(_, step, _), PrimField::Step) => ControlFlow::Continue(Value::Int(step)),
-            (Value::Range(_, _, Some(end)), PrimField::End) => {
-                ControlFlow::Continue(Value::Int(end))
-            }
+            (Value::Range(Some(start), _, _), PrimField::Start) => Continue(Value::Int(start)),
+            (Value::Range(_, step, _), PrimField::Step) => Continue(Value::Int(step)),
+            (Value::Range(_, _, Some(end)), PrimField::End) => Continue(Value::Int(end)),
             _ => Break(Reason::Error(Error::Unimplemented("field access", span))),
         }
     }
@@ -912,8 +904,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             PatKind::Tuple(tup) => {
                 let val_tup = value.try_into_tuple().with_span(span)?;
                 if val_tup.len() == tup.len() {
-                    for (pat, val) in tup.iter().zip(val_tup.into_iter()) {
-                        self.bind_value(pat, val, span, mutability)?;
+                    for (pat, val) in tup.iter().zip(val_tup.iter()) {
+                        self.bind_value(pat, val.clone(), span, mutability)?;
                     }
                     Continue(())
                 } else {
@@ -949,23 +941,23 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     #[allow(clippy::similar_names)]
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
-            (ExprKind::Hole, _) => Continue(Value::UNIT),
+            (ExprKind::Hole, _) => Continue(Value::unit()),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (&ExprKind::Name(Res::Local(node)), rhs) => {
                 let mut var = self.env.get_mut(node).expect("local should be bound");
                 if var.is_mutable() {
                     var.value = rhs;
-                    Continue(Value::UNIT)
+                    Continue(Value::unit())
                 } else {
                     Break(Reason::Error(Error::Mutability(lhs.span)))
                 }
             }
-            (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
+            (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
                 if var_tup.len() == tup.len() {
-                    for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
-                        self.update_binding(expr, val)?;
+                    for (expr, val) in var_tup.iter().zip(tup.iter()) {
+                        self.update_binding(expr, val.clone())?;
                     }
-                    Continue(Value::UNIT)
+                    Continue(Value::unit())
                 } else {
                     Break(Reason::Error(Error::TupleArity(
                         var_tup.len(),
@@ -1046,7 +1038,7 @@ fn slice_array(
             slice.push(index_array(arr, i, span)?);
         }
 
-        Continue(Value::Array(slice))
+        Continue(Value::Array(slice.into()))
     }
 }
 
@@ -1070,9 +1062,10 @@ fn eval_binop_add(
     rhs_span: Span,
 ) -> ControlFlow<Reason, Value> {
     match lhs_val {
-        Value::Array(mut arr) => {
-            arr.append(&mut rhs_val.try_into_array().with_span(rhs_span)?);
-            Continue(Value::Array(arr))
+        Value::Array(arr) => {
+            let rhs_arr = rhs_val.try_into_array().with_span(rhs_span)?;
+            let items: Vec<_> = arr.iter().cloned().chain(rhs_arr.iter().cloned()).collect();
+            Continue(Value::Array(items.into()))
         }
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;

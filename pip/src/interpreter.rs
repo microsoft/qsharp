@@ -49,7 +49,7 @@ impl Interpreter {
         let mut receiver = FormattingReceiver::new();
         let (value, errors) = match self.interpreter.line(expr, &mut receiver) {
             Ok(value) => (value, Vec::<stateful::Error>::new()),
-            Err(err) => (Value::UNIT, { err.0 }),
+            Err(err) => (Value::unit(), { err.0 }),
         };
         let outputs = receiver.outputs;
 
@@ -174,10 +174,11 @@ impl IntoPy<PyObject> for ValueWrapper {
                 qsc_hir::hir::Pauli::Z => Pauli::Z.into_py(py),
             },
             Value::Tuple(val) => {
-                PyTuple::new(py, val.into_iter().map(|v| ValueWrapper(v).into_py(py))).into_py(py)
+                PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    .into_py(py)
             }
             Value::Array(val) => {
-                PyList::new(py, val.into_iter().map(|v| ValueWrapper(v).into_py(py))).into_py(py)
+                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py))).into_py(py)
             }
             _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
         }
