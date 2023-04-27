@@ -11,10 +11,7 @@ use crate::{
 };
 use qsc_ast::ast;
 use qsc_hir::hir::{self, ItemId, PackageId, Ty};
-use std::{
-    collections::{HashMap, HashSet},
-    vec,
-};
+use std::{collections::HashMap, vec};
 
 pub(crate) struct GlobalTable {
     globals: HashMap<ItemId, Ty>,
@@ -55,15 +52,7 @@ impl GlobalTable {
                             self.errors.push(Error(ErrorKind::MissingItemTy(span)));
                         }
 
-                        self.globals.insert(
-                            item,
-                            Ty::Arrow(
-                                hir::CallableKind::Function,
-                                Box::new(ty),
-                                Box::new(Ty::Name(hir::Res::Item(item))),
-                                HashSet::new(),
-                            ),
-                        );
+                        self.globals.insert(item, convert::ty_cons_ty(item, ty));
                     }
                     _ => {}
                 }
@@ -85,12 +74,7 @@ impl GlobalTable {
                 hir::ItemKind::Ty(_, def) => {
                     self.globals.insert(
                         item_id,
-                        Ty::Arrow(
-                            hir::CallableKind::Function,
-                            Box::new(convert::hir_ty_def_ty(def)),
-                            Box::new(Ty::Name(hir::Res::Item(item_id))),
-                            HashSet::new(),
-                        ),
+                        convert::ty_cons_ty(item_id, convert::hir_ty_def_ty(def)),
                     );
                 }
                 _ => {}

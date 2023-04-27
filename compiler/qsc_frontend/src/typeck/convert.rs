@@ -4,7 +4,7 @@
 use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, Functor, Ty};
+use qsc_hir::hir::{self, Functor, ItemId, Ty};
 use std::collections::HashSet;
 
 pub(crate) struct MissingTyError(pub(super) Span);
@@ -53,6 +53,15 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
             (Ty::Tuple(tys), errors)
         }
     }
+}
+
+pub(super) fn ty_cons_ty(id: ItemId, input: Ty) -> Ty {
+    Ty::Arrow(
+        hir::CallableKind::Function,
+        Box::new(input),
+        Box::new(Ty::Name(hir::Res::Item(id))),
+        HashSet::new(),
+    )
 }
 
 pub(super) fn ast_ty_def_ty(
