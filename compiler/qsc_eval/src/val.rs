@@ -10,6 +10,8 @@ use std::{
     rc::Rc,
 };
 
+pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Array(Rc<[Value]>),
@@ -21,7 +23,7 @@ pub enum Value {
     Int(i64),
     Pauli(Pauli),
     Qubit(Qubit),
-    Range(Option<i64>, Option<i64>, Option<i64>),
+    Range(Option<i64>, i64, Option<i64>),
     Result(bool),
     String(Rc<str>),
     Tuple(Rc<[Value]>),
@@ -92,15 +94,15 @@ impl Display for Value {
                 Pauli::Y => write!(f, "PauliY"),
             },
             Value::Qubit(v) => write!(f, "Qubit{}", (v.0 as usize)),
-            Value::Range(start, step, end) => match (start, step, end) {
-                (Some(start), Some(step), Some(end)) => write!(f, "{start}..{step}..{end}"),
-                (Some(start), Some(step), None) => write!(f, "{start}..{step}..."),
-                (Some(start), None, Some(end)) => write!(f, "{start}..{end}"),
-                (Some(start), None, None) => write!(f, "{start}..."),
-                (None, Some(step), Some(end)) => write!(f, "...{step}..{end}"),
-                (None, Some(step), None) => write!(f, "...{step}..."),
-                (None, None, Some(end)) => write!(f, "...{end}"),
-                (None, None, None) => write!(f, "..."),
+            &Value::Range(start, step, end) => match (start, step, end) {
+                (Some(start), DEFAULT_RANGE_STEP, Some(end)) => write!(f, "{start}..{end}"),
+                (Some(start), DEFAULT_RANGE_STEP, None) => write!(f, "{start}..."),
+                (Some(start), step, Some(end)) => write!(f, "{start}..{step}..{end}"),
+                (Some(start), step, None) => write!(f, "{start}..{step}..."),
+                (None, DEFAULT_RANGE_STEP, Some(end)) => write!(f, "...{end}"),
+                (None, DEFAULT_RANGE_STEP, None) => write!(f, "..."),
+                (None, step, Some(end)) => write!(f, "...{step}..{end}"),
+                (None, step, None) => write!(f, "...{step}..."),
             },
             Value::Result(v) => {
                 if *v {
