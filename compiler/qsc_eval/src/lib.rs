@@ -30,7 +30,10 @@ use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::{Display, Formatter},
     mem::take,
-    ops::{ControlFlow, Neg},
+    ops::{
+        ControlFlow::{self, Break, Continue},
+        Neg,
+    },
     ptr::null_mut,
 };
 use thiserror::Error;
@@ -147,8 +150,8 @@ impl<T> WithSpan for Result<T, ConversionError> {
 
     fn with_span(self, span: Span) -> Self::Output {
         match self {
-            Ok(c) => ControlFlow::Continue(c),
-            Err(e) => ControlFlow::Break(Reason::Error(Error::Type(e.expected, e.actual, span))),
+            Ok(c) => Continue(c),
+            Err(e) => Break(Reason::Error(Error::Type(e.expected, e.actual, span))),
         }
     }
 }
@@ -164,8 +167,8 @@ impl AsIndex for i64 {
 
     fn as_index(&self, span: Span) -> ControlFlow<Reason, usize> {
         match (*self).try_into() {
-            Ok(index) => ControlFlow::Continue(index),
-            Err(_) => ControlFlow::Break(Reason::Error(Error::IndexVal(*self, span))),
+            Ok(index) => Continue(index),
+            Err(_) => Break(Reason::Error(Error::IndexVal(*self, span))),
         }
     }
 }
@@ -239,8 +242,8 @@ fn eval_stmt<'a>(
         out: Some(out),
     };
     let res = match eval.eval_stmt(stmt) {
-        ControlFlow::Continue(res) | ControlFlow::Break(Reason::Return(res)) => Ok(res),
-        ControlFlow::Break(Reason::Error(error)) => Err(error),
+        Continue(res) | Break(Reason::Return(res)) => Ok(res),
+        Break(Reason::Error(error)) => Err(error),
     };
     *env = take(&mut eval.env);
     res
@@ -263,8 +266,8 @@ fn eval_expr<'a>(
         out: Some(out),
     };
     let res = match eval.eval_expr(expr) {
-        ControlFlow::Continue(res) | ControlFlow::Break(Reason::Return(res)) => Ok(res),
-        ControlFlow::Break(Reason::Error(error)) => Err(error),
+        Continue(res) | Break(Reason::Return(res)) => Ok(res),
+        Break(Reason::Error(error)) => Err(error),
     };
     *env = take(&mut eval.env);
     res
@@ -322,16 +325,16 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 for expr in arr {
                     val_arr.push(self.eval_expr(expr)?);
                 }
-                ControlFlow::Continue(Value::Array(val_arr))
+                Continue(Value::Array(val_arr))
             }
             ExprKind::ArrayRepeat(item, size) => {
                 let item_val = self.eval_expr(item)?;
                 let size_val: i64 = self.eval_expr(size)?.try_into().with_span(size.span)?;
                 let s = match size_val.try_into() {
-                    Ok(i) => ControlFlow::Continue(i),
-                    Err(_) => ControlFlow::Break(Reason::Error(Error::Count(size_val, size.span))),
+                    Ok(i) => Continue(i),
+                    Err(_) => Break(Reason::Error(Error::Count(size_val, size.span))),
                 }?;
-                ControlFlow::Continue(Value::Array(vec![item_val; s]))
+                Continue(Value::Array(vec![item_val; s]))
             }
             ExprKind::Assign(lhs, rhs) => {
                 let val = self.eval_expr(rhs)?;
@@ -350,7 +353,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::Call(call, args) => self.eval_call(call, args),
             ExprKind::Fail(msg) => {
                 let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
-                ControlFlow::Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
+                Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
             }
             ExprKind::Field(record, field) => self.eval_field(expr.span, record, *field),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
@@ -360,7 +363,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 } else if let Some(els) = els {
                     self.eval_expr(els)
                 } else {
-                    ControlFlow::Continue(Value::UNIT)
+                    Continue(Value::UNIT)
                 }
             }
             ExprKind::Index(arr, index_expr) => {
@@ -371,19 +374,19 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     &Value::Range(start, step, end) => {
                         slice_array(&arr, start, step, end, index_expr.span)
                     }
-                    _ => ControlFlow::Break(Reason::Error(Error::Type(
+                    _ => Break(Reason::Error(Error::Type(
                         "Int or Range",
                         index_val.type_name(),
                         index_expr.span,
                     ))),
                 }
             }
-            ExprKind::Lit(lit) => ControlFlow::Continue(lit_to_val(lit)),
+            ExprKind::Lit(lit) => Continue(lit_to_val(lit)),
             ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
-            &ExprKind::Name(res) => ControlFlow::Continue(self.resolve_binding(res)),
-            ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
+            &ExprKind::Name(res) => Continue(self.resolve_binding(res)),
+            ExprKind::Return(expr) => Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
                 TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
@@ -393,27 +396,21 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 for expr in tup {
                     val_tup.push(self.eval_expr(expr)?);
                 }
-                ControlFlow::Continue(Value::Tuple(val_tup))
+                Continue(Value::Tuple(val_tup))
             }
             ExprKind::While(cond, block) => {
                 while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(block)?;
                 }
-                ControlFlow::Continue(Value::UNIT)
+                Continue(Value::UNIT)
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
             ExprKind::Conjugate(..) => {
-                ControlFlow::Break(Reason::Error(Error::Unimplemented("conjugate", expr.span)))
+                Break(Reason::Error(Error::Unimplemented("conjugate", expr.span)))
             }
-            ExprKind::Err => {
-                ControlFlow::Break(Reason::Error(Error::Unimplemented("error", expr.span)))
-            }
-            ExprKind::Hole => {
-                ControlFlow::Break(Reason::Error(Error::Unimplemented("hole", expr.span)))
-            }
-            ExprKind::Lambda(..) => {
-                ControlFlow::Break(Reason::Error(Error::Unimplemented("lambda", expr.span)))
-            }
+            ExprKind::Err => Break(Reason::Error(Error::Unimplemented("error", expr.span))),
+            ExprKind::Hole => Break(Reason::Error(Error::Unimplemented("hole", expr.span))),
+            ExprKind::Lambda(..) => Break(Reason::Error(Error::Unimplemented("lambda", expr.span))),
         }
     }
 
@@ -424,12 +421,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         end: &Option<Box<Expr>>,
     ) -> ControlFlow<Reason, Value> {
         let mut to_opt_i64 = |e: &Option<Box<Expr>>| match e {
-            Some(expr) => {
-                ControlFlow::Continue(Some(self.eval_expr(expr)?.try_into().with_span(expr.span)?))
-            }
-            None => ControlFlow::Continue(None),
+            Some(expr) => Continue(Some(self.eval_expr(expr)?.try_into().with_span(expr.span)?)),
+            None => Continue(None),
         };
-        ControlFlow::Continue(Value::Range(
+        Continue(Value::Range(
             to_opt_i64(start)?,
             to_opt_i64(step)?.unwrap_or(val::DEFAULT_RANGE_STEP),
             to_opt_i64(end)?,
@@ -444,7 +439,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
             self.eval_stmt(last)
         } else {
-            ControlFlow::Continue(Value::UNIT)
+            Continue(Value::UNIT)
         };
         self.leave_scope();
         result
@@ -452,16 +447,16 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
 
     fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
-            StmtKind::Empty => ControlFlow::Continue(Value::UNIT),
+            StmtKind::Empty => Continue(Value::UNIT),
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;
                 self.bind_value(pat, val, expr.span, *mutability)?;
-                ControlFlow::Continue(Value::UNIT)
+                Continue(Value::UNIT)
             }
             StmtKind::Semi(expr) => {
                 self.eval_expr(expr)?;
-                ControlFlow::Continue(Value::UNIT)
+                Continue(Value::UNIT)
             }
             StmtKind::Qubit(_, pat, qubit_init, block) => {
                 let (qubit_val, qubits) = self.eval_qubit_init(qubit_init)?;
@@ -475,7 +470,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     self.track_qubits(qubits);
                     self.bind_value(pat, qubit_val, stmt.span, Mutability::Immutable)?;
                 }
-                ControlFlow::Continue(Value::UNIT)
+                Continue(Value::UNIT)
             }
         }
     }
@@ -491,18 +486,18 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             Value::Array(arr) => arr,
             Value::Range(start, step, end) => Range::new(
                 start.map_or_else(
-                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
-                    ControlFlow::Continue,
+                    || Break(Reason::Error(Error::OpenEnded(expr.span))),
+                    Continue,
                 )?,
                 step,
                 end.map_or_else(
-                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
-                    ControlFlow::Continue,
+                    || Break(Reason::Error(Error::OpenEnded(expr.span))),
+                    Continue,
                 )?,
             )
             .map(Value::Int)
             .collect::<Vec<_>>(),
-            _ => ControlFlow::Break(Reason::Error(Error::NotIterable(
+            _ => Break(Reason::Error(Error::NotIterable(
                 iterable.type_name(),
                 expr.span,
             )))?,
@@ -515,7 +510,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             self.leave_scope();
         }
 
-        ControlFlow::Continue(Value::UNIT)
+        Continue(Value::UNIT)
     }
 
     fn eval_repeat_loop(
@@ -543,7 +538,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
 
         self.leave_scope();
-        ControlFlow::Continue(Value::UNIT)
+        Continue(Value::UNIT)
     }
 
     fn eval_qubit_init(
@@ -554,15 +549,13 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             QubitInitKind::Array(count) => {
                 let count_val: i64 = self.eval_expr(count)?.try_into().with_span(count.span)?;
                 let count: usize = match count_val.try_into() {
-                    Ok(i) => ControlFlow::Continue(i),
-                    Err(_) => {
-                        ControlFlow::Break(Reason::Error(Error::Count(count_val, count.span)))
-                    }
+                    Ok(i) => Continue(i),
+                    Err(_) => Break(Reason::Error(Error::Count(count_val, count.span))),
                 }?;
                 let mut arr = vec![];
                 arr.resize_with(count, || Qubit(__quantum__rt__qubit_allocate()));
 
-                ControlFlow::Continue((
+                Continue((
                     Value::Array(arr.iter().copied().map(Value::Qubit).collect()),
                     arr,
                 ))
@@ -570,7 +563,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
             QubitInitKind::Single => {
                 let qubit = Qubit(__quantum__rt__qubit_allocate());
-                ControlFlow::Continue((Value::Qubit(qubit), vec![qubit]))
+                Continue((Value::Qubit(qubit), vec![qubit]))
             }
             QubitInitKind::Tuple(tup) => {
                 let mut tup_vec = vec![];
@@ -580,7 +573,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     tup_vec.push(t);
                     qubit_vec.append(&mut v);
                 }
-                ControlFlow::Continue((Value::Tuple(tup_vec), qubit_vec))
+                Continue((Value::Tuple(tup_vec), qubit_vec))
             }
         }
     }
@@ -610,8 +603,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         self.out = new_self.out.take();
 
         match call_res {
-            ControlFlow::Break(Reason::Return(val)) => ControlFlow::Continue(val),
-            ControlFlow::Continue(_) | ControlFlow::Break(_) => call_res,
+            Break(Reason::Return(val)) => Continue(val),
+            Continue(_) | Break(_) => call_res,
         }
     }
 
@@ -635,8 +628,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     .iter()
                     .find(|spec_decl| spec_decl.spec == spec)
                     .map_or_else(
-                        || ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
-                        |spec_decl| ControlFlow::Continue(&spec_decl.body),
+                        || Break(Reason::Error(Error::MissingSpec(spec, call_span))),
+                        |spec_decl| Continue(&spec_decl.body),
                     )?;
                 match spec_decl {
                     SpecBody::Impl(pat, body_block) => {
@@ -652,12 +645,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                             .as_deref_mut()
                             .expect("output receiver should be set"),
                     ),
-                    SpecBody::Gen(_) => {
-                        ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span)))
-                    }
+                    SpecBody::Gen(_) => Break(Reason::Error(Error::MissingSpec(spec, call_span))),
                 }
             }
-            _ => ControlFlow::Break(Reason::Error(Error::MissingSpec(spec, call_span))),
+            _ => Break(Reason::Error(Error::MissingSpec(spec, call_span))),
         };
         self.leave_scope();
         res
@@ -693,7 +684,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 for _ in 0..ctl_count {
                     let mut tup_nesting = tup.try_into_tuple().with_span(args_span)?;
                     if tup_nesting.len() != 2 {
-                        return ControlFlow::Break(Reason::Error(Error::TupleArity(
+                        return Break(Reason::Error(Error::TupleArity(
                             2,
                             tup_nesting.len(),
                             args_span,
@@ -728,56 +719,52 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         let val = self.eval_expr(rhs)?;
         match op {
             UnOp::Neg => match val {
-                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(v.neg())),
-                Value::Double(v) => ControlFlow::Continue(Value::Double(v.neg())),
-                Value::Int(v) => ControlFlow::Continue(Value::Int(v.wrapping_neg())),
-                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                Value::BigInt(v) => Continue(Value::BigInt(v.neg())),
+                Value::Double(v) => Continue(Value::Double(v.neg())),
+                Value::Int(v) => Continue(Value::Int(v.wrapping_neg())),
+                _ => Break(Reason::Error(Error::Type(
                     "Int, BigInt, or Double",
                     val.type_name(),
                     rhs.span,
                 ))),
             },
             UnOp::Pos => match val {
-                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => ControlFlow::Continue(val),
-                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => Continue(val),
+                _ => Break(Reason::Error(Error::Type(
                     "Int, BigInt, or Double",
                     val.type_name(),
                     rhs.span,
                 ))),
             },
             UnOp::NotL => match val {
-                Value::Bool(b) => ControlFlow::Continue(Value::Bool(!b)),
-                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                Value::Bool(b) => Continue(Value::Bool(!b)),
+                _ => Break(Reason::Error(Error::Type(
                     "Bool",
                     val.type_name(),
                     rhs.span,
                 ))),
             },
             UnOp::NotB => match val {
-                Value::Int(v) => ControlFlow::Continue(Value::Int(!v)),
-                Value::BigInt(v) => ControlFlow::Continue(Value::BigInt(!v)),
-                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                Value::Int(v) => Continue(Value::Int(!v)),
+                Value::BigInt(v) => Continue(Value::BigInt(!v)),
+                _ => Break(Reason::Error(Error::Type(
                     "Int or BigInt",
                     val.type_name(),
                     rhs.span,
                 ))),
             },
             UnOp::Functor(functor) => match val {
-                Value::Closure => {
-                    ControlFlow::Break(Reason::Error(Error::Unimplemented("closure", expr.span)))
-                }
+                Value::Closure => Break(Reason::Error(Error::Unimplemented("closure", expr.span))),
                 Value::Global(id, app) => {
-                    ControlFlow::Continue(Value::Global(id, update_functor_app(functor, &app)))
+                    Continue(Value::Global(id, update_functor_app(functor, &app)))
                 }
-                _ => ControlFlow::Break(Reason::Error(Error::Type(
+                _ => Break(Reason::Error(Error::Type(
                     "Callable",
                     val.type_name(),
                     rhs.span,
                 ))),
             },
-            UnOp::Unwrap => {
-                ControlFlow::Break(Reason::Error(Error::Unimplemented("unwrap", expr.span)))
-            }
+            UnOp::Unwrap => Break(Reason::Error(Error::Unimplemented("unwrap", expr.span))),
         }
     }
 
@@ -807,13 +794,13 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     }
 
     fn eval_binop_andl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
-        ControlFlow::Continue(Value::Bool(
+        Continue(Value::Bool(
             lhs && self.eval_expr(rhs)?.try_into().with_span(rhs.span)?,
         ))
     }
 
     fn eval_binop_orl(&mut self, lhs: bool, rhs: &Expr) -> ControlFlow<Reason, Value> {
-        ControlFlow::Continue(Value::Bool(
+        Continue(Value::Bool(
             lhs || self.eval_expr(rhs)?.try_into().with_span(rhs.span)?,
         ))
     }
@@ -840,14 +827,14 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         let mut arr = self.eval_expr(lhs)?.try_into_array().with_span(lhs.span)?;
         let index: i64 = self.eval_expr(mid)?.try_into().with_span(mid.span)?;
         if index < 0 {
-            ControlFlow::Break(Reason::Error(Error::Negative(index, mid.span)))
+            Break(Reason::Error(Error::Negative(index, mid.span)))
         } else {
             match arr.get_mut(index.as_index(mid.span)?) {
                 Some(v) => {
                     *v = self.eval_expr(rhs)?;
-                    ControlFlow::Continue(Value::Array(arr))
+                    Continue(Value::Array(arr))
                 }
-                None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, mid.span))),
+                None => Break(Reason::Error(Error::OutOfRange(index, mid.span))),
             }
         }
     }
@@ -864,10 +851,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         match (record, field) {
             (Value::Array(arr), PrimField::Length) => {
                 let len: i64 = match arr.len().try_into() {
-                    Ok(len) => ControlFlow::Continue(len),
-                    Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(record_span))),
+                    Ok(len) => Continue(len),
+                    Err(_) => Break(Reason::Error(Error::ArrayTooLarge(record_span))),
                 }?;
-                ControlFlow::Continue(Value::Int(len))
+                Continue(Value::Int(len))
             }
             (Value::Range(Some(start), _, _), PrimField::Start) => {
                 ControlFlow::Continue(Value::Int(start))
@@ -876,7 +863,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             (Value::Range(_, _, Some(end)), PrimField::End) => {
                 ControlFlow::Continue(Value::Int(end))
             }
-            _ => ControlFlow::Break(Reason::Error(Error::Unimplemented("field access", span))),
+            _ => Break(Reason::Error(Error::Unimplemented("field access", span))),
         }
     }
 
@@ -919,9 +906,9 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     Entry::Vacant(entry) => entry.insert(Variable { value, mutability }),
                     Entry::Occupied(_) => panic!("duplicate binding"),
                 };
-                ControlFlow::Continue(())
+                Continue(())
             }
-            PatKind::Discard => ControlFlow::Continue(()),
+            PatKind::Discard => Continue(()),
             PatKind::Elided => panic!("elision used in binding"),
             PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
@@ -930,9 +917,9 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     for (pat, val) in tup.iter().zip(val_tup.into_iter()) {
                         self.bind_value(pat, val, span, mutability)?;
                     }
-                    ControlFlow::Continue(())
+                    Continue(())
                 } else {
-                    ControlFlow::Break(Reason::Error(Error::TupleArity(
+                    Break(Reason::Error(Error::TupleArity(
                         tup.len(),
                         val_tup.len(),
                         pat.span,
@@ -964,15 +951,15 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     #[allow(clippy::similar_names)]
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
-            (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
+            (ExprKind::Hole, _) => Continue(Value::UNIT),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (&ExprKind::Name(Res::Local(node)), rhs) => {
                 let mut var = self.env.get_mut(node).expect("local should be bound");
                 if var.is_mutable() {
                     var.value = rhs;
-                    ControlFlow::Continue(Value::UNIT)
+                    Continue(Value::UNIT)
                 } else {
-                    ControlFlow::Break(Reason::Error(Error::Mutability(lhs.span)))
+                    Break(Reason::Error(Error::Mutability(lhs.span)))
                 }
             }
             (ExprKind::Tuple(var_tup), Value::Tuple(mut tup)) => {
@@ -980,16 +967,16 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     for (expr, val) in var_tup.iter().zip(tup.drain(..)) {
                         self.update_binding(expr, val)?;
                     }
-                    ControlFlow::Continue(Value::UNIT)
+                    Continue(Value::UNIT)
                 } else {
-                    ControlFlow::Break(Reason::Error(Error::TupleArity(
+                    Break(Reason::Error(Error::TupleArity(
                         var_tup.len(),
                         tup.len(),
                         lhs.span,
                     )))
                 }
             }
-            _ => ControlFlow::Break(Reason::Error(Error::Unassignable(lhs.span))),
+            _ => Break(Reason::Error(Error::Unassignable(lhs.span))),
         }
     }
 }
@@ -1005,9 +992,9 @@ fn spec_from_functor_app(functor: &FunctorApp) -> Spec {
 
 fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
     match val {
-        Value::Closure => ControlFlow::Break(Reason::Error(Error::Unimplemented("closure", span))),
-        Value::Global(global, functor) => ControlFlow::Continue((global, functor)),
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        Value::Closure => Break(Reason::Error(Error::Unimplemented("closure", span))),
+        Value::Global(global, functor) => Continue((global, functor)),
+        _ => Break(Reason::Error(Error::Type(
             "Callable",
             val.type_name(),
             span,
@@ -1030,8 +1017,8 @@ fn lit_to_val(lit: &Lit) -> Value {
 
 fn index_array(arr: &[Value], index: i64, span: Span) -> ControlFlow<Reason, Value> {
     match arr.get(index.as_index(span)?) {
-        Some(v) => ControlFlow::Continue(v.clone()),
-        None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, span))),
+        Some(v) => Continue(v.clone()),
+        None => Break(Reason::Error(Error::OutOfRange(index, span))),
     }
 }
 
@@ -1043,11 +1030,11 @@ fn slice_array(
     span: Span,
 ) -> ControlFlow<Reason, Value> {
     if step == 0 {
-        ControlFlow::Break(Reason::Error(Error::RangeStepZero(span)))
+        Break(Reason::Error(Error::RangeStepZero(span)))
     } else {
         let len: i64 = match arr.len().try_into() {
-            Ok(len) => ControlFlow::Continue(len),
-            Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(span))),
+            Ok(len) => Continue(len),
+            Err(_) => Break(Reason::Error(Error::ArrayTooLarge(span))),
         }?;
         let (start, end) = if step > 0 {
             (start.unwrap_or(0), end.unwrap_or(len - 1))
@@ -1061,7 +1048,7 @@ fn slice_array(
             slice.push(index_array(arr, i, span)?);
         }
 
-        ControlFlow::Continue(Value::Array(slice))
+        Continue(Value::Array(slice))
     }
 }
 
@@ -1087,25 +1074,25 @@ fn eval_binop_add(
     match lhs_val {
         Value::Array(mut arr) => {
             arr.append(&mut rhs_val.try_into_array().with_span(rhs_span)?);
-            ControlFlow::Continue(Value::Array(arr))
+            Continue(Value::Array(arr))
         }
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val + rhs))
+            Continue(Value::BigInt(val + rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Double(val + rhs))
+            Continue(Value::Double(val + rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val + rhs))
+            Continue(Value::Int(val + rhs))
         }
         Value::String(val) => {
             let rhs = rhs_val.try_into_string().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::String((val.to_string() + &rhs).into()))
+            Continue(Value::String((val.to_string() + &rhs).into()))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "Array, BigInt, Double, Int, or String",
             lhs_val.type_name(),
             lhs_span,
@@ -1122,13 +1109,13 @@ fn eval_binop_andb(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val & rhs))
+            Continue(Value::BigInt(val & rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val & rhs))
+            Continue(Value::Int(val & rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1146,28 +1133,28 @@ fn eval_binop_div(
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
             if rhs == BigInt::from(0) {
-                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+                Break(Reason::Error(Error::DivZero(rhs_span)))
             } else {
-                ControlFlow::Continue(Value::BigInt(val / rhs))
+                Continue(Value::BigInt(val / rhs))
             }
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs == 0 {
-                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+                Break(Reason::Error(Error::DivZero(rhs_span)))
             } else {
-                ControlFlow::Continue(Value::Int(val / rhs))
+                Continue(Value::Int(val / rhs))
             }
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs == 0.0 {
-                ControlFlow::Break(Reason::Error(Error::DivZero(rhs_span)))
+                Break(Reason::Error(Error::DivZero(rhs_span)))
             } else {
-                ControlFlow::Continue(Value::Double(val / rhs))
+                Continue(Value::Double(val / rhs))
             }
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1178,9 +1165,9 @@ fn eval_binop_div(
 fn supports_eq(val: &Value, val_span: Span) -> ControlFlow<Reason, ()> {
     match val {
         Value::Closure | Value::Global(..) => {
-            ControlFlow::Break(Reason::Error(Error::Equality(val.type_name(), val_span)))
+            Break(Reason::Error(Error::Equality(val.type_name(), val_span)))
         }
-        _ => ControlFlow::Continue(()),
+        _ => Continue(()),
     }
 }
 
@@ -1192,9 +1179,9 @@ fn eval_binop_eq(
 ) -> ControlFlow<Reason, Value> {
     supports_eq(lhs_val, lhs_span)?;
     if lhs_val.type_name() == rhs_val.type_name() {
-        ControlFlow::Continue(Value::Bool(lhs_val == rhs_val))
+        Continue(Value::Bool(lhs_val == rhs_val))
     } else {
-        ControlFlow::Break(Reason::Error(Error::Type(
+        Break(Reason::Error(Error::Type(
             lhs_val.type_name(),
             rhs_val.type_name(),
             rhs_span,
@@ -1212,35 +1199,31 @@ fn eval_binop_exp(
         Value::BigInt(val) => {
             let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs_val < 0 {
-                ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
+                Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
-                    Ok(v) => ControlFlow::Continue(v),
-                    Err(_) => {
-                        ControlFlow::Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span)))
-                    }
+                    Ok(v) => Continue(v),
+                    Err(_) => Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span))),
                 }?;
-                ControlFlow::Continue(Value::BigInt(val.pow(rhs_val)))
+                Continue(Value::BigInt(val.pow(rhs_val)))
             }
         }
-        Value::Double(val) => ControlFlow::Continue(Value::Double(
+        Value::Double(val) => Continue(Value::Double(
             val.powf(rhs_val.try_into().with_span(rhs_span)?),
         )),
         Value::Int(val) => {
             let rhs_val: i64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs_val < 0 {
-                ControlFlow::Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
+                Break(Reason::Error(Error::Negative(rhs_val, rhs_span)))
             } else {
                 let rhs_val: u32 = match rhs_val.try_into() {
-                    Ok(v) => ControlFlow::Continue(v),
-                    Err(_) => {
-                        ControlFlow::Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span)))
-                    }
+                    Ok(v) => Continue(v),
+                    Err(_) => Break(Reason::Error(Error::IntTooLarge(rhs_val, rhs_span))),
                 }?;
-                ControlFlow::Continue(Value::Int(val.pow(rhs_val)))
+                Continue(Value::Int(val.pow(rhs_val)))
             }
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1257,17 +1240,17 @@ fn eval_binop_gt(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val > rhs))
+            Continue(Value::Bool(val > rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val > rhs))
+            Continue(Value::Bool(val > rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val > rhs))
+            Continue(Value::Bool(val > rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1284,17 +1267,17 @@ fn eval_binop_gte(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val >= rhs))
+            Continue(Value::Bool(val >= rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val >= rhs))
+            Continue(Value::Bool(val >= rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val >= rhs))
+            Continue(Value::Bool(val >= rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1311,17 +1294,17 @@ fn eval_binop_lt(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val < rhs))
+            Continue(Value::Bool(val < rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val < rhs))
+            Continue(Value::Bool(val < rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val < rhs))
+            Continue(Value::Bool(val < rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1338,17 +1321,17 @@ fn eval_binop_lte(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val <= rhs))
+            Continue(Value::Bool(val <= rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val <= rhs))
+            Continue(Value::Bool(val <= rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Bool(val <= rhs))
+            Continue(Value::Bool(val <= rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1365,17 +1348,17 @@ fn eval_binop_mod(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val % rhs))
+            Continue(Value::BigInt(val % rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val % rhs))
+            Continue(Value::Int(val % rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Double(val % rhs))
+            Continue(Value::Double(val % rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1392,17 +1375,17 @@ fn eval_binop_mul(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val * rhs))
+            Continue(Value::BigInt(val * rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val * rhs))
+            Continue(Value::Int(val * rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Double(val * rhs))
+            Continue(Value::Double(val * rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1418,9 +1401,9 @@ fn eval_binop_neq(
 ) -> ControlFlow<Reason, Value> {
     supports_eq(lhs_val, lhs_span)?;
     if lhs_val.type_name() == rhs_val.type_name() {
-        ControlFlow::Continue(Value::Bool(lhs_val != rhs_val))
+        Continue(Value::Bool(lhs_val != rhs_val))
     } else {
-        ControlFlow::Break(Reason::Error(Error::Type(
+        Break(Reason::Error(Error::Type(
             lhs_val.type_name(),
             rhs_val.type_name(),
             rhs_span,
@@ -1437,13 +1420,13 @@ fn eval_binop_orb(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val | rhs))
+            Continue(Value::BigInt(val | rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val | rhs))
+            Continue(Value::Int(val | rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1461,20 +1444,20 @@ fn eval_binop_shl(
         Value::BigInt(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs > 0 {
-                ControlFlow::Continue(Value::BigInt(val << rhs))
+                Continue(Value::BigInt(val << rhs))
             } else {
-                ControlFlow::Continue(Value::BigInt(val >> rhs.abs()))
+                Continue(Value::BigInt(val >> rhs.abs()))
             }
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs > 0 {
-                ControlFlow::Continue(Value::Int(val << rhs))
+                Continue(Value::Int(val << rhs))
             } else {
-                ControlFlow::Continue(Value::Int(val >> rhs.abs()))
+                Continue(Value::Int(val >> rhs.abs()))
             }
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1492,20 +1475,20 @@ fn eval_binop_shr(
         Value::BigInt(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs > 0 {
-                ControlFlow::Continue(Value::BigInt(val >> rhs))
+                Continue(Value::BigInt(val >> rhs))
             } else {
-                ControlFlow::Continue(Value::BigInt(val << rhs.abs()))
+                Continue(Value::BigInt(val << rhs.abs()))
             }
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
             if rhs > 0 {
-                ControlFlow::Continue(Value::Int(val >> rhs))
+                Continue(Value::Int(val >> rhs))
             } else {
-                ControlFlow::Continue(Value::Int(val << rhs.abs()))
+                Continue(Value::Int(val << rhs.abs()))
             }
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1522,17 +1505,17 @@ fn eval_binop_sub(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val - rhs))
+            Continue(Value::BigInt(val - rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val - rhs))
+            Continue(Value::Int(val - rhs))
         }
         Value::Double(val) => {
             let rhs: f64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Double(val - rhs))
+            Continue(Value::Double(val - rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt, Double, or Int",
             lhs_val.type_name(),
             lhs_span,
@@ -1549,13 +1532,13 @@ fn eval_binop_xorb(
     match lhs_val {
         Value::BigInt(val) => {
             let rhs: BigInt = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::BigInt(val ^ rhs))
+            Continue(Value::BigInt(val ^ rhs))
         }
         Value::Int(val) => {
             let rhs: i64 = rhs_val.try_into().with_span(rhs_span)?;
-            ControlFlow::Continue(Value::Int(val ^ rhs))
+            Continue(Value::Int(val ^ rhs))
         }
-        _ => ControlFlow::Break(Reason::Error(Error::Type(
+        _ => Break(Reason::Error(Error::Type(
             "BigInt or Int",
             lhs_val.type_name(),
             lhs_span,

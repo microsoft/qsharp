@@ -1170,14 +1170,14 @@ pub enum Ty {
     Err,
     /// A placeholder type variable used during type inference.
     Infer(InferId),
-    /// A resolved name.
-    Name(Res),
     /// A type parameter.
     Param(String),
     /// A primitive type.
     Prim(PrimTy),
     /// A tuple type.
     Tuple(Vec<Ty>),
+    /// A user-defined type.
+    Udt(Res),
 }
 
 impl Ty {
@@ -1207,7 +1207,6 @@ impl Display for Ty {
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Name(res) => Debug::fmt(res, f),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
@@ -1225,6 +1224,7 @@ impl Display for Ty {
                 }
                 f.write_str(")")
             }
+            Ty::Udt(res) => write!(f, "UDT<{res}>"),
         }
     }
 }
