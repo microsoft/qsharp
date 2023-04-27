@@ -13,25 +13,6 @@ and are not called out specifically here.
 
 ## Unsupported Features
 
-### Conjugate expressions (within-apply)
-
-```qsharp
-within {
-    Prepare(qs);
-}
-apply {
-    Op(qs);
-}
-```
-
-#### Alternative: Explicitly define adjoint preparation
-
-```qsharp
-Prepare(qs);
-Op(qs);
-Adjoint Prepare(qs);
-```
-
 ### String Interpolation
 
 ```qsharp
@@ -90,3 +71,4 @@ supported by the evaluator, matching the callables present in the standard libra
 - Callables as arguments to other callables (ie: `operation ApplyToEach(op : (Qubit => Unit), q : Qubit) : Unit {}`)
 - Controlled generator (`controlled distribute` and `controlled adjoint distribute`)
 - Adjoint generator (`adjoint invert` and `controlled adjoint invert`)
+- Conjugate expressions (within-apply)
