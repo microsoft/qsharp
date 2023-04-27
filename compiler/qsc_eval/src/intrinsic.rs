@@ -40,13 +40,13 @@ pub(crate) fn invoke_intrinsic(
             "DumpMachine" => {
                 let (state, qubit_count) = capture_quantum_state();
                 match out.state(state, qubit_count) {
-                    Ok(_) => Continue(Value::UNIT),
+                    Ok(_) => Continue(Value::unit()),
                     Err(_) => Break(Reason::Error(Error::Output(name_span))),
                 }
             }
 
             "Message" => match out.message(&args.try_into_string().with_span(args_span)?) {
-                Ok(_) => Continue(Value::UNIT),
+                Ok(_) => Continue(Value::unit()),
                 Err(_) => Break(Reason::Error(Error::Output(name_span))),
             },
 
@@ -71,21 +71,14 @@ pub(crate) fn invoke_intrinsic(
                 Continue(Value::Double(val.atan()))
             }
 
-            "ArcTan2" => {
-                let mut args = args.try_into_tuple().with_span(args_span)?;
-                if args.len() == 2 {
-                    let (a2, a1) = (
-                        args.pop().expect("tuple should have 2 entries"),
-                        args.pop().expect("tuple should have 2 entries"),
-                    );
-                    let val: f64 = a1.try_into().with_span(args_span)?;
-                    Continue(Value::Double(
-                        val.atan2(a2.try_into().with_span(args_span)?),
-                    ))
-                } else {
-                    Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+            "ArcTan2" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                [x, y] => {
+                    let x: f64 = x.clone().try_into().with_span(args_span)?;
+                    let y = y.clone().try_into().with_span(args_span)?;
+                    Continue(Value::Double(x.atan2(y)))
                 }
-            }
+                args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span))),
+            },
 
             "Cos" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
@@ -117,33 +110,23 @@ pub(crate) fn invoke_intrinsic(
                 Continue(Value::Double(val.tanh()))
             }
 
-            "DrawRandomInt" => {
-                let mut args = args.try_into_tuple().with_span(args_span)?;
-                if args.len() == 2 {
-                    let (a2, a1) = (
-                        args.pop().expect("tuple should have 2 entries"),
-                        args.pop().expect("tuple should have 2 entries"),
-                    );
-                    invoke_draw_random_int(a1, a2, args_span)
-                } else {
-                    Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
-                }
-            }
+            "DrawRandomInt" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                [lo, hi] => invoke_draw_random_int(lo.clone(), hi.clone(), args_span),
+                args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span))),
+            },
 
             _ => Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
         }
     }
 }
 
-fn invoke_draw_random_int(a1: Value, a2: Value, args_span: Span) -> ControlFlow<Reason, Value> {
-    let low_bound: i64 = a1.try_into().with_span(args_span)?;
-    let high_bound: i64 = a2.try_into().with_span(args_span)?;
-    if low_bound > high_bound {
+fn invoke_draw_random_int(lo: Value, hi: Value, args_span: Span) -> ControlFlow<Reason, Value> {
+    let lo: i64 = lo.try_into().with_span(args_span)?;
+    let hi: i64 = hi.try_into().with_span(args_span)?;
+    if lo > hi {
         Break(Reason::Error(Error::EmptyRange(args_span)))
     } else {
-        Continue(Value::Int(
-            rand::thread_rng().gen_range(low_bound..=high_bound),
-        ))
+        Continue(Value::Int(rand::thread_rng().gen_range(lo..=hi)))
     }
 }
 
@@ -158,40 +141,31 @@ fn invoke_quantum_intrinsic(
             match $chosen_op {
                 $($(stringify!($op1) => {
                     $op1(args.try_into().with_span(args_span)?);
-                    Continue(Value::UNIT)
+                    Continue(Value::unit())
                 })*
                 $(stringify!($op2) => {
-                    let mut args = args.try_into_tuple().with_span(args_span)?;
-                    if args.len() == 2 {
-                        let (a2, a1) = (
-                            args.pop().expect("tuple should have 2 entries"),
-                            args.pop().expect("tuple should have 2 entries"),
-                        );
-                        $op2(
-                            a1.try_into().with_span(args_span)?,
-                            a2.try_into().with_span(args_span)?,
-                        );
-                        Continue(Value::UNIT)
-                    } else {
-                        Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                    match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                        [x, y] =>  {
+                            $op2(
+                                x.clone().try_into().with_span(args_span)?,
+                                y.clone().try_into().with_span(args_span)?,
+                            );
+                            Continue(Value::unit())
+                        }
+                        args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                     }
                 })*
                 $(stringify!($op3) => {
-                    let mut args = args.try_into_tuple().with_span(args_span)?;
-                    if args.len() == 3 {
-                        let (a3, a2, a1) = (
-                            args.pop().expect("tuple should have 3 entries"),
-                            args.pop().expect("tuple should have 3 entries"),
-                            args.pop().expect("tuple should have 3 entries"),
-                        );
-                        $op3(
-                            a1.try_into().with_span(args_span)?,
-                            a2.try_into().with_span(args_span)?,
-                            a3.try_into().with_span(args_span)?,
-                        );
-                        Continue(Value::UNIT)
-                    } else {
-                        Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
+                    match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                        [x, y, z] => {
+                            $op3(
+                                x.clone().try_into().with_span(args_span)?,
+                                y.clone().try_into().with_span(args_span)?,
+                                z.clone().try_into().with_span(args_span)?,
+                            );
+                            Continue(Value::unit())
+                        }
+                        args => Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
                     }
                 })*)*
 

@@ -105,7 +105,7 @@ impl Interpreter {
         line: &str,
         receiver: &mut dyn Receiver,
     ) -> Result<Value, AggregateError<Error>> {
-        let mut result = Value::UNIT;
+        let mut result = Value::unit();
         for fragment in self.compiler.compile_fragment(line) {
             match fragment {
                 Fragment::Stmt(stmt) => match self.stmt(receiver, &stmt) {
@@ -115,7 +115,7 @@ impl Interpreter {
                 Fragment::Callable(decl) => {
                     self.callables.insert(self.next_item_id, decl);
                     self.next_item_id = self.next_item_id.successor();
-                    result = Value::UNIT;
+                    result = Value::unit();
                 }
                 Fragment::Error(errors) => {
                     return Err(AggregateError(
