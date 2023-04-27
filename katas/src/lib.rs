@@ -9,6 +9,7 @@ mod tests;
 use qsc::stateless::{self, eval};
 use qsc_eval::output::Receiver;
 use qsc_eval::val::Value;
+use qsc_frontend::compile::SourceMap;
 
 const KATA_VERIFY: &str = "Kata.Verify()";
 
@@ -19,13 +20,21 @@ const KATA_VERIFY: &str = "Kata.Verify()";
 ///
 /// Will panic if Kata.Verify() does not return a Bool as result.
 pub fn run_kata(
-    sources: impl IntoIterator<Item = impl AsRef<str>>,
+    exercise: &str,
+    verify: &str,
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
+    let sources = SourceMap::new(
+        [
+            ("exercise".into(), exercise.to_string()),
+            ("verify".into(), verify.to_string()),
+        ],
+        KATA_VERIFY.to_string(),
+    );
+
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
-    let stdlib = true;
-    match eval(stdlib, KATA_VERIFY, receiver, sources) {
+    match eval(true, receiver, sources) {
         Ok(value) => match value {
             Value::Bool(value) => Ok(value),
             _ => panic!("{KATA_VERIFY} did not return a Bool value."),

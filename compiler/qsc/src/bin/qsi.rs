@@ -7,13 +7,14 @@ use clap::Parser;
 use miette::{Diagnostic, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::error::Reporter;
+use qsc::error;
 use qsc::stateful::{Error, Interpreter};
 use qsc_eval::{
     output::{format_state_id, Receiver},
     val::Value,
     AggregateError,
 };
+use qsc_frontend::compile::SourceMap;
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -48,11 +49,10 @@ fn main() -> Result<ExitCode> {
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
 
-    let interpreter = Interpreter::new(!cli.nostdlib, sources.clone());
+    let interpreter = Interpreter::new(!cli.nostdlib, SourceMap::new(sources, String::new()));
     if let Err((_, unit)) = interpreter {
-        let reporter = Reporter::new(&unit.sources, cli.sources, sources, cli.entry);
         for error in unit.errors {
-            eprintln!("{:?}", reporter.report(error));
+            eprintln!("{:?}", error::report(&unit.sources, error));
         }
         return Ok(ExitCode::FAILURE);
     }
@@ -112,8 +112,11 @@ fn print_prompt(is_multiline: bool) {
     io::stdout().flush().expect("Could not flush stdout");
 }
 
-fn read_source(paths: &[PathBuf]) -> io::Result<Vec<String>> {
-    paths.iter().map(fs::read_to_string).collect()
+fn read_source(paths: &[PathBuf]) -> io::Result<Vec<(PathBuf, String)>> {
+    paths
+        .iter()
+        .map(|p| Ok((p.clone(), fs::read_to_string(p)?)))
+        .collect()
 }
 
 struct InteractiveErrorReporter {

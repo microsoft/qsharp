@@ -5,6 +5,7 @@ use crate::formatting::{DisplayableOutput, FormattingReceiver};
 use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
 use qsc::stateful;
 use qsc_eval::val::Value;
+use qsc_frontend::compile::SourceMap;
 
 #[pymodule]
 fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -28,8 +29,7 @@ impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
-        const SOURCES: [&str; 0] = [];
-        let result = stateful::Interpreter::new(true, SOURCES);
+        let result = stateful::Interpreter::new(true, SourceMap::new([], String::new()));
         match result {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err((err, _)) => Err(PyException::new_err(format!("{:?}", err))),

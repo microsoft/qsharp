@@ -5,6 +5,7 @@
 mod given_interpreter {
     use crate::stateful::{self, Interpreter};
     use qsc_eval::{output::CursorReceiver, val::Value, AggregateError};
+    use qsc_frontend::compile::SourceMap;
     use std::{error::Error, fmt::Write, io::Cursor, iter};
 
     fn line(
@@ -23,9 +24,8 @@ mod given_interpreter {
             use super::*;
             #[test]
             fn stdlib_members_should_be_unavailable() {
-                const SOURCES: [&str; 0] = [];
-                let mut interpreter =
-                    Interpreter::new(false, SOURCES).expect("Failed to compile base environment.");
+                let mut interpreter = Interpreter::new(false, SourceMap::new([], String::new()))
+                    .expect("empty sources should compile");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
                 is_only_error(
@@ -105,6 +105,7 @@ mod given_interpreter {
     mod with_sources {
         use super::*;
         use indoc::indoc;
+        use qsc_frontend::compile::SourceMap;
 
         #[test]
         fn stdlib_members_can_be_accessed_from_sources() {
@@ -115,8 +116,8 @@ mod given_interpreter {
                 }
             }"#};
 
-            let mut interpreter =
-                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
+            let sources = SourceMap::new([("test".into(), source.to_string())], String::new());
+            let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_unit_with_output(&result, &output, "hello there...");
         }
@@ -134,8 +135,8 @@ mod given_interpreter {
                 }
             }"#};
 
-            let mut interpreter =
-                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
+            let sources = SourceMap::new([("test".into(), source.to_string())], String::new());
+            let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test.Main()");
@@ -157,8 +158,8 @@ mod given_interpreter {
                 }
             }"#};
 
-            let mut interpreter =
-                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
+            let sources = SourceMap::new([("test".into(), source.to_string())], String::new());
+            let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
@@ -167,8 +168,8 @@ mod given_interpreter {
     }
 
     fn get_interpreter() -> Interpreter {
-        const SOURCES: [&str; 0] = [];
-        Interpreter::new(true, SOURCES).expect("Failed to compile base environment.")
+        Interpreter::new(true, SourceMap::new([], String::new()))
+            .expect("empty sources should compile")
     }
 
     fn is_only_value(

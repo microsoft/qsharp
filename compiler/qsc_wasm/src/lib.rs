@@ -10,9 +10,8 @@ use qsc_eval::{
     output,
     output::{format_state_id, Receiver},
 };
-use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_frontend::compile::{PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
-use qsc_passes::run_default_passes;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -205,7 +204,7 @@ impl std::fmt::Display for VSDiagnostic {
 
 impl<T> From<&T> for VSDiagnostic
 where
-    T: Diagnostic,
+    T: Diagnostic + ?Sized,
 {
     fn from(err: &T) -> Self {
         let label = err.labels().and_then(|mut ls| ls.next());
@@ -234,20 +233,17 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     thread_local! {
         static STORE_STD: (PackageStore, PackageId) = {
             let mut store = PackageStore::new();
-            let mut std_unit = compile::std();
-            run_default_passes(&mut std_unit);
-            let std_id = store.insert(std_unit);
-            (store, std_id)
+            let std = store.insert(qsc::compile::std());
+            (store, std)
         };
     }
 
     STORE_STD.with(|(store, std)| {
-        let mut unit = compile(store, [*std], [code], "");
-        let pass_errs = run_default_passes(&mut unit);
-        unit.errors
-            .iter()
-            .map(Into::into)
-            .chain(pass_errs.iter().map(Into::into))
+        let sources = SourceMap::new([("code".into(), code.to_string())], String::new());
+        let (_, reports) = qsc::compile::compile(store, [*std], sources);
+        reports
+            .into_iter()
+            .map(|r| VSDiagnostic::from(AsRef::<dyn Diagnostic + 'static>::as_ref(&r)))
             .collect()
     })
 }
@@ -316,7 +312,8 @@ where
     F: Fn(&str),
 {
     let mut out = CallbackReceiver { event_cb };
-    let context = compile_execution_context(true, expr, [code.to_string()]);
+    let sources = SourceMap::new([("code".into(), code.to_string())], expr.to_string());
+    let context = compile_execution_context(true, sources);
     if let Err(err) = context {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
@@ -385,7 +382,7 @@ where
     F: Fn(&str),
 {
     let mut out = CallbackReceiver { event_cb };
-    run_kata([verification_source, kata_implementation], &mut out)
+    run_kata(kata_implementation, verification_source, &mut out)
 }
 
 #[wasm_bindgen]

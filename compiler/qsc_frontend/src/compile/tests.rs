@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Error, PackageStore, SourceIndex, SourceMap};
+use super::{compile, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -13,6 +13,7 @@ use qsc_hir::{
     },
     mut_visit::MutVisitor,
 };
+use std::path::Path;
 
 fn error_span(error: &Error) -> Span {
     let label = error
@@ -27,14 +28,14 @@ fn error_span(error: &Error) -> Span {
     }
 }
 
-fn source_span(sources: &SourceMap, error: &Error) -> (SourceIndex, Span) {
+fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a Path, Span) {
     let span = error_span(error);
-    let (index, offset) = sources.offset(span.lo);
+    let source = sources.find_by_offset(span.lo);
     (
-        index,
+        &source.name,
         Span {
-            lo: span.lo - offset,
-            hi: span.hi - offset,
+            lo: span.lo - source.offset,
+            hi: span.hi - source.offset,
         },
     )
 }
@@ -44,12 +45,18 @@ fn one_file_no_entry() {
     let unit = compile(
         &PackageStore::new(),
         [],
-        [indoc! {"
-            namespace Foo {
-                function A() : Unit {}
-            }
-        "}],
-        "",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Foo {
+                        function A() : Unit {}
+                    }
+                "}
+                .to_string(),
+            )],
+            String::new(),
+        ),
     );
 
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -62,14 +69,20 @@ fn one_file_error() {
     let unit = compile(
         &PackageStore::new(),
         [],
-        [indoc! {"
-            namespace Foo {
-                function A() : Unit {
-                    x
-                }
-            }
-        "}],
-        "",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Foo {
+                        function A() : Unit {
+                            x
+                        }
+                    }
+                "}
+                .to_string(),
+            )],
+            String::new(),
+        ),
     );
 
     let errors: Vec<_> = unit
@@ -78,7 +91,7 @@ fn one_file_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(vec![(SourceIndex(0), Span { lo: 50, hi: 51 })], errors);
+    assert_eq!(vec![("source1".as_ref(), Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -86,21 +99,31 @@ fn two_files_dependency() {
     let unit = compile(
         &PackageStore::new(),
         [],
-        [
-            indoc! {"
-                namespace Foo {
-                    function A() : Unit {}
-                }
-            "},
-            indoc! {"
-                namespace Foo {
-                    function B() : Unit {
-                        A();
-                    }
-                }
-            "},
-        ],
-        "",
+        SourceMap::new(
+            [
+                (
+                    "source1".into(),
+                    indoc! {"
+                        namespace Foo {
+                            function A() : Unit {}
+                        }
+                    "}
+                    .to_string(),
+                ),
+                (
+                    "source2".into(),
+                    indoc! {"
+                        namespace Foo {
+                            function B() : Unit {
+                                A();
+                            }
+                        }
+                    "}
+                    .to_string(),
+                ),
+            ],
+            String::new(),
+        ),
     );
 
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -111,23 +134,33 @@ fn two_files_mutual_dependency() {
     let unit = compile(
         &PackageStore::new(),
         [],
-        [
-            indoc! {"
-                namespace Foo {
-                    function A() : Unit {
-                        B();
-                    }
-                }
-            "},
-            indoc! {"
-                namespace Foo {
-                    function B() : Unit {
-                        A();
-                    }
-                }    
-            "},
-        ],
-        "",
+        SourceMap::new(
+            [
+                (
+                    "source1".into(),
+                    indoc! {"
+                        namespace Foo {
+                            function A() : Unit {
+                                B();
+                            }
+                        }
+                    "}
+                    .to_string(),
+                ),
+                (
+                    "source2".into(),
+                    indoc! {"
+                        namespace Foo {
+                            function B() : Unit {
+                                A();
+                            }
+                        }    
+                    "}
+                    .to_string(),
+                ),
+            ],
+            String::new(),
+        ),
     );
 
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -138,21 +171,31 @@ fn two_files_error() {
     let unit = compile(
         &PackageStore::new(),
         [],
-        [
-            indoc! {"
-                namespace Foo {
-                    function A() : Unit {}
-                }
-            "},
-            indoc! {"
-                namespace Foo {
-                    function B() : Unit {
-                        C();
-                    }
-                }
-            "},
-        ],
-        "",
+        SourceMap::new(
+            [
+                (
+                    "source1".into(),
+                    indoc! {"
+                        namespace Foo {
+                            function A() : Unit {}
+                        }
+                    "}
+                    .to_string(),
+                ),
+                (
+                    "source2".into(),
+                    indoc! {"
+                        namespace Foo {
+                            function B() : Unit {
+                                C();
+                            }
+                        }
+                    "}
+                    .to_string(),
+                ),
+            ],
+            String::new(),
+        ),
     );
 
     let errors: Vec<_> = unit
@@ -161,7 +204,7 @@ fn two_files_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(vec![(SourceIndex(1), Span { lo: 50, hi: 51 })], errors);
+    assert_eq!(vec![("source2".as_ref(), Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -169,12 +212,18 @@ fn entry_call_operation() {
     let unit = compile(
         &PackageStore::new(),
         [],
-        [indoc! {"
-            namespace Foo {
-                operation A() : Unit {}
-            }
-        "}],
-        "Foo.A()",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Foo {
+                        operation A() : Unit {}
+                    }
+                "}
+                .to_string(),
+            )],
+            "Foo.A()".to_string(),
+        ),
     );
 
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -196,18 +245,24 @@ fn entry_error() {
     let unit = compile(
         &PackageStore::new(),
         [],
-        [indoc! {"
-            namespace Foo {
-                operation A() : Unit {}
-            }
-        "}],
-        "Foo.B()",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Foo {
+                        operation A() : Unit {}
+                    }
+                "}
+                .to_string(),
+            )],
+            "Foo.B()".to_string(),
+        ),
     );
 
-    let errors = unit.errors;
-    let (source, span) = source_span(&unit.sources, &errors[0]);
-    assert_eq!(source, SourceIndex(1));
-    assert_eq!(span, Span { lo: 0, hi: 5 });
+    assert_eq!(
+        ("<entry>".as_ref(), Span { lo: 0, hi: 5 }),
+        source_span(&unit.sources, &unit.errors[0])
+    );
 }
 
 #[test]
@@ -228,14 +283,20 @@ fn replace_node() {
     let mut unit = compile(
         &PackageStore::new(),
         [],
-        [indoc! {"
-            namespace A {
-                function Foo() : Int {
-                    1
-                }
-            }
-        "}],
-        "",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace A {
+                        function Foo() : Int {
+                            1
+                        }
+                    }
+                "}
+                .to_string(),
+            )],
+            String::new(),
+        ),
     );
 
     Replacer.visit_package(&mut unit.package);
@@ -260,27 +321,40 @@ fn package_dependency() {
     let unit1 = compile(
         &store,
         [],
-        [indoc! {"
-            namespace Package1 {
-                function Foo() : Int {
-                    1
-                }
-            }
-        "}],
-        "",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Package1 {
+                        function Foo() : Int {
+                            1
+                        }
+                    }
+                "}
+                .to_string(),
+            )],
+            String::new(),
+        ),
     );
+
     let package1 = store.insert(unit1);
     let unit2 = compile(
         &store,
         [package1],
-        [indoc! {"
-            namespace Package2 {
-                function Bar() : Int {
-                    Package1.Foo()
-                }
-            }
-        "}],
-        "",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Package2 {
+                        function Bar() : Int {
+                            Package1.Foo()
+                        }
+                    }
+                "}
+                .to_string(),
+            )],
+            String::new(),
+        ),
     );
 
     let foo_id = LocalItemId::from(1);
@@ -309,28 +383,40 @@ fn package_dependency_internal() {
     let unit1 = compile(
         &store,
         [],
-        [indoc! {"
-            namespace Package1 {
-                internal function Foo() : Int {
-                    1
-                }
-            }
-        "}],
-        "",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Package1 {
+                        internal function Foo() : Int {
+                            1
+                        }
+                    }
+                "}
+                .to_string(),
+            )],
+            String::new(),
+        ),
     );
 
     let package1 = store.insert(unit1);
     let unit2 = compile(
         &store,
         [package1],
-        [indoc! {"
-            namespace Package2 {
-                function Bar() : Int {
-                    Package1.Foo()
-                }
-            }
-        "}],
-        "",
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Package2 {
+                        function Bar() : Int {
+                            Package1.Foo()
+                        }
+                    }
+                "}
+                .to_string(),
+            )],
+            String::new(),
+        ),
     );
 
     let ItemKind::Callable(callable) = &unit2
@@ -353,17 +439,23 @@ fn std_dependency() {
     let unit = compile(
         &store,
         [std],
-        [indoc! {"
-            namespace Foo {
-                open Microsoft.Quantum.Intrinsic;
+        SourceMap::new(
+            [(
+                "source1".into(),
+                indoc! {"
+                    namespace Foo {
+                        open Microsoft.Quantum.Intrinsic;
 
-                operation Main() : Unit {
-                    use q = Qubit();
-                    X(q);
-                }
-            }
-        "}],
-        "Foo.Main()",
+                        operation Main() : Unit {
+                            use q = Qubit();
+                            X(q);
+                        }
+                    }
+                "}
+                .to_string(),
+            )],
+            "Foo.Main()".to_string(),
+        ),
     );
 
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);

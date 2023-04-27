@@ -5,10 +5,9 @@
 
 use clap::{error::ErrorKind, Parser, ValueEnum};
 use miette::{IntoDiagnostic, Result};
-use qsc::error::Reporter;
-use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc::compile::compile;
+use qsc_frontend::compile::{PackageStore, SourceMap};
 use qsc_hir::hir::Package;
-use qsc_passes::{entry_point::extract_entry, run_default_passes};
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -71,36 +70,16 @@ fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
     validate_input(&cli.input, &cli.entry.clone().unwrap_or_default()).into_diagnostic()?;
     let sources: Vec<_> = cli.input.iter().map(read_source).collect();
+    let entry = cli.entry.unwrap_or_default();
 
     let mut store = PackageStore::new();
     let dependencies = if cli.nostdlib {
         vec![]
     } else {
-        let mut std = compile::std();
-        if !std.errors.is_empty() {
-            let reporter = Reporter::new(&std.sources, cli.input, sources, cli.entry);
-            for error in std.errors.drain(..) {
-                eprintln!("{:?}", reporter.report(error));
-            }
-            return Ok(ExitCode::FAILURE);
-        }
-        let pass_errs = run_default_passes(&mut std);
-        if !pass_errs.is_empty() {
-            let reporter = Reporter::new(&std.sources, cli.input, sources, cli.entry);
-            for error in pass_errs {
-                eprintln!("{:?}", reporter.report(error));
-            }
-            return Ok(ExitCode::FAILURE);
-        }
-        vec![store.insert(std)]
+        vec![store.insert(qsc::compile::std())]
     };
-    let mut unit = compile(
-        &store,
-        dependencies,
-        &sources,
-        &cli.entry.clone().unwrap_or_default(),
-    );
-    let pass_errs = run_default_passes(&mut unit);
+
+    let (unit, reports) = compile(&store, dependencies, SourceMap::new(sources, entry));
 
     for (_, emit) in cli.emit.iter().enumerate() {
         match emit {
@@ -114,28 +93,11 @@ fn main() -> Result<ExitCode> {
         }
     }
 
-    if unit.errors.is_empty() && pass_errs.is_empty() {
-        if cli.entry.is_none() {
-            match extract_entry(&unit.package) {
-                Ok(..) => Ok(ExitCode::SUCCESS),
-                Err(errors) => {
-                    let reporter = Reporter::new(&unit.sources, cli.input, sources, cli.entry);
-                    for error in errors {
-                        eprintln!("{:?}", reporter.report(error));
-                    }
-                    Ok(ExitCode::FAILURE)
-                }
-            }
-        } else {
-            Ok(ExitCode::SUCCESS)
-        }
+    if reports.is_empty() {
+        Ok(ExitCode::SUCCESS)
     } else {
-        let reporter = Reporter::new(&unit.sources, cli.input, sources, cli.entry);
-        for error in unit.errors.drain(..) {
-            eprintln!("{:?}", reporter.report(error));
-        }
-        for error in pass_errs {
-            eprintln!("{:?}", reporter.report(error));
+        for report in reports {
+            eprintln!("{report:?}");
         }
         Ok(ExitCode::FAILURE)
     }
@@ -146,10 +108,15 @@ fn emit_hir(package: &Package, out_dir: impl AsRef<Path>) {
     fs::write(path, format!("{package}")).unwrap();
 }
 
-fn read_source(path: impl AsRef<Path>) -> String {
+fn read_source(path: impl AsRef<Path>) -> (PathBuf, String) {
     if path.as_ref().as_os_str() == "-" {
-        io::stdin().lines().map(Result::unwrap).collect()
+        (
+            "<stdin>".into(),
+            io::stdin().lines().map(Result::unwrap).collect(),
+        )
     } else {
-        fs::read_to_string(path).unwrap()
+        let path = path.as_ref();
+        let content = fs::read_to_string(path).unwrap();
+        (path.to_owned(), content)
     }
 }

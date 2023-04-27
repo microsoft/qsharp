@@ -5,7 +5,7 @@ use std::f64::consts;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::run_default_passes;
 
 use crate::{
@@ -23,7 +23,11 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     assert!(run_default_passes(&mut std).is_empty());
 
     let stdlib = store.insert(std);
-    let mut unit = compile(&store, [stdlib], [file], expr);
+    let mut unit = compile(
+        &store,
+        [stdlib],
+        SourceMap::new([("test".into(), file.to_string())], expr.to_string()),
+    );
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
 

@@ -3,6 +3,7 @@
 
 mod tests;
 
+use crate::compile;
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
@@ -12,7 +13,7 @@ use qsc_eval::{
     AggregateError, Env,
 };
 use qsc_frontend::{
-    compile::{self, compile, CompileUnit, PackageStore},
+    compile::{compile, CompileUnit, PackageStore, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
@@ -25,7 +26,7 @@ pub enum Error {
     #[error("program encountered an error while running")]
     Eval(#[from] qsc_eval::Error),
     #[error("could not compile source code")]
-    Compile(#[from] compile::Error),
+    Compile(#[from] qsc_frontend::compile::Error),
     #[error("could not compile source code")]
     Pass(#[from] qsc_passes::Error),
     #[error("could not compile line")]
@@ -47,28 +48,15 @@ impl Interpreter {
     /// If the compilation of the sources fails, an error is returned.
     pub fn new(
         stdlib: bool,
-        sources: impl IntoIterator<Item = impl AsRef<str>>,
+        sources: SourceMap,
     ) -> Result<Self, (AggregateError<Error>, CompileUnit)> {
         let mut store = PackageStore::new();
         let mut session_deps = Vec::new();
-
         if stdlib {
-            let mut unit = compile::std();
-            let pass_errs = run_default_passes(&mut unit);
-            if unit.errors.is_empty() && pass_errs.is_empty() {
-                session_deps.push(store.insert(unit));
-            } else {
-                let errors = unit
-                    .errors
-                    .iter()
-                    .map(|e| Error::Compile(e.clone()))
-                    .chain(pass_errs.into_iter().map(Error::Pass))
-                    .collect();
-                return Err((AggregateError(errors), unit));
-            }
+            session_deps.push(store.insert(compile::std()));
         }
 
-        let mut unit = compile(&store, session_deps.iter().copied(), sources, "");
+        let mut unit = compile(&store, session_deps.iter().copied(), sources);
         let pass_errs = run_default_passes(&mut unit);
         if !unit.errors.is_empty() || !pass_errs.is_empty() {
             let errors = unit
@@ -83,8 +71,7 @@ impl Interpreter {
         let basis_package = store.insert(unit);
         session_deps.push(basis_package);
 
-        let sources: [&str; 0] = [];
-        let session_package = store.insert(compile(&store, [], sources, ""));
+        let session_package = store.insert(compile(&store, [], SourceMap::new([], String::new())));
         let compiler = Compiler::new(&store, session_deps);
         Ok(Self {
             store,

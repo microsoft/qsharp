@@ -4,13 +4,17 @@
 use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore, SourceMap};
 use qsc_hir::hir::{CallableDecl, ItemKind};
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
-    let mut unit = compile(&store, [], [file], expr);
+    let mut unit = compile(
+        &store,
+        [],
+        SourceMap::new([("test".into(), file.to_string())], expr.to_string()),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(&mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");

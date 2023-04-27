@@ -8,7 +8,7 @@ use qsc_eval::{
     val::{GlobalId, Value},
     AggregateError, Env,
 };
-use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::hir::{CallableDecl, Expr, ItemKind, PackageId};
 use qsc_passes::{entry_point::extract_entry, run_default_passes};
 use thiserror::Error;
@@ -31,9 +31,8 @@ pub enum Error {
 /// If the evaluation of the entry expression causes an error
 pub fn eval(
     stdlib: bool,
-    expr: impl AsRef<str>,
     receiver: &mut dyn Receiver,
-    sources: impl IntoIterator<Item = impl AsRef<str>>,
+    sources: SourceMap,
 ) -> Result<Value, AggregateError<Error>> {
     qsc_eval::init();
     let mut store = PackageStore::new();
@@ -56,7 +55,7 @@ pub fn eval(
     }
 
     // create a package with all defined dependencies for the session
-    let mut unit = compile(&store, session_deps.clone(), sources, expr.as_ref());
+    let mut unit = compile(&store, session_deps.clone(), sources);
     let pass_errs = run_default_passes(&mut unit);
     if !unit.errors.is_empty() || !pass_errs.is_empty() {
         return Err(AggregateError(
@@ -88,10 +87,9 @@ pub fn eval(
 /// If the entry expression compilation fails, an error is returned.
 pub fn compile_execution_context(
     stdlib: bool,
-    expr: impl AsRef<str>,
-    sources: impl IntoIterator<Item = impl AsRef<str>>,
+    sources: SourceMap,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
-    create_execution_context(stdlib, sources, expr.as_ref())
+    create_execution_context(stdlib, sources)
 }
 
 /// # Errors
@@ -119,8 +117,7 @@ pub struct ExecutionContext {
 
 fn create_execution_context(
     stdlib: bool,
-    sources: impl IntoIterator<Item = impl AsRef<str>>,
-    expr: &str,
+    sources: SourceMap,
 ) -> Result<ExecutionContext, AggregateError<Error>> {
     let mut store = PackageStore::new();
     let mut session_deps = Vec::new();
@@ -141,7 +138,7 @@ fn create_execution_context(
         }
     }
 
-    let mut unit = compile(&store, session_deps.clone(), sources, expr);
+    let mut unit = compile(&store, session_deps.clone(), sources);
     let pass_errs = run_default_passes(&mut unit);
     if !unit.errors.is_empty() || !pass_errs.is_empty() {
         return Err(AggregateError(
