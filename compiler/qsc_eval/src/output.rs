@@ -11,10 +11,7 @@ pub struct Error;
 
 #[must_use]
 pub fn format_state_id(id: &BigUint, qubit_count: usize) -> String {
-    format!(
-        "|{:0<qubit_count$}⟩",
-        id.to_str_radix(2).chars().rev().collect::<String>()
-    )
+    format!("|{:0>qubit_count$}⟩", id.to_str_radix(2))
 }
 
 pub trait Receiver {
