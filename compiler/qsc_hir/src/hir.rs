@@ -867,7 +867,7 @@ fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: FieldId) -
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
-    write!(indent, "\nIndex: {field}")?;
+    write!(indent, "\nId: {field}")?;
     Ok(())
 }
 
