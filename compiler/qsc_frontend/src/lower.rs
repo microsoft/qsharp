@@ -268,7 +268,6 @@ impl With<'_> {
         }
     }
 
-    #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
         let id = self.lower_id(expr.id);
         let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
