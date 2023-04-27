@@ -1341,3 +1341,96 @@ fn range_fields_are_int() {
         "##]],
     );
 }
+
+#[test]
+fn newtype_cons() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt = Int;
+                function Foo() : NewInt { NewInt(5) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #4 56-58 "()" : ()
+            #5 68-81 "{ NewInt(5) }" : UDT<Item 1>
+            #7 70-79 "NewInt(5)" : UDT<Item 1>
+            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #9 76-79 "(5)" : Int
+            #10 77-78 "5" : Int
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_cons_wrong_input() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt = Int;
+                function Foo() : NewInt { NewInt(5.0) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #4 56-58 "()" : ()
+            #5 68-83 "{ NewInt(5.0) }" : UDT<Item 1>
+            #7 70-81 "NewInt(5.0)" : UDT<Item 1>
+            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #9 76-81 "(5.0)" : Double
+            #10 77-80 "5.0" : Double
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_does_not_match_base_ty() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt = Int;
+                function Foo() : Int { NewInt(5) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #4 56-58 "()" : ()
+            #5 65-78 "{ NewInt(5) }" : Int
+            #7 67-76 "NewInt(5)" : Int
+            #8 67-73 "NewInt" : (Int -> UDT<Item 1>)
+            #9 73-76 "(5)" : Int
+            #10 74-75 "5" : Int
+            Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Prim(Int), Span { lo: 67, hi: 76 }))))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_does_not_match_other_newtype() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt1 = Int;
+                newtype NewInt2 = Int;
+                function Foo() : NewInt2 { NewInt1(5) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 84-86 "()" : ()
+            #7 97-111 "{ NewInt1(5) }" : UDT<Item 2>
+            #9 99-109 "NewInt1(5)" : UDT<Item 2>
+            #10 99-106 "NewInt1" : (Int -> UDT<Item 1>)
+            #11 106-109 "(5)" : Int
+            #12 107-108 "5" : Int
+            Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 40 })))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 45, hi: 67 })))
+        "##]],
+    );
+}
