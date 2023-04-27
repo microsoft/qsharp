@@ -58,6 +58,10 @@ export const log = {
         // console.trace in JavaScript just writes a stack trace at info level, so use 'debug'
         if (qscLogLevel >= 5) console.debug.apply(console, args);
     },
+    never(val: never) {
+        // Utility function to ensure exhaustive type checking. See https://stackoverflow.com/a/39419171
+        log.error("Exhaustive type checking didn't account for: %o", val);
+    }
 };
 
 // Default to the 'error' level for logging

@@ -26,7 +26,7 @@ type RequestState = {
     type: string;
     args: any[];
     resolve: (val: any) => void;
-    reject:  (err: any) => void;
+    reject: (err: any) => void;
     evtTarget?: IQscEventTarget;
     cancellationToken?: CancellationToken;
 };
@@ -38,17 +38,17 @@ type RequestState = {
  * @returns 
  */
 export function createWorkerProxy(
-            postMessage: (msg: CompilerReqMsg) => void, 
-            setMsgHandler: (handler: (e: any) => void) => void,
-            terminator: () => void): ICompilerWorker {
+    postMessage: (msg: CompilerReqMsg) => void,
+    setMsgHandler: (handler: (e: any) => void) => void,
+    terminator: () => void): ICompilerWorker {
 
     let queue: RequestState[] = [];
     let curr: RequestState | undefined;
 
-    function queueRequest(type: string, args: any[], evtTarget?: IQscEventTarget, 
-                cancellationToken?: CancellationToken): Promise<any> {
-        return new Promise( (resolve, reject) => {
-            queue.push({type, args, resolve, reject, evtTarget, cancellationToken});
+    function queueRequest(type: string, args: any[], evtTarget?: IQscEventTarget,
+        cancellationToken?: CancellationToken): Promise<any> {
+        return new Promise((resolve, reject) => {
+            queue.push({ type, args, resolve, reject, evtTarget, cancellationToken });
 
             // If nothing was running when this got added, kick off processing
             if (queue.length === 1) doNextRequest();
@@ -97,7 +97,8 @@ export function createWorkerProxy(
         }
         if (log.getLogLevel() >= 4) log.debug("Received message from worker: %o", msg);
 
-        switch(msg.type) {
+        const msgType = msg.type;
+        switch (msgType) {
             // Event type messages don't complete the request
             case "message-event":
                 const msgEvent = makeEvent("Message", msg.event.message);
@@ -108,11 +109,11 @@ export function createWorkerProxy(
                 curr.evtTarget?.dispatchEvent(dmpEvent);
                 return;
             case "failure-event":
-                const failEvent = makeEvent("Result", {success: false, value: msg.event});
+                const failEvent = makeEvent("Result", { success: false, value: msg.event });
                 curr.evtTarget?.dispatchEvent(failEvent);
                 return;
             case "success-event":
-                const successEvent = makeEvent("Result", {success: true, value: msg.event});
+                const successEvent = makeEvent("Result", { success: true, value: msg.event });
                 curr.evtTarget?.dispatchEvent(successEvent);
                 return;
 
@@ -126,9 +127,15 @@ export function createWorkerProxy(
                 doNextRequest();
                 return;
 
-            // Just in case...
+            case "error-result":
+                // Something unexpected failed the request. Reject and move on.
+                curr.reject(msg.result);
+                curr = undefined;
+                doNextRequest();
+                return;
+
             default:
-                log.error("Unknown message from worker: %o", msg);
+                log.never(msg);
                 return;
         }
     }
@@ -141,7 +148,7 @@ export function createWorkerProxy(
         },
         getCompletions() {
             return queueRequest("getCompletions", []);
-            
+
         },
         run(code, expr, shots, evtHandler) {
             return queueRequest("run", [code, expr, shots], evtHandler);
@@ -169,11 +176,11 @@ export function getWorkerEventHandlers(postMessage: (msg: CompilerEventMsg) => v
     const evtTarget = new QscEventTarget(false);
 
     evtTarget.addEventListener("Message", ev => {
-        logAndPost( { "type": "message-event", "event": { type: "Message", message: ev.detail }}); 
+        logAndPost({ "type": "message-event", "event": { type: "Message", message: ev.detail } });
     });
 
     evtTarget.addEventListener("DumpMachine", ev => {
-        logAndPost({ "type": "dumpMachine-event", "event": {type: "DumpMachine", state: ev.detail }});
+        logAndPost({ "type": "dumpMachine-event", "event": { type: "DumpMachine", state: ev.detail } });
     });
 
     evtTarget.addEventListener("Result", ev => {
@@ -189,10 +196,10 @@ export function getWorkerEventHandlers(postMessage: (msg: CompilerEventMsg) => v
 
 // This is the main function that the worker thread should delegate incoming messages to
 export function handleMessageInWorker(
-            data: CompilerReqMsg,
-            compiler: ICompiler,
-            postMessage: (msg: CompilerRespMsg) => void,
-            evtTarget: IQscEventTarget) {
+    data: CompilerReqMsg,
+    compiler: ICompiler,
+    postMessage: (msg: CompilerRespMsg) => void,
+    evtTarget: IQscEventTarget) {
 
     log.debug("Handling message in worker: %o", data);
     const logIntercepter = (msg: CompilerRespMsg) => {
@@ -200,47 +207,60 @@ export function handleMessageInWorker(
         postMessage(msg);
     };
 
-    // TODO: Handle error cases and ensure a message is sent to indicate failure
-    switch (data.type) {
-        case "checkCode":
-            compiler.checkCode(data.code)
-                .then(result => logIntercepter({"type": "checkCode-result", result}));
-            break;
-        case "getCompletions":
-            compiler.getCompletions()
-                .then(result => logIntercepter({"type": "getCompletions-result", result}));
-            break;
-        case "run":
-            compiler.run(data.code, data.expr, data.shots, evtTarget)
-                .then(result => logIntercepter({"type": "run-result", result}));
-            break;
-        case "runKata":
-            compiler.runKata(data.user_code, data.verify_code, evtTarget)
-                .then(result => logIntercepter({"type": "runKata-result", result}));
-            break;
-        default:
-            console.error(`Unrecognized msg type: ${data}`);
+    try {
+        const msgType = data.type;
+        switch (msgType) {
+            case "checkCode":
+                compiler.checkCode(data.code)
+                    .then(result => logIntercepter({ "type": "checkCode-result", result }));
+                break;
+            case "getCompletions":
+                compiler.getCompletions()
+                    .then(result => logIntercepter({ "type": "getCompletions-result", result }));
+                break;
+            case "run":
+                compiler.run(data.code, data.expr, data.shots, evtTarget)
+                    // 'run' can throw on compiler errors, which should be reported as events for
+                    // each 'shot', so just resolve as run 'complete' regardless.
+                    .finally(() => logIntercepter({ "type": "run-result", result: undefined }))
+                break;
+            case "runKata":
+                compiler.runKata(data.user_code, data.verify_code, evtTarget)
+                    .then(result => logIntercepter({ "type": "runKata-result", result }))
+                    // It shouldn't throw, but just in case there's a runtime or compiler failure
+                    .catch( () => logIntercepter( { "type" : "runKata-result", result: false} ))
+                break;
+            default:
+                log.never(msgType);
+        }
+    } catch(err: any) {
+        // If this happens then the wasm code likely threw an exception/paniced rather than
+        // completing gracefully and fullfilling the promise. Communicate to the client
+        // that there was an error and it should reject the current request
+
+        logIntercepter({ type: "error-result", result: err });
     }
 }
 
-export type CompilerReqMsg = 
+export type CompilerReqMsg =
     { type: "checkCode", code: string } |
     { type: "getCompletions" } |
     { type: "run", code: string, expr: string, shots: number } |
     { type: "runKata", user_code: string, verify_code: string };
 
-type CompilerRespMsg = 
-    {type: "checkCode-result", result: VSDiagnostic[]} |
-    {type: "getCompletions-result", result: ICompletionList} |
-    {type: "run-result", result: void} |
-    {type: "runKata-result", result: boolean};
+type CompilerRespMsg =
+    { type: "checkCode-result", result: VSDiagnostic[] } |
+    { type: "getCompletions-result", result: ICompletionList } |
+    { type: "run-result", result: void } |
+    { type: "runKata-result", result: boolean } |
+    { type: "error-result", result: any };
 
 // Get the possible 'result' types from a compiler response
 type ExtractResult<T> = T extends { result: infer R } ? R : never;
 type RespResultTypes = ExtractResult<CompilerRespMsg>;
 
-type CompilerEventMsg = 
-    {type: "message-event", "event": MessageMsg} |
-    {type: "dumpMachine-event", "event": DumpMsg} |
-    {type: "success-event", "event": string} |
-    {type: "failure-event", "event": any};
+type CompilerEventMsg =
+    { type: "message-event", "event": MessageMsg } |
+    { type: "dumpMachine-event", "event": DumpMsg } |
+    { type: "success-event", "event": string } |
+    { type: "failure-event", "event": any };
