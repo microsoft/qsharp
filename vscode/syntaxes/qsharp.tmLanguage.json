@@ -49,26 +49,6 @@
         {
           "name": "keyword.other.qsharp",
           "match": "\\b(new|not|and|or|w\/)\\b"
-        },
-        {
-          "comment": "C# reserved words which can't be used in Q#, A-D",
-          "name": "invalid.illegal.ad.qsharp",
-          "match": "\\b(abstract|base|bool|break|byte|case|catch|char|checked|class|const|continue|decimal|default|delegate|do|double)\\b"
-        },
-        {
-          "comment": "C# reserved words which can't be used in Q#, E-L",
-          "name": "invalid.illegal.el.qsharp",
-          "match": "\\b(enum|event|explicit|extern|finally|fixed|float|foreach|goto|implicit|int|interface|lock|long)\\b"
-        },
-        {
-          "comment": "C# reserved words which can't be used in Q#, N-S",
-          "name": "invalid.illegal.ns.qsharp",
-          "match": "\\b(null|object|operator|out|override|params|private|protected|public|readonly|ref|sbyte|sealed|short|sizeof|stackalloc)\\b"
-        },
-        {
-          "comment": "C# reserved words which can't be used in Q#, S-V",
-          "name": "invalid.illegal.sv.qsharp",
-          "match": "\\b(static|string|struct|switch|this|throw|try|typeof|unit|ulong|unchecked|unsafe|ushort|virtual|void|volatile)\\b"
         }
       ]
     },
