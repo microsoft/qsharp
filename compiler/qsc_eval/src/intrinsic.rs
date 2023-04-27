@@ -18,7 +18,7 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use rand::Rng;
-use std::ops::ControlFlow;
+use std::ops::ControlFlow::{self, Break, Continue};
 
 pub(crate) fn invoke_intrinsic(
     name: &str,
@@ -34,41 +34,41 @@ pub(crate) fn invoke_intrinsic(
             #[allow(clippy::cast_precision_loss)]
             "IntAsDouble" => {
                 let val: i64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val as f64))
+                Continue(Value::Double(val as f64))
             }
 
             "DumpMachine" => {
                 let (state, qubit_count) = capture_quantum_state();
                 match out.state(state, qubit_count) {
-                    Ok(_) => ControlFlow::Continue(Value::UNIT),
-                    Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
+                    Ok(_) => Continue(Value::UNIT),
+                    Err(_) => Break(Reason::Error(Error::Output(name_span))),
                 }
             }
 
             "Message" => match out.message(&args.try_into_string().with_span(args_span)?) {
-                Ok(_) => ControlFlow::Continue(Value::UNIT),
-                Err(_) => ControlFlow::Break(Reason::Error(Error::Output(name_span))),
+                Ok(_) => Continue(Value::UNIT),
+                Err(_) => Break(Reason::Error(Error::Output(name_span))),
             },
 
-            "AsString" => ControlFlow::Continue(Value::String(args.to_string().into())),
+            "AsString" => Continue(Value::String(args.to_string().into())),
 
-            "CheckZero" => ControlFlow::Continue(Value::Bool(qubit_is_zero(
+            "CheckZero" => Continue(Value::Bool(qubit_is_zero(
                 args.try_into().with_span(args_span)?,
             ))),
 
             "ArcCos" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.acos()))
+                Continue(Value::Double(val.acos()))
             }
 
             "ArcSin" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.asin()))
+                Continue(Value::Double(val.asin()))
             }
 
             "ArcTan" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.atan()))
+                Continue(Value::Double(val.atan()))
             }
 
             "ArcTan2" => {
@@ -79,42 +79,42 @@ pub(crate) fn invoke_intrinsic(
                         args.pop().expect("tuple should have 2 entries"),
                     );
                     let val: f64 = a1.try_into().with_span(args_span)?;
-                    ControlFlow::Continue(Value::Double(
+                    Continue(Value::Double(
                         val.atan2(a2.try_into().with_span(args_span)?),
                     ))
                 } else {
-                    ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                    Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                 }
             }
 
             "Cos" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.cos()))
+                Continue(Value::Double(val.cos()))
             }
 
             "Cosh" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.cosh()))
+                Continue(Value::Double(val.cosh()))
             }
 
             "Sin" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.sin()))
+                Continue(Value::Double(val.sin()))
             }
 
             "Sinh" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.sinh()))
+                Continue(Value::Double(val.sinh()))
             }
 
             "Tan" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.tan()))
+                Continue(Value::Double(val.tan()))
             }
 
             "Tanh" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
-                ControlFlow::Continue(Value::Double(val.tanh()))
+                Continue(Value::Double(val.tanh()))
             }
 
             "DrawRandomInt" => {
@@ -126,11 +126,11 @@ pub(crate) fn invoke_intrinsic(
                     );
                     invoke_draw_random_int(a1, a2, args_span)
                 } else {
-                    ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                    Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                 }
             }
 
-            _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
+            _ => Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
         }
     }
 }
@@ -139,9 +139,9 @@ fn invoke_draw_random_int(a1: Value, a2: Value, args_span: Span) -> ControlFlow<
     let low_bound: i64 = a1.try_into().with_span(args_span)?;
     let high_bound: i64 = a2.try_into().with_span(args_span)?;
     if low_bound > high_bound {
-        ControlFlow::Break(Reason::Error(Error::EmptyRange(args_span)))
+        Break(Reason::Error(Error::EmptyRange(args_span)))
     } else {
-        ControlFlow::Continue(Value::Int(
+        Continue(Value::Int(
             rand::thread_rng().gen_range(low_bound..=high_bound),
         ))
     }
@@ -158,7 +158,7 @@ fn invoke_quantum_intrinsic(
             match $chosen_op {
                 $($(stringify!($op1) => {
                     $op1(args.try_into().with_span(args_span)?);
-                    ControlFlow::Continue(Value::UNIT)
+                    Continue(Value::UNIT)
                 })*
                 $(stringify!($op2) => {
                     let mut args = args.try_into_tuple().with_span(args_span)?;
@@ -171,9 +171,9 @@ fn invoke_quantum_intrinsic(
                             a1.try_into().with_span(args_span)?,
                             a2.try_into().with_span(args_span)?,
                         );
-                        ControlFlow::Continue(Value::UNIT)
+                        Continue(Value::UNIT)
                     } else {
-                        ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                        Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                     }
                 })*
                 $(stringify!($op3) => {
@@ -189,15 +189,15 @@ fn invoke_quantum_intrinsic(
                             a2.try_into().with_span(args_span)?,
                             a3.try_into().with_span(args_span)?,
                         );
-                        ControlFlow::Continue(Value::UNIT)
+                        Continue(Value::UNIT)
                     } else {
-                        ControlFlow::Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
+                        Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
                     }
                 })*)*
 
                 "__quantum__qis__m__body" => {
                     let res = __quantum__qis__m__body(args.try_into().with_span(args_span)?);
-                    ControlFlow::Continue(Value::Result(__quantum__rt__result_equal(
+                    Continue(Value::Result(__quantum__rt__result_equal(
                         res,
                         __quantum__rt__result_get_one(),
                     )))
@@ -205,13 +205,13 @@ fn invoke_quantum_intrinsic(
 
                 "__quantum__qis__mresetz__body" => {
                     let res = __quantum__qis__mresetz__body(args.try_into().with_span(args_span)?);
-                    ControlFlow::Continue(Value::Result(__quantum__rt__result_equal(
+                    Continue(Value::Result(__quantum__rt__result_equal(
                         res,
                         __quantum__rt__result_get_one(),
                     )))
                 }
 
-                _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic($chosen_op_span))),
+                _ => Break(Reason::Error(Error::UnknownIntrinsic($chosen_op_span))),
             }
         };
     }
