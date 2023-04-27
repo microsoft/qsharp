@@ -34,7 +34,7 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
         ast::TyKind::Paren(inner) => ty_from_ast(resolutions, inner),
         ast::TyKind::Path(path) => {
             let ty = match resolutions.get(path.id) {
-                Some(&resolve::Res::Item(item)) => Ty::Name(hir::Res::Item(item)),
+                Some(&resolve::Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
                 Some(resolve::Res::Local(_)) | None => Ty::Err,
@@ -59,7 +59,7 @@ pub(super) fn ty_cons_ty(id: ItemId, input: Ty) -> Ty {
     Ty::Arrow(
         hir::CallableKind::Function,
         Box::new(input),
-        Box::new(Ty::Name(hir::Res::Item(id))),
+        Box::new(Ty::Udt(hir::Res::Item(id))),
         HashSet::new(),
     )
 }

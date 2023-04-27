@@ -208,7 +208,7 @@ impl Inferrer {
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::Err | Ty::Name(_) | Ty::Infer(_) | Ty::Prim(_) => {}
+                Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
                 Ty::Arrow(_, input, output, _) => {
                     freshen(solver, params, input);
@@ -328,7 +328,7 @@ impl Solver {
 
 pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
     match ty {
-        Ty::Err | Ty::Name(_) | Ty::Param(_) | Ty::Prim(_) => {}
+        Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
         Ty::Array(item) => substitute(substs, item),
         Ty::Arrow(_, input, output, _) => {
             substitute(substs, input);
@@ -375,8 +375,6 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             bind(infer, ty1.clone());
             Ok(())
         }
-        (Ty::Name(Res::Err), Ty::Name(_)) | (Ty::Name(_), Ty::Name(Res::Err)) => Ok(()),
-        (Ty::Name(res1), Ty::Name(res2)) if res1 == res2 => Ok(()),
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
@@ -385,6 +383,8 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             }
             Ok(())
         }
+        (Ty::Udt(Res::Err), Ty::Udt(_)) | (Ty::Udt(_), Ty::Udt(Res::Err)) => Ok(()),
+        (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Ok(()),
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
 }
