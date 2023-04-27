@@ -309,7 +309,9 @@ impl With<'_> {
             ast::ExprKind::Err => hir::ExprKind::Err,
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
-                hir::ExprKind::Field(Box::new(self.lower_expr(container)), self.lower_ident(name))
+                let container = self.lower_expr(container);
+                let field = name.name.parse().unwrap_or_default();
+                hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
                 self.lower_pat(pat),

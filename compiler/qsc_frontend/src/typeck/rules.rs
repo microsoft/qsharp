@@ -87,7 +87,7 @@ impl<'a> Context<'a> {
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.resolutions.get(path.id) {
-                Some(&Res::Item(item)) => Ty::Name(hir::Res::Item(item)),
+                Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
                 Some(Res::Local(_)) | None => Ty::Err,
@@ -322,7 +322,18 @@ impl<'a> Context<'a> {
                     diverges = diverges || expr.diverges;
                     self.inferrer.eq(span, Ty::Prim(PrimTy::Int), expr.ty);
                 }
-                self.diverge_if(diverges, converge(Ty::Prim(PrimTy::Range)))
+
+                let ty = if start.is_none() && end.is_none() {
+                    PrimTy::RangeFull
+                } else if start.is_none() {
+                    PrimTy::RangeTo
+                } else if end.is_none() {
+                    PrimTy::RangeFrom
+                } else {
+                    PrimTy::Range
+                };
+
+                self.diverge_if(diverges, converge(Ty::Prim(ty)))
             }
             ExprKind::Repeat(body, until, fixup) => {
                 let body = self.infer_block(body);

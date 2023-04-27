@@ -63,13 +63,13 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7;");
-            is_only_value(&result, &output, &Value::UNIT);
+            is_only_value(&result, &output, &Value::unit());
 
             let (result, output) = line(&mut interpreter, "y");
             is_only_value(&result, &output, &Value::Int(7));
 
             let (result, output) = line(&mut interpreter, "let y = \"Hello\";");
-            is_only_value(&result, &output, &Value::UNIT);
+            is_only_value(&result, &output, &Value::unit());
 
             let (result, output) = line(&mut interpreter, "y");
             is_only_value(&result, &output, &Value::String("Hello".into()));
@@ -197,7 +197,7 @@ mod given_interpreter {
         assert_eq!(expected_output, output);
 
         match result {
-            Ok(value) => assert_eq!(Value::UNIT, *value),
+            Ok(value) => assert_eq!(Value::unit(), *value),
             Err(e) => panic!("Expected unit value, got {e:?}"),
         }
     }
