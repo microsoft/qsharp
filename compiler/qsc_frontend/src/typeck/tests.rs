@@ -46,13 +46,13 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
 
     let mut actual = String::new();
     for (id, span, ty) in tys.tys {
-        let (index, offset) = unit.context.source(span.lo);
+        let (index, offset) = unit.sources.offset(span.lo);
         let code = &[source, entry_expr][index.0][span.lo - offset..span.hi - offset];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
             .expect("writing type to string should succeed");
     }
 
-    for error in unit.context.errors() {
+    for error in &unit.errors {
         writeln!(actual, "{error:?}").expect("writing error to string should succeed");
     }
 
@@ -1259,13 +1259,13 @@ fn array_length_generic_is_int() {
             #6 54-79 "{\n        a::Length\n    }" : Int
             #8 64-73 "a::Length" : Int
             #9 64-65 "a" : ('T)[]
-            #13 96-109 "(x : Qubit[])" : (Qubit)[]
-            #14 97-108 "x : Qubit[]" : (Qubit)[]
-            #16 116-141 "{\n        Length(x)\n    }" : Int
-            #18 126-135 "Length(x)" : Int
-            #19 126-132 "Length" : ((Qubit)[] -> Int)
-            #20 132-135 "(x)" : (Qubit)[]
-            #21 133-134 "x" : (Qubit)[]
+            #12 96-109 "(x : Qubit[])" : (Qubit)[]
+            #13 97-108 "x : Qubit[]" : (Qubit)[]
+            #15 116-141 "{\n        Length(x)\n    }" : Int
+            #17 126-135 "Length(x)" : Int
+            #18 126-132 "Length" : ((Qubit)[] -> Int)
+            #19 132-135 "(x)" : (Qubit)[]
+            #20 133-134 "x" : (Qubit)[]
         "##]],
     );
 }
@@ -1288,7 +1288,7 @@ fn array_length_field_used_as_double_error() {
             #7 63-78 "x::Length * 2.0" : Double
             #8 63-72 "x::Length" : Double
             #9 63-64 "x" : (Qubit)[]
-            #11 75-78 "2.0" : Double
+            #10 75-78 "2.0" : Double
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 63, hi: 72 }))))
         "##]],
     );
@@ -1334,10 +1334,285 @@ fn range_fields_are_int() {
             #7 70-97 "(r::Start, r::Step, r::End)" : (Int, Int, Int)
             #8 71-79 "r::Start" : Int
             #9 71-72 "r" : Range
-            #11 81-88 "r::Step" : Int
-            #12 81-82 "r" : Range
-            #14 90-96 "r::End" : Int
-            #15 90-91 "r" : Range
+            #10 81-88 "r::Step" : Int
+            #11 81-82 "r" : Range
+            #12 90-96 "r::End" : Int
+            #13 90-91 "r" : Range
+        "##]],
+    );
+}
+
+#[test]
+fn range_to_field_start() {
+    check(
+        "",
+        "(...2..8)::Start",
+        &expect![[r##"
+            #0 0-16 "(...2..8)::Start" : ?0
+            #1 0-9 "(...2..8)" : RangeTo
+            #2 1-8 "...2..8" : RangeTo
+            #3 4-5 "2" : Int
+            #4 7-8 "8" : Int
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeTo), name: "Start", item: Infer(InferId(0)) }, Span { lo: 0, hi: 16 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_to_field_step() {
+    check(
+        "",
+        "(...2..8)::Step",
+        &expect![[r##"
+            #0 0-15 "(...2..8)::Step" : Int
+            #1 0-9 "(...2..8)" : RangeTo
+            #2 1-8 "...2..8" : RangeTo
+            #3 4-5 "2" : Int
+            #4 7-8 "8" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_to_field_end() {
+    check(
+        "",
+        "(...2..8)::End",
+        &expect![[r##"
+            #0 0-14 "(...2..8)::End" : Int
+            #1 0-9 "(...2..8)" : RangeTo
+            #2 1-8 "...2..8" : RangeTo
+            #3 4-5 "2" : Int
+            #4 7-8 "8" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_from_field_start() {
+    check(
+        "",
+        "(0..2...)::Start",
+        &expect![[r##"
+            #0 0-16 "(0..2...)::Start" : Int
+            #1 0-9 "(0..2...)" : RangeFrom
+            #2 1-8 "0..2..." : RangeFrom
+            #3 1-2 "0" : Int
+            #4 4-5 "2" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_from_field_step() {
+    check(
+        "",
+        "(0..2...)::Step",
+        &expect![[r##"
+            #0 0-15 "(0..2...)::Step" : Int
+            #1 0-9 "(0..2...)" : RangeFrom
+            #2 1-8 "0..2..." : RangeFrom
+            #3 1-2 "0" : Int
+            #4 4-5 "2" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_from_field_end() {
+    check(
+        "",
+        "(0..2...)::End",
+        &expect![[r##"
+            #0 0-14 "(0..2...)::End" : ?0
+            #1 0-9 "(0..2...)" : RangeFrom
+            #2 1-8 "0..2..." : RangeFrom
+            #3 1-2 "0" : Int
+            #4 4-5 "2" : Int
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFrom), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 14 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_field_start() {
+    check(
+        "",
+        "...::Start",
+        &expect![[r##"
+            #0 0-10 "...::Start" : ?0
+            #1 0-3 "..." : RangeFull
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "Start", item: Infer(InferId(0)) }, Span { lo: 0, hi: 10 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_implicit_step() {
+    check(
+        "",
+        "...::Step",
+        &expect![[r##"
+            #0 0-9 "...::Step" : Int
+            #1 0-3 "..." : RangeFull
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_explicit_step() {
+    check(
+        "",
+        "(...2...)::Step",
+        &expect![[r##"
+            #0 0-15 "(...2...)::Step" : Int
+            #1 0-9 "(...2...)" : RangeFull
+            #2 1-8 "...2..." : RangeFull
+            #3 4-5 "2" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn range_full_field_end() {
+    check(
+        "",
+        "...::End",
+        &expect![[r##"
+            #0 0-8 "...::End" : ?0
+            #1 0-3 "..." : RangeFull
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 8 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_cons() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt = Int;
+                function Foo() : NewInt { NewInt(5) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #4 56-58 "()" : ()
+            #5 68-81 "{ NewInt(5) }" : UDT<Item 1>
+            #7 70-79 "NewInt(5)" : UDT<Item 1>
+            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #9 76-79 "(5)" : Int
+            #10 77-78 "5" : Int
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_cons_wrong_input() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt = Int;
+                function Foo() : NewInt { NewInt(5.0) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #4 56-58 "()" : ()
+            #5 68-83 "{ NewInt(5.0) }" : UDT<Item 1>
+            #7 70-81 "NewInt(5.0)" : UDT<Item 1>
+            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #9 76-81 "(5.0)" : Double
+            #10 77-80 "5.0" : Double
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_does_not_match_base_ty() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt = Int;
+                function Foo() : Int { NewInt(5) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #4 56-58 "()" : ()
+            #5 65-78 "{ NewInt(5) }" : Int
+            #7 67-76 "NewInt(5)" : Int
+            #8 67-73 "NewInt" : (Int -> UDT<Item 1>)
+            #9 73-76 "(5)" : Int
+            #10 74-75 "5" : Int
+            Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Prim(Int), Span { lo: 67, hi: 76 }))))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_does_not_match_other_newtype() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype NewInt1 = Int;
+                newtype NewInt2 = Int;
+                function Foo() : NewInt2 { NewInt1(5) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 84-86 "()" : ()
+            #7 97-111 "{ NewInt1(5) }" : UDT<Item 2>
+            #9 99-109 "NewInt1(5)" : UDT<Item 2>
+            #10 99-106 "NewInt1" : (Int -> UDT<Item 1>)
+            #11 106-109 "(5)" : Int
+            #12 107-108 "5" : Int
+            Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 40 })))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 45, hi: 67 })))
+        "##]],
+    );
+}
+
+#[test]
+fn unknown_name_fits_any_ty() {
+    check(
+        "",
+        "{ let x : Int = foo; let y : Qubit = foo; }",
+        &expect![[r##"
+            #0 0-43 "{ let x : Int = foo; let y : Qubit = foo; }" : ()
+            #1 0-43 "{ let x : Int = foo; let y : Qubit = foo; }" : ()
+            #3 6-13 "x : Int" : Int
+            #5 16-19 "foo" : ?
+            #7 25-34 "y : Qubit" : Qubit
+            #9 37-40 "foo" : ?
+            Error(Resolve(NotFound("foo", Span { lo: 16, hi: 19 })))
+            Error(Resolve(NotFound("foo", Span { lo: 37, hi: 40 })))
+        "##]],
+    );
+}
+
+#[test]
+fn unknown_name_has_any_class() {
+    check(
+        "",
+        "{ foo(); foo + 1 }",
+        &expect![[r##"
+            #0 0-18 "{ foo(); foo + 1 }" : ?
+            #1 0-18 "{ foo(); foo + 1 }" : ?
+            #3 2-7 "foo()" : ?0
+            #4 2-5 "foo" : ?
+            #5 5-7 "()" : ()
+            #7 9-16 "foo + 1" : ?
+            #8 9-12 "foo" : ?
+            #9 15-16 "1" : Int
+            Error(Resolve(NotFound("foo", Span { lo: 2, hi: 5 })))
+            Error(Resolve(NotFound("foo", Span { lo: 9, hi: 12 })))
         "##]],
     );
 }

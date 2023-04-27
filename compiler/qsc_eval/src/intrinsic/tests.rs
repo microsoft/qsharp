@@ -19,12 +19,12 @@ use crate::{
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
     let mut store = PackageStore::new();
     let mut std = compile::std();
-    assert!(std.context.errors().is_empty());
+    assert!(std.errors.is_empty());
     assert!(run_default_passes(&mut std).is_empty());
 
     let stdlib = store.insert(std);
     let mut unit = compile(&store, [stdlib], [file], expr);
-    assert!(unit.context.errors().is_empty());
+    assert!(unit.errors.is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
 
     let id = store.insert(unit);
@@ -123,7 +123,7 @@ fn dump_machine_endianness() {
         }"},
         &expect![[r#"
             STATE:
-            |0100⟩: 1+0i
+            |0010⟩: 1+0i
         "#]],
     );
 }
@@ -286,6 +286,31 @@ fn check_bitsize_i() {
         "",
         "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
         &Value::Int(63),
+    );
+}
+
+#[test]
+fn check_fst_snd() {
+    check_intrinsic_value("", "Fst(7,6)", &Value::Int(7));
+    check_intrinsic_value("", "Snd(7,6)", &Value::Int(6));
+}
+
+#[test]
+fn check_index_range() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Start",
+        &Value::Int(0),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Step",
+        &Value::Int(1),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::End",
+        &Value::Int(3),
     );
 }
 
@@ -832,7 +857,7 @@ fn qubit_nested_bind_not_released() {
         }"},
         &expect![[r#"
             STATE:
-            |01⟩: 1+0i
+            |10⟩: 1+0i
         "#]],
     );
 }

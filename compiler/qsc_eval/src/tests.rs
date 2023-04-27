@@ -10,8 +10,7 @@ use qsc_passes::run_default_passes;
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let mut unit = compile(&store, [], [file], expr);
-    let compile_errors = unit.context.errors();
-    assert!(compile_errors.is_empty(), "{compile_errors:?}");
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(&mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
 
@@ -1209,23 +1208,6 @@ fn field_range_start_expr() {
 }
 
 #[test]
-fn field_range_start_missing_expr() {
-    check_expr(
-        "",
-        "(...2..8)::Start",
-        &expect![[r#"
-            RangeFieldMissing(
-                "Start",
-                Span {
-                    lo: 11,
-                    hi: 16,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn field_range_step_expr() {
     check_expr("", "(0..2..8)::Step", &expect!["2"]);
 }
@@ -1238,23 +1220,6 @@ fn field_range_step_missing_treated_as_1_expr() {
 #[test]
 fn field_range_end_expr() {
     check_expr("", "(0..2..8)::End", &expect!["8"]);
-}
-
-#[test]
-fn field_range_end_missing_expr() {
-    check_expr(
-        "",
-        "(0..2...)::End",
-        &expect![[r#"
-            RangeFieldMissing(
-                "End",
-                Span {
-                    lo: 11,
-                    hi: 14,
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]

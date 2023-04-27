@@ -3,7 +3,7 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferId, PrimTy, Ty};
+use qsc_hir::hir::{Functor, InferId, PrimField, PrimTy, Res, Ty};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -151,7 +151,7 @@ impl Display for Class {
             } => write!(f, "HasIndex<{container}, {index}>"),
             Class::Integral(ty) => write!(f, "Integral<{ty}>"),
             Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
-            Class::Num(ty) => write!(f, "Num<{ty}"),
+            Class::Num(ty) => write!(f, "Num<{ty}>"),
             Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
     }
@@ -208,7 +208,7 @@ impl Inferrer {
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::Err | Ty::Name(_) | Ty::Infer(_) | Ty::Prim(_) => {}
+                Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
                 Ty::Arrow(_, input, output, _) => {
                     freshen(solver, params, input);
@@ -274,7 +274,9 @@ impl Solver {
     fn class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
         let mut unknown_dependency = false;
         for ty in class.dependencies() {
-            if let Some(infer) = unknown_ty(&self.substs, ty) {
+            if ty == &Ty::Err {
+                unknown_dependency = true;
+            } else if let Some(infer) = unknown_ty(&self.substs, ty) {
                 self.pending.entry(infer).or_default().push(class.clone());
                 unknown_dependency = true;
             }
@@ -328,7 +330,7 @@ impl Solver {
 
 pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
     match ty {
-        Ty::Err | Ty::Name(_) | Ty::Param(_) | Ty::Prim(_) => {}
+        Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
         Ty::Array(item) => substitute(substs, item),
         Ty::Arrow(_, input, output, _) => {
             substitute(substs, input);
@@ -355,6 +357,10 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
 
 fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
+        (Ty::Err, _)
+        | (_, Ty::Err)
+        | (Ty::Udt(Res::Err), Ty::Udt(_))
+        | (Ty::Udt(_), Ty::Udt(Res::Err)) => Ok(()),
         (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2, bind),
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
             if kind1 == kind2 =>
@@ -383,6 +389,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             }
             Ok(())
         }
+        (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Ok(()),
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
 }
@@ -506,7 +513,10 @@ fn check_has_index(
             actual: item,
             span,
         }),
-        (container @ Ty::Array(_), Ty::Prim(PrimTy::Range)) => Ok(Constraint::Eq {
+        (
+            container @ Ty::Array(_),
+            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+        ) => Ok(Constraint::Eq {
             expected: container,
             actual: item,
             span,
@@ -554,14 +564,18 @@ fn check_has_field(
 ) -> Result<Constraint, ClassError> {
     // TODO: If the record type is a user-defined type, look up its fields.
     // https://github.com/microsoft/qsharp/issues/148
-    match (&record, name.as_ref(), &item) {
-        (Ty::Prim(PrimTy::Range), "Start" | "Step" | "End", _) | (Ty::Array(..), "Length", _) => {
-            Ok(Constraint::Eq {
-                expected: Ty::Prim(PrimTy::Int),
-                actual: item,
-                span,
-            })
-        }
+    match (name.parse(), &record) {
+        (Ok(PrimField::Start), Ty::Prim(PrimTy::Range | PrimTy::RangeFrom))
+        | (
+            Ok(PrimField::Step),
+            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+        )
+        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo))
+        | (Ok(PrimField::Length), Ty::Array(..)) => Ok(Constraint::Eq {
+            expected: Ty::Prim(PrimTy::Int),
+            actual: item,
+            span,
+        }),
         _ => Err(ClassError(Class::HasField { record, name, item }, span)),
     }
 }

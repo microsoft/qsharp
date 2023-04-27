@@ -12,6 +12,8 @@ use std::{
     collections::HashSet,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
+    result,
+    str::FromStr,
 };
 
 fn set_indentation<'a, 'b>(
@@ -701,7 +703,7 @@ pub enum ExprKind {
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
-    Field(Box<Expr>, Ident),
+    Field(Box<Expr>, PrimField),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -718,8 +720,6 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
-    /// A resolved name.
-    Name(Res),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
@@ -734,6 +734,8 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
+    /// A variable.
+    Var(Res),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
 }
@@ -755,14 +757,13 @@ impl Display for ExprKind {
             ExprKind::Conjugate(within, apply) => display_conjugate(indent, within, apply)?,
             ExprKind::Err => write!(indent, "Err")?,
             ExprKind::Fail(e) => write!(indent, "Fail: {e}")?,
-            ExprKind::Field(expr, id) => display_field(indent, expr, id)?,
+            ExprKind::Field(expr, field) => display_field(indent, expr, *field)?,
             ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
             ExprKind::Hole => write!(indent, "Hole")?,
             ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Name(res) => write!(indent, "Name: {res}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
@@ -772,6 +773,7 @@ impl Display for ExprKind {
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
+            ExprKind::Var(res) => write!(indent, "Var: {res}")?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
         Ok(())
@@ -863,11 +865,11 @@ fn display_conjugate(
     Ok(())
 }
 
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, id: &Ident) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: PrimField) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
-    write!(indent, "\n{id}")?;
+    write!(indent, "\n{field:?}")?;
     Ok(())
 }
 
@@ -1169,14 +1171,14 @@ pub enum Ty {
     Err,
     /// A placeholder type variable used during type inference.
     Infer(InferId),
-    /// A resolved name.
-    Name(Res),
     /// A type parameter.
     Param(String),
     /// A primitive type.
     Prim(PrimTy),
     /// A tuple type.
     Tuple(Vec<Ty>),
+    /// A user-defined type.
+    Udt(Res),
 }
 
 impl Ty {
@@ -1206,7 +1208,6 @@ impl Display for Ty {
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Name(res) => Debug::fmt(res, f),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
@@ -1224,6 +1225,7 @@ impl Display for Ty {
                 }
                 f.write_str(")")
             }
+            Ty::Udt(res) => write!(f, "UDT<{res}>"),
         }
     }
 }
@@ -1245,6 +1247,12 @@ pub enum PrimTy {
     Qubit,
     /// The range type.
     Range,
+    /// The range type without a lower bound.
+    RangeTo,
+    /// The range type without an upper bound.
+    RangeFrom,
+    /// The range type without lower and upper bounds.
+    RangeFull,
     /// The measurement result type.
     Result,
     /// The string type.
@@ -1278,6 +1286,36 @@ impl From<usize> for InferId {
 impl From<InferId> for usize {
     fn from(value: InferId) -> Self {
         value.0
+    }
+}
+
+/// A primitive field for a built-in type.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum PrimField {
+    /// The length of an array.
+    Length,
+    /// The start of a range.
+    Start,
+    /// The step of a range.
+    Step,
+    /// The end of a range.
+    End,
+    /// An invalid field.
+    #[default]
+    Err,
+}
+
+impl FromStr for PrimField {
+    type Err = ();
+
+    fn from_str(s: &str) -> result::Result<Self, <Self as FromStr>::Err> {
+        match s {
+            "Length" => Ok(Self::Length),
+            "Start" => Ok(Self::Start),
+            "Step" => Ok(Self::Step),
+            "End" => Ok(Self::End),
+            _ => Err(()),
+        }
     }
 }
 

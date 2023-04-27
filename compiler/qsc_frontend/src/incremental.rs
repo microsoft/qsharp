@@ -26,11 +26,13 @@ pub struct Error(ErrorKind);
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
-#[error(transparent)]
 enum ErrorKind {
-    Parse(parse::Error),
-    Resolve(resolve::Error),
-    Type(typeck::Error),
+    #[error("syntax error")]
+    Parse(#[from] parse::Error),
+    #[error("name error")]
+    Resolve(#[from] resolve::Error),
+    #[error("type error")]
+    Type(#[from] typeck::Error),
 }
 
 pub enum Fragment {

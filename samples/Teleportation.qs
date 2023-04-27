@@ -47,9 +47,9 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         // Measure the qubits to extract the classical data we need to
         // decode the message by applying the corrections on
         // the target qubit accordingly.
-        if (M(msg) == One) { Z(target); }
+        if M(msg) == One { Z(target); }
         // Correction step
-        if (M(register) == One) {
+        if M(register) == One {
             X(target);
             // Reset register to Zero state before releasing
             X(register);
@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         use (msg, target) = (Qubit(), Qubit());
 
         // Encode the message we want to send.
-        if (message) {
+        if message {
             X(msg);
         }
 
@@ -113,23 +113,13 @@ namespace Microsoft.Quantum.Samples.Teleportation {
     /// # Summary
     /// Returns true if qubit is |+⟩ (assumes qubit is either |+⟩ or |−⟩)
     operation MeasureIsPlus(q: Qubit) : Bool {
-        // BLOCKED ON: within implementation. Measure, MapPauli.
-        // return (Measure([PauliX], [q]) == Zero);
-        H(q);
-        let result = M(q) == Zero;
-        H(q);
-        return result;
+        Measure([PauliX], [q]) == Zero
     }
 
     /// # Summary
     /// Returns true if qubit is |−⟩ (assumes qubit is either |+> or |−⟩)
     operation MeasureIsMinus(q: Qubit) : Bool {
-        // BLOCKED ON: within implementation. Measure, MapPauli.
-        // return (Measure([PauliX], [q]) == One);
-        H(q);
-        let result = M(q) == One;
-        H(q);
-        return result;
+        Measure([PauliX], [q]) == One
     }
 
     /// # Summary
@@ -137,7 +127,7 @@ namespace Microsoft.Quantum.Samples.Teleportation {
     operation PrepareRandomMessage(q: Qubit) : Unit {        
         let choice = DrawRandomInt(0, 1) == 1;
 
-        if (choice) {
+        if choice {
             Message("Sending |->");
             SetToMinus(q);
         } else {
@@ -163,8 +153,8 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         Teleport(msg, target);
 
         // Report message received:
-        if (MeasureIsPlus(target))  { Message("Received |+>"); }
-        if (MeasureIsMinus(target)) { Message("Received |->"); }
+        if MeasureIsPlus(target) { Message("Received |+>"); }
+        if MeasureIsMinus(target) { Message("Received |->"); }
 
         // Reset all of the qubits that we used before releasing
         // them.

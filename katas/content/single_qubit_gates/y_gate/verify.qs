@@ -3,10 +3,7 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
 
     operation ApplyYReference(q : Qubit) : Unit is Adj + Ctl {
-        body ... {
-            Y(q);
-        }
-        adjoint self;
+        Y(q);
     }
 
     operation Verify() : Bool {
@@ -18,10 +15,13 @@ namespace Kata {
         // Explicit scopes are used to make output from DumpMachine calls more useful.
         {
             use (ctl, target) = (Qubit(), Qubit());
-            H(ctl);
-            Controlled task([ctl], target);
-            Adjoint Controlled taskRef([ctl], target);
-            H(ctl);
+            within {
+                H(ctl);
+            }
+            apply {
+                Controlled task([ctl], target);
+                Adjoint Controlled taskRef([ctl], target);
+            }
             set isCorrect = CheckAllZero([ctl, target]);
             ResetAll([ctl, target]);
         }

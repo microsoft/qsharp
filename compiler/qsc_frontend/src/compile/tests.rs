@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Context, Error, PackageStore, SourceIndex};
+use super::{compile, Error, PackageStore, SourceIndex, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -27,9 +27,9 @@ fn error_span(error: &Error) -> Span {
     }
 }
 
-fn source_span(context: &Context, error: &Error) -> (SourceIndex, Span) {
+fn source_span(sources: &SourceMap, error: &Error) -> (SourceIndex, Span) {
     let span = error_span(error);
-    let (index, offset) = context.source(span.lo);
+    let (index, offset) = sources.offset(span.lo);
     (
         index,
         Span {
@@ -52,8 +52,7 @@ fn one_file_no_entry() {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     let entry = unit.package.entry.as_ref();
     assert!(entry.is_none(), "{entry:#?}");
 }
@@ -74,19 +73,12 @@ fn one_file_error() {
     );
 
     let errors: Vec<_> = unit
-        .context
-        .errors()
+        .errors
         .iter()
-        .map(|error| source_span(&unit.context, error))
+        .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(
-        vec![
-            (SourceIndex(0), Span { lo: 50, hi: 51 }),
-            (SourceIndex(0), Span { lo: 40, hi: 57 })
-        ],
-        errors,
-    );
+    assert_eq!(vec![(SourceIndex(0), Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -111,8 +103,7 @@ fn two_files_dependency() {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
@@ -139,8 +130,7 @@ fn two_files_mutual_dependency() {
         "",
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
@@ -166,19 +156,12 @@ fn two_files_error() {
     );
 
     let errors: Vec<_> = unit
-        .context
-        .errors()
+        .errors
         .iter()
-        .map(|error| source_span(&unit.context, error))
+        .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(
-        vec![
-            (SourceIndex(1), Span { lo: 50, hi: 51 }),
-            (SourceIndex(1), Span { lo: 50, hi: 53 })
-        ],
-        errors,
-    );
+    assert_eq!(vec![(SourceIndex(1), Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -194,12 +177,11 @@ fn entry_call_operation() {
         "Foo.A()",
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -222,8 +204,8 @@ fn entry_error() {
         "Foo.B()",
     );
 
-    let errors = unit.context.errors();
-    let (source, span) = source_span(&unit.context, &errors[0]);
+    let errors = unit.errors;
+    let (source, span) = source_span(&unit.sources, &errors[0]);
     assert_eq!(source, SourceIndex(1));
     assert_eq!(span, Span { lo: 0, hi: 5 });
 }
@@ -257,7 +239,7 @@ fn replace_node() {
     );
 
     Replacer.visit_package(&mut unit.package);
-    unit.context.assigner_mut().visit_package(&mut unit.package);
+    unit.assigner.visit_package(&mut unit.package);
 
     let ItemKind::Callable(callable) = &unit
         .package
@@ -311,7 +293,7 @@ fn package_dependency() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: Some(package1),
@@ -360,7 +342,7 @@ fn package_dependency_internal() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(&Res::Err, res);
 }
 
@@ -384,6 +366,5 @@ fn std_dependency() {
         "Foo.Main()",
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
