@@ -36,6 +36,7 @@
     --nav-hover-background: #b3bede;
     --nav-current-background: #b5c5f2;
     --border-color: #768f9c;
+    --error-background-color: #ffe3e3;
 }
 
 html {
@@ -59,7 +60,7 @@ body {
         "header header header"
         "nav editor results";
     grid-template-rows: auto 1fr;
-    grid-template-columns: minmax(200px, auto) 8fr 8fr;
+    grid-template-columns: minmax(180px, auto) 8fr 8fr;
     column-gap: 16px;
 }
 
@@ -129,6 +130,23 @@ body {
     background-color: white;;
 }
 
+.error-list {
+    border: 1px solid var(--border-color);
+    border-bottom: 0px;
+    margin-top: 16px;
+}
+
+.error-row {
+    background-color: var(--error-background-color);
+    padding: 4px;
+    border-bottom: 0.5px solid gray;
+    font-size: 0.9rem;
+}
+
+.error-row > span {
+    font-weight: 200;
+}
+
 .results-labels {
     display: flex;
     margin-bottom: 8px;
@@ -158,6 +176,31 @@ body {
     font-weight: 200;
     cursor: pointer;
     /* text-decoration: underline; */
+}
+
+.state-table {
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 400px;
+    margin-top: 32px;
+}
+
+.state-table thead tr {
+    background: var(--nav-background)
+}
+
+.state-table tbody tr {
+    border-top: 1px solid gray;
+}
+
+.state-table td, .state-table th {
+    text-align: center;
+    padding: 6px;
+    white-space: nowrap;
+}
+
+.state-table progress {
+    margin-right: 2px;
 }
 
 #editor {

@@ -16,6 +16,9 @@ export function Editor(props: any) {
     <input id="shot" type="number" value="100" max="1000" min="1" />
     <button id="run">Run</button>
   </div>
-  <div id="error-list"></div>
+  <div class="error-list">
+    <div class="error-row"><span>main.qs@(10,12)</span>: Syntax error. Expected identifier.</div>
+    <div class="error-row"><span>main.qs@(15,14)</span>: Identifier 'foo' is unknown</div>
+  </div>
 </div>);
 }

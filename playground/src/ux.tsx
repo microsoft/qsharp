@@ -17,13 +17,24 @@ const workerPath = basePath + "libs/worker.js";
 
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
-const code = `// Enter your code here
-
-namespace Sample {
+const code = `namespace Sample {
     @EntryPoint()
-    operation Main() : Result[] {
-        // TODO
-        return [];
+
+    operation AllBasisVectorsWithPhases_TwoQubits() : Unit {
+        use q1 = Qubit();
+        use q4 = Qubit();
+
+        H(q1);
+        R1(0.3, q1);
+        H(q4);
+
+        use q5 = Qubit();
+        use q6 = Qubit();
+        S(q5);
+
+        Rxx(1.0, q5, q6);
+
+        Microsoft.Quantum.Diagnostics.DumpMachine();
     }
 }
 `;
@@ -45,7 +56,7 @@ async function loaded() {
     render(<App></App>, document.body);
 
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
-    let editor = monaco.editor.create(editorDiv);
+    let editor = monaco.editor.create(editorDiv, {minimap: {enabled: false}});
     let srcModel = monaco.editor.createModel(code, 'qsharp');
     editor.setModel(srcModel);
 
