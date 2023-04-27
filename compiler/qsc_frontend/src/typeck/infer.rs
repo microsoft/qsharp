@@ -3,7 +3,7 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferId, PrimTy, Ty};
+use qsc_hir::hir::{Functor, InferId, PrimTy, Res, Ty};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -375,6 +375,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             bind(infer, ty1.clone());
             Ok(())
         }
+        (Ty::Name(Res::Err), Ty::Name(_)) | (Ty::Name(_), Ty::Name(Res::Err)) => Ok(()),
         (Ty::Name(res1), Ty::Name(res2)) if res1 == res2 => Ok(()),
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
