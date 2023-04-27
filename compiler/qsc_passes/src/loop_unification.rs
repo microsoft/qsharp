@@ -51,11 +51,11 @@ impl LoopUni<'_> {
         let continue_cond_id = self.gen_ident("continue_cond", Ty::Prim(PrimTy::Bool), cond_span);
         let continue_cond_init = gen_id_init(
             Mutability::Mutable,
-            continue_cond_id.clone(),
+            &continue_cond_id,
             Expr {
                 id: NodeId::default(),
                 span: cond_span,
-                ty: continue_cond_id.ty.clone(),
+                ty: Ty::Prim(PrimTy::Bool),
                 kind: ExprKind::Lit(Lit::Bool(true)),
             },
         );
@@ -131,19 +131,19 @@ impl LoopUni<'_> {
         let iterable_span = iterable.span;
 
         let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
-        let array_capture = gen_id_init(Mutability::Immutable, array_id.clone(), *iterable);
+        let array_capture = gen_id_init(Mutability::Immutable, &array_id, *iterable);
 
         let len_id = self.gen_ident("len_id", Ty::Prim(PrimTy::Int), iterable_span);
         let len_capture = gen_id_init(
             Mutability::Immutable,
-            len_id.clone(),
+            &len_id,
             gen_field_access("Length".to_owned(), Ty::Prim(PrimTy::Int), &array_id),
         );
 
         let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
         let index_init = gen_id_init(
             Mutability::Mutable,
-            index_id.clone(),
+            &index_id,
             Expr {
                 id: NodeId::default(),
                 span: iterable_span,
@@ -229,26 +229,26 @@ impl LoopUni<'_> {
         let iterable_span = iterable.span;
 
         let range_id = self.gen_ident("range_id", Ty::Prim(PrimTy::Range), iterable_span);
-        let range_capture = gen_id_init(Mutability::Immutable, range_id.clone(), *iterable);
+        let range_capture = gen_id_init(Mutability::Immutable, &range_id, *iterable);
 
         let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
         let index_init = gen_id_init(
             Mutability::Mutable,
-            index_id.clone(),
+            &index_id,
             gen_field_access("Start".to_owned(), Ty::Prim(PrimTy::Int), &range_id),
         );
 
         let step_id = self.gen_ident("step_id", Ty::Prim(PrimTy::Int), iterable_span);
         let step_init = gen_id_init(
             Mutability::Immutable,
-            step_id.clone(),
+            &step_id,
             gen_field_access("Step".to_owned(), Ty::Prim(PrimTy::Int), &range_id),
         );
 
         let end_id = self.gen_ident("end_id", Ty::Prim(PrimTy::Int), iterable_span);
         let end_init = gen_id_init(
             Mutability::Immutable,
-            end_id.clone(),
+            &end_id,
             gen_field_access("End".to_owned(), Ty::Prim(PrimTy::Int), &range_id),
         );
 
@@ -412,7 +412,7 @@ fn gen_local_ref(ident: &TyIdent) -> Expr {
     }
 }
 
-fn gen_id_init(mutability: Mutability, ident: TyIdent, expr: Expr) -> Stmt {
+fn gen_id_init(mutability: Mutability, ident: &TyIdent, expr: Expr) -> Stmt {
     Stmt {
         id: NodeId::default(),
         span: ident.ident.span,
@@ -421,8 +421,8 @@ fn gen_id_init(mutability: Mutability, ident: TyIdent, expr: Expr) -> Stmt {
             Pat {
                 id: NodeId::default(),
                 span: ident.ident.span,
-                ty: ident.ty,
-                kind: PatKind::Bind(ident.ident),
+                ty: ident.ty.clone(),
+                kind: PatKind::Bind(ident.ident.clone()),
             },
             expr,
         ),
