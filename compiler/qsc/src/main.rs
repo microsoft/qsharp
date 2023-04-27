@@ -217,7 +217,11 @@ fn emit_hir(package: &Package, out_dir: impl AsRef<Path>) {
 
 fn read_source(path: impl AsRef<Path>) -> String {
     if path.as_ref().as_os_str() == "-" {
-        io::stdin().lines().map(Result::unwrap).collect()
+        io::stdin()
+            .lines()
+            .map(Result::unwrap)
+            .map(|line| line + "\n")
+            .collect()
     } else {
         fs::read_to_string(path).unwrap()
     }
