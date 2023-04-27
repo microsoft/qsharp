@@ -718,8 +718,6 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
-    /// A resolved name.
-    Name(Res),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
@@ -734,6 +732,8 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
+    /// A variable.
+    Var(Res),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
 }
@@ -762,7 +762,6 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Name(res) => write!(indent, "Name: {res}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
@@ -772,6 +771,7 @@ impl Display for ExprKind {
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
+            ExprKind::Var(res) => write!(indent, "Var: {res}")?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
         Ok(())

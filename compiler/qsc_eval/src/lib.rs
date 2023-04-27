@@ -385,7 +385,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
-            &ExprKind::Name(res) => ControlFlow::Continue(self.resolve_binding(res)),
             ExprKind::Return(expr) => ControlFlow::Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
@@ -398,13 +397,14 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 }
                 ControlFlow::Continue(Value::Tuple(val_tup))
             }
+            ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
+            &ExprKind::Var(res) => ControlFlow::Continue(self.resolve_binding(res)),
             ExprKind::While(cond, block) => {
                 while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(block)?;
                 }
                 ControlFlow::Continue(Value::UNIT)
             }
-            ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
             ExprKind::Conjugate(..) => {
                 ControlFlow::Break(Reason::Error(Error::Unimplemented("conjugate", expr.span)))
             }
@@ -972,7 +972,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => ControlFlow::Continue(Value::UNIT),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
-            (&ExprKind::Name(Res::Local(node)), rhs) => {
+            (&ExprKind::Var(Res::Local(node)), rhs) => {
                 let mut var = self.env.get_mut(node).expect("local should be bound");
                 if var.is_mutable() {
                     var.value = rhs;
