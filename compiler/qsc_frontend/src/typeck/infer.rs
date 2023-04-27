@@ -151,7 +151,7 @@ impl Display for Class {
             } => write!(f, "HasIndex<{container}, {index}>"),
             Class::Integral(ty) => write!(f, "Integral<{ty}>"),
             Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
-            Class::Num(ty) => write!(f, "Num<{ty}"),
+            Class::Num(ty) => write!(f, "Num<{ty}>"),
             Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
     }
@@ -274,7 +274,9 @@ impl Solver {
     fn class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
         let mut unknown_dependency = false;
         for ty in class.dependencies() {
-            if let Some(infer) = unknown_ty(&self.substs, ty) {
+            if ty == &Ty::Err {
+                unknown_dependency = true;
+            } else if let Some(infer) = unknown_ty(&self.substs, ty) {
                 self.pending.entry(infer).or_default().push(class.clone());
                 unknown_dependency = true;
             }
@@ -366,6 +368,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             unify(output1, output2, bind)?;
             Ok(())
         }
+        (Ty::Err, _) | (_, Ty::Err) => Ok(()),
         (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Ok(()),
         (&Ty::Infer(infer), _) => {
             bind(infer, ty2.clone());

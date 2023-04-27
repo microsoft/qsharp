@@ -1341,3 +1341,41 @@ fn range_fields_are_int() {
         "##]],
     );
 }
+
+#[test]
+fn unknown_name_fits_any_ty() {
+    check(
+        "",
+        "{ let x : Int = foo; let y : Qubit = foo; }",
+        &expect![[r##"
+            #0 0-43 "{ let x : Int = foo; let y : Qubit = foo; }" : ()
+            #1 0-43 "{ let x : Int = foo; let y : Qubit = foo; }" : ()
+            #3 6-13 "x : Int" : Int
+            #5 16-19 "foo" : ?
+            #7 25-34 "y : Qubit" : Qubit
+            #9 37-40 "foo" : ?
+            Error(Resolve(NotFound("foo", Span { lo: 16, hi: 19 })))
+            Error(Resolve(NotFound("foo", Span { lo: 37, hi: 40 })))
+        "##]],
+    );
+}
+
+#[test]
+fn unknown_name_has_any_class() {
+    check(
+        "",
+        "{ foo(); foo + 1 }",
+        &expect![[r##"
+            #0 0-18 "{ foo(); foo + 1 }" : ?
+            #1 0-18 "{ foo(); foo + 1 }" : ?
+            #3 2-7 "foo()" : ?0
+            #4 2-5 "foo" : ?
+            #5 5-7 "()" : ()
+            #7 9-16 "foo + 1" : ?
+            #8 9-12 "foo" : ?
+            #9 15-16 "1" : Int
+            Error(Resolve(NotFound("foo", Span { lo: 2, hi: 5 })))
+            Error(Resolve(NotFound("foo", Span { lo: 9, hi: 12 })))
+        "##]],
+    );
+}
