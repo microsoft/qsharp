@@ -1310,6 +1310,7 @@ fn array_unknown_field_error() {
             #3 31-42 "x : Qubit[]" : (Qubit)[]
             #5 50-73 "{\n        x::Size\n    }" : Int
             #7 60-67 "x::Size" : Int
+            #8 60-61 "x" : (Qubit)[]
             Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Infer(InferId(0)) }, Span { lo: 60, hi: 67 }))))
         "##]],
     );
@@ -1348,6 +1349,10 @@ fn range_to_field_start() {
         "(...2..8)::Start",
         &expect![[r##"
             #0 0-16 "(...2..8)::Start" : ?0
+            #1 0-9 "(...2..8)" : RangeTo
+            #2 1-8 "...2..8" : RangeTo
+            #3 4-5 "2" : Int
+            #4 7-8 "8" : Int
             Error(Type(Error(MissingClass(HasField { record: Prim(RangeTo), name: "Start", item: Infer(InferId(0)) }, Span { lo: 0, hi: 16 }))))
         "##]],
     );
@@ -1420,6 +1425,10 @@ fn range_from_field_end() {
         "(0..2...)::End",
         &expect![[r##"
             #0 0-14 "(0..2...)::End" : ?0
+            #1 0-9 "(0..2...)" : RangeFrom
+            #2 1-8 "0..2..." : RangeFrom
+            #3 1-2 "0" : Int
+            #4 4-5 "2" : Int
             Error(Type(Error(MissingClass(HasField { record: Prim(RangeFrom), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 14 }))))
         "##]],
     );
@@ -1432,6 +1441,7 @@ fn range_full_field_start() {
         "...::Start",
         &expect![[r##"
             #0 0-10 "...::Start" : ?0
+            #1 0-3 "..." : RangeFull
             Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "Start", item: Infer(InferId(0)) }, Span { lo: 0, hi: 10 }))))
         "##]],
     );
@@ -1470,6 +1480,7 @@ fn range_full_field_end() {
         "...::End",
         &expect![[r##"
             #0 0-8 "...::End" : ?0
+            #1 0-3 "..." : RangeFull
             Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 8 }))))
         "##]],
     );

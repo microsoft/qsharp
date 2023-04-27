@@ -311,9 +311,8 @@ impl With<'_> {
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
                 let container = self.lower_expr(container);
-                lower_field_name(&container.ty, &name.name).map_or(hir::ExprKind::Err, |field| {
-                    hir::ExprKind::Field(Box::new(container), field)
-                })
+                let field = name.name.parse().unwrap_or_default();
+                hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
                 self.lower_pat(pat),
@@ -445,28 +444,6 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
-    }
-}
-
-fn lower_field_name(ty: &hir::Ty, name: &str) -> Option<hir::PrimField> {
-    match (ty, name) {
-        (hir::Ty::Array(..), "Length") => Some(hir::PrimField::Length),
-        (hir::Ty::Prim(hir::PrimTy::Range | hir::PrimTy::RangeFrom), "Start") => {
-            Some(hir::PrimField::Start)
-        }
-        (
-            hir::Ty::Prim(
-                hir::PrimTy::Range
-                | hir::PrimTy::RangeFrom
-                | hir::PrimTy::RangeTo
-                | hir::PrimTy::RangeFull,
-            ),
-            "Step",
-        ) => Some(hir::PrimField::Step),
-        (hir::Ty::Prim(hir::PrimTy::Range | hir::PrimTy::RangeTo), "End") => {
-            Some(hir::PrimField::End)
-        }
-        _ => None,
     }
 }
 

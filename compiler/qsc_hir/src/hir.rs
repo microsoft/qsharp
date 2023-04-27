@@ -12,6 +12,8 @@ use std::{
     collections::HashSet,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
+    result,
+    str::FromStr,
 };
 
 fn set_indentation<'a, 'b>(
@@ -1287,7 +1289,7 @@ impl From<InferId> for usize {
 }
 
 /// A primitive field for a built-in type.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum PrimField {
     /// The length of an array.
     Length,
@@ -1297,6 +1299,23 @@ pub enum PrimField {
     Step,
     /// The end of a range.
     End,
+    /// An invalid field.
+    #[default]
+    Err,
+}
+
+impl FromStr for PrimField {
+    type Err = ();
+
+    fn from_str(s: &str) -> result::Result<Self, <Self as FromStr>::Err> {
+        match s {
+            "Length" => Ok(Self::Length),
+            "Start" => Ok(Self::Start),
+            "Step" => Ok(Self::Step),
+            "End" => Ok(Self::End),
+            _ => Err(()),
+        }
+    }
 }
 
 /// A declaration visibility kind.
