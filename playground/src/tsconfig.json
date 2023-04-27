@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "customConditions": ["browser"] // Required as 'node' is automatically added also.
   }
 }
