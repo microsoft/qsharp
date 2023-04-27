@@ -1,6 +1,6 @@
 {
   "name": "qsharp-vscode",
-  "displayName": "qsharp",
+  "displayName": "Q# (new)",
   "description": "Q# Language Support",
   "version": "0.0.1",
   "engines": {
