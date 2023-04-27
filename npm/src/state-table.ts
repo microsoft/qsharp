@@ -46,9 +46,9 @@ export function renderDump(dump: Dump): string {
   function formatComplex(real: number, imag: number) {
     // toLocaleString() correctly identifies -0 in JavaScript
     // String interpolation drops minus sign from -0
-    // &#x2212; is the unicode minus sign, &#x1D456; is the mathematical i
+    // Note the Unicode minus sign (&#x2212;) is used in the rendering below, not ASCII hyphen-minus
     const realPart = `${real.toLocaleString()[0] === "-" ? "−" : ""}${Math.abs(real).toFixed(4)}`;
-    const imagPart = `${imag.toLocaleString()[0] === "-" ? "−" : "+"}${Math.abs(imag).toFixed(4)}&#x1D456;`;
+    const imagPart = `${imag.toLocaleString()[0] === "-" ? "−" : "+"}${Math.abs(imag).toFixed(4)}𝑖`;
     return `${realPart}${imagPart}`;
   }
 
@@ -60,17 +60,18 @@ export function renderDump(dump: Dump): string {
     table +=
       `<tr>
           <td><span>${basis}</span></td>
-          <td><span">${complex}</span></td>
+          <td><span>${complex}</span></td>
           <td>
-              <progress max="100" value="${probabilityPercent}"></progress>
+              <progress style="width: 30%" max="100" value="${probabilityPercent}"></progress>
               <span>${probabilityPercent.toFixed(4)}%</span>
           </td>
           <td style="transform: rotate(${phase.toFixed(4)}rad)">↑</td>
           <td>
-              <span">${phase.toFixed(4)}</span>
+              <span>${phase.toFixed(4)}</span>
           </td>
     </tr>`;
   });
   table += `</tbody>`;
   return table;
 }
+  
