@@ -879,20 +879,20 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     }
 
     fn leave_scope(&mut self) -> ControlFlow<Reason, ()> {
-        for qubit in self
+        for (qubit, span) in self
             .env
             .0
             .pop()
             .expect("scope should be entered first before leaving")
             .qubits
         {
-            if !qubit_is_zero(qubit.0 .0) {
+            if !qubit_is_zero(qubit.0) {
                 return ControlFlow::Break(Reason::Error(Error::ReleasedQubitNotZero(
-                    qubit.0 .0 as usize,
-                    qubit.1,
+                    qubit.0 as usize,
+                    span,
                 )));
             }
-            __quantum__rt__qubit_release(qubit.0 .0);
+            __quantum__rt__qubit_release(qubit.0);
         }
         ControlFlow::Continue(())
     }
