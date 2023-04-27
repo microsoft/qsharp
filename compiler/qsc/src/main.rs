@@ -11,6 +11,7 @@ use miette::{
 use qsc_frontend::compile::{self, compile, PackageStore, SourceIndex, SourceMap};
 use qsc_hir::hir::Package;
 use qsc_passes::{entry_point::extract_entry, run_default_passes};
+use std::io::Read;
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -73,7 +74,12 @@ fn validate_input(sources: &[PathBuf], entry: &str) -> Result<(), clap::Error> {
 fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
     validate_input(&cli.input, &cli.entry.clone().unwrap_or_default()).into_diagnostic()?;
-    let sources: Vec<_> = cli.input.iter().map(read_source).collect();
+    let sources: Vec<_> = cli
+        .input
+        .iter()
+        .map(read_source)
+        .map(Result::unwrap)
+        .collect();
 
     let mut store = PackageStore::new();
     let dependencies = if cli.nostdlib {
@@ -215,15 +221,13 @@ fn emit_hir(package: &Package, out_dir: impl AsRef<Path>) {
     fs::write(path, format!("{package}")).unwrap();
 }
 
-fn read_source(path: impl AsRef<Path>) -> String {
+fn read_source(path: impl AsRef<Path>) -> io::Result<String> {
     if path.as_ref().as_os_str() == "-" {
-        io::stdin()
-            .lines()
-            .map(Result::unwrap)
-            .map(|line| line + "\n")
-            .collect()
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input)?;
+        Ok(input)
     } else {
-        fs::read_to_string(path).unwrap()
+        fs::read_to_string(path)
     }
 }
 
