@@ -9,8 +9,8 @@ use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimTy, Res,
-        Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimField,
+        PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
@@ -137,7 +137,7 @@ impl LoopUni<'_> {
         let len_capture = gen_id_init(
             Mutability::Immutable,
             &len_id,
-            gen_field_access("Length".to_owned(), Ty::Prim(PrimTy::Int), &array_id),
+            gen_field_access(&array_id, PrimField::Length),
         );
 
         let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
@@ -235,21 +235,21 @@ impl LoopUni<'_> {
         let index_init = gen_id_init(
             Mutability::Mutable,
             &index_id,
-            gen_field_access("Start".to_owned(), Ty::Prim(PrimTy::Int), &range_id),
+            gen_field_access(&range_id, PrimField::Start),
         );
 
         let step_id = self.gen_ident("step_id", Ty::Prim(PrimTy::Int), iterable_span);
         let step_init = gen_id_init(
             Mutability::Immutable,
             &step_id,
-            gen_field_access("Step".to_owned(), Ty::Prim(PrimTy::Int), &range_id),
+            gen_field_access(&range_id, PrimField::Step),
         );
 
         let end_id = self.gen_ident("end_id", Ty::Prim(PrimTy::Int), iterable_span);
         let end_init = gen_id_init(
             Mutability::Immutable,
             &end_id,
-            gen_field_access("End".to_owned(), Ty::Prim(PrimTy::Int), &range_id),
+            gen_field_access(&range_id, PrimField::End),
         );
 
         let pat_init = Stmt {
@@ -408,7 +408,7 @@ fn gen_local_ref(ident: &TyIdent) -> Expr {
         id: NodeId::default(),
         span: ident.ident.span,
         ty: ident.ty.clone(),
-        kind: ExprKind::Name(Res::Local(ident.ident.id)),
+        kind: ExprKind::Var(Res::Local(ident.ident.id)),
     }
 }
 
@@ -429,19 +429,12 @@ fn gen_id_init(mutability: Mutability, ident: &TyIdent, expr: Expr) -> Stmt {
     }
 }
 
-fn gen_field_access(field_name: String, field_ty: Ty, container: &TyIdent) -> Expr {
+fn gen_field_access(container: &TyIdent, field: PrimField) -> Expr {
     Expr {
         id: NodeId::default(),
         span: container.ident.span,
-        ty: field_ty,
-        kind: ExprKind::Field(
-            Box::new(gen_local_ref(container)),
-            Ident {
-                id: NodeId::default(),
-                span: container.ident.span,
-                name: Rc::from(field_name),
-            },
-        ),
+        ty: Ty::Prim(PrimTy::Int),
+        kind: ExprKind::Field(Box::new(gen_local_ref(container)), field),
     }
 }
 
