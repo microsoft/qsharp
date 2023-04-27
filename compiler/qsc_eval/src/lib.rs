@@ -489,32 +489,37 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         expr: &Expr,
         block: &Block,
     ) -> ControlFlow<Reason, Value> {
-        let iterable = self.eval_expr(expr)?;
-        let iterable = match iterable {
-            Value::Array(arr) => arr,
-            Value::Range(start, step, end) => Range::new(
-                start.map_or_else(
-                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
+        match self.eval_expr(expr)? {
+            Value::Array(arr) => self.iterate_for_loop(pat, arr.iter().cloned(), expr.span, block),
+            Value::Range(start, step, end) => {
+                let start = start.map_or(
+                    ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
                     ControlFlow::Continue,
-                )?,
-                step.unwrap_or(1),
-                end.map_or_else(
-                    || ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
+                )?;
+                let end = end.map_or(
+                    ControlFlow::Break(Reason::Error(Error::OpenEnded(expr.span))),
                     ControlFlow::Continue,
-                )?,
-            )
-            .map(Value::Int)
-            .collect::<Vec<_>>()
-            .into(),
-            _ => ControlFlow::Break(Reason::Error(Error::NotIterable(
-                iterable.type_name(),
+                )?;
+                let range = Range::new(start, step.unwrap_or(1), end);
+                self.iterate_for_loop(pat, range.map(Value::Int), expr.span, block)
+            }
+            value => ControlFlow::Break(Reason::Error(Error::NotIterable(
+                value.type_name(),
                 expr.span,
-            )))?,
-        };
+            ))),
+        }
+    }
 
-        for value in iterable.iter() {
+    fn iterate_for_loop(
+        &mut self,
+        pat: &Pat,
+        values: impl Iterator<Item = Value>,
+        span: Span,
+        block: &Block,
+    ) -> ControlFlow<Reason, Value> {
+        for value in values {
             self.enter_scope();
-            self.bind_value(pat, value.clone(), expr.span, Mutability::Immutable);
+            self.bind_value(pat, value, span, Mutability::Immutable);
             self.eval_block(block)?;
             self.leave_scope();
         }
@@ -706,8 +711,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
 
                     let c = tup_nesting[0].clone();
                     let rest = tup_nesting[1].clone();
-                    let c = c.try_into_array().with_span(args_span)?;
-                    ctls.extend(c.iter().cloned());
+                    ctls.extend_from_slice(c.try_into_array().with_span(args_span)?.as_ref());
                     tup = rest;
                 }
 
@@ -835,25 +839,19 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         mid: &Expr,
         rhs: &Expr,
     ) -> ControlFlow<Reason, Value> {
-        let mut arr: Vec<_> = self
-            .eval_expr(lhs)?
-            .try_into_array()
-            .with_span(lhs.span)?
-            .iter()
-            .cloned()
-            .collect();
-
+        let values = self.eval_expr(lhs)?.try_into_array().with_span(lhs.span)?;
         let index: i64 = self.eval_expr(mid)?.try_into().with_span(mid.span)?;
         if index < 0 {
-            ControlFlow::Break(Reason::Error(Error::Negative(index, mid.span)))
-        } else {
-            match arr.get_mut(index.as_index(mid.span)?) {
-                Some(v) => {
-                    *v = self.eval_expr(rhs)?;
-                    ControlFlow::Continue(Value::Array(arr.into()))
-                }
-                None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, mid.span))),
+            return ControlFlow::Break(Reason::Error(Error::Negative(index, mid.span)));
+        }
+
+        let mut values: Vec<_> = values.iter().cloned().collect();
+        match values.get_mut(index.as_index(mid.span)?) {
+            Some(value) => {
+                *value = self.eval_expr(rhs)?;
+                ControlFlow::Continue(Value::Array(values.into()))
             }
+            None => ControlFlow::Break(Reason::Error(Error::OutOfRange(index, mid.span))),
         }
     }
 
