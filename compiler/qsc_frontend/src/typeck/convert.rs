@@ -4,7 +4,7 @@
 use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, Functor, Ty};
+use qsc_hir::hir::{self, Functor, ItemId, Ty};
 use std::collections::HashSet;
 
 pub(crate) struct MissingTyError(pub(super) Span);
@@ -34,7 +34,7 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
         ast::TyKind::Paren(inner) => ty_from_ast(resolutions, inner),
         ast::TyKind::Path(path) => {
             let ty = match resolutions.get(path.id) {
-                Some(&resolve::Res::Item(item)) => Ty::Name(hir::Res::Item(item)),
+                Some(&resolve::Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
                 Some(resolve::Res::Local(_)) | None => Ty::Err,
@@ -52,6 +52,44 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
             }
             (Ty::Tuple(tys), errors)
         }
+    }
+}
+
+pub(super) fn ty_cons_ty(id: ItemId, input: Ty) -> Ty {
+    Ty::Arrow(
+        hir::CallableKind::Function,
+        Box::new(input),
+        Box::new(Ty::Udt(hir::Res::Item(id))),
+        HashSet::new(),
+    )
+}
+
+pub(super) fn ast_ty_def_ty(
+    resolutions: &Resolutions,
+    def: &ast::TyDef,
+) -> (Ty, Vec<MissingTyError>) {
+    match &def.kind {
+        ast::TyDefKind::Field(_, ty) => ty_from_ast(resolutions, ty),
+        ast::TyDefKind::Paren(inner) => ast_ty_def_ty(resolutions, inner),
+        ast::TyDefKind::Tuple(items) => {
+            let mut tys = Vec::new();
+            let mut errors = Vec::new();
+            for item in items {
+                let (item_ty, item_errors) = ast_ty_def_ty(resolutions, item);
+                tys.push(item_ty);
+                errors.extend(item_errors);
+            }
+
+            (Ty::Tuple(tys), errors)
+        }
+    }
+}
+
+pub(super) fn hir_ty_def_ty(def: &hir::TyDef) -> Ty {
+    match &def.kind {
+        hir::TyDefKind::Field(_, ty) => ty.clone(),
+        hir::TyDefKind::Paren(inner) => hir_ty_def_ty(inner),
+        hir::TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(hir_ty_def_ty).collect()),
     }
 }
 

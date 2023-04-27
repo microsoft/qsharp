@@ -3,7 +3,7 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferId, PrimTy, Ty};
+use qsc_hir::hir::{Functor, InferId, PrimTy, Res, Ty};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -208,7 +208,7 @@ impl Inferrer {
     pub(super) fn freshen(&mut self, ty: &mut Ty) {
         fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
             match ty {
-                Ty::Err | Ty::Name(_) | Ty::Infer(_) | Ty::Prim(_) => {}
+                Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
                 Ty::Arrow(_, input, output, _) => {
                     freshen(solver, params, input);
@@ -328,7 +328,7 @@ impl Solver {
 
 pub(super) fn substitute(substs: &Substitutions, ty: &mut Ty) {
     match ty {
-        Ty::Err | Ty::Name(_) | Ty::Param(_) | Ty::Prim(_) => {}
+        Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
         Ty::Array(item) => substitute(substs, item),
         Ty::Arrow(_, input, output, _) => {
             substitute(substs, input);
@@ -383,6 +383,8 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             }
             Ok(())
         }
+        (Ty::Udt(Res::Err), Ty::Udt(_)) | (Ty::Udt(_), Ty::Udt(Res::Err)) => Ok(()),
+        (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Ok(()),
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
 }
