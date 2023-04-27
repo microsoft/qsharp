@@ -333,9 +333,9 @@ fn ccx() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q3) {
                 fail "Qubit should be in one state.";
             }
-            X(q1);
-            X(q2);
             X(q3);
+            X(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q3)
         }"#},
         &expect!["true"],
@@ -357,8 +357,8 @@ fn cx() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit should be in one state.";
             }
-            X(q1);
             X(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q2)
         }"#},
         &expect!["true"],
@@ -380,8 +380,8 @@ fn cy() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit should be in one state.";
             }
-            X(q1);
             Y(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q2)
         }"#},
         &expect!["true"],
@@ -407,8 +407,8 @@ fn cz() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit should be in one state.";
             }
-            X(q1);
             X(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q2)
         }"#},
         &expect!["true"],
@@ -447,8 +447,8 @@ fn rxx() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit 2 should be in one state.";
             }
-            X(q1);
             X(q2);
+            X(q1);
             (Microsoft.Quantum.Diagnostics.CheckZero(q1), Microsoft.Quantum.Diagnostics.CheckZero(q2))
         }"#},
         &expect!["(true, true)"],
@@ -487,8 +487,8 @@ fn ryy() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit 2 should be in one state.";
             }
-            Y(q1);
             Y(q2);
+            Y(q1);
             (Microsoft.Quantum.Diagnostics.CheckZero(q1), Microsoft.Quantum.Diagnostics.CheckZero(q2))
         }"#},
         &expect!["(true, true)"],
@@ -535,12 +535,12 @@ fn rzz() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit 2 should be in one state.";
             }
-            H(q1);
             H(q2);
-            Z(q1);
+            H(q1);
             Z(q2);
-            H(q1);
+            Z(q1);
             H(q2);
+            H(q1);
             (Microsoft.Quantum.Diagnostics.CheckZero(q1), Microsoft.Quantum.Diagnostics.CheckZero(q2))
         }"#},
         &expect!["(true, true)"],
