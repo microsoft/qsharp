@@ -78,13 +78,7 @@ fn one_file_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(
-        vec![
-            (SourceIndex(0), Span { lo: 50, hi: 51 }),
-            (SourceIndex(0), Span { lo: 40, hi: 57 })
-        ],
-        errors,
-    );
+    assert_eq!(vec![(SourceIndex(0), Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -167,13 +161,7 @@ fn two_files_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(
-        vec![
-            (SourceIndex(1), Span { lo: 50, hi: 51 }),
-            (SourceIndex(1), Span { lo: 50, hi: 53 })
-        ],
-        errors,
-    );
+    assert_eq!(vec![(SourceIndex(1), Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -193,7 +181,7 @@ fn entry_call_operation() {
 
     let entry = &unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -305,7 +293,7 @@ fn package_dependency() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: Some(package1),
@@ -354,7 +342,7 @@ fn package_dependency_internal() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(&Res::Err, res);
 }
 

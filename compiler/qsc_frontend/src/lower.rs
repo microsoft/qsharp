@@ -309,7 +309,9 @@ impl With<'_> {
             ast::ExprKind::Err => hir::ExprKind::Err,
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
-                hir::ExprKind::Field(Box::new(self.lower_expr(container)), self.lower_ident(name))
+                let container = self.lower_expr(container);
+                let field = name.name.parse().unwrap_or_default();
+                hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
                 self.lower_pat(pat),
@@ -333,7 +335,7 @@ impl With<'_> {
             ),
             ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
             ast::ExprKind::Paren(inner) => hir::ExprKind::Paren(Box::new(self.lower_expr(inner))),
-            ast::ExprKind::Path(path) => hir::ExprKind::Name(self.lower_path(path)),
+            ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
                 step.as_ref().map(|s| Box::new(self.lower_expr(s))),

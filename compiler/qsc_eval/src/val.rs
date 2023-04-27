@@ -10,9 +10,11 @@ use std::{
     rc::Rc,
 };
 
+pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
-    Array(Vec<Value>),
+    Array(Rc<[Value]>),
     BigInt(BigInt),
     Bool(bool),
     Closure,
@@ -21,10 +23,10 @@ pub enum Value {
     Int(i64),
     Pauli(Pauli),
     Qubit(Qubit),
-    Range(Option<i64>, Option<i64>, Option<i64>),
+    Range(Option<i64>, i64, Option<i64>),
     Result(bool),
     String(Rc<str>),
-    Tuple(Vec<Value>),
+    Tuple(Rc<[Value]>),
     Udt,
 }
 
@@ -92,15 +94,15 @@ impl Display for Value {
                 Pauli::Y => write!(f, "PauliY"),
             },
             Value::Qubit(v) => write!(f, "Qubit{}", (v.0 as usize)),
-            Value::Range(start, step, end) => match (start, step, end) {
-                (Some(start), Some(step), Some(end)) => write!(f, "{start}..{step}..{end}"),
-                (Some(start), Some(step), None) => write!(f, "{start}..{step}..."),
-                (Some(start), None, Some(end)) => write!(f, "{start}..{end}"),
-                (Some(start), None, None) => write!(f, "{start}..."),
-                (None, Some(step), Some(end)) => write!(f, "...{step}..{end}"),
-                (None, Some(step), None) => write!(f, "...{step}..."),
-                (None, None, Some(end)) => write!(f, "...{end}"),
-                (None, None, None) => write!(f, "..."),
+            &Value::Range(start, step, end) => match (start, step, end) {
+                (Some(start), DEFAULT_RANGE_STEP, Some(end)) => write!(f, "{start}..{end}"),
+                (Some(start), DEFAULT_RANGE_STEP, None) => write!(f, "{start}..."),
+                (Some(start), step, Some(end)) => write!(f, "{start}..{step}..{end}"),
+                (Some(start), step, None) => write!(f, "{start}..{step}..."),
+                (None, DEFAULT_RANGE_STEP, Some(end)) => write!(f, "...{end}"),
+                (None, DEFAULT_RANGE_STEP, None) => write!(f, "..."),
+                (None, step, Some(end)) => write!(f, "...{step}..{end}"),
+                (None, step, None) => write!(f, "...{step}..."),
             },
             Value::Result(v) => {
                 if *v {
@@ -204,12 +206,15 @@ impl TryFrom<Value> for f64 {
 }
 
 impl Value {
-    pub const UNIT: Self = Self::Tuple(Vec::new());
+    #[must_use]
+    pub fn unit() -> Self {
+        Self::Tuple([].as_slice().into())
+    }
 
     /// Convert the [Value] into an array of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Array`].
-    pub fn try_into_array(self) -> Result<Vec<Self>, ConversionError> {
+    pub fn try_into_array(self) -> Result<Rc<[Self]>, ConversionError> {
         if let Value::Array(v) = self {
             Ok(v)
         } else {
@@ -234,7 +239,7 @@ impl Value {
     /// Convert the [Value] into an tuple of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Tuple`].
-    pub fn try_into_tuple(self) -> Result<Vec<Self>, ConversionError> {
+    pub fn try_into_tuple(self) -> Result<Rc<[Self]>, ConversionError> {
         if let Value::Tuple(v) = self {
             Ok(v)
         } else {

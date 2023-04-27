@@ -14,12 +14,12 @@ const libsDir = join(thisDir, "..", "node_modules");
 
 // Use minified libraries
 const isRelease = process.argv.includes('--release');
-const outfile = join(thisDir, 'public/libs/app.js');
+const outdir = join(thisDir, 'public/libs');
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
-    entryPoints: [join(thisDir, "src/main.ts")],
-    outfile,
+    entryPoints: [join(thisDir, "src/main.ts"), join(thisDir, "src/worker.ts")],
+    outdir,
     bundle: true,
     target: ['es2020', 'chrome64', 'edge79', 'firefox62' ,'safari11.1'],
     define: {"import.meta.url": "document.URL"},
@@ -54,7 +54,7 @@ function copyLibs() {
 function buildBundle() {
     console.log("Running esbuild");
 
-    build(buildOptions).then(_ => console.log(`Built bundle to ${outfile}`));
+    build(buildOptions).then(_ => console.log(`Built bundles to ${outdir}`));
 }
 
 // Serve the site or build it?

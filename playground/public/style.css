@@ -61,9 +61,10 @@ tbody tr {
     border-top: 1px solid gray;
 }
 
-td {
-    min-width: 160px;
-    text-align: center;
+td, th {
+    text-align: left;
+    padding: 6px;
+    white-space: nowrap;
 }
 
 .bar {

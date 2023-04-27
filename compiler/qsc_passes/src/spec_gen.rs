@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod adj_gen;
+pub(crate) mod adj_gen;
 mod ctl_gen;
 
 #[cfg(test)]
