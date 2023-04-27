@@ -18,12 +18,15 @@ fn remove_extra_parens(pat: Pat) -> Pat {
     match pat.kind {
         PatKind::Bind(_) | PatKind::Discard | PatKind::Elided => pat,
         PatKind::Paren(p) => remove_extra_parens(*p),
-        PatKind::Tuple(ps) => Pat {
-            id: pat.id,
-            span: pat.span,
-            ty: todo!(),
-            kind: PatKind::Tuple(ps.into_iter().map(remove_extra_parens).collect()),
-        },
+        PatKind::Tuple(ps) => {
+            let new_ps: Vec<Pat> = ps.into_iter().map(remove_extra_parens).collect();
+            Pat {
+                id: pat.id,
+                span: pat.span,
+                ty: Ty::Tuple(new_ps.iter().map(|p| p.ty.clone()).collect()),
+                kind: PatKind::Tuple(new_ps),
+            }
+        }
     }
 }
 
@@ -125,7 +128,7 @@ impl ReplaceQubitAllocation {
                 kind: StmtKind::Expr(Expr {
                     id: NodeId::default(),
                     span: stmt_span,
-                    ty: todo!(),
+                    ty: block.ty.clone(),
                     kind: ExprKind::Block(block),
                 }),
             }]
@@ -171,7 +174,7 @@ impl ReplaceQubitAllocation {
                 let tuple_expr = Expr {
                     id: NodeId::default(),
                     span: init.span,
-                    ty: todo!(),
+                    ty: Ty::Tuple(exprs.iter().map(|e| e.ty.clone()).collect()),
                     kind: ExprKind::Tuple(exprs),
                 };
                 (tuple_expr, ids)
@@ -257,6 +260,7 @@ impl MutVisitor for ReplaceQubitAllocation {
                 Some(s) => {
                     if let StmtKind::Expr(end) = &mut s.kind {
                         let end_capture = self.gen_ident(end.span);
+                        let ty = end.ty.clone();
                         *s = Stmt {
                             id: NodeId::default(),
                             span: s.span,
@@ -265,7 +269,7 @@ impl MutVisitor for ReplaceQubitAllocation {
                                 Pat {
                                     id: NodeId::default(),
                                     span: end.span,
-                                    ty: todo!(),
+                                    ty: ty.clone(),
                                     kind: PatKind::Bind(end_capture.clone()),
                                 },
                                 take(end),
@@ -276,7 +280,7 @@ impl MutVisitor for ReplaceQubitAllocation {
                             span: s.span,
                             kind: StmtKind::Expr(ReplaceQubitAllocation::gen_local_ref(
                                 &end_capture,
-                                todo!(),
+                                ty,
                             )),
                         })
                     } else {
@@ -305,6 +309,7 @@ impl MutVisitor for ReplaceQubitAllocation {
                     self.visit_expr(e);
                 } else {
                     let rtrn_capture = self.gen_ident(e.span);
+                    let ty = e.ty.clone();
                     self.visit_expr(e);
                     let mut stmts: Vec<Stmt> = vec![];
                     stmts.push(Stmt {
@@ -315,7 +320,7 @@ impl MutVisitor for ReplaceQubitAllocation {
                             Pat {
                                 id: NodeId::default(),
                                 span: e.span,
-                                ty: todo!(),
+                                ty: ty.clone(),
                                 kind: PatKind::Bind(rtrn_capture.clone()),
                             },
                             take(e),
@@ -328,20 +333,20 @@ impl MutVisitor for ReplaceQubitAllocation {
                         kind: StmtKind::Semi(Expr {
                             id: NodeId::default(),
                             span: expr.span,
-                            ty: todo!(),
+                            ty: Ty::UNIT, //ToDo: double-check that return expression have this type
                             kind: ExprKind::Return(Box::new(
-                                ReplaceQubitAllocation::gen_local_ref(&rtrn_capture, todo!()),
+                                ReplaceQubitAllocation::gen_local_ref(&rtrn_capture, ty),
                             )),
                         }),
                     });
                     let new_expr = Expr {
                         id: NodeId::default(),
                         span: expr.span,
-                        ty: todo!(),
+                        ty: Ty::UNIT, //ToDo: double-check type of blocks with `return` in them.
                         kind: ExprKind::Block(Block {
                             id: NodeId::default(),
                             span: expr.span,
-                            ty: todo!(),
+                            ty: Ty::UNIT, //ToDo: double-check type of blocks with `return` in them.
                             stmts,
                         }),
                     };
