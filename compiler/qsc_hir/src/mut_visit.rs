@@ -240,7 +240,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Name(_) => {}
+        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_) => {}
     }
 }
 

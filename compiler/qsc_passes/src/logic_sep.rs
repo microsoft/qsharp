@@ -119,11 +119,11 @@ impl<'a> Visitor<'a> for SepCheck {
                     | ExprKind::Lambda(..)
                     | ExprKind::Lit(..)
                     | ExprKind::Paren(..)
-                    | ExprKind::Name(..)
                     | ExprKind::Range(..)
                     | ExprKind::TernOp(..)
                     | ExprKind::Tuple(..)
-                    | ExprKind::UnOp(..) => {
+                    | ExprKind::UnOp(..)
+                    | ExprKind::Var(..) => {
                         self.op_call_allowed = false;
                         self.visit_expr(expr);
                         self.op_call_allowed = prior;

@@ -123,7 +123,7 @@ struct Usage {
 impl<'a> Visitor<'a> for Usage {
     fn visit_expr(&mut self, expr: &'a Expr) {
         match &expr.kind {
-            ExprKind::Name(Res::Local(id)) => {
+            ExprKind::Var(Res::Local(id)) => {
                 self.used.insert(*id);
             }
             _ => visit::walk_expr(self, expr),
@@ -153,7 +153,7 @@ impl AssignmentCheck {
         match &expr.kind {
             ExprKind::Hole => {}
             ExprKind::Paren(expr) => self.check_assign(expr),
-            ExprKind::Name(Res::Local(id)) => {
+            ExprKind::Var(Res::Local(id)) => {
                 if self.used.contains(id) {
                     self.errors.push(Error::ApplyAssign(expr.span));
                 }
