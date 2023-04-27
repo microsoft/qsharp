@@ -1,0 +1,201 @@
+@font-face {
+    font-family: "SegoeUI";
+    src: local("Segoe UI"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/normal/latest.woff2") format("woff2"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/normal/latest.woff") format("woff"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/normal/latest.ttf") format("ttf");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "SegoeUI";
+    src: local("Segoe UI"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/light/latest.woff2") format("woff2"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/light/latest.woff") format("woff"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/light/latest.ttf") format("ttf");
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: "SegoeUI";
+    src: local("Segoe UI"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/semilight/latest.woff2") format("woff2"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/semilight/latest.woff") format("woff"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/semilight/latest.ttf") format("ttf");
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "SegoeUI";
+    src: local("Segoe UI"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/semibold/latest.woff2") format("woff2"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/semibold/latest.woff") format("woff"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/semibold/latest.ttf") format("ttf");
+    font-weight: 600;
+}
+
+@font-face {
+    font-family: "SegoeUI";
+    src: local("Segoe UI"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/bold/latest.woff2") format("woff2"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/bold/latest.woff") format("woff"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/bold/latest.ttf") format("ttf");
+    font-weight: 700;
+}
+
+:root {
+    --heading-background: #262679;
+    --main-background: #ececf0;
+    --main-color: #101010;
+    --nav-background: #c2dbff;
+    --nav-hover-background: #b3bede;
+    --nav-current-background: #b5c5f2;
+    --border-color: #768f9c;
+}
+
+html {
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    font-family: "SegoeUI", Helvetica, Arial, sans-serif;
+    color: var(--main-color);
+    background-color: var(--main-background);
+    display: grid;
+    grid-template-areas:
+        "header header header"
+        "nav editor results";
+    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(200px, auto) 8fr 8fr;
+    column-gap: 16px;
+}
+
+.header {
+    grid-area: header;
+    background: var(--heading-background);
+    color: var(--main-background);
+    font-size: 2rem;
+    font-weight: 600;
+    text-align: center;
+    padding-top: 4px;
+    padding-bottom: 8px;
+}
+
+.nav-column {
+    grid-area: nav;
+    background-color: var(--nav-background);
+}
+
+.editor-column {
+    grid-area: editor;
+    margin: 16px;
+    margin-top: 32px;
+}
+
+.results-column {
+    grid-area: results;
+    margin-left: 0px;
+    margin-top: 32px;
+    margin-right: 120px;
+}
+
+.nav-1 {
+    font-size: 1.2rem;
+    font-weight: 200;
+    color: var(--main-color);
+    border-top: 1px solid var(--border-color);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 8px;
+}
+
+.nav-2 {
+    font-size: 1.0rem;
+    font-weight: 200;
+    padding: 4px;
+    padding-left: 16px;
+}
+
+.nav-selectable:hover {
+    background-color: var(--nav-hover-background);
+    cursor: pointer;
+}
+
+.nav-current {
+    font-weight: 700;
+    background-color: var(--nav-current-background);
+}
+
+.file-name {
+    border: 1px solid var(--border-color);
+    border-bottom: 0px;
+    width: 100px;
+    text-align: center;
+    height: 32px;
+    line-height: 32px;
+    background-color: white;;
+}
+
+.results-labels {
+    display: flex;
+    margin-bottom: 8px;
+}
+.results-labels > div {
+    margin-right: 40px;
+    text-align: left;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.results-active-tab {
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.output-header {
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.prev-next {
+    font-weight: 200;
+    cursor: pointer;
+    /* text-decoration: underline; */
+}
+
+#editor {
+    height: 50%;
+    min-height: 400px;
+    border: 1px solid var(--border-color);
+}
+
+#button-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+#button-row > * {
+    margin-left: 10px;
+}
+
+#expr {
+    width: 160px;
+}
+
+#shot {
+    width: 80px;
+}
+
+#run {
+    background-color: var(--nav-background);
+    color: var(--main-color);
+    width: 72px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+#histogram {
+    width: 100%;
+    min-height: 320px;
+    border: 1px solid var(--border-color);
+    background-color: white;
+}

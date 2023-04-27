@@ -18,7 +18,7 @@ const outdir = join(thisDir, 'public/libs');
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
-    entryPoints: [join(thisDir, "src/main.ts"), join(thisDir, "src/worker.ts")],
+    entryPoints: [join(thisDir, "src/main.ts"), join(thisDir, "src/worker.ts"), join(thisDir, "src/ux.tsx")],
     outdir,
     bundle: true,
     target: ['es2020', 'chrome64', 'edge79', 'firefox62' ,'safari11.1'],
