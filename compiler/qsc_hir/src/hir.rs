@@ -1290,13 +1290,13 @@ impl From<InferId> for usize {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum PrimField {
     /// The length of an array.
-    ArrayLength,
+    Length,
     /// The start of a range.
-    RangeStart,
+    Start,
     /// The step of a range.
-    RangeStep,
+    Step,
     /// The end of a range.
-    RangeEnd,
+    End,
 }
 
 /// A declaration visibility kind.

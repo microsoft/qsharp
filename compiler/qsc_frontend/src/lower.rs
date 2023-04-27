@@ -450,9 +450,9 @@ impl With<'_> {
 
 fn lower_field_name(ty: &hir::Ty, name: &str) -> Option<hir::PrimField> {
     match (ty, name) {
-        (hir::Ty::Array(..), "Length") => Some(hir::PrimField::ArrayLength),
+        (hir::Ty::Array(..), "Length") => Some(hir::PrimField::Length),
         (hir::Ty::Prim(hir::PrimTy::Range | hir::PrimTy::RangeFrom), "Start") => {
-            Some(hir::PrimField::RangeStart)
+            Some(hir::PrimField::Start)
         }
         (
             hir::Ty::Prim(
@@ -462,9 +462,9 @@ fn lower_field_name(ty: &hir::Ty, name: &str) -> Option<hir::PrimField> {
                 | hir::PrimTy::RangeFull,
             ),
             "Step",
-        ) => Some(hir::PrimField::RangeStep),
+        ) => Some(hir::PrimField::Step),
         (hir::Ty::Prim(hir::PrimTy::Range | hir::PrimTy::RangeTo), "End") => {
-            Some(hir::PrimField::RangeEnd)
+            Some(hir::PrimField::End)
         }
         _ => None,
     }

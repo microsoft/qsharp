@@ -244,9 +244,9 @@ impl<'a> BlockInverter<'a> {
 }
 
 fn make_range_reverse_expr(range_id: NodeId) -> Expr {
-    let start = make_range_field(range_id, PrimField::RangeStart);
-    let step = make_range_field(range_id, PrimField::RangeStep);
-    let end = make_range_field(range_id, PrimField::RangeEnd);
+    let start = make_range_field(range_id, PrimField::Start);
+    let step = make_range_field(range_id, PrimField::Step);
+    let end = make_range_field(range_id, PrimField::End);
 
     // A reversed range is `(start + (end - start) / step * step) .. -step .. start`.
     let new_start = Box::new(Expr {
@@ -331,7 +331,7 @@ fn make_array_index_range_reverse(arr_id: NodeId, arr_ty: &Ty) -> Expr {
                 ty: Ty::Array(Box::new(arr_ty.clone())),
                 kind: ExprKind::Name(Res::Local(arr_id)),
             }),
-            PrimField::ArrayLength,
+            PrimField::Length,
         ),
     });
     let start = Box::new(Expr {
