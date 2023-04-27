@@ -71,19 +71,16 @@ pub(crate) fn invoke_intrinsic(
                 ControlFlow::Continue(Value::Double(val.atan()))
             }
 
-            "ArcTan2" => {
-                let args = args.try_into_tuple().with_span(args_span)?;
-                if args.len() == 2 {
-                    let a1 = args[0].clone();
-                    let a2 = args[1].clone();
-                    let val: f64 = a1.try_into().with_span(args_span)?;
-                    ControlFlow::Continue(Value::Double(
-                        val.atan2(a2.try_into().with_span(args_span)?),
-                    ))
-                } else {
+            "ArcTan2" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                [x, y] => {
+                    let x: f64 = x.clone().try_into().with_span(args_span)?;
+                    let y = y.clone().try_into().with_span(args_span)?;
+                    ControlFlow::Continue(Value::Double(x.atan2(y)))
+                }
+                args => {
                     ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                 }
-            }
+            },
 
             "Cos" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
@@ -115,31 +112,25 @@ pub(crate) fn invoke_intrinsic(
                 ControlFlow::Continue(Value::Double(val.tanh()))
             }
 
-            "DrawRandomInt" => {
-                let args = args.try_into_tuple().with_span(args_span)?;
-                if args.len() == 2 {
-                    let a1 = args[0].clone();
-                    let a2 = args[1].clone();
-                    invoke_draw_random_int(a1, a2, args_span)
-                } else {
+            "DrawRandomInt" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                [lo, hi] => invoke_draw_random_int(lo.clone(), hi.clone(), args_span),
+                args => {
                     ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                 }
-            }
+            },
 
             _ => ControlFlow::Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
         }
     }
 }
 
-fn invoke_draw_random_int(a1: Value, a2: Value, args_span: Span) -> ControlFlow<Reason, Value> {
-    let low_bound: i64 = a1.try_into().with_span(args_span)?;
-    let high_bound: i64 = a2.try_into().with_span(args_span)?;
-    if low_bound > high_bound {
+fn invoke_draw_random_int(lo: Value, hi: Value, args_span: Span) -> ControlFlow<Reason, Value> {
+    let lo: i64 = lo.try_into().with_span(args_span)?;
+    let hi: i64 = hi.try_into().with_span(args_span)?;
+    if lo > hi {
         ControlFlow::Break(Reason::Error(Error::EmptyRange(args_span)))
     } else {
-        ControlFlow::Continue(Value::Int(
-            rand::thread_rng().gen_range(low_bound..=high_bound),
-        ))
+        ControlFlow::Continue(Value::Int(rand::thread_rng().gen_range(lo..=hi)))
     }
 }
 
@@ -157,33 +148,28 @@ fn invoke_quantum_intrinsic(
                     ControlFlow::Continue(Value::unit())
                 })*
                 $(stringify!($op2) => {
-                    let args = args.try_into_tuple().with_span(args_span)?;
-                    if args.len() == 2 {
-                        let a1 = args[0].clone();
-                        let a2 = args[1].clone();
-                        $op2(
-                            a1.try_into().with_span(args_span)?,
-                            a2.try_into().with_span(args_span)?,
-                        );
-                        ControlFlow::Continue(Value::unit())
-                    } else {
-                        ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                    match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                        [x, y] =>  {
+                            $op2(
+                                x.clone().try_into().with_span(args_span)?,
+                                y.clone().try_into().with_span(args_span)?,
+                            );
+                            ControlFlow::Continue(Value::unit())
+                        }
+                        args => ControlFlow::Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
                     }
                 })*
                 $(stringify!($op3) => {
-                    let args = args.try_into_tuple().with_span(args_span)?;
-                    if args.len() == 3 {
-                        let a1 = args[0].clone();
-                        let a2 = args[1].clone();
-                        let a3 = args[2].clone();
-                        $op3(
-                            a1.try_into().with_span(args_span)?,
-                            a2.try_into().with_span(args_span)?,
-                            a3.try_into().with_span(args_span)?,
-                        );
-                        ControlFlow::Continue(Value::unit())
-                    } else {
-                        ControlFlow::Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
+                    match args.try_into_tuple().with_span(args_span)?.as_ref() {
+                        [x, y, z] => {
+                            $op3(
+                                x.clone().try_into().with_span(args_span)?,
+                                y.clone().try_into().with_span(args_span)?,
+                                z.clone().try_into().with_span(args_span)?,
+                            );
+                            ControlFlow::Continue(Value::unit())
+                        }
+                        args => ControlFlow::Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
                     }
                 })*)*
 
