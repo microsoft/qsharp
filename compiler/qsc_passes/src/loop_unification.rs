@@ -295,7 +295,7 @@ impl LoopUni<'_> {
             ident: Ident {
                 id: new_node_id,
                 span,
-                name: Rc::from(format!("__{label}_{new_node_id}__")),
+                name: Rc::from(format!("{label}_{new_node_id}")),
             },
             ty,
         }
