@@ -357,6 +357,10 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
 
 fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
+        (Ty::Err, _)
+        | (_, Ty::Err)
+        | (Ty::Udt(Res::Err), Ty::Udt(_))
+        | (Ty::Udt(_), Ty::Udt(Res::Err)) => Ok(()),
         (Ty::Array(item1), Ty::Array(item2)) => unify(item1, item2, bind),
         (Ty::Arrow(kind1, input1, output1, _), Ty::Arrow(kind2, input2, output2, _))
             if kind1 == kind2 =>
@@ -368,7 +372,6 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             unify(output1, output2, bind)?;
             Ok(())
         }
-        (Ty::Err, _) | (_, Ty::Err) => Ok(()),
         (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Ok(()),
         (&Ty::Infer(infer), _) => {
             bind(infer, ty2.clone());
@@ -386,7 +389,6 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             }
             Ok(())
         }
-        (Ty::Udt(Res::Err), Ty::Udt(_)) | (Ty::Udt(_), Ty::Udt(Res::Err)) => Ok(()),
         (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Ok(()),
         _ => Err(UnifyError(ty1.clone(), ty2.clone())),
     }
