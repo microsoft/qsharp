@@ -173,10 +173,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_block(apply);
         }
         ExprKind::Fail(msg) => vis.visit_expr(msg),
-        ExprKind::Field(record, name) => {
-            vis.visit_expr(record);
-            vis.visit_ident(name);
-        }
+        ExprKind::Field(record, _) => vis.visit_expr(record),
         ExprKind::For(pat, iter, block) => {
             vis.visit_pat(pat);
             vis.visit_expr(iter);
