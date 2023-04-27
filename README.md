@@ -24,8 +24,15 @@ The build script will check these dependencies and their versions and fail if no
 To build, in the root directory run `python ./build.py`. By default this will run a development
 build of each project.
 
+### Playground
 To run the "playground" locally, `cd` into the `playground` directory, and run `npm start`.
 This will launch a local web server and output the URL to visit to the console.
+
+### Python
+If the build script does not detect a current Python virtual environment, it will automatically create
+one under `pip/.venv` to run the tests for the `pip` package. When developing locally, 
+you can use this virtual environment to run the tests by running `source pip/.venv/bin/activate`
+(Linux/MacOS) or `pip/.venv/Scripts/activate.bat` (Windows).
 
 ## Feedback
 

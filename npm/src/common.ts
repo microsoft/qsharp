@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 // Each DumpMachine output is represented as an object where each key is a basis
 // state, e.g., "|3>" and the value is the [real, imag] parts of the complex amplitude.
 export type Dump = {
@@ -11,6 +14,10 @@ export interface VSDiagnostic {
     severity: number;
 }
 
+export type Result = 
+    { success: true, value: string } |
+    { success: false, value: VSDiagnostic };
+
 export interface DumpMsg {
     type: "DumpMachine";
     state: Dump;
@@ -23,14 +30,7 @@ export interface MessageMsg {
 
 export interface ResultMsg {
     type: "Result";
-    success: boolean;
-    result: string | VSDiagnostic;
-}
-
-export type ShotResult = {
-    success: boolean;
-    result: string | VSDiagnostic;
-    events: Array<MessageMsg | DumpMsg>;
+    result: Result;
 }
 
 export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
@@ -39,7 +39,13 @@ export function outputAsResult(msg: string) : ResultMsg | null {
     try {
         let obj = JSON.parse(msg);
         if (obj?.type == "Result" && typeof obj.success == "boolean") {
-            return obj as ResultMsg;
+            return {
+                type: "Result",
+                result: {
+                    success: obj.success,
+                    value: obj.result
+                }
+            };
         }
     } catch {
         return null;
@@ -75,31 +81,10 @@ export function eventStringToMsg(msg: string) : EventMsg | null {
     return outputAsResult(msg) || outputAsMessage(msg) || outputAsDump(msg);
 }
 
-export type RunFn = (code: string, expr: string, event_cb: Function, shots: number) => void;
-
-export function run_shot_internal(code: string, expr: string, run: RunFn) : ShotResult {
-    let result : ShotResult = {
-        success: false,
-        result: "pending",
-        events: [],
-    };
-
-    run(code, expr, (msg:string) => {
-        let eventObj = eventStringToMsg(msg);
-        if (!eventObj) return;
-
-        switch (eventObj.type) {
-            case "Result":
-                result.success = eventObj.success;
-                result.result = eventObj.result;
-                break;
-            default:
-                result.events.push(eventObj);
-                break;
-        }
-    }, 1);
-
-    return result;
+export type ShotResult = {
+    success: boolean;
+    result: string | VSDiagnostic;
+    events: Array<MessageMsg | DumpMsg>;
 }
 
 // The QSharp compiler returns positions in utf-8 code unit positions (basically a byte[]
