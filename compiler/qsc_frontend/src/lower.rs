@@ -448,11 +448,11 @@ impl With<'_> {
     }
 }
 
-fn lower_field_name(ty: &hir::Ty, name: &str) -> Option<hir::FieldId> {
+fn lower_field_name(ty: &hir::Ty, name: &str) -> Option<hir::PrimField> {
     match (ty, name) {
-        (hir::Ty::Array(..), "Length") => Some(hir::FieldId::ARRAY_LENGTH),
+        (hir::Ty::Array(..), "Length") => Some(hir::PrimField::ArrayLength),
         (hir::Ty::Prim(hir::PrimTy::Range | hir::PrimTy::RangeFrom), "Start") => {
-            Some(hir::FieldId::RANGE_START)
+            Some(hir::PrimField::RangeStart)
         }
         (
             hir::Ty::Prim(
@@ -462,9 +462,9 @@ fn lower_field_name(ty: &hir::Ty, name: &str) -> Option<hir::FieldId> {
                 | hir::PrimTy::RangeFull,
             ),
             "Step",
-        ) => Some(hir::FieldId::RANGE_STEP),
+        ) => Some(hir::PrimField::RangeStep),
         (hir::Ty::Prim(hir::PrimTy::Range | hir::PrimTy::RangeTo), "End") => {
-            Some(hir::FieldId::RANGE_END)
+            Some(hir::PrimField::RangeEnd)
         }
         _ => None,
     }

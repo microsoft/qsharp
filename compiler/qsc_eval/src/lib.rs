@@ -22,8 +22,8 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldId, Functor, Lit,
-    Mutability, NodeId, PackageId, Pat, PatKind, QubitInit, QubitInitKind, Res, Spec, SpecBody,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
+    NodeId, PackageId, Pat, PatKind, PrimField, QubitInit, QubitInitKind, Res, Spec, SpecBody,
     SpecGen, Stmt, StmtKind, TernOp, UnOp,
 };
 use std::{
@@ -856,26 +856,26 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         &mut self,
         span: Span,
         record: &Expr,
-        field: FieldId,
+        field: PrimField,
     ) -> ControlFlow<Reason, Value> {
         let record_span = record.span;
         let record = self.eval_expr(record)?;
         // For now we only support built-in fields for Arrays and Ranges.
         match (record, field) {
-            (Value::Array(arr), FieldId::ARRAY_LENGTH) => {
+            (Value::Array(arr), PrimField::ArrayLength) => {
                 let len: i64 = match arr.len().try_into() {
                     Ok(len) => ControlFlow::Continue(len),
                     Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(record_span))),
                 }?;
                 ControlFlow::Continue(Value::Int(len))
             }
-            (Value::Range(Some(start), _, _), FieldId::RANGE_START) => {
+            (Value::Range(Some(start), _, _), PrimField::RangeStart) => {
                 ControlFlow::Continue(Value::Int(start))
             }
-            (Value::Range(_, step, _), FieldId::RANGE_STEP) => {
+            (Value::Range(_, step, _), PrimField::RangeStep) => {
                 ControlFlow::Continue(Value::Int(step))
             }
-            (Value::Range(_, _, Some(end)), FieldId::RANGE_END) => {
+            (Value::Range(_, _, Some(end)), PrimField::RangeEnd) => {
                 ControlFlow::Continue(Value::Int(end))
             }
             _ => ControlFlow::Break(Reason::Error(Error::Unimplemented("field access", span))),

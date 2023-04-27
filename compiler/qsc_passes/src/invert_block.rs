@@ -7,7 +7,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        BinOp, Block, Expr, ExprKind, FieldId, Ident, Lit, Mutability, NodeId, Pat, PatKind,
+        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimField,
         PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
@@ -244,9 +244,9 @@ impl<'a> BlockInverter<'a> {
 }
 
 fn make_range_reverse_expr(range_id: NodeId) -> Expr {
-    let start = make_range_field(range_id, FieldId::RANGE_START);
-    let step = make_range_field(range_id, FieldId::RANGE_STEP);
-    let end = make_range_field(range_id, FieldId::RANGE_END);
+    let start = make_range_field(range_id, PrimField::RangeStart);
+    let step = make_range_field(range_id, PrimField::RangeStep);
+    let end = make_range_field(range_id, PrimField::RangeEnd);
 
     // A reversed range is `(start + (end - start) / step * step) .. -step .. start`.
     let new_start = Box::new(Expr {
@@ -302,7 +302,7 @@ fn make_range_reverse_expr(range_id: NodeId) -> Expr {
     }
 }
 
-fn make_range_field(range_id: NodeId, field: FieldId) -> Expr {
+fn make_range_field(range_id: NodeId, field: PrimField) -> Expr {
     Expr {
         id: NodeId::default(),
         span: Span::default(),
@@ -331,7 +331,7 @@ fn make_array_index_range_reverse(arr_id: NodeId, arr_ty: &Ty) -> Expr {
                 ty: Ty::Array(Box::new(arr_ty.clone())),
                 kind: ExprKind::Name(Res::Local(arr_id)),
             }),
-            FieldId::ARRAY_LENGTH,
+            PrimField::ArrayLength,
         ),
     });
     let start = Box::new(Expr {

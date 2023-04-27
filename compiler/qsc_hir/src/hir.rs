@@ -701,7 +701,7 @@ pub enum ExprKind {
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
-    Field(Box<Expr>, FieldId),
+    Field(Box<Expr>, PrimField),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -863,11 +863,11 @@ fn display_conjugate(
     Ok(())
 }
 
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: FieldId) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: PrimField) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
-    write!(indent, "\nId: {field}")?;
+    write!(indent, "\n{field:?}")?;
     Ok(())
 }
 
@@ -1286,28 +1286,17 @@ impl From<InferId> for usize {
     }
 }
 
-/// A unique identifier for a field within a type.
+/// A primitive field for a built-in type.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct FieldId(u32);
-
-impl FieldId {
-    /// The `Length` field for array types.
-    pub const ARRAY_LENGTH: Self = FieldId(0);
-
-    /// The `Start` field for range types.
-    pub const RANGE_START: Self = FieldId(0);
-
-    /// The `Step` field for range types.
-    pub const RANGE_STEP: Self = FieldId(1);
-
-    /// The `End` field for range types.
-    pub const RANGE_END: Self = FieldId(2);
-}
-
-impl Display for FieldId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(&self.0, f)
-    }
+pub enum PrimField {
+    /// The length of an array.
+    ArrayLength,
+    /// The start of a range.
+    RangeStart,
+    /// The step of a range.
+    RangeStep,
+    /// The end of a range.
+    RangeEnd,
 }
 
 /// A declaration visibility kind.
