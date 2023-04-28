@@ -56,7 +56,7 @@ async function loaded() {
     render(<App></App>, document.body);
 
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
-    let editor = monaco.editor.create(editorDiv, {minimap: {enabled: false}});
+    let editor = monaco.editor.create(editorDiv, {minimap: {enabled: false}, lineNumbersMinChars:3});
     let srcModel = monaco.editor.createModel(code, 'qsharp');
     editor.setModel(srcModel);
 

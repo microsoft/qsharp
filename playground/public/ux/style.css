@@ -1,4 +1,4 @@
-@font-face {
+/* @font-face {
     font-family: "SegoeUI";
     src: local("Segoe UI"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/normal/latest.woff2") format("woff2"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/normal/latest.woff") format("woff"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/normal/latest.ttf") format("ttf");
     font-weight: 400;
@@ -26,12 +26,19 @@
     font-family: "SegoeUI";
     src: local("Segoe UI"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/bold/latest.woff2") format("woff2"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/bold/latest.woff") format("woff"), url("https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/bold/latest.ttf") format("ttf");
     font-weight: 700;
-}
+} */
+
+/* 
+Common on GitHub, Medium, etc. is the below. Could try that also if Windows has issues with system-ui
+
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+*/
 
 :root {
     --heading-background: #262679;
     --main-background: #ececf0;
-    --main-color: #101010;
+    --main-color: #202020;
     --nav-background: #c2dbff;
     --nav-hover-background: #b3bede;
     --nav-current-background: #b5c5f2;
@@ -52,7 +59,7 @@ html {
 
 body {
     min-height: 100vh;
-    font-family: "SegoeUI", Helvetica, Arial, sans-serif;
+    font-family: system-ui, "Segoe UI", "SegoeUI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--main-color);
     background-color: var(--main-background);
     display: grid;
@@ -133,7 +140,7 @@ body {
 .error-list {
     border: 1px solid var(--border-color);
     border-bottom: 0px;
-    margin-top: 16px;
+    margin-top: 24px;
 }
 
 .error-row {
@@ -181,6 +188,7 @@ body {
 .state-table {
     border-collapse: collapse;
     font-size: 0.9rem;
+    width: 100%;
     min-width: 400px;
     margin-top: 32px;
 }
@@ -212,11 +220,13 @@ body {
 #button-row {
     display: flex;
     justify-content: flex-end;
-    margin-top: 16px;
+    align-items: center;
+    margin-top: 8px;
 }
 
 #button-row > * {
     margin-left: 10px;
+    font-size: 1rem;
 }
 
 #expr {
@@ -227,10 +237,12 @@ body {
     width: 80px;
 }
 
-#run {
+.main-button {
     background-color: var(--nav-background);
+    font-size: 1rem;
     color: var(--main-color);
     width: 72px;
+    height: 24px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
     cursor: pointer;

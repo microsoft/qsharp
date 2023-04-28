@@ -47,7 +47,7 @@ function makeResultObj(): ShotResult {
 
 export class QscEventTarget extends EventTarget implements IQscEventTarget {
     private results: ShotResult[] = [];
-    private currentResult: ShotResult = makeResultObj();
+    private shotActive = false;
 
     // Overrides for the base EventTarget methods to limit to expected event types
     addEventListener<K extends keyof QscEventMap>(
@@ -78,19 +78,34 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
     }
 
     private onMessage(msg: string) {
-        this.currentResult.events.push({ "type": "Message", "message": msg });
+        if (!this.shotActive) {
+            this.results.push(makeResultObj());
+            this.shotActive = true;
+        }
+        const shotIdx = this.results.length - 1;
+
+        this.results[shotIdx].events.push({ "type": "Message", "message": msg });
     }
 
     private onDumpMachine(dump: Dump) {
-        this.currentResult.events.push({ "type": "DumpMachine", "state": dump });
+        if (!this.shotActive) {
+            this.results.push(makeResultObj());
+            this.shotActive = true;
+        }
+        const shotIdx = this.results.length - 1;
+        this.results[shotIdx].events.push({ "type": "DumpMachine", "state": dump });
     }
 
     private onResult(result: Result) {
-        // Save result and move to the next
-        this.currentResult.success = result.success;
-        this.currentResult.result = result.value;
-        this.results.push(this.currentResult);
-        this.currentResult = makeResultObj();
+        if (!this.shotActive) {
+            this.results.push(makeResultObj());
+            this.shotActive = true;
+        }
+        const shotIdx = this.results.length - 1;
+
+        this.results[shotIdx].success = result.success;
+        this.results[shotIdx].result = result.value;
+        this.shotActive = false;
     }
 
     getResults(): ShotResult[] { return this.results; }
