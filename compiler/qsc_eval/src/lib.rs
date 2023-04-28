@@ -948,8 +948,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     var.value = rhs;
                     Continue(Value::unit())
                 }
+                Some(_) => Break(Reason::Error(Error::Mutability(lhs.span))),
                 None => Break(Reason::Error(Error::UnboundVar(lhs.span))),
-                _ => Break(Reason::Error(Error::Mutability(lhs.span))),
             },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
                 if var_tup.len() == tup.len() {
