@@ -26,10 +26,10 @@ pub fn run_kata(
 ) -> Result<bool, Vec<stateless::Error>> {
     let sources = SourceMap::new(
         [
-            ("exercise".into(), exercise.to_string()),
-            ("verify".into(), verify.to_string()),
+            ("exercise".into(), exercise.into()),
+            ("verify".into(), verify.into()),
         ],
-        KATA_VERIFY.to_string(),
+        KATA_VERIFY.into(),
     );
 
     // Return false if compilation or evaluation failed.

@@ -40,10 +40,7 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
 fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
-    let sources = SourceMap::new(
-        [("test".into(), source.to_string())],
-        entry_expr.to_string(),
-    );
+    let sources = SourceMap::new([("test".into(), source.into())], entry_expr.into());
     let unit = compile(&store, [std], sources);
     let mut tys = TyCollector { tys: Vec::new() };
     tys.visit_package(&unit.package);
@@ -51,7 +48,7 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut actual = String::new();
     for (id, span, ty) in tys.tys {
         let source = unit.sources.find_by_offset(span.lo);
-        let code = &source.content[span.lo - source.offset..span.hi - source.offset];
+        let code = &source.contents[span.lo - source.offset..span.hi - source.offset];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
             .expect("writing type to string should succeed");
     }

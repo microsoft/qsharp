@@ -14,6 +14,7 @@ use std::{
     path::{Path, PathBuf},
     process::ExitCode,
     string::String,
+    sync::Arc,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -85,7 +86,7 @@ fn main() -> Result<ExitCode> {
         vec![store.insert(qsc::compile::std())]
     };
 
-    let (unit, reports) = compile(&store, dependencies, SourceMap::new(sources, entry));
+    let (unit, reports) = compile(&store, dependencies, SourceMap::new(sources, entry.into()));
 
     for (_, emit) in cli.emit.iter().enumerate() {
         match emit {
@@ -114,14 +115,14 @@ fn emit_hir(package: &Package, out_dir: impl AsRef<Path>) {
     fs::write(path, format!("{package}")).unwrap();
 }
 
-fn read_source(path: impl AsRef<Path>) -> io::Result<(PathBuf, String)> {
+fn read_source(path: impl AsRef<Path>) -> io::Result<(Arc<str>, Arc<str>)> {
     if path.as_ref().as_os_str() == "-" {
         let mut input = String::new();
         io::stdin().read_to_string(&mut input)?;
-        Ok(("<stdin>".into(), input))
+        Ok(("<stdin>".into(), input.into()))
     } else {
         let path = path.as_ref();
         let content = fs::read_to_string(path).unwrap();
-        Ok((path.to_owned(), content))
+        Ok((path.to_string_lossy().into(), content.into()))
     }
 }

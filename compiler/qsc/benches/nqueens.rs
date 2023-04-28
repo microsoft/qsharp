@@ -12,7 +12,7 @@ pub fn nqueens(c: &mut Criterion) {
         b.iter(|| {
             let mut store = PackageStore::new();
             let std = store.insert(compile::std());
-            let sources = SourceMap::new([("nqueens.qs".into(), INPUT.to_string())], String::new());
+            let sources = SourceMap::new([("nqueens.qs".into(), INPUT.into())], "".into());
             let (_, reports) = compile(&store, [std], sources);
             assert!(reports.is_empty());
         })

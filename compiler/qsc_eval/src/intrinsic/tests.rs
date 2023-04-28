@@ -26,7 +26,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     let mut unit = compile(
         &store,
         [stdlib],
-        SourceMap::new([("test".into(), file.to_string())], expr.to_string()),
+        SourceMap::new([("test".into(), file.into())], expr.into()),
     );
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(&mut unit).is_empty());

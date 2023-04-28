@@ -13,7 +13,6 @@ use qsc_hir::{
     },
     mut_visit::MutVisitor,
 };
-use std::path::Path;
 
 fn error_span(error: &Error) -> Span {
     let label = error
@@ -28,7 +27,7 @@ fn error_span(error: &Error) -> Span {
     }
 }
 
-fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a Path, Span) {
+fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a str, Span) {
     let span = error_span(error);
     let source = sources.find_by_offset(span.lo);
     (
@@ -53,9 +52,9 @@ fn one_file_no_entry() {
                         function A() : Unit {}
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -79,9 +78,9 @@ fn one_file_error() {
                         }
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -91,7 +90,7 @@ fn one_file_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(vec![("source1".as_ref(), Span { lo: 50, hi: 51 })], errors);
+    assert_eq!(vec![("source1", Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -108,7 +107,7 @@ fn two_files_dependency() {
                             function A() : Unit {}
                         }
                     "}
-                    .to_string(),
+                    .into(),
                 ),
                 (
                     "source2".into(),
@@ -119,10 +118,10 @@ fn two_files_dependency() {
                             }
                         }
                     "}
-                    .to_string(),
+                    .into(),
                 ),
             ],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -145,7 +144,7 @@ fn two_files_mutual_dependency() {
                             }
                         }
                     "}
-                    .to_string(),
+                    .into(),
                 ),
                 (
                     "source2".into(),
@@ -156,10 +155,10 @@ fn two_files_mutual_dependency() {
                             }
                         }    
                     "}
-                    .to_string(),
+                    .into(),
                 ),
             ],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -180,7 +179,7 @@ fn two_files_error() {
                             function A() : Unit {}
                         }
                     "}
-                    .to_string(),
+                    .into(),
                 ),
                 (
                     "source2".into(),
@@ -191,10 +190,10 @@ fn two_files_error() {
                             }
                         }
                     "}
-                    .to_string(),
+                    .into(),
                 ),
             ],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -204,7 +203,7 @@ fn two_files_error() {
         .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(vec![("source2".as_ref(), Span { lo: 50, hi: 51 })], errors);
+    assert_eq!(vec![("source2", Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
@@ -220,9 +219,9 @@ fn entry_call_operation() {
                         operation A() : Unit {}
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            "Foo.A()".to_string(),
+            "Foo.A()".into(),
         ),
     );
 
@@ -253,14 +252,14 @@ fn entry_error() {
                         operation A() : Unit {}
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            "Foo.B()".to_string(),
+            "Foo.B()".into(),
         ),
     );
 
     assert_eq!(
-        ("<entry>".as_ref(), Span { lo: 0, hi: 5 }),
+        ("<entry>", Span { lo: 0, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
     );
 }
@@ -293,9 +292,9 @@ fn replace_node() {
                         }
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -331,9 +330,9 @@ fn package_dependency() {
                         }
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -351,9 +350,9 @@ fn package_dependency() {
                         }
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -393,9 +392,9 @@ fn package_dependency_internal() {
                         }
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -413,9 +412,9 @@ fn package_dependency_internal() {
                         }
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            String::new(),
+            "".into(),
         ),
     );
 
@@ -452,9 +451,9 @@ fn std_dependency() {
                         }
                     }
                 "}
-                .to_string(),
+                .into(),
             )],
-            "Foo.Main()".to_string(),
+            "Foo.Main()".into(),
         ),
     );
 

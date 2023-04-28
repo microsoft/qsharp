@@ -11,7 +11,9 @@ use crate::{
     typeck::{self, Tys},
     validate::{self, validate},
 };
-use miette::Diagnostic;
+use miette::{
+    Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
+};
 use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::{
     index_map::{self, IndexMap},
@@ -21,7 +23,7 @@ use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},
 };
-use std::{fmt::Debug, path::PathBuf};
+use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
@@ -40,13 +42,15 @@ pub struct SourceMap {
 }
 
 impl SourceMap {
-    pub fn new(sources: impl IntoIterator<Item = (PathBuf, String)>, entry: String) -> Self {
+    pub fn new(sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>, entry: Arc<str>) -> Self {
         let mut new_sources: Vec<Source> = Vec::new();
         for (name, content) in sources {
-            let offset = new_sources.last().map_or(0, |s| s.offset + s.content.len());
+            let offset = new_sources
+                .last()
+                .map_or(0, |s| s.offset + s.contents.len());
             new_sources.push(Source {
                 name,
-                content,
+                contents: content,
                 offset,
             });
         }
@@ -57,17 +61,25 @@ impl SourceMap {
         } else {
             Some(Source {
                 name: "<entry>".into(),
-                content: entry,
-                offset: sources.last().map_or(0, |s| s.offset + s.content.len()),
+                contents: entry,
+                offset: sources.last().map_or(0, |s| s.offset + s.contents.len()),
             })
         };
 
         Self { sources, entry }
     }
 
-    /// Finds the source in this context that the byte offset corresponds to.
-    #[must_use]
-    pub fn find_by_offset(&self, offset: usize) -> &Source {
+    pub fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
+        match error.labels().and_then(|mut labels| labels.next()) {
+            None => Report::new(error),
+            Some(label) => {
+                let source = self.find_by_offset(label.offset());
+                Report::new(error).with_source_code(source.clone())
+            }
+        }
+    }
+
+    pub(super) fn find_by_offset(&self, offset: usize) -> &Source {
         self.sources
             .iter()
             .chain(&self.entry)
@@ -77,11 +89,35 @@ impl SourceMap {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Source {
-    pub name: PathBuf,
-    pub content: String,
+    pub name: Arc<str>,
+    pub contents: Arc<str>,
     pub offset: usize,
+}
+
+impl SourceCode for Source {
+    fn read_span<'a>(
+        &'a self,
+        span: &SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
+        let contents = self.contents.read_span(
+            &with_offset(span, |o| o - self.offset),
+            context_lines_before,
+            context_lines_after,
+        )?;
+
+        Ok(Box::new(MietteSpanContents::new_named(
+            self.name.to_string(),
+            contents.data(),
+            with_offset(contents.span(), |o| o + self.offset),
+            contents.line(),
+            contents.column(),
+            contents.line_count(),
+        )))
+    }
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -195,46 +231,46 @@ pub fn std() -> CompileUnit {
         [
             (
                 "arrays.qs".into(),
-                include_str!("../../../library/arrays.qs").to_string(),
+                include_str!("../../../library/arrays.qs").into(),
             ),
             (
                 "canon.qs".into(),
-                include_str!("../../../library/canon.qs").to_string(),
+                include_str!("../../../library/canon.qs").into(),
             ),
             (
                 "convert.qs".into(),
-                include_str!("../../../library/convert.qs").to_string(),
+                include_str!("../../../library/convert.qs").into(),
             ),
             (
                 "core.qs".into(),
-                include_str!("../../../library/core.qs").to_string(),
+                include_str!("../../../library/core.qs").into(),
             ),
             (
                 "diagnostics.qs".into(),
-                include_str!("../../../library/diagnostics.qs").to_string(),
+                include_str!("../../../library/diagnostics.qs").into(),
             ),
             (
                 "internal.qs".into(),
-                include_str!("../../../library/internal.qs").to_string(),
+                include_str!("../../../library/internal.qs").into(),
             ),
             (
                 "intrinsic.qs".into(),
-                include_str!("../../../library/intrinsic.qs").to_string(),
+                include_str!("../../../library/intrinsic.qs").into(),
             ),
             (
                 "math.qs".into(),
-                include_str!("../../../library/math.qs").to_string(),
+                include_str!("../../../library/math.qs").into(),
             ),
             (
                 "qir.qs".into(),
-                include_str!("../../../library/qir.qs").to_string(),
+                include_str!("../../../library/qir.qs").into(),
             ),
             (
                 "random.qs".into(),
-                include_str!("../../../library/random.qs").to_string(),
+                include_str!("../../../library/random.qs").into(),
             ),
         ],
-        String::new(),
+        "".into(),
     );
 
     compile(&PackageStore::new(), [], sources)
@@ -244,7 +280,7 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {
-        let (source_namespaces, source_errors) = parse::namespaces(&source.content);
+        let (source_namespaces, source_errors) = parse::namespaces(&source.contents);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(namespace);
@@ -254,7 +290,7 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
     }
 
     let entry = if let Some(entry_source) = &sources.entry {
-        let (mut entry, entry_errors) = parse::expr(&entry_source.content);
+        let (mut entry, entry_errors) = parse::expr(&entry_source.contents);
         Offsetter(entry_source.offset).visit_expr(&mut entry);
         append_parse_errors(&mut errors, entry_source.offset, entry_errors);
         Some(entry)
@@ -316,4 +352,8 @@ fn append_parse_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec
     for error in other {
         errors.push(error.with_offset(offset));
     }
+}
+
+fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan {
+    SourceSpan::new(f(span.offset()).into(), span.len().into())
 }

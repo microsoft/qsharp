@@ -7,7 +7,6 @@ use clap::Parser;
 use miette::{Diagnostic, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::error;
 use qsc::stateful::{Error, Interpreter};
 use qsc_eval::{
     output::{format_state_id, Receiver},
@@ -15,6 +14,7 @@ use qsc_eval::{
     AggregateError,
 };
 use qsc_frontend::compile::SourceMap;
+use std::sync::Arc;
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -49,10 +49,10 @@ fn main() -> Result<ExitCode> {
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
 
-    let interpreter = Interpreter::new(!cli.nostdlib, SourceMap::new(sources, String::new()));
+    let interpreter = Interpreter::new(!cli.nostdlib, SourceMap::new(sources, "".into()));
     if let Err((_, unit)) = interpreter {
         for error in unit.errors {
-            eprintln!("{:?}", error::report(&unit.sources, error));
+            eprintln!("{:?}", unit.sources.report(error));
         }
         return Ok(ExitCode::FAILURE);
     }
@@ -112,10 +112,10 @@ fn print_prompt(is_multiline: bool) {
     io::stdout().flush().expect("Could not flush stdout");
 }
 
-fn read_source(paths: &[PathBuf]) -> io::Result<Vec<(PathBuf, String)>> {
+fn read_source(paths: &[PathBuf]) -> io::Result<Vec<(Arc<str>, Arc<str>)>> {
     paths
         .iter()
-        .map(|p| Ok((p.clone(), fs::read_to_string(p)?)))
+        .map(|p| Ok((p.to_string_lossy().into(), fs::read_to_string(p)?.into())))
         .collect()
 }
 
