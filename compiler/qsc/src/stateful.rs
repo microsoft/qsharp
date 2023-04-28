@@ -3,7 +3,10 @@
 
 mod tests;
 
-use crate::compile::{self, compile};
+use crate::{
+    compile::{self, compile},
+    error::WithSource,
+};
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
@@ -13,64 +16,11 @@ use qsc_eval::{
     Env,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap},
+    compile::{CompileUnit, PackageStore, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
-use std::{error, fmt::Display};
 use thiserror::Error;
-
-#[derive(Clone, Debug)]
-pub struct SourceError {
-    source: Source,
-    error: Error,
-}
-
-impl error::Error for SourceError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        self.error.source()
-    }
-}
-
-impl Diagnostic for SourceError {
-    fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        self.error.code()
-    }
-
-    fn severity(&self) -> Option<miette::Severity> {
-        self.error.severity()
-    }
-
-    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        self.error.help()
-    }
-
-    fn url<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        self.error.url()
-    }
-
-    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        Some(&self.source)
-    }
-
-    fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-        self.error.labels()
-    }
-
-    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
-        self.error.related()
-    }
-
-    fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-        self.error.diagnostic_source()
-    }
-}
-
-impl Display for SourceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.error, f)
-    }
-}
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
@@ -96,7 +46,7 @@ impl Interpreter {
     /// # Errors
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
-    pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<SourceError>> {
+    pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<WithSource<Error>>> {
         let mut store = PackageStore::new();
         let mut dependencies = Vec::new();
         if std {
@@ -107,19 +57,7 @@ impl Interpreter {
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
-                .map(|error| {
-                    let source = error
-                        .labels()
-                        .and_then(|mut labels| labels.next())
-                        .map_or_else(unknown_source, |label| {
-                            unit.sources.find_by_offset(label.offset()).clone()
-                        });
-
-                    SourceError {
-                        source,
-                        error: Error::Compile(error),
-                    }
-                })
+                .map(|error| WithSource::new(&unit.sources, error.into()))
                 .collect());
         }
 
@@ -192,13 +130,5 @@ fn get_callable<'a>(
                 None
             }
         })
-    }
-}
-
-fn unknown_source() -> Source {
-    Source {
-        name: "<unknown>".into(),
-        contents: "".into(),
-        offset: 0,
     }
 }

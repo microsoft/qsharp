@@ -5,7 +5,10 @@ use katas::run_kata;
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::stateless::{self, compile_execution_context, eval_in_context, Error};
+use qsc::{
+    error::WithSource,
+    stateless::{self, compile_execution_context, eval_in_context, Error},
+};
 use qsc_eval::{
     output,
     output::{format_state_id, Receiver},
@@ -314,7 +317,7 @@ where
     if let Err(err) = context {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
-        let e = err.0[0].clone();
+        let e = err[0].clone();
         let diag: VSDiagnostic = (&e).into();
         let msg = format!(
             r#"{{"type": "Result", "success": false, "result": {}}}"#,
@@ -332,7 +335,7 @@ where
             Err(err) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
-                let e = err.0[0].clone();
+                let e = err[0].clone();
                 success = false;
                 let diag: VSDiagnostic = (&e).into();
                 diag.to_string()
@@ -374,7 +377,7 @@ fn run_kata_exercise_internal<F>(
     verification_source: &str,
     kata_implementation: &str,
     event_cb: F,
-) -> Result<bool, Vec<stateless::Error>>
+) -> Result<bool, Vec<WithSource<stateless::Error>>>
 where
     F: Fn(&str),
 {

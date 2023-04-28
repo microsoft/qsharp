@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::stateless;
+use qsc::{error::WithSource, stateless};
 use qsc_eval::output::CursorReceiver;
 use std::{
     env, fs,
@@ -15,7 +15,7 @@ fn katas_qsharp_dir() -> PathBuf {
         .join("content")
 }
 
-fn run_kata(exercise: &str, verify: &str) -> Result<bool, Vec<stateless::Error>> {
+fn run_kata(exercise: &str, verify: &str) -> Result<bool, Vec<WithSource<stateless::Error>>> {
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     let result = crate::run_kata(exercise, verify, &mut receiver);

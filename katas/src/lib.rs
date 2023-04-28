@@ -6,7 +6,10 @@
 #[cfg(test)]
 mod tests;
 
-use qsc::stateless::{self, eval};
+use qsc::{
+    error::WithSource,
+    stateless::{self, eval},
+};
 use qsc_eval::output::Receiver;
 use qsc_eval::val::Value;
 use qsc_frontend::compile::SourceMap;
@@ -23,7 +26,7 @@ pub fn run_kata(
     exercise: &str,
     verify: &str,
     receiver: &mut impl Receiver,
-) -> Result<bool, Vec<stateless::Error>> {
+) -> Result<bool, Vec<WithSource<stateless::Error>>> {
     let sources = SourceMap::new(
         [
             ("exercise".into(), exercise.into()),
@@ -39,6 +42,6 @@ pub fn run_kata(
             Value::Bool(value) => Ok(value),
             _ => panic!("{KATA_VERIFY} did not return a Bool value."),
         },
-        Err(errors) => Err(errors.0),
+        Err(errors) => Err(errors),
     }
 }

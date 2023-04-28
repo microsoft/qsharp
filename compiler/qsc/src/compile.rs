@@ -11,8 +11,8 @@ use thiserror::Error;
 #[diagnostic(transparent)]
 #[error(transparent)]
 pub enum Error {
-    Frontend(qsc_frontend::compile::Error),
-    Pass(qsc_passes::Error),
+    Frontend(#[from] qsc_frontend::compile::Error),
+    Pass(#[from] qsc_passes::Error),
 }
 
 pub fn compile(
@@ -23,12 +23,12 @@ pub fn compile(
     let mut unit = qsc_frontend::compile::compile(store, dependencies, sources);
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
-        errors.push(Error::Frontend(error));
+        errors.push(error.into());
     }
 
     if errors.is_empty() {
         for error in run_default_passes(&mut unit) {
-            errors.push(Error::Pass(error));
+            errors.push(error.into());
         }
     }
 
