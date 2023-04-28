@@ -59,7 +59,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     let mut receiver = TerminalReceiver {};
 
     if let Some(line) = cli.entry {
-        let results = interpreter.line(&line, &mut receiver);
+        let results = interpreter.interpret_line(&mut receiver, &line);
         print_results(results, &line);
     }
 
@@ -81,7 +81,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
             }
 
             if !line.trim().is_empty() {
-                let results = interpreter.line(&line, &mut receiver);
+                let results = interpreter.interpret_line(&mut receiver, &line);
                 print_results(results, &line);
             }
 

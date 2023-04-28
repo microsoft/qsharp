@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
 mod tests;
 
 use crate::{
@@ -10,7 +11,6 @@ use crate::{
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
-    eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
     Env,
@@ -50,10 +50,10 @@ pub enum LineErrorKind {
 
 pub struct Interpreter {
     store: PackageStore,
-    compiler: Compiler,
     package: PackageId,
-    next_item_id: LocalItemId,
+    compiler: Compiler,
     callables: IndexMap<LocalItemId, CallableDecl>,
+    next_item_id: LocalItemId,
     env: Env,
 }
 
@@ -76,17 +76,15 @@ impl Interpreter {
                 .collect());
         }
 
-        let basis_package = store.insert(unit);
-        dependencies.push(basis_package);
-        let session_package = store.insert(CompileUnit::default());
+        dependencies.push(store.insert(unit));
+        let package = store.insert(CompileUnit::default());
         let compiler = Compiler::new(&store, dependencies);
-
         Ok(Self {
             store,
+            package,
             compiler,
-            package: session_package,
-            next_item_id: LocalItemId::default(),
             callables: IndexMap::new(),
+            next_item_id: LocalItemId::default(),
             env: Env::with_empty_scope(),
         })
     }
@@ -95,25 +93,25 @@ impl Interpreter {
     /// If the parsing of the line fails, an error is returned.
     /// If the compilation of the line fails, an error is returned.
     /// If there is a runtime error when interpreting the line, an error is returned.
-    pub fn line(
+    pub fn interpret_line(
         &mut self,
-        line: &str,
         receiver: &mut dyn Receiver,
+        line: &str,
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
-        for fragment in self.compiler.compile_fragment(line) {
+        for fragment in self.compiler.compile_fragments(line) {
             match fragment {
-                Fragment::Stmt(stmt) => match self.stmt(receiver, &stmt) {
-                    Ok(value) => result = value,
-                    Err(error) => {
-                        return Err(vec![LineError(WithSource::new(line.into(), error.into()))]);
-                    }
-                },
                 Fragment::Callable(decl) => {
                     self.callables.insert(self.next_item_id, decl);
                     self.next_item_id = self.next_item_id.successor();
                     result = Value::unit();
                 }
+                Fragment::Stmt(stmt) => match self.eval_stmt(receiver, &stmt) {
+                    Ok(value) => result = value,
+                    Err(error) => {
+                        return Err(vec![LineError(WithSource::new(line.into(), error.into()))]);
+                    }
+                },
                 Fragment::Error(errors) => {
                     let source = line.into();
                     return Err(errors
@@ -127,10 +125,14 @@ impl Interpreter {
         Ok(result)
     }
 
-    fn stmt(&mut self, receiver: &mut dyn Receiver, stmt: &Stmt) -> Result<Value, qsc_eval::Error> {
-        eval_stmt(
+    fn eval_stmt(
+        &mut self,
+        receiver: &mut dyn Receiver,
+        stmt: &Stmt,
+    ) -> Result<Value, qsc_eval::Error> {
+        qsc_eval::eval_stmt(
             stmt,
-            &|id| get_callable(&self.store, &self.callables, self.package, id),
+            &|id| lookup_callable(&self.store, &self.callables, self.package, id),
             self.package,
             &mut self.env,
             receiver,
@@ -138,7 +140,7 @@ impl Interpreter {
     }
 }
 
-fn get_callable<'a>(
+fn lookup_callable<'a>(
     store: &'a PackageStore,
     callables: &'a IndexMap<LocalItemId, CallableDecl>,
     package: PackageId,

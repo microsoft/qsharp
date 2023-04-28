@@ -53,7 +53,7 @@ impl Interpreter {
     #[pyo3(text_signature = "(expr)")]
     fn interpret(&mut self, py: Python, expr: &str) -> PyResult<(PyObject, PyObject, PyObject)> {
         let mut receiver = FormattingReceiver::new();
-        let (value, errors) = match self.interpreter.line(expr, &mut receiver) {
+        let (value, errors) = match self.interpreter.interpret_line(&mut receiver, expr) {
             Ok(value) => (value, Vec::new()),
             Err(errors) => (Value::unit(), errors),
         };

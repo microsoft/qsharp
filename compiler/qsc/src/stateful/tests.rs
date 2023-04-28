@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[cfg(test)]
 mod given_interpreter {
     use crate::stateful::{Interpreter, LineError};
     use qsc_eval::{output::CursorReceiver, val::Value};
@@ -11,7 +10,10 @@ mod given_interpreter {
     fn line(interpreter: &mut Interpreter, line: &str) -> (Result<Value, Vec<LineError>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.line(line, &mut receiver), receiver.dump())
+        (
+            interpreter.interpret_line(&mut receiver, line),
+            receiver.dump(),
+        )
     }
 
     mod without_sources {
@@ -19,10 +21,11 @@ mod given_interpreter {
 
         mod without_stdlib {
             use super::*;
+
             #[test]
             fn stdlib_members_should_be_unavailable() {
                 let mut interpreter = Interpreter::new(false, SourceMap::default())
-                    .expect("empty sources should compile");
+                    .expect("interpreter should be created");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
                 is_only_error(
@@ -102,7 +105,8 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
+            let mut interpreter =
+                Interpreter::new(true, sources).expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_unit_with_output(&result, &output, "hello there...");
         }
@@ -121,7 +125,8 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
+            let mut interpreter =
+                Interpreter::new(true, sources).expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test.Main()");
@@ -144,7 +149,8 @@ mod given_interpreter {
             }"#};
 
             let sources = SourceMap::new([("test".into(), source.into())], None);
-            let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
+            let mut interpreter =
+                Interpreter::new(true, sources).expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
@@ -153,7 +159,7 @@ mod given_interpreter {
     }
 
     fn get_interpreter() -> Interpreter {
-        Interpreter::new(true, SourceMap::default()).expect("empty sources should compile")
+        Interpreter::new(true, SourceMap::default()).expect("interpreter should be created")
     }
 
     fn is_only_value(result: &Result<Value, Vec<LineError>>, output: &str, value: &Value) {

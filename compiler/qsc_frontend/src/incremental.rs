@@ -70,10 +70,7 @@ impl Compiler {
         }
     }
 
-    /// Compile a single string as either a callable declaration or a statement into a `Fragment`.
-    /// # Errors
-    /// This will Err if the fragment cannot be compiled due to parsing or symbol resolution errors.
-    pub fn compile_fragment(&mut self, source: impl AsRef<str>) -> Vec<Fragment> {
+    pub fn compile_fragments(&mut self, source: impl AsRef<str>) -> Vec<Fragment> {
         let (item, errors) = parse::item(source.as_ref());
         match item.kind {
             ItemKind::Callable(decl) if errors.is_empty() => {
