@@ -204,7 +204,7 @@ impl std::fmt::Display for VSDiagnostic {
 
 impl<T> From<&T> for VSDiagnostic
 where
-    T: Diagnostic + ?Sized,
+    T: Diagnostic,
 {
     fn from(err: &T) -> Self {
         let label = err.labels().and_then(|mut ls| ls.next());
@@ -240,8 +240,8 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
 
     STORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (_, reports) = qsc::compile::compile(store, [*std], sources);
-        reports.into_iter().map(|r| (&r).into()).collect()
+        let (_, errors) = qsc::compile::compile(store, [*std], sources);
+        errors.into_iter().map(|error| (&error).into()).collect()
     })
 }
 
@@ -329,13 +329,11 @@ where
         let mut success = true;
         let msg = match result {
             Ok(value) => format!(r#""{value}""#),
-            Err(err) => {
+            Err(errors) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
-                let e = err[0].clone();
                 success = false;
-                let diag: VSDiagnostic = (&e).into();
-                diag.to_string()
+                VSDiagnostic::from(&errors[0]).to_string()
             }
         };
 
