@@ -86,18 +86,10 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = x;");
-            is_only_error(
-                &result,
-                &output,
-                "name error: `x` not found in this scope",
-            );
+            is_only_error(&result, &output, "name error: `x` not found in this scope");
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(
-                &result,
-                &output,
-                "runtime error: variable is not bound",
-            );
+            is_only_error(&result, &output, "runtime error: variable is not bound");
         }
 
         #[test]
