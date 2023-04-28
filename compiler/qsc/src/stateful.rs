@@ -34,6 +34,7 @@ pub struct CompileError(WithSource<Source, compile::Error>);
 pub struct LineError(WithSource<Arc<str>, LineErrorKind>);
 
 impl LineError {
+    #[must_use]
     pub fn kind(&self) -> &LineErrorKind {
         self.0.error()
     }

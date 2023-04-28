@@ -36,6 +36,10 @@ pub fn compile(
     (unit, errors)
 }
 
+/// # Panics
+///
+/// Panics if the standard library does not compile without errors.
+#[must_use]
 pub fn std() -> CompileUnit {
     let mut unit = qsc_frontend::compile::std();
     let pass_errors = run_default_passes(&mut unit);

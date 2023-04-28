@@ -525,9 +525,7 @@ mod test {
             expr,
             |msg| {
                 assert!(msg.contains(r#""type": "Result", "success": false"#));
-                assert!(msg.contains(
-                    r#""message": "could not compile source code: entry point not found"#
-                ));
+                assert!(msg.contains(r#""message": "entry point not found"#));
                 assert!(msg.contains(r#""start_pos": 0"#));
             },
             1,

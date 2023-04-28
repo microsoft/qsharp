@@ -25,12 +25,12 @@ pub struct Error(WithSource<Source, ErrorKind>);
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 enum ErrorKind {
-    #[error("program encountered an error while running")]
-    Eval(#[from] qsc_eval::Error),
-    #[error("could not compile source code")]
+    #[error(transparent)]
     Compile(#[from] compile::Error),
-    #[error("could not compile source code")]
+    #[error(transparent)]
     Pass(#[from] qsc_passes::Error),
+    #[error("runtime error")]
+    Eval(#[from] qsc_eval::Error),
 }
 
 pub struct Context {
@@ -39,6 +39,9 @@ pub struct Context {
 }
 
 impl Context {
+    /// # Errors
+    ///
+    /// Returns a vector of errors if compiling the given sources fails.
     pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<Error>> {
         let mut store = PackageStore::new();
         let mut dependencies = Vec::new();
@@ -58,6 +61,9 @@ impl Context {
         }
     }
 
+    /// # Errors
+    ///
+    /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval(&self, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
         qsc_eval::init();
 
