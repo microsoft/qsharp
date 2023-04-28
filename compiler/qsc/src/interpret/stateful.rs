@@ -20,6 +20,7 @@ use qsc_frontend::{
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
+use qsc_passes::run_default_passes_for_fragment;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -100,7 +101,8 @@ impl Interpreter {
         line: &str,
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
-        for fragment in self.compiler.compile_fragments(line) {
+        for mut fragment in self.compiler.compile_fragments(line) {
+            run_default_passes_for_fragment(self.compiler.assigner_mut(), &mut fragment);
             match fragment {
                 Fragment::Callable(decl) => {
                     self.callables.insert(self.next_item_id, decl);
