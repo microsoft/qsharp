@@ -227,6 +227,9 @@ pub fn compile(
     }
 }
 
+/// # Panics
+///
+/// Panics if the standard library does not compile without errors.
 #[must_use]
 pub fn std() -> CompileUnit {
     let sources = SourceMap::new(
@@ -275,7 +278,15 @@ pub fn std() -> CompileUnit {
         None,
     );
 
-    compile(&PackageStore::new(), [], sources)
+    let mut unit = compile(&PackageStore::new(), [], sources);
+    if unit.errors.is_empty() {
+        unit
+    } else {
+        for error in unit.errors.drain(..) {
+            eprintln!("{:?}", unit.sources.report(error));
+        }
+        panic!("could not compile standard library");
+    }
 }
 
 fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {

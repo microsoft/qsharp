@@ -12,14 +12,13 @@ pub fn compile(
     sources: SourceMap,
 ) -> (CompileUnit, Vec<Report>) {
     let mut unit = qsc_frontend::compile::compile(store, dependencies, sources);
-    let pass_errors = run_default_passes(&mut unit);
-
     let mut reports = Vec::new();
-    if !unit.errors.is_empty() || !pass_errors.is_empty() {
-        for error in unit.errors.drain(..) {
-            reports.push(unit.sources.report(error));
-        }
-        for error in pass_errors {
+    for error in unit.errors.drain(..) {
+        reports.push(unit.sources.report(error));
+    }
+
+    if reports.is_empty() {
+        for error in run_default_passes(&mut unit) {
             reports.push(unit.sources.report(error));
         }
     }
@@ -30,16 +29,12 @@ pub fn compile(
 pub fn std() -> CompileUnit {
     let mut unit = qsc_frontend::compile::std();
     let pass_errors = run_default_passes(&mut unit);
-
-    if !unit.errors.is_empty() || !pass_errors.is_empty() {
-        for error in unit.errors {
-            eprintln!("{:?}", unit.sources.report(error));
-        }
+    if pass_errors.is_empty() {
+        unit
+    } else {
         for error in pass_errors {
             eprintln!("{:?}", unit.sources.report(error));
         }
         panic!("could not compile standard library")
     }
-
-    unit
 }
