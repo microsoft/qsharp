@@ -11,35 +11,25 @@ use qsc_eval::output::Receiver;
 use qsc_eval::val::Value;
 use qsc_frontend::compile::SourceMap;
 
-const KATA_VERIFY: &str = "Kata.Verify()";
+pub const KATA_ENTRY: &str = "Kata.Verify()";
 
 /// # Errors
+///
 /// Returns a vector of errors if compilation or evaluation failed.
 ///
 /// # Panics
 ///
-/// Will panic if Kata.Verify() does not return a Bool as result.
+/// Will panic if evaluation does not return a boolean as result.
 pub fn run_kata(
-    exercise: &str,
-    verify: &str,
+    sources: SourceMap,
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
-    let sources = SourceMap::new(
-        [
-            ("exercise".into(), exercise.into()),
-            ("verify".into(), verify.into()),
-        ],
-        Some(KATA_VERIFY.into()),
-    );
-
-    // Return false if compilation or evaluation failed.
-    // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
     let context = stateless::Context::new(true, sources)?;
-    match context.eval(receiver) {
-        Ok(value) => match value {
-            Value::Bool(value) => Ok(value),
-            _ => panic!("{KATA_VERIFY} did not return a Bool value."),
-        },
-        Err(errors) => Err(errors),
-    }
+    context.eval(receiver).map(|value| {
+        if let Value::Bool(success) = value {
+            success
+        } else {
+            panic!("kata did not return a boolean")
+        }
+    })
 }

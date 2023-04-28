@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use katas::run_kata;
+use katas::{run_kata, KATA_ENTRY};
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -370,16 +370,20 @@ pub fn run(
     }
 }
 
-fn run_kata_exercise_internal<F>(
+fn run_kata_exercise_internal(
     verification_source: &str,
     kata_implementation: &str,
-    event_cb: F,
-) -> Result<bool, Vec<stateless::Error>>
-where
-    F: Fn(&str),
-{
-    let mut out = CallbackReceiver { event_cb };
-    run_kata(kata_implementation, verification_source, &mut out)
+    event_cb: impl Fn(&str),
+) -> Result<bool, Vec<stateless::Error>> {
+    let sources = SourceMap::new(
+        [
+            ("kata".into(), kata_implementation.into()),
+            ("verifier".into(), verification_source.into()),
+        ],
+        Some(KATA_ENTRY.into()),
+    );
+
+    run_kata(sources, &mut CallbackReceiver { event_cb })
 }
 
 #[wasm_bindgen]

@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::KATA_ENTRY;
 use qsc::stateless;
 use qsc_eval::output::CursorReceiver;
+use qsc_frontend::compile::SourceMap;
 use std::{
     env, fs,
     io::Cursor,
@@ -15,10 +17,18 @@ fn katas_qsharp_dir() -> PathBuf {
         .join("content")
 }
 
-fn run_kata(exercise: &str, verify: &str) -> Result<bool, Vec<stateless::Error>> {
+fn run_kata(kata: &str, verifier: &str) -> Result<bool, Vec<stateless::Error>> {
+    let sources = SourceMap::new(
+        [
+            ("kata".into(), kata.into()),
+            ("verifier".into(), verifier.into()),
+        ],
+        Some(KATA_ENTRY.into()),
+    );
+
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
-    let result = crate::run_kata(exercise, verify, &mut receiver);
+    let result = crate::run_kata(sources, &mut receiver);
     println!("{}", receiver.dump());
     result
 }
