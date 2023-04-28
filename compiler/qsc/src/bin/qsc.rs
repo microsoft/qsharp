@@ -52,8 +52,6 @@ enum Emit {
 
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
-    // validate_input(&cli.input, &cli.entry.clone().unwrap_or_default()).into_diagnostic()?;
-
     let mut store = PackageStore::new();
     let mut dependencies = Vec::new();
     if !cli.nostdlib {
