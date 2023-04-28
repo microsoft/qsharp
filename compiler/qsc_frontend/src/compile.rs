@@ -67,24 +67,21 @@ impl SourceMap {
         }
     }
 
-    pub fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
-        match error.labels().and_then(|mut labels| labels.next()) {
-            None => Report::new(error),
-            Some(label) => {
-                let source = self.find_by_offset(label.offset());
-                Report::new(error).with_source_code(source.clone())
-            }
-        }
-    }
-
     #[must_use]
-    pub fn find_by_offset(&self, offset: usize) -> &Source {
+    pub fn find_offset(&self, offset: usize) -> &Source {
         self.sources
             .iter()
             .chain(&self.entry)
             .rev()
             .find(|source| offset >= source.offset)
             .expect("offset should match at least one source")
+    }
+
+    pub fn find_diagnostic(&self, diagnostic: &impl Diagnostic) -> Option<&Source> {
+        diagnostic
+            .labels()
+            .and_then(|mut labels| labels.next())
+            .map(|label| self.find_offset(label.offset()))
     }
 }
 
@@ -284,8 +281,13 @@ pub fn std() -> CompileUnit {
         unit
     } else {
         for error in unit.errors.drain(..) {
-            eprintln!("{:?}", unit.sources.report(error));
+            if let Some(source) = unit.sources.find_diagnostic(&error) {
+                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
+            } else {
+                eprintln!("{:?}", Report::new(error));
+            }
         }
+
         panic!("could not compile standard library");
     }
 }

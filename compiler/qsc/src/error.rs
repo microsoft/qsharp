@@ -16,10 +16,7 @@ pub struct WithSource<E> {
 
 impl<E: Diagnostic> WithSource<E> {
     pub fn new(sources: &SourceMap, error: E) -> Self {
-        let source = error
-            .labels()
-            .and_then(|mut labels| labels.next())
-            .map(|label| sources.find_by_offset(label.offset()).clone());
+        let source = sources.find_diagnostic(&error).cloned();
         Self { error, source }
     }
 }

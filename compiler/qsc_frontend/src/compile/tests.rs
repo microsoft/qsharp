@@ -29,7 +29,7 @@ fn error_span(error: &Error) -> Span {
 
 fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a str, Span) {
     let span = error_span(error);
-    let source = sources.find_by_offset(span.lo);
+    let source = sources.find_offset(span.lo);
     (
         &source.name,
         Span {

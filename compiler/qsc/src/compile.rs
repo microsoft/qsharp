@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use miette::Diagnostic;
+use crate::error::WithSource;
+use miette::{Diagnostic, Report};
 use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
 use qsc_passes::run_default_passes;
@@ -42,8 +43,10 @@ pub fn std() -> CompileUnit {
         unit
     } else {
         for error in pass_errors {
-            eprintln!("{:?}", unit.sources.report(error));
+            let report = Report::new(WithSource::new(&unit.sources, error));
+            eprintln!("{report:?}");
         }
+
         panic!("could not compile standard library")
     }
 }
