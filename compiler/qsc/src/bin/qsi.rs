@@ -106,9 +106,13 @@ fn repl(interpreter: &mut Interpreter, receiver: &mut dyn Receiver) -> io::Resul
 
         while line.ends_with('\\') {
             print_prompt(true);
-            let continuation = lines.next().expect("should have continuation line")?;
-            line.pop(); // Remove backslash.
-            line.push_str(&continuation);
+            if let Some(continuation) = lines.next() {
+                line.pop(); // Remove backslash.
+                line.push_str(&continuation?);
+            } else {
+                println!();
+                return Ok(());
+            }
         }
 
         if !line.trim().is_empty() {
