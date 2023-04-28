@@ -29,7 +29,7 @@ impl<'a> Visitor<'a> for StmtSpans {
 fn check(block_str: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let stdlib = store.insert(std());
-    let unit = compile(&store, [stdlib], SourceMap::new([], block_str.into()));
+    let unit = compile(&store, [stdlib], SourceMap::new([], Some(block_str.into())));
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let entry = unit.package.entry.expect("entry should exist");

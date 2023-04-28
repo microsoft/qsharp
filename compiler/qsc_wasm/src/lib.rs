@@ -239,7 +239,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     }
 
     STORE_STD.with(|(store, std)| {
-        let sources = SourceMap::new([("code".into(), code.into())], "".into());
+        let sources = SourceMap::new([("code".into(), code.into())], None);
         let (_, reports) = qsc::compile::compile(store, [*std], sources);
         reports
             .into_iter()
@@ -312,7 +312,7 @@ where
     F: Fn(&str),
 {
     let mut out = CallbackReceiver { event_cb };
-    let sources = SourceMap::new([("code".into(), code.into())], expr.into());
+    let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
     let context = compile_execution_context(true, sources);
     if let Err(err) = context {
         // TODO: handle multiple errors

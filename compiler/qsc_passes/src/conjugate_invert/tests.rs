@@ -14,7 +14,7 @@ fn check(file: &str, expect: &Expect) {
     let mut unit = compile(
         &store,
         [],
-        SourceMap::new([("test".into(), file.into())], "".into()),
+        SourceMap::new([("test".into(), file.into())], None),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let errors = invert_conjugate_exprs(&mut unit);

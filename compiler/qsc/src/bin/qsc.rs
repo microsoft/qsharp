@@ -86,7 +86,11 @@ fn main() -> Result<ExitCode> {
         vec![store.insert(qsc::compile::std())]
     };
 
-    let (unit, reports) = compile(&store, dependencies, SourceMap::new(sources, entry.into()));
+    let (unit, reports) = compile(
+        &store,
+        dependencies,
+        SourceMap::new(sources, Some(entry.into())),
+    );
 
     for (_, emit) in cli.emit.iter().enumerate() {
         match emit {

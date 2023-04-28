@@ -11,7 +11,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
     let unit = compile(
         &PackageStore::new(),
         [],
-        SourceMap::new([("test".into(), file.into())], expr.into()),
+        SourceMap::new([("test".into(), file.into())], Some(expr.into())),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let res = extract_entry(&unit.package);

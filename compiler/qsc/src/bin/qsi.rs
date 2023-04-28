@@ -49,7 +49,7 @@ fn main() -> Result<ExitCode> {
 fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
 
-    let interpreter = Interpreter::new(!cli.nostdlib, SourceMap::new(sources, "".into()));
+    let interpreter = Interpreter::new(!cli.nostdlib, SourceMap::new(sources, None));
     if let Err((_, unit)) = interpreter {
         for error in unit.errors {
             eprintln!("{:?}", unit.sources.report(error));

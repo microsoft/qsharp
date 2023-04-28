@@ -29,7 +29,7 @@ pub fn run_kata(
             ("exercise".into(), exercise.into()),
             ("verify".into(), verify.into()),
         ],
-        KATA_VERIFY.into(),
+        Some(KATA_VERIFY.into()),
     );
 
     // Return false if compilation or evaluation failed.

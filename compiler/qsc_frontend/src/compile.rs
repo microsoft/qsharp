@@ -42,31 +42,29 @@ pub struct SourceMap {
 }
 
 impl SourceMap {
-    pub fn new(sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>, entry: Arc<str>) -> Self {
-        let mut new_sources: Vec<Source> = Vec::new();
-        for (name, content) in sources {
-            let offset = new_sources
-                .last()
-                .map_or(0, |s| s.offset + s.contents.len());
-            new_sources.push(Source {
+    pub fn new(
+        sources: impl IntoIterator<Item = (SourceName, SourceContents)>,
+        entry: Option<Arc<str>>,
+    ) -> Self {
+        let mut offset_sources = Vec::new();
+        for (name, contents) in sources {
+            offset_sources.push(Source {
                 name,
-                contents: content,
-                offset,
+                contents,
+                offset: next_offset(&offset_sources),
             });
         }
-        let sources = new_sources;
 
-        let entry = if entry.is_empty() {
-            None
-        } else {
-            Some(Source {
-                name: "<entry>".into(),
-                contents: entry,
-                offset: sources.last().map_or(0, |s| s.offset + s.contents.len()),
-            })
-        };
+        let entry_source = entry.map(|contents| Source {
+            name: "<entry>".into(),
+            contents,
+            offset: next_offset(&offset_sources),
+        });
 
-        Self { sources, entry }
+        Self {
+            sources: offset_sources,
+            entry: entry_source,
+        }
     }
 
     pub fn report(&self, error: impl Diagnostic + Send + Sync + 'static) -> Report {
@@ -91,8 +89,8 @@ impl SourceMap {
 
 #[derive(Clone, Debug)]
 pub struct Source {
-    pub name: Arc<str>,
-    pub contents: Arc<str>,
+    pub name: SourceName,
+    pub contents: SourceContents,
     pub offset: usize,
 }
 
@@ -119,6 +117,10 @@ impl SourceCode for Source {
         )))
     }
 }
+
+pub type SourceName = Arc<str>;
+
+pub type SourceContents = Arc<str>;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
@@ -270,7 +272,7 @@ pub fn std() -> CompileUnit {
                 include_str!("../../../library/random.qs").into(),
             ),
         ],
-        "".into(),
+        None,
     );
 
     compile(&PackageStore::new(), [], sources)
@@ -289,14 +291,16 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
         append_parse_errors(&mut errors, source.offset, source_errors);
     }
 
-    let entry = if let Some(entry_source) = &sources.entry {
-        let (mut entry, entry_errors) = parse::expr(&entry_source.contents);
-        Offsetter(entry_source.offset).visit_expr(&mut entry);
-        append_parse_errors(&mut errors, entry_source.offset, entry_errors);
-        Some(entry)
-    } else {
-        None
-    };
+    let entry = sources
+        .entry
+        .as_ref()
+        .filter(|source| !source.contents.is_empty())
+        .map(|source| {
+            let (mut entry, entry_errors) = parse::expr(&source.contents);
+            Offsetter(source.offset).visit_expr(&mut entry);
+            append_parse_errors(&mut errors, source.offset, entry_errors);
+            entry
+        });
 
     let package = ast::Package {
         id: ast::NodeId::default(),
@@ -356,4 +360,8 @@ fn append_parse_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec
 
 fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan {
     SourceSpan::new(f(span.offset()).into(), span.len().into())
+}
+
+fn next_offset(sources: &[Source]) -> usize {
+    sources.last().map_or(0, |s| s.offset + s.contents.len())
 }

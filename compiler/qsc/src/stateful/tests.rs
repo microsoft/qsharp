@@ -116,7 +116,7 @@ mod given_interpreter {
                 }
             }"#};
 
-            let sources = SourceMap::new([("test".into(), source.into())], "".into());
+            let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_unit_with_output(&result, &output, "hello there...");
@@ -135,7 +135,7 @@ mod given_interpreter {
                 }
             }"#};
 
-            let sources = SourceMap::new([("test".into(), source.into())], "".into());
+            let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
@@ -158,7 +158,7 @@ mod given_interpreter {
                 }
             }"#};
 
-            let sources = SourceMap::new([("test".into(), source.into())], "".into());
+            let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter = Interpreter::new(true, sources).expect("sources should compile");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
@@ -168,7 +168,7 @@ mod given_interpreter {
     }
 
     fn get_interpreter() -> Interpreter {
-        Interpreter::new(true, SourceMap::new([], "".into())).expect("empty sources should compile")
+        Interpreter::new(true, SourceMap::default()).expect("empty sources should compile")
     }
 
     fn is_only_value(

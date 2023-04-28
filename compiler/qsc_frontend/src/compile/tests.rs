@@ -54,7 +54,7 @@ fn one_file_no_entry() {
                 "}
                 .into(),
             )],
-            "".into(),
+            None,
         ),
     );
 
@@ -80,7 +80,7 @@ fn one_file_error() {
                 "}
                 .into(),
             )],
-            "".into(),
+            None,
         ),
     );
 
@@ -121,7 +121,7 @@ fn two_files_dependency() {
                     .into(),
                 ),
             ],
-            "".into(),
+            None,
         ),
     );
 
@@ -158,7 +158,7 @@ fn two_files_mutual_dependency() {
                     .into(),
                 ),
             ],
-            "".into(),
+            None,
         ),
     );
 
@@ -193,7 +193,7 @@ fn two_files_error() {
                     .into(),
                 ),
             ],
-            "".into(),
+            None,
         ),
     );
 
@@ -221,7 +221,7 @@ fn entry_call_operation() {
                 "}
                 .into(),
             )],
-            "Foo.A()".into(),
+            Some("Foo.A()".into()),
         ),
     );
 
@@ -254,7 +254,7 @@ fn entry_error() {
                 "}
                 .into(),
             )],
-            "Foo.B()".into(),
+            Some("Foo.B()".into()),
         ),
     );
 
@@ -294,7 +294,7 @@ fn replace_node() {
                 "}
                 .into(),
             )],
-            "".into(),
+            None,
         ),
     );
 
@@ -332,7 +332,7 @@ fn package_dependency() {
                 "}
                 .into(),
             )],
-            "".into(),
+            None,
         ),
     );
 
@@ -352,7 +352,7 @@ fn package_dependency() {
                 "}
                 .into(),
             )],
-            "".into(),
+            None,
         ),
     );
 
@@ -394,7 +394,7 @@ fn package_dependency_internal() {
                 "}
                 .into(),
             )],
-            "".into(),
+            None,
         ),
     );
 
@@ -414,7 +414,7 @@ fn package_dependency_internal() {
                 "}
                 .into(),
             )],
-            "".into(),
+            None,
         ),
     );
 
@@ -453,7 +453,7 @@ fn std_dependency() {
                 "}
                 .into(),
             )],
-            "Foo.Main()".into(),
+            Some("Foo.Main()".into()),
         ),
     );
 

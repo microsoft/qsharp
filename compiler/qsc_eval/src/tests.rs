@@ -13,7 +13,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut unit = compile(
         &store,
         [],
-        SourceMap::new([("test".into(), file.into())], expr.into()),
+        SourceMap::new([("test".into(), file.into())], Some(expr.into())),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(&mut unit);
