@@ -3,15 +3,12 @@
 
 #[cfg(test)]
 mod given_interpreter {
-    use crate::stateful::{self, Interpreter};
+    use crate::stateful::{Interpreter, LineError};
     use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::SourceMap;
     use std::{error::Error, fmt::Write, io::Cursor, iter};
 
-    fn line(
-        interpreter: &mut Interpreter,
-        line: &str,
-    ) -> (Result<Value, Vec<stateful::Error>>, String) {
+    fn line(interpreter: &mut Interpreter, line: &str) -> (Result<Value, Vec<LineError>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.line(line, &mut receiver), receiver.dump())
@@ -85,11 +82,7 @@ mod given_interpreter {
         fn failing_statements_return_early_error() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");
-            is_only_error(
-                &result,
-                &output,
-                "program encountered an error while running: division by zero",
-            );
+            is_only_error(&result, &output, "runtime error: division by zero");
         }
     }
 
@@ -163,7 +156,7 @@ mod given_interpreter {
         Interpreter::new(true, SourceMap::default()).expect("empty sources should compile")
     }
 
-    fn is_only_value(result: &Result<Value, Vec<stateful::Error>>, output: &str, value: &Value) {
+    fn is_only_value(result: &Result<Value, Vec<LineError>>, output: &str, value: &Value) {
         assert_eq!("", output);
 
         match result {
@@ -173,7 +166,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output(
-        result: &Result<Value, Vec<stateful::Error>>,
+        result: &Result<Value, Vec<LineError>>,
         output: &str,
         expected_output: &str,
     ) {
@@ -185,7 +178,7 @@ mod given_interpreter {
         }
     }
 
-    fn is_only_error(result: &Result<Value, Vec<stateful::Error>>, output: &str, error: &str) {
+    fn is_only_error(result: &Result<Value, Vec<LineError>>, output: &str, error: &str) {
         assert_eq!("", output);
 
         match result {

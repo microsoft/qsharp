@@ -43,7 +43,7 @@ pub fn std() -> CompileUnit {
         unit
     } else {
         for error in pass_errors {
-            let report = Report::new(WithSource::new(&unit.sources, error));
+            let report = Report::new(WithSource::from_map(&unit.sources, error));
             eprintln!("{report:?}");
         }
 

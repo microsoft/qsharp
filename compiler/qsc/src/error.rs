@@ -1,33 +1,46 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use miette::Diagnostic;
+use miette::{Diagnostic, SourceCode};
 use qsc_frontend::compile::{Source, SourceMap};
 use std::{
     error::Error,
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
 };
 
 #[derive(Clone, Debug)]
-pub struct WithSource<E> {
+pub(super) struct WithSource<S, E> {
+    source: Option<S>,
     error: E,
-    source: Option<Source>,
 }
 
-impl<E: Diagnostic> WithSource<E> {
-    pub fn new(sources: &SourceMap, error: E) -> Self {
-        let source = sources.find_diagnostic(&error).cloned();
-        Self { error, source }
+impl<S, E> WithSource<S, E> {
+    pub(super) fn new(source: S, error: E) -> Self {
+        WithSource {
+            source: Some(source),
+            error,
+        }
+    }
+
+    pub(super) fn error(&self) -> &E {
+        &self.error
     }
 }
 
-impl<E: Error> Error for WithSource<E> {
+impl<E: Diagnostic> WithSource<Source, E> {
+    pub fn from_map(sources: &SourceMap, error: E) -> Self {
+        let source = sources.find_diagnostic(&error).cloned();
+        Self { source, error }
+    }
+}
+
+impl<S: Debug, E: Error> Error for WithSource<S, E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.error.source()
     }
 }
 
-impl<E: Diagnostic> Diagnostic for WithSource<E> {
+impl<S: SourceCode + Debug, E: Diagnostic> Diagnostic for WithSource<S, E> {
     fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
         self.error.code()
     }
@@ -64,7 +77,7 @@ impl<E: Diagnostic> Diagnostic for WithSource<E> {
     }
 }
 
-impl<E: Display> Display for WithSource<E> {
+impl<S, E: Display> Display for WithSource<S, E> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         self.error.fmt(f)
     }

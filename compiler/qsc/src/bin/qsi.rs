@@ -7,7 +7,7 @@ use clap::Parser;
 use miette::{Diagnostic, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::stateful::{Error, Interpreter};
+use qsc::stateful::{Interpreter, LineError};
 use qsc_eval::{
     output::{format_state_id, Receiver},
     val::Value,
@@ -90,7 +90,7 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 }
 
-fn print_results(result: Result<Value, Vec<Error>>, line: &str) {
+fn print_results(result: Result<Value, Vec<LineError>>, line: &str) {
     match result {
         Ok(value) => println!("{value}"),
         Err(errors) => {

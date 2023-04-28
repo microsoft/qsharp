@@ -16,20 +16,35 @@ use qsc_eval::{
     Env,
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, SourceMap},
+    compile::{CompileUnit, PackageStore, Source, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
-pub enum Error {
-    #[error("could not compile initial source code")]
-    Compile(#[from] compile::Error),
+#[error(transparent)]
+pub struct CompileError(WithSource<Source, compile::Error>);
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+#[error(transparent)]
+pub struct LineError(WithSource<Arc<str>, LineErrorKind>);
+
+impl LineError {
+    pub fn kind(&self) -> &LineErrorKind {
+        self.0.error()
+    }
+}
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+pub enum LineErrorKind {
     #[error(transparent)]
-    Incremental(#[from] incremental::Error),
-    #[error("program encountered an error while running")]
+    Compile(#[from] incremental::Error),
+    #[error("runtime error")]
     Eval(#[from] qsc_eval::Error),
 }
 
@@ -46,7 +61,7 @@ impl Interpreter {
     /// # Errors
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
-    pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<WithSource<Error>>> {
+    pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<CompileError>> {
         let mut store = PackageStore::new();
         let mut dependencies = Vec::new();
         if std {
@@ -57,7 +72,7 @@ impl Interpreter {
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
-                .map(|error| WithSource::new(&unit.sources, error.into()))
+                .map(|error| CompileError(WithSource::from_map(&unit.sources, error)))
                 .collect());
         }
 
@@ -80,13 +95,19 @@ impl Interpreter {
     /// If the parsing of the line fails, an error is returned.
     /// If the compilation of the line fails, an error is returned.
     /// If there is a runtime error when interpreting the line, an error is returned.
-    pub fn line(&mut self, line: &str, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
+    pub fn line(
+        &mut self,
+        line: &str,
+        receiver: &mut dyn Receiver,
+    ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
         for fragment in self.compiler.compile_fragment(line) {
             match fragment {
                 Fragment::Stmt(stmt) => match self.stmt(receiver, &stmt) {
                     Ok(value) => result = value,
-                    Err(err) => return Err(vec![Error::Eval(err)]),
+                    Err(error) => {
+                        return Err(vec![LineError(WithSource::new(line.into(), error.into()))]);
+                    }
                 },
                 Fragment::Callable(decl) => {
                     self.callables.insert(self.next_item_id, decl);
@@ -94,7 +115,11 @@ impl Interpreter {
                     result = Value::unit();
                 }
                 Fragment::Error(errors) => {
-                    return Err(errors.into_iter().map(Error::Incremental).collect());
+                    let source = line.into();
+                    return Err(errors
+                        .into_iter()
+                        .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into())))
+                        .collect());
                 }
             }
         }

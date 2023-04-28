@@ -12,7 +12,7 @@ use qsc_eval::{
     val::{GlobalId, Value},
     Env,
 };
-use qsc_frontend::compile::{PackageStore, SourceMap};
+use qsc_frontend::compile::{PackageStore, Source, SourceMap};
 use qsc_hir::hir::{CallableDecl, Expr, ItemKind, PackageId};
 use qsc_passes::entry_point::extract_entry;
 use thiserror::Error;
@@ -24,7 +24,12 @@ pub struct ExecutionContext {
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
-pub enum Error {
+#[error(transparent)]
+pub struct Error(WithSource<Source, ErrorKind>);
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+enum ErrorKind {
     #[error("program encountered an error while running")]
     Eval(#[from] qsc_eval::Error),
     #[error("could not compile source code")]
@@ -39,9 +44,9 @@ pub enum Error {
 /// If the evaluation of the entry expression causes an error
 pub fn eval(
     std: bool,
-    receiver: &mut dyn Receiver,
     sources: SourceMap,
-) -> Result<Value, Vec<WithSource<Error>>> {
+    receiver: &mut dyn Receiver,
+) -> Result<Value, Vec<Error>> {
     qsc_eval::init();
     let mut store = PackageStore::new();
     let mut dependencies = Vec::new();
@@ -54,7 +59,7 @@ pub fn eval(
     if !errors.is_empty() {
         return Err(errors
             .into_iter()
-            .map(|error| WithSource::new(&unit.sources, error.into()))
+            .map(|error| Error(WithSource::from_map(&unit.sources, error.into())))
             .collect());
     }
 
@@ -70,10 +75,10 @@ pub fn eval(
         receiver,
     )
     .map_err(|error| {
-        vec![WithSource::new(
+        vec![Error(WithSource::from_map(
             &store.get(basis_package).unwrap().sources,
             error.into(),
-        )]
+        ))]
     })
 }
 
@@ -83,7 +88,7 @@ pub fn eval(
 pub fn eval_in_context(
     context: &ExecutionContext,
     receiver: &mut dyn Receiver,
-) -> Result<Value, Vec<WithSource<Error>>> {
+) -> Result<Value, Vec<Error>> {
     qsc_eval::init();
     // let expr = get_entry_expr(&context.store, context.package)?;
     eval_expr(
@@ -94,10 +99,10 @@ pub fn eval_in_context(
         receiver,
     )
     .map_err(|error| {
-        vec![WithSource::new(
+        vec![Error(WithSource::from_map(
             &context.store.get(context.package).unwrap().sources,
             error.into(),
-        )]
+        ))]
     })
 }
 
@@ -119,14 +124,14 @@ pub fn compile_execution_context(
         let package = store.insert(unit);
         Ok(ExecutionContext { store, package })
     } else {
-        Err(errors.into_iter().map(Into::into).collect())
+        Err(errors
+            .into_iter()
+            .map(|error| Error(WithSource::from_map(&unit.sources, error.into())))
+            .collect())
     }
 }
 
-fn get_entry_expr(
-    store: &PackageStore,
-    basis_package: PackageId,
-) -> Result<Expr, Vec<WithSource<Error>>> {
+fn get_entry_expr(store: &PackageStore, basis_package: PackageId) -> Result<Expr, Vec<Error>> {
     if let Some(expr) = store.get_entry_expr(basis_package) {
         Ok(expr.clone())
     } else {
@@ -139,7 +144,7 @@ fn get_entry_expr(
             let sources = &store.get(basis_package).unwrap().sources;
             errors
                 .into_iter()
-                .map(|error| WithSource::new(sources, error.into()))
+                .map(|error| Error(WithSource::from_map(sources, error.into())))
                 .collect()
         })
     }

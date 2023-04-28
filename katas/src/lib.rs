@@ -6,10 +6,7 @@
 #[cfg(test)]
 mod tests;
 
-use qsc::{
-    error::WithSource,
-    stateless::{self, eval},
-};
+use qsc::stateless;
 use qsc_eval::output::Receiver;
 use qsc_eval::val::Value;
 use qsc_frontend::compile::SourceMap;
@@ -26,7 +23,7 @@ pub fn run_kata(
     exercise: &str,
     verify: &str,
     receiver: &mut impl Receiver,
-) -> Result<bool, Vec<WithSource<stateless::Error>>> {
+) -> Result<bool, Vec<stateless::Error>> {
     let sources = SourceMap::new(
         [
             ("exercise".into(), exercise.into()),
@@ -37,7 +34,7 @@ pub fn run_kata(
 
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
-    match eval(true, receiver, sources) {
+    match stateless::eval(true, sources, receiver) {
         Ok(value) => match value {
             Value::Bool(value) => Ok(value),
             _ => panic!("{KATA_VERIFY} did not return a Bool value."),

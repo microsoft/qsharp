@@ -5,10 +5,7 @@ use katas::run_kata;
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::{
-    error::WithSource,
-    stateless::{self, compile_execution_context, eval_in_context, Error},
-};
+use qsc::stateless;
 use qsc_eval::{
     output,
     output::{format_state_id, Receiver},
@@ -307,13 +304,13 @@ where
     }
 }
 
-fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), Error>
+fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateless::Error>
 where
     F: Fn(&str),
 {
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
-    let context = compile_execution_context(true, sources);
+    let context = stateless::compile_execution_context(true, sources);
     if let Err(err) = context {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
@@ -328,7 +325,7 @@ where
     }
     let context = context.expect("context should be valid");
     for _ in 0..shots {
-        let result = eval_in_context(&context, &mut out);
+        let result = stateless::eval_in_context(&context, &mut out);
         let mut success = true;
         let msg = match result {
             Ok(value) => format!(r#""{value}""#),
@@ -377,7 +374,7 @@ fn run_kata_exercise_internal<F>(
     verification_source: &str,
     kata_implementation: &str,
     event_cb: F,
-) -> Result<bool, Vec<WithSource<stateless::Error>>>
+) -> Result<bool, Vec<stateless::Error>>
 where
     F: Fn(&str),
 {

@@ -3,7 +3,7 @@
 
 use crate::formatting::{DisplayableOutput, FormattingReceiver};
 use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
-use qsc::stateful;
+use qsc::stateful::{self, LineError, LineErrorKind};
 use qsc_eval::val::Value;
 use qsc_frontend::compile::SourceMap;
 use std::fmt::Write;
@@ -98,18 +98,15 @@ impl Error {
     }
 }
 
-impl From<stateful::Error> for Error {
-    fn from(e: stateful::Error) -> Error {
-        match e {
-            stateful::Error::Compile(e) => {
-                panic!("Did not expect compilation error {}", e)
-            }
-            stateful::Error::Eval(e) => Error {
-                error_type: String::from("RuntimeError"),
+impl From<LineError> for Error {
+    fn from(error: LineError) -> Error {
+        match error.kind() {
+            LineErrorKind::Compile(e) => Error {
+                error_type: String::from("CompilationError"),
                 message: e.to_string(),
             },
-            stateful::Error::Incremental(e) => Error {
-                error_type: String::from("CompilationError"),
+            LineErrorKind::Eval(e) => Error {
+                error_type: String::from("RuntimeError"),
                 message: e.to_string(),
             },
         }
