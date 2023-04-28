@@ -8,16 +8,13 @@ use qsc_frontend::compile::{compile, PackageStore, SourceMap};
 use crate::entry_point::extract_entry;
 
 fn check(file: &str, expr: &str, expect: &Expect) {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
-        SourceMap::new([("test".into(), file.into())], Some(expr.into())),
-    );
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let unit = compile(&PackageStore::new(), [], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let res = extract_entry(&unit.package);
-    match res {
-        Ok(result) => expect.assert_eq(&result.to_string()),
-        Err(e) => expect.assert_debug_eq(&e),
+
+    match extract_entry(&unit.package) {
+        Ok(entry) => expect.assert_eq(&entry.to_string()),
+        Err(errors) => expect.assert_debug_eq(&errors),
     }
 }
 

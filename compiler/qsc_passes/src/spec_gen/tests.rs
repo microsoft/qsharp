@@ -11,12 +11,10 @@ use crate::spec_gen::generate_specs;
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new();
-    let mut unit = compile(
-        &store,
-        [],
-        SourceMap::new([("test".into(), file.into())], None),
-    );
+    let sources = SourceMap::new([("test".into(), file.into())], None);
+    let mut unit = compile(&store, [], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+
     let errors = generate_specs(&mut unit);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());
