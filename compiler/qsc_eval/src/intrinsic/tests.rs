@@ -5,13 +5,13 @@ use std::f64::consts;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::run_default_passes;
 
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
-    stateless::get_callable,
+    tests::get_callable,
     val::Value,
     Env, Error,
 };
@@ -22,15 +22,20 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     assert!(std.errors.is_empty());
     assert!(run_default_passes(&mut std).is_empty());
 
-    let stdlib = store.insert(std);
-    let mut unit = compile(&store, [stdlib], [file], expr);
+    let std_id = store.insert(std);
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let mut unit = compile(&store, [std_id], sources);
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
 
     let id = store.insert(unit);
-    let expr = store.get_entry_expr(id).expect("package should have entry");
+    let entry = store
+        .get(id)
+        .and_then(|unit| unit.package.entry.as_ref())
+        .expect("package should have entry");
+
     eval_expr(
-        expr,
+        entry,
         &|id| get_callable(&store, id),
         id,
         &mut Env::default(),
