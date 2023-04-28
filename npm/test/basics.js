@@ -176,7 +176,7 @@ namespace Kata {
     assert.equal(results[0].events.length, 0);
     assert(!results[0].success);
     assert.notEqual(typeof results[0].result, "string");
-    assert.equal(results[0].result.message, "Error: could not compile source code");
+    assert.equal(results[0].result.message, "Error: syntax error");
 });
 
 test('worker check', async t => {
