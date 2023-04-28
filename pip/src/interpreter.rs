@@ -31,7 +31,7 @@ impl Interpreter {
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
         match stateful::Interpreter::new(true, SourceMap::default()) {
             Ok(interpreter) => Ok(Self { interpreter }),
-            Err((err, _)) => Err(PyException::new_err(format!("{:?}", err))),
+            Err(errors) => Err(PyException::new_err(format!("{errors:?}"))),
         }
     }
 
@@ -48,7 +48,7 @@ impl Interpreter {
         let mut receiver = FormattingReceiver::new();
         let (value, errors) = match self.interpreter.line(expr, &mut receiver) {
             Ok(value) => (value, Vec::<stateful::Error>::new()),
-            Err(err) => (Value::unit(), { err.0 }),
+            Err(errs) => (Value::unit(), errs),
         };
         let outputs = receiver.outputs;
 
@@ -102,10 +102,6 @@ impl From<stateful::Error> for Error {
                 message: e.to_string(),
             },
             stateful::Error::Incremental(e) => Error {
-                error_type: String::from("CompilationError"),
-                message: e.to_string(),
-            },
-            stateful::Error::Pass(e) => Error {
                 error_type: String::from("CompilationError"),
                 message: e.to_string(),
             },

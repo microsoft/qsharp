@@ -11,7 +11,6 @@ use qsc::stateful::{Error, Interpreter};
 use qsc_eval::{
     output::{format_state_id, Receiver},
     val::Value,
-    AggregateError,
 };
 use qsc_frontend::compile::SourceMap;
 use std::sync::Arc;
@@ -50,9 +49,9 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     let sources: Vec<_> = read_source(cli.sources.as_slice()).into_diagnostic()?;
 
     let interpreter = Interpreter::new(!cli.nostdlib, SourceMap::new(sources, None));
-    if let Err((_, unit)) = interpreter {
-        for error in unit.errors {
-            eprintln!("{:?}", unit.sources.report(error));
+    if let Err(errors) = interpreter {
+        for error in errors {
+            eprintln!("{:?}", Report::new(error));
         }
         return Ok(ExitCode::FAILURE);
     }
@@ -91,12 +90,12 @@ fn repl(cli: Cli) -> Result<ExitCode> {
     }
 }
 
-fn print_results(result: Result<Value, AggregateError<Error>>, line: &str) {
+fn print_results(result: Result<Value, Vec<Error>>, line: &str) {
     match result {
         Ok(value) => println!("{value}"),
         Err(errors) => {
             let reporter = InteractiveErrorReporter::new(line);
-            for error in errors.0 {
+            for error in errors {
                 eprintln!("{:?}", reporter.report(error.clone()));
             }
         }

@@ -241,10 +241,7 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     STORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
         let (_, reports) = qsc::compile::compile(store, [*std], sources);
-        reports
-            .into_iter()
-            .map(|r| VSDiagnostic::from(AsRef::<dyn Diagnostic + 'static>::as_ref(&r)))
-            .collect()
+        reports.into_iter().map(|r| (&r).into()).collect()
     })
 }
 

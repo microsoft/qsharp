@@ -1,29 +1,38 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use miette::Report;
+use miette::Diagnostic;
 use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
 use qsc_passes::run_default_passes;
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+#[diagnostic(transparent)]
+#[error(transparent)]
+pub enum Error {
+    Frontend(qsc_frontend::compile::Error),
+    Pass(qsc_passes::Error),
+}
 
 pub fn compile(
     store: &PackageStore,
     dependencies: impl IntoIterator<Item = PackageId>,
     sources: SourceMap,
-) -> (CompileUnit, Vec<Report>) {
+) -> (CompileUnit, Vec<Error>) {
     let mut unit = qsc_frontend::compile::compile(store, dependencies, sources);
-    let mut reports = Vec::new();
+    let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
-        reports.push(unit.sources.report(error));
+        errors.push(Error::Frontend(error));
     }
 
-    if reports.is_empty() {
+    if errors.is_empty() {
         for error in run_default_passes(&mut unit) {
-            reports.push(unit.sources.report(error));
+            errors.push(Error::Pass(error));
         }
     }
 
-    (unit, reports)
+    (unit, errors)
 }
 
 pub fn std() -> CompileUnit {

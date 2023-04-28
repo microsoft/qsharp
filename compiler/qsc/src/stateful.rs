@@ -3,34 +3,84 @@
 
 mod tests;
 
-use crate::compile;
+use crate::compile::{self, compile};
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     eval_stmt,
     output::Receiver,
     val::{GlobalId, Value},
-    AggregateError, Env,
+    Env,
 };
 use qsc_frontend::{
-    compile::{compile, CompileUnit, PackageStore, SourceMap},
+    compile::{CompileUnit, PackageStore, Source, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
 use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
-use qsc_passes::run_default_passes;
+use std::{error, fmt::Display};
 use thiserror::Error;
+
+#[derive(Clone, Debug)]
+pub struct SourceError {
+    source: Source,
+    error: Error,
+}
+
+impl error::Error for SourceError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        self.error.source()
+    }
+}
+
+impl Diagnostic for SourceError {
+    fn code<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.error.code()
+    }
+
+    fn severity(&self) -> Option<miette::Severity> {
+        self.error.severity()
+    }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.error.help()
+    }
+
+    fn url<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        self.error.url()
+    }
+
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.source)
+    }
+
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        self.error.labels()
+    }
+
+    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+        self.error.related()
+    }
+
+    fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+        self.error.diagnostic_source()
+    }
+}
+
+impl Display for SourceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.error, f)
+    }
+}
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 pub enum Error {
+    #[error("could not compile initial source code")]
+    Compile(#[from] compile::Error),
+    #[error(transparent)]
+    Incremental(#[from] incremental::Error),
     #[error("program encountered an error while running")]
     Eval(#[from] qsc_eval::Error),
-    #[error("could not compile source code")]
-    Compile(#[from] qsc_frontend::compile::Error),
-    #[error("could not compile source code")]
-    Pass(#[from] qsc_passes::Error),
-    #[error("could not compile line")]
-    Incremental(#[from] incremental::Error),
 }
 
 pub struct Interpreter {
@@ -46,33 +96,38 @@ impl Interpreter {
     /// # Errors
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
-    pub fn new(
-        stdlib: bool,
-        sources: SourceMap,
-    ) -> Result<Self, (AggregateError<Error>, CompileUnit)> {
+    pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<SourceError>> {
         let mut store = PackageStore::new();
-        let mut session_deps = Vec::new();
-        if stdlib {
-            session_deps.push(store.insert(compile::std()));
+        let mut dependencies = Vec::new();
+        if std {
+            dependencies.push(store.insert(compile::std()));
         }
 
-        let mut unit = compile(&store, session_deps.iter().copied(), sources);
-        let pass_errs = run_default_passes(&mut unit);
-        if !unit.errors.is_empty() || !pass_errs.is_empty() {
-            let errors = unit
-                .errors
-                .iter()
-                .map(|e| Error::Compile(e.clone()))
-                .chain(pass_errs.into_iter().map(Error::Pass))
-                .collect();
-            return Err((AggregateError(errors), unit));
+        let (unit, errors) = compile(&store, dependencies.iter().copied(), sources);
+        if !errors.is_empty() {
+            return Err(errors
+                .into_iter()
+                .map(|error| {
+                    let source = error
+                        .labels()
+                        .and_then(|mut labels| labels.next())
+                        .map_or_else(unknown_source, |label| {
+                            unit.sources.find_by_offset(label.offset()).clone()
+                        });
+
+                    SourceError {
+                        source,
+                        error: Error::Compile(error),
+                    }
+                })
+                .collect());
         }
 
         let basis_package = store.insert(unit);
-        session_deps.push(basis_package);
+        dependencies.push(basis_package);
+        let session_package = store.insert(CompileUnit::default());
+        let compiler = Compiler::new(&store, dependencies);
 
-        let session_package = store.insert(compile(&store, [], SourceMap::default()));
-        let compiler = Compiler::new(&store, session_deps);
         Ok(Self {
             store,
             compiler,
@@ -87,17 +142,13 @@ impl Interpreter {
     /// If the parsing of the line fails, an error is returned.
     /// If the compilation of the line fails, an error is returned.
     /// If there is a runtime error when interpreting the line, an error is returned.
-    pub fn line(
-        &mut self,
-        line: &str,
-        receiver: &mut dyn Receiver,
-    ) -> Result<Value, AggregateError<Error>> {
+    pub fn line(&mut self, line: &str, receiver: &mut dyn Receiver) -> Result<Value, Vec<Error>> {
         let mut result = Value::unit();
         for fragment in self.compiler.compile_fragment(line) {
             match fragment {
                 Fragment::Stmt(stmt) => match self.stmt(receiver, &stmt) {
                     Ok(value) => result = value,
-                    Err(err) => return Err(AggregateError(vec![Error::Eval(err)])),
+                    Err(err) => return Err(vec![Error::Eval(err)]),
                 },
                 Fragment::Callable(decl) => {
                     self.callables.insert(self.next_item_id, decl);
@@ -105,9 +156,7 @@ impl Interpreter {
                     result = Value::unit();
                 }
                 Fragment::Error(errors) => {
-                    return Err(AggregateError(
-                        errors.into_iter().map(Error::Incremental).collect(),
-                    ));
+                    return Err(errors.into_iter().map(Error::Incremental).collect());
                 }
             }
         }
@@ -143,5 +192,13 @@ fn get_callable<'a>(
                 None
             }
         })
+    }
+}
+
+fn unknown_source() -> Source {
+    Source {
+        name: "<unknown>".into(),
+        contents: "".into(),
+        offset: 0,
     }
 }

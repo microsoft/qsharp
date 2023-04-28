@@ -4,14 +4,14 @@
 #[cfg(test)]
 mod given_interpreter {
     use crate::stateful::{self, Interpreter};
-    use qsc_eval::{output::CursorReceiver, val::Value, AggregateError};
+    use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::SourceMap;
     use std::{error::Error, fmt::Write, io::Cursor, iter};
 
     fn line(
         interpreter: &mut Interpreter,
         line: &str,
-    ) -> (Result<Value, AggregateError<stateful::Error>>, String) {
+    ) -> (Result<Value, Vec<stateful::Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.line(line, &mut receiver), receiver.dump())
@@ -31,7 +31,7 @@ mod given_interpreter {
                 is_only_error(
                     &result,
                     &output,
-                    "could not compile line: name error: `Message` not found in this scope",
+                    "name error: `Message` not found in this scope",
                 );
             }
         }
@@ -75,18 +75,10 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7");
-            is_only_error(
-                &result,
-                &output,
-                "could not compile line: syntax error: expected `;`, found EOF",
-            );
+            is_only_error(&result, &output, "syntax error: expected `;`, found EOF");
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(
-                &result,
-                &output,
-                "could not compile line: name error: `y` not found in this scope",
-            );
+            is_only_error(&result, &output, "name error: `y` not found in this scope");
         }
 
         #[test]
@@ -171,11 +163,7 @@ mod given_interpreter {
         Interpreter::new(true, SourceMap::default()).expect("empty sources should compile")
     }
 
-    fn is_only_value(
-        result: &Result<Value, AggregateError<stateful::Error>>,
-        output: &str,
-        value: &Value,
-    ) {
+    fn is_only_value(result: &Result<Value, Vec<stateful::Error>>, output: &str, value: &Value) {
         assert_eq!("", output);
 
         match result {
@@ -185,7 +173,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output(
-        result: &Result<Value, AggregateError<stateful::Error>>,
+        result: &Result<Value, Vec<stateful::Error>>,
         output: &str,
         expected_output: &str,
     ) {
@@ -197,18 +185,14 @@ mod given_interpreter {
         }
     }
 
-    fn is_only_error(
-        result: &Result<Value, AggregateError<stateful::Error>>,
-        output: &str,
-        error: &str,
-    ) {
+    fn is_only_error(result: &Result<Value, Vec<stateful::Error>>, output: &str, error: &str) {
         assert_eq!("", output);
 
         match result {
             Ok(value) => panic!("Expected error , got {value:?}"),
             Err(errors) => {
-                let mut message = errors.0[0].to_string();
-                for source in iter::successors(errors.0[0].source(), |&e| e.source()) {
+                let mut message = errors[0].to_string();
+                for source in iter::successors(errors[0].source(), |&e| e.source()) {
                     write!(message, ": {source}").expect("string should be writable");
                 }
                 assert_eq!(error, message);

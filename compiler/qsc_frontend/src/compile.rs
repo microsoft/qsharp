@@ -27,7 +27,7 @@ use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CompileUnit {
     pub package: hir::Package,
     pub assigner: HirAssigner,
@@ -77,7 +77,8 @@ impl SourceMap {
         }
     }
 
-    pub(super) fn find_by_offset(&self, offset: usize) -> &Source {
+    #[must_use]
+    pub fn find_by_offset(&self, offset: usize) -> &Source {
         self.sources
             .iter()
             .chain(&self.entry)
