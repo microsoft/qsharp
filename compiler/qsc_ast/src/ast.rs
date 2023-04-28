@@ -918,7 +918,7 @@ fn display_range(
     }
     match end {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "\n<no stop>")?,
+        None => write!(indent, "\n<no end>")?,
     }
     Ok(())
 }
