@@ -6,6 +6,7 @@ use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
 use qsc::stateful;
 use qsc_eval::val::Value;
 use qsc_frontend::compile::SourceMap;
+use std::fmt::Write;
 
 #[pymodule]
 fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -31,7 +32,13 @@ impl Interpreter {
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
         match stateful::Interpreter::new(true, SourceMap::default()) {
             Ok(interpreter) => Ok(Self { interpreter }),
-            Err(errors) => Err(PyException::new_err(format!("{errors:?}"))),
+            Err(errors) => {
+                let mut message = String::new();
+                for error in errors {
+                    writeln!(message, "{error}").expect("string should be writable");
+                }
+                Err(PyException::new_err(message))
+            }
         }
     }
 
@@ -47,8 +54,8 @@ impl Interpreter {
     fn interpret(&mut self, py: Python, expr: &str) -> PyResult<(PyObject, PyObject, PyObject)> {
         let mut receiver = FormattingReceiver::new();
         let (value, errors) = match self.interpreter.line(expr, &mut receiver) {
-            Ok(value) => (value, Vec::<stateful::Error>::new()),
-            Err(errs) => (Value::unit(), errs),
+            Ok(value) => (value, Vec::new()),
+            Err(errors) => (Value::unit(), errors),
         };
         let outputs = receiver.outputs;
 
