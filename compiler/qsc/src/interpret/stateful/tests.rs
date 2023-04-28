@@ -89,14 +89,14 @@ mod given_interpreter {
             is_only_error(
                 &result,
                 &output,
-                "could not compile line: name error: `x` not found in this scope",
+                "name error: `x` not found in this scope",
             );
 
             let (result, output) = line(&mut interpreter, "y");
             is_only_error(
                 &result,
                 &output,
-                "program encountered an error while running: variable is not bound",
+                "runtime error: variable is not bound",
             );
         }
 
