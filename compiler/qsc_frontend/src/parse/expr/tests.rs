@@ -1710,7 +1710,7 @@ fn range_start_open() {
             Expr _id_ [0-4]: Range:
                 Expr _id_ [0-1]: Lit: Int(2)
                 <no step>
-                <no stop>"#]],
+                <no end>"#]],
     );
 }
 
@@ -1723,7 +1723,7 @@ fn range_start_step_open() {
             Expr _id_ [0-7]: Range:
                 Expr _id_ [0-1]: Lit: Int(3)
                 Expr _id_ [3-4]: Lit: Int(2)
-                <no stop>"#]],
+                <no end>"#]],
     );
 }
 
@@ -1762,7 +1762,7 @@ fn range_open_step_open() {
             Expr _id_ [0-7]: Range:
                 <no start>
                 Expr _id_ [3-4]: Lit: Int(2)
-                <no stop>"#]],
+                <no end>"#]],
     );
 }
 
