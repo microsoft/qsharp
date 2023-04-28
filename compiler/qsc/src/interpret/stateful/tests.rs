@@ -82,6 +82,25 @@ mod given_interpreter {
         }
 
         #[test]
+        fn invalid_statements_and_unbound_vars_return_error() {
+            let mut interpreter = get_interpreter();
+
+            let (result, output) = line(&mut interpreter, "let y = x;");
+            is_only_error(
+                &result,
+                &output,
+                "could not compile line: name error: `x` not found in this scope",
+            );
+
+            let (result, output) = line(&mut interpreter, "y");
+            is_only_error(
+                &result,
+                &output,
+                "program encountered an error while running: variable is not bound",
+            );
+        }
+
+        #[test]
         fn failing_statements_return_early_error() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");

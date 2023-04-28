@@ -105,6 +105,9 @@ pub enum Error {
     #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
     Unassignable(#[label("not assignable")] Span),
 
+    #[error("variable is not bound")]
+    UnboundVar(#[label] Span),
+
     #[error("{0} support is not implemented")]
     #[diagnostic(help("this language feature is not yet supported"))]
     Unimplemented(&'static str, #[label("cannot evaluate this")] Span),
@@ -381,7 +384,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 Continue(Value::Tuple(val_tup.into()))
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
-            &ExprKind::Var(res) => Continue(self.resolve_binding(res)),
+            &ExprKind::Var(res) => match self.resolve_binding(res, expr.span) {
+                Ok(val) => Continue(val),
+                Err(e) => Break(Reason::Error(e)),
+            },
             ExprKind::While(cond, block) => {
                 while self.eval_expr(cond)?.try_into().with_span(cond.span)? {
                     self.eval_block(block)?;
@@ -913,8 +919,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn resolve_binding(&mut self, res: Res) -> Value {
-        match res {
+    fn resolve_binding(&mut self, res: Res, span: Span) -> Result<Value, Error> {
+        Ok(match res {
             Res::Err => panic!("resolution error"),
             Res::Item(item) => Value::Global(
                 GlobalId {
@@ -926,10 +932,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             Res::Local(node) => self
                 .env
                 .get(node)
-                .expect("local should be bound")
+                .ok_or(Error::UnboundVar(span))?
                 .value
                 .clone(),
-        }
+        })
     }
 
     #[allow(clippy::similar_names)]
@@ -937,15 +943,14 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => Continue(Value::unit()),
             (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
-            (&ExprKind::Var(Res::Local(node)), rhs) => {
-                let mut var = self.env.get_mut(node).expect("local should be bound");
-                if var.is_mutable() {
+            (&ExprKind::Var(Res::Local(node)), rhs) => match self.env.get_mut(node) {
+                Some(var) if var.is_mutable() => {
                     var.value = rhs;
                     Continue(Value::unit())
-                } else {
-                    Break(Reason::Error(Error::Mutability(lhs.span)))
                 }
-            }
+                None => Break(Reason::Error(Error::UnboundVar(lhs.span))),
+                _ => Break(Reason::Error(Error::Mutability(lhs.span))),
+            },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
                 if var_tup.len() == tup.len() {
                     for (expr, val) in var_tup.iter().zip(tup.iter()) {
