@@ -18,10 +18,14 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
 
     let id = store.insert(unit);
-    let expr = store.get_entry_expr(id).expect("package should have entry");
+    let entry = store
+        .get(id)
+        .and_then(|unit| unit.package.entry.as_ref())
+        .expect("package should have entry");
+
     let mut out = Vec::new();
     match eval_expr(
-        expr,
+        entry,
         &|id| get_callable(&store, id),
         id,
         &mut Env::default(),

@@ -310,7 +310,7 @@ where
 {
     let mut out = CallbackReceiver { event_cb };
     let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
-    let context = stateless::compile_execution_context(true, sources);
+    let context = stateless::Context::new(true, sources);
     if let Err(err) = context {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
@@ -325,7 +325,7 @@ where
     }
     let context = context.expect("context should be valid");
     for _ in 0..shots {
-        let result = stateless::eval_in_context(&context, &mut out);
+        let result = context.eval(&mut out);
         let mut success = true;
         let msg = match result {
             Ok(value) => format!(r#""{value}""#),

@@ -29,9 +29,13 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     assert!(run_default_passes(&mut unit).is_empty());
 
     let id = store.insert(unit);
-    let expr = store.get_entry_expr(id).expect("package should have entry");
+    let entry = store
+        .get(id)
+        .and_then(|unit| unit.package.entry.as_ref())
+        .expect("package should have entry");
+
     eval_expr(
-        expr,
+        entry,
         &|id| get_callable(&store, id),
         id,
         &mut Env::default(),

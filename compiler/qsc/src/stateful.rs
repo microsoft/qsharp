@@ -132,7 +132,7 @@ impl Interpreter {
     ) -> Result<Value, qsc_eval::Error> {
         qsc_eval::eval_stmt(
             stmt,
-            &|id| lookup_callable(&self.store, &self.callables, self.package, id),
+            &|id| get_callable(&self.store, &self.callables, self.package, id),
             self.package,
             &mut self.env,
             receiver,
@@ -140,7 +140,7 @@ impl Interpreter {
     }
 }
 
-fn lookup_callable<'a>(
+fn get_callable<'a>(
     store: &'a PackageStore,
     callables: &'a IndexMap<LocalItemId, CallableDecl>,
     package: PackageId,

@@ -163,11 +163,6 @@ impl PackageStore {
     }
 
     #[must_use]
-    pub fn get_entry_expr(&self, id: PackageId) -> Option<&hir::Expr> {
-        self.get(id).and_then(|unit| unit.package.entry.as_ref())
-    }
-
-    #[must_use]
     pub fn iter(&self) -> Iter {
         Iter(self.units.iter())
     }

@@ -34,7 +34,8 @@ pub fn run_kata(
 
     // Return false if compilation or evaluation failed.
     // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
-    match stateless::eval(true, sources, receiver) {
+    let context = stateless::Context::new(true, sources)?;
+    match context.eval(receiver) {
         Ok(value) => match value {
             Value::Bool(value) => Ok(value),
             _ => panic!("{KATA_VERIFY} did not return a Bool value."),
