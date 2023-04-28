@@ -8,8 +8,6 @@ mod tests;
 
 mod intrinsic;
 pub mod output;
-pub mod stateful;
-pub mod stateless;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};
@@ -29,7 +27,6 @@ use qsc_hir::hir::{
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
-    fmt::{Display, Formatter},
     mem::take,
     ops::{
         ControlFlow::{self, Break, Continue},
@@ -39,24 +36,6 @@ use std::{
 };
 use thiserror::Error;
 use val::{GlobalId, Qubit};
-
-#[derive(Debug, Error)]
-pub struct AggregateError<T: std::error::Error + Clone>(pub Vec<T>);
-
-impl<T: std::error::Error + Clone> Display for AggregateError<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for error in &self.0 {
-            writeln!(f, "{error}")?;
-        }
-        Ok(())
-    }
-}
-
-impl<T: std::error::Error + Clone> Clone for AggregateError<T> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -219,7 +198,7 @@ impl Range {
     }
 }
 
-trait GlobalLookup<'a> {
+pub trait GlobalLookup<'a> {
     fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
 }
 
@@ -232,7 +211,7 @@ impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
 /// Evaluates the given statement with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-fn eval_stmt<'a>(
+pub fn eval_stmt<'a>(
     stmt: &Stmt,
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
@@ -256,7 +235,7 @@ fn eval_stmt<'a>(
 /// Evaluates the given expression with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
-fn eval_expr<'a>(
+pub fn eval_expr<'a>(
     expr: &Expr,
     globals: &'a impl GlobalLookup<'a>,
     package: PackageId,
@@ -277,12 +256,12 @@ fn eval_expr<'a>(
     res
 }
 
-fn init() {
+pub fn init() {
     __quantum__rt__initialize(null_mut());
 }
 
 #[derive(Default)]
-struct Env(Vec<Scope>);
+pub struct Env(Vec<Scope>);
 
 impl Env {
     fn get(&self, id: NodeId) -> Option<&Variable> {

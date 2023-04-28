@@ -5,18 +5,16 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore, SourceMap};
 
 use crate::conjugate_invert::invert_conjugate_exprs;
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new();
-    let mut unit = compile(&store, [], [file], "");
-    assert!(
-        unit.errors.is_empty(),
-        "Compilation errors: {:?}",
-        unit.errors
-    );
+    let sources = SourceMap::new([("test".into(), file.into())], None);
+    let mut unit = compile(&store, [], sources);
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+
     let errors = invert_conjugate_exprs(&mut unit);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, PackageStore};
+use crate::compile::{self, compile, PackageStore, SourceMap};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::span::Span;
@@ -40,14 +40,15 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
 fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
     let std = store.insert(compile::std());
-    let unit = compile(&store, [std], [source], entry_expr);
+    let sources = SourceMap::new([("test".into(), source.into())], Some(entry_expr.into()));
+    let unit = compile(&store, [std], sources);
     let mut tys = TyCollector { tys: Vec::new() };
     tys.visit_package(&unit.package);
 
     let mut actual = String::new();
     for (id, span, ty) in tys.tys {
-        let (index, offset) = unit.sources.offset(span.lo);
-        let code = &[source, entry_expr][index.0][span.lo - offset..span.hi - offset];
+        let source = unit.sources.find_offset(span.lo);
+        let code = &source.contents[span.lo - source.offset..span.hi - source.offset];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
             .expect("writing type to string should succeed");
     }
