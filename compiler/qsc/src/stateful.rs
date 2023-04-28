@@ -71,7 +71,7 @@ impl Interpreter {
         let basis_package = store.insert(unit);
         session_deps.push(basis_package);
 
-        let session_package = store.insert(compile(&store, [], SourceMap::new([], "".into())));
+        let session_package = store.insert(compile(&store, [], SourceMap::default()));
         let compiler = Compiler::new(&store, session_deps);
         Ok(Self {
             store,

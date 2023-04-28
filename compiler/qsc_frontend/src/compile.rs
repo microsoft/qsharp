@@ -35,7 +35,7 @@ pub struct CompileUnit {
     pub errors: Vec<Error>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
     entry: Option<Source>,

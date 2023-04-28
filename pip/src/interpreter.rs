@@ -29,8 +29,7 @@ impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
-        let result = stateful::Interpreter::new(true, SourceMap::new([], "".into()));
-        match result {
+        match stateful::Interpreter::new(true, SourceMap::default()) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err((err, _)) => Err(PyException::new_err(format!("{:?}", err))),
         }

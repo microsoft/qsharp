@@ -24,7 +24,7 @@ mod given_interpreter {
             use super::*;
             #[test]
             fn stdlib_members_should_be_unavailable() {
-                let mut interpreter = Interpreter::new(false, SourceMap::new([], "".into()))
+                let mut interpreter = Interpreter::new(false, SourceMap::default())
                     .expect("empty sources should compile");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
