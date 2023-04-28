@@ -907,7 +907,8 @@ fn generate_adj_invert_with_range_loop() {
                                     Stmt 14 [114-175]: Expr: Expr 15 [114-175] [Type ()]: For:
                                         Pat 16 [118-119] [Type Int]: Bind: Ident 17 [118-119] "i"
                                         Expr 18 [123-127] [Type Range]: Range:
-                                            Expr 19 [123-124] [Type Int]: Lit: Int(0)<no step>
+                                            Expr 19 [123-124] [Type Int]: Lit: Int(0)
+                                            <no step>
                                             Expr 20 [126-127] [Type Int]: Lit: Int(5)
                                         Block 21 [128-175] [Type ()]:
                                             Stmt 22 [142-147]: Semi: Expr 23 [142-146] [Type ()]: Call:
@@ -923,7 +924,8 @@ fn generate_adj_invert_with_range_loop() {
                                         Stmt _id_ [0-0]: Local (Immutable):
                                             Pat _id_ [0-0] [Type Range]: Bind: Ident 33 [0-0] "generated_range"
                                             Expr 18 [123-127] [Type Range]: Range:
-                                                Expr 19 [123-124] [Type Int]: Lit: Int(0)<no step>
+                                                Expr 19 [123-124] [Type Int]: Lit: Int(0)
+                                                <no step>
                                                 Expr 20 [126-127] [Type Int]: Lit: Int(5)
                                         Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type ()]: For:
                                             Pat 16 [118-119] [Type Int]: Bind: Ident 17 [118-119] "i"
