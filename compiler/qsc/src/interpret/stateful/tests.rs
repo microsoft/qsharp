@@ -87,11 +87,14 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");
             is_only_error(&result, &output, "runtime error: division by zero");
         }
-        
+
         #[test]
         fn passes_are_run_on_incremental() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "within {Message(\"A\");} apply {Message(\"B\");}");
+            let (result, output) = line(
+                &mut interpreter,
+                "within {Message(\"A\");} apply {Message(\"B\");}",
+            );
             is_unit_with_output(&result, &output, "A\nB\nA");
         }
     }
