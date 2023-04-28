@@ -111,7 +111,7 @@ fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceCont
 
 fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     let path = dir.as_ref().join("hir.txt");
-    fs::write(path, format!("{package}"))
+    fs::write(path, package.to_string())
         .into_diagnostic()
         .context("could not emit HIR")
 }
