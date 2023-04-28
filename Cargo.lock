@@ -446,9 +446,6 @@ version = "0.0.0"
 dependencies = [
  "indoc 2.0.0",
  "qsc",
- "qsc_eval",
- "qsc_frontend",
- "qsc_passes",
 ]
 
 [[package]]
@@ -895,10 +892,6 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "qsc",
- "qsc_eval",
- "qsc_frontend",
- "qsc_hir",
- "qsc_passes",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
@@ -912,11 +905,6 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
- "qsc_ast",
- "qsc_eval",
- "qsc_frontend",
- "qsc_hir",
- "qsc_passes",
 ]
 
 [[package]]

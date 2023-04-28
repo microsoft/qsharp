@@ -2,9 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::KATA_ENTRY;
-use qsc::stateless;
-use qsc_eval::output::CursorReceiver;
-use qsc_frontend::compile::SourceMap;
+use qsc::{
+    interpret::{output::CursorReceiver, stateless},
+    SourceMap,
+};
 use std::{
     env, fs,
     io::Cursor,

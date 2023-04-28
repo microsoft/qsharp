@@ -5,5 +5,10 @@
 
 pub mod compile;
 mod error;
-pub mod stateful;
-pub mod stateless;
+pub mod interpret;
+
+pub use qsc_frontend::compile::{PackageStore, SourceMap};
+
+pub mod hir {
+    pub use qsc_hir::{hir::*, *};
+}

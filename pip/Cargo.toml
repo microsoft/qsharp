@@ -10,16 +10,10 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-qsc = { path = "../compiler/qsc" }
-qsc_ast = { path = "../compiler/qsc_ast" }
-qsc_eval = { path = "../compiler/qsc_eval" }
-qsc_frontend = { path = "../compiler/qsc_frontend" }
-qsc_hir = { path = "../compiler/qsc_hir" }
-qsc_passes = { path = "../compiler/qsc_passes" }
-
-pyo3 = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
+pyo3 = { workspace = true }
+qsc = { path = "../compiler/qsc" }
 
 [lib]
 crate-type = ["cdylib"]

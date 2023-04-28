@@ -7,7 +7,7 @@ use clap::Parser;
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::stateful::{Interpreter, LineError};
+use qsc::interpret::stateful::{Interpreter, LineError};
 use qsc_eval::{
     output::{self, Receiver},
     val::Value,

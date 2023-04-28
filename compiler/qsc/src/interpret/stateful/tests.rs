@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 mod given_interpreter {
-    use crate::stateful::{Interpreter, LineError};
+    use crate::interpret::stateful::{Interpreter, LineError};
     use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::SourceMap;
     use std::{error::Error, fmt::Write, io::Cursor, iter};

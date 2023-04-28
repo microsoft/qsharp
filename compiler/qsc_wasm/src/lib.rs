@@ -5,13 +5,14 @@ use katas::{run_kata, KATA_ENTRY};
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::stateless;
-use qsc_eval::{
-    output,
-    output::{format_state_id, Receiver},
+use qsc::{
+    hir::PackageId,
+    interpret::{
+        output::{self, Receiver},
+        stateless,
+    },
+    PackageStore, SourceMap,
 };
-use qsc_frontend::compile::{PackageStore, SourceMap};
-use qsc_hir::hir::PackageId;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -277,7 +278,7 @@ where
             write!(
                 dump_json,
                 r#""{}": [{}, {}],"#,
-                format_state_id(&state.0, qubit_count),
+                output::format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -286,7 +287,7 @@ where
         write!(
             dump_json,
             r#""{}": [{}, {}]}}}}"#,
-            format_state_id(&last.0, qubit_count),
+            output::format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )

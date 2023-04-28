@@ -3,9 +3,14 @@
 
 use crate::formatting::{DisplayableOutput, FormattingReceiver};
 use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
-use qsc::stateful::{self, LineError, LineErrorKind};
-use qsc_eval::val::Value;
-use qsc_frontend::compile::SourceMap;
+use qsc::{
+    hir,
+    interpret::{
+        stateful::{self, LineError, LineErrorKind},
+        Value,
+    },
+    SourceMap,
+};
 use std::fmt::Write;
 
 #[pymodule]
@@ -167,10 +172,10 @@ impl IntoPy<PyObject> for ValueWrapper {
             Value::String(val) => val.into_py(py),
             Value::Result(val) => if val { Result::One } else { Result::Zero }.into_py(py),
             Value::Pauli(val) => match val {
-                qsc_hir::hir::Pauli::I => Pauli::I.into_py(py),
-                qsc_hir::hir::Pauli::X => Pauli::X.into_py(py),
-                qsc_hir::hir::Pauli::Y => Pauli::Y.into_py(py),
-                qsc_hir::hir::Pauli::Z => Pauli::Z.into_py(py),
+                hir::Pauli::I => Pauli::I.into_py(py),
+                hir::Pauli::X => Pauli::X.into_py(py),
+                hir::Pauli::Y => Pauli::Y.into_py(py),
+                hir::Pauli::Z => Pauli::Z.into_py(py),
             },
             Value::Tuple(val) => {
                 PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))

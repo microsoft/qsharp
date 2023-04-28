@@ -6,10 +6,10 @@
 #[cfg(test)]
 mod tests;
 
-use qsc::stateless;
-use qsc_eval::output::Receiver;
-use qsc_eval::val::Value;
-use qsc_frontend::compile::SourceMap;
+use qsc::{
+    interpret::{output::Receiver, stateless, Value},
+    SourceMap,
+};
 
 pub const KATA_ENTRY: &str = "Kata.Verify()";
 
