@@ -62,8 +62,7 @@ fn main() -> miette::Result<ExitCode> {
         .sources
         .iter()
         .map(read_source)
-        .collect::<Result<Vec<_>, _>>()
-        .into_diagnostic()?;
+        .collect::<miette::Result<Vec<_>>>()?;
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
@@ -72,9 +71,7 @@ fn main() -> miette::Result<ExitCode> {
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
         match emit {
-            Emit::Hir => emit_hir(&unit.package, out_dir)
-                .into_diagnostic()
-                .context("could not emit HIR")?,
+            Emit::Hir => emit_hir(&unit.package, out_dir)?,
         }
     }
 
@@ -93,19 +90,28 @@ fn main() -> miette::Result<ExitCode> {
     }
 }
 
-fn read_source(path: impl AsRef<Path>) -> io::Result<(SourceName, SourceContents)> {
+fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceContents)> {
     let path = path.as_ref();
     if path.as_os_str() == "-" {
         let mut input = String::new();
-        io::stdin().read_to_string(&mut input)?;
+        io::stdin()
+            .read_to_string(&mut input)
+            .into_diagnostic()
+            .context("could not read standard input")?;
+
         Ok(("<stdin>".into(), input.into()))
     } else {
-        let contents = fs::read_to_string(path)?;
+        let contents = fs::read_to_string(path)
+            .into_diagnostic()
+            .with_context(|| format!("could not read source file `{}`", path.display()))?;
+
         Ok((path.to_string_lossy().into(), contents.into()))
     }
 }
 
-fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> io::Result<()> {
+fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     let path = dir.as_ref().join("hir.txt");
     fs::write(path, format!("{package}"))
+        .into_diagnostic()
+        .context("could not emit HIR")
 }
