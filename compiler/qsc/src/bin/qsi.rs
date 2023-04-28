@@ -90,22 +90,20 @@ fn main() -> miette::Result<ExitCode> {
         );
     }
 
-    if cli.exec {
-        Ok(ExitCode::SUCCESS)
-    } else {
-        loop {
-            repl(&mut interpreter, &mut TerminalReceiver).into_diagnostic()?;
-        }
+    if !cli.exec {
+        repl(&mut interpreter, &mut TerminalReceiver).into_diagnostic()?;
     }
+
+    Ok(ExitCode::SUCCESS)
 }
 
 fn repl(interpreter: &mut Interpreter, receiver: &mut dyn Receiver) -> io::Result<()> {
     print_prompt(false);
-    let stdin = io::BufReader::new(io::stdin());
-    let mut lines = stdin.lines();
 
+    let mut lines = io::BufReader::new(io::stdin()).lines();
     while let Some(line) = lines.next() {
         let mut line = line?;
+
         while line.ends_with('\\') {
             print_prompt(true);
             let continuation = lines.next().expect("should have continuation line")?;
@@ -120,6 +118,7 @@ fn repl(interpreter: &mut Interpreter, receiver: &mut dyn Receiver) -> io::Resul
         print_prompt(false);
     }
 
+    println!();
     Ok(())
 }
 
