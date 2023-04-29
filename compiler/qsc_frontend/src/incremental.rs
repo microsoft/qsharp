@@ -70,6 +70,10 @@ impl Compiler {
         }
     }
 
+    pub fn assigner_mut(&mut self) -> &mut qsc_hir::assigner::Assigner {
+        self.lowerer.assigner_mut()
+    }
+
     pub fn compile_fragments(&mut self, source: impl AsRef<str>) -> Vec<Fragment> {
         let (item, errors) = parse::item(source.as_ref());
         match item.kind {

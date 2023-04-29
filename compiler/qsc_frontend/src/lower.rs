@@ -37,6 +37,10 @@ impl Lowerer {
     pub(super) fn into_assigner(self) -> Assigner {
         self.assigner
     }
+
+    pub(super) fn assigner_mut(&mut self) -> &mut Assigner {
+        &mut self.assigner
+    }
 }
 
 pub(super) struct With<'a> {
