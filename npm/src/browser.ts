@@ -47,6 +47,7 @@ export function getCompilerWorker(script: string): ICompilerWorker {
     return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
 }
 
+export type { ICompilerWorker }
 export { renderDump, exampleDump } from "./state-table.js"
 export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
 export { getAllKatas, getKata, type Kata, type KataItem, type Exercise } from "./katas.js";

@@ -4,7 +4,7 @@
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import { render } from "preact";
-import { getCompilerWorker, loadWasmModule } from "qsharp";
+import { ICompilerWorker, QscEventTarget, getCompilerWorker, loadWasmModule } from "qsharp";
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
@@ -17,7 +17,7 @@ const workerPath = basePath + "libs/worker.js";
 
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
-const code = `namespace Sample {
+const initialCode = `namespace Sample {
     @EntryPoint()
 
     operation AllBasisVectorsWithPhases_TwoQubits() : Unit {
@@ -39,30 +39,23 @@ const code = `namespace Sample {
 }
 `;
 
-function App(props: any) {
+function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget}) {
     return (<>
         <header class="header">Q# playground</header>
         <Nav></Nav>
-        <Editor></Editor>
-        <Results></Results>
+        <Editor code={initialCode} compiler={props.compiler} evtTarget={props.evtTarget}></Editor>
+        <Results evtTarget={props.evtTarget}></Results>
     </>);
 }
 
 
 // Called once Monaco is ready
 async function loaded() {
-    await wasmPromise;
+    await wasmPromise; // Block until the wasm module is loaded
+    const evtHander = new QscEventTarget(true);
+    const compiler = await getCompilerWorker(workerPath);
 
-    render(<App></App>, document.body);
-
-    let editorDiv = document.querySelector('#editor') as HTMLDivElement;
-    let editor = monaco.editor.create(editorDiv, {minimap: {enabled: false}, lineNumbersMinChars:3});
-    let srcModel = monaco.editor.createModel(code, 'qsharp');
-    editor.setModel(srcModel);
-
-    // If the browser window resizes, tell the editor to update it's layout
-    // TODO: Doesn't seem to resize nicely currently. Preact needs to rerender?
-    window.addEventListener('resize', _ => editor.layout());
+    render(<App compiler={compiler} evtTarget={evtHander}></App>, document.body);
 }
 
 // Monaco provides the 'require' global for loading modules.
