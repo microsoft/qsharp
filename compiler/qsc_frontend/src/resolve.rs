@@ -60,12 +60,17 @@ pub(super) enum Error {
     },
 }
 
+struct Open {
+    namespace: Rc<str>,
+    span: Span,
+}
+
 pub(super) struct Resolver {
     resolutions: Resolutions,
     global_tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     global_terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     parent_namespace: Rc<str>,
-    opens: Vec<HashMap<Rc<str>, Vec<(Rc<str>, Span)>>>,
+    opens: Vec<HashMap<Rc<str>, Vec<Open>>>,
     tys: Vec<HashMap<Rc<str>, ItemId>>,
     terms: Vec<HashMap<Rc<str>, ItemId>>,
     vars: Vec<HashMap<Rc<str>, ast::NodeId>>,
@@ -200,7 +205,10 @@ impl Resolver {
                     .expect("open item should have scope")
                     .entry(alias)
                     .or_default()
-                    .push((Rc::clone(&name.name), name.span));
+                    .push(Open {
+                        namespace: Rc::clone(&name.name),
+                        span: name.span,
+                    });
             }
             ast::ItemKind::Ty(name, _) if self.resolutions.get(name.id).is_none() => {
                 // new type, who dis?
@@ -230,10 +238,10 @@ impl AstVisitor<'_> for Resolver {
         for item in &namespace.items {
             if let ast::ItemKind::Open(name, alias) = &item.kind {
                 let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-                opens
-                    .entry(alias)
-                    .or_default()
-                    .push((Rc::clone(&name.name), name.span));
+                opens.entry(alias).or_default().push(Open {
+                    namespace: Rc::clone(&name.name),
+                    span: name.span,
+                });
             }
         }
 
@@ -252,7 +260,10 @@ impl AstVisitor<'_> for Resolver {
                     .expect("open item should have scope")
                     .entry(alias)
                     .or_default()
-                    .push((Rc::clone(&name.name), name.span));
+                    .push(Open {
+                        namespace: Rc::clone(&name.name),
+                        span: name.span,
+                    });
             }
             ast::ItemKind::Ty(name, _) if self.resolutions.get(name.id).is_none() => {
                 // new type, who dis?
@@ -506,7 +517,7 @@ impl GlobalTable {
 
 fn resolve<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    opens: &[HashMap<Rc<str>, Vec<(Rc<str>, Span)>>],
+    opens: &[HashMap<Rc<str>, Vec<Open>>],
     parent_namespace: &Rc<str>,
     local: impl Fn(&'a str) -> Option<Res>,
     path: &'a ast::Path,
@@ -555,15 +566,15 @@ fn resolve<'a>(
     }
 
     if open_candidates.len() > 1 {
-        let mut namespaces: Vec<_> = open_candidates.into_values().collect();
-        namespaces.sort_unstable_by_key(|n| n.1);
+        let mut opens: Vec<_> = open_candidates.into_values().collect();
+        opens.sort_unstable_by_key(|open| open.span);
         Err(Error::Ambiguous {
             name: name.to_string(),
-            first_open: namespaces[0].0.to_string(),
-            second_open: namespaces[1].0.to_string(),
+            first_open: opens[0].namespace.to_string(),
+            second_open: opens[1].namespace.to_string(),
             name_span: path.span,
-            first_open_span: *namespaces[0].1,
-            second_open_span: *namespaces[1].1,
+            first_open_span: opens[0].span,
+            second_open_span: opens[1].span,
         })
     } else {
         single(open_candidates.into_keys())
@@ -588,13 +599,13 @@ fn resolve_implicit_opens(
 
 fn resolve_explicit_opens<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    namespaces: impl IntoIterator<Item = &'a (Rc<str>, Span)>,
+    opens: impl IntoIterator<Item = &'a Open>,
     name: &str,
-) -> HashMap<Res, (&'a Rc<str>, &'a Span)> {
+) -> HashMap<Res, &'a Open> {
     let mut candidates = HashMap::new();
-    for (namespace, span) in namespaces {
-        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
-            candidates.insert(res, (namespace, span));
+    for open in opens {
+        if let Some(&res) = globals.get(&open.namespace).and_then(|env| env.get(name)) {
+            candidates.insert(res, open);
         }
     }
     candidates
