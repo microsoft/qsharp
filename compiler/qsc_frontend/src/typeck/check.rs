@@ -263,6 +263,27 @@ struct CheckGlobalItemVisitor<'a> {
 }
 
 impl Visitor<'_> for CheckGlobalItemVisitor<'_> {
+    fn visit_item(&mut self, item: &ast::Item) {
+        if let ast::ItemKind::Ty(name, def) = &item.kind {
+            let Some(&Res::Item(item)) = self.resolutions.get(name.id) else {
+                panic!("type should have item ID");
+            };
+
+            let (ty, errors) = convert::ast_ty_def_ty(self.resolutions, def);
+            for MissingTyError(span) in errors {
+                self.checker
+                    .errors
+                    .push(Error(ErrorKind::MissingItemTy(span)));
+            }
+
+            self.checker
+                .globals
+                .insert(item, convert::ty_cons_ty(item, ty));
+        }
+
+        visit::walk_item(self, item);
+    }
+
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         self.checker.add_global_callable(self.resolutions, decl);
         visit::walk_callable_decl(self, decl);

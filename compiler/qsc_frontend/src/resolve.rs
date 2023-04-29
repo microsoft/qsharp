@@ -82,19 +82,6 @@ impl Resolver {
         self.errors.drain(..)
     }
 
-    fn add_global_callable(&mut self, decl: &ast::CallableDecl) {
-        let res = Res::Item(ItemId {
-            package: None,
-            item: self.next_item_id,
-        });
-        self.next_item_id = self.next_item_id.successor();
-        self.resolutions.insert(decl.name.id, res);
-        self.global_terms
-            .entry(Rc::clone(&self.parent_namespace))
-            .or_default()
-            .insert(Rc::clone(&decl.name.name), res);
-    }
-
     pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
         (self.resolutions, self.errors)
     }
@@ -215,6 +202,21 @@ impl Resolver {
                     .or_default()
                     .push((Rc::clone(&name.name), name.span));
             }
+            ast::ItemKind::Ty(name, _) if self.resolutions.get(name.id).is_none() => {
+                // new type, who dis?
+                let item_id = ItemId {
+                    package: None,
+                    item: self.next_item_id,
+                };
+                self.next_item_id = self.next_item_id.successor();
+                self.resolutions.insert(name.id, Res::Item(item_id));
+
+                let ty_scope = self.tys.last_mut().expect("binding should have scope");
+                ty_scope.insert(Rc::clone(&name.name), item_id);
+
+                let term_scope = self.terms.last_mut().expect("binding should have scope");
+                term_scope.insert(Rc::clone(&name.name), item_id);
+            }
             ast::ItemKind::Ty(_, _) => todo!(),
             ast::ItemKind::Err => {}
         }
@@ -252,8 +254,22 @@ impl AstVisitor<'_> for Resolver {
                     .or_default()
                     .push((Rc::clone(&name.name), name.span));
             }
-            ast::ItemKind::Ty(_, _) => {} // TODO
-            ast::ItemKind::Callable(_) | ast::ItemKind::Err => {}
+            ast::ItemKind::Ty(name, _) if self.resolutions.get(name.id).is_none() => {
+                // new type, who dis?
+                let item_id = ItemId {
+                    package: None,
+                    item: self.next_item_id,
+                };
+                self.next_item_id = self.next_item_id.successor();
+                self.resolutions.insert(name.id, Res::Item(item_id));
+
+                let ty_scope = self.tys.last_mut().expect("binding should have scope");
+                ty_scope.insert(Rc::clone(&name.name), item_id);
+
+                let term_scope = self.terms.last_mut().expect("binding should have scope");
+                term_scope.insert(Rc::clone(&name.name), item_id);
+            }
+            ast::ItemKind::Ty(..) | ast::ItemKind::Callable(_) | ast::ItemKind::Err => {}
         }
 
         ast_visit::walk_item(self, item);
@@ -262,7 +278,15 @@ impl AstVisitor<'_> for Resolver {
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         if self.resolutions.get(decl.name.id).is_none() {
             // new callable, who dis?
-            self.add_global_callable(decl);
+            let item_id = ItemId {
+                package: None,
+                item: self.next_item_id,
+            };
+            self.next_item_id = self.next_item_id.successor();
+            self.resolutions.insert(decl.name.id, Res::Item(item_id));
+
+            let scope = self.terms.last_mut().expect("binding should have scope");
+            scope.insert(Rc::clone(&decl.name.name), item_id);
         }
 
         self.with_pat(&decl.input, |resolver| {
