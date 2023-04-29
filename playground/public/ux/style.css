@@ -254,3 +254,8 @@ body {
     border: 1px solid var(--border-color);
     background-color: white;
 }
+
+.err-span {
+    background: transparent!important;
+    border-bottom: 4px double #e47777;
+}
