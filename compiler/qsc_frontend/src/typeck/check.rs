@@ -9,7 +9,10 @@ use crate::{
     resolve::{Res, Resolutions},
     typeck::convert::{self, MissingTyError},
 };
-use qsc_ast::ast;
+use qsc_ast::{
+    ast,
+    visit::{self, Visitor},
+};
 use qsc_hir::hir::{self, ItemId, PackageId, Ty};
 use std::{collections::HashMap, vec};
 
@@ -27,37 +30,11 @@ impl GlobalTable {
     }
 
     pub(crate) fn add_local_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        for namespace in &package.namespaces {
-            for item in &namespace.items {
-                match &item.kind {
-                    ast::ItemKind::Callable(decl) => {
-                        let Some(&Res::Item(item)) = resolutions.get(decl.name.id) else {
-                            panic!("callable should have item ID");
-                        };
-
-                        let (ty, errors) = convert::ast_callable_ty(resolutions, decl);
-                        for MissingTyError(span) in errors {
-                            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-                        }
-
-                        self.globals.insert(item, ty);
-                    }
-                    ast::ItemKind::Ty(name, def) => {
-                        let Some(&Res::Item(item)) = resolutions.get(name.id) else {
-                            panic!("type should have item ID");
-                        };
-
-                        let (ty, errors) = convert::ast_ty_def_ty(resolutions, def);
-                        for MissingTyError(span) in errors {
-                            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-                        }
-
-                        self.globals.insert(item, convert::ty_cons_ty(item, ty));
-                    }
-                    _ => {}
-                }
-            }
+        ItemVisitor {
+            globals: self,
+            resolutions,
         }
+        .visit_package(package);
     }
 
     pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
@@ -88,6 +65,51 @@ impl GlobalTable {
             tys: Tys::new(),
             errors: self.errors,
         }
+    }
+}
+
+struct ItemVisitor<'a> {
+    globals: &'a mut GlobalTable,
+    resolutions: &'a Resolutions,
+}
+
+impl Visitor<'_> for ItemVisitor<'_> {
+    fn visit_item(&mut self, item: &ast::Item) {
+        match &item.kind {
+            ast::ItemKind::Callable(decl) => {
+                let Some(&Res::Item(item)) = self.resolutions.get(decl.name.id) else {
+                    panic!("callable should have item ID");
+                };
+
+                let (ty, errors) = convert::ast_callable_ty(self.resolutions, decl);
+                for MissingTyError(span) in errors {
+                    self.globals
+                        .errors
+                        .push(Error(ErrorKind::MissingItemTy(span)));
+                }
+
+                self.globals.globals.insert(item, ty);
+            }
+            ast::ItemKind::Ty(name, def) => {
+                let Some(&Res::Item(item)) = self.resolutions.get(name.id) else {
+                    panic!("type should have item ID");
+                };
+
+                let (ty, errors) = convert::ast_ty_def_ty(self.resolutions, def);
+                for MissingTyError(span) in errors {
+                    self.globals
+                        .errors
+                        .push(Error(ErrorKind::MissingItemTy(span)));
+                }
+
+                self.globals
+                    .globals
+                    .insert(item, convert::ty_cons_ty(item, ty));
+            }
+            _ => {}
+        }
+
+        visit::walk_item(self, item);
     }
 }
 

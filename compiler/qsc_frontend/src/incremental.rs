@@ -11,12 +11,11 @@ use crate::{
 use miette::Diagnostic;
 use qsc_ast::{
     assigner::Assigner,
-    ast::{self, ItemKind, NodeId},
+    ast::{self, ItemKind},
     mut_visit::MutVisitor,
     visit::Visitor,
 };
 use qsc_hir::hir::{self, PackageId};
-use std::{collections::HashMap, rc::Rc};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -45,7 +44,6 @@ pub struct Compiler {
     assigner: Assigner,
     resolver: Resolver,
     checker: Checker,
-    scope: HashMap<Rc<str>, NodeId>,
     lowerer: Lowerer,
 }
 
@@ -61,11 +59,13 @@ impl Compiler {
             typeck_globals.add_external_package(id, &unit.package);
         }
 
+        let mut resolver = resolve_globals.into_resolver();
+        resolver.add_scope();
+
         Self {
             assigner: Assigner::new(),
-            resolver: resolve_globals.into_resolver(),
+            resolver,
             checker: typeck_globals.into_checker(),
-            scope: HashMap::new(),
             lowerer: Lowerer::new(),
         }
     }
@@ -105,10 +105,8 @@ impl Compiler {
 
     fn compile_callable_decl(&mut self, mut decl: ast::CallableDecl) -> Fragment {
         self.assigner.visit_callable_decl(&mut decl);
-        self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.add_global_callable(&decl);
-            resolver.visit_callable_decl(&decl);
-        });
+        self.resolver.add_global_callable(&decl);
+        self.resolver.visit_callable_decl(&decl);
         self.checker
             .add_global_callable(self.resolver.resolutions(), &decl);
         self.checker
@@ -128,9 +126,7 @@ impl Compiler {
 
     fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Fragment {
         self.assigner.visit_stmt(&mut stmt);
-        self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.visit_stmt(&stmt);
-        });
+        self.resolver.visit_stmt(&stmt);
         self.checker.check_stmt(self.resolver.resolutions(), &stmt);
 
         let errors = self.drain_errors();

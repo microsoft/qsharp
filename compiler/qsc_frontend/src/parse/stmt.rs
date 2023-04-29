@@ -9,7 +9,7 @@ use super::{
     keyword::Keyword,
     prim::{ident, keyword, many, opt, pat, seq, token},
     scan::Scanner,
-    Error, Result,
+    top, Error, Result,
 };
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
@@ -40,6 +40,8 @@ pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Semi).is_ok() {
         Ok(StmtKind::Empty)
+    } else if let Some(item) = opt(s, top::item)? {
+        Ok(StmtKind::Item(item))
     } else if let Some(var) = opt(s, var_binding)? {
         Ok(var)
     } else if let Some(qubit) = opt(s, qubit_binding)? {

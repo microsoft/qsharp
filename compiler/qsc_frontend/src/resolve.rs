@@ -67,7 +67,8 @@ pub(super) struct Resolver {
     opens: HashMap<Rc<str>, HashMap<Rc<str>, Span>>,
     namespace: Rc<str>,
     next_item_id: LocalItemId,
-    locals: Vec<HashMap<Rc<str>, ast::NodeId>>,
+    local_terms: Vec<HashMap<Rc<str>, ItemId>>,
+    local_vars: Vec<HashMap<Rc<str>, ast::NodeId>>,
     errors: Vec<Error>,
 }
 
@@ -98,59 +99,102 @@ impl Resolver {
     }
 
     fn resolve_ty(&mut self, path: &ast::Path) {
-        match resolve(&self.tys, &self.opens, &self.namespace, &[], path) {
+        match resolve(&self.tys, &self.opens, &self.namespace, |_| None, path) {
             Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
 
     fn resolve_term(&mut self, path: &ast::Path) {
-        match resolve(
-            &self.terms,
-            &self.opens,
-            &self.namespace,
-            &self.locals,
-            path,
-        ) {
+        let local = |name| {
+            let mut local_vars = self.local_vars.iter().rev();
+            let mut local_terms = self.local_terms.iter().rev();
+            loop {
+                let var_env = local_vars.next();
+                let term_env = local_terms.next();
+
+                if let Some(env) = var_env {
+                    if let Some(&id) = env.get(name) {
+                        return Some(Res::Local(id));
+                    }
+                }
+
+                if let Some(env) = term_env {
+                    if let Some(&id) = env.get(name) {
+                        return Some(Res::Item(id));
+                    }
+                }
+
+                if var_env.is_none() && term_env.is_none() {
+                    return None;
+                }
+            }
+        };
+
+        match resolve(&self.terms, &self.opens, &self.namespace, local, path) {
             Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
 
     fn with_pat(&mut self, pat: &ast::Pat, f: impl FnOnce(&mut Self)) {
-        let mut env = HashMap::new();
-        self.with_scope(&mut env, |resolver| {
-            resolver.bind(pat);
+        self.with_scope(|resolver| {
+            resolver.bind_pat(pat);
             f(resolver);
         });
     }
 
-    pub(super) fn with_scope(
-        &mut self,
-        scope: &mut HashMap<Rc<str>, ast::NodeId>,
-        f: impl FnOnce(&mut Self),
-    ) {
-        self.locals.push(mem::take(scope));
+    fn with_scope(&mut self, f: impl FnOnce(&mut Self)) {
+        self.add_scope();
         f(self);
-        *scope = self
-            .locals
+        self.local_vars
+            .pop()
+            .expect("scope symmetry should be preserved");
+        self.local_terms
             .pop()
             .expect("scope symmetry should be preserved");
     }
 
-    fn bind(&mut self, pat: &ast::Pat) {
+    pub(super) fn add_scope(&mut self) {
+        self.local_terms.push(HashMap::new());
+        self.local_vars.push(HashMap::new());
+    }
+
+    fn bind_pat(&mut self, pat: &ast::Pat) {
         match &pat.kind {
             ast::PatKind::Bind(name, _) => {
                 let env = self
-                    .locals
+                    .local_vars
                     .last_mut()
                     .expect("binding should have environment");
                 self.resolutions.insert(name.id, Res::Local(name.id));
                 env.insert(Rc::clone(&name.name), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
-            ast::PatKind::Paren(pat) => self.bind(pat),
-            ast::PatKind::Tuple(pats) => pats.iter().for_each(|p| self.bind(p)),
+            ast::PatKind::Paren(pat) => self.bind_pat(pat),
+            ast::PatKind::Tuple(pats) => pats.iter().for_each(|p| self.bind_pat(p)),
+        }
+    }
+
+    fn bind_item(&mut self, item: &ast::Item) {
+        match &item.kind {
+            ast::ItemKind::Callable(decl) => {
+                let item_id = ItemId {
+                    package: None,
+                    item: self.next_item_id,
+                };
+                self.next_item_id = self.next_item_id.successor();
+                self.resolutions.insert(decl.name.id, Res::Item(item_id));
+
+                let env = self
+                    .local_terms
+                    .last_mut()
+                    .expect("binding should have environment");
+                env.insert(Rc::clone(&decl.name.name), item_id);
+            }
+            ast::ItemKind::Err => {}
+            ast::ItemKind::Open(_, _) => todo!(),
+            ast::ItemKind::Ty(_, _) => todo!(),
         }
     }
 }
@@ -196,25 +240,36 @@ impl AstVisitor<'_> for Resolver {
     }
 
     fn visit_block(&mut self, block: &ast::Block) {
-        self.with_scope(&mut HashMap::new(), |resolver| {
+        self.with_scope(|resolver| {
+            for stmt in &block.stmts {
+                if let ast::StmtKind::Item(item) = &stmt.kind {
+                    resolver.bind_item(item);
+                }
+            }
+
             ast_visit::walk_block(resolver, block);
         });
     }
 
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &stmt.kind {
+            ast::StmtKind::Item(item) => {
+                let vars = mem::take(&mut self.local_vars);
+                self.visit_item(item);
+                self.local_vars = vars;
+            }
             ast::StmtKind::Local(_, pat, _) => {
                 ast_visit::walk_stmt(self, stmt);
-                self.bind(pat);
+                self.bind_pat(pat);
             }
             ast::StmtKind::Qubit(_, pat, init, block) => {
                 ast_visit::walk_qubit_init(self, init);
-                self.bind(pat);
+                self.bind_pat(pat);
                 if let Some(block) = block {
                     ast_visit::walk_block(self, block);
                 }
             }
-            ast::StmtKind::Empty | ast::StmtKind::Expr(..) | ast::StmtKind::Semi(..) => {
+            ast::StmtKind::Empty | ast::StmtKind::Expr(_) | ast::StmtKind::Semi(_) => {
                 ast_visit::walk_stmt(self, stmt);
             }
         }
@@ -227,7 +282,7 @@ impl AstVisitor<'_> for Resolver {
                 self.with_pat(pat, |resolver| resolver.visit_block(block));
             }
             ast::ExprKind::Repeat(repeat, cond, fixup) => {
-                self.with_scope(&mut HashMap::new(), |resolver| {
+                self.with_scope(|resolver| {
                     repeat
                         .stmts
                         .iter()
@@ -361,7 +416,8 @@ impl GlobalTable {
             opens: HashMap::new(),
             namespace: "".into(),
             next_item_id: self.next_item_id,
-            locals: Vec::new(),
+            local_terms: Vec::new(),
+            local_vars: Vec::new(),
             errors: Vec::new(),
         }
     }
@@ -376,19 +432,19 @@ impl GlobalTable {
     }
 }
 
-fn resolve(
+fn resolve<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     opens: &HashMap<Rc<str>, HashMap<Rc<str>, Span>>,
     parent: &Rc<str>,
-    locals: &[HashMap<Rc<str>, ast::NodeId>],
-    path: &ast::Path,
+    local: impl Fn(&'a str) -> Option<Res>,
+    path: &'a ast::Path,
 ) -> Result<Res, Error> {
     let name = path.name.name.as_ref();
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     if namespace.is_empty() {
-        if let Some(&node) = locals.iter().rev().find_map(|env| env.get(name)) {
+        if let Some(res) = local(name) {
             // Locals shadow everything.
-            return Ok(Res::Local(node));
+            return Ok(res);
         } else if let Some(&res) = globals.get(parent).and_then(|env| env.get(name)) {
             // Items in the parent namespace shadow opens.
             return Ok(res);
