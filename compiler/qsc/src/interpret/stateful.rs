@@ -55,7 +55,6 @@ pub struct Interpreter {
     package: PackageId,
     compiler: Compiler,
     callables: IndexMap<LocalItemId, CallableDecl>,
-    next_item_id: LocalItemId,
     env: Env,
 }
 
@@ -86,7 +85,6 @@ impl Interpreter {
             package,
             compiler,
             callables: IndexMap::new(),
-            next_item_id: LocalItemId::default(),
             env: Env::with_empty_scope(),
         })
     }
@@ -105,11 +103,11 @@ impl Interpreter {
             run_default_passes_for_fragment(self.compiler.assigner_mut(), &mut fragment);
             match fragment {
                 Fragment::Item(Item {
+                    id,
                     kind: ItemKind::Callable(decl),
                     ..
                 }) => {
-                    self.callables.insert(self.next_item_id, decl);
-                    self.next_item_id = self.next_item_id.successor();
+                    self.callables.insert(id, decl);
                     result = Value::unit();
                 }
                 Fragment::Item(_) => {}
