@@ -62,13 +62,14 @@ pub(super) enum Error {
 
 pub(super) struct Resolver {
     resolutions: Resolutions,
-    tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    opens: HashMap<Rc<str>, HashMap<Rc<str>, Span>>,
-    namespace: Rc<str>,
+    global_tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    global_terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    parent_namespace: Rc<str>,
+    opens: Vec<HashMap<Rc<str>, Vec<(Rc<str>, Span)>>>,
+    tys: Vec<HashMap<Rc<str>, ItemId>>,
+    terms: Vec<HashMap<Rc<str>, ItemId>>,
+    vars: Vec<HashMap<Rc<str>, ast::NodeId>>,
     next_item_id: LocalItemId,
-    local_terms: Vec<HashMap<Rc<str>, ItemId>>,
-    local_vars: Vec<HashMap<Rc<str>, ast::NodeId>>,
     errors: Vec<Error>,
 }
 
@@ -81,15 +82,15 @@ impl Resolver {
         self.errors.drain(..)
     }
 
-    pub(super) fn add_global_callable(&mut self, decl: &ast::CallableDecl) {
+    fn add_global_callable(&mut self, decl: &ast::CallableDecl) {
         let res = Res::Item(ItemId {
             package: None,
             item: self.next_item_id,
         });
         self.next_item_id = self.next_item_id.successor();
         self.resolutions.insert(decl.name.id, res);
-        self.terms
-            .entry(Rc::clone(&self.namespace))
+        self.global_terms
+            .entry(Rc::clone(&self.parent_namespace))
             .or_default()
             .insert(Rc::clone(&decl.name.name), res);
     }
@@ -99,7 +100,20 @@ impl Resolver {
     }
 
     fn resolve_ty(&mut self, path: &ast::Path) {
-        match resolve(&self.tys, &self.opens, &self.namespace, |_| None, path) {
+        let local = |name| {
+            self.tys
+                .iter()
+                .rev()
+                .find_map(|scope| scope.get(name).copied().map(Res::Item))
+        };
+
+        match resolve(
+            &self.global_tys,
+            &self.opens,
+            &self.parent_namespace,
+            local,
+            path,
+        ) {
             Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
@@ -107,8 +121,8 @@ impl Resolver {
 
     fn resolve_term(&mut self, path: &ast::Path) {
         let local = |name| {
-            let mut local_vars = self.local_vars.iter().rev();
-            let mut local_terms = self.local_terms.iter().rev();
+            let mut local_vars = self.vars.iter().rev();
+            let mut local_terms = self.terms.iter().rev();
             loop {
                 let var_env = local_vars.next();
                 let term_env = local_terms.next();
@@ -131,7 +145,13 @@ impl Resolver {
             }
         };
 
-        match resolve(&self.terms, &self.opens, &self.namespace, local, path) {
+        match resolve(
+            &self.global_terms,
+            &self.opens,
+            &self.parent_namespace,
+            local,
+            path,
+        ) {
             Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
@@ -147,28 +167,25 @@ impl Resolver {
     fn with_scope(&mut self, f: impl FnOnce(&mut Self)) {
         self.add_scope();
         f(self);
-        self.local_vars
-            .pop()
-            .expect("scope symmetry should be preserved");
-        self.local_terms
-            .pop()
-            .expect("scope symmetry should be preserved");
+        self.vars.pop().expect("variable scope should be symmetric");
+        self.terms.pop().expect("term scope should be symmetric");
+        self.tys.pop().expect("type scope should be symmetric");
+        self.opens.pop().expect("open scope should be symmetric");
     }
 
     pub(super) fn add_scope(&mut self) {
-        self.local_terms.push(HashMap::new());
-        self.local_vars.push(HashMap::new());
+        self.opens.push(HashMap::new());
+        self.tys.push(HashMap::new());
+        self.terms.push(HashMap::new());
+        self.vars.push(HashMap::new());
     }
 
     fn bind_pat(&mut self, pat: &ast::Pat) {
         match &pat.kind {
             ast::PatKind::Bind(name, _) => {
-                let env = self
-                    .local_vars
-                    .last_mut()
-                    .expect("binding should have environment");
+                let scope = self.vars.last_mut().expect("binding should have scope");
                 self.resolutions.insert(name.id, Res::Local(name.id));
-                env.insert(Rc::clone(&name.name), name.id);
+                scope.insert(Rc::clone(&name.name), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
             ast::PatKind::Paren(pat) => self.bind_pat(pat),
@@ -186,35 +203,60 @@ impl Resolver {
                 self.next_item_id = self.next_item_id.successor();
                 self.resolutions.insert(decl.name.id, Res::Item(item_id));
 
-                let env = self
-                    .local_terms
-                    .last_mut()
-                    .expect("binding should have environment");
-                env.insert(Rc::clone(&decl.name.name), item_id);
+                let scope = self.terms.last_mut().expect("binding should have scope");
+                scope.insert(Rc::clone(&decl.name.name), item_id);
             }
-            ast::ItemKind::Err => {}
-            ast::ItemKind::Open(_, _) => todo!(),
+            ast::ItemKind::Open(name, alias) => {
+                let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
+                self.opens
+                    .last_mut()
+                    .expect("open item should have scope")
+                    .entry(alias)
+                    .or_default()
+                    .push((Rc::clone(&name.name), name.span));
+            }
             ast::ItemKind::Ty(_, _) => todo!(),
+            ast::ItemKind::Err => {}
         }
     }
 }
 
 impl AstVisitor<'_> for Resolver {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        self.opens = HashMap::new();
-        self.namespace = Rc::clone(&namespace.name.name);
+        self.parent_namespace = Rc::clone(&namespace.name.name);
+        let mut opens: HashMap<_, Vec<_>> = HashMap::new();
         for item in &namespace.items {
             if let ast::ItemKind::Open(name, alias) = &item.kind {
                 let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-                self.opens
+                opens
                     .entry(alias)
                     .or_default()
-                    .insert(Rc::clone(&name.name), name.span);
+                    .push((Rc::clone(&name.name), name.span));
             }
         }
 
+        self.opens.push(opens);
         ast_visit::walk_namespace(self, namespace);
-        self.namespace = "".into();
+        self.opens.pop().expect("open scope should be symmetric");
+        self.parent_namespace = "".into();
+    }
+
+    fn visit_item(&mut self, item: &ast::Item) {
+        match &item.kind {
+            ast::ItemKind::Open(name, alias) => {
+                let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
+                self.opens
+                    .last_mut()
+                    .expect("open item should have scope")
+                    .entry(alias)
+                    .or_default()
+                    .push((Rc::clone(&name.name), name.span));
+            }
+            ast::ItemKind::Ty(_, _) => {} // TODO
+            ast::ItemKind::Callable(_) | ast::ItemKind::Err => {}
+        }
+
+        ast_visit::walk_item(self, item);
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
@@ -259,9 +301,9 @@ impl AstVisitor<'_> for Resolver {
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &stmt.kind {
             ast::StmtKind::Item(item) => {
-                let vars = mem::take(&mut self.local_vars);
+                let vars = mem::take(&mut self.vars);
                 self.visit_item(item);
-                self.local_vars = vars;
+                self.vars = vars;
             }
             ast::StmtKind::Local(_, pat, _) => {
                 ast_visit::walk_stmt(self, stmt);
@@ -416,13 +458,14 @@ impl GlobalTable {
     pub(super) fn into_resolver(self) -> Resolver {
         Resolver {
             resolutions: self.resolutions,
-            tys: self.tys,
-            terms: self.terms,
-            opens: HashMap::new(),
-            namespace: "".into(),
+            global_tys: self.tys,
+            global_terms: self.terms,
+            parent_namespace: "".into(),
+            opens: Vec::new(),
+            tys: Vec::new(),
+            terms: Vec::new(),
+            vars: Vec::new(),
             next_item_id: self.next_item_id,
-            local_terms: Vec::new(),
-            local_vars: Vec::new(),
             errors: Vec::new(),
         }
     }
@@ -439,8 +482,8 @@ impl GlobalTable {
 
 fn resolve<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    opens: &HashMap<Rc<str>, HashMap<Rc<str>, Span>>,
-    parent: &Rc<str>,
+    opens: &[HashMap<Rc<str>, Vec<(Rc<str>, Span)>>],
+    parent_namespace: &Rc<str>,
     local: impl Fn(&'a str) -> Option<Res>,
     path: &'a ast::Path,
 ) -> Result<Res, Error> {
@@ -450,7 +493,7 @@ fn resolve<'a>(
         if let Some(res) = local(name) {
             // Locals shadow everything.
             return Ok(res);
-        } else if let Some(&res) = globals.get(parent).and_then(|env| env.get(name)) {
+        } else if let Some(&res) = globals.get(parent_namespace).and_then(|env| env.get(name)) {
             // Items in the parent namespace shadow opens.
             return Ok(res);
         }
@@ -458,8 +501,17 @@ fn resolve<'a>(
 
     // Explicit opens shadow prelude and unopened globals.
     let open_candidates = opens
-        .get(namespace)
-        .map(|open_namespaces| resolve_explicit_opens(globals, open_namespaces, name))
+        .iter()
+        .rev()
+        .find_map(|scope| {
+            let open_namespaces = scope.get(namespace)?;
+            let candidates = resolve_explicit_opens(globals, open_namespaces, name);
+            if candidates.is_empty() {
+                None
+            } else {
+                Some(candidates)
+            }
+        })
         .unwrap_or_default();
 
     if open_candidates.is_empty() && namespace.is_empty() {
@@ -512,7 +564,7 @@ fn resolve_implicit_opens(
 
 fn resolve_explicit_opens<'a>(
     globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    namespaces: impl IntoIterator<Item = (&'a Rc<str>, &'a Span)>,
+    namespaces: impl IntoIterator<Item = &'a (Rc<str>, Span)>,
     name: &str,
 ) -> HashMap<Res, (&'a Rc<str>, &'a Span)> {
     let mut candidates = HashMap::new();
