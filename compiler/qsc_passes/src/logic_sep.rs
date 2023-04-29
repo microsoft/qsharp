@@ -69,7 +69,7 @@ impl<'a> Visitor<'a> for SepCheck {
         let mut has_inner_op_call = false;
         for stmt in &block.stmts {
             match &stmt.kind {
-                StmtKind::Empty => {}
+                StmtKind::Empty | StmtKind::Item(_) => {}
 
                 StmtKind::Local(..) | StmtKind::Qubit(_, _, _, None) => {
                     self.op_call_allowed = false;

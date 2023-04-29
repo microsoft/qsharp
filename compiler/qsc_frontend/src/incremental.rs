@@ -9,12 +9,7 @@ use crate::{
     typeck::{self, Checker},
 };
 use miette::Diagnostic;
-use qsc_ast::{
-    assigner::Assigner,
-    ast::{self, ItemKind},
-    mut_visit::MutVisitor,
-    visit::Visitor,
-};
+use qsc_ast::{assigner::Assigner, ast, mut_visit::MutVisitor, visit::Visitor};
 use qsc_hir::hir::{self, PackageId};
 use thiserror::Error;
 
@@ -36,7 +31,7 @@ enum ErrorKind {
 
 pub enum Fragment {
     Stmt(hir::Stmt),
-    Callable(hir::CallableDecl),
+    Item(hir::Item),
     Error(Vec<Error>),
 }
 
@@ -75,15 +70,7 @@ impl Compiler {
     }
 
     pub fn compile_fragments(&mut self, source: impl AsRef<str>) -> Vec<Fragment> {
-        let (item, errors) = parse::item(source.as_ref());
-        match item.kind {
-            ItemKind::Callable(decl) if errors.is_empty() => {
-                return vec![self.compile_callable_decl(decl)];
-            }
-            _ => {}
-        }
-
-        let (stmts, errors) = parse::stmts(source.as_ref());
+        let (stmts, errors) = parse::many_stmt(source.as_ref());
         if !errors.is_empty() {
             return vec![Fragment::Error(
                 errors
@@ -96,32 +83,12 @@ impl Compiler {
         let mut fragments = Vec::new();
         for stmt in stmts {
             fragments.push(self.compile_stmt(stmt));
-            if matches!(fragments.last(), Some(Fragment::Error(_))) {
-                break;
+            for item in self.lowerer.drain_items() {
+                fragments.push(Fragment::Item(item));
             }
         }
+
         fragments
-    }
-
-    fn compile_callable_decl(&mut self, mut decl: ast::CallableDecl) -> Fragment {
-        self.assigner.visit_callable_decl(&mut decl);
-        self.resolver.add_global_callable(&decl);
-        self.resolver.visit_callable_decl(&decl);
-        self.checker
-            .add_global_callable(self.resolver.resolutions(), &decl);
-        self.checker
-            .check_callable_decl(self.resolver.resolutions(), &decl);
-
-        let errors = self.drain_errors();
-        if errors.is_empty() {
-            Fragment::Callable(
-                self.lowerer
-                    .with(self.resolver.resolutions(), self.checker.tys())
-                    .lower_callable_decl(&decl),
-            )
-        } else {
-            Fragment::Error(errors)
-        }
     }
 
     fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Fragment {

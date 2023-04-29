@@ -218,6 +218,11 @@ impl AstVisitor<'_> for Resolver {
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+        if self.resolutions.get(decl.name.id).is_none() {
+            // new callable, who dis?
+            self.add_global_callable(decl);
+        }
+
         self.with_pat(&decl.input, |resolver| {
             ast_visit::walk_callable_decl(resolver, decl);
         });

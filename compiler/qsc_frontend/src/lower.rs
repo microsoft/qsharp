@@ -11,12 +11,12 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
 };
-use std::{clone::Clone, mem};
+use std::{clone::Clone, vec};
 
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
-    items: IndexMap<LocalItemId, hir::Item>,
+    items: Vec<hir::Item>,
     parent: Option<LocalItemId>,
 }
 
@@ -25,7 +25,7 @@ impl Lowerer {
         Self {
             assigner: Assigner::new(),
             nodes: IndexMap::new(),
-            items: IndexMap::new(),
+            items: Vec::new(),
             parent: None,
         }
     }
@@ -44,6 +44,10 @@ impl Lowerer {
 
     pub(super) fn assigner_mut(&mut self) -> &mut Assigner {
         &mut self.assigner
+    }
+
+    pub(super) fn drain_items(&mut self) -> vec::Drain<hir::Item> {
+        self.items.drain(..)
     }
 }
 
@@ -71,12 +75,19 @@ impl With<'_> {
             }
 
             let namespace = self.lower_namespace(namespace_id, namespace_items, namespace);
-            self.lowerer.items.insert(namespace_id, namespace);
+            self.lowerer.items.push(namespace);
             self.lowerer.parent = None;
         }
 
+        let items = self
+            .lowerer
+            .items
+            .drain(..)
+            .map(|item| (item.id, item))
+            .collect();
+
         hir::Package {
-            items: mem::take(&mut self.lowerer.items),
+            items,
             entry: package.entry.as_ref().map(|e| self.lower_expr(e)),
         }
     }
@@ -124,7 +135,7 @@ impl With<'_> {
             kind,
         };
 
-        self.lowerer.items.insert(id, item);
+        self.lowerer.items.push(item);
         Some(id)
     }
 
@@ -250,10 +261,9 @@ impl With<'_> {
         let kind = match &stmt.kind {
             ast::StmtKind::Empty => hir::StmtKind::Empty,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
-            ast::StmtKind::Item(item) => {
-                self.lower_item(item);
-                hir::StmtKind::Empty
-            }
+            ast::StmtKind::Item(item) => self
+                .lower_item(item)
+                .map_or(hir::StmtKind::Empty, hir::StmtKind::Item),
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 match mutability {
                     ast::Mutability::Immutable => hir::Mutability::Immutable,

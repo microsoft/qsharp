@@ -30,7 +30,7 @@ impl GlobalTable {
     }
 
     pub(crate) fn add_local_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        ItemVisitor {
+        GlobalItemVisitor {
             globals: self,
             resolutions,
         }
@@ -68,12 +68,12 @@ impl GlobalTable {
     }
 }
 
-struct ItemVisitor<'a> {
+struct GlobalItemVisitor<'a> {
     globals: &'a mut GlobalTable,
     resolutions: &'a Resolutions,
 }
 
-impl Visitor<'_> for ItemVisitor<'_> {
+impl Visitor<'_> for GlobalItemVisitor<'_> {
     fn visit_item(&mut self, item: &ast::Item) {
         match &item.kind {
             ast::ItemKind::Callable(decl) => {
@@ -230,6 +230,18 @@ impl Checker {
     }
 
     pub(crate) fn check_stmt(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) {
+        CheckGlobalItemVisitor {
+            checker: self,
+            resolutions,
+        }
+        .visit_stmt(stmt);
+
+        CheckItemVisitor {
+            checker: self,
+            resolutions,
+        }
+        .visit_stmt(stmt);
+
         // TODO: Normally, all statements in a specialization are type checked in the same inference
         // context. However, during incremental compilation, each statement is type checked with a
         // new inference context. This can cause issues if inference variables aren't fully solved
@@ -242,5 +254,29 @@ impl Checker {
             &mut self.tys,
             stmt,
         ));
+    }
+}
+
+struct CheckGlobalItemVisitor<'a> {
+    checker: &'a mut Checker,
+    resolutions: &'a Resolutions,
+}
+
+impl Visitor<'_> for CheckGlobalItemVisitor<'_> {
+    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+        self.checker.add_global_callable(self.resolutions, decl);
+        visit::walk_callable_decl(self, decl);
+    }
+}
+
+struct CheckItemVisitor<'a> {
+    checker: &'a mut Checker,
+    resolutions: &'a Resolutions,
+}
+
+impl Visitor<'_> for CheckItemVisitor<'_> {
+    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+        self.checker.check_callable_decl(self.resolutions, decl);
+        visit::walk_callable_decl(self, decl);
     }
 }

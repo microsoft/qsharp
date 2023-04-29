@@ -131,7 +131,7 @@ pub fn walk_block<'a>(vis: &mut impl Visitor<'a>, block: &'a Block) {
 
 pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
     match &stmt.kind {
-        StmtKind::Empty => {}
+        StmtKind::Empty | StmtKind::Item(_) => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(pat);
