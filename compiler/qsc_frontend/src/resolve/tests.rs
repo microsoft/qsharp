@@ -65,7 +65,7 @@ fn check(input: &str, expect: &Expect) {
 
 fn resolve_names(input: &str) -> String {
     let (namespaces, errors) = parse::namespaces(input);
-    assert!(errors.is_empty(), "Program has syntax errors: {errors:#?}");
+    assert!(errors.is_empty(), "syntax errors: {errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
         namespaces,
@@ -1156,6 +1156,185 @@ fn use_qubit_block() {
                     }
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn local_function() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    function Bar() : Int { 2 }
+                    Bar() + 1
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Int {
+                    function item2() : Int { 2 }
+                    item2() + 1
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn local_function_use_before_declare() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    Bar();
+                    function Bar() : () {}
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Int {
+                    item2();
+                    function item2() : () {}
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn local_function_is_really_local() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    function Bar() : () {}
+                    Bar();
+                }
+
+                function Baz() : () { Bar(); }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {
+                    function item3() : () {}
+                    item3();
+                }
+
+                function item2() : () { Bar(); }
+            }
+
+            // NotFound("Bar", Span { lo: 119, hi: 122 })
+        "#]],
+    );
+}
+
+#[test]
+fn local_function_is_not_closure() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let x = 2;
+                    function Bar() : Int { x }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {
+                    let local11 = 2;
+                    function item2() : Int { x }
+                }
+            }
+
+            // NotFound("x", Span { lo: 90, hi: 91 })
+        "#]],
+    );
+}
+
+#[test]
+fn local_type() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    newtype Bar = Int;
+                    let x = Bar(5);
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {
+                    newtype item2 = Int;
+                    let local18 = item2(5);
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn local_open() {
+    check(
+        indoc! {"
+            namespace A { function Foo() : () { open B; Bar(); } }
+            namespace B { function Bar() : () {} }
+        "},
+        &expect![[r#"
+            namespace item0 { function item1() : () { open B; item3(); } }
+            namespace item2 { function item3() : () {} }
+        "#]],
+    );
+}
+
+// TODO
+#[test]
+fn local_open_shadows_parent_item() {
+    check(
+        indoc! {"
+            namespace A {
+                function Bar() : () {}
+                function Foo() : () { open B; Bar(); }
+            }
+
+            namespace B { function Bar() : () {} }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {}
+                function item2() : () { open B; item1(); }
+            }
+
+            namespace item3 { function item4() : () {} }
+        "#]],
+    );
+}
+
+#[test]
+fn local_open_shadows_parent_open() {
+    check(
+        indoc! {"
+            namespace A {
+                open B;
+                function Foo() : () { open C; Bar(); }
+            }
+
+            namespace B { function Bar() : () {} }
+            namespace C { function Bar() : () {} }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                open B;
+                function item1() : () { open C; item5(); }
+            }
+
+            namespace item2 { function item3() : () {} }
+            namespace item4 { function item5() : () {} }
         "#]],
     );
 }
