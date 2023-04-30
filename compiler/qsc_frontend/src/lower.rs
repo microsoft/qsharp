@@ -16,8 +16,8 @@ use std::{clone::Clone, vec};
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
-    items: Vec<hir::Item>,
     parent: Option<LocalItemId>,
+    items: Vec<hir::Item>,
 }
 
 impl Lowerer {
@@ -25,9 +25,17 @@ impl Lowerer {
         Self {
             assigner: Assigner::new(),
             nodes: IndexMap::new(),
-            items: Vec::new(),
             parent: None,
+            items: Vec::new(),
         }
+    }
+
+    pub(super) fn assigner_mut(&mut self) -> &mut Assigner {
+        &mut self.assigner
+    }
+
+    pub(super) fn drain_items(&mut self) -> vec::Drain<hir::Item> {
+        self.items.drain(..)
     }
 
     pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions, tys: &'a Tys) -> With {
@@ -40,14 +48,6 @@ impl Lowerer {
 
     pub(super) fn into_assigner(self) -> Assigner {
         self.assigner
-    }
-
-    pub(super) fn assigner_mut(&mut self) -> &mut Assigner {
-        &mut self.assigner
-    }
-
-    pub(super) fn drain_items(&mut self) -> vec::Drain<hir::Item> {
-        self.items.drain(..)
     }
 }
 
@@ -67,29 +67,20 @@ impl With<'_> {
             };
 
             self.lowerer.parent = Some(namespace_id);
-            let mut namespace_items = Vec::new();
-            for item in &namespace.items {
-                if let Some(id) = self.lower_item(item) {
-                    namespace_items.push(id);
-                }
-            }
+            let items = namespace
+                .items
+                .iter()
+                .filter_map(|i| self.lower_item(i))
+                .collect();
 
-            let namespace = self.lower_namespace(namespace_id, namespace_items, namespace);
+            let namespace = self.lower_namespace(namespace_id, items, namespace);
             self.lowerer.items.push(namespace);
             self.lowerer.parent = None;
         }
 
-        let items = self
-            .lowerer
-            .items
-            .drain(..)
-            .map(|item| (item.id, item))
-            .collect();
-
-        hir::Package {
-            items,
-            entry: package.entry.as_ref().map(|e| self.lower_expr(e)),
-        }
+        let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
+        let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
+        hir::Package { items, entry }
     }
 
     fn lower_namespace(
@@ -112,11 +103,11 @@ impl With<'_> {
         let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
         let (name_id, kind) = match &item.kind {
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Callable(decl) => (
                 decl.name.id,
                 hir::ItemKind::Callable(self.lower_callable_decl(decl)),
             ),
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Ty(name, def) => (
                 name.id,
                 hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def)),
@@ -126,16 +117,15 @@ impl With<'_> {
         let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) = self.resolutions.get(name_id)
             else { panic!("item should have item ID"); };
 
-        let item = hir::Item {
+        self.lowerer.items.push(hir::Item {
             id,
             span: item.span,
             parent: self.lowerer.parent,
             attrs,
             visibility,
             kind,
-        };
+        });
 
-        self.lowerer.items.push(item);
         Some(id)
     }
 
@@ -252,18 +242,20 @@ impl With<'_> {
             id: self.lower_id(block.id),
             span: block.span,
             ty: self.tys.get(block.id).map_or(hir::Ty::Err, Clone::clone),
-            stmts: block.stmts.iter().map(|s| self.lower_stmt(s)).collect(),
+            stmts: block
+                .stmts
+                .iter()
+                .filter_map(|s| self.lower_stmt(s))
+                .collect(),
         }
     }
 
-    pub(super) fn lower_stmt(&mut self, stmt: &ast::Stmt) -> hir::Stmt {
+    pub(super) fn lower_stmt(&mut self, stmt: &ast::Stmt) -> Option<hir::Stmt> {
         let id = self.lower_id(stmt.id);
         let kind = match &stmt.kind {
-            ast::StmtKind::Empty => hir::StmtKind::Empty,
+            ast::StmtKind::Empty => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
-            ast::StmtKind::Item(item) => self
-                .lower_item(item)
-                .map_or(hir::StmtKind::Empty, hir::StmtKind::Item),
+            ast::StmtKind::Item(item) => hir::StmtKind::Item(self.lower_item(item)?),
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 match mutability {
                     ast::Mutability::Immutable => hir::Mutability::Immutable,
@@ -284,11 +276,11 @@ impl With<'_> {
             ast::StmtKind::Semi(expr) => hir::StmtKind::Semi(self.lower_expr(expr)),
         };
 
-        hir::Stmt {
+        Some(hir::Stmt {
             id,
             span: stmt.span,
             kind,
-        }
+        })
     }
 
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {

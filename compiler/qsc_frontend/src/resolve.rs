@@ -479,7 +479,7 @@ impl GlobalTable {
                         .or_default()
                         .insert(Rc::clone(&name.name), res);
                 }
-                hir::ItemKind::Err | hir::ItemKind::Namespace(..) => {}
+                hir::ItemKind::Namespace(..) => {}
             }
         }
     }

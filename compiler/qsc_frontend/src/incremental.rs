@@ -79,7 +79,9 @@ impl Compiler {
 
         let mut fragments = Vec::new();
         for stmt in stmts {
-            fragments.push(self.compile_stmt(stmt));
+            if let Some(fragment) = self.compile_stmt(stmt) {
+                fragments.push(fragment);
+            }
             for item in self.lowerer.drain_items() {
                 fragments.push(Fragment::Item(item));
             }
@@ -88,20 +90,19 @@ impl Compiler {
         fragments
     }
 
-    fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Fragment {
+    fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Option<Fragment> {
         self.assigner.visit_stmt(&mut stmt);
         self.resolver.visit_stmt(&stmt);
         self.checker.check_stmt(self.resolver.resolutions(), &stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
-            Fragment::Stmt(
-                self.lowerer
-                    .with(self.resolver.resolutions(), self.checker.tys())
-                    .lower_stmt(&stmt),
-            )
+            self.lowerer
+                .with(self.resolver.resolutions(), self.checker.tys())
+                .lower_stmt(&stmt)
+                .map(Fragment::Stmt)
         } else {
-            Fragment::Error(errors)
+            Some(Fragment::Error(errors))
         }
     }
 

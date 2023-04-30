@@ -48,13 +48,13 @@ impl GlobalTable {
                 hir::ItemKind::Callable(decl) => {
                     self.globals.insert(item_id, convert::hir_callable_ty(decl));
                 }
+                hir::ItemKind::Namespace(..) => {}
                 hir::ItemKind::Ty(_, def) => {
                     self.globals.insert(
                         item_id,
                         convert::ty_cons_ty(item_id, convert::hir_ty_def_ty(def)),
                     );
                 }
-                _ => {}
             }
         }
     }

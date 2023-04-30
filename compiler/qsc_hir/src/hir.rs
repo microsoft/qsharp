@@ -240,13 +240,10 @@ impl Display for Item {
 }
 
 /// An item kind.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
-    /// Default item when nothing has been parsed.
-    #[default]
-    Err,
     /// A `namespace` declaration.
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
@@ -257,7 +254,6 @@ impl Display for ItemKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             ItemKind::Callable(decl) => write!(f, "{decl}"),
-            ItemKind::Err => write!(f, "Err"),
             ItemKind::Namespace(name, items) => {
                 write!(f, "Namespace ({name}):")?;
                 let mut items = items.iter();
@@ -611,11 +607,8 @@ impl Display for Stmt {
 }
 
 /// A statement kind.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
-    /// An empty statement.
-    #[default]
-    Empty,
     /// An expression without a trailing semicolon.
     Expr(Expr),
     /// An item.
@@ -632,7 +625,6 @@ impl Display for StmtKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            StmtKind::Empty => write!(indent, "Empty")?,
             StmtKind::Expr(e) => write!(indent, "Expr: {e}")?,
             StmtKind::Item(item) => write!(indent, "Item: {item}")?,
             StmtKind::Local(m, lhs, rhs) => {
