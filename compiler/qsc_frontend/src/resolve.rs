@@ -178,21 +178,18 @@ impl Resolver {
         }
     }
 
+    fn bind_open(&mut self, name: &ast::Ident, alias: Option<&ast::Ident>) {
+        let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
+        let scope = self.scopes.last_mut().expect("open item should have scope");
+        scope.opens.entry(alias).or_default().push(Open {
+            namespace: Rc::clone(&name.name),
+            span: name.span,
+        });
+    }
+
     fn bind_local_item_if_new(&mut self, item: &ast::Item) {
         match &item.kind {
-            ast::ItemKind::Open(name, alias) => {
-                let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-                self.scopes
-                    .last_mut()
-                    .expect("open item should have scope")
-                    .opens
-                    .entry(alias)
-                    .or_default()
-                    .push(Open {
-                        namespace: Rc::clone(&name.name),
-                        span: name.span,
-                    });
-            }
+            ast::ItemKind::Open(name, alias) => self.bind_open(name, alias.as_ref()),
             ast::ItemKind::Callable(decl) if !self.resolutions.contains_key(decl.name.id) => {
                 let item_id = self.next_item_id();
                 self.resolutions.insert(decl.name.id, Res::Item(item_id));
@@ -222,20 +219,16 @@ impl Resolver {
 
 impl AstVisitor<'_> for Resolver {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let mut scope = Scope::new(ScopeKind::Namespace(Rc::clone(&namespace.name.name)));
-        for item in &namespace.items {
-            if let ast::ItemKind::Open(name, alias) = &item.kind {
-                let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-                scope.opens.entry(alias).or_default().push(Open {
-                    namespace: Rc::clone(&name.name),
-                    span: name.span,
-                });
+        let kind = ScopeKind::Namespace(Rc::clone(&namespace.name.name));
+        self.with_scope(kind, |resolver| {
+            for item in &namespace.items {
+                if let ast::ItemKind::Open(name, alias) = &item.kind {
+                    resolver.bind_open(name, alias.as_ref());
+                }
             }
-        }
 
-        self.scopes.push(scope);
-        ast_visit::walk_namespace(self, namespace);
-        self.scopes.pop().expect("scope should be symmetric");
+            ast_visit::walk_namespace(resolver, namespace);
+        });
     }
 
     fn visit_item(&mut self, item: &ast::Item) {
