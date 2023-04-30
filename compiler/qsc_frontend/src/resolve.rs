@@ -471,25 +471,13 @@ fn resolve(
     let name = path.name.name.as_ref();
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let mut candidates = HashMap::new();
-    let mut vars_visible = true;
+    let mut vars = true;
+
     for scope in locals.iter().rev() {
         if namespace.is_empty() {
-            if vars_visible {
-                if let Some(&id) = scope.vars.get(name) {
-                    // Local variables shadow everything.
-                    return Ok(Res::Local(id));
-                }
-            }
-
-            if let Some(&id) = scope.item(kind, name) {
-                return Ok(Res::Item(id));
-            }
-
-            if let ScopeKind::Namespace(namespace) = &scope.kind {
-                if let Some(&res) = globals.get(kind, namespace, name) {
-                    // Items in a namespace shadow opens in that namespace.
-                    return Ok(res);
-                }
+            if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name) {
+                // Local declarations shadow everything.
+                return Ok(res);
             }
         }
 
@@ -503,7 +491,7 @@ fn resolve(
 
         if scope.kind == ScopeKind::Callable {
             // Since local callables are not closures, hide local variables in parent scopes.
-            vars_visible = false;
+            vars = false;
         }
     }
 
@@ -537,6 +525,32 @@ fn resolve(
     } else {
         single(candidates.into_keys()).ok_or_else(|| Error::NotFound(name.to_string(), path.span))
     }
+}
+
+fn resolve_scope_locals(
+    kind: NameKind,
+    globals: &GlobalScope,
+    scope: &Scope,
+    vars: bool,
+    name: &str,
+) -> Option<Res> {
+    if vars {
+        if let Some(&id) = scope.vars.get(name) {
+            return Some(Res::Local(id));
+        }
+    }
+
+    if let Some(&id) = scope.item(kind, name) {
+        return Some(Res::Item(id));
+    }
+
+    if let ScopeKind::Namespace(namespace) = &scope.kind {
+        if let Some(&res) = globals.get(kind, namespace, name) {
+            return Some(res);
+        }
+    }
+
+    None
 }
 
 fn resolve_implicit_opens(
