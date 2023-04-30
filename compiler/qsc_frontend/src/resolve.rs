@@ -77,11 +77,29 @@ impl Scope {
             vars: HashMap::new(),
         }
     }
+
+    fn item(&self, kind: NameKind, name: &str) -> Option<&ItemId> {
+        let items = match kind {
+            NameKind::Ty => &self.tys,
+            NameKind::Term => &self.terms,
+        };
+        items.get(name)
+    }
 }
 
 struct GlobalScope {
     tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+}
+
+impl GlobalScope {
+    fn get(&self, kind: NameKind, namespace: &str, name: &str) -> Option<&Res> {
+        let namespaces = match kind {
+            NameKind::Ty => &self.tys,
+            NameKind::Term => &self.terms,
+        };
+        namespaces.get(namespace).and_then(|items| items.get(name))
+    }
 }
 
 #[derive(Eq, PartialEq)]
@@ -450,40 +468,25 @@ fn resolve(
     locals: &[Scope],
     path: &ast::Path,
 ) -> Result<Res, Error> {
-    let globals = match kind {
-        NameKind::Ty => &globals.tys,
-        NameKind::Term => &globals.terms,
-    };
-
     let name = path.name.name.as_ref();
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let mut candidates = HashMap::new();
-    let mut locals_ok = true;
-
+    let mut vars_visible = true;
     for scope in locals.iter().rev() {
         if namespace.is_empty() {
-            if locals_ok {
+            if vars_visible {
                 if let Some(&id) = scope.vars.get(name) {
                     // Local variables shadow everything.
                     return Ok(Res::Local(id));
                 }
             }
 
-            match kind {
-                NameKind::Ty => {
-                    if let Some(&id) = scope.tys.get(name) {
-                        return Ok(Res::Item(id));
-                    }
-                }
-                NameKind::Term => {
-                    if let Some(&id) = scope.terms.get(name) {
-                        return Ok(Res::Item(id));
-                    }
-                }
+            if let Some(&id) = scope.item(kind, name) {
+                return Ok(Res::Item(id));
             }
 
             if let ScopeKind::Namespace(namespace) = &scope.kind {
-                if let Some(&res) = globals.get(namespace).and_then(|names| names.get(name)) {
+                if let Some(&res) = globals.get(kind, namespace, name) {
                     // Items in a namespace shadow opens in that namespace.
                     return Ok(res);
                 }
@@ -491,7 +494,7 @@ fn resolve(
         }
 
         if let Some(namespaces) = scope.opens.get(namespace) {
-            candidates = resolve_explicit_opens(globals, namespaces, name);
+            candidates = resolve_explicit_opens(kind, globals, namespaces, name);
             if !candidates.is_empty() {
                 // Explicit opens shadow prelude and unopened globals.
                 break;
@@ -499,13 +502,14 @@ fn resolve(
         }
 
         if scope.kind == ScopeKind::Callable {
-            locals_ok = false;
+            // Since local callables are not closures, hide local variables in parent scopes.
+            vars_visible = false;
         }
     }
 
     if candidates.is_empty() && namespace.is_empty() {
         // Prelude shadows unopened globals.
-        let candidates = resolve_implicit_opens(globals, PRELUDE, name);
+        let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name);
         assert!(candidates.len() <= 1, "ambiguity in prelude resolution");
         if let Some(res) = single(candidates) {
             return Ok(res);
@@ -513,7 +517,7 @@ fn resolve(
     }
 
     if candidates.is_empty() {
-        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
+        if let Some(&res) = globals.get(kind, namespace, name) {
             // An unopened global is the last resort.
             return Ok(res);
         }
@@ -536,14 +540,15 @@ fn resolve(
 }
 
 fn resolve_implicit_opens(
-    globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    kind: NameKind,
+    globals: &GlobalScope,
     namespaces: impl IntoIterator<Item = impl AsRef<str>>,
     name: &str,
 ) -> HashSet<Res> {
     let mut candidates = HashSet::new();
     for namespace in namespaces {
         let namespace = namespace.as_ref();
-        if let Some(&res) = globals.get(namespace).and_then(|env| env.get(name)) {
+        if let Some(&res) = globals.get(kind, namespace, name) {
             candidates.insert(res);
         }
     }
@@ -551,13 +556,14 @@ fn resolve_implicit_opens(
 }
 
 fn resolve_explicit_opens<'a>(
-    globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    kind: NameKind,
+    globals: &GlobalScope,
     opens: impl IntoIterator<Item = &'a Open>,
     name: &str,
 ) -> HashMap<Res, &'a Open> {
     let mut candidates = HashMap::new();
     for open in opens {
-        if let Some(&res) = globals.get(&open.namespace).and_then(|env| env.get(name)) {
+        if let Some(&res) = globals.get(kind, &open.namespace, name) {
             candidates.insert(res, open);
         }
     }
