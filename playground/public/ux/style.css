@@ -157,7 +157,7 @@ body {
 
 .results-labels {
     display: flex;
-    margin-bottom: 8px;
+    height: 32px;
 }
 .results-labels > div {
     margin-right: 40px;
@@ -184,7 +184,6 @@ body {
 .prev-next {
     font-weight: 200;
     cursor: pointer;
-    /* text-decoration: underline; */
 }
 
 .state-table {
@@ -229,6 +228,12 @@ body {
 #button-row > * {
     margin-left: 10px;
     font-size: 1rem;
+}
+
+.icon-row > * {
+    margin-left: 2px;
+    font-size: 1.4rem;
+    cursor: pointer;
 }
 
 #expr {

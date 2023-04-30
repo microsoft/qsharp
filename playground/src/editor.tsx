@@ -85,7 +85,10 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
 <div class="editor-column">
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div class="file-name">main.qs</div>
-    <button class='main-button' style="margin-bottom: 2px">Share</button>
+    <div class="icon-row">
+        <span class="icon-button">⬆️</span>
+        <span class="icon-button">🔄</span>
+    </div>
   </div>
   <div id="editor" ref={editorRef}></div>
   <div id="button-row">
