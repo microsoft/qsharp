@@ -146,7 +146,9 @@ export function Results(props: {evtTarget: QscEventTarget}) {
     const filterValue = resultState.filterValue;
     const countForFilter = filterValue ? resultState.buckets.get(filterValue)! : resultState.shotCount;
     const currIndex = filterValue ? resultState.filterIndex : resultState.currIndex;
-    const resultLabel = resultToKet(resultState.currResult?.result || "");
+    const resultLabel = typeof resultState.currResult?.result === 'string' ?
+            resultToKet(resultState.currResult?.result || "") :
+            `ERROR: ${resultState.currResult?.result.message.replace(/\\n/g, "\n")}`;
 
     function moveToIndex(idx: number, filter: string) {
         const results = evtTarget.getResults();

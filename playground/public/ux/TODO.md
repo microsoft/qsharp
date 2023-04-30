@@ -1,8 +1,6 @@
 # TODO
 
 - Honor Start, and disable Run while busy
-- Enable loading of samples
-- Enable resetting of samples
 - Enable katas
 - Enable code sharing
 - Fix up squiggles to be proper error markers
