@@ -59,11 +59,6 @@ pub(super) enum Error {
     },
 }
 
-struct Open {
-    namespace: Rc<str>,
-    span: Span,
-}
-
 struct Scope {
     kind: ScopeKind,
     opens: HashMap<Rc<str>, Vec<Open>>,
@@ -73,7 +68,7 @@ struct Scope {
 }
 
 impl Scope {
-    fn empty(kind: ScopeKind) -> Self {
+    fn new(kind: ScopeKind) -> Self {
         Self {
             kind,
             opens: HashMap::new(),
@@ -82,6 +77,11 @@ impl Scope {
             vars: HashMap::new(),
         }
     }
+}
+
+struct GlobalScope {
+    tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -97,10 +97,14 @@ enum NameKind {
     Term,
 }
 
+struct Open {
+    namespace: Rc<str>,
+    span: Span,
+}
+
 pub(super) struct Resolver {
     resolutions: Resolutions,
-    global_tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    global_terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    globals: GlobalScope,
     scopes: Vec<Scope>,
     next_item_id: LocalItemId,
     errors: Vec<Error>,
@@ -110,20 +114,18 @@ impl Resolver {
     pub(super) fn new(globals: GlobalTable) -> Self {
         Self {
             resolutions: globals.resolutions,
-            global_tys: globals.tys,
-            global_terms: globals.terms,
+            globals: globals.scope,
             scopes: Vec::new(),
             next_item_id: globals.next_item_id,
             errors: Vec::new(),
         }
     }
 
-    pub(super) fn with_global_block_scope(globals: GlobalTable) -> Self {
+    pub(super) fn with_persistent_local_scope(globals: GlobalTable) -> Self {
         Self {
             resolutions: globals.resolutions,
-            global_tys: globals.tys,
-            global_terms: globals.terms,
-            scopes: vec![Scope::empty(ScopeKind::Block)],
+            globals: globals.scope,
+            scopes: vec![Scope::new(ScopeKind::Block)],
             next_item_id: globals.next_item_id,
             errors: Vec::new(),
         }
@@ -141,18 +143,19 @@ impl Resolver {
         (self.resolutions, self.errors)
     }
 
-    fn resolve_ty(&mut self, path: &ast::Path) {
-        match resolve(NameKind::Ty, &self.global_tys, &self.scopes, path) {
+    fn resolve(&mut self, kind: NameKind, path: &ast::Path) {
+        match resolve(kind, &self.globals, &self.scopes, path) {
             Ok(id) => self.resolutions.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
 
-    fn resolve_term(&mut self, path: &ast::Path) {
-        match resolve(NameKind::Term, &self.global_terms, &self.scopes, path) {
-            Ok(id) => self.resolutions.insert(path.id, id),
-            Err(err) => self.errors.push(err),
-        }
+    fn with_scope(&mut self, kind: ScopeKind, f: impl FnOnce(&mut Self)) {
+        self.scopes.push(Scope::new(kind));
+        f(self);
+        self.scopes
+            .pop()
+            .expect("pushed scope should be the last element on the stack");
     }
 
     fn with_pat(&mut self, kind: ScopeKind, pat: &ast::Pat, f: impl FnOnce(&mut Self)) {
@@ -160,12 +163,6 @@ impl Resolver {
             resolver.bind_pat(pat);
             f(resolver);
         });
-    }
-
-    fn with_scope(&mut self, kind: ScopeKind, f: impl FnOnce(&mut Self)) {
-        self.scopes.push(Scope::empty(kind));
-        f(self);
-        self.scopes.pop().expect("scope should be symmetric");
     }
 
     fn bind_pat(&mut self, pat: &ast::Pat) {
@@ -181,19 +178,8 @@ impl Resolver {
         }
     }
 
-    fn bind_item(&mut self, item: &ast::Item) {
+    fn bind_local_item_if_new(&mut self, item: &ast::Item) {
         match &item.kind {
-            ast::ItemKind::Callable(decl) => {
-                let item_id = ItemId {
-                    package: None,
-                    item: self.next_item_id,
-                };
-                self.next_item_id = self.next_item_id.successor();
-                self.resolutions.insert(decl.name.id, Res::Item(item_id));
-
-                let scope = self.scopes.last_mut().expect("binding should have scope");
-                scope.terms.insert(Rc::clone(&decl.name.name), item_id);
-            }
             ast::ItemKind::Open(name, alias) => {
                 let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
                 self.scopes
@@ -207,28 +193,36 @@ impl Resolver {
                         span: name.span,
                     });
             }
-            ast::ItemKind::Ty(name, _) if self.resolutions.get(name.id).is_none() => {
-                // new type, who dis?
-                let item_id = ItemId {
-                    package: None,
-                    item: self.next_item_id,
-                };
-                self.next_item_id = self.next_item_id.successor();
+            ast::ItemKind::Callable(decl) if !self.resolutions.contains_key(decl.name.id) => {
+                let item_id = self.next_item_id();
+                self.resolutions.insert(decl.name.id, Res::Item(item_id));
+                let scope = self.scopes.last_mut().expect("binding should have scope");
+                scope.terms.insert(Rc::clone(&decl.name.name), item_id);
+            }
+            ast::ItemKind::Ty(name, _) if !self.resolutions.contains_key(name.id) => {
+                let item_id = self.next_item_id();
                 self.resolutions.insert(name.id, Res::Item(item_id));
-
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), item_id);
                 scope.terms.insert(Rc::clone(&name.name), item_id);
             }
-            ast::ItemKind::Ty(_, _) => todo!(),
-            ast::ItemKind::Err => {}
+            ast::ItemKind::Callable(..) | ast::ItemKind::Ty(..) | ast::ItemKind::Err => {}
         }
+    }
+
+    fn next_item_id(&mut self) -> ItemId {
+        let item_id = ItemId {
+            package: None,
+            item: self.next_item_id,
+        };
+        self.next_item_id = self.next_item_id.successor();
+        item_id
     }
 }
 
 impl AstVisitor<'_> for Resolver {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let mut scope = Scope::empty(ScopeKind::Namespace(Rc::clone(&namespace.name.name)));
+        let mut scope = Scope::new(ScopeKind::Namespace(Rc::clone(&namespace.name.name)));
         for item in &namespace.items {
             if let ast::ItemKind::Open(name, alias) = &item.kind {
                 let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
@@ -245,53 +239,11 @@ impl AstVisitor<'_> for Resolver {
     }
 
     fn visit_item(&mut self, item: &ast::Item) {
-        match &item.kind {
-            ast::ItemKind::Open(name, alias) => {
-                let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-                self.scopes
-                    .last_mut()
-                    .expect("open item should have scope")
-                    .opens
-                    .entry(alias)
-                    .or_default()
-                    .push(Open {
-                        namespace: Rc::clone(&name.name),
-                        span: name.span,
-                    });
-            }
-            ast::ItemKind::Ty(name, _) if self.resolutions.get(name.id).is_none() => {
-                // new type, who dis?
-                let item_id = ItemId {
-                    package: None,
-                    item: self.next_item_id,
-                };
-                self.next_item_id = self.next_item_id.successor();
-                self.resolutions.insert(name.id, Res::Item(item_id));
-
-                let scope = self.scopes.last_mut().expect("binding should have scope");
-                scope.tys.insert(Rc::clone(&name.name), item_id);
-                scope.terms.insert(Rc::clone(&name.name), item_id);
-            }
-            ast::ItemKind::Ty(..) | ast::ItemKind::Callable(_) | ast::ItemKind::Err => {}
-        }
-
+        self.bind_local_item_if_new(item);
         ast_visit::walk_item(self, item);
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        if self.resolutions.get(decl.name.id).is_none() {
-            // new callable, who dis?
-            let item_id = ItemId {
-                package: None,
-                item: self.next_item_id,
-            };
-            self.next_item_id = self.next_item_id.successor();
-            self.resolutions.insert(decl.name.id, Res::Item(item_id));
-
-            let scope = self.scopes.last_mut().expect("binding should have scope");
-            scope.terms.insert(Rc::clone(&decl.name.name), item_id);
-        }
-
         self.with_pat(ScopeKind::Callable, &decl.input, |resolver| {
             ast_visit::walk_callable_decl(resolver, decl);
         });
@@ -309,7 +261,7 @@ impl AstVisitor<'_> for Resolver {
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
         if let ast::TyKind::Path(path) = &ty.kind {
-            self.resolve_ty(path);
+            self.resolve(NameKind::Ty, path);
         } else {
             ast_visit::walk_ty(self, ty);
         }
@@ -319,7 +271,7 @@ impl AstVisitor<'_> for Resolver {
         self.with_scope(ScopeKind::Block, |resolver| {
             for stmt in &block.stmts {
                 if let ast::StmtKind::Item(item) = &stmt.kind {
-                    resolver.bind_item(item);
+                    resolver.bind_local_item_if_new(item);
                 }
             }
 
@@ -375,7 +327,7 @@ impl AstVisitor<'_> for Resolver {
                     resolver.visit_expr(output);
                 });
             }
-            ast::ExprKind::Path(path) => self.resolve_term(path),
+            ast::ExprKind::Path(path) => self.resolve(NameKind::Term, path),
             _ => ast_visit::walk_expr(self, expr),
         }
     }
@@ -383,8 +335,7 @@ impl AstVisitor<'_> for Resolver {
 
 pub(super) struct GlobalTable {
     resolutions: Resolutions,
-    tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    scope: GlobalScope,
     next_item_id: LocalItemId,
 }
 
@@ -406,10 +357,10 @@ impl GlobalTable {
             ]),
         )]);
 
+        let terms = HashMap::new();
         Self {
             resolutions: Resolutions::new(),
-            tys,
-            terms: HashMap::new(),
+            scope: GlobalScope { tys, terms },
             next_item_id: LocalItemId::default(),
         }
     }
@@ -425,7 +376,8 @@ impl GlobalTable {
                     ast::ItemKind::Callable(decl) => {
                         let res = Res::Item(self.next_item_id());
                         self.resolutions.insert(decl.name.id, res);
-                        self.terms
+                        self.scope
+                            .terms
                             .entry(Rc::clone(&namespace.name.name))
                             .or_default()
                             .insert(Rc::clone(&decl.name.name), res);
@@ -433,11 +385,13 @@ impl GlobalTable {
                     ast::ItemKind::Ty(name, _) => {
                         let res = Res::Item(self.next_item_id());
                         self.resolutions.insert(name.id, res);
-                        self.tys
+                        self.scope
+                            .tys
                             .entry(Rc::clone(&namespace.name.name))
                             .or_default()
                             .insert(Rc::clone(&name.name), res);
-                        self.terms
+                        self.scope
+                            .terms
                             .entry(Rc::clone(&namespace.name.name))
                             .or_default()
                             .insert(Rc::clone(&name.name), res);
@@ -464,17 +418,20 @@ impl GlobalTable {
 
             match &item.kind {
                 hir::ItemKind::Callable(decl) => {
-                    self.terms
+                    self.scope
+                        .terms
                         .entry(Rc::clone(&namespace.name))
                         .or_default()
                         .insert(Rc::clone(&decl.name.name), res);
                 }
                 hir::ItemKind::Ty(name, _) => {
-                    self.tys
+                    self.scope
+                        .tys
                         .entry(Rc::clone(&namespace.name))
                         .or_default()
                         .insert(Rc::clone(&name.name), res);
-                    self.terms
+                    self.scope
+                        .terms
                         .entry(Rc::clone(&namespace.name))
                         .or_default()
                         .insert(Rc::clone(&name.name), res);
@@ -496,16 +453,21 @@ impl GlobalTable {
 
 fn resolve(
     kind: NameKind,
-    globals: &HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
-    scopes: &[Scope],
+    globals: &GlobalScope,
+    locals: &[Scope],
     path: &ast::Path,
 ) -> Result<Res, Error> {
+    let globals = match kind {
+        NameKind::Ty => &globals.tys,
+        NameKind::Term => &globals.terms,
+    };
+
     let name = path.name.name.as_ref();
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let mut candidates = HashMap::new();
     let mut locals_ok = true;
 
-    for scope in scopes.iter().rev() {
+    for scope in locals.iter().rev() {
         if namespace.is_empty() {
             if locals_ok {
                 if let Some(&id) = scope.vars.get(name) {

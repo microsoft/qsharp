@@ -56,7 +56,7 @@ impl Compiler {
 
         Self {
             assigner: Assigner::new(),
-            resolver: Resolver::with_global_block_scope(resolve_globals),
+            resolver: Resolver::with_persistent_local_scope(resolve_globals),
             checker: typeck_globals.into_checker(),
             lowerer: Lowerer::new(),
         }
