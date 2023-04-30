@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{GlobalTable, Res, Resolutions};
-use crate::parse;
+use crate::{parse, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -75,7 +75,7 @@ fn resolve_names(input: &str) -> String {
     assigner.visit_package(&mut package);
     let mut globals = GlobalTable::new();
     globals.add_local_package(&package);
-    let mut resolver = globals.into_resolver();
+    let mut resolver = Resolver::new(globals);
     resolver.visit_package(&package);
     let (resolutions, errors) = resolver.into_resolutions();
     let mut renamer = Renamer::new(&resolutions);

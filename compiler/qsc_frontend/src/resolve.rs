@@ -107,6 +107,28 @@ pub(super) struct Resolver {
 }
 
 impl Resolver {
+    pub(super) fn new(globals: GlobalTable) -> Self {
+        Self {
+            resolutions: globals.resolutions,
+            global_tys: globals.tys,
+            global_terms: globals.terms,
+            scopes: Vec::new(),
+            next_item_id: globals.next_item_id,
+            errors: Vec::new(),
+        }
+    }
+
+    pub(super) fn with_global_block_scope(globals: GlobalTable) -> Self {
+        Self {
+            resolutions: globals.resolutions,
+            global_tys: globals.tys,
+            global_terms: globals.terms,
+            scopes: vec![Scope::empty(ScopeKind::Block)],
+            next_item_id: globals.next_item_id,
+            errors: Vec::new(),
+        }
+    }
+
     pub(super) fn resolutions(&self) -> &Resolutions {
         &self.resolutions
     }
@@ -144,10 +166,6 @@ impl Resolver {
         self.scopes.push(Scope::empty(kind));
         f(self);
         self.scopes.pop().expect("scope should be symmetric");
-    }
-
-    pub(super) fn add_global_scope(&mut self) {
-        self.scopes.push(Scope::empty(ScopeKind::Block));
     }
 
     fn bind_pat(&mut self, pat: &ast::Pat) {
@@ -463,17 +481,6 @@ impl GlobalTable {
                 }
                 hir::ItemKind::Err | hir::ItemKind::Namespace(..) => {}
             }
-        }
-    }
-
-    pub(super) fn into_resolver(self) -> Resolver {
-        Resolver {
-            resolutions: self.resolutions,
-            global_tys: self.tys,
-            global_terms: self.terms,
-            scopes: Vec::new(),
-            next_item_id: self.next_item_id,
-            errors: Vec::new(),
         }
     }
 

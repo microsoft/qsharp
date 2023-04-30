@@ -54,12 +54,9 @@ impl Compiler {
             typeck_globals.add_external_package(id, &unit.package);
         }
 
-        let mut resolver = resolve_globals.into_resolver();
-        resolver.add_global_scope();
-
         Self {
             assigner: Assigner::new(),
-            resolver,
+            resolver: Resolver::with_global_block_scope(resolve_globals),
             checker: typeck_globals.into_checker(),
             lowerer: Lowerer::new(),
         }
@@ -69,8 +66,8 @@ impl Compiler {
         self.lowerer.assigner_mut()
     }
 
-    pub fn compile_fragments(&mut self, source: impl AsRef<str>) -> Vec<Fragment> {
-        let (stmts, errors) = parse::many_stmt(source.as_ref());
+    pub fn compile_fragments(&mut self, source: &str) -> Vec<Fragment> {
+        let (stmts, errors) = parse::many_stmt(source);
         if !errors.is_empty() {
             return vec![Fragment::Error(
                 errors

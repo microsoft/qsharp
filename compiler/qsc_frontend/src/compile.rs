@@ -7,7 +7,7 @@ mod tests;
 use crate::{
     lower::Lowerer,
     parse,
-    resolve::{self, Resolutions},
+    resolve::{self, Resolutions, Resolver},
     typeck::{self, Tys},
     validate::{self, validate},
 };
@@ -335,7 +335,7 @@ fn resolve_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    let mut resolver = globals.into_resolver();
+    let mut resolver = Resolver::new(globals);
     resolver.visit_package(package);
     resolver.into_resolutions()
 }
