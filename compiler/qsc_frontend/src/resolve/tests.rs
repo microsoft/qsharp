@@ -1187,7 +1187,7 @@ fn local_function_use_before_declare() {
     check(
         indoc! {"
             namespace A {
-                function Foo() : Int {
+                function Foo() : () {
                     Bar();
                     function Bar() : () {}
                 }
@@ -1195,7 +1195,7 @@ fn local_function_use_before_declare() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1() : Int {
+                function item1() : () {
                     item2();
                     function item2() : () {}
                 }
