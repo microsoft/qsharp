@@ -9,6 +9,8 @@ import { ICompilerWorker, QscEventTarget, getCompilerWorker, loadWasmModule } fr
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
 import { Results } from "./results.js";
+import { useState } from "preact/hooks";
+import { samples } from "./samples.js";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
@@ -41,14 +43,21 @@ const initialCode = `namespace Sample {
 }`;
 
 function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget}) {
+    const [mainCode, setMainCode] = useState(initialCode);
+
+    function onSampleSelected(name: string) {
+        const sampleDict = samples as {[index: string]: string};
+        const sample: string = sampleDict[name];
+        if (sample) setMainCode(sample);
+    }
+
     return (<>
         <header class="header">Q# playground</header>
-        <Nav></Nav>
-        <Editor code={initialCode} compiler={props.compiler} evtTarget={props.evtTarget}></Editor>
+        <Nav sampleSelected={onSampleSelected}></Nav>
+        <Editor code={mainCode} compiler={props.compiler} evtTarget={props.evtTarget}></Editor>
         <Results evtTarget={props.evtTarget}></Results>
     </>);
 }
-
 
 // Called once Monaco is ready
 async function loaded() {

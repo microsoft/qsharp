@@ -7,8 +7,22 @@ import { ICompilerWorker, QscEventTarget, VSDiagnostic } from "qsharp";
 export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarget: QscEventTarget}) {
     const editorRef = useRef(null);
     const shotsRef = useRef(null);
+
     const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [errors, setErrors] = useState<{location: string, msg: string}[]>([]);
+    const [initialCode, setInitialCode] = useState(props.code);
+
+    // Check if the initial code changed (i.e. sample selected) since first created
+    // If so, need to load it into the editor and save as the new initial code.
+    if (initialCode !== props.code) {
+        editor?.getModel()?.setValue(props.code);
+        setInitialCode(props.code);
+    }
+
+    // On reset, reload the initial code
+    function onReset() {
+        editor?.getModel()?.setValue(initialCode);
+    }
 
     useEffect(() => {
         // Create the monaco editor
@@ -87,7 +101,7 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
     <div class="file-name">main.qs</div>
     <div class="icon-row">
         <span class="icon-button">⬆️</span>
-        <span class="icon-button">🔄</span>
+        <span class="icon-button" onClick={onReset}>🔄</span>
     </div>
   </div>
   <div id="editor" ref={editorRef}></div>
