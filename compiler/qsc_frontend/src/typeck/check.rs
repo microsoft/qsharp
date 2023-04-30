@@ -84,14 +84,7 @@ impl Checker {
     }
 
     pub(crate) fn check_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        for namespace in &package.namespaces {
-            for item in &namespace.items {
-                if let ast::ItemKind::Callable(decl) = &item.kind {
-                    self.check_callable_decl(resolutions, decl);
-                }
-            }
-        }
-
+        ItemChecker::new(self, resolutions).visit_package(package);
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 resolutions,

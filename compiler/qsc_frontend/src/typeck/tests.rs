@@ -1639,8 +1639,34 @@ fn local_function() {
             #15 87-89 "()" : ()
             #16 92-93 "1" : Int
             #7 61-63 "()" : ()
-            #8 70-75 "{ 2 }" : ?
-            #10 72-73 "2" : ?
+            #8 70-75 "{ 2 }" : Int
+            #10 72-73 "2" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn local_function_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    function Bar() : Int { 2.0 }
+                    Bar()
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 39-97 "{\n        function Bar() : Int { 2.0 }\n        Bar()\n    }" : Int
+            #12 86-91 "Bar()" : Int
+            #13 86-89 "Bar" : (() -> Int)
+            #14 89-91 "()" : ()
+            #7 61-63 "()" : ()
+            #8 70-77 "{ 2.0 }" : Double
+            #10 72-75 "2.0" : Double
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 77 }))))
         "##]],
     );
 }
@@ -1664,7 +1690,7 @@ fn local_function_use_before_declare() {
             #6 48-51 "Bar" : (() -> ())
             #7 51-53 "()" : ()
             #11 75-77 "()" : ()
-            #12 83-85 "{}" : ?
+            #12 83-85 "{}" : ()
         "##]],
     );
 }
@@ -1688,8 +1714,8 @@ fn local_function_last_stmt_is_unit_block() {
             #6 49-52 "Bar" : (() -> Int)
             #7 52-54 "()" : ()
             #11 75-77 "()" : ()
-            #12 84-89 "{ 4 }" : ?
-            #14 86-87 "4" : ?
+            #12 84-89 "{ 4 }" : Int
+            #14 86-87 "4" : Int
             Error(Type(Error(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 95 }))))
         "##]],
     );
