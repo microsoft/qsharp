@@ -1292,7 +1292,6 @@ fn local_open() {
     );
 }
 
-// TODO
 #[test]
 fn local_open_shadows_parent_item() {
     check(
@@ -1307,7 +1306,7 @@ fn local_open_shadows_parent_item() {
         &expect![[r#"
             namespace item0 {
                 function item1() : () {}
-                function item2() : () { open B; item1(); }
+                function item2() : () { open B; item4(); }
             }
 
             namespace item3 { function item4() : () {} }

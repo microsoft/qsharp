@@ -55,7 +55,7 @@ impl Compiler {
         }
 
         let mut resolver = resolve_globals.into_resolver();
-        resolver.add_scope();
+        resolver.add_global_scope();
 
         Self {
             assigner: Assigner::new(),
