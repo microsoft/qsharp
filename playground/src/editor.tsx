@@ -6,6 +6,7 @@ import { ICompilerWorker, QscEventTarget, VSDiagnostic } from "qsharp";
 
 export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarget: QscEventTarget}) {
     const editorRef = useRef(null);
+    const shotsRef = useRef(null);
     const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [errors, setErrors] = useState<{location: string, msg: string}[]>([]);
 
@@ -73,9 +74,11 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
 
     async function onRun() {
         const code = editor?.getModel()?.getValue();
+        const shotsInput: HTMLInputElement = shotsRef.current as any;
+        const shots = parseInt(shotsInput.value) || 1;
         if (!code) return;
         props.evtTarget.clearResults();
-        await props.compiler.run(code, "", 10, props.evtTarget);
+        await props.compiler.run(code, "", shots, props.evtTarget);
     }
 
     return (
@@ -89,7 +92,7 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
     <span>Start</span>
     <input id="expr" value="" />
     <span>Shots</span>
-    <input id="shot" type="number" value="100" max="1000" min="1" />
+    <input id="shot" type="number" value="100" max="1000" min="1" ref={shotsRef}/>
     <button id="run" class='main-button' onClick={onRun}>Run</button>
   </div>
 { errors.length ? 

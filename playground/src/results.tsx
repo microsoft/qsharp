@@ -1,56 +1,28 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { Dump, QscEventTarget, ShotResult } from "qsharp";
+import { QscEventTarget, ShotResult, VSDiagnostic } from "qsharp";
 import { useEffect, useState } from "preact/hooks"
 
-const dumpExample: Dump = {"|0000⟩":[0.4338641278491088,-0.0655721495701471],"|0001⟩":[0.4338641278491088,0.0655721495701471],"|0010⟩":[0.4338641278491088,-0.0655721495701471],"|0011⟩":[0.4338641278491088,0.0655721495701471],"|1100⟩":[-0.03582222857458079,-0.23702105329787282],"|1101⟩":[0.03582222857458079,-0.23702105329787282],"|1110⟩":[-0.03582222857458079,-0.23702105329787282],"|1111⟩":[0.03582222857458079,-0.23702105329787282]};
+import { Histogram } from "./histo.js";
+import { StateTable } from "./state.js";
 
-function probability(real: number, imag: number) {
-    return (real * real + imag * imag);
-}
+const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/
+function resultToKet(result: string | VSDiagnostic): string {
+    if (typeof result !== 'string') return "ERROR";
 
-function formatComplex(real: number, imag: number) {
-    // toLocaleString() correctly identifies -0 in JavaScript
-    // String interpolation drops minus sign from -0
-    // &#x2212; is the unicode minus sign, &#x1D456; is the mathematical i
-    const realPart = `${real.toLocaleString()[0] === "-" ? "−" : ""}${Math.abs(real).toFixed(4)}`;
-    const imagPart = `${imag.toLocaleString()[0] === "-" ? "−" : "+"}${Math.abs(imag).toFixed(4)}𝑖`;
-    return `${realPart}${imagPart}`;
-}
-
-export function StateTable(props: {dump: Dump}) {
-    return (
-<table class="state-table">
-  <thead>
-    <tr>
-      <th>Basis State<br/>(|𝜓ₙ…𝜓₁⟩)</th>
-      <th>Amplitude</th>
-      <th>Measurement Probability</th>
-      <th colSpan={2}>Phase</th>
-    </tr>
-  </thead>
-  <tbody>
-{ Object.keys(props.dump).map(basis => {
-    const [real, imag] = props.dump[basis];
-    const complex = formatComplex(real, imag)
-    const probabilityPercent = probability(real, imag) * 100;
-    const phase = Math.atan2(imag, real);
-    const phaseStyle = `transform: rotate(${phase.toFixed(4)}rad)`;
-    return (
-    <tr>
-      <td style="text-align: center">{basis}</td>
-      <td style="text-align: right">{complex}</td>
-      <td style="display: flex; justify-content: space-between; padding: 8px 20px;">
-        <progress style="width: 40%" max="100" value={probabilityPercent}></progress>
-        <span>{probabilityPercent.toFixed(4)}%</span>
-      </td>
-      <td style={phaseStyle}>↑</td>
-      <td style="text-align:right">{phase.toFixed(4)}</td>
-    </tr>);
-})}
-  </tbody>
-</table>);
+    if (reKetResult.test(result)) {
+        // The result is a simple array of Zero and One
+        // The below will return an array of "Zero" or "One" in the order found
+        let matches = result.match(/(One|Zero)/g);
+        matches?.reverse();
+        let ket = "|";
+        matches?.forEach(digit => ket += (digit == "One" ? "1" : "0"));
+        ket += "⟩";
+        return ket;
+    } else {
+        return result;
+    }
 }
 
 type ResultsState = {
@@ -59,6 +31,8 @@ type ResultsState = {
     currIndex: number;                  // Which is currently being displayed
     currResult: ShotResult | undefined; // The shot data to display
     buckets: Map<string, number>;       // Histogram buckets
+    filterValue: string;                // Any filter that is in effect (or "")
+    filterIndex: number;                // The index into the filtered set
     currArray: ShotResult[]             // Used to detect a new run
 };
 
@@ -69,6 +43,8 @@ function newRunState() {
         currIndex: 0,
         currResult: undefined,
         buckets: new Map(),
+        filterValue: "",
+        filterIndex: 0,
         currArray: []
     };
 }
@@ -102,8 +78,10 @@ export function Results(props: {evtTarget: QscEventTarget}) {
             // If it's a new run, the entire results array will be a new object
             const isNewResults = results !== resultState.currArray;
 
-            // If the results object has change then reset the current index
+            // If the results object has changed then reset the current index and filter.
             let newIndex = isNewResults ? 0 : resultState.currIndex;
+            let newFilterValue = isNewResults ? "" : resultState.filterValue;
+            let newFilterIndex = isNewResults ? 0 : resultState.filterIndex;
 
             const currentResult = resultState.currResult;
             const updatedResult = newIndex < results.length ?
@@ -112,7 +90,7 @@ export function Results(props: {evtTarget: QscEventTarget}) {
             const replaceResult = isNewResults ||
                     // One is defined but the other isn't
                     (!currentResult !== !updatedResult) ||
-                    // Or they both exist but are different
+                    // Or they both exist but are different (e.g. may have new events of have completed)
                     (currentResult && updatedResult && !resultIsSame(currentResult, updatedResult));
             
             // Keep the old object if no need to replace it, else construct a new one
@@ -132,7 +110,7 @@ export function Results(props: {evtTarget: QscEventTarget}) {
                 buckets = new Map();
                 for(let i = 0; i < resultCount; ++i) {
                     const key = results[i].result;
-                    const strKey = typeof key === 'string' ? key : "ERROR";
+                    const strKey = resultToKet(key);
                     const newValue = (buckets.get(strKey) || 0) + 1;
                     buckets.set(strKey, newValue);
                 }
@@ -148,6 +126,8 @@ export function Results(props: {evtTarget: QscEventTarget}) {
                     resultCount: resultCount,
                     currIndex: newIndex,
                     currResult: newResult,
+                    filterValue: newFilterValue,
+                    filterIndex: newFilterIndex,
                     buckets,
                     currArray: results
                 });
@@ -160,6 +140,46 @@ export function Results(props: {evtTarget: QscEventTarget}) {
         return () => evtTarget.removeEventListener('uiResultsRefresh', resultUpdateHandler)
     }, [evtTarget])
 
+    // If there's a filter set, there must have been at least one item for that result.
+    // If there's no filter set, may well be no results at all yet.
+
+    const filterValue = resultState.filterValue;
+    const countForFilter = filterValue ? resultState.buckets.get(filterValue)! : resultState.shotCount;
+    const currIndex = filterValue ? resultState.filterIndex : resultState.currIndex;
+    const resultLabel = resultToKet(resultState.currResult?.result || "");
+
+    function moveToIndex(idx: number, filter: string) {
+        const results = evtTarget.getResults();
+
+        // The non-filtered default case
+        let currIndex = idx;
+        let currResult = results[idx];
+
+        // If a filter is in effect, need to find the filtered index
+        if (filter !== "") {
+            let found = 0;
+            for(let i = 0; i < results.length; ++i) {
+                // The buckets to filter on have been converted to kets where possible
+                if (resultToKet(results[i].result) !== filter) continue;
+                if (found === idx) {
+                    currIndex = i;
+                    currResult = results[i];
+                    break;
+                }
+                ++found;
+            }
+        }
+        setResultState({...resultState, filterValue: filter, filterIndex: idx, currIndex, currResult});
+    }
+
+    function onPrev() {
+        if (currIndex > 0) moveToIndex(currIndex - 1, filterValue);
+    }
+
+    function onNext() {
+        if (currIndex < countForFilter - 1) moveToIndex(currIndex + 1, filterValue);
+    }
+
     return (
 <div class="results-column">
   <div class="results-labels">
@@ -167,22 +187,21 @@ export function Results(props: {evtTarget: QscEventTarget}) {
     <div>AST</div>
     <div>LOGS</div>
   </div>
-  <div id="histogram">
-    {[...resultState.buckets].map( ([key,val])=>(
-        <div>Bucket: {key}, Count: {val}</div>
-    ))}
-  </div>
+  { !resultState.shotCount ? null : <>
+  <Histogram data={resultState.buckets} 
+        filter={filterValue} 
+        onFilter={(val: string) => moveToIndex(0, val)}></Histogram>
   <div class="output-header">
-    <div>Shot {resultState.currIndex} of {resultState.shotCount}</div>
-    <div class="prev-next">Prev | Next</div>
+    <div>Shot {currIndex + 1} of {countForFilter}. Result: {resultLabel}</div>
+    <div class="prev-next"><span onClick={onPrev}>Prev</span> | <span onClick={onNext}>Next</span></div>
   </div>
-    <div>
-        {resultState.currResult?.events.map(evt => {
-            return evt.type === "Message" ? 
-                (<div>Message: {evt.message}</div>) : 
-                (<StateTable dump={evt.state}></StateTable>)
-        })}
-    </div>
-  
+  <div>
+    {resultState.currResult?.events.map(evt => {
+      return evt.type === "Message" ? 
+        (<div class="message-output">&gt; {evt.message}</div>) : 
+        (<StateTable dump={evt.state}></StateTable>)
+    })}
+  </div>
+  </>}
 </div>);
 }

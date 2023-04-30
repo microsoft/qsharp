@@ -18,26 +18,27 @@ const workerPath = basePath + "libs/worker.js";
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
 const initialCode = `namespace Sample {
-    @EntryPoint()
+    open Microsoft.Quantum.Diagnostics;
 
-    operation AllBasisVectorsWithPhases_TwoQubits() : Unit {
+    @EntryPoint()
+    operation Main() : Result[] {
         use q1 = Qubit();
-        use q4 = Qubit();
+        use q2 = Qubit();
+        use q3 = Qubit();
 
         H(q1);
-        R1(0.3, q1);
-        H(q4);
+        CNOT(q1, q2);
+        Y(q2);
+        H(q3);
+        DumpMachine();
 
-        use q5 = Qubit();
-        use q6 = Qubit();
-        S(q5);
+        let m1 = M(q1);
+        let m2 = M(q2);
+        let m3 = M(q3);
 
-        Rxx(1.0, q5, q6);
-
-        Microsoft.Quantum.Diagnostics.DumpMachine();
+        return [m1, m2, m3];
     }
-}
-`;
+}`;
 
 function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget}) {
     return (<>
