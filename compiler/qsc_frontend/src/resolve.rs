@@ -84,6 +84,7 @@ impl Scope {
     }
 }
 
+#[derive(Eq, PartialEq)]
 enum ScopeKind {
     Namespace(Rc<str>),
     Callable,
@@ -280,7 +281,7 @@ impl AstVisitor<'_> for Resolver {
 
     fn visit_spec_decl(&mut self, decl: &ast::SpecDecl) {
         if let ast::SpecBody::Impl(input, block) = &decl.body {
-            self.with_pat(ScopeKind::Callable, input, |resolver| {
+            self.with_pat(ScopeKind::Block, input, |resolver| {
                 resolver.visit_block(block);
             });
         } else {
@@ -495,12 +496,15 @@ fn resolve(
     let name = path.name.name.as_ref();
     let namespace = path.namespace.as_ref().map_or("", |i| &i.name);
     let mut candidates = HashMap::new();
+    let mut locals_ok = true;
 
     for scope in scopes.iter().rev() {
         if namespace.is_empty() {
-            if let Some(&id) = scope.vars.get(name) {
-                // Local variables shadow everything.
-                return Ok(Res::Local(id));
+            if locals_ok {
+                if let Some(&id) = scope.vars.get(name) {
+                    // Local variables shadow everything.
+                    return Ok(Res::Local(id));
+                }
             }
 
             match kind {
@@ -530,6 +534,10 @@ fn resolve(
                 // Explicit opens shadow prelude and unopened globals.
                 break;
             }
+        }
+
+        if scope.kind == ScopeKind::Callable {
+            locals_ok = false;
         }
     }
 
