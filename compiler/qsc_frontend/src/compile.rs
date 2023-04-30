@@ -8,7 +8,7 @@ use crate::{
     lower::Lowerer,
     parse,
     resolve::{self, Resolutions, Resolver},
-    typeck::{self, Tys},
+    typeck::{self, Checker, Tys},
     validate::{self, validate},
 };
 use miette::{
@@ -356,7 +356,7 @@ fn typeck_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    let mut checker = globals.into_checker();
+    let mut checker = Checker::new(globals);
     checker.check_package(resolutions, package);
     checker.into_tys()
 }
