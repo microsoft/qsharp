@@ -93,7 +93,8 @@ impl Compiler {
     fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Option<Fragment> {
         self.assigner.visit_stmt(&mut stmt);
         self.resolver.visit_stmt(&stmt);
-        self.checker.check_stmt(self.resolver.resolutions(), &stmt);
+        self.checker
+            .check_stmt_fragment(self.resolver.resolutions(), &stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
@@ -107,17 +108,10 @@ impl Compiler {
     }
 
     fn drain_errors(&mut self) -> Vec<Error> {
-        let mut errors = Vec::new();
-        errors.extend(
-            self.resolver
-                .drain_errors()
-                .map(|e| Error(ErrorKind::Resolve(e))),
-        );
-        errors.extend(
-            self.checker
-                .drain_errors()
-                .map(|e| Error(ErrorKind::Type(e))),
-        );
-        errors
+        self.resolver
+            .drain_errors()
+            .map(|e| Error(e.into()))
+            .chain(self.checker.drain_errors().map(|e| Error(e.into())))
+            .collect()
     }
 }

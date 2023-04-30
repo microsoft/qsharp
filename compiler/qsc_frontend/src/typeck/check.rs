@@ -30,12 +30,7 @@ impl GlobalTable {
     }
 
     pub(crate) fn add_local_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        ItemCollector {
-            resolutions,
-            globals: &mut self.globals,
-            errors: &mut self.errors,
-        }
-        .visit_package(package);
+        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_package(package);
     }
 
     pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
@@ -170,19 +165,9 @@ impl Checker {
         ));
     }
 
-    pub(crate) fn check_stmt(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) {
-        ItemCollector {
-            resolutions,
-            globals: &mut self.globals,
-            errors: &mut self.errors,
-        }
-        .visit_stmt(stmt);
-
-        CheckItemVisitor {
-            checker: self,
-            resolutions,
-        }
-        .visit_stmt(stmt);
+    pub(crate) fn check_stmt_fragment(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) {
+        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_stmt(stmt);
+        ItemChecker::new(self, resolutions).visit_stmt(stmt);
 
         // TODO: Normally, all statements in a specialization are type checked in the same inference
         // context. However, during incremental compilation, each statement is type checked with a
@@ -199,22 +184,24 @@ impl Checker {
     }
 }
 
-struct CheckItemVisitor<'a> {
-    checker: &'a mut Checker,
-    resolutions: &'a Resolutions,
-}
-
-impl Visitor<'_> for CheckItemVisitor<'_> {
-    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        self.checker.check_callable_decl(self.resolutions, decl);
-        visit::walk_callable_decl(self, decl);
-    }
-}
-
 struct ItemCollector<'a> {
     resolutions: &'a Resolutions,
     globals: &'a mut HashMap<ItemId, Ty>,
     errors: &'a mut Vec<Error>,
+}
+
+impl<'a> ItemCollector<'a> {
+    fn new(
+        resolutions: &'a Resolutions,
+        globals: &'a mut HashMap<ItemId, Ty>,
+        errors: &'a mut Vec<Error>,
+    ) -> Self {
+        Self {
+            resolutions,
+            globals,
+            errors,
+        }
+    }
 }
 
 impl Visitor<'_> for ItemCollector<'_> {
@@ -248,5 +235,26 @@ impl Visitor<'_> for ItemCollector<'_> {
         }
 
         visit::walk_item(self, item);
+    }
+}
+
+struct ItemChecker<'a> {
+    checker: &'a mut Checker,
+    resolutions: &'a Resolutions,
+}
+
+impl<'a> ItemChecker<'a> {
+    fn new(checker: &'a mut Checker, resolutions: &'a Resolutions) -> Self {
+        Self {
+            checker,
+            resolutions,
+        }
+    }
+}
+
+impl Visitor<'_> for ItemChecker<'_> {
+    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+        self.checker.check_callable_decl(self.resolutions, decl);
+        visit::walk_callable_decl(self, decl);
     }
 }
