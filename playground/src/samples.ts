@@ -271,12 +271,35 @@ const qrng = `namespace Microsoft.Quantum.Samples.Qrng {
     }
 }`;
 
+const deutsch = `// This is NOT Deutsch-Josza, but does show phases nicely.
+
+namespace Sample {
+    @EntryPoint()
+
+    operation AllBasisVectorsWithPhases_TwoQubits() : Unit {
+        use q1 = Qubit();
+        use q4 = Qubit();
+
+        H(q1);
+        R1(0.3, q1);
+        H(q4);
+
+        use q5 = Qubit();
+        use q6 = Qubit();
+        S(q5);
+
+        Rxx(1.0, q5, q6);
+
+        Microsoft.Quantum.Diagnostics.DumpMachine();
+    }
+}`
+
 export const samples = {
     "main": main,
     "Bell state": bellState,
     "Teleportation": teleportation,
     "Random numbers": qrng,
-    "Deutsch-Josza": "// TODO",
+    "Deutsch-Josza": deutsch,
     "Grover's search": "// TODO",
     "Shor's algorithm": "// TODO"
 };

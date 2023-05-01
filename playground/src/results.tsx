@@ -190,9 +190,12 @@ export function Results(props: {evtTarget: QscEventTarget}) {
     <div>LOGS</div>
   </div>
   { !resultState.shotCount ? null : <>
+  {resultState.buckets.size > 1 ? 
   <Histogram data={resultState.buckets} 
         filter={filterValue} 
         onFilter={(val: string) => moveToIndex(0, val)}></Histogram>
+        : null
+  }
   <div class="output-header">
     <div>Shot {currIndex + 1} of {countForFilter}. Result: {resultLabel}</div>
     <div class="prev-next"><span onClick={onPrev}>Prev</span> | <span onClick={onNext}>Next</span></div>
