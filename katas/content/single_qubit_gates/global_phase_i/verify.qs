@@ -3,16 +3,9 @@ namespace Kata {
     open Microsoft.Quantum.Intrinsic;
 
     operation GlobalPhaseIReference(q : Qubit) : Unit is Adj + Ctl {
-        body ... {
-            X(q);
-            Z(q);
-            Y(q);
-        }
-        adjoint ... {
-            Y(q);
-            Z(q);
-            X(q);
-        }
+        X(q);
+        Z(q);
+        Y(q);
     }
 
     operation Verify() : Bool {
@@ -24,10 +17,13 @@ namespace Kata {
         // Explicit scopes are used to make output from DumpMachine calls more useful.
         {
             use (ctl, target) = (Qubit(), Qubit());
-            H(ctl);
-            Controlled task([ctl], target);
-            Adjoint Controlled taskRef([ctl], target);
-            H(ctl);
+            within {
+                H(ctl);
+            }
+            apply {
+                Controlled task([ctl], target);
+                Adjoint Controlled taskRef([ctl], target);
+            }
             set isCorrect = CheckAllZero([ctl, target]);
             ResetAll([ctl, target]);
         }

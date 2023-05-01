@@ -75,25 +75,25 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     internal operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
-        if (from == to) {
+        if from == to {
         }
-        elif ((from == PauliZ and to == PauliX) or (from == PauliX and to == PauliZ)) {
+        elif (from == PauliZ and to == PauliX) or (from == PauliX and to == PauliZ) {
             H(qubit);
         }
-        elif (from == PauliZ and to == PauliY) {
+        elif from == PauliZ and to == PauliY {
             H(qubit);
             S(qubit);
             H(qubit);
         }
-        elif (from == PauliY and to == PauliZ) {
+        elif from == PauliY and to == PauliZ {
             H(qubit);
             Adjoint S(qubit);
             H(qubit);
         }
-        elif (from == PauliY and to == PauliX) {
+        elif from == PauliY and to == PauliX {
             S(qubit);
         }
-        elif (from == PauliX and to == PauliY) {
+        elif from == PauliX and to == PauliY {
             Adjoint S(qubit);
         }
         else {

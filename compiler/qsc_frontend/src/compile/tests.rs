@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Context, Error, PackageStore, SourceIndex};
+use super::{compile, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -27,179 +27,192 @@ fn error_span(error: &Error) -> Span {
     }
 }
 
-fn source_span(context: &Context, error: &Error) -> (SourceIndex, Span) {
+fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a str, Span) {
     let span = error_span(error);
-    let (index, offset) = context.source(span.lo);
+    let source = sources.find_offset(span.lo);
     (
-        index,
+        &source.name,
         Span {
-            lo: span.lo - offset,
-            hi: span.hi - offset,
+            lo: span.lo - source.offset,
+            hi: span.hi - source.offset,
         },
     )
 }
 
 #[test]
 fn one_file_no_entry() {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
-        [indoc! {"
-            namespace Foo {
-                function A() : Unit {}
-            }
-        "}],
-        "",
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    function A() : Unit {}
+                }
+            "}
+            .into(),
+        )],
+        None,
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    let unit = compile(&PackageStore::new(), [], sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+
     let entry = unit.package.entry.as_ref();
     assert!(entry.is_none(), "{entry:#?}");
 }
 
 #[test]
 fn one_file_error() {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
-        [indoc! {"
-            namespace Foo {
-                function A() : Unit {
-                    x
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    function A() : Unit {
+                        x
+                    }
                 }
-            }
-        "}],
-        "",
+            "}
+            .into(),
+        )],
+        None,
     );
 
+    let unit = compile(&PackageStore::new(), [], sources);
     let errors: Vec<_> = unit
-        .context
-        .errors()
+        .errors
         .iter()
-        .map(|error| source_span(&unit.context, error))
+        .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(
-        vec![
-            (SourceIndex(0), Span { lo: 50, hi: 51 }),
-            (SourceIndex(0), Span { lo: 40, hi: 57 })
-        ],
-        errors,
-    );
+    assert_eq!(vec![("test", Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
 fn two_files_dependency() {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
+    let sources = SourceMap::new(
         [
-            indoc! {"
-                namespace Foo {
-                    function A() : Unit {}
-                }
-            "},
-            indoc! {"
-                namespace Foo {
-                    function B() : Unit {
-                        A();
+            (
+                "test1".into(),
+                indoc! {"
+                    namespace Foo {
+                        function A() : Unit {}
                     }
-                }
-            "},
+                "}
+                .into(),
+            ),
+            (
+                "test2".into(),
+                indoc! {"
+                    namespace Foo {
+                        function B() : Unit {
+                            A();
+                        }
+                    }
+                "}
+                .into(),
+            ),
         ],
-        "",
+        None,
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    let unit = compile(&PackageStore::new(), [], sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
 fn two_files_mutual_dependency() {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
+    let sources = SourceMap::new(
         [
-            indoc! {"
-                namespace Foo {
-                    function A() : Unit {
-                        B();
+            (
+                "test1".into(),
+                indoc! {"
+                    namespace Foo {
+                        function A() : Unit {
+                            B();
+                        }
                     }
-                }
-            "},
-            indoc! {"
-                namespace Foo {
-                    function B() : Unit {
-                        A();
-                    }
-                }    
-            "},
+                "}
+                .into(),
+            ),
+            (
+                "test2".into(),
+                indoc! {"
+                    namespace Foo {
+                        function B() : Unit {
+                            A();
+                        }
+                    }    
+                "}
+                .into(),
+            ),
         ],
-        "",
+        None,
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    let unit = compile(&PackageStore::new(), [], sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
 #[test]
 fn two_files_error() {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
+    let sources = SourceMap::new(
         [
-            indoc! {"
-                namespace Foo {
-                    function A() : Unit {}
-                }
-            "},
-            indoc! {"
-                namespace Foo {
-                    function B() : Unit {
-                        C();
+            (
+                "test1".into(),
+                indoc! {"
+                    namespace Foo {
+                        function A() : Unit {}
                     }
-                }
-            "},
+                "}
+                .into(),
+            ),
+            (
+                "test2".into(),
+                indoc! {"
+                    namespace Foo {
+                        function B() : Unit {
+                            C();
+                        }
+                    }
+                "}
+                .into(),
+            ),
         ],
-        "",
+        None,
     );
 
+    let unit = compile(&PackageStore::new(), [], sources);
     let errors: Vec<_> = unit
-        .context
-        .errors()
+        .errors
         .iter()
-        .map(|error| source_span(&unit.context, error))
+        .map(|error| source_span(&unit.sources, error))
         .collect();
 
-    assert_eq!(
-        vec![
-            (SourceIndex(1), Span { lo: 50, hi: 51 }),
-            (SourceIndex(1), Span { lo: 50, hi: 53 })
-        ],
-        errors,
-    );
+    assert_eq!(vec![("test2", Span { lo: 50, hi: 51 })], errors);
 }
 
 #[test]
 fn entry_call_operation() {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
-        [indoc! {"
-            namespace Foo {
-                operation A() : Unit {}
-            }
-        "}],
-        "Foo.A()",
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    operation A() : Unit {}
+                }
+            "}
+            .into(),
+        )],
+        Some("Foo.A()".into()),
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    let unit = compile(&PackageStore::new(), [], sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -211,21 +224,24 @@ fn entry_call_operation() {
 
 #[test]
 fn entry_error() {
-    let unit = compile(
-        &PackageStore::new(),
-        [],
-        [indoc! {"
-            namespace Foo {
-                operation A() : Unit {}
-            }
-        "}],
-        "Foo.B()",
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    operation A() : Unit {}
+                }
+            "}
+            .into(),
+        )],
+        Some("Foo.B()".into()),
     );
 
-    let errors = unit.context.errors();
-    let (source, span) = source_span(&unit.context, &errors[0]);
-    assert_eq!(source, SourceIndex(1));
-    assert_eq!(span, Span { lo: 0, hi: 5 });
+    let unit = compile(&PackageStore::new(), [], sources);
+    assert_eq!(
+        ("<entry>", Span { lo: 0, hi: 5 }),
+        source_span(&unit.sources, &unit.errors[0])
+    );
 }
 
 #[test]
@@ -243,21 +259,24 @@ fn replace_node() {
         }
     }
 
-    let mut unit = compile(
-        &PackageStore::new(),
-        [],
-        [indoc! {"
-            namespace A {
-                function Foo() : Int {
-                    1
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace A {
+                    function Foo() : Int {
+                        1
+                    }
                 }
-            }
-        "}],
-        "",
+            "}
+            .into(),
+        )],
+        None,
     );
 
+    let mut unit = compile(&PackageStore::new(), [], sources);
     Replacer.visit_package(&mut unit.package);
-    unit.context.assigner_mut().visit_package(&mut unit.package);
+    unit.assigner.visit_package(&mut unit.package);
 
     let ItemKind::Callable(callable) = &unit
         .package
@@ -275,31 +294,38 @@ fn replace_node() {
 #[test]
 fn package_dependency() {
     let mut store = PackageStore::new();
-    let unit1 = compile(
-        &store,
-        [],
-        [indoc! {"
-            namespace Package1 {
-                function Foo() : Int {
-                    1
+
+    let sources1 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package1 {
+                    function Foo() : Int {
+                        1
+                    }
                 }
-            }
-        "}],
-        "",
+            "}
+            .into(),
+        )],
+        None,
     );
-    let package1 = store.insert(unit1);
-    let unit2 = compile(
-        &store,
-        [package1],
-        [indoc! {"
-            namespace Package2 {
-                function Bar() : Int {
-                    Package1.Foo()
+    let package1 = store.insert(compile(&store, [], sources1));
+
+    let sources2 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package2 {
+                    function Bar() : Int {
+                        Package1.Foo()
+                    }
                 }
-            }
-        "}],
-        "",
+            "}
+            .into(),
+        )],
+        None,
     );
+    let unit2 = compile(&store, [package1], sources2);
 
     let foo_id = LocalItemId::from(1);
     let ItemKind::Callable(callable) = &unit2
@@ -311,7 +337,7 @@ fn package_dependency() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: Some(package1),
@@ -324,32 +350,38 @@ fn package_dependency() {
 #[test]
 fn package_dependency_internal() {
     let mut store = PackageStore::new();
-    let unit1 = compile(
-        &store,
-        [],
-        [indoc! {"
-            namespace Package1 {
-                internal function Foo() : Int {
-                    1
-                }
-            }
-        "}],
-        "",
-    );
 
-    let package1 = store.insert(unit1);
-    let unit2 = compile(
-        &store,
-        [package1],
-        [indoc! {"
-            namespace Package2 {
-                function Bar() : Int {
-                    Package1.Foo()
+    let sources1 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package1 {
+                    internal function Foo() : Int {
+                        1
+                    }
                 }
-            }
-        "}],
-        "",
+            "}
+            .into(),
+        )],
+        None,
     );
+    let package1 = store.insert(compile(&store, [], sources1));
+
+    let sources2 = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Package2 {
+                    function Bar() : Int {
+                        Package1.Foo()
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+    let unit2 = compile(&store, [package1], sources2);
 
     let ItemKind::Callable(callable) = &unit2
         .package
@@ -360,7 +392,7 @@ fn package_dependency_internal() {
     let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Name(res) = &callee.kind else { panic!("callee should be a name") };
+    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(&Res::Err, res);
 }
 
@@ -368,22 +400,24 @@ fn package_dependency_internal() {
 fn std_dependency() {
     let mut store = PackageStore::new();
     let std = store.insert(super::std());
-    let unit = compile(
-        &store,
-        [std],
-        [indoc! {"
-            namespace Foo {
-                open Microsoft.Quantum.Intrinsic;
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    open Microsoft.Quantum.Intrinsic;
 
-                operation Main() : Unit {
-                    use q = Qubit();
-                    X(q);
+                    operation Main() : Unit {
+                        use q = Qubit();
+                        X(q);
+                    }
                 }
-            }
-        "}],
-        "Foo.Main()",
+            "}
+            .into(),
+        )],
+        Some("Foo.Main()".into()),
     );
 
-    let errors = unit.context.errors();
-    assert!(errors.is_empty(), "{errors:#?}");
+    let unit = compile(&store, [std], sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }

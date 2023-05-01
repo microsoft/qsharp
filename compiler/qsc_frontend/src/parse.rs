@@ -46,6 +46,23 @@ pub(super) enum Error {
     MissingSemi(#[label] Span),
 }
 
+impl Error {
+    pub(super) fn with_offset(self, offset: usize) -> Self {
+        match self {
+            Self::Lex(error) => Self::Lex(error.with_offset(offset)),
+            Self::Lit(name, span) => Self::Lit(name, span + offset),
+            Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
+            Self::Keyword(keyword, token, span) => Self::Keyword(keyword, token, span + offset),
+            Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
+            Self::RuleKeyword(name, keyword, span) => {
+                Self::RuleKeyword(name, keyword, span + offset)
+            }
+            Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
+            Self::MissingSemi(span) => Self::MissingSemi(span + offset),
+        }
+    }
+}
+
 pub(super) type Result<T> = result::Result<T, Error>;
 
 trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
