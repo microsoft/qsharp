@@ -759,7 +759,7 @@ dependencies = [
 [[package]]
 name = "qir-backend"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=8a7ee42401ef23092c5ecd5e92877948f4b8e017#8a7ee42401ef23092c5ecd5e92877948f4b8e017"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=617fa33e0966579c3ef5cf55ce20c7d2d76c09a7#617fa33e0966579c3ef5cf55ce20c7d2d76c09a7"
 dependencies = [
  "bitvec",
  "ndarray",
@@ -774,7 +774,7 @@ dependencies = [
 [[package]]
 name = "qir-stdlib"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=8a7ee42401ef23092c5ecd5e92877948f4b8e017#8a7ee42401ef23092c5ecd5e92877948f4b8e017"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=617fa33e0966579c3ef5cf55ce20c7d2d76c09a7#617fa33e0966579c3ef5cf55ce20c7d2d76c09a7"
 dependencies = [
  "num-bigint",
  "rand",
