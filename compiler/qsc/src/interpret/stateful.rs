@@ -167,7 +167,6 @@ impl Interpreter {
     fn render_call_stack(&self, call_stack: &CallStack, error: &dyn std::error::Error) -> String {
         format_call_stack(
             &self.store,
-            self.package,
             &|id| get_callable(&self.store, &self.callables, self.package, id),
             call_stack,
             error,

@@ -7,12 +7,11 @@ mod tests;
 use qsc_frontend::compile::PackageStore;
 
 use qsc_eval::{debug::CallStack, val::GlobalId, GlobalLookup};
-use qsc_hir::hir::{Item, ItemKind, PackageId};
+use qsc_hir::hir::{Item, ItemKind};
 
 #[must_use]
 pub(crate) fn format_call_stack<'a>(
     store: &PackageStore,
-    package: PackageId,
     globals: &'a impl GlobalLookup<'a>,
     call_stack: &CallStack,
     error: &dyn std::error::Error,

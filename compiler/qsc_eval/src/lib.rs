@@ -579,7 +579,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
         let call_val = self.eval_expr(call)?;
         let call_span = call.span;
-        let (call, functor) = value_to_call_id(call_val, call.span)?;
+        let (call, functor) = value_to_call_id(&call_val, call.span)?;
         let args_val = self.eval_expr(args)?;
         let decl = self.globals.callable(call).expect("call should resolve");
         let spec = spec_from_functor_app(functor);
@@ -1013,10 +1013,10 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
     }
 }
 
-fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
+fn value_to_call_id(val: &Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
     match val {
         Value::Closure => Break(Reason::Error(Error::Unimplemented("closure", span))),
-        Value::Global(global, functor) => Continue((global, functor)),
+        Value::Global(global, functor) => Continue((*global, *functor)),
         _ => Break(Reason::Error(Error::Type(
             "Callable",
             val.type_name(),

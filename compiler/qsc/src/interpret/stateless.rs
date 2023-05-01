@@ -93,12 +93,7 @@ impl Context {
             let stack_trace = if call_stack.is_empty() {
                 None
             } else {
-                Some(render_call_stack(
-                    &self.store,
-                    self.package,
-                    &call_stack,
-                    &error,
-                ))
+                Some(render_call_stack(&self.store, &call_stack, &error))
             };
 
             vec![Error(WithSource::from_map(
@@ -112,17 +107,10 @@ impl Context {
 
 fn render_call_stack(
     store: &PackageStore,
-    package: PackageId,
     call_stack: &CallStack,
     error: &dyn std::error::Error,
 ) -> String {
-    format_call_stack(
-        store,
-        package,
-        &|id| get_callable(store, id),
-        call_stack,
-        error,
-    )
+    format_call_stack(store, &|id| get_callable(store, id), call_stack, error)
 }
 
 fn get_entry_expr(store: &PackageStore, package: PackageId) -> Result<Expr, Vec<Error>> {
