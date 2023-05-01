@@ -51,16 +51,13 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
         H(target);
         // We use a within-apply block to ensure that the Hadamard transform is
         // correctly inverted on |𝑥〉 register.
-        for q in queryRegister {
-            H(q);
-        }
-        // We now apply Uf to the n + 1 qubits, computing |𝑥, 𝑦〉 ↦ |𝑥, 𝑦 ⊕ 𝑓(𝑥)〉.
-        Uf(queryRegister, target);
-        // BLOCKED ON: within
-        // TODO: Use within and remove this.
-        // H is it's own inverse. Gates on different qubits commute.
-        for q in queryRegister {
-            H(q);
+        within {
+            for q in queryRegister {
+                H(q);
+            }
+        } apply {
+            // We now apply Uf to the n + 1 qubits, computing |𝑥, 𝑦〉 ↦ |𝑥, 𝑦 ⊕ 𝑓(𝑥)〉.
+            Uf(queryRegister, target);
         }
 
         // The following for-loop measures all qubits and resets them to
@@ -107,8 +104,8 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
     operation ApplyOpFromInt(
         number: Int,
         bitApply: Bool,
-        op:(Qubit => Unit is Ctl),
-        qubits: Qubit[]): Unit {
+        op:(Qubit => Unit is Adj),
+        qubits: Qubit[]): Unit is Adj {
 
         Fact(number>=0, "number must be non-negative");
 
@@ -128,9 +125,11 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
         oracle:(Qubit => Unit is Ctl),
         target: Qubit): Unit {
 
-        ApplyOpFromInt(numberState, false, X, controls);
-        Controlled oracle(controls, target);
-        ApplyOpFromInt(numberState, false, X, controls);
+        within {
+            ApplyOpFromInt(numberState, false, X, controls);
+        } apply {
+            Controlled oracle(controls, target);
+        }
     }
 
     @EntryPoint()
