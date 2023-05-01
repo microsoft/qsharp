@@ -9,7 +9,10 @@ use crate::{
     resolve::{Res, Resolutions},
     typeck::convert::{self, MissingTyError},
 };
-use qsc_ast::ast;
+use qsc_ast::{
+    ast,
+    visit::{self, Visitor},
+};
 use qsc_hir::hir::{self, ItemId, PackageId, Ty};
 use std::{collections::HashMap, vec};
 
@@ -27,37 +30,7 @@ impl GlobalTable {
     }
 
     pub(crate) fn add_local_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        for namespace in &package.namespaces {
-            for item in &namespace.items {
-                match &item.kind {
-                    ast::ItemKind::Callable(decl) => {
-                        let Some(&Res::Item(item)) = resolutions.get(decl.name.id) else {
-                            panic!("callable should have item ID");
-                        };
-
-                        let (ty, errors) = convert::ast_callable_ty(resolutions, decl);
-                        for MissingTyError(span) in errors {
-                            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-                        }
-
-                        self.globals.insert(item, ty);
-                    }
-                    ast::ItemKind::Ty(name, def) => {
-                        let Some(&Res::Item(item)) = resolutions.get(name.id) else {
-                            panic!("type should have item ID");
-                        };
-
-                        let (ty, errors) = convert::ast_ty_def_ty(resolutions, def);
-                        for MissingTyError(span) in errors {
-                            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-                        }
-
-                        self.globals.insert(item, convert::ty_cons_ty(item, ty));
-                    }
-                    _ => {}
-                }
-            }
-        }
+        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_package(package);
     }
 
     pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
@@ -71,22 +44,14 @@ impl GlobalTable {
                 hir::ItemKind::Callable(decl) => {
                     self.globals.insert(item_id, convert::hir_callable_ty(decl));
                 }
+                hir::ItemKind::Namespace(..) => {}
                 hir::ItemKind::Ty(_, def) => {
                     self.globals.insert(
                         item_id,
                         convert::ty_cons_ty(item_id, convert::hir_ty_def_ty(def)),
                     );
                 }
-                _ => {}
             }
-        }
-    }
-
-    pub(crate) fn into_checker(self) -> Checker {
-        Checker {
-            globals: self.globals,
-            tys: Tys::new(),
-            errors: self.errors,
         }
     }
 }
@@ -98,6 +63,14 @@ pub(crate) struct Checker {
 }
 
 impl Checker {
+    pub(crate) fn new(globals: GlobalTable) -> Self {
+        Checker {
+            globals: globals.globals,
+            tys: Tys::new(),
+            errors: globals.errors,
+        }
+    }
+
     pub(crate) fn tys(&self) -> &Tys {
         &self.tys
     }
@@ -110,30 +83,8 @@ impl Checker {
         self.errors.drain(..)
     }
 
-    pub(crate) fn add_global_callable(
-        &mut self,
-        resolutions: &Resolutions,
-        decl: &ast::CallableDecl,
-    ) {
-        let (ty, errors) = convert::ast_callable_ty(resolutions, decl);
-        let Some(&Res::Item(item)) = resolutions.get(decl.name.id) else {
-            panic!("callable should have item ID");
-        };
-        self.globals.insert(item, ty);
-        for MissingTyError(span) in errors {
-            self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-        }
-    }
-
     pub(crate) fn check_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        for namespace in &package.namespaces {
-            for item in &namespace.items {
-                if let ast::ItemKind::Callable(decl) = &item.kind {
-                    self.check_callable_decl(resolutions, decl);
-                }
-            }
-        }
-
+        ItemChecker::new(self, resolutions).visit_package(package);
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 resolutions,
@@ -207,7 +158,10 @@ impl Checker {
         ));
     }
 
-    pub(crate) fn check_stmt(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) {
+    pub(crate) fn check_stmt_fragment(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) {
+        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_stmt(stmt);
+        ItemChecker::new(self, resolutions).visit_stmt(stmt);
+
         // TODO: Normally, all statements in a specialization are type checked in the same inference
         // context. However, during incremental compilation, each statement is type checked with a
         // new inference context. This can cause issues if inference variables aren't fully solved
@@ -220,5 +174,80 @@ impl Checker {
             &mut self.tys,
             stmt,
         ));
+    }
+}
+
+struct ItemCollector<'a> {
+    resolutions: &'a Resolutions,
+    globals: &'a mut HashMap<ItemId, Ty>,
+    errors: &'a mut Vec<Error>,
+}
+
+impl<'a> ItemCollector<'a> {
+    fn new(
+        resolutions: &'a Resolutions,
+        globals: &'a mut HashMap<ItemId, Ty>,
+        errors: &'a mut Vec<Error>,
+    ) -> Self {
+        Self {
+            resolutions,
+            globals,
+            errors,
+        }
+    }
+}
+
+impl Visitor<'_> for ItemCollector<'_> {
+    fn visit_item(&mut self, item: &ast::Item) {
+        match &item.kind {
+            ast::ItemKind::Callable(decl) => {
+                let Some(&Res::Item(item)) = self.resolutions.get(decl.name.id) else {
+                    panic!("callable should have item ID");
+                };
+
+                let (ty, errors) = convert::ast_callable_ty(self.resolutions, decl);
+                for MissingTyError(span) in errors {
+                    self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                }
+
+                self.globals.insert(item, ty);
+            }
+            ast::ItemKind::Ty(name, def) => {
+                let Some(&Res::Item(item)) = self.resolutions.get(name.id) else {
+                    panic!("type should have item ID");
+                };
+
+                let (ty, errors) = convert::ast_ty_def_ty(self.resolutions, def);
+                for MissingTyError(span) in errors {
+                    self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                }
+
+                self.globals.insert(item, convert::ty_cons_ty(item, ty));
+            }
+            _ => {}
+        }
+
+        visit::walk_item(self, item);
+    }
+}
+
+struct ItemChecker<'a> {
+    checker: &'a mut Checker,
+    resolutions: &'a Resolutions,
+}
+
+impl<'a> ItemChecker<'a> {
+    fn new(checker: &'a mut Checker, resolutions: &'a Resolutions) -> Self {
+        Self {
+            checker,
+            resolutions,
+        }
+    }
+}
+
+impl Visitor<'_> for ItemChecker<'_> {
+    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+        self.checker.check_callable_decl(self.resolutions, decl);
+        visit::walk_callable_decl(self, decl);
     }
 }

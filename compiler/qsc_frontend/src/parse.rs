@@ -17,7 +17,7 @@ mod ty;
 
 use crate::lex::{self, TokenKind};
 use miette::Diagnostic;
-use qsc_ast::ast::{Expr, Item, Namespace, Stmt};
+use qsc_ast::ast::{Expr, Namespace, Stmt};
 use qsc_data_structures::span::Span;
 use scan::Scanner;
 use std::result;
@@ -81,22 +81,10 @@ pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     }
 }
 
-pub(super) fn item(input: &str) -> (Item, Vec<Error>) {
-    let mut scanner = Scanner::new(input);
-    match top::item(&mut scanner) {
-        Ok(item) => (item, scanner.errors()),
-        Err(err) => {
-            let mut errors = scanner.errors();
-            errors.push(err);
-            (Item::default(), errors)
-        }
-    }
-}
-
 #[must_use]
 pub(super) fn stmts(input: &str) -> (Vec<Stmt>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match stmt::many_stmt(&mut scanner) {
+    match stmt::stmts(&mut scanner) {
         Ok(stmts) => (stmts, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();

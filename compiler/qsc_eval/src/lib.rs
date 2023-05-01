@@ -436,7 +436,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
 
     fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
-            StmtKind::Empty => Continue(Value::unit()),
+            StmtKind::Item(_) => Continue(Value::unit()),
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;

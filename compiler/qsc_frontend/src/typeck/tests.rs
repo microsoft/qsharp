@@ -1617,3 +1617,151 @@ fn unknown_name_has_any_class() {
         "##]],
     );
 }
+
+#[test]
+fn local_function() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    function Bar() : Int { 2 }
+                    Bar() + 1
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 39-99 "{\n        function Bar() : Int { 2 }\n        Bar() + 1\n    }" : Int
+            #12 84-93 "Bar() + 1" : Int
+            #13 84-89 "Bar()" : Int
+            #14 84-87 "Bar" : (() -> Int)
+            #15 87-89 "()" : ()
+            #16 92-93 "1" : Int
+            #7 61-63 "()" : ()
+            #8 70-75 "{ 2 }" : Int
+            #10 72-73 "2" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn local_function_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    function Bar() : Int { 2.0 }
+                    Bar()
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 39-97 "{\n        function Bar() : Int { 2.0 }\n        Bar()\n    }" : Int
+            #12 86-91 "Bar()" : Int
+            #13 86-89 "Bar" : (() -> Int)
+            #14 89-91 "()" : ()
+            #7 61-63 "()" : ()
+            #8 70-77 "{ 2.0 }" : Double
+            #10 72-75 "2.0" : Double
+            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 77 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn local_function_use_before_declare() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    Bar();
+                    function Bar() : () {}
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 38-91 "{\n        Bar();\n        function Bar() : () {}\n    }" : ()
+            #5 48-53 "Bar()" : ()
+            #6 48-51 "Bar" : (() -> ())
+            #7 51-53 "()" : ()
+            #11 75-77 "()" : ()
+            #12 83-85 "{}" : ()
+        "##]],
+    );
+}
+
+#[test]
+fn local_function_last_stmt_is_unit_block() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    Bar()
+                    function Bar() : Int { 4 }
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 39-95 "{\n        Bar()\n        function Bar() : Int { 4 }\n    }" : ()
+            #5 49-54 "Bar()" : Int
+            #6 49-52 "Bar" : (() -> Int)
+            #7 52-54 "()" : ()
+            #11 75-77 "()" : ()
+            #12 84-89 "{ 4 }" : Int
+            #14 86-87 "4" : Int
+            Error(Type(Error(TypeMismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 95 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn local_type() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    newtype Bar = Int;
+                    let x = Bar(5);
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 38-96 "{\n        newtype Bar = Int;\n        let x = Bar(5);\n    }" : ()
+            #8 79-80 "x" : UDT<Item 2>
+            #10 83-89 "Bar(5)" : UDT<Item 2>
+            #11 83-86 "Bar" : (Int -> UDT<Item 2>)
+            #12 86-89 "(5)" : Int
+            #13 87-88 "5" : Int
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 48, hi: 66 })))
+        "##]],
+    );
+}
+
+#[test]
+fn local_open() {
+    check(
+        indoc! {"
+            namespace A { function Foo() : () { open B; Bar(); } }
+            namespace B { function Bar() : () {} }
+        "},
+        "",
+        &expect![[r##"
+            #2 26-28 "()" : ()
+            #3 34-52 "{ open B; Bar(); }" : ()
+            #6 44-49 "Bar()" : ()
+            #7 44-47 "Bar" : (() -> ())
+            #8 47-49 "()" : ()
+            #12 81-83 "()" : ()
+            #13 89-91 "{}" : ()
+        "##]],
+    );
+}

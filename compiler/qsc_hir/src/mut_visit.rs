@@ -80,7 +80,6 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Err => {}
         ItemKind::Namespace(name, _) => vis.visit_ident(name),
         ItemKind::Ty(ident, def) => {
             vis.visit_ident(ident);
@@ -154,7 +153,7 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
     vis.visit_span(&mut stmt.span);
 
     match &mut stmt.kind {
-        StmtKind::Empty => {}
+        StmtKind::Item(_) => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(pat);

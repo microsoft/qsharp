@@ -19,7 +19,7 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
-use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
+use qsc_hir::hir::{CallableDecl, Item, ItemKind, LocalItemId, PackageId, Stmt};
 use qsc_passes::run_default_passes_for_fragment;
 use std::sync::Arc;
 use thiserror::Error;
@@ -55,7 +55,6 @@ pub struct Interpreter {
     package: PackageId,
     compiler: Compiler,
     callables: IndexMap<LocalItemId, CallableDecl>,
-    next_item_id: LocalItemId,
     env: Env,
 }
 
@@ -86,7 +85,6 @@ impl Interpreter {
             package,
             compiler,
             callables: IndexMap::new(),
-            next_item_id: LocalItemId::default(),
             env: Env::with_empty_scope(),
         })
     }
@@ -104,11 +102,15 @@ impl Interpreter {
         for mut fragment in self.compiler.compile_fragments(line) {
             run_default_passes_for_fragment(self.compiler.assigner_mut(), &mut fragment);
             match fragment {
-                Fragment::Callable(decl) => {
-                    self.callables.insert(self.next_item_id, decl);
-                    self.next_item_id = self.next_item_id.successor();
+                Fragment::Item(Item {
+                    id,
+                    kind: ItemKind::Callable(decl),
+                    ..
+                }) => {
+                    self.callables.insert(id, decl);
                     result = Value::unit();
                 }
+                Fragment::Item(_) => {}
                 Fragment::Stmt(stmt) => match self.eval_stmt(receiver, &stmt) {
                     Ok(value) => result = value,
                     Err(error) => {
