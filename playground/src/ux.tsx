@@ -12,6 +12,7 @@ import { Results } from "./results.js";
 import { useState } from "preact/hooks";
 import { samples } from "./samples.js";
 import { Kata as Katas } from "./kata.js";
+import { base64ToCode } from "./utils.js";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
@@ -24,17 +25,26 @@ declare global {
 
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
-function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget, katas: Kata[]}) {
-    const [currentNavItem, setCurrentNavItem] = useState("Minimal");
+function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget, katas: Kata[], linkedCode?: string}) {
+    const [currentNavItem, setCurrentNavItem] = useState(props.linkedCode ? "linked" : "Minimal");
     const kataTitles = props.katas.map(elem => elem.title);
     const sampleTitles = Object.keys(samples);
 
-    const sampleCode: string = (samples as any)[currentNavItem];
+    let sampleCode: string = (samples as any)[currentNavItem] || props.linkedCode;
+
+
     const activeKata = kataTitles.includes(currentNavItem) ?
             props.katas.find(kata => kata.title === currentNavItem)
             : undefined;
 
     function onNavItemSelected(name: string) {
+        // If there was a ?code link on the URL before, clear it out
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("code")) {
+            // Get current URL without query parameters to use as the URL
+            const newUrl = `${window.location.href.split('?')[0]}`;
+            window.history.pushState({}, '', newUrl);
+        }
         setCurrentNavItem(name);
     }
 
@@ -65,7 +75,16 @@ async function loaded() {
     const evtHander = new QscEventTarget(true);
     const compiler = await getCompilerWorker(workerPath);
 
-    render(<App compiler={compiler} evtTarget={evtHander} katas={katas}></App>, document.body);
+    // If URL is a sharing link, populate the editor with the code from the link. 
+    // Otherwise, populate with sample code.
+    let linkedCode: string | undefined;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("code")) {
+        const base64code = decodeURIComponent(params.get("code")!);
+        linkedCode = base64ToCode(base64code);
+    }
+
+    render(<App compiler={compiler} evtTarget={evtHander} katas={katas} linkedCode={linkedCode}></App>, document.body);
 }
 
 // Monaco provides the 'require' global for loading modules.

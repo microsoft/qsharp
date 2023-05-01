@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ICompilerWorker, QscEventTarget, VSDiagnostic, log } from "qsharp";
+import { codeToBase64 } from "./utils.js";
 
 export function Editor(props: {
             code: string,
@@ -31,6 +32,21 @@ export function Editor(props: {
     // On reset, reload the initial code
     function onReset() {
         editor?.getModel()?.setValue(initialCode || "");
+    }
+
+    function onGetLink() {
+        const code = editor?.getModel()?.getValue();
+        if (!code) return;
+
+        const encodedCode = codeToBase64(code);
+        const escapedCode = encodeURIComponent(encodedCode);
+
+        // Get current URL without query parameters to use as the base URL
+        const newUrl = `${window.location.href.split('?')[0]}?code=${escapedCode}`;
+        // Copy link to clipboard and update url without reloading the page
+        navigator.clipboard.writeText(newUrl);
+        window.history.pushState({}, '', newUrl);
+        // TODO: Alert user somehow link is on the clipboard
     }
 
     useEffect(() => {
@@ -118,8 +134,20 @@ export function Editor(props: {
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div class="file-name">main.qs</div>
     <div class="icon-row">
-        <span class="icon-button" title="Get link to this code">🔗</span>
-        <span class="icon-button" title="Reset code to initial state" onClick={onReset}>🔄</span>
+      <svg onClick={onGetLink} width="24px" height="24px" viewBox="0 0 24 24" fill="none">
+        <title>Get a link to this code</title>
+        <path d="M14 12C14 14.2091 12.2091 16 10 16H6C3.79086 16 2 14.2091 2 12C2 9.79086 3.79086 8 6 8H8M10 12C10 9.79086 11.7909 8 14 8H18C20.2091 8 22 9.79086 22 12C22 14.2091 20.2091 16 18 16H16" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg onClick={onReset} width="24px" height="24px" viewBox="0 0 24 24">
+        <title>Reset code to initial state</title>
+        <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+          <g id="Reload">
+            <rect id="Rectangle" fill-rule="nonzero" x="0" y="0" width="24" height="24"> </rect>
+            <path d="M4,13 C4,17.4183 7.58172,21 12,21 C16.4183,21 20,17.4183 20,13 C20,8.58172 16.4183,5 12,5 C10.4407,5 8.98566,5.44609 7.75543,6.21762" id="Path" stroke="#0C0310" stroke-width="2" stroke-linecap="round"></path>
+            <path d="M9.2384,1.89795 L7.49856,5.83917 C7.27552,6.34441 7.50429,6.9348 8.00954,7.15784 L11.9508,8.89768" id="Path" stroke="#0C0310" stroke-width="2" stroke-linecap="round"></path>
+          </g>
+        </g>
+      </svg>
     </div>
   </div>
   <div id="editor" ref={editorRef}></div>

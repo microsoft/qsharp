@@ -2,7 +2,7 @@
 
 - Result error highlighting
 - Handle line breaks in sent JSON properly.
-- Enable code sharing
+- Generate samples to include from the /samples directory
 - Add zoom and pan to the histogram, and make crowded labels look OK.
 - Wire up completions (and signature help).
 - Fix up squiggles to be proper error markers
