@@ -16,6 +16,7 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
     // If so, need to load it into the editor and save as the new initial code.
     if (initialCode !== props.code) {
         editor?.getModel()?.setValue(props.code);
+        editor?.revealLineNearTop(1);
         setInitialCode(props.code);
     }
 

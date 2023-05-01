@@ -3,6 +3,16 @@
 
 // TODO: This should be generated from the /samples directory, not hard-coded.
 
+const main = `namespace Sample {
+    open Microsoft.Quantum.Diagnostics;
+
+    @EntryPoint()
+    operation Main() : Result[] {
+        // TODO
+        return [];
+    }
+}`;
+
 const bellState = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
 
@@ -262,6 +272,7 @@ const qrng = `namespace Microsoft.Quantum.Samples.Qrng {
 }`;
 
 export const samples = {
+    "main": main,
     "Bell state": bellState,
     "Teleportation": teleportation,
     "Random numbers": qrng,

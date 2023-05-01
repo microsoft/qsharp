@@ -1,8 +1,11 @@
 # TODO
 
 - Honor Start, and disable Run while busy
+- Associate number of shots with each sample
+- Fix width of err message in shot result
 - Enable katas
 - Enable code sharing
+- Add zoom and pan to the histogram
 - Fix up squiggles to be proper error markers
 - Show a progress bar as shots run
 
