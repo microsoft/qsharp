@@ -262,6 +262,12 @@ body {
     background-color: white;
 }
 
+.result-label {
+    margin-bottom: 24px;
+    font-style: italic;
+    font-weight: 300;
+}
+
 .bar {
     fill: var(--nav-background);
 }

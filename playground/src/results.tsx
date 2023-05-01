@@ -197,9 +197,10 @@ export function Results(props: {evtTarget: QscEventTarget}) {
         : null
   }
   <div class="output-header">
-    <div>Shot {currIndex + 1} of {countForFilter}. Result: {resultLabel}</div>
+    <div>Shot {currIndex + 1} of {countForFilter}</div>
     <div class="prev-next"><span onClick={onPrev}>Prev</span> | <span onClick={onNext}>Next</span></div>
   </div>
+  <div class="result-label">Result: {resultLabel}</div>
   <div>
     {resultState.currResult?.events.map(evt => {
       return evt.type === "Message" ? 
