@@ -118,8 +118,8 @@ export function Editor(props: {
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <div class="file-name">main.qs</div>
     <div class="icon-row">
-        <span class="icon-button">⬆️</span>
-        <span class="icon-button" onClick={onReset}>🔄</span>
+        <span class="icon-button" title="Get link to this code">🔗</span>
+        <span class="icon-button" title="Reset code to initial state" onClick={onReset}>🔄</span>
     </div>
   </div>
   <div id="editor" ref={editorRef}></div>

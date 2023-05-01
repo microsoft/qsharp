@@ -1,5 +1,6 @@
 # TODO
 
+- Result error highlighting
 - Handle line breaks in sent JSON properly.
 - Enable code sharing
 - Add zoom and pan to the histogram, and make crowded labels look OK.

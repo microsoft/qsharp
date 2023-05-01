@@ -231,7 +231,7 @@ body {
 }
 
 .icon-row > * {
-    margin-left: 2px;
+    margin-left: 4px;
     font-size: 1.4rem;
     cursor: pointer;
 }
