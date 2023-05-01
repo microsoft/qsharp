@@ -62,7 +62,7 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
     return true;
 }
 
-export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean}) {
+export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean, kataMode?: boolean}) {
     const [resultState, setResultState] = useState<ResultsState>(newRunState());
 
     // This is more complex than ideal for performance reasons. During a run, results may be getting
@@ -199,11 +199,13 @@ export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean}) 
         onFilter={(val: string) => moveToIndex(0, val)}></Histogram>
         : null
   }
-  <div class="output-header">
-    <div>Shot {currIndex + 1} of {countForFilter}</div>
-    <div class="prev-next"><span onClick={onPrev}>Prev</span> | <span onClick={onNext}>Next</span></div>
-  </div>
-  <div class="result-label">Result: {resultLabel}</div>
+  { props.kataMode ? null : <>
+    <div class="output-header">
+      <div>Shot {currIndex + 1} of {countForFilter}</div>
+      <div class="prev-next"><span onClick={onPrev}>Prev</span> | <span onClick={onNext}>Next</span></div>
+    </div>
+    <div class="result-label">Result: {resultLabel}</div>
+  </>}
   <div>
     {resultState.currResult?.events.map(evt => {
       return evt.type === "Message" ? 

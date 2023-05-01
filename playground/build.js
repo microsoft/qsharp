@@ -43,6 +43,10 @@ function copyLibs() {
     mkdirSync(mathjaxDest, { recursive: true});
     cpSync(mathjaxBase, mathjaxDest, {recursive: true});
 
+    let githubMarkdown = join(libsDir, "github-markdown-css/github-markdown-light.css");
+    let githubMarkdownDest = join(thisDir, 'public/libs/github-markdown.css');
+    copyFileSync(githubMarkdown, githubMarkdownDest);
+
     let qsharpWasm = join(thisDir, "..", "npm/lib/web/qsc_wasm_bg.wasm");
     let qsharpDest = join(thisDir, `public/libs/qsharp`);
 

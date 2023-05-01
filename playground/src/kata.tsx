@@ -12,7 +12,7 @@ export function Kata(props: {kata: Kata, compiler: ICompilerWorker}) {
     }, [props.kata]);
 
     return (
-    <div>
+    <div class="markdown-body kata-override">
         <div dangerouslySetInnerHTML={{__html: props.kata.contentAsHtml}}></div>
         <br></br>
         {
@@ -31,7 +31,8 @@ export function Kata(props: {kata: Kata, compiler: ICompilerWorker}) {
                     code={item.placeholderImplementation}
                     kataVerify={item.verificationImplementation}
                     key={item.id}></Editor>
-                <Results key={item.id + "-results"} evtTarget={evtTarget} showPanel={false}></Results>
+                <Results key={item.id + "-results"} evtTarget={evtTarget}
+                    showPanel={false} kataMode={true}></Results>
               </div>);
             })
         }

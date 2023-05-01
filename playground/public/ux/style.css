@@ -308,3 +308,7 @@ body {
     font-size: 1.1rem;
     margin-bottom: 16px;
 }
+
+.kata-override {
+    background-color: var(--main-background);
+}

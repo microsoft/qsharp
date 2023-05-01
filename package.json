@@ -12,10 +12,11 @@
     "devDependencies": {
         "@types/node": "^18.15.3",
         "esbuild": "^0.17.12",
+        "github-markdown-css": "^5.2.0",
+        "marked": "^4.3.0",
         "mathjax": "^3.2.2",
         "monaco-editor": "^0.36.1",
         "preact": "^10.13.1",
-        "marked": "^4.3.0",
         "typescript": "^5.0.2"
     }
 }

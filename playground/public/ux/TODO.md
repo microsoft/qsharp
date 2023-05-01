@@ -1,15 +1,16 @@
 # TODO
 
-- Honor Start, and disable Run while busy
-- Fix up Kata formatting and layout
+- Handle line breaks in sent JSON properly.
 - Enable code sharing
 - Add zoom and pan to the histogram, and make crowded labels look OK.
-- Handle line breaks in sent JSON properly.
-- Wire up completions and signature help.
+- Wire up completions (and signature help).
 - Fix up squiggles to be proper error markers
-- Format errors in error-list and result nicely.
-- Associate number of shots with each sample
-- Show a progress bar as shots run
+- Honor Start, and disable Run while busy
+- Format errors in error-list and result 'fancy'.
+- Associate default number of shots with each sample
+- Add AST and Logs panels
+
+## Symbols
 
 Unicode chars that may be suitable for share/reset
 
