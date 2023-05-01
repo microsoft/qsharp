@@ -67,7 +67,7 @@ impl Compiler {
     }
 
     pub fn compile_fragments(&mut self, source: &str) -> Vec<Fragment> {
-        let (stmts, errors) = parse::many_stmt(source);
+        let (stmts, errors) = parse::stmts(source);
         if !errors.is_empty() {
             return vec![Fragment::Error(
                 errors

@@ -82,9 +82,9 @@ pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
 }
 
 #[must_use]
-pub(super) fn many_stmt(input: &str) -> (Vec<Stmt>, Vec<Error>) {
+pub(super) fn stmts(input: &str) -> (Vec<Stmt>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match stmt::many_stmt(&mut scanner) {
+    match stmt::stmts(&mut scanner) {
         Ok(stmts) => (stmts, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();
