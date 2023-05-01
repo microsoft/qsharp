@@ -3,8 +3,15 @@
 
 use crate::formatting::{DisplayableOutput, FormattingReceiver};
 use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
-use qsc_eval::stateful;
-use qsc_eval::val::Value;
+use qsc::{
+    hir,
+    interpret::{
+        stateful::{self, LineError, LineErrorKind},
+        Value,
+    },
+    SourceMap,
+};
+use std::fmt::Write;
 
 #[pymodule]
 fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -28,11 +35,15 @@ impl Interpreter {
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(_py: Python) -> PyResult<Self> {
-        const SOURCES: [&str; 0] = [];
-        let result = stateful::Interpreter::new(true, SOURCES);
-        match result {
+        match stateful::Interpreter::new(true, SourceMap::default()) {
             Ok(interpreter) => Ok(Self { interpreter }),
-            Err((err, _)) => Err(PyException::new_err(format!("{:?}", err))),
+            Err(errors) => {
+                let mut message = String::new();
+                for error in errors {
+                    writeln!(message, "{error}").expect("string should be writable");
+                }
+                Err(PyException::new_err(message))
+            }
         }
     }
 
@@ -47,9 +58,9 @@ impl Interpreter {
     #[pyo3(text_signature = "(expr)")]
     fn interpret(&mut self, py: Python, expr: &str) -> PyResult<(PyObject, PyObject, PyObject)> {
         let mut receiver = FormattingReceiver::new();
-        let (value, errors) = match self.interpreter.line(expr, &mut receiver) {
-            Ok(value) => (value, Vec::<stateful::Error>::new()),
-            Err(err) => (Value::UNIT, { err.0 }),
+        let (value, errors) = match self.interpreter.interpret_line(&mut receiver, expr) {
+            Ok(value) => (value, Vec::new()),
+            Err(errors) => (Value::unit(), errors),
         };
         let outputs = receiver.outputs;
 
@@ -92,22 +103,15 @@ impl Error {
     }
 }
 
-impl From<stateful::Error> for Error {
-    fn from(e: stateful::Error) -> Error {
-        match e {
-            stateful::Error::Compile(e) => {
-                panic!("Did not expect compilation error {}", e)
-            }
-            stateful::Error::Eval(e) => Error {
+impl From<LineError> for Error {
+    fn from(error: LineError) -> Error {
+        match error.kind() {
+            LineErrorKind::Compile(e) => Error {
+                error_type: String::from("CompilationError"),
+                message: e.to_string(),
+            },
+            LineErrorKind::Eval(e) => Error {
                 error_type: String::from("RuntimeError"),
-                message: e.to_string(),
-            },
-            stateful::Error::Incremental(e) => Error {
-                error_type: String::from("CompilationError"),
-                message: e.to_string(),
-            },
-            stateful::Error::Pass(e) => Error {
-                error_type: String::from("CompilationError"),
                 message: e.to_string(),
             },
         }
@@ -168,16 +172,17 @@ impl IntoPy<PyObject> for ValueWrapper {
             Value::String(val) => val.into_py(py),
             Value::Result(val) => if val { Result::One } else { Result::Zero }.into_py(py),
             Value::Pauli(val) => match val {
-                qsc_hir::hir::Pauli::I => Pauli::I.into_py(py),
-                qsc_hir::hir::Pauli::X => Pauli::X.into_py(py),
-                qsc_hir::hir::Pauli::Y => Pauli::Y.into_py(py),
-                qsc_hir::hir::Pauli::Z => Pauli::Z.into_py(py),
+                hir::Pauli::I => Pauli::I.into_py(py),
+                hir::Pauli::X => Pauli::X.into_py(py),
+                hir::Pauli::Y => Pauli::Y.into_py(py),
+                hir::Pauli::Z => Pauli::Z.into_py(py),
             },
             Value::Tuple(val) => {
-                PyTuple::new(py, val.into_iter().map(|v| ValueWrapper(v).into_py(py))).into_py(py)
+                PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                    .into_py(py)
             }
             Value::Array(val) => {
-                PyList::new(py, val.into_iter().map(|v| ValueWrapper(v).into_py(py))).into_py(py)
+                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py))).into_py(py)
             }
             _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
         }

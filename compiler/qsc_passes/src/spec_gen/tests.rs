@@ -5,14 +5,16 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore, SourceMap};
 
 use crate::spec_gen::generate_specs;
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new();
-    let mut unit = compile(&store, [], [file], "");
+    let sources = SourceMap::new([("test".into(), file.into())], None);
+    let mut unit = compile(&store, [], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+
     let errors = generate_specs(&mut unit);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());
@@ -115,8 +117,8 @@ fn generate_ctl() {
                                 Pat _id_ [161-182] [Type Qubit]: Elided
                                 Block 21 [161-182] [Type ()]:
                                     Stmt 22 [171-176]: Semi: Expr 23 [171-175] [Type ()]: Call:
-                                        Expr 24 [171-172] [Type (Qubit => () is Ctl)]: Name: Item 1
-                                        Expr 25 [172-175] [Type Qubit]: Paren: Expr 26 [173-174] [Type Qubit]: Name: Local 19
+                                        Expr 24 [171-172] [Type (Qubit => () is Ctl)]: Var: Item 1
+                                        Expr 25 [172-175] [Type Qubit]: Paren: Expr 26 [173-174] [Type Qubit]: Var: Local 19
                             SpecDecl _id_ [124-182] (Ctl): Impl:
                                 Pat _id_ [124-182] [Type ((Qubit)[], Qubit)]: Tuple:
                                     Pat _id_ [124-182] [Type (Qubit)[]]: Bind: Ident 28 [124-182] "ctls"
@@ -124,10 +126,10 @@ fn generate_ctl() {
                                 Block 21 [161-182] [Type ()]:
                                     Stmt 22 [171-176]: Semi: Expr 23 [171-175] [Type ()]: Call:
                                         Expr 24 [171-172] [Type (((Qubit)[], Qubit) => () is Ctl)]: UnOp (Functor Ctl):
-                                            Expr 24 [171-172] [Type (Qubit => () is Ctl)]: Name: Item 1
+                                            Expr 24 [171-172] [Type (Qubit => () is Ctl)]: Var: Item 1
                                         Expr 25 [172-175] [Type ((Qubit)[], Qubit)]: Tuple:
-                                            Expr _id_ [172-175] [Type (Qubit)[]]: Name: Local 28
-                                            Expr 25 [172-175] [Type Qubit]: Paren: Expr 26 [173-174] [Type Qubit]: Name: Local 19"#]],
+                                            Expr _id_ [172-175] [Type (Qubit)[]]: Var: Local 28
+                                            Expr 25 [172-175] [Type Qubit]: Paren: Expr 26 [173-174] [Type Qubit]: Var: Local 19"#]],
     );
 }
 
@@ -193,15 +195,15 @@ fn generate_ctladj_distrib() {
                                 Pat 29 [211-214] [Type Qubit]: Elided
                                 Block 30 [215-244] [Type ()]:
                                     Stmt 31 [229-234]: Semi: Expr 32 [229-233] [Type ()]: Call:
-                                        Expr 33 [229-230] [Type (Qubit => () is Adj + Ctl)]: Name: Item 1
-                                        Expr 34 [230-233] [Type Qubit]: Paren: Expr 35 [231-232] [Type Qubit]: Name: Local 24
+                                        Expr 33 [229-230] [Type (Qubit => () is Adj + Ctl)]: Var: Item 1
+                                        Expr 34 [230-233] [Type Qubit]: Paren: Expr 35 [231-232] [Type Qubit]: Var: Local 24
                             SpecDecl 36 [253-302] (Adj): Impl:
                                 Pat 37 [261-264] [Type Qubit]: Elided
                                 Block 38 [265-302] [Type ()]:
                                     Stmt 39 [279-292]: Semi: Expr 40 [279-291] [Type ()]: Call:
                                         Expr 41 [279-288] [Type (Qubit => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 42 [287-288] [Type (Qubit => () is Adj + Ctl)]: Name: Item 1
-                                        Expr 43 [288-291] [Type Qubit]: Paren: Expr 44 [289-290] [Type Qubit]: Name: Local 24
+                                            Expr 42 [287-288] [Type (Qubit => () is Adj + Ctl)]: Var: Item 1
+                                        Expr 43 [288-291] [Type Qubit]: Paren: Expr 44 [289-290] [Type Qubit]: Var: Local 24
                             SpecDecl _id_ [153-308] (Ctl): Impl:
                                 Pat _id_ [153-308] [Type ((Qubit)[], Qubit)]: Tuple:
                                     Pat _id_ [153-308] [Type (Qubit)[]]: Bind: Ident 47 [153-308] "ctls"
@@ -209,10 +211,10 @@ fn generate_ctladj_distrib() {
                                 Block 30 [215-244] [Type ()]:
                                     Stmt 31 [229-234]: Semi: Expr 32 [229-233] [Type ()]: Call:
                                         Expr 33 [229-230] [Type (((Qubit)[], Qubit) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 33 [229-230] [Type (Qubit => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 33 [229-230] [Type (Qubit => () is Adj + Ctl)]: Var: Item 1
                                         Expr 34 [230-233] [Type ((Qubit)[], Qubit)]: Tuple:
-                                            Expr _id_ [230-233] [Type (Qubit)[]]: Name: Local 47
-                                            Expr 34 [230-233] [Type Qubit]: Paren: Expr 35 [231-232] [Type Qubit]: Name: Local 24
+                                            Expr _id_ [230-233] [Type (Qubit)[]]: Var: Local 47
+                                            Expr 34 [230-233] [Type Qubit]: Paren: Expr 35 [231-232] [Type Qubit]: Var: Local 24
                             SpecDecl _id_ [153-308] (CtlAdj): Impl:
                                 Pat _id_ [153-308] [Type ((Qubit)[], Qubit)]: Tuple:
                                     Pat _id_ [153-308] [Type (Qubit)[]]: Bind: Ident 48 [153-308] "ctls"
@@ -221,10 +223,10 @@ fn generate_ctladj_distrib() {
                                     Stmt 39 [279-292]: Semi: Expr 40 [279-291] [Type ()]: Call:
                                         Expr 41 [279-288] [Type (((Qubit)[], Qubit) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 41 [279-288] [Type (Qubit => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                                Expr 42 [287-288] [Type (Qubit => () is Adj + Ctl)]: Name: Item 1
+                                                Expr 42 [287-288] [Type (Qubit => () is Adj + Ctl)]: Var: Item 1
                                         Expr 43 [288-291] [Type ((Qubit)[], Qubit)]: Tuple:
-                                            Expr _id_ [288-291] [Type (Qubit)[]]: Name: Local 48
-                                            Expr 43 [288-291] [Type Qubit]: Paren: Expr 44 [289-290] [Type Qubit]: Name: Local 24"#]],
+                                            Expr _id_ [288-291] [Type (Qubit)[]]: Var: Local 48
+                                            Expr 43 [288-291] [Type Qubit]: Paren: Expr 44 [289-290] [Type Qubit]: Var: Local 24"#]],
     );
 }
 
@@ -283,12 +285,12 @@ fn generate_ctl_skip_conjugate_apply_block() {
                                     Stmt 22 [171-251]: Expr: Expr 23 [171-251] [Type ()]: Conjugate:
                                         Block 24 [178-207] [Type ()]:
                                             Stmt 25 [192-197]: Semi: Expr 26 [192-196] [Type ()]: Call:
-                                                Expr 27 [192-193] [Type (Qubit => () is Ctl)]: Name: Item 1
-                                                Expr 28 [193-196] [Type Qubit]: Paren: Expr 29 [194-195] [Type Qubit]: Name: Local 19
+                                                Expr 27 [192-193] [Type (Qubit => () is Ctl)]: Var: Item 1
+                                                Expr 28 [193-196] [Type Qubit]: Paren: Expr 29 [194-195] [Type Qubit]: Var: Local 19
                                         Block 30 [222-251] [Type ()]:
                                             Stmt 31 [236-241]: Semi: Expr 32 [236-240] [Type ()]: Call:
-                                                Expr 33 [236-237] [Type (Qubit => () is Ctl)]: Name: Item 1
-                                                Expr 34 [237-240] [Type Qubit]: Paren: Expr 35 [238-239] [Type Qubit]: Name: Local 19
+                                                Expr 33 [236-237] [Type (Qubit => () is Ctl)]: Var: Item 1
+                                                Expr 34 [237-240] [Type Qubit]: Paren: Expr 35 [238-239] [Type Qubit]: Var: Local 19
                             SpecDecl _id_ [124-257] (Ctl): Impl:
                                 Pat _id_ [124-257] [Type ((Qubit)[], Qubit)]: Tuple:
                                     Pat _id_ [124-257] [Type (Qubit)[]]: Bind: Ident 37 [124-257] "ctls"
@@ -297,15 +299,15 @@ fn generate_ctl_skip_conjugate_apply_block() {
                                     Stmt 22 [171-251]: Expr: Expr 23 [171-251] [Type ()]: Conjugate:
                                         Block 24 [178-207] [Type ()]:
                                             Stmt 25 [192-197]: Semi: Expr 26 [192-196] [Type ()]: Call:
-                                                Expr 27 [192-193] [Type (Qubit => () is Ctl)]: Name: Item 1
-                                                Expr 28 [193-196] [Type Qubit]: Paren: Expr 29 [194-195] [Type Qubit]: Name: Local 19
+                                                Expr 27 [192-193] [Type (Qubit => () is Ctl)]: Var: Item 1
+                                                Expr 28 [193-196] [Type Qubit]: Paren: Expr 29 [194-195] [Type Qubit]: Var: Local 19
                                         Block 30 [222-251] [Type ()]:
                                             Stmt 31 [236-241]: Semi: Expr 32 [236-240] [Type ()]: Call:
                                                 Expr 33 [236-237] [Type (((Qubit)[], Qubit) => () is Ctl)]: UnOp (Functor Ctl):
-                                                    Expr 33 [236-237] [Type (Qubit => () is Ctl)]: Name: Item 1
+                                                    Expr 33 [236-237] [Type (Qubit => () is Ctl)]: Var: Item 1
                                                 Expr 34 [237-240] [Type ((Qubit)[], Qubit)]: Tuple:
-                                                    Expr _id_ [237-240] [Type (Qubit)[]]: Name: Local 37
-                                                    Expr 34 [237-240] [Type Qubit]: Paren: Expr 35 [238-239] [Type Qubit]: Name: Local 19"#]],
+                                                    Expr _id_ [237-240] [Type (Qubit)[]]: Var: Local 37
+                                                    Expr 34 [237-240] [Type Qubit]: Paren: Expr 35 [238-239] [Type Qubit]: Var: Local 19"#]],
     );
 }
 
@@ -388,10 +390,10 @@ fn generate_ctl_with_function_calls() {
                                 Pat _id_ [113-148] [Type ()]: Elided
                                 Block 13 [113-148] [Type ()]:
                                     Stmt 14 [123-129]: Semi: Expr 15 [123-128] [Type ()]: Call:
-                                        Expr 16 [123-126] [Type (() -> ())]: Name: Item 1
+                                        Expr 16 [123-126] [Type (() -> ())]: Var: Item 1
                                         Expr 17 [126-128] [Type ()]: Unit
                                     Stmt 18 [138-142]: Semi: Expr 19 [138-141] [Type ()]: Call:
-                                        Expr 20 [138-139] [Type (() => () is Ctl)]: Name: Item 2
+                                        Expr 20 [138-139] [Type (() => () is Ctl)]: Var: Item 2
                                         Expr 21 [139-141] [Type ()]: Unit
                             SpecDecl _id_ [85-148] (Ctl): Impl:
                                 Pat _id_ [85-148] [Type ((Qubit)[], ())]: Tuple:
@@ -399,13 +401,13 @@ fn generate_ctl_with_function_calls() {
                                     Pat _id_ [85-148] [Type ()]: Elided
                                 Block 13 [113-148] [Type ()]:
                                     Stmt 14 [123-129]: Semi: Expr 15 [123-128] [Type ()]: Call:
-                                        Expr 16 [123-126] [Type (() -> ())]: Name: Item 1
+                                        Expr 16 [123-126] [Type (() -> ())]: Var: Item 1
                                         Expr 17 [126-128] [Type ()]: Unit
                                     Stmt 18 [138-142]: Semi: Expr 19 [138-141] [Type ()]: Call:
                                         Expr 20 [138-139] [Type (((Qubit)[], ()) => () is Ctl)]: UnOp (Functor Ctl):
-                                            Expr 20 [138-139] [Type (() => () is Ctl)]: Name: Item 2
+                                            Expr 20 [138-139] [Type (() => () is Ctl)]: Var: Item 2
                                         Expr 21 [139-141] [Type ((Qubit)[], ())]: Tuple:
-                                            Expr _id_ [139-141] [Type (Qubit)[]]: Name: Local 24
+                                            Expr _id_ [139-141] [Type (Qubit)[]]: Var: Local 24
                                             Expr 21 [139-141] [Type ()]: Unit"#]],
     );
 }
@@ -454,19 +456,19 @@ fn generate_adj_self() {
                                 Pat 14 [119-122] [Type Qubit]: Elided
                                 Block 15 [123-138] [Type ()]:
                                     Stmt 16 [125-130]: Semi: Expr 17 [125-129] [Type ()]: Call:
-                                        Expr 18 [125-126] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 18 [125-126] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 19 [126-129] [Type Int]: Paren: Expr 20 [127-128] [Type Int]: Lit: Int(1)
                                     Stmt 21 [131-136]: Semi: Expr 22 [131-135] [Type ()]: Call:
-                                        Expr 23 [131-132] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 23 [131-132] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 24 [132-135] [Type Int]: Paren: Expr 25 [133-134] [Type Int]: Lit: Int(2)
                             SpecDecl 26 [147-160] (Adj): Impl:
                                 Pat 14 [119-122] [Type Qubit]: Elided
                                 Block 15 [123-138] [Type ()]:
                                     Stmt 16 [125-130]: Semi: Expr 17 [125-129] [Type ()]: Call:
-                                        Expr 18 [125-126] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 18 [125-126] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 19 [126-129] [Type Int]: Paren: Expr 20 [127-128] [Type Int]: Lit: Int(1)
                                     Stmt 21 [131-136]: Semi: Expr 22 [131-135] [Type ()]: Call:
-                                        Expr 23 [131-132] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 23 [131-132] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 24 [132-135] [Type Int]: Paren: Expr 25 [133-134] [Type Int]: Lit: Int(2)"#]],
     );
 }
@@ -525,19 +527,19 @@ fn generate_ctladj_self() {
                                 Pat 18 [131-134] [Type Qubit]: Elided
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
-                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
-                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl 30 [159-172] (Adj): Impl:
                                 Pat 18 [131-134] [Type Qubit]: Elided
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
-                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
-                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-178] (Ctl): Impl:
                                 Pat _id_ [73-178] [Type ((Qubit)[], Qubit)]: Tuple:
@@ -546,15 +548,15 @@ fn generate_ctladj_self() {
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr 22 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [138-141] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [138-141] [Type (Qubit)[]]: Var: Local 34
                                             Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr 27 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [144-147] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [144-147] [Type (Qubit)[]]: Var: Local 34
                                             Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-178] (CtlAdj): Impl:
                                 Pat _id_ [73-178] [Type ((Qubit)[], Qubit)]: Tuple:
@@ -563,15 +565,15 @@ fn generate_ctladj_self() {
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr 22 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [138-141] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [138-141] [Type (Qubit)[]]: Var: Local 34
                                             Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr 27 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [144-147] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [144-147] [Type (Qubit)[]]: Var: Local 34
                                             Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)"#]],
     );
 }
@@ -620,21 +622,21 @@ fn generate_adj_invert() {
                                 Pat _id_ [104-139] [Type Qubit]: Elided
                                 Block 13 [104-139] [Type ()]:
                                     Stmt 14 [114-119]: Semi: Expr 15 [114-118] [Type ()]: Call:
-                                        Expr 16 [114-115] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 16 [114-115] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 17 [115-118] [Type Int]: Paren: Expr 18 [116-117] [Type Int]: Lit: Int(1)
                                     Stmt 19 [128-133]: Semi: Expr 20 [128-132] [Type ()]: Call:
-                                        Expr 21 [128-129] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 21 [128-129] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 22 [129-132] [Type Int]: Paren: Expr 23 [130-131] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [67-139] (Adj): Impl:
                                 Pat _id_ [67-139] [Type Qubit]: Elided
                                 Block 13 [104-139] [Type ()]:
                                     Stmt 19 [128-133]: Semi: Expr 20 [128-132] [Type ()]: Call:
                                         Expr _id_ [128-129] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                            Expr 21 [128-129] [Type (Int => () is Adj)]: Name: Item 1
+                                            Expr 21 [128-129] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 22 [129-132] [Type Int]: Paren: Expr 23 [130-131] [Type Int]: Lit: Int(2)
                                     Stmt 14 [114-119]: Semi: Expr 15 [114-118] [Type ()]: Call:
                                         Expr _id_ [114-115] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                            Expr 16 [114-115] [Type (Int => () is Adj)]: Name: Item 1
+                                            Expr 16 [114-115] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 17 [115-118] [Type Int]: Paren: Expr 18 [116-117] [Type Int]: Lit: Int(1)"#]],
     );
 }
@@ -691,17 +693,17 @@ fn generate_adj_invert_skips_within_block() {
                                     Stmt 14 [114-230]: Expr: Expr 15 [114-230] [Type ()]: Conjugate:
                                         Block 16 [121-168] [Type ()]:
                                             Stmt 17 [135-140]: Semi: Expr 18 [135-139] [Type ()]: Call:
-                                                Expr 19 [135-136] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 19 [135-136] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 20 [136-139] [Type Int]: Paren: Expr 21 [137-138] [Type Int]: Lit: Int(1)
                                             Stmt 22 [153-158]: Semi: Expr 23 [153-157] [Type ()]: Call:
-                                                Expr 24 [153-154] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 24 [153-154] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 25 [154-157] [Type Int]: Paren: Expr 26 [155-156] [Type Int]: Lit: Int(2)
                                         Block 27 [183-230] [Type ()]:
                                             Stmt 28 [197-202]: Semi: Expr 29 [197-201] [Type ()]: Call:
-                                                Expr 30 [197-198] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 30 [197-198] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 31 [198-201] [Type Int]: Paren: Expr 32 [199-200] [Type Int]: Lit: Int(3)
                                             Stmt 33 [215-220]: Semi: Expr 34 [215-219] [Type ()]: Call:
-                                                Expr 35 [215-216] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 35 [215-216] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 36 [216-219] [Type Int]: Paren: Expr 37 [217-218] [Type Int]: Lit: Int(4)
                             SpecDecl _id_ [67-236] (Adj): Impl:
                                 Pat _id_ [67-236] [Type Qubit]: Elided
@@ -709,19 +711,19 @@ fn generate_adj_invert_skips_within_block() {
                                     Stmt 14 [114-230]: Expr: Expr 15 [114-230] [Type ()]: Conjugate:
                                         Block 16 [121-168] [Type ()]:
                                             Stmt 17 [135-140]: Semi: Expr 18 [135-139] [Type ()]: Call:
-                                                Expr 19 [135-136] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 19 [135-136] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 20 [136-139] [Type Int]: Paren: Expr 21 [137-138] [Type Int]: Lit: Int(1)
                                             Stmt 22 [153-158]: Semi: Expr 23 [153-157] [Type ()]: Call:
-                                                Expr 24 [153-154] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 24 [153-154] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 25 [154-157] [Type Int]: Paren: Expr 26 [155-156] [Type Int]: Lit: Int(2)
                                         Block 27 [183-230] [Type ()]:
                                             Stmt 33 [215-220]: Semi: Expr 34 [215-219] [Type ()]: Call:
                                                 Expr _id_ [215-216] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                    Expr 35 [215-216] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 35 [215-216] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 36 [216-219] [Type Int]: Paren: Expr 37 [217-218] [Type Int]: Lit: Int(4)
                                             Stmt 28 [197-202]: Semi: Expr 29 [197-201] [Type ()]: Call:
                                                 Expr _id_ [197-198] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                    Expr 30 [197-198] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 30 [197-198] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 31 [198-201] [Type Int]: Paren: Expr 32 [199-200] [Type Int]: Lit: Int(3)"#]],
     );
 }
@@ -773,7 +775,7 @@ fn generate_adj_invert_with_if_exprs() {
                                 Pat _id_ [104-266] [Type Qubit]: Elided
                                 Block 13 [104-266] [Type ()]:
                                     Stmt 14 [114-119]: Semi: Expr 15 [114-118] [Type ()]: Call:
-                                        Expr 16 [114-115] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 16 [114-115] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 17 [115-118] [Type Int]: Paren: Expr 18 [116-117] [Type Int]: Lit: Int(1)
                                     Stmt 19 [128-166]: Local (Immutable):
                                         Pat 20 [132-135] [Type Bool]: Bind: Ident 21 [132-135] "val"
@@ -784,29 +786,29 @@ fn generate_adj_invert_with_if_exprs() {
                                             Expr 27 [154-165] [Type Bool]: Expr Block: Block 28 [159-165] [Type Bool]:
                                                 Stmt 29 [160-164]: Expr: Expr 30 [160-164] [Type Bool]: Lit: Bool(true)
                                     Stmt 31 [175-180]: Semi: Expr 32 [175-179] [Type ()]: Call:
-                                        Expr 33 [175-176] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 33 [175-176] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 34 [176-179] [Type Int]: Paren: Expr 35 [177-178] [Type Int]: Lit: Int(2)
                                     Stmt 36 [189-246]: Expr: Expr 37 [189-246] [Type ()]: If:
                                         Expr 38 [192-197] [Type Bool]: Lit: Bool(false)
                                         Block 39 [198-211] [Type ()]:
                                             Stmt 40 [199-204]: Semi: Expr 41 [199-203] [Type ()]: Call:
-                                                Expr 42 [199-200] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 42 [199-200] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 43 [200-203] [Type Int]: Paren: Expr 44 [201-202] [Type Int]: Lit: Int(3)
                                             Stmt 45 [205-210]: Semi: Expr 46 [205-209] [Type ()]: Call:
-                                                Expr 47 [205-206] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 47 [205-206] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 48 [206-209] [Type Int]: Paren: Expr 49 [207-208] [Type Int]: Lit: Int(4)
                                         Expr 50 [212-246] [Type ()]: Expr Block: Block 51 [217-246] [Type ()]:
                                             Stmt 52 [218-223]: Semi: Expr 53 [218-222] [Type ()]: Call:
-                                                Expr 54 [218-219] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 54 [218-219] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 55 [219-222] [Type Int]: Paren: Expr 56 [220-221] [Type Int]: Lit: Int(5)
                                             Stmt 57 [224-239]: Local (Immutable):
                                                 Pat 58 [228-231] [Type Bool]: Bind: Ident 59 [228-231] "val"
                                                 Expr 60 [234-238] [Type Bool]: Lit: Bool(true)
                                             Stmt 61 [240-245]: Semi: Expr 62 [240-244] [Type ()]: Call:
-                                                Expr 63 [240-241] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 63 [240-241] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 64 [241-244] [Type Int]: Paren: Expr 65 [242-243] [Type Int]: Lit: Int(6)
                                     Stmt 66 [255-260]: Semi: Expr 67 [255-259] [Type ()]: Call:
-                                        Expr 68 [255-256] [Type (Int => () is Adj)]: Name: Item 1
+                                        Expr 68 [255-256] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 69 [256-259] [Type Int]: Paren: Expr 70 [257-258] [Type Int]: Lit: Int(7)
                             SpecDecl _id_ [67-266] (Adj): Impl:
                                 Pat _id_ [67-266] [Type Qubit]: Elided
@@ -821,18 +823,18 @@ fn generate_adj_invert_with_if_exprs() {
                                                 Stmt 29 [160-164]: Expr: Expr 30 [160-164] [Type Bool]: Lit: Bool(true)
                                     Stmt 66 [255-260]: Semi: Expr 67 [255-259] [Type ()]: Call:
                                         Expr _id_ [255-256] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                            Expr 68 [255-256] [Type (Int => () is Adj)]: Name: Item 1
+                                            Expr 68 [255-256] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 69 [256-259] [Type Int]: Paren: Expr 70 [257-258] [Type Int]: Lit: Int(7)
                                     Stmt 36 [189-246]: Expr: Expr 37 [189-246] [Type ()]: If:
                                         Expr 38 [192-197] [Type Bool]: Lit: Bool(false)
                                         Block 39 [198-211] [Type ()]:
                                             Stmt 45 [205-210]: Semi: Expr 46 [205-209] [Type ()]: Call:
                                                 Expr _id_ [205-206] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                    Expr 47 [205-206] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 47 [205-206] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 48 [206-209] [Type Int]: Paren: Expr 49 [207-208] [Type Int]: Lit: Int(4)
                                             Stmt 40 [199-204]: Semi: Expr 41 [199-203] [Type ()]: Call:
                                                 Expr _id_ [199-200] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                    Expr 42 [199-200] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 42 [199-200] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 43 [200-203] [Type Int]: Paren: Expr 44 [201-202] [Type Int]: Lit: Int(3)
                                         Expr 50 [212-246] [Type ()]: Expr Block: Block 51 [217-246] [Type ()]:
                                             Stmt 57 [224-239]: Local (Immutable):
@@ -840,19 +842,19 @@ fn generate_adj_invert_with_if_exprs() {
                                                 Expr 60 [234-238] [Type Bool]: Lit: Bool(true)
                                             Stmt 61 [240-245]: Semi: Expr 62 [240-244] [Type ()]: Call:
                                                 Expr _id_ [240-241] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                    Expr 63 [240-241] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 63 [240-241] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 64 [241-244] [Type Int]: Paren: Expr 65 [242-243] [Type Int]: Lit: Int(6)
                                             Stmt 52 [218-223]: Semi: Expr 53 [218-222] [Type ()]: Call:
                                                 Expr _id_ [218-219] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                    Expr 54 [218-219] [Type (Int => () is Adj)]: Name: Item 1
+                                                    Expr 54 [218-219] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 55 [219-222] [Type Int]: Paren: Expr 56 [220-221] [Type Int]: Lit: Int(5)
                                     Stmt 31 [175-180]: Semi: Expr 32 [175-179] [Type ()]: Call:
                                         Expr _id_ [175-176] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                            Expr 33 [175-176] [Type (Int => () is Adj)]: Name: Item 1
+                                            Expr 33 [175-176] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 34 [176-179] [Type Int]: Paren: Expr 35 [177-178] [Type Int]: Lit: Int(2)
                                     Stmt 14 [114-119]: Semi: Expr 15 [114-118] [Type ()]: Call:
                                         Expr _id_ [114-115] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                            Expr 16 [114-115] [Type (Int => () is Adj)]: Name: Item 1
+                                            Expr 16 [114-115] [Type (Int => () is Adj)]: Var: Item 1
                                         Expr 17 [115-118] [Type Int]: Paren: Expr 18 [116-117] [Type Int]: Lit: Int(1)"#]],
     );
 }
@@ -905,14 +907,15 @@ fn generate_adj_invert_with_range_loop() {
                                     Stmt 14 [114-175]: Expr: Expr 15 [114-175] [Type ()]: For:
                                         Pat 16 [118-119] [Type Int]: Bind: Ident 17 [118-119] "i"
                                         Expr 18 [123-127] [Type Range]: Range:
-                                            Expr 19 [123-124] [Type Int]: Lit: Int(0)<no step>
+                                            Expr 19 [123-124] [Type Int]: Lit: Int(0)
+                                            <no step>
                                             Expr 20 [126-127] [Type Int]: Lit: Int(5)
                                         Block 21 [128-175] [Type ()]:
                                             Stmt 22 [142-147]: Semi: Expr 23 [142-146] [Type ()]: Call:
-                                                Expr 24 [142-143] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 24 [142-143] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 25 [143-146] [Type Int]: Paren: Expr 26 [144-145] [Type Int]: Lit: Int(1)
                                             Stmt 27 [160-165]: Semi: Expr 28 [160-164] [Type ()]: Call:
-                                                Expr 29 [160-161] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 29 [160-161] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 30 [161-164] [Type Int]: Paren: Expr 31 [162-163] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [67-181] (Adj): Impl:
                                 Pat _id_ [67-181] [Type Qubit]: Elided
@@ -921,45 +924,46 @@ fn generate_adj_invert_with_range_loop() {
                                         Stmt _id_ [0-0]: Local (Immutable):
                                             Pat _id_ [0-0] [Type Range]: Bind: Ident 33 [0-0] "generated_range"
                                             Expr 18 [123-127] [Type Range]: Range:
-                                                Expr 19 [123-124] [Type Int]: Lit: Int(0)<no step>
+                                                Expr 19 [123-124] [Type Int]: Lit: Int(0)
+                                                <no step>
                                                 Expr 20 [126-127] [Type Int]: Lit: Int(5)
                                         Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type ()]: For:
                                             Pat 16 [118-119] [Type Int]: Bind: Ident 17 [118-119] "i"
                                             Expr _id_ [0-0] [Type Range]: Range:
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Add):
                                                     Expr _id_ [0-0] [Type Int]: Field:
-                                                        Expr _id_ [0-0] [Type Range]: Name: Local 33
-                                                        Ident _id_ [0-0] "Start"
+                                                        Expr _id_ [0-0] [Type Range]: Var: Local 33
+                                                        Start
                                                     Expr _id_ [0-0] [Type Int]: BinOp (Mul):
                                                         Expr _id_ [0-0] [Type Int]: BinOp (Div):
                                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                                 Expr _id_ [0-0] [Type Int]: Field:
-                                                                    Expr _id_ [0-0] [Type Range]: Name: Local 33
-                                                                    Ident _id_ [0-0] "End"
+                                                                    Expr _id_ [0-0] [Type Range]: Var: Local 33
+                                                                    End
                                                                 Expr _id_ [0-0] [Type Int]: Field:
-                                                                    Expr _id_ [0-0] [Type Range]: Name: Local 33
-                                                                    Ident _id_ [0-0] "Start"
+                                                                    Expr _id_ [0-0] [Type Range]: Var: Local 33
+                                                                    Start
                                                             Expr _id_ [0-0] [Type Int]: Field:
-                                                                Expr _id_ [0-0] [Type Range]: Name: Local 33
-                                                                Ident _id_ [0-0] "Step"
+                                                                Expr _id_ [0-0] [Type Range]: Var: Local 33
+                                                                Step
                                                         Expr _id_ [0-0] [Type Int]: Field:
-                                                            Expr _id_ [0-0] [Type Range]: Name: Local 33
-                                                            Ident _id_ [0-0] "Step"
+                                                            Expr _id_ [0-0] [Type Range]: Var: Local 33
+                                                            Step
                                                 Expr _id_ [0-0] [Type Int]: UnOp (Neg):
                                                     Expr _id_ [0-0] [Type Int]: Field:
-                                                        Expr _id_ [0-0] [Type Range]: Name: Local 33
-                                                        Ident _id_ [0-0] "Step"
+                                                        Expr _id_ [0-0] [Type Range]: Var: Local 33
+                                                        Step
                                                 Expr _id_ [0-0] [Type Int]: Field:
-                                                    Expr _id_ [0-0] [Type Range]: Name: Local 33
-                                                    Ident _id_ [0-0] "Start"
+                                                    Expr _id_ [0-0] [Type Range]: Var: Local 33
+                                                    Start
                                             Block 21 [128-175] [Type ()]:
                                                 Stmt 27 [160-165]: Semi: Expr 28 [160-164] [Type ()]: Call:
                                                     Expr _id_ [160-161] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                        Expr 29 [160-161] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 29 [160-161] [Type (Int => () is Adj)]: Var: Item 1
                                                     Expr 30 [161-164] [Type Int]: Paren: Expr 31 [162-163] [Type Int]: Lit: Int(2)
                                                 Stmt 22 [142-147]: Semi: Expr 23 [142-146] [Type ()]: Call:
                                                     Expr _id_ [142-143] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                        Expr 24 [142-143] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 24 [142-143] [Type (Int => () is Adj)]: Var: Item 1
                                                     Expr 25 [143-146] [Type Int]: Paren: Expr 26 [144-145] [Type Int]: Lit: Int(1)"#]],
     );
 }
@@ -1017,10 +1021,10 @@ fn generate_adj_invert_with_array_loop() {
                                             Expr 21 [132-133] [Type Int]: Lit: Int(2)
                                         Block 22 [135-182] [Type ()]:
                                             Stmt 23 [149-154]: Semi: Expr 24 [149-153] [Type ()]: Call:
-                                                Expr 25 [149-150] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 25 [149-150] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 26 [150-153] [Type Int]: Paren: Expr 27 [151-152] [Type Int]: Lit: Int(1)
                                             Stmt 28 [167-172]: Semi: Expr 29 [167-171] [Type ()]: Call:
-                                                Expr 30 [167-168] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 30 [167-168] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 31 [168-171] [Type Int]: Paren: Expr 32 [169-170] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [67-188] (Adj): Impl:
                                 Pat _id_ [67-188] [Type Qubit]: Elided
@@ -1037,8 +1041,8 @@ fn generate_adj_invert_with_array_loop() {
                                             Expr _id_ [0-0] [Type Range]: Range:
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                     Expr _id_ [0-0] [Type Int]: Field:
-                                                        Expr _id_ [0-0] [Type (Int)[]]: Name: Local 34
-                                                        Ident _id_ [0-0] "Length"
+                                                        Expr _id_ [0-0] [Type (Int)[]]: Var: Local 34
+                                                        Length
                                                     Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(0)
@@ -1046,15 +1050,15 @@ fn generate_adj_invert_with_array_loop() {
                                                 Stmt _id_ [0-0]: Local (Immutable):
                                                     Pat 16 [118-121] [Type Int]: Bind: Ident 17 [118-121] "val"
                                                     Expr _id_ [0-0] [Type Int]: Index:
-                                                        Expr _id_ [0-0] [Type (Int)[]]: Name: Local 34
-                                                        Expr _id_ [0-0] [Type Int]: Name: Local 35
+                                                        Expr _id_ [0-0] [Type (Int)[]]: Var: Local 34
+                                                        Expr _id_ [0-0] [Type Int]: Var: Local 35
                                                 Stmt 28 [167-172]: Semi: Expr 29 [167-171] [Type ()]: Call:
                                                     Expr _id_ [167-168] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                        Expr 30 [167-168] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 30 [167-168] [Type (Int => () is Adj)]: Var: Item 1
                                                     Expr 31 [168-171] [Type Int]: Paren: Expr 32 [169-170] [Type Int]: Lit: Int(2)
                                                 Stmt 23 [149-154]: Semi: Expr 24 [149-153] [Type ()]: Call:
                                                     Expr _id_ [149-150] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                        Expr 25 [149-150] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 25 [149-150] [Type (Int => () is Adj)]: Var: Item 1
                                                     Expr 26 [150-153] [Type Int]: Paren: Expr 27 [151-152] [Type Int]: Lit: Int(1)"#]],
     );
 }
@@ -1117,7 +1121,7 @@ fn generate_adj_invert_with_nested_loops() {
                                             Expr 21 [132-133] [Type Int]: Lit: Int(2)
                                         Block 22 [135-312] [Type ()]:
                                             Stmt 23 [149-154]: Semi: Expr 24 [149-153] [Type ()]: Call:
-                                                Expr 25 [149-150] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 25 [149-150] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 26 [150-153] [Type Int]: Paren: Expr 27 [151-152] [Type Int]: Lit: Int(1)
                                             Stmt 28 [167-197]: Local (Immutable):
                                                 Pat 29 [171-174] [Type (Bool)[]]: Bind: Ident 30 [171-174] "arr"
@@ -1127,16 +1131,16 @@ fn generate_adj_invert_with_nested_loops() {
                                                     Expr 34 [191-195] [Type Bool]: Lit: Bool(true)
                                             Stmt 35 [210-284]: Expr: Expr 36 [210-284] [Type ()]: For:
                                                 Pat 37 [214-217] [Type Bool]: Bind: Ident 38 [214-217] "val"
-                                                Expr 39 [221-224] [Type (Bool)[]]: Name: Local 30
+                                                Expr 39 [221-224] [Type (Bool)[]]: Var: Local 30
                                                 Block 40 [225-284] [Type ()]:
                                                     Stmt 41 [243-248]: Semi: Expr 42 [243-247] [Type ()]: Call:
-                                                        Expr 43 [243-244] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 43 [243-244] [Type (Int => () is Adj)]: Var: Item 1
                                                         Expr 44 [244-247] [Type Int]: Paren: Expr 45 [245-246] [Type Int]: Lit: Int(2)
                                                     Stmt 46 [265-270]: Semi: Expr 47 [265-269] [Type ()]: Call:
-                                                        Expr 48 [265-266] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 48 [265-266] [Type (Int => () is Adj)]: Var: Item 1
                                                         Expr 49 [266-269] [Type Int]: Paren: Expr 50 [267-268] [Type Int]: Lit: Int(3)
                                             Stmt 51 [297-302]: Semi: Expr 52 [297-301] [Type ()]: Call:
-                                                Expr 53 [297-298] [Type (Int => () is Adj)]: Name: Item 1
+                                                Expr 53 [297-298] [Type (Int => () is Adj)]: Var: Item 1
                                                 Expr 54 [298-301] [Type Int]: Paren: Expr 55 [299-300] [Type Int]: Lit: Int(4)
                             SpecDecl _id_ [67-318] (Adj): Impl:
                                 Pat _id_ [67-318] [Type Qubit]: Elided
@@ -1153,8 +1157,8 @@ fn generate_adj_invert_with_nested_loops() {
                                             Expr _id_ [0-0] [Type Range]: Range:
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                     Expr _id_ [0-0] [Type Int]: Field:
-                                                        Expr _id_ [0-0] [Type (Int)[]]: Name: Local 59
-                                                        Ident _id_ [0-0] "Length"
+                                                        Expr _id_ [0-0] [Type (Int)[]]: Var: Local 59
+                                                        Length
                                                     Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(0)
@@ -1162,8 +1166,8 @@ fn generate_adj_invert_with_nested_loops() {
                                                 Stmt _id_ [0-0]: Local (Immutable):
                                                     Pat 16 [118-121] [Type Int]: Bind: Ident 17 [118-121] "val"
                                                     Expr _id_ [0-0] [Type Int]: Index:
-                                                        Expr _id_ [0-0] [Type (Int)[]]: Name: Local 59
-                                                        Expr _id_ [0-0] [Type Int]: Name: Local 60
+                                                        Expr _id_ [0-0] [Type (Int)[]]: Var: Local 59
+                                                        Expr _id_ [0-0] [Type Int]: Var: Local 60
                                                 Stmt 28 [167-197]: Local (Immutable):
                                                     Pat 29 [171-174] [Type (Bool)[]]: Bind: Ident 30 [171-174] "arr"
                                                     Expr 31 [177-196] [Type (Bool)[]]: Array:
@@ -1172,19 +1176,19 @@ fn generate_adj_invert_with_nested_loops() {
                                                         Expr 34 [191-195] [Type Bool]: Lit: Bool(true)
                                                 Stmt 51 [297-302]: Semi: Expr 52 [297-301] [Type ()]: Call:
                                                     Expr _id_ [297-298] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                        Expr 53 [297-298] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 53 [297-298] [Type (Int => () is Adj)]: Var: Item 1
                                                     Expr 54 [298-301] [Type Int]: Paren: Expr 55 [299-300] [Type Int]: Lit: Int(4)
                                                 Stmt 35 [210-284]: Expr: Expr _id_ [0-0] [Type ()]: Expr Block: Block _id_ [0-0] [Type ()]:
                                                     Stmt _id_ [0-0]: Local (Immutable):
                                                         Pat _id_ [0-0] [Type (Bool)[]]: Bind: Ident 57 [0-0] "generated_array"
-                                                        Expr 39 [221-224] [Type (Bool)[]]: Name: Local 30
+                                                        Expr 39 [221-224] [Type (Bool)[]]: Var: Local 30
                                                     Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type ()]: For:
                                                         Pat _id_ [0-0] [Type Int]: Bind: Ident 58 [0-0] "generated_index"
                                                         Expr _id_ [0-0] [Type Range]: Range:
                                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                                 Expr _id_ [0-0] [Type Int]: Field:
-                                                                    Expr _id_ [0-0] [Type (Bool)[]]: Name: Local 57
-                                                                    Ident _id_ [0-0] "Length"
+                                                                    Expr _id_ [0-0] [Type (Bool)[]]: Var: Local 57
+                                                                    Length
                                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(0)
@@ -1192,19 +1196,19 @@ fn generate_adj_invert_with_nested_loops() {
                                                             Stmt _id_ [0-0]: Local (Immutable):
                                                                 Pat 37 [214-217] [Type Bool]: Bind: Ident 38 [214-217] "val"
                                                                 Expr _id_ [0-0] [Type Bool]: Index:
-                                                                    Expr _id_ [0-0] [Type (Bool)[]]: Name: Local 57
-                                                                    Expr _id_ [0-0] [Type Int]: Name: Local 58
+                                                                    Expr _id_ [0-0] [Type (Bool)[]]: Var: Local 57
+                                                                    Expr _id_ [0-0] [Type Int]: Var: Local 58
                                                             Stmt 46 [265-270]: Semi: Expr 47 [265-269] [Type ()]: Call:
                                                                 Expr _id_ [265-266] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                                    Expr 48 [265-266] [Type (Int => () is Adj)]: Name: Item 1
+                                                                    Expr 48 [265-266] [Type (Int => () is Adj)]: Var: Item 1
                                                                 Expr 49 [266-269] [Type Int]: Paren: Expr 50 [267-268] [Type Int]: Lit: Int(3)
                                                             Stmt 41 [243-248]: Semi: Expr 42 [243-247] [Type ()]: Call:
                                                                 Expr _id_ [243-244] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                                    Expr 43 [243-244] [Type (Int => () is Adj)]: Name: Item 1
+                                                                    Expr 43 [243-244] [Type (Int => () is Adj)]: Var: Item 1
                                                                 Expr 44 [244-247] [Type Int]: Paren: Expr 45 [245-246] [Type Int]: Lit: Int(2)
                                                 Stmt 23 [149-154]: Semi: Expr 24 [149-153] [Type ()]: Call:
                                                     Expr _id_ [149-150] [Type (Int => () is Adj)]: UnOp (Functor Adj):
-                                                        Expr 25 [149-150] [Type (Int => () is Adj)]: Name: Item 1
+                                                        Expr 25 [149-150] [Type (Int => () is Adj)]: Var: Item 1
                                                     Expr 26 [150-153] [Type Int]: Paren: Expr 27 [151-152] [Type Int]: Lit: Int(1)"#]],
     );
 }
@@ -1262,21 +1266,21 @@ fn generate_ctladj_distribute() {
                                 Pat 18 [131-134] [Type Qubit]: Elided
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
-                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
-                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-156] (Adj): Impl:
                                 Pat _id_ [73-156] [Type Qubit]: Elided
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr _id_ [143-144] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr _id_ [137-138] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                             SpecDecl _id_ [73-156] (Ctl): Impl:
                                 Pat _id_ [73-156] [Type ((Qubit)[], Qubit)]: Tuple:
@@ -1285,15 +1289,15 @@ fn generate_ctladj_distribute() {
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr 22 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [138-141] [Type (Qubit)[]]: Name: Local 33
+                                            Expr _id_ [138-141] [Type (Qubit)[]]: Var: Local 33
                                             Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr 27 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [144-147] [Type (Qubit)[]]: Name: Local 33
+                                            Expr _id_ [144-147] [Type (Qubit)[]]: Var: Local 33
                                             Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-156] (CtlAdj): Impl:
                                 Pat _id_ [73-156] [Type ((Qubit)[], Qubit)]: Tuple:
@@ -1303,16 +1307,16 @@ fn generate_ctladj_distribute() {
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr _id_ [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr _id_ [143-144] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                                Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                                Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [144-147] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [144-147] [Type (Qubit)[]]: Var: Local 34
                                             Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr _id_ [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr _id_ [137-138] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                                Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                                Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [138-141] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [138-141] [Type (Qubit)[]]: Var: Local 34
                                             Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }
@@ -1371,21 +1375,21 @@ fn generate_ctladj_invert() {
                                 Pat 18 [131-134] [Type Qubit]: Elided
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
-                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
-                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                        Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-191] (Adj): Impl:
                                 Pat _id_ [73-191] [Type Qubit]: Elided
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr _id_ [143-144] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr _id_ [137-138] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
-                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                             SpecDecl _id_ [73-191] (Ctl): Impl:
                                 Pat _id_ [73-191] [Type ((Qubit)[], Qubit)]: Tuple:
@@ -1394,15 +1398,15 @@ fn generate_ctladj_invert() {
                                 Block 19 [135-150] [Type ()]:
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr 22 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [138-141] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [138-141] [Type (Qubit)[]]: Var: Local 34
                                             Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr 27 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                            Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [144-147] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [144-147] [Type (Qubit)[]]: Var: Local 34
                                             Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl 30 [159-185] (CtlAdj): Impl:
                                 Pat _id_ [159-185] [Type Qubit]: Elided
@@ -1410,16 +1414,16 @@ fn generate_ctladj_invert() {
                                     Stmt 25 [143-148]: Semi: Expr 26 [143-147] [Type ()]: Call:
                                         Expr _id_ [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Adj):
                                             Expr 27 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                                Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                                Expr 27 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 28 [144-147] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [144-147] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [144-147] [Type (Qubit)[]]: Var: Local 34
                                             Expr 28 [144-147] [Type Int]: Paren: Expr 29 [145-146] [Type Int]: Lit: Int(2)
                                     Stmt 20 [137-142]: Semi: Expr 21 [137-141] [Type ()]: Call:
                                         Expr _id_ [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Adj):
                                             Expr 22 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
-                                                Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Name: Item 1
+                                                Expr 22 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 23 [138-141] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [138-141] [Type (Qubit)[]]: Name: Local 34
+                                            Expr _id_ [138-141] [Type (Qubit)[]]: Var: Local 34
                                             Expr 23 [138-141] [Type Int]: Paren: Expr 24 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }

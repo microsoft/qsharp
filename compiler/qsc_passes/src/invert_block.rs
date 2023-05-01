@@ -7,8 +7,8 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimTy, Res,
-        Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimField,
+        PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
@@ -162,13 +162,13 @@ impl<'a> BlockInverter<'a> {
                             id: NodeId::default(),
                             span: Span::default(),
                             ty: Ty::Array(Box::new(arr_ty.clone())),
-                            kind: ExprKind::Name(Res::Local(new_arr_id)),
+                            kind: ExprKind::Var(Res::Local(new_arr_id)),
                         }),
                         Box::new(Expr {
                             id: NodeId::default(),
                             span: Span::default(),
                             ty: Ty::Prim(PrimTy::Int),
-                            kind: ExprKind::Name(Res::Local(index_id)),
+                            kind: ExprKind::Var(Res::Local(index_id)),
                         }),
                     ),
                 },
@@ -244,9 +244,9 @@ impl<'a> BlockInverter<'a> {
 }
 
 fn make_range_reverse_expr(range_id: NodeId) -> Expr {
-    let start = make_range_field(range_id, "Start");
-    let step = make_range_field(range_id, "Step");
-    let end = make_range_field(range_id, "End");
+    let start = make_range_field(range_id, PrimField::Start);
+    let step = make_range_field(range_id, PrimField::Step);
+    let end = make_range_field(range_id, PrimField::End);
 
     // A reversed range is `(start + (end - start) / step * step) .. -step .. start`.
     let new_start = Box::new(Expr {
@@ -302,7 +302,7 @@ fn make_range_reverse_expr(range_id: NodeId) -> Expr {
     }
 }
 
-fn make_range_field(range_id: NodeId, field: &str) -> Expr {
+fn make_range_field(range_id: NodeId, field: PrimField) -> Expr {
     Expr {
         id: NodeId::default(),
         span: Span::default(),
@@ -312,13 +312,9 @@ fn make_range_field(range_id: NodeId, field: &str) -> Expr {
                 id: NodeId::default(),
                 span: Span::default(),
                 ty: Ty::Prim(PrimTy::Range),
-                kind: ExprKind::Name(Res::Local(range_id)),
+                kind: ExprKind::Var(Res::Local(range_id)),
             }),
-            Ident {
-                id: NodeId::default(),
-                span: Span::default(),
-                name: field.into(),
-            },
+            field,
         ),
     }
 }
@@ -333,13 +329,9 @@ fn make_array_index_range_reverse(arr_id: NodeId, arr_ty: &Ty) -> Expr {
                 id: NodeId::default(),
                 span: Span::default(),
                 ty: Ty::Array(Box::new(arr_ty.clone())),
-                kind: ExprKind::Name(Res::Local(arr_id)),
+                kind: ExprKind::Var(Res::Local(arr_id)),
             }),
-            Ident {
-                id: NodeId::default(),
-                span: Span::default(),
-                name: "Length".into(),
-            },
+            PrimField::Length,
         ),
     });
     let start = Box::new(Expr {

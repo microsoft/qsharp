@@ -1,24 +1,31 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, stateless::get_callable, Env};
+use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_hir::hir::{CallableDecl, ItemKind};
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
-    let mut unit = compile(&store, [], [file], expr);
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let mut unit = compile(&store, [], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+
     let pass_errors = run_default_passes(&mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
 
     let id = store.insert(unit);
-    let expr = store.get_entry_expr(id).expect("package should have entry");
+    let entry = store
+        .get(id)
+        .and_then(|unit| unit.package.entry.as_ref())
+        .expect("package should have entry");
+
     let mut out = Vec::new();
     match eval_expr(
-        expr,
+        entry,
         &|id| get_callable(&store, id),
         id,
         &mut Env::default(),
@@ -27,6 +34,17 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err(err) => expect.assert_debug_eq(&err),
     }
+}
+
+pub(super) fn get_callable(store: &PackageStore, id: GlobalId) -> Option<&CallableDecl> {
+    store.get(id.package).and_then(|unit| {
+        let item = unit.package.items.get(id.item)?;
+        if let ItemKind::Callable(callable) = &item.kind {
+            Some(callable)
+        } else {
+            None
+        }
+    })
 }
 
 #[test]
@@ -1208,23 +1226,6 @@ fn field_range_start_expr() {
 }
 
 #[test]
-fn field_range_start_missing_expr() {
-    check_expr(
-        "",
-        "(...2..8)::Start",
-        &expect![[r#"
-            RangeFieldMissing(
-                "Start",
-                Span {
-                    lo: 11,
-                    hi: 16,
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn field_range_step_expr() {
     check_expr("", "(0..2..8)::Step", &expect!["2"]);
 }
@@ -1237,23 +1238,6 @@ fn field_range_step_missing_treated_as_1_expr() {
 #[test]
 fn field_range_end_expr() {
     check_expr("", "(0..2..8)::End", &expect!["8"]);
-}
-
-#[test]
-fn field_range_end_missing_expr() {
-    check_expr(
-        "",
-        "(0..2...)::End",
-        &expect![[r#"
-            RangeFieldMissing(
-                "End",
-                Span {
-                    lo: 11,
-                    hi: 14,
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]

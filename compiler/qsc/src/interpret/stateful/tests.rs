@@ -1,24 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[cfg(test)]
 mod given_interpreter {
+    use crate::interpret::stateful::{Interpreter, LineError};
+    use qsc_eval::{output::CursorReceiver, val::Value};
+    use qsc_frontend::compile::SourceMap;
     use std::{error::Error, fmt::Write, io::Cursor, iter};
 
-    use crate::{
-        output::CursorReceiver,
-        stateful::{self, Interpreter},
-        val::Value,
-        AggregateError,
-    };
-
-    fn line(
-        interpreter: &mut Interpreter,
-        line: &str,
-    ) -> (Result<Value, AggregateError<stateful::Error>>, String) {
+    fn line(interpreter: &mut Interpreter, line: &str) -> (Result<Value, Vec<LineError>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.line(line, &mut receiver), receiver.dump())
+        (
+            interpreter.interpret_line(&mut receiver, line),
+            receiver.dump(),
+        )
     }
 
     mod without_sources {
@@ -26,17 +21,17 @@ mod given_interpreter {
 
         mod without_stdlib {
             use super::*;
+
             #[test]
             fn stdlib_members_should_be_unavailable() {
-                const SOURCES: [&str; 0] = [];
-                let mut interpreter =
-                    Interpreter::new(false, SOURCES).expect("Failed to compile base environment.");
+                let mut interpreter = Interpreter::new(false, SourceMap::default())
+                    .expect("interpreter should be created");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
                 is_only_error(
                     &result,
                     &output,
-                    "could not compile line: name error: `Message` not found in this scope",
+                    "name error: `Message` not found in this scope",
                 );
             }
         }
@@ -63,13 +58,13 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7;");
-            is_only_value(&result, &output, &Value::UNIT);
+            is_only_value(&result, &output, &Value::unit());
 
             let (result, output) = line(&mut interpreter, "y");
             is_only_value(&result, &output, &Value::Int(7));
 
             let (result, output) = line(&mut interpreter, "let y = \"Hello\";");
-            is_only_value(&result, &output, &Value::UNIT);
+            is_only_value(&result, &output, &Value::unit());
 
             let (result, output) = line(&mut interpreter, "y");
             is_only_value(&result, &output, &Value::String("Hello".into()));
@@ -80,29 +75,38 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = 7");
-            is_only_error(
-                &result,
-                &output,
-                "could not compile line: syntax error: expected `;`, found EOF",
-            );
+            is_only_error(&result, &output, "syntax error: expected `;`, found EOF");
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(
-                &result,
-                &output,
-                "could not compile line: name error: `y` not found in this scope",
-            );
+            is_only_error(&result, &output, "name error: `y` not found in this scope");
+        }
+
+        #[test]
+        fn invalid_statements_and_unbound_vars_return_error() {
+            let mut interpreter = get_interpreter();
+
+            let (result, output) = line(&mut interpreter, "let y = x;");
+            is_only_error(&result, &output, "name error: `x` not found in this scope");
+
+            let (result, output) = line(&mut interpreter, "y");
+            is_only_error(&result, &output, "runtime error: variable is not bound");
         }
 
         #[test]
         fn failing_statements_return_early_error() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "let y = 7;y/0;y");
-            is_only_error(
-                &result,
-                &output,
-                "program encountered an error while running: division by zero",
+            is_only_error(&result, &output, "runtime error: division by zero");
+        }
+
+        #[test]
+        fn passes_are_run_on_incremental() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "within {Message(\"A\");} apply {Message(\"B\");}",
             );
+            is_unit_with_output(&result, &output, "A\nB\nA");
         }
     }
 
@@ -110,6 +114,7 @@ mod given_interpreter {
     mod with_sources {
         use super::*;
         use indoc::indoc;
+        use qsc_frontend::compile::SourceMap;
 
         #[test]
         fn stdlib_members_can_be_accessed_from_sources() {
@@ -120,8 +125,9 @@ mod given_interpreter {
                 }
             }"#};
 
+            let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter =
-                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
+                Interpreter::new(true, sources).expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Main()");
             is_unit_with_output(&result, &output, "hello there...");
         }
@@ -139,8 +145,9 @@ mod given_interpreter {
                 }
             }"#};
 
+            let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter =
-                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
+                Interpreter::new(true, sources).expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test.Main()");
@@ -162,8 +169,9 @@ mod given_interpreter {
                 }
             }"#};
 
+            let sources = SourceMap::new([("test".into(), source.into())], None);
             let mut interpreter =
-                Interpreter::new(true, [source]).expect("Failed to compile base environment.");
+                Interpreter::new(true, sources).expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
             is_only_value(&result, &output, &Value::String("hello there...".into()));
             let (result, output) = line(&mut interpreter, "Test2.Main()");
@@ -172,15 +180,10 @@ mod given_interpreter {
     }
 
     fn get_interpreter() -> Interpreter {
-        const SOURCES: [&str; 0] = [];
-        Interpreter::new(true, SOURCES).expect("Failed to compile base environment.")
+        Interpreter::new(true, SourceMap::default()).expect("interpreter should be created")
     }
 
-    fn is_only_value(
-        result: &Result<Value, AggregateError<stateful::Error>>,
-        output: &str,
-        value: &Value,
-    ) {
+    fn is_only_value(result: &Result<Value, Vec<LineError>>, output: &str, value: &Value) {
         assert_eq!("", output);
 
         match result {
@@ -190,30 +193,26 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output(
-        result: &Result<Value, AggregateError<stateful::Error>>,
+        result: &Result<Value, Vec<LineError>>,
         output: &str,
         expected_output: &str,
     ) {
         assert_eq!(expected_output, output);
 
         match result {
-            Ok(value) => assert_eq!(Value::UNIT, *value),
+            Ok(value) => assert_eq!(Value::unit(), *value),
             Err(e) => panic!("Expected unit value, got {e:?}"),
         }
     }
 
-    fn is_only_error(
-        result: &Result<Value, AggregateError<stateful::Error>>,
-        output: &str,
-        error: &str,
-    ) {
+    fn is_only_error(result: &Result<Value, Vec<LineError>>, output: &str, error: &str) {
         assert_eq!("", output);
 
         match result {
             Ok(value) => panic!("Expected error , got {value:?}"),
             Err(errors) => {
-                let mut message = errors.0[0].to_string();
-                for source in iter::successors(errors.0[0].source(), |&e| e.source()) {
+                let mut message = errors[0].to_string();
+                for source in iter::successors(errors[0].source(), |&e| e.source()) {
                     write!(message, ": {source}").expect("string should be writable");
                 }
                 assert_eq!(error, message);

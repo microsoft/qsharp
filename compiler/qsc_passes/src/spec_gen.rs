@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod adj_gen;
+pub(crate) mod adj_gen;
 mod ctl_gen;
 
 #[cfg(test)]
@@ -49,8 +49,17 @@ pub fn generate_specs(unit: &mut CompileUnit) -> Vec<Error> {
     generate_spec_impls(unit)
 }
 
+pub fn generate_specs_for_callable(assigner: &mut Assigner, decl: &mut CallableDecl) -> Vec<Error> {
+    generate_placeholders_for_callable(decl);
+    generate_spec_impls_for_decl(assigner, decl)
+}
+
 fn generate_placeholders(unit: &mut CompileUnit) {
     SpecPlacePass.visit_package(&mut unit.package);
+}
+
+fn generate_placeholders_for_callable(decl: &mut CallableDecl) {
+    SpecPlacePass.visit_callable_decl(decl);
 }
 
 struct SpecPlacePass;
@@ -153,6 +162,15 @@ fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
         errors: Vec::new(),
     };
     pass.visit_package(&mut unit.package);
+    pass.errors
+}
+
+fn generate_spec_impls_for_decl(assigner: &mut Assigner, decl: &mut CallableDecl) -> Vec<Error> {
+    let mut pass = SpecImplPass {
+        assigner,
+        errors: Vec::new(),
+    };
+    pass.visit_callable_decl(decl);
     pass.errors
 }
 

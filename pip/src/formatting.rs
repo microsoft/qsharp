@@ -3,7 +3,7 @@
 
 use num_bigint::BigUint;
 use num_complex::{Complex, Complex64, ComplexFloat};
-use qsc_eval::output::{Error, Receiver};
+use qsc::interpret::output::{Error, Receiver};
 
 pub struct DisplayableState(Vec<(BigUint, Complex64)>, usize);
 

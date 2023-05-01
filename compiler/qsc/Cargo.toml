@@ -12,7 +12,11 @@ license.workspace = true
 [dependencies]
 clap = { workspace = true, features = ["derive"] }
 miette = { workspace = true, features = ["fancy"] }
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
 qsc_codegen = { path = "../qsc_codegen" }
+qsc_data_structures = { path = "../qsc_data_structures" }
+qsc_eval = { path = "../qsc_eval" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
@@ -20,6 +24,7 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
+indoc = { workspace = true }
 
 [[bench]]
 name = "nqueens"
@@ -28,7 +33,3 @@ harness = false
 [[bench]]
 name = "library"
 harness = false
-
-[[bin]]
-name = "qsc"
-bench = false
