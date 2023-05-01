@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use katas::run_kata;
+use katas::{run_kata, KATA_ENTRY};
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc_eval::{
-    output,
-    output::{format_state_id, Receiver},
-    stateless::{compile_execution_context, eval_in_context, Error},
+use qsc::{
+    hir::PackageId,
+    interpret::{
+        output::{self, Receiver},
+        stateless,
+    },
+    PackageStore, SourceMap,
 };
-use qsc_frontend::compile::{self, compile, PackageStore};
-use qsc_hir::hir::PackageId;
-use qsc_passes::run_default_passes;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -234,21 +234,15 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     thread_local! {
         static STORE_STD: (PackageStore, PackageId) = {
             let mut store = PackageStore::new();
-            let mut std_unit = compile::std();
-            run_default_passes(&mut std_unit);
-            let std_id = store.insert(std_unit);
-            (store, std_id)
+            let std = store.insert(qsc::compile::std());
+            (store, std)
         };
     }
 
     STORE_STD.with(|(store, std)| {
-        let mut unit = compile(store, [*std], [code], "");
-        let pass_errs = run_default_passes(&mut unit);
-        unit.errors
-            .iter()
-            .map(Into::into)
-            .chain(pass_errs.iter().map(Into::into))
-            .collect()
+        let sources = SourceMap::new([("code".into(), code.into())], None);
+        let (_, errors) = qsc::compile::compile(store, [*std], sources);
+        errors.into_iter().map(|error| (&error).into()).collect()
     })
 }
 
@@ -284,7 +278,7 @@ where
             write!(
                 dump_json,
                 r#""{}": [{}, {}],"#,
-                format_state_id(&state.0, qubit_count),
+                output::format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -293,7 +287,7 @@ where
         write!(
             dump_json,
             r#""{}": [{}, {}]}}}}"#,
-            format_state_id(&last.0, qubit_count),
+            output::format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )
@@ -311,16 +305,17 @@ where
     }
 }
 
-fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), Error>
+fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateless::Error>
 where
     F: Fn(&str),
 {
     let mut out = CallbackReceiver { event_cb };
-    let context = compile_execution_context(true, expr, [code.to_string()]);
+    let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
+    let context = stateless::Context::new(true, sources);
     if let Err(err) = context {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
-        let e = err.0[0].clone();
+        let e = err[0].clone();
         let diag: VSDiagnostic = (&e).into();
         let msg = format!(
             r#"{{"type": "Result", "success": false, "result": {}}}"#,
@@ -331,17 +326,15 @@ where
     }
     let context = context.expect("context should be valid");
     for _ in 0..shots {
-        let result = eval_in_context(&context, &mut out);
+        let result = context.eval(&mut out);
         let mut success = true;
         let msg = match result {
             Ok(value) => format!(r#""{value}""#),
-            Err(err) => {
+            Err(errors) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
-                let e = err.0[0].clone();
                 success = false;
-                let diag: VSDiagnostic = (&e).into();
-                diag.to_string()
+                VSDiagnostic::from(&errors[0]).to_string()
             }
         };
 
@@ -376,16 +369,20 @@ pub fn run(
     }
 }
 
-fn run_kata_exercise_internal<F>(
+fn run_kata_exercise_internal(
     verification_source: &str,
     kata_implementation: &str,
-    event_cb: F,
-) -> Result<bool, Vec<qsc_eval::stateless::Error>>
-where
-    F: Fn(&str),
-{
-    let mut out = CallbackReceiver { event_cb };
-    run_kata([verification_source, kata_implementation], &mut out)
+    event_cb: impl Fn(&str),
+) -> Result<bool, Vec<stateless::Error>> {
+    let sources = SourceMap::new(
+        [
+            ("kata".into(), kata_implementation.into()),
+            ("verifier".into(), verification_source.into()),
+        ],
+        Some(KATA_ENTRY.into()),
+    );
+
+    run_kata(sources, &mut CallbackReceiver { event_cb })
 }
 
 #[wasm_bindgen]
@@ -529,9 +526,7 @@ mod test {
             expr,
             |msg| {
                 assert!(msg.contains(r#""type": "Result", "success": false"#));
-                assert!(msg.contains(
-                    r#""message": "could not compile source code: entry point not found"#
-                ));
+                assert!(msg.contains(r#""message": "entry point not found"#));
                 assert!(msg.contains(r#""start_pos": 0"#));
             },
             1,

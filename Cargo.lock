@@ -445,9 +445,7 @@ name = "katas"
 version = "0.0.0"
 dependencies = [
  "indoc 2.0.0",
- "qsc_eval",
- "qsc_frontend",
- "qsc_passes",
+ "qsc",
 ]
 
 [[package]]
@@ -761,7 +759,7 @@ dependencies = [
 [[package]]
 name = "qir-backend"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=8a7ee42401ef23092c5ecd5e92877948f4b8e017#8a7ee42401ef23092c5ecd5e92877948f4b8e017"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=617fa33e0966579c3ef5cf55ce20c7d2d76c09a7#617fa33e0966579c3ef5cf55ce20c7d2d76c09a7"
 dependencies = [
  "bitvec",
  "ndarray",
@@ -776,7 +774,7 @@ dependencies = [
 [[package]]
 name = "qir-stdlib"
 version = "0.3.0"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=8a7ee42401ef23092c5ecd5e92877948f4b8e017#8a7ee42401ef23092c5ecd5e92877948f4b8e017"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=617fa33e0966579c3ef5cf55ce20c7d2d76c09a7#617fa33e0966579c3ef5cf55ce20c7d2d76c09a7"
 dependencies = [
  "num-bigint",
  "rand",
@@ -788,8 +786,13 @@ version = "0.0.0"
 dependencies = [
  "clap 4.1.8",
  "criterion",
+ "indoc 2.0.0",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc_codegen",
+ "qsc_data_structures",
+ "qsc_eval",
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
@@ -888,10 +891,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
- "qsc_eval",
- "qsc_frontend",
- "qsc_hir",
- "qsc_passes",
+ "qsc",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
@@ -904,26 +904,7 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "pyo3",
- "qsc_ast",
- "qsc_eval",
- "qsc_frontend",
- "qsc_hir",
- "qsc_passes",
-]
-
-[[package]]
-name = "qsi"
-version = "0.0.0"
-dependencies = [
- "clap 4.1.8",
- "miette",
- "num-bigint",
- "num-complex",
- "qsc_ast",
- "qsc_eval",
- "qsc_frontend",
- "qsc_passes",
- "thiserror",
+ "qsc",
 ]
 
 [[package]]

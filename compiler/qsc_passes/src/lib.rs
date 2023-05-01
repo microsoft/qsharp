@@ -7,11 +7,13 @@ pub mod conjugate_invert;
 pub mod entry_point;
 mod invert_block;
 mod logic_sep;
+pub mod loop_unification;
 pub mod replace_qubit_allocation;
 pub mod spec_gen;
 
 use miette::Diagnostic;
-use qsc_frontend::compile::CompileUnit;
+use qsc_frontend::{compile::CompileUnit, incremental::Fragment};
+use qsc_hir::assigner::Assigner;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -38,6 +40,38 @@ pub fn run_default_passes(unit: &mut CompileUnit) -> Vec<Error> {
             .into_iter()
             .map(Error::ConjInvert),
     );
+
+    errors
+}
+
+pub fn run_default_passes_for_fragment(
+    assigner: &mut Assigner,
+    fragment: &mut Fragment,
+) -> Vec<Error> {
+    let mut errors = Vec::new();
+
+    match fragment {
+        Fragment::Stmt(stmt) => {
+            errors.extend(
+                conjugate_invert::invert_conjugate_exprs_for_stmt(assigner, stmt)
+                    .into_iter()
+                    .map(Error::ConjInvert),
+            );
+        }
+        Fragment::Callable(decl) => {
+            errors.extend(
+                spec_gen::generate_specs_for_callable(assigner, decl)
+                    .into_iter()
+                    .map(Error::SpecGen),
+            );
+            errors.extend(
+                conjugate_invert::invert_conjugate_exprs_for_callable(assigner, decl)
+                    .into_iter()
+                    .map(Error::ConjInvert),
+            );
+        }
+        Fragment::Error(_) => {}
+    }
 
     errors
 }

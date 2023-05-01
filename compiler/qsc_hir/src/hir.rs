@@ -934,15 +934,15 @@ fn display_range(
     indent = set_indentation(indent, 1);
     match start {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no start>")?,
+        None => write!(indent, "\n<no start>")?,
     }
     match step {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no step>")?,
+        None => write!(indent, "\n<no step>")?,
     }
     match end {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no stop>")?,
+        None => write!(indent, "\n<no end>")?,
     }
     Ok(())
 }
