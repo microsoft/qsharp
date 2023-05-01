@@ -4,7 +4,7 @@
 use miette::SourceSpan;
 use std::{
     fmt::{self, Display, Formatter},
-    ops::{Bound, Index, RangeBounds},
+    ops::{Add, Bound, Index, RangeBounds},
 };
 
 /// A region between two offsets in an array. Spans are the half-open interval `[lo, hi)`.
@@ -14,6 +14,17 @@ pub struct Span {
     pub lo: usize,
     /// The next offset after the largest offset contained in the span.
     pub hi: usize,
+}
+
+impl Add<usize> for Span {
+    type Output = Self;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        Self {
+            lo: self.lo + rhs,
+            hi: self.hi + rhs,
+        }
+    }
 }
 
 impl Display for Span {

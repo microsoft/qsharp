@@ -153,6 +153,101 @@ fn lit_double_leading_zero() {
 }
 
 #[test]
+fn lit_double_trailing_exp_0() {
+    check(
+        expr,
+        "0e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_trailing_exp_1() {
+    check(
+        expr,
+        "1e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_trailing_dot_trailing_exp() {
+    check(
+        expr,
+        "1.e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 3,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_dot_trailing_exp() {
+    check(
+        expr,
+        "1.2e",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn lit_double_trailing_exp_dot() {
+    check(
+        expr,
+        "1e.",
+        &expect![[r#"
+            Err(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn lit_int_hexadecimal_dot() {
     check(expr, "0x123.45", &expect!["Expr _id_ [0-5]: Lit: Int(291)"]);
 }
@@ -1540,7 +1635,8 @@ fn range_op() {
         "x..y",
         &expect![[r#"
             Expr _id_ [0-4]: Range:
-                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")<no step>
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                <no step>
                 Expr _id_ [3-4]: Path: Path _id_ [3-4] (Ident _id_ [3-4] "y")"#]],
     );
 }
@@ -1565,7 +1661,8 @@ fn range_complex_stop() {
         "0..Length(xs) - 1",
         &expect![[r#"
             Expr _id_ [0-17]: Range:
-                Expr _id_ [0-1]: Lit: Int(0)<no step>
+                Expr _id_ [0-1]: Lit: Int(0)
+                <no step>
                 Expr _id_ [3-17]: BinOp (Sub):
                     Expr _id_ [3-13]: Call:
                         Expr _id_ [3-9]: Path: Path _id_ [3-9] (Ident _id_ [3-9] "Length")
@@ -1583,7 +1680,8 @@ fn range_complex_start() {
             Expr _id_ [0-8]: Range:
                 Expr _id_ [0-5]: BinOp (Add):
                     Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "i")
-                    Expr _id_ [4-5]: Lit: Int(1)<no step>
+                    Expr _id_ [4-5]: Lit: Int(1)
+                <no step>
                 Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "n")"#]],
     );
 }
@@ -1610,7 +1708,9 @@ fn range_start_open() {
         "2...",
         &expect![[r#"
             Expr _id_ [0-4]: Range:
-                Expr _id_ [0-1]: Lit: Int(2)<no step><no stop>"#]],
+                Expr _id_ [0-1]: Lit: Int(2)
+                <no step>
+                <no end>"#]],
     );
 }
 
@@ -1622,7 +1722,8 @@ fn range_start_step_open() {
         &expect![[r#"
             Expr _id_ [0-7]: Range:
                 Expr _id_ [0-1]: Lit: Int(3)
-                Expr _id_ [3-4]: Lit: Int(2)<no stop>"#]],
+                Expr _id_ [3-4]: Lit: Int(2)
+                <no end>"#]],
     );
 }
 
@@ -1632,7 +1733,9 @@ fn range_open_stop() {
         expr,
         "...2",
         &expect![[r#"
-            Expr _id_ [0-4]: Range:<no start><no step>
+            Expr _id_ [0-4]: Range:
+                <no start>
+                <no step>
                 Expr _id_ [3-4]: Lit: Int(2)"#]],
     );
 }
@@ -1643,7 +1746,8 @@ fn range_open_step_stop() {
         expr,
         "...2..3",
         &expect![[r#"
-            Expr _id_ [0-7]: Range:<no start>
+            Expr _id_ [0-7]: Range:
+                <no start>
                 Expr _id_ [3-4]: Lit: Int(2)
                 Expr _id_ [6-7]: Lit: Int(3)"#]],
     );
@@ -1655,8 +1759,10 @@ fn range_open_step_open() {
         expr,
         "...2...",
         &expect![[r#"
-            Expr _id_ [0-7]: Range:<no start>
-                Expr _id_ [3-4]: Lit: Int(2)<no stop>"#]],
+            Expr _id_ [0-7]: Range:
+                <no start>
+                Expr _id_ [3-4]: Lit: Int(2)
+                <no end>"#]],
     );
 }
 

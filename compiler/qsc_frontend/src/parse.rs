@@ -30,18 +30,37 @@ pub(super) enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),
+    #[error("invalid {0} literal")]
+    Lit(&'static str, #[label] Span),
     #[error("expected {0}, found {1}")]
-    Token(TokenKind, TokenKind, #[label("expected {0}")] Span),
+    Token(TokenKind, TokenKind, #[label] Span),
     #[error("expected keyword `{0}`, found {1}")]
-    Keyword(Keyword, TokenKind, #[label("expected keyword `{0}`")] Span),
+    Keyword(Keyword, TokenKind, #[label] Span),
     #[error("expected {0}, found {1}")]
-    Rule(&'static str, TokenKind, #[label("expected {0}")] Span),
+    Rule(&'static str, TokenKind, #[label] Span),
     #[error("expected {0}, found keyword `{1}`")]
-    RuleKeyword(&'static str, Keyword, #[label("expected {0}")] Span),
+    RuleKeyword(&'static str, Keyword, #[label] Span),
     #[error("expected {0}, found {1}")]
-    Convert(&'static str, &'static str, #[label("expected {0}")] Span),
+    Convert(&'static str, &'static str, #[label] Span),
     #[error("expected statement to end with a semicolon")]
-    MissingSemi(#[label("expected semicolon")] Span),
+    MissingSemi(#[label] Span),
+}
+
+impl Error {
+    pub(super) fn with_offset(self, offset: usize) -> Self {
+        match self {
+            Self::Lex(error) => Self::Lex(error.with_offset(offset)),
+            Self::Lit(name, span) => Self::Lit(name, span + offset),
+            Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
+            Self::Keyword(keyword, token, span) => Self::Keyword(keyword, token, span + offset),
+            Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
+            Self::RuleKeyword(name, keyword, span) => {
+                Self::RuleKeyword(name, keyword, span + offset)
+            }
+            Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
+            Self::MissingSemi(span) => Self::MissingSemi(span + offset),
+        }
+    }
 }
 
 pub(super) type Result<T> = result::Result<T, Error>;

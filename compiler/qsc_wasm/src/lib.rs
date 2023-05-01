@@ -1,21 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use katas::run_kata;
+use katas::{run_kata, KATA_ENTRY};
+use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use once_cell::sync::OnceCell;
-use qsc_eval::{
-    output,
-    output::{format_state_id, Receiver},
-    stateless::{compile_execution_context, eval_in_context, Error},
+use qsc::{
+    hir::PackageId,
+    interpret::{
+        output::{self, Receiver},
+        stateless,
+    },
+    PackageStore, SourceMap,
 };
-use qsc_frontend::compile::{compile, std, PackageId, PackageStore};
-
-use miette::{Diagnostic, Severity};
-use qsc_passes::run_default_passes;
 use serde::{Deserialize, Serialize};
-use std::fmt::Write;
+use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
 // These definitions match the values expected by VS Code and Monaco.
@@ -212,8 +211,15 @@ where
         let label = err.labels().and_then(|mut ls| ls.next());
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
-        let message = err.to_string();
         let severity = err.severity().unwrap_or(Severity::Error);
+
+        let mut message = err.to_string();
+        for source in iter::successors(err.source(), |e| e.source()) {
+            write!(message, ": {source}").expect("message should be writable");
+        }
+        if let Some(help) = err.help() {
+            write!(message, "\n\nhelp: {help}").expect("message should be writable");
+        }
 
         VSDiagnostic {
             start_pos: offset,
@@ -225,27 +231,19 @@ where
 }
 
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
-    static STDLIB_STORE: OnceCell<(PackageId, PackageStore)> = OnceCell::new();
-    let (std, ref store) = STDLIB_STORE.get_or_init(|| {
-        let mut store = PackageStore::new();
-        let mut std = std();
-        run_default_passes(&mut std);
-        let std = store.insert(std);
-        (std, store)
-    });
-    let mut unit = compile(store, [*std], [code], "");
-    let pass_errs = run_default_passes(&mut unit);
-
-    let mut result: Vec<VSDiagnostic> = vec![];
-
-    for err in unit.context.errors() {
-        result.push(err.into());
-    }
-    for err in &pass_errs {
-        result.push(err.into());
+    thread_local! {
+        static STORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new();
+            let std = store.insert(qsc::compile::std());
+            (store, std)
+        };
     }
 
-    result
+    STORE_STD.with(|(store, std)| {
+        let sources = SourceMap::new([("code".into(), code.into())], None);
+        let (_, errors) = qsc::compile::compile(store, [*std], sources);
+        errors.into_iter().map(|error| (&error).into()).collect()
+    })
 }
 
 #[wasm_bindgen]
@@ -280,7 +278,7 @@ where
             write!(
                 dump_json,
                 r#""{}": [{}, {}],"#,
-                format_state_id(&state.0, qubit_count),
+                output::format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -289,7 +287,7 @@ where
         write!(
             dump_json,
             r#""{}": [{}, {}]}}}}"#,
-            format_state_id(&last.0, qubit_count),
+            output::format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )
@@ -298,7 +296,7 @@ where
         Ok(())
     }
 
-    fn message(&mut self, msg: String) -> Result<(), output::Error> {
+    fn message(&mut self, msg: &str) -> Result<(), output::Error> {
         let mut msg_str = String::new();
         write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
             .expect("Writing to a string should succeed");
@@ -307,16 +305,17 @@ where
     }
 }
 
-fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), Error>
+fn run_internal<F>(code: &str, expr: &str, event_cb: F, shots: u32) -> Result<(), stateless::Error>
 where
     F: Fn(&str),
 {
     let mut out = CallbackReceiver { event_cb };
-    let context = compile_execution_context(true, expr, [code.to_string()]);
+    let sources = SourceMap::new([("code".into(), code.into())], Some(expr.into()));
+    let context = stateless::Context::new(true, sources);
     if let Err(err) = context {
         // TODO: handle multiple errors
         // https://github.com/microsoft/qsharp/issues/149
-        let e = err.0[0].clone();
+        let e = err[0].clone();
         let diag: VSDiagnostic = (&e).into();
         let msg = format!(
             r#"{{"type": "Result", "success": false, "result": {}}}"#,
@@ -327,17 +326,15 @@ where
     }
     let context = context.expect("context should be valid");
     for _ in 0..shots {
-        let result = eval_in_context(&context, &mut out);
+        let result = context.eval(&mut out);
         let mut success = true;
         let msg = match result {
             Ok(value) => format!(r#""{value}""#),
-            Err(err) => {
+            Err(errors) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
-                let e = err.0[0].clone();
                 success = false;
-                let diag: VSDiagnostic = (&e).into();
-                diag.to_string()
+                VSDiagnostic::from(&errors[0]).to_string()
             }
         };
 
@@ -372,16 +369,20 @@ pub fn run(
     }
 }
 
-fn run_kata_exercise_internal<F>(
+fn run_kata_exercise_internal(
     verification_source: &str,
     kata_implementation: &str,
-    event_cb: F,
-) -> Result<bool, Vec<qsc_eval::stateless::Error>>
-where
-    F: Fn(&str),
-{
-    let mut out = CallbackReceiver { event_cb };
-    run_kata([verification_source, kata_implementation], &mut out)
+    event_cb: impl Fn(&str),
+) -> Result<bool, Vec<stateless::Error>> {
+    let sources = SourceMap::new(
+        [
+            ("kata".into(), kata_implementation.into()),
+            ("verifier".into(), verification_source.into()),
+        ],
+        Some(KATA_ENTRY.into()),
+    );
+
+    run_kata(sources, &mut CallbackReceiver { event_cb })
 }
 
 #[wasm_bindgen]
@@ -394,6 +395,8 @@ pub fn run_kata_exercise(
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     }) {
         Ok(v) => Ok(JsValue::from_bool(v)),
+        // TODO: Unify with the 'run' code. Failure of user code is not 'exceptional', and
+        // should be reported with a Result event (also for success) and not an exception.
         Err(e) => {
             // TODO: Handle multiple errors.
             let first_error = e
@@ -415,7 +418,7 @@ mod test {
 
         assert_eq!(err.start_pos, 32);
         assert_eq!(err.end_pos, 33);
-        assert_eq!(err.message, "missing type in item signature");
+        assert_eq!(err.message, "type error: missing type in item signature\n\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]
@@ -459,7 +462,10 @@ mod test {
         let error = errors.first().unwrap();
         assert_eq!(error.start_pos, 111);
         assert_eq!(error.end_pos, 117);
-        assert_eq!(error.message, "mismatched types");
+        assert_eq!(
+            error.message,
+            "type error: expected (Double, Qubit), found Qubit"
+        );
     }
 
     #[test]
@@ -506,7 +512,7 @@ mod test {
     }
 
     #[test]
-    fn test_mising_entrypoint() {
+    fn test_missing_entrypoint() {
         let code = "namespace Sample {
             operation main() : Result[] {
                 use q1 = Qubit();
@@ -518,10 +524,10 @@ mod test {
         let result = crate::run_internal(
             code,
             expr,
-            |_msg_| {
-                assert!(_msg_.contains(r#""type": "Result", "success": false"#));
-                assert!(_msg_.contains(r#""message": "entry point not found""#));
-                assert!(_msg_.contains(r#""start_pos": 0"#));
+            |msg| {
+                assert!(msg.contains(r#""type": "Result", "success": false"#));
+                assert!(msg.contains(r#""message": "entry point not found"#));
+                assert!(msg.contains(r#""start_pos": 0"#));
             },
             1,
         );

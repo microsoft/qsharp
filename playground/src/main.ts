@@ -3,13 +3,12 @@
 
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
-import {
-    init, getCompletions, checkCode, evaluate, eventStringToMsg,
-    renderDump, IDiagnostic, ShotResult
-} from "qsharp/browser";
-
-import { generateHistogramData, generateHistogramSvg, sampleData } from "./histogram.js";
+import { getCompilerWorker, loadWasmModule, ShotResult, renderDump, VSDiagnostic, QscEventTarget } from "qsharp";
+import { generateHistogramData, generateHistogramSvg } from "./histogram.js";
+import { base64ToCode, codeToBase64 } from "./utils.js";
 import { PopulateKatasList, RenderKatas } from "./katas.js";
+
+const wasmPromise = loadWasmModule("libs/qsharp/qsc_wasm_bg.wasm");
 
 const sampleCode = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
@@ -26,6 +25,9 @@ const sampleCode = `namespace Sample {
         let m1 = M(q1);
         let m2 = M(q2);
 
+        Reset(q1);
+        Reset(q2);
+
         return [m1, m2];
     }
 }
@@ -40,9 +42,9 @@ let editor: monaco.editor.IStandaloneCodeEditor;
 
 // Helpers to turn errors into editor squiggles
 let currentsquiggles: string[] = [];
-function squiggleDiagnostics(errors: IDiagnostic[]) {
+function squiggleDiagnostics(errors: VSDiagnostic[]) {
     let srcModel = editor.getModel()!;
-    let newDecorations = errors.map(err => {
+    let newDecorations = errors?.map(err => {
         let startPos = srcModel.getPositionAt(err.start_pos);
         let endPos = srcModel.getPositionAt(err.end_pos);
         let range = monaco.Range.fromPositions(startPos, endPos);
@@ -52,12 +54,14 @@ function squiggleDiagnostics(errors: IDiagnostic[]) {
         }
         return decoration;
     });
-    currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations);
+    currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations || []);
 }
 
 // This runs after the Monaco editor is initialized
 async function loaded() {
-    await init(`libs/qsharp/qsc_wasm_bg.wasm`);
+    await wasmPromise; // Ensure the Wasm Module is done loading
+    const evtHander = new QscEventTarget(true);
+    const compiler = await getCompilerWorker("libs/worker.js");
 
     // Assign the various UI controls into variables
     let editorDiv = document.querySelector('#editor') as HTMLDivElement;
@@ -74,18 +78,28 @@ async function loaded() {
     // If URL is a sharing link, populate the editor with the code from the link. 
     // Otherwise, populate with sample code.
     const params = new URLSearchParams(window.location.search);
-    const code = params.get("code") ? window.atob(params.get("code")!) : sampleCode;
+
+    let code = sampleCode;
+    if (params.get("code")) {
+        const base64code = decodeURIComponent(params.get("code")!);
+        code = base64ToCode(base64code);
+    }
 
     let srcModel = monaco.editor.createModel(code, 'qsharp');
     editor.setModel(srcModel);
 
     // As code is edited check it for errors and update the error list
-    function check() {
+    async function check() {
+        // TODO: As this is async, code may be being edited while earlier check calls are still running.
+        // Need to ensure that if this occurs, wait and try again on the next animation frame.
+        // i.e. Don't queue a bunch of checks if some are still outstanding
         diagnosticsFrame = 0;
         let code = srcModel.getValue();
-        let errs = checkCode(code);
+        let errs = await compiler.checkCode(code);
         errorsDiv.innerText = JSON.stringify(errs, null, 2);
 
+        // Note that as this is async, the code may have changed since checkCode was called.
+        // TODO: Account for this scenario (e.g. delta positions with old source version)
         squiggleDiagnostics(errs);
         errs.length ?
             runButton.setAttribute("disabled", "true") : runButton.removeAttribute("disabled");
@@ -104,7 +118,10 @@ async function loaded() {
     window.addEventListener('resize', _ => editor.layout());
 
     // Try to evaluate the code when the run button is clicked
-    runButton.addEventListener('click', _ => {
+    runButton.addEventListener('click', async _ => {
+        // TODO: Handle if compiler is already running.
+        // TODO: Make the editor read only while code is running. (Maybe?) Perhaps
+        // the simulator and the editor intellisense should run in different workers?
         let code = srcModel.getValue();
         let expr = exprInput.value;
         let shots = parseInt(shotCount.value);
@@ -115,38 +132,15 @@ async function loaded() {
             result: "pending",
             events: []
         };
-        runResults = [];
-
-        let event_cb = (ev: string) => {
-            let result = eventStringToMsg(ev);
-            if (!result) {
-                console.error("Unrecognized message: " + ev);
-                return;
-            }
-            switch (result.type) {
-                case "Result":
-                    currentShotResult.success = result.success;
-                    currentShotResult.result = result.result;
-
-                    // Push this result and prep for the next
-                    runResults.push(currentShotResult);
-                    currentShotResult = { success: false, result: "pending", events: [] };
-                    break;
-                case "Message":
-                    currentShotResult.events.push(result);
-                    break;
-                case "DumpMachine":
-                    currentShotResult.events.push(result);
-                    break;
-            }
-        }
 
         try {
             performance.mark("start-shots");
-            let result = evaluate(code, expr, event_cb, shots);
+            evtHander.clearResults();
+            // TODO: Update the handler to show results as they come in.
+            await compiler.run(code, expr, shots, evtHander);
+            runResults = evtHander.getResults();
         } catch (e: any) {
             // TODO: Should only happen on crash. Telmetry?
-
         }
         performance.mark("end-shots");
         let measure = performance.measure("shots-duration", "start-shots", "end-shots");
@@ -160,17 +154,18 @@ async function loaded() {
             // @ts-ignore : This is required in the defintion, but not needed.
             var range: monaco.IRange = undefined;
 
-            let result = getCompletions();
-
-            let mapped: monaco.languages.CompletionList = {
-                suggestions: result.items.map(item => ({
-                    label: item.label,
-                    kind: item.kind, // TODO: Monaco seems to use different values than VS Code.
-                    insertText: item.label,
-                    range
-                }))
-            };
-            return mapped;
+            // TODO: CancellationToken
+            return compiler.getCompletions().then(rawList => {
+                let mapped: monaco.languages.CompletionList = {
+                    suggestions: rawList?.items?.map(item => ({
+                        label: item.label,
+                        kind: item.kind, // TODO: Monaco seems to use different values than VS Code.
+                        insertText: item.label,
+                        range
+                    }))
+                };
+                return mapped;
+            });
         }
     });
 
@@ -186,10 +181,11 @@ async function loaded() {
 
     shareButton.addEventListener('click', _ => {
         const code = srcModel.getValue();
-        // Note: btoa does not work with non-ASCII characters.
-        const encodedCode = window.btoa(code);
+        const encodedCode = codeToBase64(code);
+        const escapedCode = encodeURIComponent(encodedCode);
+
         // Get current URL without query parameters to use as the base URL
-        const newUrl = `${window.location.href.split('?')[0]}?code=${encodedCode}`;
+        const newUrl = `${window.location.href.split('?')[0]}?code=${escapedCode}`;
         // Copy link to clipboard and update url without reloading the page
         navigator.clipboard.writeText(newUrl);
         window.history.pushState({}, '', newUrl);
@@ -198,7 +194,7 @@ async function loaded() {
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/
-function resultToKet(result: string | IDiagnostic): string {
+function resultToKet(result: string | VSDiagnostic): string {
     if (typeof result !== 'string') return "ERROR";
 
     if (reKetResult.test(result)) {

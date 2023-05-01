@@ -6,30 +6,30 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_eval::output::Receiver;
-use qsc_eval::stateless::eval;
-use qsc_eval::val::Value;
+use qsc::{
+    interpret::{output::Receiver, stateless, Value},
+    SourceMap,
+};
 
-const KATA_VERIFY: &str = "Kata.Verify()";
+pub const KATA_ENTRY: &str = "Kata.Verify()";
 
 /// # Errors
+///
 /// Returns a vector of errors if compilation or evaluation failed.
 ///
 /// # Panics
 ///
-/// Will panic if Kata.Verify() does not return a Bool as result.
+/// Will panic if evaluation does not return a boolean as result.
 pub fn run_kata(
-    sources: impl IntoIterator<Item = impl AsRef<str>>,
+    sources: SourceMap,
     receiver: &mut impl Receiver,
-) -> Result<bool, Vec<qsc_eval::stateless::Error>> {
-    // Return false if compilation or evaluation failed.
-    // If evaluation succeeded, the result value must be a Bool and that's the value we should return.
-    let stdlib = true;
-    match eval(stdlib, KATA_VERIFY, receiver, sources) {
-        Ok(value) => match value {
-            Value::Bool(value) => Ok(value),
-            _ => panic!("{KATA_VERIFY} did not return a Bool value."),
-        },
-        Err(errors) => Err(errors.0),
-    }
+) -> Result<bool, Vec<stateless::Error>> {
+    let context = stateless::Context::new(true, sources)?;
+    context.eval(receiver).map(|value| {
+        if let Value::Bool(success) = value {
+            success
+        } else {
+            panic!("kata did not return a boolean")
+        }
+    })
 }

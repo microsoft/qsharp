@@ -1,9 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::{
+    resolve::{self, Resolutions},
+    typeck::{convert, Tys},
+};
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::{assigner::Assigner, hir};
+use qsc_hir::{
+    assigner::Assigner,
+    hir::{self, LocalItemId},
+};
+use std::clone::Clone;
 
 pub(super) struct Lowerer {
     assigner: Assigner,
@@ -18,60 +26,101 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn get_id(&self, id: ast::NodeId) -> Option<hir::NodeId> {
-        self.nodes.get(id).copied()
+    pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions, tys: &'a Tys) -> With {
+        With {
+            lowerer: self,
+            resolutions,
+            tys,
+        }
     }
 
     pub(super) fn into_assigner(self) -> Assigner {
         self.assigner
     }
 
+    pub(super) fn assigner_mut(&mut self) -> &mut Assigner {
+        &mut self.assigner
+    }
+}
+
+pub(super) struct With<'a> {
+    lowerer: &'a mut Lowerer,
+    resolutions: &'a Resolutions,
+    tys: &'a Tys,
+}
+
+impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
+        let mut items = IndexMap::new();
+        for namespace in &package.namespaces {
+            let Some(&resolve::Res::Item(hir::ItemId {
+                item: namespace_id, ..
+            })) = self.resolutions.get(namespace.name.id) else {
+                panic!("namespace should have item ID");
+            };
+
+            let mut namespace_items = Vec::new();
+            for item in &namespace.items {
+                if let Some(item) = self.lower_item(namespace_id, item) {
+                    namespace_items.push(item.id);
+                    items.insert(item.id, item);
+                }
+            }
+
+            items.insert(
+                namespace_id,
+                self.lower_namespace(namespace_id, namespace_items, namespace),
+            );
+        }
+
         hir::Package {
-            id: self.lower_id(package.id),
-            namespaces: package
-                .namespaces
-                .iter()
-                .map(|n| self.lower_namespace(n))
-                .collect(),
+            items,
             entry: package.entry.as_ref().map(|e| self.lower_expr(e)),
         }
     }
 
-    fn lower_namespace(&mut self, namespace: &ast::Namespace) -> hir::Namespace {
-        hir::Namespace {
-            id: self.lower_id(namespace.id),
+    fn lower_namespace(
+        &mut self,
+        id: LocalItemId,
+        items: Vec<LocalItemId>,
+        namespace: &ast::Namespace,
+    ) -> hir::Item {
+        hir::Item {
+            id,
             span: namespace.span,
-            name: self.lower_ident(&namespace.name),
-            items: namespace.items.iter().map(|i| self.lower_item(i)).collect(),
+            parent: None,
+            attrs: Vec::new(),
+            visibility: None,
+            kind: hir::ItemKind::Namespace(self.lower_ident(&namespace.name), items),
         }
     }
 
-    fn lower_item(&mut self, item: &ast::Item) -> hir::Item {
-        let id = self.lower_id(item.id);
+    fn lower_item(&mut self, parent: LocalItemId, item: &ast::Item) -> Option<hir::Item> {
         let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let kind = match &item.kind {
-            ast::ItemKind::Callable(decl) => {
-                hir::ItemKind::Callable(self.lower_callable_decl(decl))
-            }
-            ast::ItemKind::Err => hir::ItemKind::Err,
-            ast::ItemKind::Open(name, alias) => hir::ItemKind::Open(
-                self.lower_ident(name),
-                alias.as_ref().map(|a| self.lower_ident(a)),
+        let (name_id, kind) = match &item.kind {
+            ast::ItemKind::Callable(decl) => (
+                decl.name.id,
+                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
             ),
-            ast::ItemKind::Ty(name, def) => {
-                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def))
-            }
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            ast::ItemKind::Ty(name, def) => (
+                name.id,
+                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def)),
+            ),
         };
 
-        hir::Item {
+        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) = self.resolutions.get(name_id)
+            else { panic!("item should have item ID"); };
+
+        Some(hir::Item {
             id,
             span: item.span,
+            parent: Some(parent),
             attrs,
             visibility,
             kind,
-        }
+        })
     }
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> hir::Attr {
@@ -102,7 +151,7 @@ impl Lowerer {
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(&decl.input),
-            output: self.lower_ty(&decl.output),
+            output: convert::ty_from_ast(self.resolutions, &decl.output).0,
             functors: decl.functors.as_ref().map(|f| self.lower_functor_expr(f)),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
@@ -147,7 +196,7 @@ impl Lowerer {
             kind: match &def.kind {
                 ast::TyDefKind::Field(name, ty) => hir::TyDefKind::Field(
                     name.as_ref().map(|n| self.lower_ident(n)),
-                    self.lower_ty(ty),
+                    convert::ty_from_ast(self.resolutions, ty).0,
                 ),
                 ast::TyDefKind::Paren(inner) => {
                     hir::TyDefKind::Paren(Box::new(self.lower_ty_def(inner)))
@@ -182,45 +231,11 @@ impl Lowerer {
         }
     }
 
-    fn lower_ty(&mut self, ty: &ast::Ty) -> hir::Ty {
-        let id = self.lower_id(ty.id);
-        let kind = match &ty.kind {
-            ast::TyKind::Array(item) => hir::TyKind::Array(Box::new(self.lower_ty(item))),
-            ast::TyKind::Arrow(kind, input, output, functors) => hir::TyKind::Arrow(
-                lower_callable_kind(*kind),
-                Box::new(self.lower_ty(input)),
-                Box::new(self.lower_ty(output)),
-                functors.as_ref().map(|f| self.lower_functor_expr(f)),
-            ),
-            ast::TyKind::Hole => hir::TyKind::Hole,
-            ast::TyKind::Paren(inner) => hir::TyKind::Paren(Box::new(self.lower_ty(inner))),
-            ast::TyKind::Path(path) => hir::TyKind::Path(self.lower_path(path)),
-            ast::TyKind::Prim(ast::TyPrim::BigInt) => hir::TyKind::Prim(hir::TyPrim::BigInt),
-            ast::TyKind::Prim(ast::TyPrim::Bool) => hir::TyKind::Prim(hir::TyPrim::Bool),
-            ast::TyKind::Prim(ast::TyPrim::Double) => hir::TyKind::Prim(hir::TyPrim::Double),
-            ast::TyKind::Prim(ast::TyPrim::Int) => hir::TyKind::Prim(hir::TyPrim::Int),
-            ast::TyKind::Prim(ast::TyPrim::Pauli) => hir::TyKind::Prim(hir::TyPrim::Pauli),
-            ast::TyKind::Prim(ast::TyPrim::Qubit) => hir::TyKind::Prim(hir::TyPrim::Qubit),
-            ast::TyKind::Prim(ast::TyPrim::Range) => hir::TyKind::Prim(hir::TyPrim::Range),
-            ast::TyKind::Prim(ast::TyPrim::Result) => hir::TyKind::Prim(hir::TyPrim::Result),
-            ast::TyKind::Prim(ast::TyPrim::String) => hir::TyKind::Prim(hir::TyPrim::String),
-            ast::TyKind::Tuple(tys) => {
-                hir::TyKind::Tuple(tys.iter().map(|t| self.lower_ty(t)).collect())
-            }
-            ast::TyKind::Var(name) => hir::TyKind::Var(self.lower_ident(name)),
-        };
-
-        hir::Ty {
-            id,
-            span: ty.span,
-            kind,
-        }
-    }
-
     fn lower_block(&mut self, block: &ast::Block) -> hir::Block {
         hir::Block {
             id: self.lower_id(block.id),
             span: block.span,
+            ty: self.tys.get(block.id).map_or(hir::Ty::Err, Clone::clone),
             stmts: block.stmts.iter().map(|s| self.lower_stmt(s)).collect(),
         }
     }
@@ -259,6 +274,7 @@ impl Lowerer {
 
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
         let id = self.lower_id(expr.id);
+        let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
         let kind = match &expr.kind {
             ast::ExprKind::Array(items) => {
                 hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
@@ -297,7 +313,9 @@ impl Lowerer {
             ast::ExprKind::Err => hir::ExprKind::Err,
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
-                hir::ExprKind::Field(Box::new(self.lower_expr(container)), self.lower_ident(name))
+                let container = self.lower_expr(container);
+                let field = name.name.parse().unwrap_or_default();
+                hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
                 self.lower_pat(pat),
@@ -321,7 +339,7 @@ impl Lowerer {
             ),
             ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
             ast::ExprKind::Paren(inner) => hir::ExprKind::Paren(Box::new(self.lower_expr(inner))),
-            ast::ExprKind::Path(path) => hir::ExprKind::Path(self.lower_path(path)),
+            ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
                 step.as_ref().map(|s| Box::new(self.lower_expr(s))),
@@ -353,20 +371,21 @@ impl Lowerer {
         hir::Expr {
             id,
             span: expr.span,
+            ty,
             kind,
         }
     }
 
     fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
         let id = self.lower_id(pat.id);
+        let ty = self.tys.get(pat.id).map_or_else(
+            || convert::ast_pat_ty(self.resolutions, pat).0,
+            Clone::clone,
+        );
+
         let kind = match &pat.kind {
-            ast::PatKind::Bind(name, ty) => hir::PatKind::Bind(
-                self.lower_ident(name),
-                ty.as_ref().map(|t| self.lower_ty(t)),
-            ),
-            ast::PatKind::Discard(ty) => {
-                hir::PatKind::Discard(ty.as_ref().map(|t| self.lower_ty(t)))
-            }
+            ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
+            ast::PatKind::Discard(_) => hir::PatKind::Discard,
             ast::PatKind::Elided => hir::PatKind::Elided,
             ast::PatKind::Paren(inner) => hir::PatKind::Paren(Box::new(self.lower_pat(inner))),
             ast::PatKind::Tuple(items) => {
@@ -377,12 +396,14 @@ impl Lowerer {
         hir::Pat {
             id,
             span: pat.span,
+            ty,
             kind,
         }
     }
 
     fn lower_qubit_init(&mut self, init: &ast::QubitInit) -> hir::QubitInit {
         let id = self.lower_id(init.id);
+        let ty = self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone);
         let kind = match &init.kind {
             ast::QubitInitKind::Array(length) => {
                 hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))
@@ -399,16 +420,16 @@ impl Lowerer {
         hir::QubitInit {
             id,
             span: init.span,
+            ty,
             kind,
         }
     }
 
-    fn lower_path(&mut self, path: &ast::Path) -> hir::Path {
-        hir::Path {
-            id: self.lower_id(path.id),
-            span: path.span,
-            namespace: path.namespace.as_ref().map(|n| self.lower_ident(n)),
-            name: self.lower_ident(&path.name),
+    fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
+        match self.resolutions.get(path.id) {
+            Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
+            Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
+            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) | None => hir::Res::Err,
         }
     }
 
@@ -421,9 +442,11 @@ impl Lowerer {
     }
 
     fn lower_id(&mut self, id: ast::NodeId) -> hir::NodeId {
-        let new_id = self.assigner.next_id();
-        self.nodes.insert(id, new_id);
-        new_id
+        self.lowerer.nodes.get(id).copied().unwrap_or_else(|| {
+            let new_id = self.lowerer.assigner.next_id();
+            self.lowerer.nodes.insert(id, new_id);
+            new_id
+        })
     }
 }
 

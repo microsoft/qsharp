@@ -3,21 +3,18 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore, SourceMap};
 
 use crate::entry_point::extract_entry;
 
 fn check(file: &str, expr: &str, expect: &Expect) {
-    let unit = compile(&PackageStore::new(), [], [file], expr);
-    assert!(
-        unit.context.errors().is_empty(),
-        "Compilation errors: {:?}",
-        unit.context.errors()
-    );
-    let res = extract_entry(&unit.package);
-    match res {
-        Ok(result) => expect.assert_eq(&result.to_string()),
-        Err(e) => expect.assert_debug_eq(&e),
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let unit = compile(&PackageStore::new(), [], sources);
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+
+    match extract_entry(&unit.package) {
+        Ok(entry) => expect.assert_eq(&entry.to_string()),
+        Err(errors) => expect.assert_debug_eq(&errors),
     }
 }
 
@@ -31,10 +28,10 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr _id_ [0-0]: Expr Block: Block 11 [62-72]:
-                Stmt 12 [64-70]: Expr: Expr 13 [64-70]: BinOp (Add):
-                    Expr 14 [64-66]: Lit: Int(41)
-                    Expr 15 [69-70]: Lit: Int(1)"#]],
+            Expr _id_ [0-0] [Type Int]: Expr Block: Block 6 [62-72] [Type Int]:
+                Stmt 7 [64-70]: Expr: Expr 8 [64-70] [Type Int]: BinOp (Add):
+                    Expr 9 [64-66] [Type Int]: Lit: Int(41)
+                    Expr 10 [69-70] [Type Int]: Lit: Int(1)"#]],
     );
 }
 
