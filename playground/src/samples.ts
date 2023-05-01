@@ -3,7 +3,7 @@
 
 // TODO: This should be generated from the /samples directory, not hard-coded.
 
-const main = `namespace Sample {
+const minimal = `namespace Sample {
     open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
@@ -295,7 +295,7 @@ namespace Sample {
 }`
 
 export const samples = {
-    "main": main,
+    "Minimal": minimal,
     "Bell state": bellState,
     "Teleportation": teleportation,
     "Random numbers": qrng,

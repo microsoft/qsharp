@@ -6,7 +6,13 @@ import { useState } from "preact/hooks";
 export function Histogram(props: {data: Map<string, number>, filter: string, onFilter: (filter:string) => void }) {
     const [hoverLabel, setHoverLabel] = useState("");
 
-    let barArray = [...props.data.entries()].sort( (a, b) => a[0] < b[0] ? -1: 1);
+    let barArray = [...props.data.entries()].sort( (a, b) => {
+        // If they can be converted to numbers, then sort as numbers, else lexically
+        const ax = Number(a[0]);
+        const bx = Number(b[0]);
+        if (!isNaN(ax) && !isNaN(bx)) return ax < bx ? -1 : 1;
+        return a[0] < b[0] ? -1: 1
+    });
 
     let totalCount = 0;
     let maxCount = 0;

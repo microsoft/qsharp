@@ -62,7 +62,7 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
     return true;
 }
 
-export function Results(props: {evtTarget: QscEventTarget}) {
+export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean}) {
     const [resultState, setResultState] = useState<ResultsState>(newRunState());
 
     // This is more complex than ideal for performance reasons. During a run, results may be getting
@@ -184,11 +184,14 @@ export function Results(props: {evtTarget: QscEventTarget}) {
 
     return (
 <div class="results-column">
+{ props.showPanel ?
   <div class="results-labels">
     <div class="results-active-tab">RESULTS</div>
     <div>AST</div>
     <div>LOGS</div>
   </div>
+  : null
+}
   { !resultState.shotCount ? null : <>
   {resultState.buckets.size > 1 ? 
   <Histogram data={resultState.buckets} 

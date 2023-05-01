@@ -1,14 +1,15 @@
 # TODO
 
-- Enable katas
 - Honor Start, and disable Run while busy
-- Associate number of shots with each sample
-- Fix width of err message in shot result
+- Fix up Kata formatting and layout
 - Enable code sharing
-- Add zoom and pan to the histogram
-- Fix up squiggles to be proper error markers
-- Show a progress bar as shots run
+- Add zoom and pan to the histogram, and make crowded labels look OK.
 - Handle line breaks in sent JSON properly.
+- Wire up completions and signature help.
+- Fix up squiggles to be proper error markers
+- Format errors in error-list and result nicely.
+- Associate number of shots with each sample
+- Show a progress bar as shots run
 
 Unicode chars that may be suitable for share/reset
 

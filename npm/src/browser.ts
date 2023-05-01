@@ -48,6 +48,7 @@ export function getCompilerWorker(script: string): ICompilerWorker {
 }
 
 export type { ICompilerWorker }
+export { log }
 export { renderDump, exampleDump } from "./state-table.js"
 export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
 export { getAllKatas, getKata, type Kata, type KataItem, type Exercise } from "./katas.js";

@@ -2,9 +2,17 @@
 // Licensed under the MIT License.
 
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ICompilerWorker, QscEventTarget, VSDiagnostic } from "qsharp";
+import { ICompilerWorker, QscEventTarget, VSDiagnostic, log } from "qsharp";
 
-export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarget: QscEventTarget}) {
+export function Editor(props: {
+            code: string,
+            compiler: ICompilerWorker,
+            evtTarget: QscEventTarget,
+            showExpr: boolean,
+            defaultShots: number,
+            showShots: boolean,
+            kataVerify?: string,
+        }) {
     const editorRef = useRef(null);
     const shotsRef = useRef(null);
 
@@ -15,18 +23,19 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
     // Check if the initial code changed (i.e. sample selected) since first created
     // If so, need to load it into the editor and save as the new initial code.
     if (initialCode !== props.code) {
-        editor?.getModel()?.setValue(props.code);
+        editor?.getModel()?.setValue(props.code || "");
         editor?.revealLineNearTop(1);
         setInitialCode(props.code);
     }
 
     // On reset, reload the initial code
     function onReset() {
-        editor?.getModel()?.setValue(initialCode);
+        editor?.getModel()?.setValue(initialCode || "");
     }
 
     useEffect(() => {
         // Create the monaco editor
+        log.info("Creating a monaco editor");
         const editorDiv: HTMLDivElement = editorRef.current as any;
         const editor = monaco.editor.create(editorDiv, {minimap: {enabled: false}, lineNumbersMinChars:3});
         const srcModel = monaco.editor.createModel(props.code, 'qsharp');
@@ -84,16 +93,24 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
             }
         });
 
-        return () => editor.dispose();
+        return () => {
+            log.info("Disposing a monaco editor");
+            editor.dispose();
+        }
     }, []);
 
     async function onRun() {
         const code = editor?.getModel()?.getValue();
         const shotsInput: HTMLInputElement = shotsRef.current as any;
-        const shots = parseInt(shotsInput.value) || 1;
+        const shots = shotsInput ? parseInt(shotsInput.value) || 1 : props.defaultShots;
         if (!code) return;
         props.evtTarget.clearResults();
-        await props.compiler.run(code, "", shots, props.evtTarget);
+        if (props.kataVerify) {
+            // This is for a kata. Provide the verification code.
+            await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
+        } else {
+            await props.compiler.run(code, "", shots, props.evtTarget);
+        }
     }
 
     return (
@@ -107,10 +124,15 @@ export function Editor(props: {code: string, compiler: ICompilerWorker, evtTarge
   </div>
   <div id="editor" ref={editorRef}></div>
   <div id="button-row">
-    <span>Start</span>
-    <input id="expr" value="" />
-    <span>Shots</span>
-    <input id="shot" type="number" value="100" max="1000" min="1" ref={shotsRef}/>
+    { props.showExpr ? <>
+        <span>Start</span>
+        <input id="expr" value="" />
+      </> : null
+    }
+    { props.showShots ? <>
+        <span>Shots</span>
+        <input id="shot" type="number" value={props.defaultShots || 100} max="1000" min="1" ref={shotsRef}/>
+      </> : null}
     <button id="run" class='main-button' onClick={onRun}>Run</button>
   </div>
 { errors.length ? 
