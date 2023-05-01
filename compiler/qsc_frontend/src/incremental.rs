@@ -66,8 +66,8 @@ impl Compiler {
         self.lowerer.assigner_mut()
     }
 
-    pub fn compile_fragments(&mut self, source: &str) -> Vec<Fragment> {
-        let (stmts, errors) = parse::stmts(source);
+    pub fn compile_fragments(&mut self, input: &str) -> Vec<Fragment> {
+        let (fragments, errors) = parse::fragments(input);
         if !errors.is_empty() {
             return vec![Fragment::Error(
                 errors
@@ -77,17 +77,41 @@ impl Compiler {
             )];
         }
 
-        let mut fragments = Vec::new();
-        for stmt in stmts {
-            if let Some(fragment) = self.compile_stmt(stmt) {
-                fragments.push(fragment);
-            }
-            for item in self.lowerer.drain_items() {
-                fragments.push(Fragment::Item(item));
-            }
-        }
-
         fragments
+            .into_iter()
+            .flat_map(|f| self.compile_fragment(f))
+            .collect()
+    }
+
+    fn compile_fragment(&mut self, fragment: parse::Fragment) -> Vec<Fragment> {
+        let fragment = match fragment {
+            parse::Fragment::Namespace(namespace) => {
+                self.compile_namespace(namespace).err().map(Fragment::Error)
+            }
+            parse::Fragment::Stmt(stmt) => self.compile_stmt(stmt),
+        };
+
+        fragment
+            .into_iter()
+            .chain(self.lowerer.drain_items().map(Fragment::Item))
+            .collect()
+    }
+
+    fn compile_namespace(&mut self, mut namespace: ast::Namespace) -> Result<(), Vec<Error>> {
+        self.assigner.visit_namespace(&mut namespace);
+        self.resolver.visit_namespace(&namespace);
+        self.checker
+            .check_namespace(self.resolver.resolutions(), &namespace);
+
+        let errors = self.drain_errors();
+        if errors.is_empty() {
+            self.lowerer
+                .with(self.resolver.resolutions(), self.checker.tys())
+                .lower_namespace(&namespace);
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Option<Fragment> {

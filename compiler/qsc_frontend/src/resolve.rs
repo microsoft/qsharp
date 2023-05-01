@@ -209,13 +209,13 @@ impl Resolver {
         match &item.kind {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias.as_ref()),
             ast::ItemKind::Callable(decl) if !self.resolutions.contains_key(decl.name.id) => {
-                let item_id = self.next_item_id();
+                let item_id = next_item_id(&mut self.next_item_id);
                 self.resolutions.insert(decl.name.id, Res::Item(item_id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), item_id);
             }
             ast::ItemKind::Ty(name, _) if !self.resolutions.contains_key(name.id) => {
-                let item_id = self.next_item_id();
+                let item_id = next_item_id(&mut self.next_item_id);
                 self.resolutions.insert(name.id, Res::Item(item_id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), item_id);
@@ -224,19 +224,27 @@ impl Resolver {
             ast::ItemKind::Callable(..) | ast::ItemKind::Ty(..) | ast::ItemKind::Err => {}
         }
     }
-
-    fn next_item_id(&mut self) -> ItemId {
-        let item_id = ItemId {
-            package: None,
-            item: self.next_item_id,
-        };
-        self.next_item_id = self.next_item_id.successor();
-        item_id
-    }
 }
 
 impl AstVisitor<'_> for Resolver {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
+        if !self.resolutions.contains_key(namespace.name.id) {
+            self.resolutions.insert(
+                namespace.name.id,
+                Res::Item(next_item_id(&mut self.next_item_id)),
+            );
+
+            for item in &namespace.items {
+                bind_global_item(
+                    &mut self.resolutions,
+                    &mut self.globals,
+                    &namespace.name.name,
+                    || next_item_id(&mut self.next_item_id),
+                    item,
+                );
+            }
+        }
+
         let kind = ScopeKind::Namespace(Rc::clone(&namespace.name.name));
         self.with_scope(kind, |resolver| {
             for item in &namespace.items {
@@ -247,11 +255,6 @@ impl AstVisitor<'_> for Resolver {
 
             ast_visit::walk_namespace(resolver, namespace);
         });
-    }
-
-    fn visit_item(&mut self, item: &ast::Item) {
-        self.bind_local_item_if_new(item);
-        ast_visit::walk_item(self, item);
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
@@ -292,7 +295,10 @@ impl AstVisitor<'_> for Resolver {
 
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &stmt.kind {
-            ast::StmtKind::Item(item) => self.visit_item(item),
+            ast::StmtKind::Item(item) => {
+                self.bind_local_item_if_new(item);
+                self.visit_item(item);
+            }
             ast::StmtKind::Local(_, pat, _) => {
                 ast_visit::walk_stmt(self, stmt);
                 self.bind_pat(pat);
@@ -378,37 +384,19 @@ impl GlobalTable {
 
     pub(super) fn add_local_package(&mut self, package: &ast::Package) {
         for namespace in &package.namespaces {
-            let item_id = self.next_item_id();
-            self.resolutions
-                .insert(namespace.name.id, Res::Item(item_id));
+            self.resolutions.insert(
+                namespace.name.id,
+                Res::Item(next_item_id(&mut self.next_item_id)),
+            );
 
             for item in &namespace.items {
-                match &item.kind {
-                    ast::ItemKind::Callable(decl) => {
-                        let res = Res::Item(self.next_item_id());
-                        self.resolutions.insert(decl.name.id, res);
-                        self.scope
-                            .terms
-                            .entry(Rc::clone(&namespace.name.name))
-                            .or_default()
-                            .insert(Rc::clone(&decl.name.name), res);
-                    }
-                    ast::ItemKind::Ty(name, _) => {
-                        let res = Res::Item(self.next_item_id());
-                        self.resolutions.insert(name.id, res);
-                        self.scope
-                            .tys
-                            .entry(Rc::clone(&namespace.name.name))
-                            .or_default()
-                            .insert(Rc::clone(&name.name), res);
-                        self.scope
-                            .terms
-                            .entry(Rc::clone(&namespace.name.name))
-                            .or_default()
-                            .insert(Rc::clone(&name.name), res);
-                    }
-                    ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
-                }
+                bind_global_item(
+                    &mut self.resolutions,
+                    &mut self.scope,
+                    &namespace.name.name,
+                    || next_item_id(&mut self.next_item_id),
+                    item,
+                );
             }
         }
     }
@@ -451,15 +439,50 @@ impl GlobalTable {
             }
         }
     }
+}
 
-    fn next_item_id(&mut self) -> ItemId {
-        let item = ItemId {
-            package: None,
-            item: self.next_item_id,
-        };
-        self.next_item_id = self.next_item_id.successor();
-        item
+fn bind_global_item(
+    resolutions: &mut Resolutions,
+    scope: &mut GlobalScope,
+    namespace: &Rc<str>,
+    next_id: impl FnOnce() -> ItemId,
+    item: &ast::Item,
+) {
+    match &item.kind {
+        ast::ItemKind::Callable(decl) => {
+            let res = Res::Item(next_id());
+            resolutions.insert(decl.name.id, res);
+            scope
+                .terms
+                .entry(Rc::clone(namespace))
+                .or_default()
+                .insert(Rc::clone(&decl.name.name), res);
+        }
+        ast::ItemKind::Ty(name, _) => {
+            let res = Res::Item(next_id());
+            resolutions.insert(name.id, res);
+            scope
+                .tys
+                .entry(Rc::clone(namespace))
+                .or_default()
+                .insert(Rc::clone(&name.name), res);
+            scope
+                .terms
+                .entry(Rc::clone(namespace))
+                .or_default()
+                .insert(Rc::clone(&name.name), res);
+        }
+        ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
     }
+}
+
+fn next_item_id(local_id: &mut LocalItemId) -> ItemId {
+    let item_id = ItemId {
+        package: None,
+        item: *local_id,
+    };
+    *local_id = local_id.successor();
+    item_id
 }
 
 fn resolve(

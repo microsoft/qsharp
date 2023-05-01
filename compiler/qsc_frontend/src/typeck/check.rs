@@ -29,10 +29,6 @@ impl GlobalTable {
         }
     }
 
-    pub(crate) fn add_local_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_package(package);
-    }
-
     pub(crate) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
         for item in package.items.values() {
             let item_id = ItemId {
@@ -84,7 +80,9 @@ impl Checker {
     }
 
     pub(crate) fn check_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
+        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_package(package);
         ItemChecker::new(self, resolutions).visit_package(package);
+
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 resolutions,
@@ -95,11 +93,17 @@ impl Checker {
         }
     }
 
-    pub(crate) fn check_callable_decl(
+    pub(crate) fn check_namespace(
         &mut self,
         resolutions: &Resolutions,
-        decl: &ast::CallableDecl,
+        namespace: &ast::Namespace,
     ) {
+        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors)
+            .visit_namespace(namespace);
+        ItemChecker::new(self, resolutions).visit_namespace(namespace);
+    }
+
+    fn check_callable_decl(&mut self, resolutions: &Resolutions, decl: &ast::CallableDecl) {
         self.tys
             .insert(decl.name.id, convert::ast_callable_ty(resolutions, decl).0);
         self.check_callable_signature(resolutions, decl);
