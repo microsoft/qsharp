@@ -14,11 +14,13 @@ from ._native import (
     Pauli
 )
 
-# Register the IPython magic if we're in an IPython session
+# IPython notebook specific features
 try:
-    if __IPYTHON__: # type: ignore
-        from ._ipython import register_magic
+    if __IPYTHON__:  # type: ignore
+        from ._ipython import (
+            register_magic, enable_classic_notebook_codemirror_mode)
         register_magic()
+        enable_classic_notebook_codemirror_mode()
 except NameError:
     pass
 
