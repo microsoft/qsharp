@@ -12,78 +12,78 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignI (a : Int) : Int {
-        if   (a < 0) { return -1; }
-        elif (a > 0) { return +1; }
-        else         { return  0; }
+        if   (a < 0) { -1 }
+        elif (a > 0) { +1 }
+        else         { 0 }
     }
     
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignD (a : Double) : Int {
-        if   (a < 0.0) { return -1; }
-        elif (a > 0.0) { return +1; }
-        else           { return  0; }
+        if   (a < 0.0) { -1 }
+        elif (a > 0.0) { +1 }
+        else           {  0 }
     }
 
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignL (a : BigInt) : Int {
-        if   (a < 0L) { return -1; }
-        elif (a > 0L) { return +1; }
-        else          { return  0; }
+        if   (a < 0L) { -1 }
+        elif (a > 0L) { +1 }
+        else          {  0 }
     }
 
     /// # Summary
     /// Returns the absolute value of an integer.
     function AbsI (a : Int) : Int {
-        return a < 0 ? -a | a;
+        a < 0 ? -a | a
     }
     
     /// # Summary
     /// Returns the absolute value of a double-precision floating-point number.
     function AbsD (a : Double) : Double {
-        return a < 0.0 ? -a | a;
+        a < 0.0 ? -a | a
     }
 
     /// # Summary
     function AbsL (a : BigInt) : BigInt {
-        return a < 0L ? -a | a;
+        a < 0L ? -a | a
     }
     
     /// # Summary
     /// Returns the larger of two specified numbers.
     function MaxI(a : Int, b : Int) : Int {
-        return a > b ? a | b;
+        a > b ? a | b
     }
 
     /// # Summary
     /// Returns the larger of two specified numbers.
     function MaxD(a : Double, b : Double) : Double {
-        return a > b ? a | b;
+        a > b ? a | b
     }
 
     /// # Summary
     /// Returns the larger of two specified numbers.
     function MaxL (a : BigInt, b : BigInt) : BigInt {
-        return a > b ? a | b;
+        a > b ? a | b
     }
 
     /// # Summary
     /// Returns the smaller of two specified numbers.
     function MinI (a : Int, b : Int) : Int {
-        return a < b ? a | b;
+        a < b ? a | b
     }
 
     /// # Summary
     /// Returns the smaller of two specified numbers.
     function MinD (a : Double, b : Double) : Double {
-        return a < b ? a | b;
+        a < b ? a | b
     }
 
     /// # Summary
     /// Returns the smaller of two specified numbers.
     function MinL(a : BigInt, b : BigInt) : BigInt {
-        return a < b ? a | b;
+        a < b ? a | b
     }
 
     //
@@ -179,20 +179,20 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Computes the inverse hyperbolic cosine of a number.
     function ArcCosh (x : Double) : Double {
-        return Log(x + Sqrt(x * x - 1.0));
+        Log(x + Sqrt(x * x - 1.0))
     }
 
     /// # Summary
     /// Computes the inverse hyperbolic sine of a number.
     function ArcSinh (x : Double) : Double {
-        return Log(x + Sqrt(x * x + 1.0));
+        Log(x + Sqrt(x * x + 1.0))
     }
 
 
     /// # Summary
     /// Computes the inverse hyperbolic tangent of a number.
     function ArcTanh (x : Double) : Double {
-        return Log((1.0 + x) / (1.0 - x)) * 0.5;
+        Log((1.0 + x) / (1.0 - x)) * 0.5
     }
 
     //
@@ -214,13 +214,13 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Returns the base-10 logarithm of a specified number.
     function Log10(input : Double) : Double {
-        return Log(input) / Log(10.0);
+        Log(input) / Log(10.0)
     }
 
     /// # Summary
     /// Computes the base-2 logarithm of a number.
     function Lg(input : Double) : Double {
-        return Log(input) / Log(2.0);
+        Log(input) / Log(2.0)
     }
 
     //
@@ -385,16 +385,7 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// For a non-negative integer `a`, returns the number of bits required to represent `a`.
-    ///
-    /// # Remarks
-    /// This function returns the smallest $n$ such that $a < 2^n$.
-    ///
-    /// # Input
-    /// ## a
-    /// The integer whose bit-size is to be computed.
-    ///
-    /// # Output
-    /// The bit-size of `a`.
+    /// NOTE: This function returns the smallest n such that a < 2^n.
     function BitSizeI(a : Int) : Int {
         Fact(a >= 0, "`a` must be non-negative.");
         mutable number = a;
