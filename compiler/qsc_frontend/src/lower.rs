@@ -60,22 +60,7 @@ pub(super) struct With<'a> {
 impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
         for namespace in &package.namespaces {
-            let Some(&resolve::Res::Item(hir::ItemId {
-                item: namespace_id, ..
-            })) = self.resolutions.get(namespace.name.id) else {
-                panic!("namespace should have item ID");
-            };
-
-            self.lowerer.parent = Some(namespace_id);
-            let items = namespace
-                .items
-                .iter()
-                .filter_map(|i| self.lower_item(i))
-                .collect();
-
-            let namespace = self.lower_namespace(namespace_id, items, namespace);
-            self.lowerer.items.push(namespace);
-            self.lowerer.parent = None;
+            self.lower_namespace(namespace);
         }
 
         let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
@@ -83,20 +68,31 @@ impl With<'_> {
         hir::Package { items, entry }
     }
 
-    fn lower_namespace(
-        &mut self,
-        id: LocalItemId,
-        items: Vec<LocalItemId>,
-        namespace: &ast::Namespace,
-    ) -> hir::Item {
-        hir::Item {
+    pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
+        let Some(&resolve::Res::Item(hir::ItemId {
+            item: id, ..
+        })) = self.resolutions.get(namespace.name.id) else {
+            panic!("namespace should have item ID");
+        };
+
+        self.lowerer.parent = Some(id);
+        let items = namespace
+            .items
+            .iter()
+            .filter_map(|i| self.lower_item(i))
+            .collect();
+
+        let name = self.lower_ident(&namespace.name);
+        self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
             parent: None,
             attrs: Vec::new(),
             visibility: None,
-            kind: hir::ItemKind::Namespace(self.lower_ident(&namespace.name), items),
-        }
+            kind: hir::ItemKind::Namespace(name, items),
+        });
+
+        self.lowerer.parent = None;
     }
 
     fn lower_item(&mut self, item: &ast::Item) -> Option<LocalItemId> {

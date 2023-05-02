@@ -326,8 +326,6 @@ fn resolve_all(
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    globals.add_local_package(package);
-
     for id in dependencies {
         let unit = store
             .get(id)
@@ -335,6 +333,7 @@ fn resolve_all(
         globals.add_external_package(id, &unit.package);
     }
 
+    globals.add_local_package(package);
     let mut resolver = Resolver::new(globals);
     resolver.visit_package(package);
     resolver.into_resolutions()
@@ -347,8 +346,6 @@ fn typeck_all(
     resolutions: &Resolutions,
 ) -> (Tys, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
-    globals.add_local_package(resolutions, package);
-
     for id in dependencies {
         let unit = store
             .get(id)
