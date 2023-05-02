@@ -3,7 +3,7 @@
 
 use crate::{EXAMPLE_ENTRY, KATA_ENTRY};
 use qsc::{
-    interpret::{output::CursorReceiver, stateless, Value},
+    interpret::{output::CursorReceiver, stateless},
     SourceMap,
 };
 use std::{
@@ -18,30 +18,25 @@ fn katas_qsharp_dir() -> PathBuf {
         .join("content")
 }
 
-fn get_example_source_path(sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>) -> Option<PathBuf> {
+fn extract_example_source_path(sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>) -> Option<PathBuf> {
     match sources_map.get("example.qs") {
         Some(p) => p.clone(),
         _ => None
     }
 }
 
-fn get_exercise_source_paths(sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>) -> Option<(PathBuf, PathBuf, PathBuf)> {
-    // TODO (cesarzc): maybe use lambda.
-    let placeholder_path = match sources_map.get("placeholder.qs") {
-        Some(p) => p.clone(),
-        _ => None
+fn extract_exercise_sources_paths(sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>) -> Option<(PathBuf, PathBuf, PathBuf)> {
+
+    let get_path = |key: &str| -> Option<PathBuf> {
+        match sources_map.get(key) {
+            Some(p) => p.clone(),
+            _ => None
+        }
     };
 
-    let reference_path = match sources_map.get("reference.qs") {
-        Some(p) => p.clone(),
-        _ => None
-    };
-
-    let verify_path = match sources_map.get("verify.qs") {
-        Some(p) => p.clone(),
-        _ => None
-    };
-
+    let placeholder_path = get_path("placeholder.qs");
+    let reference_path = get_path("reference.qs");
+    let verify_path = get_path("verify.qs");
     if placeholder_path.is_none() || reference_path.is_none() || verify_path.is_none() {
         return None;
     }
@@ -78,19 +73,6 @@ fn validate_exercise(placeholder_source: impl AsRef<Path>, reference_source: imp
     assert!(!result, "placeholder should return false");
 }
 
-//fn validate_exercise(path: impl AsRef<Path>) {
-//    let path = path.as_ref();
-//    let verify = fs::read_to_string(path.join("verify.qs")).expect("file should be readable");
-//    let reference = fs::read_to_string(path.join("reference.qs")).expect("file should be readable");
-//    let result = run_kata(&reference, &verify).expect("reference should succeed");
-//    assert!(result, "reference should return true");
-//
-//    let placeholder =
-//        fs::read_to_string(path.join("placeholder.qs")).expect("file should be readable");
-//    let result = run_kata(&placeholder, &verify).expect("placeholder should succeed");
-//    assert!(!result, "placeholder should return false");
-//}
-
 fn validate_example(example_source: impl AsRef<Path>) {
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
@@ -109,41 +91,41 @@ fn validate_example(example_source: impl AsRef<Path>) {
 }
 
 fn validate_item(path: impl AsRef<Path>) {
-    let mut example_sources: collections::HashMap<String, std::option::Option<PathBuf>> =
+    let mut example_source_path_map: collections::HashMap<String, std::option::Option<PathBuf>> =
         collections::HashMap::from([("example.qs".to_string(), None)]);
 
-    let mut exercise_sources: collections::HashMap<String, std::option::Option<PathBuf>> =
+    let mut exercise_source_path_map: collections::HashMap<String, std::option::Option<PathBuf>> =
         collections::HashMap::from([
             ("placeholder.qs".to_string(), None),
             ("reference.qs".to_string(), None),
             ("verify.qs".to_string(), None),
         ]);
 
-    // 
+    // Check which files are present in the directory.
     for entry in fs::read_dir(path).expect("directory should be readable") {
         let path = entry.expect("entry should be usable").path();
         if path.is_file() {
             let filename = path.file_name().expect("file name should be readable");
             let key = filename.to_str().expect("file name str should be valid");
-            if exercise_sources.contains_key(key) {
-                exercise_sources.insert(key.to_string(), Some(path.clone()));
+            if exercise_source_path_map.contains_key(key) {
+                exercise_source_path_map.insert(key.to_string(), Some(path.clone()));
             }
 
-            if example_sources.contains_key(key) {
-                example_sources.insert(key.to_string(), Some(path.clone()));
+            if example_source_path_map.contains_key(key) {
+                example_source_path_map.insert(key.to_string(), Some(path.clone()));
             }
         }
     }
 
-    //
-    let example_source_path = get_example_source_path(&example_sources);
-    let exercise_source_paths = get_exercise_source_paths(&exercise_sources);
-    assert!(!(example_source_path.is_some() && exercise_source_paths.is_some()), "item cannot be both example and exercise");
+    // Depending on the files that are present, the item is either an example or an exercise. Validate accoridngly.
+    let example_source_path = extract_example_source_path(&example_source_path_map);
+    let exercise_sources_paths = extract_exercise_sources_paths(&exercise_source_path_map);
+    assert!(!(example_source_path.is_some() && exercise_sources_paths.is_some()), "item cannot be both example and exercise");
     if let Some(example_path) = example_source_path {
         validate_example(example_path);
     }
 
-    if let Some((placeholder_source, reference_source, verify_source)) = exercise_source_paths {
+    if let Some((placeholder_source, reference_source, verify_source)) = exercise_sources_paths {
         validate_exercise(placeholder_source, reference_source, verify_source);
     }
 
