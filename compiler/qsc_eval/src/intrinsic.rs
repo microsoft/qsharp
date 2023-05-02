@@ -5,6 +5,7 @@
 mod tests;
 
 use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
+use num_bigint::BigInt;
 use qir_backend::{
     __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body,
     __quantum__qis__cz__body, __quantum__qis__h__body, __quantum__qis__m__body,
@@ -18,7 +19,6 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use rand::Rng;
-use num_bigint::BigInt;
 use std::ops::ControlFlow::{self, Break, Continue};
 
 pub(crate) fn invoke_intrinsic(
