@@ -4,7 +4,11 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{output::Receiver, val::Value, Error, Reason, WithSpan};
+use crate::{
+    output::Receiver,
+    val::{Qubit, Value},
+    Error, Reason, WithSpan,
+};
 use qir_backend::{
     __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body,
     __quantum__qis__cz__body, __quantum__qis__h__body, __quantum__qis__m__body,
@@ -124,7 +128,7 @@ pub(crate) fn invoke_intrinsic(
 
             "__quantum__rt__qubit_release" => {
                 __quantum__rt__qubit_release(args.try_into().with_span(args_span)?);
-                Continue(Value::UNIT)
+                Continue(Value::unit())
             }
 
             _ => Break(Reason::Error(Error::UnknownIntrinsic(name_span))),

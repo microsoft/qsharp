@@ -1,25 +1,22 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::replace_qubit_allocation::ReplaceQubitAllocation;
+use crate::replace_qubit_allocation::replace_qubit_allocation;
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore};
-use qsc_hir::mut_visit::MutVisitor;
+use qsc_frontend::compile::{compile, PackageStore, SourceMap};
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new();
-    let mut unit = compile(&store, [], [file], "");
-    assert!(
-        unit.context.errors().is_empty(),
-        "Compilation errors: {:?}",
-        unit.context.errors()
-    );
-
-    let mut transforamtion = ReplaceQubitAllocation::new();
-    transforamtion.visit_package(&mut unit.package);
-
-    expect.assert_eq(&unit.package.to_string());
+    let sources = SourceMap::new([("test".into(), file.into())], None);
+    let mut unit = compile(&store, [], sources);
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+    let errors = replace_qubit_allocation(&mut unit);
+    if errors.is_empty() {
+        expect.assert_eq(&unit.package.to_string());
+    } else {
+        expect.assert_debug_eq(&errors);
+    }
 }
 
 #[test]
