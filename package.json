@@ -2,7 +2,8 @@
     "name": "qsc-workspace",
     "workspaces": [
         "./npm",
-        "./playground"
+        "./playground",
+        "./vscode"
     ],
     "license": "MIT",
     "engines": {
@@ -11,6 +12,7 @@
     "private": true,
     "devDependencies": {
         "@types/node": "^18.15.3",
+        "@types/vscode": "^1.77.0",
         "esbuild": "^0.17.12",
         "mathjax": "^3.2.2",
         "monaco-editor": "^0.36.1",

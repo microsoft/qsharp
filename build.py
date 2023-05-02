@@ -27,6 +27,8 @@ parser.add_argument('--npm', action='store_true',
                     help='Build the npm package')
 parser.add_argument('--play', action='store_true',
                     help='Build the web playground')
+parser.add_argument('--vscode', action='store_true',
+                    help='Build the VS Code extension')
 
 parser.add_argument('--release', action='store_true',
                     help='Create a release build (default is debug)')
@@ -36,15 +38,16 @@ args = parser.parse_args()
 
 # If no specific project given then build all
 build_all = (
-    not args.cli and not args.wasm and not args.npm and not args.play and not args.pip
+    not args.cli and not args.pip and not args.wasm and not args.npm and not args.play and not args.vscode
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
 build_wasm = build_all or args.wasm
 build_npm = build_all or args.npm
 build_play = build_all or args.play
+build_vscode = build_all or args.vscode
 
-npm_install_needed = build_npm or build_play
+npm_install_needed = build_npm or build_play or build_vscode
 npm_cmd = 'npm.cmd' if platform.system() == 'Windows' else 'npm'
 
 build_type = 'release' if args.release else 'debug'
@@ -57,6 +60,7 @@ npm_src = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
 pip_dir = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
+vscode_src = os.path.join(root_dir, "vscode")
 
 if npm_install_needed:
     subprocess.run([npm_cmd, 'install'], check=True, text=True, cwd=root_dir)
@@ -160,3 +164,8 @@ if build_play:
     print("Building the playground")
     play_args = [npm_cmd, 'run', 'build']
     result = subprocess.run(play_args, check=True, text=True, cwd=play_src)
+
+if build_vscode:
+    print("Building the VS Code extension")
+    vscode_args = [npm_cmd, 'run', 'build']
+    result = subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)

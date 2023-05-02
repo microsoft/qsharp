@@ -1,9 +1,13 @@
-# Q# language VS Code Extension
+# Q# Language Support for VS Code
 
-Currently, this extension only contains the TextMate grammar and language configuration for Q#. 
-It enables syntax highlighting and basic syntactic features (brace matching, etc.).
+This VS Code extension contains:
+- The TextMate grammar and language configuration for Q#. This enables syntax highlighting
+    and basic syntactic features (brace matching, etc.).
+- Q# cell support in Jupyter Notebooks. The extension will detect `%%qsharp` magic cells
+    and automatically update the cell language to Q#.
 
 To install locally:
+- Build the extension by running `build.py` or `build.py --vscode` from the repo root.
 - In VS Code, run command "Developer: Install Extension from Location..."
 - Select the `vscode` directory.
 

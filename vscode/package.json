@@ -7,19 +7,36 @@
     "vscode": "^1.77.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Notebooks"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onNotebook:jupyter"
   ],
   "contributes": {
-    "languages": [{
-      "id": "qsharp",
-      "aliases": ["Q#", "qsharp"],
-      "extensions": [".qs"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "qsharp",
-      "scopeName": "source.qsharp",
-      "path": "./syntaxes/qsharp.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "qsharp",
+        "aliases": [
+          "Q#",
+          "qsharp"
+        ],
+        "extensions": [
+          ".qs"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "qsharp",
+        "scopeName": "source.qsharp",
+        "path": "./syntaxes/qsharp.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p ./"
   }
 }
