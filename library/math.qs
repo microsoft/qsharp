@@ -86,30 +86,6 @@ namespace Microsoft.Quantum.Math {
         return a < b ? a | b;
     }
 
-    /// # Summary
-    /// Given an array of integers, returns the largest element.
-    function Max(values : Int[]) : Int {
-        mutable max = values[0];
-        for idx in 1 .. values::Length-1 {
-            if values[idx] > max {
-                set max = values[idx];
-            }
-        }
-        return max;
-    }
-
-    /// # Summary
-    /// Given an array of integers, returns the smallest element.
-    function Min(values : Int[]) : Int {
-        mutable min = values[0];
-        for idx in 1 .. values::Length-1 {
-            if values[idx] < min {
-                set min = values[idx];
-            }
-        }
-        return min;
-    }
-
     //
     // Trigonometric functions
     //
@@ -272,7 +248,6 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Returns an integer raised to a given power, with respect to a given
     /// modulus. I.e. (expBase^power) % modulus.
-    // TODO: reconcile between ModPowL, ExpModI and ExpModL
     function ExpModI(expBase : Int, power : Int, modulus : Int) : Int {
         Fact(power >= 0, "`power` must be non-negative");
         Fact(modulus > 0, "`modulus` must be positive");
@@ -330,14 +305,6 @@ namespace Microsoft.Quantum.Math {
         }
 
         return res;
-    }
-
-    /// # Summary
-    /// Performs modular division on a number raised to the power of another number.
-    /// I.e. (value^exponent) % modulus
-    // TODO: Do we need this at all?
-    function ModPowL(value : BigInt, exponent : BigInt, modulus : BigInt) : BigInt {
-        return ExpModL(value, exponent, modulus);
     }
 
     //
