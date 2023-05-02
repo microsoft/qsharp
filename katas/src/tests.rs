@@ -18,19 +18,22 @@ fn katas_qsharp_dir() -> PathBuf {
         .join("content")
 }
 
-fn extract_example_source_path(sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>) -> Option<PathBuf> {
+fn extract_example_source_path(
+    sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>,
+) -> Option<PathBuf> {
     match sources_map.get("example.qs") {
         Some(p) => p.clone(),
-        _ => None
+        _ => None,
     }
 }
 
-fn extract_exercise_sources_paths(sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>) -> Option<(PathBuf, PathBuf, PathBuf)> {
-
+fn extract_exercise_sources_paths(
+    sources_map: &collections::HashMap<String, std::option::Option<PathBuf>>,
+) -> Option<(PathBuf, PathBuf, PathBuf)> {
     let get_path = |key: &str| -> Option<PathBuf> {
         match sources_map.get(key) {
             Some(p) => p.clone(),
-            _ => None
+            _ => None,
         }
     };
 
@@ -41,7 +44,11 @@ fn extract_exercise_sources_paths(sources_map: &collections::HashMap<String, std
         return None;
     }
 
-    Some((placeholder_path.expect("path should be some"), reference_path.expect("path should be some"), verify_path.expect("path should be some")))
+    Some((
+        placeholder_path.expect("path should be some"),
+        reference_path.expect("path should be some"),
+        verify_path.expect("path should be some"),
+    ))
 }
 
 fn run_kata(kata: &str, verifier: &str) -> Result<bool, Vec<stateless::Error>> {
@@ -60,15 +67,18 @@ fn run_kata(kata: &str, verifier: &str) -> Result<bool, Vec<stateless::Error>> {
     result
 }
 
-fn validate_exercise(placeholder_source: impl AsRef<Path>, reference_source: impl AsRef<Path>, verify_source: impl AsRef<Path>) {
+fn validate_exercise(
+    placeholder_source: impl AsRef<Path>,
+    reference_source: impl AsRef<Path>,
+    verify_source: impl AsRef<Path>,
+) {
     println!("validate_exercise");
     let verify = fs::read_to_string(verify_source).expect("file should be readable");
     let reference = fs::read_to_string(reference_source).expect("file should be readable");
     let result = run_kata(&reference, &verify).expect("reference should succeed");
     assert!(result, "reference should return true");
 
-    let placeholder =
-        fs::read_to_string(placeholder_source).expect("file should be readable");
+    let placeholder = fs::read_to_string(placeholder_source).expect("file should be readable");
     let result = run_kata(&placeholder, &verify).expect("placeholder should succeed");
     assert!(!result, "placeholder should return false");
 }
@@ -78,12 +88,11 @@ fn validate_example(example_source: impl AsRef<Path>) {
     let mut receiver = CursorReceiver::new(&mut cursor);
     let example = fs::read_to_string(example_source).expect("file should be readable");
     let sources = SourceMap::new(
-        [
-            ("example".into(), example.into())
-        ],
+        [("example".into(), example.into())],
         Some(EXAMPLE_ENTRY.into()),
     );
-    let context = stateless::Context::new(true, sources).expect("context new instance expected to be usable");
+    let context =
+        stateless::Context::new(true, sources).expect("context new instance expected to be usable");
     println!("{}", receiver.dump());
     let succeeded = matches!(context.eval(&mut receiver), Ok(_));
     assert!(succeeded, "running an example shoud succeed");
@@ -120,7 +129,10 @@ fn validate_item(path: impl AsRef<Path>) {
     // Depending on the files that are present, the item is either an example or an exercise. Validate accoridngly.
     let example_source_path = extract_example_source_path(&example_source_path_map);
     let exercise_sources_paths = extract_exercise_sources_paths(&exercise_source_path_map);
-    assert!(!(example_source_path.is_some() && exercise_sources_paths.is_some()), "item cannot be both example and exercise");
+    assert!(
+        !(example_source_path.is_some() && exercise_sources_paths.is_some()),
+        "item cannot be both example and exercise"
+    );
     if let Some(example_path) = example_source_path {
         validate_example(example_path);
     }
@@ -128,8 +140,6 @@ fn validate_item(path: impl AsRef<Path>) {
     if let Some((placeholder_source, reference_source, verify_source)) = exercise_sources_paths {
         validate_exercise(placeholder_source, reference_source, verify_source);
     }
-
-
 }
 
 fn validate_kata(path: impl AsRef<Path>) {
@@ -139,6 +149,11 @@ fn validate_kata(path: impl AsRef<Path>) {
             validate_item(&path);
         }
     }
+}
+
+#[test]
+fn validate_qubit_kata() {
+    validate_kata(katas_qsharp_dir().join("qubit"));
 }
 
 #[test]
