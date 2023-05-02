@@ -11,6 +11,9 @@ use qsc::{
     SourceMap,
 };
 
+/// # Panics
+///
+/// Will panic if compilation fails or the result is not the same as expected.
 pub fn run_stdlib_test(expr: &str, expected: &Value) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
