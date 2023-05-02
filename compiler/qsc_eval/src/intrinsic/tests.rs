@@ -324,25 +324,13 @@ fn check_index_range() {
 
 #[test]
 fn check_sqrt() {
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Math.Sqrt(0.0)",
-        &Value::Double(0.0),
-    );
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Math.Sqrt(81.0)",
-        &Value::Double(9.0),
-    );
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Sqrt(0.0)", &Value::Double(0.0));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Sqrt(81.0)", &Value::Double(9.0));
 }
 
 #[test]
 fn check_log() {
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Math.Log(1.0)",
-        &Value::Double(0.0),
-    );
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Log(1.0)", &Value::Double(0.0));
     check_intrinsic_value(
         "",
         "Microsoft.Quantum.Math.Log(Microsoft.Quantum.Math.E())",
