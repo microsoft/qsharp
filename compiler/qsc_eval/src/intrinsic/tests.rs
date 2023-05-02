@@ -323,6 +323,53 @@ fn check_index_range() {
 }
 
 #[test]
+fn check_sqrt() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Sqrt(0.0)",
+        &Value::Double(0.0),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Sqrt(81.0)",
+        &Value::Double(9.0),
+    );
+}
+
+#[test]
+fn check_log() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Log(1.0)",
+        &Value::Double(0.0),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.Log(Microsoft.Quantum.Math.E())",
+        &Value::Double(1.0),
+    );
+}
+
+#[test]
+fn check_expmodi_int() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.ExpModI(1,10,10)",
+        &Value::Int(1),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.ExpModI(10,0,10)",
+        &Value::Int(1),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Math.ExpModI(2,10,10)",
+        &Value::Int(4),
+    );
+}
+
+#[test]
 fn ccx() {
     check_intrinsic_result(
         "",

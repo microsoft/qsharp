@@ -110,6 +110,16 @@ pub(crate) fn invoke_intrinsic(
                 Continue(Value::Double(val.tanh()))
             }
 
+            "Sqrt" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                Continue(Value::Double(val.sqrt()))
+            }
+
+            "Log" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                Continue(Value::Double(val.ln()))
+            }
+
             "DrawRandomInt" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
                 [lo, hi] => invoke_draw_random_int(lo.clone(), hi.clone(), args_span),
                 args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span))),
