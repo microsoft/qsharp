@@ -12,25 +12,35 @@ use std::{
 pub(super) struct WithSource<S, E> {
     source: Option<S>,
     error: E,
+    stack_trace: Option<String>,
 }
 
 impl<S, E> WithSource<S, E> {
-    pub(super) fn new(source: S, error: E) -> Self {
+    pub(super) fn new(source: S, error: E, stack_trace: Option<String>) -> Self {
         WithSource {
             source: Some(source),
             error,
+            stack_trace,
         }
     }
 
     pub(super) fn error(&self) -> &E {
         &self.error
     }
+
+    pub(super) fn stack_trace(&self) -> &Option<String> {
+        &self.stack_trace
+    }
 }
 
 impl<E: Diagnostic> WithSource<Source, E> {
-    pub fn from_map(sources: &SourceMap, error: E) -> Self {
+    pub fn from_map(sources: &SourceMap, error: E, stack_trace: Option<String>) -> Self {
         let source = sources.find_diagnostic(&error).cloned();
-        Self { source, error }
+        Self {
+            source,
+            error,
+            stack_trace,
+        }
     }
 }
 

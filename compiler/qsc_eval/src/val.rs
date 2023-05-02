@@ -45,7 +45,7 @@ impl Display for GlobalId {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Qubit(pub *mut c_void);
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
     /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
     /// between the two, so a bool is sufficient to track.
