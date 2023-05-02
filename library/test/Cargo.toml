@@ -9,6 +9,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+num-bigint = { workspace = true }
 qsc = { path = "../../compiler/qsc" }
 
 [dev-dependencies]

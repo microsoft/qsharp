@@ -196,7 +196,7 @@ namespace Microsoft.Quantum.Math {
     }
 
     //
-    // Log, exp, etc.
+    // Sqrt, Log, exp, etc.
     //
 
     /// # Summary
