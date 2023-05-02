@@ -151,6 +151,9 @@ fn print_result(line: &str, result: Result<Value, Vec<LineError>>) {
         Err(errors) => {
             let source: Arc<str> = line.into();
             for error in errors {
+                if let Some(stack_trace) = error.stack_trace() {
+                    eprintln!("{stack_trace}");
+                }
                 let report = Report::new(error).with_source_code(Arc::clone(&source));
                 eprintln!("{report:?}");
             }

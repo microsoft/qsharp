@@ -12,7 +12,10 @@ pub mod spec_gen;
 
 use miette::Diagnostic;
 use qsc_frontend::{compile::CompileUnit, incremental::Fragment};
-use qsc_hir::assigner::Assigner;
+use qsc_hir::{
+    assigner::Assigner,
+    hir::{Item, ItemKind},
+};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -57,7 +60,10 @@ pub fn run_default_passes_for_fragment(
                     .map(Error::ConjInvert),
             );
         }
-        Fragment::Callable(decl) => {
+        Fragment::Item(Item {
+            kind: ItemKind::Callable(decl),
+            ..
+        }) => {
             errors.extend(
                 spec_gen::generate_specs_for_callable(assigner, decl)
                     .into_iter()
@@ -69,7 +75,7 @@ pub fn run_default_passes_for_fragment(
                     .map(Error::ConjInvert),
             );
         }
-        Fragment::Error(_) => {}
+        Fragment::Item(_) | Fragment::Error(_) => {}
     }
 
     errors

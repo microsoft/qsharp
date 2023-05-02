@@ -16,14 +16,33 @@ use super::{
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
-    NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Ty, TyDef, TyDefKind, TyKind, Visibility,
-    VisibilityKind,
+    NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, Ty, TyDef, TyDefKind, TyKind,
+    Visibility, VisibilityKind,
 };
+
+pub(crate) enum Fragment {
+    Namespace(Namespace),
+    Stmt(Stmt),
+}
 
 pub(super) fn namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
     let namespaces = many(s, namespace)?;
     token(s, TokenKind::Eof)?;
     Ok(namespaces)
+}
+
+pub(super) fn fragments(s: &mut Scanner) -> Result<Vec<Fragment>> {
+    let fragments = many(s, fragment)?;
+    token(s, TokenKind::Eof)?;
+    Ok(fragments)
+}
+
+fn fragment(s: &mut Scanner) -> Result<Fragment> {
+    if let Some(namespace) = opt(s, namespace)? {
+        Ok(Fragment::Namespace(namespace))
+    } else {
+        stmt(s).map(Fragment::Stmt)
+    }
 }
 
 fn namespace(s: &mut Scanner) -> Result<Namespace> {
