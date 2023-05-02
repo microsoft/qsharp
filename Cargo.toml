@@ -9,7 +9,7 @@ members = [
     "compiler/qsc_hir",
     "compiler/qsc_passes",
     "katas",
-    "library/test",
+    "library/tests",
     "pip",
     "wasm",
 ]

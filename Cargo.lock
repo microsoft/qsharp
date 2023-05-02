@@ -1086,7 +1086,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f67ad224767faa3c7d8b6d91985b78e70a1324408abcb1cfcc2be4c06bc06043"
 
 [[package]]
-name = "stdlib"
+name = "stdlib_tests"
 version = "0.0.0"
 dependencies = [
  "indoc 2.0.0",
