@@ -5,6 +5,7 @@ use std::f64::consts;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use num_bigint::BigInt;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::run_default_passes;
 
@@ -355,6 +356,20 @@ fn check_expmodi_int() {
         "",
         "Microsoft.Quantum.Math.ExpModI(2,10,10)",
         &Value::Int(4),
+    );
+}
+
+#[test]
+fn int_as_bigint() {
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Convert.IntAsBigInt(0)",
+        &Value::BigInt(BigInt::from(0)),
+    );
+    check_intrinsic_value(
+        "",
+        "Microsoft.Quantum.Convert.IntAsBigInt(-10000)",
+        &Value::BigInt(BigInt::from(-10000)),
     );
 }
 

@@ -18,6 +18,7 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use rand::Rng;
+use num_bigint::BigInt;
 use std::ops::ControlFlow::{self, Break, Continue};
 
 pub(crate) fn invoke_intrinsic(
@@ -35,6 +36,11 @@ pub(crate) fn invoke_intrinsic(
             "IntAsDouble" => {
                 let val: i64 = args.try_into().with_span(args_span)?;
                 Continue(Value::Double(val as f64))
+            }
+
+            "IntAsBigInt" => {
+                let val: i64 = args.try_into().with_span(args_span)?;
+                Continue(Value::BigInt(BigInt::from(val)))
             }
 
             "DumpMachine" => {

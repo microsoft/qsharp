@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Math {
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Convert;
 
     //
     // Sign, Abs, Min, Max, etc.
@@ -337,6 +338,78 @@ namespace Microsoft.Quantum.Math {
     // TODO: Do we need this at all?
     function ModPowL(value : BigInt, exponent : BigInt, modulus : BigInt) : BigInt {
         return ExpModL(value, exponent, modulus);
+    }
+
+    //
+    // GCD, etc.
+    //
+
+    /// # Summary
+    /// Computes the greatest common divisor of two integers.
+    /// Note: GCD is always positive except that GCD(0,0)=0.
+    function GreatestCommonDivisorI(a : Int, b : Int) : Int {
+        mutable aa = AbsI(a);
+        mutable bb = AbsI(b);
+        while bb != 0 {
+            let cc = aa % bb;
+            set aa = bb;
+            set bb = cc;
+        }
+        return aa;
+    }
+
+    /// # Summary
+    /// Computes the greatest common divisor of two integers.
+    /// Note: GCD is always positive except that GCD(0,0)=0.
+    function GreatestCommonDivisorL(a : BigInt, b : BigInt) : BigInt {
+        mutable aa = AbsL(a);
+        mutable bb = AbsL(b);
+        while bb != 0L {
+            let cc = aa % bb;
+            set aa = bb;
+            set bb = cc;
+        }
+        return aa;
+    }
+
+    /// # Summary
+    /// Returns a tuple (u,v) such that u*a+v*b=GCD(a,b)
+    /// Note: GCD is always positive except that GCD(0,0)=0.
+    function ExtendedGreatestCommonDivisorI(a : Int, b : Int) : (Int, Int) {
+        let signA = SignI(a);
+        let signB = SignI(b);
+        mutable (s1, s2) = (1, 0);
+        mutable (t1, t2) = (0, 1);
+        mutable (r1, r2) = (a * signA, b * signB);
+
+        while r2 != 0 {
+            let quotient = r1 / r2;
+            set (r1, r2) = (r2, r1 - quotient * r2);
+            set (s1, s2) = (s2, s1 - quotient * s2);
+            set (t1, t2) = (t2, t1 - quotient * t2);
+        }
+
+        return (s1 * signA, t1 * signB);
+    }
+
+    /// # Summary
+    /// Returns a tuple (u,v) such that u*a+v*b=GCD(a,b)
+    /// Note: GCD is always positive except that GCD(0,0)=0.
+    function ExtendedGreatestCommonDivisorL(a : BigInt, b : BigInt) : (BigInt, BigInt) {
+        let signA = IntAsBigInt(SignL(a));
+        let signB = IntAsBigInt(SignL(b));
+        mutable (s1, s2) = (1L, 0L);
+        mutable (t1, t2) = (0L, 1L);
+        mutable (r1, r2) = (a * signA, b * signB);
+
+        while r2 != 0L {
+            let quotient = r1 / r2;
+            set (r1, r2) = (r2, r1 - quotient * r2);
+            set (s1, s2) = (s2, s1 - quotient * s2);
+            set (t1, t2) = (t2, t1 - quotient * t2);
+        }
+
+        return (s1 * signA, t1 * signB);
     }
 
     //
