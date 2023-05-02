@@ -128,7 +128,7 @@ fn check_min_l() {
 fn check_pi() {
     run_stdlib_test(
         "Microsoft.Quantum.Math.PI()",
-        &Value::Double(3.141_592_653_589_793),
+        &Value::Double(std::f64::consts::PI),
     );
 }
 
@@ -136,7 +136,7 @@ fn check_pi() {
 fn check_e() {
     run_stdlib_test(
         "Microsoft.Quantum.Math.E()",
-        &Value::Double(2.718_281_828_459_045),
+        &Value::Double(std::f64::consts::E),
     );
 }
 
