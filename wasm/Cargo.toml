@@ -15,11 +15,11 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 js-sys = { workspace = true }
-katas = { path = "../../katas"}
+katas = { path = "../katas"}
 miette = { workspace = true}
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
-qsc = { path = "../qsc" }
+qsc = { path = "../compiler/qsc" }
 serde = { workspace = true, features = ["derive"]}
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}

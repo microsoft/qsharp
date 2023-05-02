@@ -7,6 +7,7 @@
 /pip @idavis @minestarks
 /playground @billti @minestarks
 /samples @cesarzc @DmitryVasilevsky @swernli
+/wasm @billti @cesarzc @swernli
 
 /Cargo.lock @idavis @samarsha @swernli
 /Cargo.toml @idavis @samarsha @swernli

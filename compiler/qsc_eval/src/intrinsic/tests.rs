@@ -41,6 +41,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
         &mut Env::default(),
         out,
     )
+    .map_err(|e| e.0)
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {

@@ -11,6 +11,7 @@ use crate::{
 use miette::Diagnostic;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
+    debug::CallStack,
     output::Receiver,
     val::{GlobalId, Value},
     Env,
@@ -19,10 +20,12 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
-use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
+use qsc_hir::hir::{CallableDecl, Item, ItemKind, LocalItemId, PackageId, Stmt};
 use qsc_passes::run_default_passes_for_fragment;
 use std::sync::Arc;
 use thiserror::Error;
+
+use super::debug::format_call_stack;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
@@ -38,6 +41,11 @@ impl LineError {
     #[must_use]
     pub fn kind(&self) -> &LineErrorKind {
         self.0.error()
+    }
+
+    #[must_use]
+    pub fn stack_trace(&self) -> &Option<String> {
+        self.0.stack_trace()
     }
 }
 
@@ -55,7 +63,6 @@ pub struct Interpreter {
     package: PackageId,
     compiler: Compiler,
     callables: IndexMap<LocalItemId, CallableDecl>,
-    next_item_id: LocalItemId,
     env: Env,
 }
 
@@ -74,7 +81,7 @@ impl Interpreter {
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()
-                .map(|error| CompileError(WithSource::from_map(&unit.sources, error)))
+                .map(|error| CompileError(WithSource::from_map(&unit.sources, error, None)))
                 .collect());
         }
 
@@ -86,7 +93,6 @@ impl Interpreter {
             package,
             compiler,
             callables: IndexMap::new(),
-            next_item_id: LocalItemId::default(),
             env: Env::with_empty_scope(),
         })
     }
@@ -104,22 +110,38 @@ impl Interpreter {
         for mut fragment in self.compiler.compile_fragments(line) {
             run_default_passes_for_fragment(self.compiler.assigner_mut(), &mut fragment);
             match fragment {
-                Fragment::Callable(decl) => {
-                    self.callables.insert(self.next_item_id, decl);
-                    self.next_item_id = self.next_item_id.successor();
+                Fragment::Item(Item {
+                    id,
+                    kind: ItemKind::Callable(decl),
+                    ..
+                }) => {
+                    self.callables.insert(id, decl);
                     result = Value::unit();
                 }
+                Fragment::Item(_) => {}
                 Fragment::Stmt(stmt) => match self.eval_stmt(receiver, &stmt) {
                     Ok(value) => result = value,
-                    Err(error) => {
-                        return Err(vec![LineError(WithSource::new(line.into(), error.into()))]);
+                    Err((error, call_stack)) => {
+                        let stack_trace = if call_stack.is_empty() {
+                            None
+                        } else {
+                            Some(self.render_call_stack(&call_stack, &error))
+                        };
+
+                        return Err(vec![LineError(WithSource::new(
+                            line.into(),
+                            error.into(),
+                            stack_trace,
+                        ))]);
                     }
                 },
                 Fragment::Error(errors) => {
                     let source = line.into();
                     return Err(errors
                         .into_iter()
-                        .map(|error| LineError(WithSource::new(Arc::clone(&source), error.into())))
+                        .map(|error| {
+                            LineError(WithSource::new(Arc::clone(&source), error.into(), None))
+                        })
                         .collect());
                 }
             }
@@ -132,13 +154,22 @@ impl Interpreter {
         &mut self,
         receiver: &mut dyn Receiver,
         stmt: &Stmt,
-    ) -> Result<Value, qsc_eval::Error> {
+    ) -> Result<Value, (qsc_eval::Error, CallStack)> {
         qsc_eval::eval_stmt(
             stmt,
             &|id| get_callable(&self.store, &self.callables, self.package, id),
             self.package,
             &mut self.env,
             receiver,
+        )
+    }
+
+    fn render_call_stack(&self, call_stack: &CallStack, error: &dyn std::error::Error) -> String {
+        format_call_stack(
+            &self.store,
+            &|id| get_callable(&self.store, &self.callables, self.package, id),
+            call_stack,
+            error,
         )
     }
 }
