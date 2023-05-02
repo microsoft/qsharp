@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::KATA_ENTRY;
+use crate::{EXAMPLE_ENTRY, KATA_ENTRY};
 use qsc::{
-    interpret::{output::CursorReceiver, stateless},
+    interpret::{output::CursorReceiver, stateless, Value},
     SourceMap,
 };
 use std::{
@@ -51,10 +51,22 @@ fn validate_example(path: impl AsRef<Path>) {
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     let path = path.as_ref();
-    let source = fs::read_to_string(path.join("example.qs")).expect("file should be readable");
-    let result = eval(true, "Kata.Main()", &mut receiver, [&source]);
+    let example = fs::read_to_string(path.join("example.qs")).expect("file should be readable");
+    let sources = SourceMap::new(
+        [
+            ("example".into(), example.into())
+        ],
+        Some(EXAMPLE_ENTRY.into()),
+    );
+    let context = stateless::Context::new(true, sources).expect("context new instance expected to be usable");
     println!("{}", receiver.dump());
-    result.expect("Running an example should succeed");
+    let succeeded = match context.eval(&mut receiver) {
+        Value => true,
+        _ => false
+    };
+
+    assert!(succeeded, "running an example shoud succeed");
+    println!("{}", receiver.dump());
 }
 
 fn validate_item(path: impl AsRef<Path>) {
