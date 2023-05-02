@@ -5,4 +5,7 @@ mod debug;
 pub mod stateful;
 pub mod stateless;
 
-pub use qsc_eval::{output, val::Value};
+pub use qsc_eval::{
+    output::{self, GenericReceiver},
+    val::Value,
+};
