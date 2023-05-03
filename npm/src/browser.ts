@@ -40,8 +40,8 @@ export function getCompilerWorker(script: string): ICompilerWorker {
 
     // If you lose the 'this' binding, some environments have issues
     const postMessage = worker.postMessage.bind(worker);
-    const setMsgHandler = (handler: (e: any) => void) => 
-            worker.onmessage = (ev) => handler(ev.data);
+    const setMsgHandler = (handler: (e: any) => void) =>
+        worker.onmessage = (ev) => handler(ev.data);
     const onTerminate = () => worker.terminate();
 
     return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
@@ -49,5 +49,5 @@ export function getCompilerWorker(script: string): ICompilerWorker {
 
 export { renderDump, exampleDump } from "./state-table.js"
 export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
-export { getAllKatas, getKata, type Kata, type KataItem, type Exercise } from "./katas.js";
+export { getAllKatas, getKata, type Kata, type KataItem, type Example, type Exercise } from "./katas.js";
 export { QscEventTarget } from "./events.js";

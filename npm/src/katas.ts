@@ -3,6 +3,15 @@
 
 import { katas } from "./katas-content.generated.js";
 
+export type Example = {
+    type: "example";
+    id: string;
+    title: string;
+    contentAsHtml: string;
+    contentAsMarkdown: string;
+    source: string;
+}
+
 export type Exercise = {
     type: "exercise";
     id: string;
@@ -14,7 +23,7 @@ export type Exercise = {
     placeholderImplementation: string;
 }
 
-export type KataItem = Exercise;
+export type KataItem = Example | Exercise;
 
 export type Kata = {
     id: string;

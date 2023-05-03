@@ -33,7 +33,7 @@ function getTitleFromMarkdown(markdown) {
 }
 
 function buildExampleContent(id, directory) {
-    const exampleSource = readFileSync(join(directory, "example.qs"), 'utf8');
+    const source = readFileSync(join(directory, "example.qs"), 'utf8');
     const contentAsMarkdown = readFileSync(join(directory, "content.md"), 'utf8');
     const contentAsHtml = marked.parse(contentAsMarkdown);
     const title = getTitleFromMarkdown(contentAsMarkdown);
@@ -41,7 +41,7 @@ function buildExampleContent(id, directory) {
         type: "example",
         id: id,
         title: title,
-        exampleSource: exampleSource,
+        source: source,
         contentAsMarkdown: contentAsMarkdown,
         contentAsHtml: contentAsHtml
     };
