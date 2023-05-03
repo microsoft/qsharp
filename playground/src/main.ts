@@ -170,7 +170,7 @@ async function loaded() {
     });
 
     // Show katas.
-    //await ShowKatas();
+    await ShowKatas();
 
     shareButton.addEventListener('click', _ => {
         const code = srcModel.getValue();

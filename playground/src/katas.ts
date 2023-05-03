@@ -188,11 +188,10 @@ export async function ShowKatas() {
     let katasTitle = document.createElement("h1");
     katasTitle.textContent = "Katas";
     katasDiv.prepend(katasTitle);
-    populateKatasList()
-        .then(() => renderKatas())
-        .then(() => {
-            katasSelect.addEventListener('change', _ => {
-                renderKatas();
-            });
-        });
+    await populateKatasList();
+    katasSelect.addEventListener('change', _ => {
+        renderKatas();
+    });
+
+    return renderKatas();
 }
