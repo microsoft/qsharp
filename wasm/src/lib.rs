@@ -229,7 +229,7 @@ where
             start_pos: offset,
             end_pos: offset + len,
             severity: severity as i32,
-            message
+            message,
         }
     }
 }
