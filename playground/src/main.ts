@@ -169,15 +169,8 @@ async function loaded() {
         }
     });
 
-    // Render katas.
-    PopulateKatasList()
-        .then(() => RenderKatas())
-        .then(() => {
-            let modulesSelect = document.querySelector('#katas-list') as HTMLSelectElement;
-            modulesSelect.addEventListener('change', _ => {
-                RenderKatas();
-            });
-        });
+    // Show katas.
+    //showKatas();
 
     shareButton.addEventListener('click', _ => {
         const code = srcModel.getValue();
@@ -191,6 +184,24 @@ async function loaded() {
         window.history.pushState({}, '', newUrl);
         shareConfirmation.style.display = "inline";
     });
+}
+
+function showKatas() {
+    let katasDiv = document.querySelector('#katas') as HTMLDivElement;
+    let katasSelect = document.createElement("select") as HTMLSelectElement;
+    katasSelect.id = "katas-list";
+    katasDiv.prepend(katasSelect);
+    katasDiv.prepend();
+    let katasTitle = document.createElement("h1");
+    katasTitle.textContent = "Katas";
+    katasDiv.prepend(katasTitle);
+    PopulateKatasList()
+        .then(() => RenderKatas())
+        .then(() => {
+            katasSelect.addEventListener('change', _ => {
+                RenderKatas();
+            });
+        });
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/
