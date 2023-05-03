@@ -6,7 +6,7 @@
 import { getCompilerWorker, loadWasmModule, ShotResult, renderDump, VSDiagnostic, QscEventTarget } from "qsharp";
 import { generateHistogramData, generateHistogramSvg } from "./histogram.js";
 import { base64ToCode, codeToBase64 } from "./utils.js";
-import { PopulateKatasList, RenderKatas } from "./katas.js";
+import { ShowKatas } from "./katas.js";
 
 const wasmPromise = loadWasmModule("libs/qsharp/qsc_wasm_bg.wasm");
 
@@ -170,7 +170,7 @@ async function loaded() {
     });
 
     // Show katas.
-    //showKatas();
+    //await ShowKatas();
 
     shareButton.addEventListener('click', _ => {
         const code = srcModel.getValue();
@@ -184,24 +184,6 @@ async function loaded() {
         window.history.pushState({}, '', newUrl);
         shareConfirmation.style.display = "inline";
     });
-}
-
-function showKatas() {
-    let katasDiv = document.querySelector('#katas') as HTMLDivElement;
-    let katasSelect = document.createElement("select") as HTMLSelectElement;
-    katasSelect.id = "katas-list";
-    katasDiv.prepend(katasSelect);
-    katasDiv.prepend();
-    let katasTitle = document.createElement("h1");
-    katasTitle.textContent = "Katas";
-    katasDiv.prepend(katasTitle);
-    PopulateKatasList()
-        .then(() => RenderKatas())
-        .then(() => {
-            katasSelect.addEventListener('change', _ => {
-                RenderKatas();
-            });
-        });
 }
 
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/
