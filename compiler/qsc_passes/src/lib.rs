@@ -8,11 +8,15 @@ pub mod entry_point;
 mod invert_block;
 mod logic_sep;
 pub mod loop_unification;
+pub mod semantics;
 pub mod spec_gen;
 
 use miette::Diagnostic;
 use qsc_frontend::{compile::CompileUnit, incremental::Fragment};
-use qsc_hir::assigner::Assigner;
+use qsc_hir::{
+    assigner::Assigner,
+    hir::{Item, ItemKind},
+};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -22,11 +26,18 @@ pub enum Error {
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
     ConjInvert(conjugate_invert::Error),
+    Semantic(semantics::Error),
 }
 
 /// Run the default set of passes required for evaluation.
 pub fn run_default_passes(unit: &mut CompileUnit) -> Vec<Error> {
     let mut errors = Vec::new();
+
+    errors.extend(
+        semantics::validate_semantics(unit)
+            .into_iter()
+            .map(Error::Semantic),
+    );
 
     errors.extend(
         spec_gen::generate_specs(unit)
@@ -57,7 +68,10 @@ pub fn run_default_passes_for_fragment(
                     .map(Error::ConjInvert),
             );
         }
-        Fragment::Callable(decl) => {
+        Fragment::Item(Item {
+            kind: ItemKind::Callable(decl),
+            ..
+        }) => {
             errors.extend(
                 spec_gen::generate_specs_for_callable(assigner, decl)
                     .into_iter()
@@ -69,7 +83,7 @@ pub fn run_default_passes_for_fragment(
                     .map(Error::ConjInvert),
             );
         }
-        Fragment::Error(_) => {}
+        Fragment::Item(_) | Fragment::Error(_) => {}
     }
 
     errors

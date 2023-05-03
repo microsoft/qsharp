@@ -108,6 +108,107 @@ mod given_interpreter {
             );
             is_unit_with_output(&result, &output, "A\nB\nA");
         }
+
+        #[test]
+        fn declare_function() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "function Foo() : Int { 2 }");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "Foo()");
+            is_only_value(&result, &output, &Value::Int(2));
+        }
+
+        #[test]
+        fn declare_function_call_same_line() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "function Foo() : Int { 2 }; Foo()");
+            is_only_value(&result, &output, &Value::Int(2));
+        }
+
+        #[test]
+        fn let_binding_function_declaration_call_same_line() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "let x = 1; function Foo() : Int { 2 }; Foo() + 1",
+            );
+            is_only_value(&result, &output, &Value::Int(3));
+        }
+
+        #[test]
+        fn nested_function() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "function Foo() : Int { function Bar() : Int { 1 }; Bar() + 1 }; Foo() + 1",
+            );
+            is_only_value(&result, &output, &Value::Int(3));
+        }
+
+        #[test]
+        fn open_namespace() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "DumpMachine()");
+            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+        }
+
+        #[test]
+        fn open_namespace_call_same_line() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "open Microsoft.Quantum.Diagnostics; DumpMachine()",
+            );
+            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+        }
+
+        #[test]
+        fn declare_namespace_call() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "namespace Foo { function Bar() : Int { 5 } }",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "Foo.Bar()");
+            is_only_value(&result, &output, &Value::Int(5));
+        }
+
+        #[test]
+        fn declare_namespace_open_call() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "namespace Foo { function Bar() : Int { 5 } }",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "open Foo;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "Bar()");
+            is_only_value(&result, &output, &Value::Int(5));
+        }
+
+        #[test]
+        fn declare_namespace_open_call_same_line() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "namespace Foo { function Bar() : Int { 5 } } open Foo; Bar()",
+            );
+            is_only_value(&result, &output, &Value::Int(5));
+        }
+
+        #[test]
+        fn mix_stmts_and_namespace_same_line() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "Message(\"before\"); namespace Foo { function Bar() : Int { 5 } } Message(\"after\")",
+            );
+            is_unit_with_output(&result, &output, "before\nafter");
+        }
     }
 
     #[cfg(test)]
