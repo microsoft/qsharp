@@ -161,7 +161,7 @@ export function Editor(props: {
         <span>Shots</span>
         <input id="shot" type="number" value={props.defaultShots || 100} max="1000" min="1" ref={shotsRef}/>
       </> : null}
-    <button id="run" class='main-button' onClick={onRun}>Run</button>
+    <button id="run" class='main-button' onClick={onRun} disabled={errors.length > 0}>Run</button>
   </div>
 { errors.length ? 
   (<div class="error-list">

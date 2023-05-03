@@ -221,6 +221,10 @@ body {
     cursor: pointer;
 }
 
+.main-button:disabled {
+    background-color: gray;
+}
+
 .histogram {
     width: 100%;
     height: 300px;
