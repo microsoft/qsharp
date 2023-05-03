@@ -377,6 +377,20 @@ fn binop_add_mismatch() {
 }
 
 #[test]
+fn binop_andb_invalid() {
+    check(
+        "",
+        "2.8 &&& 5.4",
+        &expect![[r##"
+            #0 0-11 "2.8 &&& 5.4" : Double
+            #1 0-3 "2.8" : Double
+            #2 8-11 "5.4" : Double
+            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn binop_andb_mismatch() {
     check(
         "",
@@ -524,6 +538,20 @@ fn binop_neq_tuple_arity_mismatch() {
 }
 
 #[test]
+fn binop_orb_invalid() {
+    check(
+        "",
+        "2.8 ||| 5.4",
+        &expect![[r##"
+            #0 0-11 "2.8 ||| 5.4" : Double
+            #1 0-3 "2.8" : Double
+            #2 8-11 "5.4" : Double
+            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn binop_orb_mismatch() {
     check(
         "",
@@ -533,6 +561,20 @@ fn binop_orb_mismatch() {
             #1 0-2 "28" : Int
             #2 7-10 "54L" : BigInt
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_xorb_invalid() {
+    check(
+        "",
+        "2.8 ^^^ 5.4",
+        &expect![[r##"
+            #0 0-11 "2.8 ^^^ 5.4" : Double
+            #1 0-3 "2.8" : Double
+            #2 8-11 "5.4" : Double
+            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }

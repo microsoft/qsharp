@@ -11,6 +11,9 @@ namespace QIR.Runtime {
     }
 
     operation AllocateQubitArray(size: Int) : Qubit[] {
+        if size < 0 {
+            fail "Cannot allocate qubit array with a negative length";
+        }
         mutable qs = [];
         for _ in 0..size-1 {
             set qs += [__quantum__rt__qubit_allocate()];

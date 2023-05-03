@@ -4,8 +4,8 @@
 use crate::error::WithSource;
 use miette::{Diagnostic, Report};
 use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
-use qsc_hir::{global, hir::PackageId};
-use qsc_passes::run_default_passes;
+use qsc_hir::hir::PackageId;
+use qsc_passes::{run_core_passes, run_default_passes};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -45,18 +45,8 @@ pub fn compile(
 #[must_use]
 pub fn core() -> CompileUnit {
     let mut unit = qsc_frontend::compile::core();
-    let table = global::iter_package(None, &unit.package).collect();
-    let pass_errors = run_default_passes(&table, &mut unit);
-    if pass_errors.is_empty() {
-        unit
-    } else {
-        for error in pass_errors {
-            let report = Report::new(WithSource::from_map(&unit.sources, error, None));
-            eprintln!("{report:?}");
-        }
-
-        panic!("could not compile core library")
-    }
+    run_core_passes(&mut unit);
+    unit
 }
 
 /// Compiles the standard library.
