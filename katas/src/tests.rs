@@ -72,7 +72,6 @@ fn validate_exercise(
     reference_source: impl AsRef<Path>,
     verify_source: impl AsRef<Path>,
 ) {
-    println!("validate_exercise");
     let verify = fs::read_to_string(verify_source).expect("file should be readable");
     let reference = fs::read_to_string(reference_source).expect("file should be readable");
     let result = run_kata(&reference, &verify).expect("reference should succeed");
