@@ -1,46 +1,267 @@
 /* Copyright (c) Microsoft Corporation.
    Licensed under the MIT License. */
 
+:root {
+    --heading-background: #262679;
+    --main-background: #ececf0;
+    --main-color: #202020;
+    --nav-background: #bed1f4;
+    --nav-hover-background: #b3bede;
+    --nav-current-background: #b5c5f2;
+    --border-color: #768f9c;
+    --error-background-color: #ffe3e3;
+    --bar-selected-outline: #587ddd;
+}
+
+html {
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
+    margin: 0;
+    padding: 0;
+}
+
 body {
-    font-family: Helvetica, Arial, Verdana;
+    min-height: 100vh;
+    font-family: system-ui, "Segoe UI", "SegoeUI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--main-color);
+    background-color: var(--main-background);
+    display: grid;
+    grid-template-areas:
+        "header header header"
+        "nav editor results";
+    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(180px, auto) 8fr 8fr;
+    column-gap: 16px;
 }
 
-#container {
+.header {
+    grid-area: header;
+    background: var(--heading-background);
+    color: var(--main-background);
+    font-size: 2rem;
+    font-weight: 600;
+    text-align: center;
+    padding-top: 4px;
+    padding-bottom: 8px;
+}
+
+.nav-column {
+    grid-area: nav;
+    background-color: var(--nav-background);
+}
+
+.editor-column {
+    grid-area: editor;
+    margin: 16px;
+    margin-top: 32px;
+}
+
+.results-column {
+    grid-area: results;
+    margin-left: 0px;
+    margin-top: 32px;
+    margin-right: 120px;
+}
+
+.nav-1 {
+    font-size: 1.2rem;
+    font-weight: 200;
+    color: var(--main-color);
+    border-top: 1px solid var(--border-color);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 8px;
+}
+
+.nav-2 {
+    font-size: 1.0rem;
+    font-weight: 200;
+    padding: 4px;
+    padding-left: 16px;
+}
+
+.nav-selectable:hover {
+    background-color: var(--nav-hover-background);
+    cursor: pointer;
+}
+
+.nav-current {
+    font-weight: 700;
+    background-color: var(--nav-current-background);
+}
+
+.file-name {
+    border: 1px solid var(--border-color);
+    border-bottom: 0px;
+    width: 100px;
+    text-align: center;
+    height: 32px;
+    line-height: 32px;
+    background-color: white;;
+}
+
+.error-list {
+    border: 1px solid var(--border-color);
+    border-bottom: 0px;
+    margin-top: 24px;
+}
+
+.error-row {
+    background-color: var(--error-background-color);
+    padding: 4px;
+    border-bottom: 0.5px solid gray;
+    font-size: 0.9rem;
+}
+
+.error-row > span {
+    font-weight: 200;
+}
+
+.results-labels {
     display: flex;
+    height: 32px;
+}
+.results-labels > div {
+    margin-right: 40px;
+    text-align: left;
+    vertical-align: middle;
+    cursor: pointer;
 }
 
-#output {
-    width: 540px;
-    padding-left: 40px;
+.results-active-tab {
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.output-header {
+    font-size: 1.1rem;
+    font-weight: 400;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.prev-next {
+    font-weight: 200;
+    cursor: pointer;
+}
+
+.state-table {
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    width: 100%;
+    min-width: 400px;
+    margin-bottom: 16px;
+}
+
+.state-table thead tr {
+    background: var(--nav-background)
+}
+
+.state-table tbody tr {
+    border-top: 1px solid gray;
+}
+
+.state-table td, .state-table th {
+    text-align: center;
+    padding: 6px;
+    white-space: nowrap;
+}
+
+.state-table progress {
+    margin-right: 2px;
 }
 
 #editor {
-    width: 600px;
-    height: 480px;
-    border: 1px solid gray;
+    height: 40vh;
+    min-height: 400px;
+    border: 1px solid var(--border-color);
 }
 
 #button-row {
-    display:flex;
-    margin:16px 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 8px;
 }
 
-#share-div {
-    text-align:right;
-    flex-grow:1;
+#button-row > * {
+    margin-left: 10px;
+    font-size: 1rem;
 }
 
-#share-confirmation {
-    display: none;
+.icon-row > * {
+    margin-left: 4px;
+    font-size: 1.4rem;
+    cursor: pointer;
 }
 
-#errors {
-    font-family: 'Courier New', Courier, monospace;
-    color: darkred;
-    margin-left: 50px;
-    white-space: pre;
-    width: 600px;
-    height: 400px;
+#expr {
+    width: 160px;
+}
+
+#shot {
+    width: 80px;
+}
+
+.main-button {
+    background-color: var(--nav-background);
+    font-size: 1rem;
+    color: var(--main-color);
+    width: 72px;
+    height: 24px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.histogram {
+    width: 100%;
+    height: 300px;
+    border: 1px solid var(--border-color);
+    background-color: white;
+}
+
+.result-label {
+    margin-bottom: 24px;
+    font-style: italic;
+    font-weight: 300;
+}
+
+.bar {
+    fill: var(--nav-background);
+}
+
+.bar:hover {
+    fill: var(--nav-hover-background);
+}
+
+.bar-selected {
+    stroke: var(--bar-selected-outline);
+    fill: var(--nav-current-background);
+}
+
+.bar-label {
+    font-size: 3pt;
+    fill: var(--main-color);
+    text-anchor: middle;
+}
+
+.histo-label {
+    font-size: 3.5pt;
+    fill: var(--main-color)
+}
+
+.hover-text {
+    font-size: 3.5pt;
+    fill: gray;
+    text-anchor: middle;
 }
 
 .err-span {
@@ -48,77 +269,12 @@ body {
     border-bottom: 4px double #e47777;
 }
 
-table {
-    border-collapse: collapse;
-    margin-top: 25px;
+.message-output {
+    font-weight: 300;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
 }
 
-thead tr {
-    background: #f0f0f0;
+.kata-override {
+    background-color: var(--main-background);
 }
-
-tbody tr {
-    border-top: 1px solid gray;
-}
-
-td, th {
-    text-align: left;
-    padding: 6px;
-    white-space: nowrap;
-}
-
-.bar {
-    fill: steelblue;
-}
-
-.bar-label {
-    font-family: Verdana;
-    font-size: 3pt;
-    fill: #404040;
-    text-anchor: middle;
-}
-
-.bar:hover {
-    fill: lightblue;
-}
-
-.bar-selected {
-    stroke: #ffc080;
-}
-
-#histo-label {
-    font-family: Verdana;
-    font-size: 4pt;
-    fill: gray;
-}
-
-#hover-text {
-    font-family: Verdana;
-    font-size: 4pt;
-    fill: gray;
-    text-anchor: middle;
-}
- button {
-    margin: 2px;
- }
-
- .result-header {
-    font-size: 16px;
-    font-weight: 600;
-    margin-left: 16px;
-    margin-top: 16px;
- }
-
- .message-output {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 14pt;
-    background-color: #635858;
-    color:#f0f0f0;
-    border: 1px solid blue;
-    margin: 10px;
-    width: 520px;
- }
-
- .message-output::before {
-    content: "> ";
- }

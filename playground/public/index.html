@@ -6,11 +6,13 @@
 <head>
   <meta charset="utf-8">
   <script>
-    <!-- If this is served under a directory it needs the trailing slash to load the relative paths-->
+    // If this is served under a directory it needs the trailing slash to load the relative paths
     if (!window.location.pathname.endsWith("/")) window.location = window.location + "/";
+    window.qscBasePath = new URL("./", window.location).pathname; // e.g. "/qsharp/"
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAACDvAxdbn9YZSTVntx1qcAADs=">
+  <link rel="stylesheet" href="libs/github-markdown.css">
   <link rel="stylesheet" href="style.css">
   <title>Q# playground</title>
   <script>
@@ -22,39 +24,9 @@
     };
   </script>
   <script src="libs/mathjax/tex-chtml.js"></script>
-</head>
-
-<body>
-  <h1>Q# playground</h1>
-  <div id="container">
-    <div>
-      <div id="editor"></div>
-      <div id="button-row">
-        <div>
-          <input id="expr" value="" />
-          <input id="shot" type="number" value="100" max="1000" min="1" />
-          <button id="run">Run</button>
-        </div>
-        <div id="share-div">
-          <span id="share-confirmation">Copied to clipboard.</span>
-          <button id="share">Share</button>
-        </div>
-      </div>
-    </div>
-    <div id="output"></div>
-  </div>
-  <div id="errors"></div>
-
-  <div id="katas">
-    <h1>Katas</h1>
-    <div>
-      <select id="katas-list">
-      </select>
-      <div id="katas-canvas"></div>
-    </div>
-  </div>
   <script src="libs/monaco/vs/loader.js"></script>
-  <script src="libs/main.js"></script>
-</body>
-
+  <script src="libs/ux.js"></script>
+</head>
+  <body>
+  </body>
 </html>
