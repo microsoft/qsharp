@@ -1,0 +1,25 @@
+{
+  "name": "qsharp-vscode",
+  "displayName": "Q# (new)",
+  "description": "Q# Language Support",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.77.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "qsharp",
+      "aliases": ["Q#", "qsharp"],
+      "extensions": [".qs"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "qsharp",
+      "scopeName": "source.qsharp",
+      "path": "./syntaxes/qsharp.tmLanguage.json"
+    }]
+  }
+}

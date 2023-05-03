@@ -14,7 +14,7 @@ pub(super) const DEFAULT_RANGE_STEP: i64 = 1;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
-    Array(Vec<Value>),
+    Array(Rc<[Value]>),
     BigInt(BigInt),
     Bool(bool),
     Closure,
@@ -26,7 +26,7 @@ pub enum Value {
     Range(Option<i64>, i64, Option<i64>),
     Result(bool),
     String(Rc<str>),
-    Tuple(Vec<Value>),
+    Tuple(Rc<[Value]>),
     Udt,
 }
 
@@ -45,7 +45,7 @@ impl Display for GlobalId {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Qubit(pub *mut c_void);
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
     /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
     /// between the two, so a bool is sufficient to track.
@@ -206,12 +206,15 @@ impl TryFrom<Value> for f64 {
 }
 
 impl Value {
-    pub const UNIT: Self = Self::Tuple(Vec::new());
+    #[must_use]
+    pub fn unit() -> Self {
+        Self::Tuple([].as_slice().into())
+    }
 
     /// Convert the [Value] into an array of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Array`].
-    pub fn try_into_array(self) -> Result<Vec<Self>, ConversionError> {
+    pub fn try_into_array(self) -> Result<Rc<[Self]>, ConversionError> {
         if let Value::Array(v) = self {
             Ok(v)
         } else {
@@ -236,7 +239,7 @@ impl Value {
     /// Convert the [Value] into an tuple of [Value]
     /// # Errors
     /// This will return an error if the [Value] is not a [`Value::Tuple`].
-    pub fn try_into_tuple(self) -> Result<Vec<Self>, ConversionError> {
+    pub fn try_into_tuple(self) -> Result<Rc<[Self]>, ConversionError> {
         if let Value::Tuple(v) = self {
             Ok(v)
         } else {

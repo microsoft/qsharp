@@ -602,6 +602,8 @@ pub enum StmtKind {
     Expr(Expr),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
     Local(Mutability, Pat, Expr),
+    /// An item.
+    Item(Item),
     /// A use or borrow qubit allocation: `use a = b;` or `borrow a = b;`.
     Qubit(QubitSource, Pat, QubitInit, Option<Block>),
     /// An expression with a trailing semicolon.
@@ -614,6 +616,7 @@ impl Display for StmtKind {
         match self {
             StmtKind::Empty => write!(indent, "Empty")?,
             StmtKind::Expr(e) => write!(indent, "Expr: {e}")?,
+            StmtKind::Item(item) => write!(indent, "Item: {item}")?,
             StmtKind::Local(m, lhs, rhs) => {
                 write!(indent, "Local ({m:?}):")?;
                 indent = set_indentation(indent, 1);
@@ -910,15 +913,15 @@ fn display_range(
     indent = set_indentation(indent, 1);
     match start {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no start>")?,
+        None => write!(indent, "\n<no start>")?,
     }
     match step {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no step>")?,
+        None => write!(indent, "\n<no step>")?,
     }
     match end {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no stop>")?,
+        None => write!(indent, "\n<no end>")?,
     }
     Ok(())
 }

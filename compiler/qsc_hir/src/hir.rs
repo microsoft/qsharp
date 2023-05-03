@@ -240,13 +240,10 @@ impl Display for Item {
 }
 
 /// An item kind.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
-    /// Default item when nothing has been parsed.
-    #[default]
-    Err,
     /// A `namespace` declaration.
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
@@ -257,7 +254,6 @@ impl Display for ItemKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             ItemKind::Callable(decl) => write!(f, "{decl}"),
-            ItemKind::Err => write!(f, "Err"),
             ItemKind::Namespace(name, items) => {
                 write!(f, "Namespace ({name}):")?;
                 let mut items = items.iter();
@@ -611,13 +607,12 @@ impl Display for Stmt {
 }
 
 /// A statement kind.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum StmtKind {
-    /// An empty statement.
-    #[default]
-    Empty,
     /// An expression without a trailing semicolon.
     Expr(Expr),
+    /// An item.
+    Item(LocalItemId),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
     Local(Mutability, Pat, Expr),
     /// A use or borrow qubit allocation: `use a = b;` or `borrow a = b;`.
@@ -630,8 +625,8 @@ impl Display for StmtKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            StmtKind::Empty => write!(indent, "Empty")?,
             StmtKind::Expr(e) => write!(indent, "Expr: {e}")?,
+            StmtKind::Item(item) => write!(indent, "Item: {item}")?,
             StmtKind::Local(m, lhs, rhs) => {
                 write!(indent, "Local ({m:?}):")?;
                 indent = set_indentation(indent, 1);
@@ -720,8 +715,6 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
-    /// A resolved name.
-    Name(Res),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
@@ -736,6 +729,8 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
+    /// A variable.
+    Var(Res),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
 }
@@ -764,7 +759,6 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Name(res) => write!(indent, "Name: {res}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
@@ -774,6 +768,7 @@ impl Display for ExprKind {
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
+            ExprKind::Var(res) => write!(indent, "Var: {res}")?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
         Ok(())
@@ -934,15 +929,15 @@ fn display_range(
     indent = set_indentation(indent, 1);
     match start {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no start>")?,
+        None => write!(indent, "\n<no start>")?,
     }
     match step {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no step>")?,
+        None => write!(indent, "\n<no step>")?,
     }
     match end {
         Some(e) => write!(indent, "\n{e}")?,
-        None => write!(indent, "<no stop>")?,
+        None => write!(indent, "\n<no end>")?,
     }
     Ok(())
 }

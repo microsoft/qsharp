@@ -20,15 +20,15 @@ log.setLogLevel('warn');
  * @returns {Promise<import("../dist/common.js").ShotResult>}
  */
 export function runSingleShot(code, expr, useWorker) {
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         const resultsHandler = new QscEventTarget(true);
         const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
         compiler.run(code, expr, 1, resultsHandler)
-          .then(_ => resolve(resultsHandler.getResults()[0]))
-          .catch(err => reject(err))
-          /** @ts-ignore : terminate is only on workers */
-          .finally(_ => useWorker ? compiler.terminate() : null);
+            .then(_ => resolve(resultsHandler.getResults()[0]))
+            .catch(err => reject(err))
+            /** @ts-ignore : terminate is only on workers */
+            .finally(_ => useWorker ? compiler.terminate() : null);
     });
 }
 
@@ -60,7 +60,7 @@ namespace Test {
 });
 
 test('one syntax error', async t => {
-    const compiler =  getCompiler();
+    const compiler = getCompiler();
 
     const diags = await compiler.checkCode("namespace Foo []");
     assert.equal(diags.length, 1);
@@ -172,11 +172,11 @@ namespace Kata {
     const passed = await compiler.runKata(code, verifyCode, evtTarget);
     const results = evtTarget.getResults();
 
-    assert(results.length === 1);
-    assert(results[0].events.length === 0);
+    assert.equal(results.length, 1);
+    assert.equal(results[0].events.length, 0);
     assert(!results[0].success);
-    assert(typeof results[0].result !== 'string' && 
-            results[0].result.message === "Error: could not compile source code");
+    assert.notEqual(typeof results[0].result, "string");
+    assert.equal(results[0].result.message, "Error: syntax error");
 });
 
 test('worker check', async t => {
@@ -195,7 +195,7 @@ test('worker check', async t => {
     assert.equal(result.length, 1);
     assert.equal(result[0].start_pos, 99);
     assert.equal(result[0].end_pos, 105);
-    assert.equal(result[0].message, "type error: expected (Double, Qubit), found Qubit"); 
+    assert.equal(result[0].message, "type error: expected (Double, Qubit), found Qubit");
 });
 
 test('worker 100 shots', async t => {

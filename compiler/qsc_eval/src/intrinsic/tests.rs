@@ -5,13 +5,14 @@ use std::f64::consts;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{self, compile, PackageStore};
+use num_bigint::BigInt;
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::run_default_passes;
 
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
-    stateless::get_callable,
+    tests::get_callable,
     val::Value,
     Env, Error,
 };
@@ -22,20 +23,26 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
     assert!(std.errors.is_empty());
     assert!(run_default_passes(&mut std).is_empty());
 
-    let stdlib = store.insert(std);
-    let mut unit = compile(&store, [stdlib], [file], expr);
+    let std_id = store.insert(std);
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let mut unit = compile(&store, [std_id], sources);
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
 
     let id = store.insert(unit);
-    let expr = store.get_entry_expr(id).expect("package should have entry");
+    let entry = store
+        .get(id)
+        .and_then(|unit| unit.package.entry.as_ref())
+        .expect("package should have entry");
+
     eval_expr(
-        expr,
+        entry,
         &|id| get_callable(&store, id),
         id,
         &mut Env::default(),
         out,
     )
+    .map_err(|e| e.0)
 }
 
 fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
@@ -120,6 +127,7 @@ fn dump_machine_endianness() {
             use qs = Qubit[4];
             X(qs[1]);
             Microsoft.Quantum.Diagnostics.DumpMachine();
+            X(qs[1]);
         }"},
         &expect![[r#"
             STATE:
@@ -171,7 +179,9 @@ fn check_zero_false() {
         indoc! {"{
             use q = Qubit();
             X(q);
-            Microsoft.Quantum.Diagnostics.CheckZero(q)
+            let isZero = Microsoft.Quantum.Diagnostics.CheckZero(q);
+            X(q);
+            isZero
         }"},
         &expect!["false"],
     );
@@ -277,40 +287,32 @@ fn draw_random_int() {
 }
 
 #[test]
-fn check_bitsize_i() {
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+fn sqrt() {
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Sqrt(0.0)", &Value::Double(0.0));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Sqrt(81.0)", &Value::Double(9.0));
+}
+
+#[test]
+fn log() {
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Log(1.0)", &Value::Double(0.0));
     check_intrinsic_value(
         "",
-        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
-        &Value::Int(63),
+        "Microsoft.Quantum.Math.Log(Microsoft.Quantum.Math.E())",
+        &Value::Double(1.0),
     );
 }
 
 #[test]
-fn check_fst_snd() {
-    check_intrinsic_value("", "Fst(7,6)", &Value::Int(7));
-    check_intrinsic_value("", "Snd(7,6)", &Value::Int(6));
-}
-
-#[test]
-fn check_index_range() {
+fn int_as_bigint() {
     check_intrinsic_value(
         "",
-        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Start",
-        &Value::Int(0),
+        "Microsoft.Quantum.Convert.IntAsBigInt(0)",
+        &Value::BigInt(BigInt::from(0)),
     );
     check_intrinsic_value(
         "",
-        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Step",
-        &Value::Int(1),
-    );
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::End",
-        &Value::Int(3),
+        "Microsoft.Quantum.Convert.IntAsBigInt(-10000)",
+        &Value::BigInt(BigInt::from(-10000)),
     );
 }
 
@@ -331,6 +333,8 @@ fn ccx() {
                 fail "Qubit should be in one state.";
             }
             X(q3);
+            X(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q3)
         }"#},
         &expect!["true"],
@@ -353,6 +357,7 @@ fn cx() {
                 fail "Qubit should be in one state.";
             }
             X(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q2)
         }"#},
         &expect!["true"],
@@ -375,6 +380,7 @@ fn cy() {
                 fail "Qubit should be in one state.";
             }
             Y(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q2)
         }"#},
         &expect!["true"],
@@ -401,6 +407,7 @@ fn cz() {
                 fail "Qubit should be in one state.";
             }
             X(q2);
+            X(q1);
             Microsoft.Quantum.Diagnostics.CheckZero(q2)
         }"#},
         &expect!["true"],
@@ -439,8 +446,8 @@ fn rxx() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit 2 should be in one state.";
             }
-            X(q1);
             X(q2);
+            X(q1);
             (Microsoft.Quantum.Diagnostics.CheckZero(q1), Microsoft.Quantum.Diagnostics.CheckZero(q2))
         }"#},
         &expect!["(true, true)"],
@@ -479,8 +486,8 @@ fn ryy() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit 2 should be in one state.";
             }
-            Y(q1);
             Y(q2);
+            Y(q1);
             (Microsoft.Quantum.Diagnostics.CheckZero(q1), Microsoft.Quantum.Diagnostics.CheckZero(q2))
         }"#},
         &expect!["(true, true)"],
@@ -527,12 +534,12 @@ fn rzz() {
             if Microsoft.Quantum.Diagnostics.CheckZero(q2) {
                 fail "Qubit 2 should be in one state.";
             }
-            H(q1);
             H(q2);
-            Z(q1);
+            H(q1);
             Z(q2);
-            H(q1);
+            Z(q1);
             H(q2);
+            H(q1);
             (Microsoft.Quantum.Diagnostics.CheckZero(q1), Microsoft.Quantum.Diagnostics.CheckZero(q2))
         }"#},
         &expect!["(true, true)"],
@@ -789,8 +796,9 @@ fn m() {
                 fail "Qubit should be in zero state.";
             }
             X(q1);
-            let res2 = QIR.Intrinsic.__quantum__qis__m__body(q1);
-            (res2, Microsoft.Quantum.Diagnostics.CheckZero(q1))
+            let res2 = (QIR.Intrinsic.__quantum__qis__m__body(q1), Microsoft.Quantum.Diagnostics.CheckZero(q1));
+            X(q1);
+            res2
         }"#},
         &expect!["(One, false)"],
     );
@@ -854,10 +862,31 @@ fn qubit_nested_bind_not_released() {
                 X(temp);
             }
             Microsoft.Quantum.Diagnostics.DumpMachine();
+            X(q);
         }"},
         &expect![[r#"
             STATE:
             |10⟩: 1+0i
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_release_non_zero_failure() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            X(q);
+        }"},
+        &expect![[r#"
+            ReleasedQubitNotZero(
+                0,
+                Span {
+                    lo: 14,
+                    hi: 21,
+                },
+            )
         "#]],
     );
 }

@@ -11,7 +11,7 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
-    hir::{Block, Expr, ExprKind, NodeId, Res, Stmt, StmtKind, Ty},
+    hir::{Block, CallableDecl, Expr, ExprKind, NodeId, Res, Stmt, StmtKind, Ty},
     mut_visit::{self, MutVisitor},
     visit::{self, Visitor},
 };
@@ -41,7 +41,27 @@ pub fn invert_conjugate_exprs(unit: &mut CompileUnit) -> Vec<Error> {
         errors: Vec::new(),
     };
     pass.visit_package(&mut unit.package);
+    pass.errors
+}
 
+pub fn invert_conjugate_exprs_for_callable(
+    assigner: &mut Assigner,
+    decl: &mut CallableDecl,
+) -> Vec<Error> {
+    let mut pass = ConjugateElim {
+        assigner,
+        errors: Vec::new(),
+    };
+    pass.visit_callable_decl(decl);
+    pass.errors
+}
+
+pub fn invert_conjugate_exprs_for_stmt(assigner: &mut Assigner, stmt: &mut Stmt) -> Vec<Error> {
+    let mut pass = ConjugateElim {
+        assigner,
+        errors: Vec::new(),
+    };
+    pass.visit_stmt(stmt);
     pass.errors
 }
 
@@ -123,7 +143,7 @@ struct Usage {
 impl<'a> Visitor<'a> for Usage {
     fn visit_expr(&mut self, expr: &'a Expr) {
         match &expr.kind {
-            ExprKind::Name(Res::Local(id)) => {
+            ExprKind::Var(Res::Local(id)) => {
                 self.used.insert(*id);
             }
             _ => visit::walk_expr(self, expr),
@@ -153,7 +173,7 @@ impl AssignmentCheck {
         match &expr.kind {
             ExprKind::Hole => {}
             ExprKind::Paren(expr) => self.check_assign(expr),
-            ExprKind::Name(Res::Local(id)) => {
+            ExprKind::Var(Res::Local(id)) => {
                 if self.used.contains(id) {
                     self.errors.push(Error::ApplyAssign(expr.span));
                 }

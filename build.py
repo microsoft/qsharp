@@ -51,7 +51,7 @@ build_type = 'release' if args.release else 'debug'
 run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
-wasm_src = os.path.join(root_dir, "compiler", "qsc_wasm")
+wasm_src = os.path.join(root_dir, "wasm")
 wasm_bld = os.path.join(root_dir, 'target', 'wasm32', build_type)
 npm_src = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")

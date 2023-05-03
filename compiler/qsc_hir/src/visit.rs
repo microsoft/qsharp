@@ -71,7 +71,6 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Err => {}
         ItemKind::Namespace(name, _) => vis.visit_ident(name),
         ItemKind::Ty(ident, def) => {
             vis.visit_ident(ident);
@@ -131,7 +130,7 @@ pub fn walk_block<'a>(vis: &mut impl Visitor<'a>, block: &'a Block) {
 
 pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
     match &stmt.kind {
-        StmtKind::Empty => {}
+        StmtKind::Item(_) => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(pat);
@@ -215,7 +214,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Name(_) => {}
+        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_) => {}
     }
 }
 

@@ -17,13 +17,14 @@ mod ty;
 
 use crate::lex::{self, TokenKind};
 use miette::Diagnostic;
-use qsc_ast::ast::{Expr, Item, Namespace, Stmt};
+use qsc_ast::ast::{Expr, Namespace};
 use qsc_data_structures::span::Span;
 use scan::Scanner;
 use std::result;
 use thiserror::Error;
 
 pub(super) use keyword::Keyword;
+pub(super) use top::Fragment;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub(super) enum Error {
@@ -81,27 +82,14 @@ pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     }
 }
 
-pub(super) fn item(input: &str) -> (Item, Vec<Error>) {
+pub(super) fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match top::item(&mut scanner) {
-        Ok(item) => (item, scanner.errors()),
+    match top::fragments(&mut scanner) {
+        Ok(fragments) => (fragments, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();
             errors.push(err);
-            (Item::default(), errors)
-        }
-    }
-}
-
-#[must_use]
-pub(super) fn stmts(input: &str) -> (Vec<Stmt>, Vec<Error>) {
-    let mut scanner = Scanner::new(input);
-    match stmt::many_stmt(&mut scanner) {
-        Ok(stmts) => (stmts, scanner.errors()),
-        Err(err) => {
-            let mut errors = scanner.errors();
-            errors.push(err);
-            (vec![], errors)
+            (Vec::new(), errors)
         }
     }
 }

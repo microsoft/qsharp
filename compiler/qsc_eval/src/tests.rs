@@ -1,24 +1,31 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, stateless::get_callable, Env};
+use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore};
+use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_hir::hir::{CallableDecl, ItemKind};
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut store = PackageStore::new();
-    let mut unit = compile(&store, [], [file], expr);
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let mut unit = compile(&store, [], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+
     let pass_errors = run_default_passes(&mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
 
     let id = store.insert(unit);
-    let expr = store.get_entry_expr(id).expect("package should have entry");
+    let entry = store
+        .get(id)
+        .and_then(|unit| unit.package.entry.as_ref())
+        .expect("package should have entry");
+
     let mut out = Vec::new();
     match eval_expr(
-        expr,
+        entry,
         &|id| get_callable(&store, id),
         id,
         &mut Env::default(),
@@ -27,6 +34,17 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err(err) => expect.assert_debug_eq(&err),
     }
+}
+
+pub(super) fn get_callable(store: &PackageStore, id: GlobalId) -> Option<&CallableDecl> {
+    store.get(id.package).and_then(|unit| {
+        let item = unit.package.items.get(id.item)?;
+        if let ItemKind::Callable(callable) = &item.kind {
+            Some(callable)
+        } else {
+            None
+        }
+    })
 }
 
 #[test]
@@ -199,10 +217,15 @@ fn block_mutable_immutable_expr() {
             set x = 1;
         }"},
         &expect![[r#"
-            Mutability(
-                Span {
-                    lo: 25,
-                    hi: 26,
+            (
+                Mutability(
+                    Span {
+                        lo: 25,
+                        hi: 26,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -284,11 +307,16 @@ fn block_qubit_use_array_invalid_count_expr() {
             q
         }"},
         &expect![[r#"
-            Count(
-                -3,
-                Span {
-                    lo: 20,
-                    hi: 22,
+            (
+                Count(
+                    -3,
+                    Span {
+                        lo: 20,
+                        hi: 22,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -325,10 +353,15 @@ fn assign_invalid_expr() {
         "",
         "set 0 = 1",
         &expect![[r#"
-            Unassignable(
-                Span {
-                    lo: 4,
-                    hi: 5,
+            (
+                Unassignable(
+                    Span {
+                        lo: 4,
+                        hi: 5,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -380,15 +413,20 @@ fn binop_andb_invalid() {
         "",
         "2.8 &&& 5.4",
         &expect![[r#"
-        Type(
-            "BigInt or Int",
-            "Double",
-            Span {
-                lo: 0,
-                hi: 3,
-            },
-        )
-    "#]],
+            (
+                Type(
+                    "BigInt or Int",
+                    "Double",
+                    Span {
+                        lo: 0,
+                        hi: 3,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -408,14 +446,19 @@ fn binop_andl_no_shortcut() {
         "",
         r#"true and (fail "Should Fail")"#,
         &expect![[r#"
-        UserFail(
-            "Should Fail",
-            Span {
-                lo: 10,
-                hi: 28,
-            },
-        )
-    "#]],
+            (
+                UserFail(
+                    "Should Fail",
+                    Span {
+                        lo: 10,
+                        hi: 28,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -430,13 +473,18 @@ fn binop_div_bigint_zero() {
         "",
         "12L / 0L",
         &expect![[r#"
-        DivZero(
-            Span {
-                lo: 6,
-                hi: 8,
-            },
-        )
-    "#]],
+            (
+                DivZero(
+                    Span {
+                        lo: 6,
+                        hi: 8,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -451,13 +499,18 @@ fn binop_div_int_zero() {
         "",
         "12 / 0",
         &expect![[r#"
-        DivZero(
-            Span {
-                lo: 5,
-                hi: 6,
-            },
-        )
-    "#]],
+            (
+                DivZero(
+                    Span {
+                        lo: 5,
+                        hi: 6,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -472,13 +525,18 @@ fn binop_div_double_zero() {
         "",
         "1.2 / 0.0",
         &expect![[r#"
-        DivZero(
-            Span {
-                lo: 6,
-                hi: 9,
-            },
-        )
-    "#]],
+            (
+                DivZero(
+                    Span {
+                        lo: 6,
+                        hi: 9,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -613,14 +671,19 @@ fn binop_exp_bigint_negative_exp() {
         "",
         "2L^-3",
         &expect![[r#"
-        Negative(
-            -3,
-            Span {
-                lo: 3,
-                hi: 5,
-            },
-        )
-    "#]],
+            (
+                Negative(
+                    -3,
+                    Span {
+                        lo: 3,
+                        hi: 5,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -630,11 +693,16 @@ fn binop_exp_bigint_too_large() {
         "",
         "2L^9_223_372_036_854_775_807",
         &expect![[r#"
-            IntTooLarge(
-                9223372036854775807,
-                Span {
-                    lo: 3,
-                    hi: 28,
+            (
+                IntTooLarge(
+                    9223372036854775807,
+                    Span {
+                        lo: 3,
+                        hi: 28,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -672,14 +740,19 @@ fn binop_exp_int_negative_exp() {
         "",
         "2^-3",
         &expect![[r#"
-        Negative(
-            -3,
-            Span {
-                lo: 2,
-                hi: 4,
-            },
-        )
-    "#]],
+            (
+                Negative(
+                    -3,
+                    Span {
+                        lo: 2,
+                        hi: 4,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -984,15 +1057,20 @@ fn binop_orb_invalid() {
         "",
         "2.8 ||| 5.4",
         &expect![[r#"
-        Type(
-            "BigInt or Int",
-            "Double",
-            Span {
-                lo: 0,
-                hi: 3,
-            },
-        )
-    "#]],
+            (
+                Type(
+                    "BigInt or Int",
+                    "Double",
+                    Span {
+                        lo: 0,
+                        hi: 3,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -1092,15 +1170,20 @@ fn binop_xorb_invalid() {
         "",
         "2.8 ^^^ 5.4",
         &expect![[r#"
-        Type(
-            "BigInt or Int",
-            "Double",
-            Span {
-                lo: 0,
-                hi: 3,
-            },
-        )
-    "#]],
+            (
+                Type(
+                    "BigInt or Int",
+                    "Double",
+                    Span {
+                        lo: 0,
+                        hi: 3,
+                    },
+                ),
+                CallStack {
+                    frames: [],
+                },
+            )
+        "#]],
     );
 }
 
@@ -1153,10 +1236,15 @@ fn assignop_mutability_expr() {
             x
         }"},
         &expect![[r#"
-            Mutability(
-                Span {
-                    lo: 29,
-                    hi: 30,
+            (
+                Mutability(
+                    Span {
+                        lo: 29,
+                        hi: 30,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1169,11 +1257,16 @@ fn fail_expr() {
         "",
         r#"fail "This is a failure""#,
         &expect![[r#"
-            UserFail(
-                "This is a failure",
-                Span {
-                    lo: 0,
-                    hi: 24,
+            (
+                UserFail(
+                    "This is a failure",
+                    Span {
+                        lo: 0,
+                        hi: 24,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1186,11 +1279,16 @@ fn fail_shortcut_expr() {
         "",
         r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
         &expect![[r#"
-            UserFail(
-                "Got Here!",
-                Span {
-                    lo: 2,
-                    hi: 18,
+            (
+                UserFail(
+                    "Got Here!",
+                    Span {
+                        lo: 2,
+                        hi: 18,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1258,10 +1356,15 @@ fn for_loop_iterator_immutable_expr() {
         "",
         "for i in 0..10 { set i = 0; }",
         &expect![[r#"
-            Mutability(
-                Span {
-                    lo: 21,
-                    hi: 22,
+            (
+                Mutability(
+                    Span {
+                        lo: 21,
+                        hi: 22,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1359,10 +1462,15 @@ fn array_slice_step_zero_expr() {
         "",
         "[1, 2, 3, 4, 5][...0...]",
         &expect![[r#"
-            RangeStepZero(
-                Span {
-                    lo: 16,
-                    hi: 23,
+            (
+                RangeStepZero(
+                    Span {
+                        lo: 16,
+                        hi: 23,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1375,11 +1483,16 @@ fn array_slice_out_of_range_expr() {
         "",
         "[1, 2, 3, 4, 5][0..7]",
         &expect![[r#"
-            OutOfRange(
-                5,
-                Span {
-                    lo: 16,
-                    hi: 20,
+            (
+                OutOfRange(
+                    5,
+                    Span {
+                        lo: 16,
+                        hi: 20,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1392,11 +1505,16 @@ fn array_index_negative_expr() {
         "",
         "[1, 2, 3][-2]",
         &expect![[r#"
-            IndexVal(
-                -2,
-                Span {
-                    lo: 10,
-                    hi: 12,
+            (
+                IndexVal(
+                    -2,
+                    Span {
+                        lo: 10,
+                        hi: 12,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1409,11 +1527,16 @@ fn array_index_out_of_range_expr() {
         "",
         "[1, 2, 3][4]",
         &expect![[r#"
-            OutOfRange(
-                4,
-                Span {
-                    lo: 10,
-                    hi: 11,
+            (
+                OutOfRange(
+                    4,
+                    Span {
+                        lo: 10,
+                        hi: 11,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1714,11 +1837,16 @@ fn ternop_update_invalid_index_range_expr() {
         "",
         "[1, 2, 3] w/ 7 <- 4",
         &expect![[r#"
-            OutOfRange(
-                7,
-                Span {
-                    lo: 13,
-                    hi: 14,
+            (
+                OutOfRange(
+                    7,
+                    Span {
+                        lo: 13,
+                        hi: 14,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1731,11 +1859,16 @@ fn ternop_update_invalid_index_negative_expr() {
         "",
         "[1, 2, 3] w/ -1 <- 4",
         &expect![[r#"
-            Negative(
-                -1,
-                Span {
-                    lo: 13,
-                    hi: 15,
+            (
+                Negative(
+                    -1,
+                    Span {
+                        lo: 13,
+                        hi: 15,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -1765,10 +1898,15 @@ fn assignupdate_immutable_expr() {
             x
         }"},
         &expect![[r#"
-            Mutability(
-                Span {
-                    lo: 33,
-                    hi: 34,
+            (
+                Mutability(
+                    Span {
+                        lo: 33,
+                        hi: 34,
+                    },
+                ),
+                CallStack {
+                    frames: [],
                 },
             )
         "#]],
@@ -2135,11 +2273,40 @@ fn call_adjoint_expr() {
         "#},
         "Adjoint Test.Foo()",
         &expect![[r#"
-            UserFail(
-                "Adjoint Implementation",
-                Span {
-                    lo: 166,
-                    hi: 195,
+            (
+                UserFail(
+                    "Adjoint Implementation",
+                    Span {
+                        lo: 166,
+                        hi: 195,
+                    },
+                ),
+                CallStack {
+                    frames: [
+                        Frame {
+                            span: Some(
+                                Span {
+                                    lo: 409,
+                                    hi: 425,
+                                },
+                            ),
+                            id: GlobalId {
+                                package: PackageId(
+                                    0,
+                                ),
+                                item: LocalItemId(
+                                    1,
+                                ),
+                            },
+                            caller: PackageId(
+                                0,
+                            ),
+                            functor: FunctorApp {
+                                adjoint: true,
+                                controlled: 0,
+                            },
+                        },
+                    ],
                 },
             )
         "#]],
@@ -2169,11 +2336,40 @@ fn call_adjoint_adjoint_expr() {
         "#},
         "Adjoint Adjoint Test.Foo()",
         &expect![[r#"
-            UserFail(
-                "Body Implementation",
-                Span {
-                    lo: 92,
-                    hi: 118,
+            (
+                UserFail(
+                    "Body Implementation",
+                    Span {
+                        lo: 92,
+                        hi: 118,
+                    },
+                ),
+                CallStack {
+                    frames: [
+                        Frame {
+                            span: Some(
+                                Span {
+                                    lo: 409,
+                                    hi: 433,
+                                },
+                            ),
+                            id: GlobalId {
+                                package: PackageId(
+                                    0,
+                                ),
+                                item: LocalItemId(
+                                    1,
+                                ),
+                            },
+                            caller: PackageId(
+                                0,
+                            ),
+                            functor: FunctorApp {
+                                adjoint: false,
+                                controlled: 0,
+                            },
+                        },
+                    ],
                 },
             )
         "#]],
@@ -2198,11 +2394,40 @@ fn call_adjoint_self_expr() {
         "#},
         "Adjoint Test.Foo()",
         &expect![[r#"
-            UserFail(
-                "Body Implementation",
-                Span {
-                    lo: 92,
-                    hi: 118,
+            (
+                UserFail(
+                    "Body Implementation",
+                    Span {
+                        lo: 92,
+                        hi: 118,
+                    },
+                ),
+                CallStack {
+                    frames: [
+                        Frame {
+                            span: Some(
+                                Span {
+                                    lo: 249,
+                                    hi: 265,
+                                },
+                            ),
+                            id: GlobalId {
+                                package: PackageId(
+                                    0,
+                                ),
+                                item: LocalItemId(
+                                    1,
+                                ),
+                            },
+                            caller: PackageId(
+                                0,
+                            ),
+                            functor: FunctorApp {
+                                adjoint: true,
+                                controlled: 0,
+                            },
+                        },
+                    ],
                 },
             )
         "#]],
