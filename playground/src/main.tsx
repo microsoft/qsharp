@@ -4,7 +4,7 @@
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import { render } from "preact";
-import { ICompilerWorker, QscEventTarget, getCompilerWorker, loadWasmModule, getAllKatas, Kata } from "qsharp";
+import { ICompilerWorker, QscEventTarget, getCompilerWorker, loadWasmModule, getAllKatas, Kata, VSDiagnostic } from "qsharp";
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
@@ -27,6 +27,8 @@ const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait 
 
 function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget, katas: Kata[], linkedCode?: string}) {
     const [currentNavItem, setCurrentNavItem] = useState(props.linkedCode ? "linked" : "Minimal");
+    const [shotError, setShotError] = useState<VSDiagnostic | undefined>(undefined);
+
     const kataTitles = props.katas.map(elem => elem.title);
     const sampleTitles = Object.keys(samples);
 
@@ -48,6 +50,11 @@ function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget, katas
         setCurrentNavItem(name);
     }
 
+    function onShotError(diag?: VSDiagnostic) {
+        // TODO: Should this be for katas too and not just the main editor?
+        setShotError(diag);
+    }
+
     return (<>
         <header class="header">Q# playground</header>
         <Nav selected={currentNavItem} navSelected={onNavItemSelected}
@@ -60,8 +67,9 @@ function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget, katas
             evtTarget={props.evtTarget}
             defaultShots={100}
             showShots={true}
-            showExpr={true}></Editor>
-        <Results evtTarget={props.evtTarget} showPanel={true}></Results>
+            showExpr={false}
+            shotError={shotError}></Editor>
+        <Results evtTarget={props.evtTarget} showPanel={true} onShotError={onShotError}></Results>
       </> :
         <Katas kata={activeKata!} compiler={props.compiler}></Katas>
 }

@@ -62,7 +62,8 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
     return true;
 }
 
-export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean, kataMode?: boolean}) {
+export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean, 
+        onShotError?: (err?: VSDiagnostic) => void, kataMode?: boolean}) {
     const [resultState, setResultState] = useState<ResultsState>(newRunState());
 
     // This is more complex than ideal for performance reasons. During a run, results may be getting
@@ -131,6 +132,7 @@ export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean, k
                     buckets,
                     currArray: results
                 });
+                updateEditorError(newResult);
             }
         };
     
@@ -172,6 +174,16 @@ export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean, k
             }
         }
         setResultState({...resultState, filterValue: filter, filterIndex: idx, currIndex, currResult});
+        updateEditorError(currResult);
+    }
+
+    function updateEditorError(result?: ShotResult) {
+        if (!props.onShotError) return;
+        if (!result || result.success || typeof result.result === 'string') {
+            props.onShotError();
+        } else {
+            props.onShotError(result.result)
+        }        
     }
 
     function onPrev() {

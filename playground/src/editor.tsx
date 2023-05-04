@@ -13,6 +13,7 @@ export function Editor(props: {
             defaultShots: number,
             showShots: boolean,
             kataVerify?: string,
+            shotError?: VSDiagnostic,
         }) {
     const editorRef = useRef(null);
     const shotsRef = useRef(null);
@@ -114,6 +115,29 @@ export function Editor(props: {
             editor.dispose();
         }
     }, []);
+
+    useEffect( () => {
+      const srcModel = editor?.getModel();
+      if (!srcModel) return;
+
+      if (props.shotError) {
+        const err = props.shotError;
+        const startPos = srcModel.getPositionAt(err.start_pos);
+        const endPos = srcModel.getPositionAt(err.end_pos);
+
+        const marker: monaco.editor.IMarkerData = {
+          severity: monaco.MarkerSeverity.Error,
+          message: err.message,
+          startLineNumber: startPos.lineNumber,
+          startColumn: startPos.column,
+          endLineNumber: endPos.lineNumber,
+          endColumn: endPos.column,
+        }
+        monaco.editor.setModelMarkers(srcModel, "qsharp", [marker]);
+      } else {
+        monaco.editor.setModelMarkers(srcModel, "qsharp", []);
+      }
+    }, [props.shotError])
 
     async function onRun() {
         const code = editor?.getModel()?.getValue();
