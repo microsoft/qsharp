@@ -80,24 +80,26 @@ export function Editor(props: {
         }
 
         // Helpers to turn errors into editor squiggles
-        let currentsquiggles: string[] = [];
         function squiggleDiagnostics(errors: VSDiagnostic[]) {
             let errList: {location: string, msg: string}[] = [];
-            let newDecorations = errors?.map(err => {
+            let newMarkers = errors?.map(err => {
                 let startPos = srcModel.getPositionAt(err.start_pos);
                 let endPos = srcModel.getPositionAt(err.end_pos);
-                let range = monaco.Range.fromPositions(startPos, endPos);
-                let decoration: monaco.editor.IModelDeltaDecoration = {
-                    range,
-                    options: { className: 'err-span', hoverMessage: { value: err.message } }
+                const marker: monaco.editor.IMarkerData = {
+                  severity: monaco.MarkerSeverity.Error,
+                  message: err.message,
+                  startLineNumber: startPos.lineNumber,
+                  startColumn: startPos.column,
+                  endLineNumber: endPos.lineNumber,
+                  endColumn: endPos.column,
                 }
                 errList.push({
                     location: `main.qs@(${startPos.lineNumber},${startPos.column})`,
                     msg: err.message // TODO: Handle line breaks and 'help' notes
                 });
-                return decoration;
+                return marker;
             });
-            currentsquiggles = srcModel.deltaDecorations(currentsquiggles, newDecorations || []);
+            monaco.editor.setModelMarkers(srcModel, "qsharp", newMarkers);
             setErrors(errList);
         }
 
@@ -117,6 +119,7 @@ export function Editor(props: {
     }, []);
 
     useEffect( () => {
+      // This code highlights the error in the editor if you move to a shot result that has an error
       const srcModel = editor?.getModel();
       if (!srcModel) return;
 
@@ -134,8 +137,13 @@ export function Editor(props: {
           endColumn: endPos.column,
         }
         monaco.editor.setModelMarkers(srcModel, "qsharp", [marker]);
+        setErrors([{
+            location: `main.qs@(${startPos.lineNumber},${startPos.column})`,
+            msg: err.message // TODO: Handle line breaks and 'help' notes
+        }]);
       } else {
         monaco.editor.setModelMarkers(srcModel, "qsharp", []);
+        setErrors([]);
       }
     }, [props.shotError])
 
