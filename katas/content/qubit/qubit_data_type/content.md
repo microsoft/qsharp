@@ -6,4 +6,4 @@ That being said, when you run Q# code on a quantum simulator instead of a physic
 
 The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently:
 
-Freshly allocated qubits start out in state $|0\\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\\rangle$, your program will throw a `ReleasedQubitsAreNotInZeroStateException`. We will see why it is important later, when we look at multi-qubit systems.
+Freshly allocated qubits start out in state $|0\\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\\rangle$ will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
