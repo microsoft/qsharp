@@ -10,6 +10,7 @@ interface QscEventMap {
     "Message": QscEvent<string>;
     "DumpMachine": QscEvent<Dump>;
     "Result": QscEvent<Result>;
+    "uiResultsRefresh": QscEvent<void>;
 }
 
 // Union of valid message names
@@ -47,7 +48,9 @@ function makeResultObj(): ShotResult {
 
 export class QscEventTarget extends EventTarget implements IQscEventTarget {
     private results: ShotResult[] = [];
-    private currentResult: ShotResult = makeResultObj();
+    private shotActive = false;
+    private animationFrameId = 0;
+    private supportsUiRefresh = false;
 
     // Overrides for the base EventTarget methods to limit to expected event types
     addEventListener<K extends keyof QscEventMap>(
@@ -70,6 +73,8 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
      */
     constructor(captureEvents: boolean) {
         super();
+        this.supportsUiRefresh = typeof globalThis.requestAnimationFrame === 'function';
+
         if (captureEvents) {
             this.addEventListener('Message', (ev) => this.onMessage(ev.detail));
             this.addEventListener('DumpMachine', (ev) => this.onDumpMachine(ev.detail));
@@ -78,21 +83,60 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
     }
 
     private onMessage(msg: string) {
-        this.currentResult.events.push({ "type": "Message", "message": msg });
+        this.ensureActiveShot();
+
+        const shotIdx = this.results.length - 1;
+        this.results[shotIdx].events.push({ "type": "Message", "message": msg });
+
+        this.queueUiRefresh();
     }
 
     private onDumpMachine(dump: Dump) {
-        this.currentResult.events.push({ "type": "DumpMachine", "state": dump });
+        this.ensureActiveShot();
+
+        const shotIdx = this.results.length - 1;
+        this.results[shotIdx].events.push({ "type": "DumpMachine", "state": dump });
+
+        this.queueUiRefresh();
     }
 
     private onResult(result: Result) {
-        // Save result and move to the next
-        this.currentResult.success = result.success;
-        this.currentResult.result = result.value;
-        this.results.push(this.currentResult);
-        this.currentResult = makeResultObj();
+        this.ensureActiveShot();
+
+        const shotIdx = this.results.length - 1;
+
+        this.results[shotIdx].success = result.success;
+        this.results[shotIdx].result = result.value;
+        this.shotActive = false;
+
+        this.queueUiRefresh();
+    }
+
+    private ensureActiveShot() {
+        if (!this.shotActive) {
+            this.results.push(makeResultObj());
+            this.shotActive = true;
+        }        
+    }
+
+    private queueUiRefresh() {
+        if (this.supportsUiRefresh && !this.animationFrameId) {
+            this.animationFrameId = requestAnimationFrame(() => {this.onUiRefresh()});
+        }
+    }
+
+    private onUiRefresh() {
+        this.animationFrameId = 0;
+        const uiRefreshEvent = makeEvent('uiResultsRefresh', undefined);
+        this.dispatchEvent(uiRefreshEvent);
     }
 
     getResults(): ShotResult[] { return this.results; }
-    clearResults(): void { this.results.length = 0; }
+
+    resultCount(): number {
+        // May be one less than length if the last is still in flight
+        return this.shotActive ? this.results.length - 1 : this.results.length;
+    }
+
+    clearResults(): void { this.results = []; }
 }
