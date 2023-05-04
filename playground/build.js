@@ -18,7 +18,7 @@ const outdir = join(thisDir, 'public/libs');
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
-    entryPoints: [join(thisDir, "src/main.ts"), join(thisDir, "src/worker.ts")],
+    entryPoints: [join(thisDir, "src/main.tsx"), join(thisDir, "src/worker.ts")],
     outdir,
     bundle: true,
     target: ['es2020', 'chrome64', 'edge79', 'firefox62' ,'safari11.1'],
@@ -42,6 +42,10 @@ function copyLibs() {
     console.log("Copying the Mathjax files over from: " + mathjaxBase);
     mkdirSync(mathjaxDest, { recursive: true});
     cpSync(mathjaxBase, mathjaxDest, {recursive: true});
+
+    let githubMarkdown = join(libsDir, "github-markdown-css/github-markdown-light.css");
+    let githubMarkdownDest = join(thisDir, 'public/libs/github-markdown.css');
+    copyFileSync(githubMarkdown, githubMarkdownDest);
 
     let qsharpWasm = join(thisDir, "..", "npm/lib/web/qsc_wasm_bg.wasm");
     let qsharpDest = join(thisDir, `public/libs/qsharp`);
