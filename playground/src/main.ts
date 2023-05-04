@@ -6,7 +6,7 @@
 import { getCompilerWorker, loadWasmModule, ShotResult, renderDump, VSDiagnostic, QscEventTarget } from "qsharp";
 import { generateHistogramData, generateHistogramSvg } from "./histogram.js";
 import { base64ToCode, codeToBase64 } from "./utils.js";
-import { ShowKatas } from "./katas.js";
+import { PopulateKatasList, RenderKatas } from "./katas.js";
 
 const wasmPromise = loadWasmModule("libs/qsharp/qsc_wasm_bg.wasm");
 
@@ -169,8 +169,15 @@ async function loaded() {
         }
     });
 
-    // Show katas.
-    await ShowKatas();
+    // Render katas.
+    PopulateKatasList()
+        .then(() => RenderKatas())
+        .then(() => {
+            let modulesSelect = document.querySelector('#katas-list') as HTMLSelectElement;
+            modulesSelect.addEventListener('change', _ => {
+                RenderKatas();
+            });
+        });
 
     shareButton.addEventListener('click', _ => {
         const code = srcModel.getValue();
