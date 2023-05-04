@@ -131,6 +131,11 @@ pub(crate) fn invoke_intrinsic(
                 args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span))),
             },
 
+            "Truncate" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                Continue(Value::Int(val as i64))
+            }
+
             _ => Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
         }
     }

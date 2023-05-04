@@ -171,6 +171,24 @@ fn check_lg() {
     run_stdlib_test("Microsoft.Quantum.Math.Lg(2.0)", &Value::Double(1.0));
 }
 
+#[test]
+fn check_ceiling() {
+    run_stdlib_test("Microsoft.Quantum.Math.Ceiling(3.1)", &Value::Int(4));
+    run_stdlib_test("Microsoft.Quantum.Math.Ceiling(-3.7)", &Value::Int(-3));
+}
+
+#[test]
+fn check_floor() {
+    run_stdlib_test("Microsoft.Quantum.Math.Floor(3.7)", &Value::Int(3));
+    run_stdlib_test("Microsoft.Quantum.Math.Floor(-3.1)", &Value::Int(-4));
+}
+
+#[test]
+fn check_round() {
+    run_stdlib_test("Microsoft.Quantum.Math.Round(3.1)", &Value::Int(3));
+    run_stdlib_test("Microsoft.Quantum.Math.Round(-3.7)", &Value::Int(-4));
+}
+
 //
 // Modular arithmetic
 //
@@ -281,4 +299,14 @@ fn check_bitsize_i() {
         "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
         &Value::Int(63),
     );
+}
+
+#[test]
+fn check_head() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
+}
+
+#[test]
+fn check_tail() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.Tail([5,6,7,8])", &Value::Int(8));
 }
