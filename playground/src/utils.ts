@@ -14,14 +14,14 @@
 // is ASCII this is usually a one-to-one mapping), and then base64 encodes/decodes the utf-8
 // bytes. In testing this results in an encoding about half the size of other methods.
 
-export function codeToBase64(code: string) : string {
+export function codeToBase64(code: string): string {
   // Convert to utf=8
   const myencoder = new TextEncoder();
   const buff = myencoder.encode(code);
 
   // Create a string of the utf-8 code units (so each will be <= 0xFF)
   let binStr = "";
-  for(const unit of buff) {
+  for (const unit of buff) {
     binStr += String.fromCharCode(unit);
   }
 
@@ -30,7 +30,7 @@ export function codeToBase64(code: string) : string {
   return base64String;
 }
 
-export function base64ToCode(b64: string) : string {
+export function base64ToCode(b64: string): string {
   // Get the binary string of utf-8 code units
   const binStr = window.atob(b64);
 
