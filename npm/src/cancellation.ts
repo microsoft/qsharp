@@ -2,47 +2,49 @@
 // Licensed under the MIT License.
 
 export interface CancellationToken {
-	// A flag signalling if cancellation has been requested.
-	readonly isCancellationRequested: boolean;
+  // A flag signalling if cancellation has been requested.
+  readonly isCancellationRequested: boolean;
 
-	//  An event which fires when cancellation is requested.
-	readonly onCancellationRequested: (listener: (e: any) => any) => void;
+  //  An event which fires when cancellation is requested.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly onCancellationRequested: (listener: (e: any) => any) => void;
 }
 
 class InternalToken implements CancellationToken {
-    private eventTarget: EventTarget;
-    isCancellationRequested: boolean = false;
+  private eventTarget: EventTarget;
+  isCancellationRequested = false;
 
-    constructor() {
-        this.eventTarget = new EventTarget();
-    }
+  constructor() {
+    this.eventTarget = new EventTarget();
+  }
 
-    onCancellationRequested(listener: (e: any) => any) {
-        this.eventTarget.addEventListener('cancelled', listener);
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onCancellationRequested(listener: (e: any) => any) {
+    this.eventTarget.addEventListener("cancelled", listener);
+  }
 
-    cancel() {
-        if (this.isCancellationRequested) return; // Only fires once
+  cancel() {
+    if (this.isCancellationRequested) return; // Only fires once
 
-        this.isCancellationRequested = true;
-        this.eventTarget.dispatchEvent(new Event('cancelled'));
-    }
+    this.isCancellationRequested = true;
+    this.eventTarget.dispatchEvent(new Event("cancelled"));
+  }
 }
 
 export class CancellationTokenSource {
-	private _token: InternalToken;
+  private _token: InternalToken;
 
-	constructor(parent?: CancellationToken) {
-        // There are some optimizations you can do here to lazily allocate, but keeping it simple for now.
-        this._token = new InternalToken();
-		if (parent) parent.onCancellationRequested(() => this.cancel());
-	}
+  constructor(parent?: CancellationToken) {
+    // There are some optimizations you can do here to lazily allocate, but keeping it simple for now.
+    this._token = new InternalToken();
+    if (parent) parent.onCancellationRequested(() => this.cancel());
+  }
 
-	get token(): CancellationToken {
-		return this._token;
-	}
+  get token(): CancellationToken {
+    return this._token;
+  }
 
-	cancel(): void {
-        this._token.cancel();
-	}
+  cancel(): void {
+    this._token.cancel();
+  }
 }
