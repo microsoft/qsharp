@@ -32,31 +32,41 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
 
   return (
     <div class="markdown-body kata-override">
-        <div ref={kataContent}></div>
-        <br></br>
-        {
-            props.kata.items.map((item, idx) => {
-              const evtTarget = new QscEventTarget(true);
-              return (
-              <div>
-                <div ref={(elem) => itemContent.current[idx] = elem}>
-                  <h2 class="kata-item-title"></h2>
-                  <div class="kata-item-content"></div>
-                </div>
-                <Editor 
-                    defaultShots={1}
-                    showExpr={false}
-                    showShots={false}
-                    evtTarget={evtTarget}
-                    compiler={props.compiler} 
-                    code={item.type === "exercise" ? item.placeholderImplementation : item.source}
-                    kataVerify={item.type === "exercise" ? item.verificationImplementation : ""}
-                    key={item.id}></Editor>
-                <Results key={item.id + "-results"} evtTarget={evtTarget}
-                    showPanel={false} kataMode={true}></Results>
-              </div>);
-            })
-        }
+      <div ref={kataContent}></div>
+      <br></br>
+      {props.kata.items.map((item, idx) => {
+        const evtTarget = new QscEventTarget(true);
+        return (
+          <div>
+            <div ref={(elem) => (itemContent.current[idx] = elem)}>
+              <h2 class="kata-item-title"></h2>
+              <div class="kata-item-content"></div>
+            </div>
+            <Editor
+              defaultShots={1}
+              showExpr={false}
+              showShots={false}
+              evtTarget={evtTarget}
+              compiler={props.compiler}
+              code={
+                item.type === "exercise"
+                  ? item.placeholderImplementation
+                  : item.source
+              }
+              kataVerify={
+                item.type === "exercise" ? item.verificationImplementation : ""
+              }
+              key={item.id}
+            ></Editor>
+            <Results
+              key={item.id + "-results"}
+              evtTarget={evtTarget}
+              showPanel={false}
+              kataMode={true}
+            ></Results>
+          </div>
+        );
+      })}
     </div>
   );
 }

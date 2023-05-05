@@ -9,9 +9,11 @@
     "node": ">=16.17.0"
   },
   "scripts": {
-    "eslint": "eslint -c ./.eslintrc.cjs ./",
-    "check": "tsc -p ./playground/src",
-    "prettier": "prettier -c --no-config ./"
+    "eslint:check": "eslint -c ./.eslintrc.cjs ./",
+    "tsc:check": "tsc -p ./playground/src",
+    "prettier:check": "prettier -c --no-config ./",
+    "check": "npm run eslint:check && npm run tsc:check && npm run prettier:check",
+    "prettier:fix": "prettier -w --no-config ./"
   },
   "private": true,
   "devDependencies": {
