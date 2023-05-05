@@ -9,7 +9,7 @@
     "node": ">=16.17.0"
   },
   "scripts": {
-    "eslint:check": "eslint -c ./.eslintrc.cjs ./",
+    "eslint:check": "eslint -c ./.eslintrc.cjs --max-warnings 0 ./",
     "tsc:check": "tsc -p ./playground/src",
     "prettier:check": "prettier -c --no-config ./",
     "check": "npm run eslint:check && npm run tsc:check && npm run prettier:check",

@@ -7,7 +7,12 @@ This repository contains Q# tooling, specifically:
 - **[compiler](./compiler/qsc/)**: command line compiler
 - **[library](./library/)**: standard library
 - **[npm](./npm/)**: Q# npm module
+- **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
+- **[vscode](./vscode/)**: Visual Studio Code extension
+
+There are also the learning 'katas' and Q# samples in the `./katas` and `./samples`
+directories, respectively.
 
 ## Building
 
@@ -21,8 +26,9 @@ To build this repository there are 4 dependencies that need to be installed. The
 The build script will check these dependencies and their versions and fail if not met. (Or run
 `python ./prereqs.py` directly to check if the minimum required versions are installed).
 
-To build, in the root directory run `python ./build.py`. By default this will run a development
-build of each project.
+To build, in the root directory run `python ./build.py`. By default this will run a release
+build of each project, including running tests and checks such as linting. Run with the
+`--help` option for detailed usage.
 
 ### Playground
 
