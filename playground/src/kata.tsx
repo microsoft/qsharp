@@ -46,8 +46,8 @@ export function Kata(props: {kata: Kata, compiler: ICompilerWorker}) {
                     showShots={false}
                     evtTarget={evtTarget}
                     compiler={props.compiler} 
-                    code={item.placeholderImplementation}
-                    kataVerify={item.verificationImplementation}
+                    code={item.type === "example" ? item.source : item.placeholderImplementation}
+                    kataVerify={item.type === "exercise" ? item.verificationImplementation : ""}
                     key={item.id}></Editor>
                 <Results key={item.id + "-results"} evtTarget={evtTarget}
                     showPanel={false} kataMode={true}></Results>
