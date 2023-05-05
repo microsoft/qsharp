@@ -58,7 +58,7 @@ function copyLibs() {
 function buildBundle() {
     console.log("Running esbuild");
 
-    build(buildOptions).then(_ => console.log(`Built bundles to ${outdir}`));
+    build(buildOptions).then( () => console.log(`Built bundles to ${outdir}`));
 }
 
 // Serve the site or build it?
@@ -70,7 +70,7 @@ if (process.argv.includes('--serve')) {
     console.log("Starting the playground on http://localhost:5555");
     await ctx.serve({
         port: 5555,
-        servedir: 'public'
+        servedir
     });
 } else {
     copyLibs();

@@ -25,14 +25,14 @@ export function runSingleShot(code, expr, useWorker) {
         const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
         compiler.run(code, expr, 1, resultsHandler)
-            .then(_ => resolve(resultsHandler.getResults()[0]))
+            .then(() => resolve(resultsHandler.getResults()[0]))
             .catch(err => reject(err))
-            /** @ts-ignore : terminate is only on workers */
-            .finally(_ => useWorker ? compiler.terminate() : null);
+            /* @ts-expect-error: ICompiler does not include 'terminate' */
+            .finally(() => useWorker ? compiler.terminate() : null);
     });
 }
 
-test('basic eval', async t => {
+test('basic eval', async () => {
     let code = `namespace Test {
         function Answer() : Int {
             return 42;
@@ -45,7 +45,7 @@ test('basic eval', async t => {
     assert.equal(result.result, "42");
 });
 
-test('EntryPoint only', async t => {
+test('EntryPoint only', async () => {
     const code = `
 namespace Test {
     @EntryPoint()
@@ -59,7 +59,7 @@ namespace Test {
     assert(result.result === "Zero");
 });
 
-test('one syntax error', async t => {
+test('one syntax error', async () => {
     const compiler = getCompiler();
 
     const diags = await compiler.checkCode("namespace Foo []");
@@ -68,7 +68,7 @@ test('one syntax error', async t => {
     assert.equal(diags[0].end_pos, 15);
 });
 
-test('completions include CNOT', async t => {
+test('completions include CNOT', async () => {
     const compiler = getCompiler();
 
     let results = await compiler.getCompletions();
@@ -76,7 +76,7 @@ test('completions include CNOT', async t => {
     assert.ok(cnot);
 });
 
-test('dump and message output', async t => {
+test('dump and message output', async () => {
     let code = `namespace Test {
         function Answer() : Int {
             Microsoft.Quantum.Diagnostics.DumpMachine();
@@ -95,7 +95,7 @@ test('dump and message output', async t => {
     assert(result.events[1].message == "hello, qsharp");
 });
 
-test('type error', async t => {
+test('type error', async () => {
     let code = `namespace Sample {
         operation main() : Result[] {
             use q1 = Qubit();
@@ -113,7 +113,7 @@ test('type error', async t => {
     assert.equal(result[0].message, "type error: expected (Double, Qubit), found Qubit");
 });
 
-test('kata success', async t => {
+test('kata success', async () => {
     const evtTarget = new QscEventTarget(true);
     const compiler = getCompiler();
     const code = `
@@ -124,6 +124,8 @@ namespace Kata {
 }`;
     const theKata = await getKata("single_qubit_gates");
     const firstExercise = theKata.items[0];
+
+    assert(firstExercise.type === "exercise");
     const verifyCode = firstExercise.verificationImplementation;
 
     const passed = await compiler.runKata(code, verifyCode, evtTarget);
@@ -134,7 +136,7 @@ namespace Kata {
     assert(passed);
 });
 
-test('kata incorrect', async t => {
+test('kata incorrect', async () => {
     const evtTarget = new QscEventTarget(true);
     const compiler = getCompilerWorker();
     const code = `
@@ -145,6 +147,7 @@ namespace Kata {
 }`;
     const theKata = await getKata("single_qubit_gates");
     const firstExercise = theKata.items[0];
+    assert(firstExercise.type === "exercise");
     const verifyCode = firstExercise.verificationImplementation;
 
     const passed = await compiler.runKata(code, verifyCode, evtTarget);
@@ -156,7 +159,7 @@ namespace Kata {
     assert(!passed);
 });
 
-test('kata syntax error', async t => {
+test('kata syntax error', async () => {
     const evtTarget = new QscEventTarget(true);
     const compiler = getCompiler();
     const code = `
@@ -167,19 +170,20 @@ namespace Kata {
 }`;
     const theKata = await getKata("single_qubit_gates");
     const firstExercise = theKata.items[0];
+    assert(firstExercise.type === "exercise");
     const verifyCode = firstExercise.verificationImplementation;
 
-    const passed = await compiler.runKata(code, verifyCode, evtTarget);
+    await compiler.runKata(code, verifyCode, evtTarget);
     const results = evtTarget.getResults();
 
     assert.equal(results.length, 1);
     assert.equal(results[0].events.length, 0);
     assert(!results[0].success);
-    assert.notEqual(typeof results[0].result, "string");
+    assert(typeof results[0].result !== 'string')
     assert.equal(results[0].result.message, "Error: syntax error");
 });
 
-test('worker check', async t => {
+test('worker check', async () => {
     let code = `namespace Sample {
         operation main() : Result[] {
             use q1 = Qubit();
@@ -198,7 +202,7 @@ test('worker check', async t => {
     assert.equal(result[0].message, "type error: expected (Double, Qubit), found Qubit");
 });
 
-test('worker 100 shots', async t => {
+test('worker 100 shots', async () => {
     let code = `namespace Test {
         function Answer() : Int {
             Microsoft.Quantum.Diagnostics.DumpMachine();

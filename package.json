@@ -8,6 +8,10 @@
     "engines": {
         "node": ">=16.17.0"
     },
+    "scripts": {
+        "eslint": "eslint -c ./.eslintrc.cjs ./",
+        "check": "tsc -p ./playground/src"
+    },
     "private": true,
     "devDependencies": {
         "@types/node": "^18.15.3",
