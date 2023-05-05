@@ -89,7 +89,7 @@ mod given_interpreter {
             is_only_error(&result, &output, "name error: `x` not found in this scope");
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(&result, &output, "runtime error: variable is not bound");
+            is_only_error(&result, &output, "runtime error: symbol is not bound");
         }
 
         #[test]
@@ -116,6 +116,19 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "Foo()");
             is_only_value(&result, &output, &Value::Int(2));
+        }
+
+        #[test]
+        fn invalid_declare_function_and_unbound_call_return_error() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "function Foo() : Int { invalid }");
+            is_only_error(
+                &result,
+                &output,
+                "name error: `invalid` not found in this scope",
+            );
+            let (result, output) = line(&mut interpreter, "Foo()");
+            is_only_error(&result, &output, "runtime error: symbol is not bound");
         }
 
         #[test]
