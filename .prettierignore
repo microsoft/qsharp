@@ -7,8 +7,10 @@ compiler/
 library/
 npm/dist/
 npm/lib/
+npm/src/*.generated.ts
 pip/.venv/
 pip/.pytest_cache/
+pip/src/**/*.html
 playground/public/libs/
 samples/
 target/
