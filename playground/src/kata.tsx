@@ -43,6 +43,7 @@ export function Kata(props: {kata: Kata, compiler: ICompilerWorker}) {
                   <h2 class="kata-item-title"></h2>
                   <div class="kata-item-content"></div>
                 </div>
+                { item.type === "exercise" ?
                 <Editor 
                     defaultShots={1}
                     showExpr={false}
@@ -51,7 +52,15 @@ export function Kata(props: {kata: Kata, compiler: ICompilerWorker}) {
                     compiler={props.compiler} 
                     code={item.placeholderImplementation}
                     kataVerify={item.verificationImplementation}
+                    key={item.id}></Editor> :
+                <Editor defaultShots={1}
+                    showExpr={false}
+                    showShots={false}
+                    evtTarget={evtTarget}
+                    compiler={props.compiler} 
+                    code={item.source}
                     key={item.id}></Editor>
+                } 
                 <Results key={item.id + "-results"} evtTarget={evtTarget}
                     showPanel={false} kataMode={true}></Results>
               </div>);
