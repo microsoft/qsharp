@@ -32,11 +32,26 @@ function getTitleFromMarkdown(markdown) {
     return firstLine.replace(titleRe, "");
 }
 
-function buildExerciseContent(id, exerciseDir) {
-    const placeholderSource = readFileSync(join(exerciseDir, "placeholder.qs"), 'utf8');
-    const referenceSource = readFileSync(join(exerciseDir, "reference.qs"), 'utf8');
-    const verificationSource = readFileSync(join(exerciseDir, "verify.qs"), 'utf8');
-    const contentAsMarkdown = readFileSync(join(exerciseDir, "content.md"), 'utf8');
+function buildExampleContent(id, directory) {
+    const source = readFileSync(join(directory, "example.qs"), 'utf8');
+    const contentAsMarkdown = readFileSync(join(directory, "content.md"), 'utf8');
+    const contentAsHtml = marked.parse(contentAsMarkdown);
+    const title = getTitleFromMarkdown(contentAsMarkdown);
+    return {
+        type: "example",
+        id: id,
+        title: title,
+        source: source,
+        contentAsMarkdown: contentAsMarkdown,
+        contentAsHtml: contentAsHtml
+    };
+}
+
+function buildExerciseContent(id, directory) {
+    const placeholderSource = readFileSync(join(directory, "placeholder.qs"), 'utf8');
+    const referenceSource = readFileSync(join(directory, "reference.qs"), 'utf8');
+    const verificationSource = readFileSync(join(directory, "verify.qs"), 'utf8');
+    const contentAsMarkdown = readFileSync(join(directory, "content.md"), 'utf8');
     const contentAsHtml = marked.parse(contentAsMarkdown);
     const title = getTitleFromMarkdown(contentAsMarkdown);
     return {
@@ -54,7 +69,9 @@ function buildExerciseContent(id, exerciseDir) {
 function buildItemContent(item, kataDir) {
     const itemDir = join(kataDir, item.directory);
     const itemId = `${basename(kataDir)}__${item.directory}`;
-    if (item.type === "exercise") {
+    if (item.type === "example") {
+        return buildExampleContent(itemId, itemDir);
+    } else if (item.type === "exercise") {
         return buildExerciseContent(itemId, itemDir);
     }
 
