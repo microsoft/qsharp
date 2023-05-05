@@ -25,6 +25,15 @@
  */
 exports.katas = [
     {
+        directory: "qubit",
+        items: [
+            {
+                type: "example",
+                directory: "qubit_data_type"
+            }
+        ]
+    },
+    {
         directory: "single_qubit_gates",
         items: [
             {
