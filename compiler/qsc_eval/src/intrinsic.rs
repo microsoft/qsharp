@@ -133,6 +133,8 @@ pub(crate) fn invoke_intrinsic(
 
             "Truncate" => {
                 let val: f64 = args.try_into().with_span(args_span)?;
+                // TODO: We may need a better solution.
+                #[allow(clippy::cast_possible_truncation)]
                 Continue(Value::Int(val as i64))
             }
 
