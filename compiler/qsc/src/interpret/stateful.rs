@@ -71,6 +71,8 @@ impl Interpreter {
     /// If the compilation of the standard library fails, an error is returned.
     /// If the compilation of the sources fails, an error is returned.
     pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<CompileError>> {
+        qsc_eval::init();
+
         let mut store = PackageStore::new();
         let mut dependencies = Vec::new();
         if std {
