@@ -12,7 +12,6 @@ import shutil
 import subprocess
 
 from prereqs import check_prereqs
-check_prereqs()
 
 parser = argparse.ArgumentParser(description="Builds all projects in the repo, unless specific projects to build are passed "
                                  "as options, in which case only those projects are built.")
@@ -30,11 +29,18 @@ parser.add_argument('--play', action='store_true',
 parser.add_argument('--vscode', action='store_true',
                     help='Build the VS Code extension')
 
-parser.add_argument('--release', action='store_true',
-                    help='Create a release build (default is debug)')
-parser.add_argument('--test', action='store_true', help='Run the tests')
+parser.add_argument('--debug', action='store_true',
+                    help='Create a debug build (default is release)')
+parser.add_argument('--test', action=argparse.BooleanOptionalAction,
+                    default=True, help='Run the tests (default is --test)')
+
+# Below allows for passing --no-check to avoid the default of True
+parser.add_argument('--check', action=argparse.BooleanOptionalAction,
+                    default=True, help='Run the linting and formatting checks (default is --check)')
 
 args = parser.parse_args()
+
+check_prereqs()
 
 # If no specific project given then build all
 build_all = (
@@ -50,7 +56,7 @@ build_vscode = build_all or args.vscode
 npm_install_needed = build_npm or build_play or build_vscode
 npm_cmd = 'npm.cmd' if platform.system() == 'Windows' else 'npm'
 
-build_type = 'release' if args.release else 'debug'
+build_type = 'debug' if args.debug else 'release'
 run_tests = args.test
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -65,17 +71,30 @@ vscode_src = os.path.join(root_dir, "vscode")
 if npm_install_needed:
     subprocess.run([npm_cmd, 'install'], check=True, text=True, cwd=root_dir)
 
+    # The projects that require npm are also the ones we want to check (which depends on npm also)
+    if args.check:
+        print("Running eslint, prettier, and tsc checks")
+        subprocess.run([npm_cmd, 'run', 'check'], check=True, text=True, cwd=root_dir)
+
+# If we're going to check the Rust code, do this before we try to compile it
+if args.check and (build_wasm or build_cli):
+    print("Running the cargo fmt and clippy checks")
+    subprocess.run(['cargo', 'fmt', '--all', '--', '--check'],
+                   check=True, text=True, cwd=root_dir)
+    subprocess.run(['cargo', 'clippy', '--all-targets', '--all-features', '--', '-D', 'warnings'],
+                   check=True, text=True, cwd=root_dir)
+
 if build_cli:
     print("Building the command line compiler")
     cargo_build_args = ['cargo', 'build']
-    if args.release:
+    if build_type == 'release':
         cargo_build_args.append('--release')
     result = subprocess.run(cargo_build_args, check=True,
                             text=True, cwd=root_dir)
 
     if run_tests:
         cargo_test_args = ['cargo', 'test']
-        if args.release:
+        if build_type == 'release':
             cargo_test_args.append('--release')
         result = subprocess.run(
             cargo_test_args, check=True, text=True, cwd=root_dir)
@@ -121,9 +140,9 @@ if build_wasm:
     print("Building the wasm crate")
     # wasm-pack can't build for web and node in the same build, so need to run twice.
     # Hopefully not needed if https://github.com/rustwasm/wasm-pack/issues/313 lands.
-    build_type = ('--release' if args.release else '--dev')
+    build_flag = ('--release' if build_type == 'release' else '--dev')
 
-    wasm_pack_args = ['wasm-pack', 'build', build_type]
+    wasm_pack_args = ['wasm-pack', 'build', build_flag]
     web_build_args = ['--target', 'web',
                       '--out-dir', os.path.join(wasm_bld, 'web')]
     node_build_args = ['--target', 'nodejs',

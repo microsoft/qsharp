@@ -1,13 +1,13 @@
 {
-    "name": "qsharp-playground",
-    "version": "0.0.0",
-    "type": "module",
-    "description": "Web playground for the qsharp compiler",
-    "private": true,
-    "license": "MIT",
-    "scripts": {
-        "build": "node build.js",
-        "build:release": "node build.js --release",
-        "start": "node build.js --serve"
-    }
+  "name": "qsharp-playground",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Web playground for the qsharp compiler",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "npm run tsc:check && node build.js",
+    "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
+    "start": "node build.js --serve"
+  }
 }

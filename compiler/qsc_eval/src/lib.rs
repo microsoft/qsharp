@@ -107,8 +107,8 @@ pub enum Error {
     #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
     Unassignable(#[label("not assignable")] Span),
 
-    #[error("variable is not bound")]
-    UnboundVar(#[label] Span),
+    #[error("symbol is not bound")]
+    Unbound(#[label] Span),
 
     #[error("{0} support is not implemented")]
     #[diagnostic(help("this language feature is not yet supported"))]
@@ -576,12 +576,15 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
-        let call_val = self.eval_expr(call)?;
-        let call_span = call.span;
-        let (call, functor) = value_to_call_id(&call_val, call.span)?;
+    fn eval_call(&mut self, call_expr: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
+        let call_val = self.eval_expr(call_expr)?;
+        let call_span = call_expr.span;
+        let (call, functor) = value_to_call_id(&call_val, call_expr.span)?;
         let args_val = self.eval_expr(args)?;
-        let decl = self.globals.callable(call).expect("call should resolve");
+        let decl = match self.globals.callable(call) {
+            Some(decl) => Continue(decl),
+            None => Break(Reason::Error(Error::Unbound(call_expr.span))),
+        }?;
         let spec = spec_from_functor_app(functor);
 
         self.push_frame(Frame {
@@ -958,7 +961,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             Res::Local(node) => self
                 .env
                 .get(node)
-                .ok_or(Error::UnboundVar(span))?
+                .ok_or(Error::Unbound(span))?
                 .value
                 .clone(),
         })
@@ -975,7 +978,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     Continue(Value::unit())
                 }
                 Some(_) => Break(Reason::Error(Error::Mutability(lhs.span))),
-                None => Break(Reason::Error(Error::UnboundVar(lhs.span))),
+                None => Break(Reason::Error(Error::Unbound(lhs.span))),
             },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
                 if var_tup.len() == tup.len() {

@@ -7,4 +7,11 @@ namespace Microsoft.Quantum.Convert {
     function IntAsDouble(a : Int) : Double {
         body intrinsic;
     }
+
+    /// # Summary
+    /// Converts a given integer to an equivalent big integer.
+    function IntAsBigInt(a : Int) : BigInt {
+        body intrinsic;
+    }
+
 }

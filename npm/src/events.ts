@@ -7,13 +7,14 @@ import { log } from "./log.js";
 // Create strongly typed compiler events
 type QscEvent<T> = Event & { detail: T };
 interface QscEventMap {
-    "Message": QscEvent<string>;
-    "DumpMachine": QscEvent<Dump>;
-    "Result": QscEvent<Result>;
+  Message: QscEvent<string>;
+  DumpMachine: QscEvent<Dump>;
+  Result: QscEvent<Result>;
+  uiResultsRefresh: QscEvent<void>;
 }
 
 // Union of valid message names
-type QscMessageNames = keyof QscEventMap; 
+type QscMessageNames = keyof QscEventMap;
 
 // Given the message name, return the type of the 'details' property
 type QscEventDetail<K extends QscMessageNames> = QscEventMap[K]["detail"];
@@ -25,74 +26,137 @@ type QscEventHandler<T extends Event> = (event: T) => void;
 
 // Strongly typed event target for compiler operations.
 export interface IQscEventTarget {
-    addEventListener<K extends keyof QscEventMap>(
-        type: K, listener: QscEventHandler<QscEventMap[K]>): void;
+  addEventListener<K extends keyof QscEventMap>(
+    type: K,
+    listener: QscEventHandler<QscEventMap[K]>
+  ): void;
 
-    removeEventListener<K extends keyof QscEventMap>(
-        type: K, listener: QscEventHandler<QscEventMap[K]>): void;
+  removeEventListener<K extends keyof QscEventMap>(
+    type: K,
+    listener: QscEventHandler<QscEventMap[K]>
+  ): void;
 
-    dispatchEvent(event: QscEvents): boolean;
+  dispatchEvent(event: QscEvents): boolean;
 }
 
 // Convenience method that also provides type safety
-export function makeEvent<K extends QscMessageNames>(type: K, detail: QscEventDetail<K>): QscEventMap[K] {
-    let event = new Event(type) as QscEventMap[K];
-    event.detail = detail;
-    return event;
+export function makeEvent<K extends QscMessageNames>(
+  type: K,
+  detail: QscEventDetail<K>
+): QscEventMap[K] {
+  const event = new Event(type) as QscEventMap[K];
+  event.detail = detail;
+  return event;
 }
 
 function makeResultObj(): ShotResult {
-    return { success: false, result: "", events: [], };
+  return { success: false, result: "", events: [] };
 }
 
 export class QscEventTarget extends EventTarget implements IQscEventTarget {
-    private results: ShotResult[] = [];
-    private currentResult: ShotResult = makeResultObj();
+  private results: ShotResult[] = [];
+  private shotActive = false;
+  private animationFrameId = 0;
+  private supportsUiRefresh = false;
 
-    // Overrides for the base EventTarget methods to limit to expected event types
-    addEventListener<K extends keyof QscEventMap>(
-        type: K, listener: QscEventHandler<QscEventMap[K]>): void {
-        super.addEventListener(type, listener as EventListener);
+  // Overrides for the base EventTarget methods to limit to expected event types
+  addEventListener<K extends keyof QscEventMap>(
+    type: K,
+    listener: QscEventHandler<QscEventMap[K]>
+  ): void {
+    super.addEventListener(type, listener as EventListener);
+  }
+
+  removeEventListener<K extends keyof QscEventMap>(
+    type: K,
+    listener: QscEventHandler<QscEventMap[K]>
+  ): void {
+    super.removeEventListener(type, listener as EventListener);
+  }
+
+  dispatchEvent(event: QscEvents): boolean {
+    if (log.getLogLevel() >= 4) log.debug("Dispatching event: %o", event);
+    return super.dispatchEvent(event);
+  }
+
+  /**
+   * @param captureEvents Set to true if this instance should record events internally
+   */
+  constructor(captureEvents: boolean) {
+    super();
+    this.supportsUiRefresh =
+      typeof globalThis.requestAnimationFrame === "function";
+
+    if (captureEvents) {
+      this.addEventListener("Message", (ev) => this.onMessage(ev.detail));
+      this.addEventListener("DumpMachine", (ev) =>
+        this.onDumpMachine(ev.detail)
+      );
+      this.addEventListener("Result", (ev) => this.onResult(ev.detail));
     }
+  }
 
-    removeEventListener<K extends keyof QscEventMap>(
-        type: K, listener: QscEventHandler<QscEventMap[K]>): void {
-        super.removeEventListener(type, listener as EventListener);
+  private onMessage(msg: string) {
+    this.ensureActiveShot();
+
+    const shotIdx = this.results.length - 1;
+    this.results[shotIdx].events.push({ type: "Message", message: msg });
+
+    this.queueUiRefresh();
+  }
+
+  private onDumpMachine(dump: Dump) {
+    this.ensureActiveShot();
+
+    const shotIdx = this.results.length - 1;
+    this.results[shotIdx].events.push({ type: "DumpMachine", state: dump });
+
+    this.queueUiRefresh();
+  }
+
+  private onResult(result: Result) {
+    this.ensureActiveShot();
+
+    const shotIdx = this.results.length - 1;
+
+    this.results[shotIdx].success = result.success;
+    this.results[shotIdx].result = result.value;
+    this.shotActive = false;
+
+    this.queueUiRefresh();
+  }
+
+  private ensureActiveShot() {
+    if (!this.shotActive) {
+      this.results.push(makeResultObj());
+      this.shotActive = true;
     }
+  }
 
-    dispatchEvent(event: QscEvents): boolean {
-        if (log.getLogLevel() >= 4) log.debug("Dispatching event: %o", event);
-        return super.dispatchEvent(event);
+  private queueUiRefresh() {
+    if (this.supportsUiRefresh && !this.animationFrameId) {
+      this.animationFrameId = requestAnimationFrame(() => {
+        this.onUiRefresh();
+      });
     }
+  }
 
-    /**
-     * @param captureEvents Set to true if this instance should record events internally
-     */
-    constructor(captureEvents: boolean) {
-        super();
-        if (captureEvents) {
-            this.addEventListener('Message', (ev) => this.onMessage(ev.detail));
-            this.addEventListener('DumpMachine', (ev) => this.onDumpMachine(ev.detail));
-            this.addEventListener('Result', (ev) => this.onResult(ev.detail));
-        }
-    }
+  private onUiRefresh() {
+    this.animationFrameId = 0;
+    const uiRefreshEvent = makeEvent("uiResultsRefresh", undefined);
+    this.dispatchEvent(uiRefreshEvent);
+  }
 
-    private onMessage(msg: string) {
-        this.currentResult.events.push({ "type": "Message", "message": msg });
-    }
+  getResults(): ShotResult[] {
+    return this.results;
+  }
 
-    private onDumpMachine(dump: Dump) {
-        this.currentResult.events.push({ "type": "DumpMachine", "state": dump });
-    }
+  resultCount(): number {
+    // May be one less than length if the last is still in flight
+    return this.shotActive ? this.results.length - 1 : this.results.length;
+  }
 
-    private onResult(result: Result) {
-        // Save result and move to the next
-        this.currentResult.success = result.success;
-        this.currentResult.result = result.value;
-        this.results.push(this.currentResult);
-        this.currentResult = makeResultObj();
-    }
-
-    getResults(): ShotResult[] { return this.results; }
-    clearResults(): void { this.results.length = 0; }
+  clearResults(): void {
+    this.results = [];
+  }
 }

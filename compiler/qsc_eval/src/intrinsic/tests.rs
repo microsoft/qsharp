@@ -5,6 +5,7 @@ use std::f64::consts;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use num_bigint::BigInt;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::run_default_passes;
 
@@ -286,40 +287,32 @@ fn draw_random_int() {
 }
 
 #[test]
-fn check_bitsize_i() {
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
-    check_intrinsic_value("", "Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+fn sqrt() {
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Sqrt(0.0)", &Value::Double(0.0));
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Sqrt(81.0)", &Value::Double(9.0));
+}
+
+#[test]
+fn log() {
+    check_intrinsic_value("", "Microsoft.Quantum.Math.Log(1.0)", &Value::Double(0.0));
     check_intrinsic_value(
         "",
-        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
-        &Value::Int(63),
+        "Microsoft.Quantum.Math.Log(Microsoft.Quantum.Math.E())",
+        &Value::Double(1.0),
     );
 }
 
 #[test]
-fn check_fst_snd() {
-    check_intrinsic_value("", "Fst(7,6)", &Value::Int(7));
-    check_intrinsic_value("", "Snd(7,6)", &Value::Int(6));
-}
-
-#[test]
-fn check_index_range() {
+fn int_as_bigint() {
     check_intrinsic_value(
         "",
-        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Start",
-        &Value::Int(0),
+        "Microsoft.Quantum.Convert.IntAsBigInt(0)",
+        &Value::BigInt(BigInt::from(0)),
     );
     check_intrinsic_value(
         "",
-        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Step",
-        &Value::Int(1),
-    );
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::End",
-        &Value::Int(3),
+        "Microsoft.Quantum.Convert.IntAsBigInt(-10000)",
+        &Value::BigInt(BigInt::from(-10000)),
     );
 }
 
