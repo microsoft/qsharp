@@ -34,22 +34,6 @@ pub fn replace_qubit_allocation(unit: &mut CompileUnit) -> Vec<Error> {
     vec![]
 }
 
-fn remove_extra_parens(pat: Pat) -> Pat {
-    match pat.kind {
-        PatKind::Bind(_) | PatKind::Discard | PatKind::Elided => pat,
-        PatKind::Paren(p) => remove_extra_parens(*p),
-        PatKind::Tuple(ps) => {
-            let new_ps: Vec<Pat> = ps.into_iter().map(remove_extra_parens).collect();
-            Pat {
-                id: pat.id,
-                span: pat.span,
-                ty: Ty::Tuple(new_ps.iter().map(|p| p.ty.clone()).collect()),
-                kind: PatKind::Tuple(new_ps),
-            }
-        }
-    }
-}
-
 struct IdentTemplate {
     id: NodeId,
     span: Span,
@@ -346,18 +330,18 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
                         kind: StmtKind::Semi(Expr {
                             id: NodeId::default(),
                             span: expr.span,
-                            ty: Ty::UNIT, //ToDo: double-check that return expression have this type
+                            ty: Ty::UNIT, //ToDo: should have unresolved type
                             kind: ExprKind::Return(Box::new(rtrn_capture.gen_local_ref())),
                         }),
                     });
                     let new_expr = Expr {
                         id: NodeId::default(),
                         span: expr.span,
-                        ty: Ty::UNIT, //ToDo: double-check type of blocks with `return` in them.
+                        ty: Ty::UNIT, //ToDo: should have unresolved type
                         kind: ExprKind::Block(Block {
                             id: NodeId::default(),
                             span: expr.span,
-                            ty: Ty::UNIT, //ToDo: double-check type of blocks with `return` in them.
+                            ty: Ty::UNIT, //ToDo: should have unresolved type
                             stmts,
                         }),
                     };
@@ -450,6 +434,22 @@ mod QubitAllocationApi {
                 package: Some(PackageId::from(0)),
                 item: LocalItemId::from(107),
             })),
+        }
+    }
+}
+
+fn remove_extra_parens(pat: Pat) -> Pat {
+    match pat.kind {
+        PatKind::Bind(_) | PatKind::Discard | PatKind::Elided => pat,
+        PatKind::Paren(p) => remove_extra_parens(*p),
+        PatKind::Tuple(ps) => {
+            let new_ps: Vec<Pat> = ps.into_iter().map(remove_extra_parens).collect();
+            Pat {
+                id: pat.id,
+                span: pat.span,
+                ty: Ty::Tuple(new_ps.iter().map(|p| p.ty.clone()).collect()),
+                kind: PatKind::Tuple(new_ps),
+            }
         }
     }
 }
