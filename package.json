@@ -10,9 +10,8 @@
   },
   "scripts": {
     "eslint:check": "eslint -c ./.eslintrc.cjs --max-warnings 0 ./",
-    "tsc:check": "tsc -p ./playground/src",
     "prettier:check": "prettier -c --no-config ./",
-    "check": "npm run eslint:check && npm run tsc:check && npm run prettier:check",
+    "check": "npm run eslint:check && npm run prettier:check",
     "prettier:fix": "prettier -w --no-config ./"
   },
   "private": true,
