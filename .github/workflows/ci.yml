@@ -26,7 +26,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Check Formatting
-        run: cargo fmt -v --all -- --check
+        run: cargo fmt --all -- --check
 
   clippy:
     name: Clippy
@@ -42,7 +42,7 @@ jobs:
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - uses: Swatinem/rust-cache@v2
       - name: Clippy Lints
-        run: cargo clippy -vv --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
   benches:
     name: Benches
@@ -59,6 +59,21 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: cargo bench
         run: cargo bench --workspace
+
+  web-check:
+    name: Check web files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.17.1'
+      - name: npm install
+        run: npm install
+      - name: npm check
+        run: npm run check
 
   build:
     name: CI Build and Test
@@ -87,4 +102,4 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Build and Test
-        run: python ./build.py --release --test
+        run: python ./build.py --no-check
