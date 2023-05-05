@@ -37,6 +37,6 @@
     ]
   },
   "scripts": {
-    "build": "tsc -p ./"
+    "build": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json"
   }
 }
