@@ -71,7 +71,7 @@ jobs:
         with:
           node-version: '16.17.1'
       - name: npm install
-        run: npm ci
+        run: npm install
       - name: npm check
         run: npm run check
 
