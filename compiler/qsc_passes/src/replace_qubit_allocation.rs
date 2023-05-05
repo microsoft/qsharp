@@ -9,7 +9,7 @@ use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        Block, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, PrimTy, QubitInit,
+        Block, Expr, ExprKind, Ident, Mutability, NodeId, Package, Pat, PatKind, PrimTy, QubitInit,
         QubitInitKind, Res, Stmt, StmtKind, Ty,
     },
     mut_visit::{walk_expr, walk_stmt, MutVisitor},
@@ -18,14 +18,12 @@ use std::{mem::take, rc::Rc};
 
 use crate::Error;
 
-use self::QubitAllocationApi::{
-    __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
-    __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-};
+use self::other::BuiltInApi;
 
 pub fn replace_qubit_allocation(unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = ReplaceQubitAllocation {
         assigner: &mut unit.assigner,
+        built_in_api: todo!(),
         qubits_curr_callable: Vec::new(),
         qubits_curr_block: Vec::new(),
         prefix_qubits: Vec::new(),
@@ -72,6 +70,7 @@ struct QubitIdent {
 
 struct ReplaceQubitAllocation<'a> {
     assigner: &'a mut Assigner,
+    built_in_api: &'a BuiltInApi,
     qubits_curr_callable: Vec<Vec<QubitIdent>>,
     qubits_curr_block: Vec<QubitIdent>,
     prefix_qubits: Vec<QubitIdent>,
@@ -110,9 +109,9 @@ impl ReplaceQubitAllocation<'_> {
                 new_stmts.push(match opt {
                     Some(mut size) => {
                         self.visit_expr(&mut size);
-                        create_array_alloc_stmt(&id, size)
+                        self.create_array_alloc_stmt(&id, size)
                     }
-                    None => create_alloc_stmt(&id),
+                    None => self.create_alloc_stmt(&id),
                 });
                 new_ids.push(QubitIdent { id, is_array });
             } else {
@@ -125,9 +124,9 @@ impl ReplaceQubitAllocation<'_> {
                 .map(|(id, size)| match size {
                     Some(size) => {
                         self.visit_expr(size);
-                        create_array_alloc_stmt(id, size.clone())
+                        self.create_array_alloc_stmt(id, size.clone())
                     }
-                    None => create_alloc_stmt(id),
+                    None => self.create_alloc_stmt(id),
                 })
                 .collect();
             new_ids = ids
@@ -218,33 +217,65 @@ impl ReplaceQubitAllocation<'_> {
                 .all(std::vec::Vec::is_empty)
     }
 
-    fn get_dealloc_stmts(qubits: &[QubitIdent]) -> Vec<Stmt> {
+    fn get_dealloc_stmts(&self, qubits: &[QubitIdent]) -> Vec<Stmt> {
         qubits
             .iter()
             .rev()
             .map(|qubit| {
                 if qubit.is_array {
-                    create_array_dealloc_stmt(&qubit.id)
+                    self.create_array_dealloc_stmt(&qubit.id)
                 } else {
-                    create_dealloc_stmt(&qubit.id)
+                    self.create_dealloc_stmt(&qubit.id)
                 }
             })
             .collect()
     }
 
     fn get_dealloc_stmts_for_block(&self) -> Vec<Stmt> {
-        ReplaceQubitAllocation::get_dealloc_stmts(&self.qubits_curr_block)
+        self.get_dealloc_stmts(&self.qubits_curr_block)
     }
 
     fn get_dealloc_stmts_for_callable(&self) -> Vec<Stmt> {
-        let mut stmts = ReplaceQubitAllocation::get_dealloc_stmts(&self.qubits_curr_block);
+        let mut stmts = self.get_dealloc_stmts(&self.qubits_curr_block);
         stmts.extend(
             self.qubits_curr_callable
                 .iter()
                 .rev()
-                .flat_map(|q| ReplaceQubitAllocation::get_dealloc_stmts(q)),
+                .flat_map(|q| self.get_dealloc_stmts(q)),
         );
         stmts
+    }
+
+    fn create_alloc_stmt(&self, ident: &IdentTemplate) -> Stmt {
+        create_general_alloc_stmt(
+            ident,
+            self.built_in_api.__quantum__rt__qubit_allocate(ident.span),
+            None,
+        )
+    }
+
+    fn create_array_alloc_stmt(&self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
+        create_general_alloc_stmt(
+            ident,
+            self.built_in_api
+                .__quantum__rt__qubit_allocate_array(ident.span),
+            Some(array_size),
+        )
+    }
+
+    fn create_dealloc_stmt(&self, ident: &IdentTemplate) -> Stmt {
+        create_general_dealloc_stmt(
+            self.built_in_api.__quantum__rt__qubit_release(ident.span),
+            ident,
+        )
+    }
+
+    fn create_array_dealloc_stmt(&self, ident: &IdentTemplate) -> Stmt {
+        create_general_dealloc_stmt(
+            self.built_in_api
+                .__quantum__rt__qubit_release_array(ident.span),
+            ident,
+        )
     }
 }
 
@@ -360,80 +391,141 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
     }
 }
 
-mod QubitAllocationApi {
-    use std::collections::HashSet;
-
-    use qsc_data_structures::span::Span;
-    use qsc_hir::hir::{
-        CallableKind, Expr, ExprKind, Functor, ItemId, LocalItemId, NodeId, PackageId, PrimTy, Res,
-        Ty,
+mod other {
+    use std::{
+        collections::{HashMap, HashSet},
+        rc::Rc,
     };
 
-    pub fn __quantum__rt__qubit_allocate(span: Span) -> Expr {
-        Expr {
-            id: NodeId::default(),
-            span,
-            ty: Ty::Arrow(
-                CallableKind::Function,
-                Box::new(Ty::UNIT),
-                Box::new(Ty::Prim(PrimTy::Qubit)),
-                HashSet::<Functor>::new(),
-            ),
-            kind: ExprKind::Var(Res::Item(ItemId {
-                package: Some(PackageId::from(0)),
-                item: LocalItemId::from(104),
-            })),
+    use qsc_data_structures::span::Span;
+    use qsc_hir::{
+        hir::{
+            CallableKind, Expr, ExprKind, Functor, Item, ItemId, ItemKind, LocalItemId, NodeId,
+            Package, PackageId, PrimTy, Res, Ty,
+        },
+        visit::Visitor,
+    };
+
+    struct GetApiIds {
+        pub map: HashMap<Rc<str>, LocalItemId>,
+    }
+
+    impl GetApiIds {
+        pub fn new(base_package: &Package) -> GetApiIds {
+            let mut visitor = GetApiIds {
+                map: HashMap::new(),
+            };
+            visitor.visit_package(base_package);
+            visitor
         }
     }
 
-    pub fn __quantum__rt__qubit_release(span: Span) -> Expr {
-        Expr {
-            id: NodeId::default(),
-            span,
-            ty: Ty::Arrow(
-                CallableKind::Function,
-                Box::new(Ty::Prim(PrimTy::Qubit)),
-                Box::new(Ty::UNIT),
-                HashSet::<Functor>::new(),
-            ),
-            kind: ExprKind::Var(Res::Item(ItemId {
-                package: Some(PackageId::from(0)),
-                item: LocalItemId::from(105),
-            })),
+    impl<'a> Visitor<'a> for GetApiIds {
+        fn visit_item(&mut self, item: &'a Item) {
+            if let ItemKind::Callable(decl) = &item.kind {
+                self.map.insert(decl.name.name.clone(), item.id);
+                self.map = HashMap::new();
+            }
         }
     }
 
-    pub fn __quantum__rt__qubit_allocate_array(span: Span) -> Expr {
-        Expr {
-            id: NodeId::default(),
-            span,
-            ty: Ty::Arrow(
-                CallableKind::Function,
-                Box::new(Ty::Prim(PrimTy::Int)),
-                Box::new(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)))),
-                HashSet::<Functor>::new(),
-            ),
-            kind: ExprKind::Var(Res::Item(ItemId {
-                package: Some(PackageId::from(0)),
-                item: LocalItemId::from(106),
-            })),
-        }
+    pub struct BuiltInApi {
+        visitor: GetApiIds,
     }
 
-    pub fn __quantum__rt__qubit_release_array(span: Span) -> Expr {
-        Expr {
-            id: NodeId::default(),
-            span,
-            ty: Ty::Arrow(
-                CallableKind::Function,
-                Box::new(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)))),
-                Box::new(Ty::UNIT),
-                HashSet::<Functor>::new(),
-            ),
-            kind: ExprKind::Var(Res::Item(ItemId {
-                package: Some(PackageId::from(0)),
-                item: LocalItemId::from(107),
-            })),
+    impl BuiltInApi {
+        pub fn new(base_package: &Package) -> BuiltInApi {
+            BuiltInApi {
+                visitor: GetApiIds::new(base_package),
+            }
+        }
+
+        pub fn __quantum__rt__qubit_allocate(&self, span: Span) -> Expr {
+            let id = self
+                .visitor
+                .map
+                .get("__quantum__rt__qubit_allocate")
+                .expect("Cannot find function __quantum__rt__qubit_allocate");
+            Expr {
+                id: NodeId::default(),
+                span,
+                ty: Ty::Arrow(
+                    CallableKind::Function,
+                    Box::new(Ty::UNIT),
+                    Box::new(Ty::Prim(PrimTy::Qubit)),
+                    HashSet::<Functor>::new(),
+                ),
+                kind: ExprKind::Var(Res::Item(ItemId {
+                    package: Some(PackageId::from(0)),
+                    item: *id,
+                })),
+            }
+        }
+
+        pub fn __quantum__rt__qubit_release(&self, span: Span) -> Expr {
+            let id = self
+                .visitor
+                .map
+                .get("__quantum__rt__qubit_release")
+                .expect("Cannot find function __quantum__rt__qubit_release");
+            Expr {
+                id: NodeId::default(),
+                span,
+                ty: Ty::Arrow(
+                    CallableKind::Function,
+                    Box::new(Ty::Prim(PrimTy::Qubit)),
+                    Box::new(Ty::UNIT),
+                    HashSet::<Functor>::new(),
+                ),
+                kind: ExprKind::Var(Res::Item(ItemId {
+                    package: Some(PackageId::from(0)),
+                    item: *id,
+                })),
+            }
+        }
+
+        pub fn __quantum__rt__qubit_allocate_array(&self, span: Span) -> Expr {
+            let id = self
+                .visitor
+                .map
+                .get("__quantum__rt__qubit_allocate_array")
+                .expect("Cannot find function __quantum__rt__qubit_allocate_array");
+            Expr {
+                id: NodeId::default(),
+                span,
+                ty: Ty::Arrow(
+                    CallableKind::Function,
+                    Box::new(Ty::Prim(PrimTy::Int)),
+                    Box::new(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)))),
+                    HashSet::<Functor>::new(),
+                ),
+                kind: ExprKind::Var(Res::Item(ItemId {
+                    package: Some(PackageId::from(0)),
+                    item: *id,
+                })),
+            }
+        }
+
+        pub fn __quantum__rt__qubit_release_array(&self, span: Span) -> Expr {
+            let id = self
+                .visitor
+                .map
+                .get("__quantum__rt__qubit_release_array")
+                .expect("Cannot find function __quantum__rt__qubit_release_array");
+            Expr {
+                id: NodeId::default(),
+                span,
+                ty: Ty::Arrow(
+                    CallableKind::Function,
+                    Box::new(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)))),
+                    Box::new(Ty::UNIT),
+                    HashSet::<Functor>::new(),
+                ),
+                kind: ExprKind::Var(Res::Item(ItemId {
+                    package: Some(PackageId::from(0)),
+                    item: *id,
+                })),
+            }
         }
     }
 }
@@ -491,18 +583,6 @@ fn create_general_alloc_stmt(
     }
 }
 
-fn create_array_alloc_stmt(ident: &IdentTemplate, array_size: Expr) -> Stmt {
-    create_general_alloc_stmt(
-        ident,
-        __quantum__rt__qubit_allocate_array(ident.span),
-        Some(array_size),
-    )
-}
-
-fn create_alloc_stmt(ident: &IdentTemplate) -> Stmt {
-    create_general_alloc_stmt(ident, __quantum__rt__qubit_allocate(ident.span), None)
-}
-
 fn create_general_dealloc_stmt(call_expr: Expr, ident: &IdentTemplate) -> Stmt {
     Stmt {
         id: NodeId::default(),
@@ -522,12 +602,4 @@ fn create_general_dealloc_stmt(call_expr: Expr, ident: &IdentTemplate) -> Stmt {
             ),
         }),
     }
-}
-
-fn create_array_dealloc_stmt(ident: &IdentTemplate) -> Stmt {
-    create_general_dealloc_stmt(__quantum__rt__qubit_release_array(ident.span), ident)
-}
-
-fn create_dealloc_stmt(ident: &IdentTemplate) -> Stmt {
-    create_general_dealloc_stmt(__quantum__rt__qubit_release(ident.span), ident)
 }
