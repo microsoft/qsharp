@@ -4,7 +4,7 @@
 import { log } from "./log.js";
 import { ICompletionList } from "../lib/web/qsc_wasm.js";
 import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
-import { ICompiler, ICompilerWorker, onCompilerEvent } from "./compiler.js";
+import { ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
 import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
 
@@ -22,6 +22,7 @@ invoked. When the response is received this is used to resolve the promise and
 complete the request.
 */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type RequestState = {
     type: string;
     args: any[];
@@ -30,6 +31,7 @@ type RequestState = {
     evtTarget?: IQscEventTarget;
     cancellationToken?: CancellationToken;
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /**
  * @param postMessage A function to post messages to the worker
@@ -39,14 +41,15 @@ type RequestState = {
  */
 export function createWorkerProxy(
     postMessage: (msg: CompilerReqMsg) => void,
-    setMsgHandler: (handler: (e: any) => void) => void,
+    setMsgHandler: (handler: (e: ResponseMsgType) => void) => void,
     terminator: () => void): ICompilerWorker {
 
-    let queue: RequestState[] = [];
+    const queue: RequestState[] = [];
     let curr: RequestState | undefined;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function queueRequest(type: string, args: any[], evtTarget?: IQscEventTarget,
-        cancellationToken?: CancellationToken): Promise<any> {
+        cancellationToken?: CancellationToken): Promise<RespResultTypes> {
         return new Promise((resolve, reject) => {
             queue.push({ type, args, resolve, reject, evtTarget, cancellationToken });
 
@@ -58,7 +61,7 @@ export function createWorkerProxy(
     function doNextRequest() {
         if (curr) return;
 
-        while (curr = queue.shift()) {
+        while (curr = queue.shift()) { // eslint-disable-line no-cond-assign
             if (curr.cancellationToken?.isCancellationRequested) {
                 curr.reject("cancelled");
                 continue;
@@ -100,22 +103,26 @@ export function createWorkerProxy(
         const msgType = msg.type;
         switch (msgType) {
             // Event type messages don't complete the request
-            case "message-event":
+            case "message-event": {
                 const msgEvent = makeEvent("Message", msg.event.message);
                 curr.evtTarget?.dispatchEvent(msgEvent);
                 return;
-            case "dumpMachine-event":
+            }
+            case "dumpMachine-event": {
                 const dmpEvent = makeEvent("DumpMachine", msg.event.state);
                 curr.evtTarget?.dispatchEvent(dmpEvent);
                 return;
-            case "failure-event":
+            }
+            case "failure-event": {
                 const failEvent = makeEvent("Result", { success: false, value: msg.event });
                 curr.evtTarget?.dispatchEvent(failEvent);
                 return;
-            case "success-event":
+            }
+            case "success-event": {
                 const successEvent = makeEvent("Result", { success: true, value: msg.event });
                 curr.evtTarget?.dispatchEvent(successEvent);
                 return;
+            }
 
             // Response type messages. Resolve and complete this request.
             case "checkCode-result":
@@ -233,7 +240,7 @@ export function handleMessageInWorker(
             default:
                 log.never(msgType);
         }
-    } catch(err: any) {
+    } catch(err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         // If this happens then the wasm code likely threw an exception/paniced rather than
         // completing gracefully and fullfilling the promise. Communicate to the client
         // that there was an error and it should reject the current request
@@ -253,7 +260,7 @@ type CompilerRespMsg =
     { type: "getCompletions-result", result: ICompletionList } |
     { type: "run-result", result: void } |
     { type: "runKata-result", result: boolean } |
-    { type: "error-result", result: any };
+    { type: "error-result", result: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Get the possible 'result' types from a compiler response
 type ExtractResult<T> = T extends { result: infer R } ? R : never;
@@ -263,4 +270,6 @@ type CompilerEventMsg =
     { type: "message-event", "event": MessageMsg } |
     { type: "dumpMachine-event", "event": DumpMsg } |
     { type: "success-event", "event": string } |
-    { type: "failure-event", "event": any };
+    { type: "failure-event", "event": any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+export type ResponseMsgType = CompilerRespMsg | CompilerEventMsg;

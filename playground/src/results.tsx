@@ -14,7 +14,7 @@ function resultToKet(result: string | VSDiagnostic): string {
     if (reKetResult.test(result)) {
         // The result is a simple array of Zero and One
         // The below will return an array of "Zero" or "One" in the order found
-        let matches = result.match(/(One|Zero)/g);
+        const matches = result.match(/(One|Zero)/g);
         matches?.reverse();
         let ket = "|";
         matches?.forEach(digit => ket += (digit == "One" ? "1" : "0"));
@@ -80,9 +80,9 @@ export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean,
             const isNewResults = results !== resultState.currArray;
 
             // If the results object has changed then reset the current index and filter.
-            let newIndex = isNewResults ? 0 : resultState.currIndex;
-            let newFilterValue = isNewResults ? "" : resultState.filterValue;
-            let newFilterIndex = isNewResults ? 0 : resultState.filterIndex;
+            const newIndex = isNewResults ? 0 : resultState.currIndex;
+            const newFilterValue = isNewResults ? "" : resultState.filterValue;
+            const newFilterIndex = isNewResults ? 0 : resultState.filterIndex;
 
             const currentResult = resultState.currResult;
             const updatedResult = newIndex < results.length ?
@@ -146,7 +146,7 @@ export function Results(props: {evtTarget: QscEventTarget, showPanel: boolean,
     // If there's no filter set, may well be no results at all yet.
 
     const filterValue = resultState.filterValue;
-    const countForFilter = filterValue ? resultState.buckets.get(filterValue)! : resultState.shotCount;
+    const countForFilter = filterValue ? resultState.buckets.get(filterValue) || 0 : resultState.shotCount;
     const currIndex = filterValue ? resultState.filterIndex : resultState.currIndex;
     const resultLabel = typeof resultState.currResult?.result === 'string' ?
             resultToKet(resultState.currResult?.result || "") :

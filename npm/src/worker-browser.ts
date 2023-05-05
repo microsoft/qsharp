@@ -12,7 +12,7 @@ import { Compiler } from "./compiler.js";
 import { getWorkerEventHandlers, handleMessageInWorker } from "./worker-common.js";
 
 // Used to sent messages back to the client when events occur during request processing
-let evtTarget = getWorkerEventHandlers(self.postMessage);
+const evtTarget = getWorkerEventHandlers(self.postMessage);
 
 let compiler: Compiler | null = null;
 

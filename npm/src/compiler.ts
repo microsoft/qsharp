@@ -22,6 +22,7 @@ export interface ICompiler {
 // WebWorker also support being explicitly terminated to tear down the worker thread
 export type ICompilerWorker = ICompiler & { terminate: () => void };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function errToDiagnostic(err: any): VSDiagnostic {
     if (err && typeof err.severity === 'number' && typeof err.message === 'string') {
         err.start_pos = err.start_pos || 0;
@@ -45,7 +46,7 @@ export class Compiler implements ICompiler {
     }
 
     async checkCode(code: string): Promise<VSDiagnostic[]> {
-        let raw_result = this.wasm.check_code(code) as IDiagnostic[];
+        const raw_result = this.wasm.check_code(code) as IDiagnostic[];
         return mapDiagnostics(raw_result, code);
     }
 
@@ -62,7 +63,7 @@ export class Compiler implements ICompiler {
 
     async runKata(user_code: string, verify_code: string, eventHandler: IQscEventTarget): Promise<boolean> {
         let success = false;
-        let err: any = null;
+        let err: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             success = this.wasm.run_kata_exercise(verify_code, user_code, (msg: string) => onCompilerEvent(msg, eventHandler));
         } catch (e) {
@@ -106,5 +107,5 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
             log.never(msgType);
             throw "Unexpected message type";
     }
-    eventTarget.dispatchEvent(qscEvent!);
+    eventTarget.dispatchEvent(qscEvent);
 }

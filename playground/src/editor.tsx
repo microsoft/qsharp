@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// <reference types="../../node_modules/monaco-editor/monaco.d.ts"/>
+
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ICompilerWorker, QscEventTarget, VSDiagnostic, log } from "qsharp";
 import { codeToBase64 } from "./utils.js";
@@ -15,8 +17,8 @@ export function Editor(props: {
             kataVerify?: string,
             shotError?: VSDiagnostic,
         }) {
-    const editorRef = useRef(null);
-    const shotsRef = useRef(null);
+    const editorRef = useRef<HTMLDivElement>(null);
+    const shotsRef = useRef<HTMLInputElement>(null);
 
     const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [errors, setErrors] = useState<{location: string, msg: string}[]>([]);
@@ -53,14 +55,15 @@ export function Editor(props: {
     useEffect(() => {
         // Create the monaco editor
         log.info("Creating a monaco editor");
-        const editorDiv: HTMLDivElement = editorRef.current as any;
+        const editorDiv = editorRef.current;
+        if (!editorDiv) return;
         const editor = monaco.editor.create(editorDiv, {minimap: {enabled: false}, lineNumbersMinChars:3});
         const srcModel = monaco.editor.createModel(props.code, 'qsharp');
         editor.setModel(srcModel);
         setEditor(editor);
     
         // If the browser window resizes, tell the editor to update it's layout
-        window.addEventListener('resize', _ => editor.layout());
+        window.addEventListener('resize', () => editor.layout());
 
         // As code is edited check it for errors and update the error list
         async function check() {
@@ -68,8 +71,8 @@ export function Editor(props: {
             // Need to ensure that if this occurs, wait and try again on the next animation frame.
             // i.e. Don't queue a bunch of checks if some are still outstanding
             diagnosticsFrame = 0;
-            let code = srcModel.getValue();
-            let errs = await props.compiler.checkCode(code);
+            const code = srcModel.getValue();
+            const errs = await props.compiler.checkCode(code);
 
             // Note that as this is async, the code may have changed since checkCode was called.
             // TODO: Account for this scenario (e.g. delta positions with old source version)
@@ -81,10 +84,10 @@ export function Editor(props: {
 
         // Helpers to turn errors into editor squiggles
         function squiggleDiagnostics(errors: VSDiagnostic[]) {
-            let errList: {location: string, msg: string}[] = [];
-            let newMarkers = errors?.map(err => {
-                let startPos = srcModel.getPositionAt(err.start_pos);
-                let endPos = srcModel.getPositionAt(err.end_pos);
+            const errList: {location: string, msg: string}[] = [];
+            const newMarkers = errors?.map(err => {
+                const startPos = srcModel.getPositionAt(err.start_pos);
+                const endPos = srcModel.getPositionAt(err.end_pos);
                 const marker: monaco.editor.IMarkerData = {
                   severity: monaco.MarkerSeverity.Error,
                   message: err.message,
@@ -106,7 +109,7 @@ export function Editor(props: {
         // While the code is changing, update the diagnostics as fast as the browser will render frames
         let diagnosticsFrame = requestAnimationFrame(check);
 
-        srcModel.onDidChangeContent(ev => {
+        srcModel.onDidChangeContent( () => {
             if (!diagnosticsFrame) {
                 diagnosticsFrame = requestAnimationFrame(check);
             }
@@ -149,7 +152,7 @@ export function Editor(props: {
 
     async function onRun() {
         const code = editor?.getModel()?.getValue();
-        const shotsInput: HTMLInputElement = shotsRef.current as any;
+        const shotsInput = shotsRef.current;
         const shots = shotsInput ? parseInt(shotsInput.value) || 1 : props.defaultShots;
         if (!code) return;
         props.evtTarget.clearResults();

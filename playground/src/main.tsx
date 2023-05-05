@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/// <reference path="../../node_modules/monaco-editor/monaco.d.ts"/>
-
 import { render } from "preact";
 import { ICompilerWorker, QscEventTarget, getCompilerWorker, loadWasmModule, getAllKatas, Kata, VSDiagnostic } from "qsharp";
 
@@ -14,13 +12,14 @@ import { samples } from "./samples.js";
 import { Kata as Katas } from "./kata.js";
 import { base64ToCode } from "./utils.js";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
 const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
 const workerPath = basePath + "libs/worker.js";
 
 declare global {
-    var MathJax: { typeset: () => void; };
+    const MathJax: { typeset: () => void; };
 }
 
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
@@ -32,7 +31,7 @@ function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget, katas
     const kataTitles = props.katas.map(elem => elem.title);
     const sampleTitles = Object.keys(samples);
 
-    let sampleCode: string = (samples as any)[currentNavItem] || props.linkedCode;
+    const sampleCode = (samples as {[idx: string]: string})[currentNavItem] || props.linkedCode; 
 
 
     const activeKata = kataTitles.includes(currentNavItem) ?
@@ -71,6 +70,7 @@ function App(props: {compiler: ICompilerWorker, evtTarget: QscEventTarget, katas
             shotError={shotError}></Editor>
         <Results evtTarget={props.evtTarget} showPanel={true} onShotError={onShotError}></Results>
       </> :
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         <Katas kata={activeKata!} compiler={props.compiler}></Katas>
 }
     </>);
@@ -86,9 +86,9 @@ async function loaded() {
     // If URL is a sharing link, populate the editor with the code from the link. 
     // Otherwise, populate with sample code.
     let linkedCode: string | undefined;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("code")) {
-        const base64code = decodeURIComponent(params.get("code")!);
+    const paramCode = new URLSearchParams(window.location.search).get("code");
+    if (paramCode) {
+        const base64code = decodeURIComponent(paramCode);
         linkedCode = base64ToCode(base64code);
     }
 
@@ -96,6 +96,8 @@ async function loaded() {
 }
 
 // Monaco provides the 'require' global for loading modules.
-declare var require: any;
+declare const require: {
+    config: (settings: object) => void,
+    (base: string[], onready: () => void): void};
 require.config({ paths: { vs: monacoPath } });
 require(['vs/editor/editor.main'], loaded);

@@ -37,7 +37,7 @@ export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
 
 export function outputAsResult(msg: string) : ResultMsg | null {
     try {
-        let obj = JSON.parse(msg);
+        const obj = JSON.parse(msg);
         if (obj?.type == "Result" && typeof obj.success == "boolean") {
             return {
                 type: "Result",
@@ -55,7 +55,7 @@ export function outputAsResult(msg: string) : ResultMsg | null {
 
 export function outputAsMessage(msg: string) : MessageMsg | null {
     try {
-        let obj = JSON.parse(msg);
+        const obj = JSON.parse(msg);
         if (obj?.type == "Message" && typeof obj.message == "string") {
             return obj as MessageMsg;
         }
@@ -67,7 +67,7 @@ export function outputAsMessage(msg: string) : MessageMsg | null {
 
 export function outputAsDump(msg: string) : DumpMsg | null {
     try {
-        let obj = JSON.parse(msg);
+        const obj = JSON.parse(msg);
         if (obj?.type == "DumpMachine" && typeof obj.state == "object") {
             return obj as DumpMsg;
         }
@@ -98,7 +98,7 @@ export type ShotResult = {
  * @returns An object where the keys are the utf-8 index and the values are the utf-16 index
  */
 export function mapUtf8UnitsToUtf16Units(positions: Array<number>, source: string) : {[index: number]: number} {
-    let result : {[index: number]: number} = {};
+    const result : {[index: number]: number} = {};
     if (positions.length === 0) return result;
 
     // Remove any duplicates by converting to a set and back to an array
@@ -130,7 +130,7 @@ export function mapUtf8UnitsToUtf16Units(positions: Array<number>, source: strin
     let utf8Index = 0;
     let posArrayIndex = 0;
     let nextUtf8Target = sorted_pos[posArrayIndex];
-    while (true) {
+    for(;;) {
         // Walk though the source code maintaining a UTF-8 to UTF-16 code unit index mapping.
         // When the UTF-8 index >= the next searched for index, save that result and increment.
         // If the end of source or end of searched for positions is reached, then break

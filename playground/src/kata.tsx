@@ -17,9 +17,12 @@ export function Kata(props: {kata: Kata, compiler: ICompilerWorker}) {
         kataContent.current.innerHTML = props.kata.contentAsHtml;
 
         props.kata.items.forEach( (item, idx) => {
-            const parentDiv = itemContent.current[idx]!;
-            parentDiv.querySelector('.kata-item-title')!.innerHTML = item.title;
-            parentDiv.querySelector('.kata-item-content')!.innerHTML = item.contentAsHtml;
+            const parentDiv = itemContent.current[idx];
+            const h2 = parentDiv?.querySelector('.kata-item-title');
+            const div = parentDiv?.querySelector('.kata-item-content');
+            if (!h2 || !div) return;
+            h2.innerHTML = item.title;
+            div.innerHTML = item.contentAsHtml;
         });
         // In case we're now rendering less items than before, be sure to truncate
         itemContent.current.length = props.kata.items.length;

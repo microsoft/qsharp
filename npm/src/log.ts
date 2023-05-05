@@ -18,8 +18,8 @@ declare global {
     // 5 = trace
     // Note this also aligns with the Rust log crate macros/levels
     // See https://docs.rs/log/latest/log/
-    var qscLogLevel: number;
-    var qscLog: typeof log;
+    var qscLogLevel: number; // eslint-disable-line no-var
+    var qscLog: typeof log;  // eslint-disable-line no-var
 }
 
 type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
@@ -42,22 +42,24 @@ export const log = {
     getLogLevel(): number {
         return globalThis.qscLogLevel || 0;
     },
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     error(...args: any) {
-        if (qscLogLevel >= 1) console.error.apply(console, args);
+        if (qscLogLevel >= 1) console.error(...args);
     },
     warn(...args: any) {
-        if (qscLogLevel >= 2) console.warn.apply(console, args);
+        if (qscLogLevel >= 2) console.warn(...args);
     },
     info(...args: any) {
-        if (qscLogLevel >= 3) console.info.apply(console, args);
+        if (qscLogLevel >= 3) console.info(...args);
     },
     debug(...args: any) {
-        if (qscLogLevel >= 4) console.debug.apply(console, args);
+        if (qscLogLevel >= 4) console.debug(...args);
     },
     trace(...args: any) {
         // console.trace in JavaScript just writes a stack trace at info level, so use 'debug'
-        if (qscLogLevel >= 5) console.debug.apply(console, args);
+        if (qscLogLevel >= 5) console.debug(...args);
     },
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     never(val: never) {
         // Utility function to ensure exhaustive type checking. See https://stackoverflow.com/a/39419171
         log.error("Exhaustive type checking didn't account for: %o", val);

@@ -20,7 +20,7 @@ if (workerData && typeof workerData.qscLogLevel === 'number') {
     log.setLogLevel(workerData.qscLogLevel);
 }
 
-const port = parentPort!;
+const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 const postMessage = port.postMessage.bind(port);
 
 const evtTarget = getWorkerEventHandlers(postMessage);

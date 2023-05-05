@@ -37,7 +37,7 @@ export interface IQscEventTarget {
 
 // Convenience method that also provides type safety
 export function makeEvent<K extends QscMessageNames>(type: K, detail: QscEventDetail<K>): QscEventMap[K] {
-    let event = new Event(type) as QscEventMap[K];
+    const event = new Event(type) as QscEventMap[K];
     event.detail = detail;
     return event;
 }
