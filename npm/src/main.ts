@@ -19,21 +19,22 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 let wasm: Wasm | null = null;
 const require = createRequire(import.meta.url);
 
-export function getCompiler() : ICompiler {
-    if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-    return new Compiler(wasm);
+export function getCompiler(): ICompiler {
+  if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
+  return new Compiler(wasm);
 }
 
-export function getCompilerWorker() : ICompilerWorker {
-    const thisDir = dirname(fileURLToPath(import.meta.url));
-    const worker = new Worker(join(thisDir,"worker-node.js"), {
-        workerData: {qscLogLevel: log.getLogLevel() }
-    });
+export function getCompilerWorker(): ICompilerWorker {
+  const thisDir = dirname(fileURLToPath(import.meta.url));
+  const worker = new Worker(join(thisDir, "worker-node.js"), {
+    workerData: { qscLogLevel: log.getLogLevel() },
+  });
 
-    // If you lose the 'this' binding, some environments have issues.
-    const postMessage = worker.postMessage.bind(worker);
-    const setMsgHandler = (handler: (e: ResponseMsgType) => void) => worker.addListener('message', handler);
-    const onTerminate = () => worker.terminate();
+  // If you lose the 'this' binding, some environments have issues.
+  const postMessage = worker.postMessage.bind(worker);
+  const setMsgHandler = (handler: (e: ResponseMsgType) => void) =>
+    worker.addListener("message", handler);
+  const onTerminate = () => worker.terminate();
 
-    return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
+  return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
 }
