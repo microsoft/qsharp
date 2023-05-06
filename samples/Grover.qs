@@ -116,14 +116,13 @@ namespace Microsoft.Quantum.Samples.SimpleGrover {
     operation Main() : Result[] {
         let nQubits = 6;
 
-        // We are setting the number of iterations to 1 (instead of the
-        // proper NIterations) to make the search less precise.
-        // Then we use many shots to see if the probability of the
-        // correct solution will still be high.
-        // Use NIterations instead of 1 to get correct answer with
-        // fewer shots.
-        let nIterations = 1; // NIterations(nQubits);
-        Message("Iterations: " + AsString(nIterations));
+        // You can set the number iterations to a value
+        // lower than optimal to intentionally reduce precision.
+        // Then you can try to use more shots to see if
+        // the result is still detected with the sufficient
+        // probability.
+        let nIterations = NIterations(nQubits); // Try setting to 1.
+        Message("Number of iterations: " + AsString(nIterations));
 
         let results =  GroverSearch(
             nQubits,

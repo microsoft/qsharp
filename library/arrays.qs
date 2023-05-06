@@ -20,7 +20,8 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
-    /// Creates an array containing the elements `array[1..Length(array) - 1]`.
+    /// Creates an array that is equal to an input array except that the first array
+    /// element is dropped: `array[1..Length(array) - 1]`.
     function Rest<'T> (array : 'T[]) : 'T[] {
         array[1 ...]
     }
@@ -33,7 +34,8 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
-    /// Creates an array containing the elements `array[0..Length(array) - 2]`.
+    /// Creates an array that is equal to an input array except that the last array
+    /// element is dropped: `array[0..Length(array) - 2]`.
     function Most<'T> (array : 'T[]) : 'T[] {
         array[... Length(array) - 2]
     }

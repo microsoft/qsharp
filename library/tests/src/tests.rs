@@ -302,11 +302,35 @@ fn check_bitsize_i() {
 }
 
 #[test]
+fn check_reversed() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Reversed([5,6,7,8])",
+        &Value::Array(vec![Value::Int(8), Value::Int(7), Value::Int(6), Value::Int(5)].into()),
+    );
+}
+
+#[test]
 fn check_head() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
 }
 
 #[test]
+fn check_rest() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",
+        &Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
+    );
+}
+
+#[test]
 fn check_tail() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Tail([5,6,7,8])", &Value::Int(8));
+}
+
+#[test]
+fn check_most() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
+        &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+    );
 }
