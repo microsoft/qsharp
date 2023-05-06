@@ -15,10 +15,14 @@ let wasmModule: WebAssembly.Module | null = null;
 // Used to track if an instance is already instantiated
 let wasmInstance: wasm.InitOutput;
 
-export async function loadWasmModule(uri: string) {
-  const wasmRequst = await fetch(uri);
-  const wasmBuffer = await wasmRequst.arrayBuffer();
-  wasmModule = await WebAssembly.compile(wasmBuffer);
+export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
+  if (typeof uriOrBuffer === "string") {
+    const wasmRequst = await fetch(uriOrBuffer);
+    const wasmBuffer = await wasmRequst.arrayBuffer();
+    wasmModule = await WebAssembly.compile(wasmBuffer);
+  } else {
+    wasmModule = await WebAssembly.compile(uriOrBuffer);
+  }
 }
 
 export async function getCompiler(): Promise<ICompiler> {
