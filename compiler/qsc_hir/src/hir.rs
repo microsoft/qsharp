@@ -704,8 +704,6 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
-    /// Parentheses: `(a)`.
-    Paren(Box<Expr>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
@@ -748,7 +746,6 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,

@@ -6,7 +6,7 @@ use crate::{
     typeck::{convert, Tys},
 };
 use qsc_ast::ast;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
@@ -279,9 +279,17 @@ impl With<'_> {
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
-        let id = self.lower_id(expr.id);
-        let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
+        let (mut id, mut span, mut ty) = if let ast::ExprKind::Paren(_) = &expr.kind {
+            (hir::NodeId::default(), Span::default(), hir::Ty::Err)
+        } else {
+            (
+                self.lower_id(expr.id),
+                expr.span,
+                self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone),
+            )
+        };
         let kind = match &expr.kind {
             ast::ExprKind::Array(items) => {
                 hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
@@ -345,7 +353,13 @@ impl With<'_> {
                 Box::new(self.lower_expr(body)),
             ),
             ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
-            ast::ExprKind::Paren(inner) => hir::ExprKind::Paren(Box::new(self.lower_expr(inner))),
+            ast::ExprKind::Paren(inner) => {
+                let inner = self.lower_expr(inner);
+                id = inner.id;
+                span = inner.span;
+                ty = inner.ty;
+                inner.kind
+            }
             ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
@@ -375,12 +389,7 @@ impl With<'_> {
             }
         };
 
-        hir::Expr {
-            id,
-            span: expr.span,
-            ty,
-            kind,
-        }
+        hir::Expr { id, span, ty, kind }
     }
 
     fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {

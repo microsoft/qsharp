@@ -373,7 +373,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 }
             }
             ExprKind::Lit(lit) => Continue(lit_to_val(lit)),
-            ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
             ExprKind::Return(expr) => Break(Reason::Return(self.eval_expr(expr)?)),
@@ -966,7 +965,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => Continue(Value::unit()),
-            (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (&ExprKind::Var(Res::Local(node)), rhs) => match self.env.get_mut(node) {
                 Some(var) if var.is_mutable() => {
                     var.value = rhs;
