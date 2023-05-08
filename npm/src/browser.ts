@@ -69,4 +69,5 @@ export {
   type Example,
   type Exercise,
 } from "./katas.js";
+export { default as samples} from "./samples.generated.js";
 export { QscEventTarget } from "./events.js";
