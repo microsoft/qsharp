@@ -244,19 +244,8 @@ pub fn core() -> CompileUnit {
     );
 
     let mut unit = compile(&store, &[], sources);
-    if unit.errors.is_empty() {
-        unit
-    } else {
-        for error in unit.errors.drain(..) {
-            if let Some(source) = unit.sources.find_diagnostic(&error) {
-                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
-            } else {
-                eprintln!("{:?}", Report::new(error));
-            }
-        }
-
-        panic!("could not compile core library");
-    }
+    assert_no_errors(&unit.sources, &mut unit.errors);
+    unit
 }
 
 /// Compiles the standard library.
@@ -313,19 +302,8 @@ pub fn std(store: &PackageStore) -> CompileUnit {
     );
 
     let mut unit = compile(store, &[PackageId::CORE], sources);
-    if unit.errors.is_empty() {
-        unit
-    } else {
-        for error in unit.errors.drain(..) {
-            if let Some(source) = unit.sources.find_diagnostic(&error) {
-                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
-            } else {
-                eprintln!("{:?}", Report::new(error));
-            }
-        }
-
-        panic!("could not compile standard library");
-    }
+    assert_no_errors(&unit.sources, &mut unit.errors);
+    unit
 }
 
 fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
@@ -411,4 +389,18 @@ fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan 
 
 fn next_offset(sources: &[Source]) -> usize {
     sources.last().map_or(0, |s| s.offset + s.contents.len())
+}
+
+fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
+    if !errors.is_empty() {
+        for error in errors.drain(..) {
+            if let Some(source) = sources.find_diagnostic(&error) {
+                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
+            } else {
+                eprintln!("{:?}", Report::new(error));
+            }
+        }
+
+        panic!("could not compile package");
+    }
 }
