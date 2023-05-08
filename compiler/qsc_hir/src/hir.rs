@@ -1087,8 +1087,6 @@ impl Display for QubitInit {
 pub enum QubitInitKind {
     /// An array of qubits: `Qubit[a]`.
     Array(Box<Expr>),
-    /// A parenthesized initializer: `(a)`.
-    Paren(Box<QubitInit>),
     /// A single qubit: `Qubit()`.
     Single,
     /// A tuple: `(a, b, c)`.
@@ -1103,11 +1101,6 @@ impl Display for QubitInitKind {
                 write!(indent, "Array:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{e}")?;
-            }
-            QubitInitKind::Paren(qi) => {
-                write!(indent, "Parens:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{qi}")?;
             }
             QubitInitKind::Single => write!(indent, "Single")?,
             QubitInitKind::Tuple(qis) => {

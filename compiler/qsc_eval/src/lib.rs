@@ -558,7 +558,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     arr,
                 ))
             }
-            QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
             QubitInitKind::Single => {
                 let qubit = Qubit(__quantum__rt__qubit_allocate());
                 Continue((Value::Qubit(qubit), vec![(qubit, qubit_init.span)]))

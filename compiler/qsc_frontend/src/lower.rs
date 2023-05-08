@@ -409,26 +409,28 @@ impl With<'_> {
     }
 
     fn lower_qubit_init(&mut self, init: &ast::QubitInit) -> hir::QubitInit {
-        let id = self.lower_id(init.id);
-        let ty = self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone);
-        let kind = match &init.kind {
-            ast::QubitInitKind::Array(length) => {
-                hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))
-            }
-            ast::QubitInitKind::Paren(inner) => {
-                hir::QubitInitKind::Paren(Box::new(self.lower_qubit_init(inner)))
-            }
-            ast::QubitInitKind::Single => hir::QubitInitKind::Single,
-            ast::QubitInitKind::Tuple(items) => {
-                hir::QubitInitKind::Tuple(items.iter().map(|i| self.lower_qubit_init(i)).collect())
-            }
-        };
-
-        hir::QubitInit {
-            id,
-            span: init.span,
-            ty,
-            kind,
+        match &init.kind {
+            ast::QubitInitKind::Array(length) => hir::QubitInit {
+                id: self.lower_id(init.id),
+                span: init.span,
+                ty: self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone),
+                kind: hir::QubitInitKind::Array(Box::new(self.lower_expr(length))),
+            },
+            ast::QubitInitKind::Paren(inner) => self.lower_qubit_init(inner),
+            ast::QubitInitKind::Single => hir::QubitInit {
+                id: self.lower_id(init.id),
+                span: init.span,
+                ty: self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone),
+                kind: hir::QubitInitKind::Single,
+            },
+            ast::QubitInitKind::Tuple(items) => hir::QubitInit {
+                id: self.lower_id(init.id),
+                span: init.span,
+                ty: self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone),
+                kind: hir::QubitInitKind::Tuple(
+                    items.iter().map(|i| self.lower_qubit_init(i)).collect(),
+                ),
+            },
         }
     }
 
