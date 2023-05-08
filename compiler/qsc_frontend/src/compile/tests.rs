@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Error, PackageStore, SourceMap};
+use super::{compile, Error, Metadata, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy, Res,
-        StmtKind, Ty,
+        Block, CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy,
+        Res, Stmt, StmtKind, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -289,6 +289,84 @@ fn replace_node() {
         Block 3 [39-56] [Type Int]:
             Stmt 4 [49-50]: Expr: Expr 7 [49-50] [Type Int]: Lit: Int(2)"#]]
     .assert_eq(&block.to_string());
+}
+
+#[test]
+fn insert_core_call() {
+    struct Inserter<'a> {
+        core: &'a Metadata,
+    }
+
+    impl MutVisitor for Inserter<'_> {
+        fn visit_block(&mut self, block: &mut Block) {
+            let allocate = self
+                .core
+                .term("QIR.Intrinsic", "__quantum__rt__qubit_allocate")
+                .expect("qubit allocation should be in core");
+
+            let callee = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: allocate.ty().clone(),
+                kind: ExprKind::Var(Res::Item(allocate.id)),
+            };
+
+            let arg = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::UNIT,
+                kind: ExprKind::Tuple(Vec::new()),
+            };
+
+            let call = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::Prim(PrimTy::Qubit),
+                kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
+            };
+
+            block.stmts.push(Stmt {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: StmtKind::Semi(call),
+            });
+        }
+    }
+
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace A {
+                    operation Foo() : () {}
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let store = PackageStore::new(super::core());
+    let mut unit = compile(&store, &[], sources);
+    let mut inserter = Inserter { core: store.core() };
+    inserter.visit_package(&mut unit.package);
+    unit.assigner.visit_package(&mut unit.package);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-43]:
+                Namespace (Ident 4 [10-11] "A"): Item 1
+            Item 1 [18-41]:
+                Parent: 0
+                Callable 0 [18-41] (Operation):
+                    name: Ident 1 [28-31] "Foo"
+                    input: Pat 2 [31-33] [Type ()]: Unit
+                    output: ()
+                    body: Block: Block 3 [39-41] [Type ()]:
+                        Stmt 5 [0-0]: Semi: Expr 6 [0-0] [Type Qubit]: Call:
+                            Expr 7 [0-0] [Type (() => Qubit)]: Var: Item 1 (Package 0)
+                            Expr 8 [0-0] [Type ()]: Unit"#]]
+    .assert_eq(&unit.package.to_string());
 }
 
 #[test]
