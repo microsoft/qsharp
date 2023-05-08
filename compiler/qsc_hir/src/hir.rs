@@ -80,10 +80,13 @@ impl From<usize> for NodeId {
 }
 
 /// A unique identifier for a package within a package store.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageId(usize);
 
 impl PackageId {
+    /// The package ID of the core library.
+    pub const CORE: Self = Self(0);
+
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {

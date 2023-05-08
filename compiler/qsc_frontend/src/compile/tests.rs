@@ -54,7 +54,7 @@ fn one_file_no_entry() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = unit.package.entry.as_ref();
@@ -78,7 +78,7 @@ fn one_file_error() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -116,7 +116,7 @@ fn two_files_dependency() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -150,7 +150,7 @@ fn two_files_mutual_dependency() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -182,7 +182,7 @@ fn two_files_error() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -207,7 +207,7 @@ fn entry_call_operation() {
         Some("Foo.A()".into()),
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
@@ -237,7 +237,7 @@ fn entry_error() {
         Some("Foo.B()".into()),
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert_eq!(
         ("<entry>", Span { lo: 0, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
@@ -274,7 +274,7 @@ fn replace_node() {
         None,
     );
 
-    let mut unit = compile(&PackageStore::new(), [], sources);
+    let mut unit = compile(&PackageStore::new(super::core()), &[], sources);
     Replacer.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
 
@@ -293,7 +293,7 @@ fn replace_node() {
 
 #[test]
 fn package_dependency() {
-    let mut store = PackageStore::new();
+    let mut store = PackageStore::new(super::core());
 
     let sources1 = SourceMap::new(
         [(
@@ -309,7 +309,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, [], sources1));
+    let package1 = store.insert(compile(&store, &[], sources1));
 
     let sources2 = SourceMap::new(
         [(
@@ -325,7 +325,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit2 = compile(&store, [package1], sources2);
+    let unit2 = compile(&store, &[package1], sources2);
 
     let foo_id = LocalItemId::from(1);
     let ItemKind::Callable(callable) = &unit2
@@ -349,7 +349,7 @@ fn package_dependency() {
 
 #[test]
 fn package_dependency_internal() {
-    let mut store = PackageStore::new();
+    let mut store = PackageStore::new(super::core());
 
     let sources1 = SourceMap::new(
         [(
@@ -365,7 +365,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, [], sources1));
+    let package1 = store.insert(compile(&store, &[], sources1));
 
     let sources2 = SourceMap::new(
         [(
@@ -381,7 +381,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let unit2 = compile(&store, [package1], sources2);
+    let unit2 = compile(&store, &[package1], sources2);
 
     let ItemKind::Callable(callable) = &unit2
         .package
@@ -398,8 +398,8 @@ fn package_dependency_internal() {
 
 #[test]
 fn std_dependency() {
-    let mut store = PackageStore::new();
-    let std = store.insert(super::std());
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -418,6 +418,6 @@ fn std_dependency() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, [std], sources);
+    let unit = compile(&store, &[std], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
