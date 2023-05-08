@@ -32,12 +32,19 @@ export async function getCompiler(): Promise<ICompiler> {
   return new Compiler(wasm);
 }
 
-// Create the compiler inside a WebWorker and proxy requests
-export function getCompilerWorker(script: string): ICompilerWorker {
+// Create the compiler inside a WebWorker and proxy requests.
+// If the Worker was already created via other means and is ready to receive
+// messages, then the worker may be passed in and it will be initialized.
+export function getCompilerWorker(
+  script_or_worker: string | Worker
+): ICompilerWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 
-  // Create a WebWorker
-  const worker = new Worker(script);
+  // Create or use the WebWorker
+  const worker =
+    typeof script_or_worker === "string"
+      ? new Worker(script_or_worker)
+      : script_or_worker;
 
   // Send it the Wasm module to instantiate
   worker.postMessage({
