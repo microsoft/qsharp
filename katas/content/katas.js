@@ -35,6 +35,10 @@ exports.katas = [
         type: "reading",
         directory: "relative_global_phase",
       },
+      {
+        type: "reading",
+        directory: "conclusion",
+      },
     ],
   },
   {
