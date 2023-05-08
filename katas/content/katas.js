@@ -31,6 +31,10 @@ exports.katas = [
         type: "example",
         directory: "qubit_data_type",
       },
+      {
+        type: "reading",
+        directory: "relative_global_phase",
+      },
     ],
   },
   {

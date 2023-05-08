@@ -71,6 +71,19 @@ function buildExerciseContent(id, directory) {
   };
 }
 
+function buildReadingContent(id, directory) {
+  const contentAsMarkdown = readFileSync(join(directory, "content.md"), "utf8");
+  const contentAsHtml = marked.parse(contentAsMarkdown);
+  const title = getTitleFromMarkdown(contentAsMarkdown);
+  return {
+    type: "reading",
+    id: id,
+    title: title,
+    contentAsMarkdown: contentAsMarkdown,
+    contentAsHtml: contentAsHtml,
+  };
+}
+
 function buildItemContent(item, kataDir) {
   const itemDir = join(kataDir, item.directory);
   const itemId = `${basename(kataDir)}__${item.directory}`;
@@ -78,6 +91,8 @@ function buildItemContent(item, kataDir) {
     return buildExampleContent(itemId, itemDir);
   } else if (item.type === "exercise") {
     return buildExerciseContent(itemId, itemDir);
+  } else if (item.type === "reading") {
+    return buildReadingContent(itemId, itemDir);
   }
 
   throw new Error(`Unknown module type ${item.type}`);
