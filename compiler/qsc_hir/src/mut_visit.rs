@@ -139,7 +139,6 @@ pub fn walk_functor_expr(vis: &mut impl MutVisitor, expr: &mut FunctorExpr) {
             vis.visit_functor_expr(rhs);
         }
         FunctorExprKind::Lit(_) => {}
-        FunctorExprKind::Paren(expr) => vis.visit_functor_expr(expr),
     }
 }
 

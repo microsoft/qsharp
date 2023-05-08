@@ -211,11 +211,11 @@ impl With<'_> {
     }
 
     fn lower_functor_expr(&mut self, expr: &ast::FunctorExpr) -> hir::FunctorExpr {
-        hir::FunctorExpr {
-            id: self.lower_id(expr.id),
-            span: expr.span,
-            kind: match &expr.kind {
-                ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExprKind::BinOp(
+        match &expr.kind {
+            ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExpr {
+                id: self.lower_id(expr.id),
+                span: expr.span,
+                kind: hir::FunctorExprKind::BinOp(
                     match op {
                         ast::SetOp::Union => hir::SetOp::Union,
                         ast::SetOp::Intersect => hir::SetOp::Intersect,
@@ -223,13 +223,13 @@ impl With<'_> {
                     Box::new(self.lower_functor_expr(lhs)),
                     Box::new(self.lower_functor_expr(rhs)),
                 ),
-                &ast::FunctorExprKind::Lit(functor) => {
-                    hir::FunctorExprKind::Lit(lower_functor(functor))
-                }
-                ast::FunctorExprKind::Paren(inner) => {
-                    hir::FunctorExprKind::Paren(Box::new(self.lower_functor_expr(inner)))
-                }
             },
+            &ast::FunctorExprKind::Lit(functor) => hir::FunctorExpr {
+                id: self.lower_id(expr.id),
+                span: expr.span,
+                kind: hir::FunctorExprKind::Lit(lower_functor(functor)),
+            },
+            ast::FunctorExprKind::Paren(inner) => self.lower_functor_expr(inner),
         }
     }
 

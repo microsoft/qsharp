@@ -517,7 +517,6 @@ impl FunctorExpr {
                 functors
             }
             &FunctorExprKind::Lit(functor) => [functor].into(),
-            FunctorExprKind::Paren(inner) => inner.to_set(),
         }
     }
 }
@@ -535,8 +534,6 @@ pub enum FunctorExprKind {
     BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
     /// A literal for a specific functor.
     Lit(Functor),
-    /// A parenthesized group.
-    Paren(Box<FunctorExpr>),
 }
 
 impl Display for FunctorExprKind {
@@ -544,7 +541,6 @@ impl Display for FunctorExprKind {
         match self {
             FunctorExprKind::BinOp(op, l, r) => write!(f, "BinOp {op:?}: ({l}) ({r})"),
             FunctorExprKind::Lit(func) => write!(f, "{func:?}"),
-            FunctorExprKind::Paren(func) => write!(f, "Paren: {func}"),
         }
     }
 }

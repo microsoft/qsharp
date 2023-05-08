@@ -146,7 +146,6 @@ fn collect_functors(func_kind: &FunctorExprKind, set: &mut HashSet<Functor>) {
         FunctorExprKind::Lit(func) => {
             set.insert(*func);
         }
-        FunctorExprKind::Paren(func) => collect_functors(&func.kind, set),
     }
 }
 
