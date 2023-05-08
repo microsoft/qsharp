@@ -224,6 +224,59 @@ namespace Microsoft.Quantum.Math {
     }
 
     //
+    // Truncation and Rounding
+    //
+
+    /// # Summary
+    /// Returns the integral part of a number.
+    /// For example: Truncate(3.7) = 3; Truncate(-3.7) = -3
+    function Truncate(value : Double) : Int {
+        body intrinsic;
+    }
+
+    internal function ExtendedTruncation(value : Double) : (Int, Double, Bool) {
+        let truncated = Truncate(value);
+        return (truncated, Microsoft.Quantum.Convert.IntAsDouble(truncated) - value, value >= 0.0);
+    }
+
+    /// # Summary
+    /// Returns the smallest integer greater than or equal to the specified number.
+    /// For example: Ceiling(3.1) = 4; Ceiling(-3.7) = -3
+    function Ceiling(value : Double) : Int {
+        let (truncated, remainder, isPositive) = ExtendedTruncation(value);
+        if AbsD(remainder) <= 1e-15 {
+            return truncated;
+        } else {
+            return isPositive ? truncated + 1 | truncated;
+        }
+    }
+
+    /// # Summary
+    /// Returns the largest integer less than or equal to the specified number.
+    /// For example: Floor(3.7) = 3; Floor(-3.1) = -4
+    function Floor(value : Double) : Int {
+        let (truncated, remainder, isPositive) = ExtendedTruncation(value);
+        if AbsD(remainder) <= 1e-15 {
+            return truncated;
+        } else {
+            return isPositive ? truncated | truncated - 1;
+        }
+    }
+
+    /// # Summary
+    /// Returns the nearest integer to the specified number.
+    /// For example: Floor(3.7) = 4; Floor(-3.7) = -4
+    function Round(value : Double) : Int {
+        let (truncated, remainder, isPositive) = ExtendedTruncation(value);
+        if AbsD(remainder) <= 1e-15 {
+            return truncated;
+        } else {
+            let abs = AbsD(remainder);
+            return truncated + (abs <= 0.5 ? 0 | (isPositive ? 1 | -1));
+        }
+    }
+
+    //
     // Modular arithmetic
     //
 

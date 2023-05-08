@@ -468,14 +468,14 @@ namespace Sample {
 
         Microsoft.Quantum.Diagnostics.DumpMachine();
     }
-}`
+}`;
 
 export const samples = {
-    "Minimal": minimal,
-    "Bell state": bellState,
-    "Teleportation": teleportation,
-    "Random numbers": qrng,
-    "Deutsch-Josza": deutsch,
-    "Grover's search": grover,
-    "Shor's algorithm": "// TODO"
+  Minimal: minimal,
+  "Bell state": bellState,
+  Teleportation: teleportation,
+  "Random numbers": qrng,
+  "Deutsch-Josza": deutsch,
+  "Grover's search": grover,
+  "Shor's algorithm": "// TODO",
 };

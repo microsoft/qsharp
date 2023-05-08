@@ -178,8 +178,13 @@ impl IntoPy<PyObject> for ValueWrapper {
                 hir::Pauli::Z => Pauli::Z.into_py(py),
             },
             Value::Tuple(val) => {
-                PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
-                    .into_py(py)
+                if val.is_empty() {
+                    // Special case Value::unit as None
+                    py.None()
+                } else {
+                    PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
+                        .into_py(py)
+                }
             }
             Value::Array(val) => {
                 PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py))).into_py(py)

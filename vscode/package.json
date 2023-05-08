@@ -10,16 +10,25 @@
     "Programming Languages"
   ],
   "contributes": {
-    "languages": [{
-      "id": "qsharp",
-      "aliases": ["Q#", "qsharp"],
-      "extensions": [".qs"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "qsharp",
-      "scopeName": "source.qsharp",
-      "path": "./syntaxes/qsharp.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "qsharp",
+        "aliases": [
+          "Q#",
+          "qsharp"
+        ],
+        "extensions": [
+          ".qs"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "qsharp",
+        "scopeName": "source.qsharp",
+        "path": "./syntaxes/qsharp.tmLanguage.json"
+      }
+    ]
   }
 }

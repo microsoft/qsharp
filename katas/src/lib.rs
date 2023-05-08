@@ -11,6 +11,8 @@ use qsc::{
     SourceMap,
 };
 
+pub const EXAMPLE_ENTRY: &str = "Kata.Main()";
+
 pub const KATA_ENTRY: &str = "Kata.Verify()";
 
 /// # Errors
