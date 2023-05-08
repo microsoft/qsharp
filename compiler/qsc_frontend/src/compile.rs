@@ -246,6 +246,18 @@ pub struct Term {
     ty: Ty,
 }
 
+impl Term {
+    #[must_use]
+    pub fn id(&self) -> ItemId {
+        self.id
+    }
+
+    #[must_use]
+    pub fn ty(&self) -> &Ty {
+        &self.ty
+    }
+}
+
 struct Offsetter(usize);
 
 impl MutVisitor for Offsetter {
