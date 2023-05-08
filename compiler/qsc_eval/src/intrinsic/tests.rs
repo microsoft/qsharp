@@ -325,6 +325,22 @@ fn int_as_bigint() {
 }
 
 #[test]
+fn apply_to_each() {
+    check_intrinsic_result(
+        "",
+        indoc! {r#"{
+            use register = Qubit[5];
+            Microsoft.Quantum.Canon.ApplyToEach(X, register);
+            // TODO (cesarzc): Possibly implement MeasureEachZ.
+            let results = [M(register[0])];
+            ResetAll(register);
+            results
+        }"#},
+        &expect!["[One]"],
+    );
+}
+
+#[test]
 fn ccx() {
     check_intrinsic_result(
         "",

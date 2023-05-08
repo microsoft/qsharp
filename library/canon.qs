@@ -6,6 +6,32 @@ namespace Microsoft.Quantum.Canon {
     open Microsoft.Quantum.Intrinsic;
 
     /// # Summary
+    /// Applies a single-qubit operation to each element in a register.
+    ///
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each element.
+    /// ## register
+    /// Array of elements on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEach(H, register);
+    /// }
+    /// ```
+    operation ApplyToEach<'T> (singleElementOperation : ('T => Unit), register : 'T[]) : Unit {
+        for item in register {
+            singleElementOperation(item);
+        }
+    }
+
+    /// # Summary
     /// Applies the controlled-X (CX) gate to a pair of qubits.
     ///
     /// # Description
