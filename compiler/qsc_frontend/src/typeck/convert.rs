@@ -85,7 +85,7 @@ pub(super) fn ast_ty_def_ty(
     }
 }
 
-pub(super) fn hir_ty_def_ty(def: &hir::TyDef) -> Ty {
+pub(crate) fn hir_ty_def_ty(def: &hir::TyDef) -> Ty {
     match &def.kind {
         hir::TyDefKind::Field(_, ty) => ty.clone(),
         hir::TyDefKind::Paren(inner) => hir_ty_def_ty(inner),
@@ -106,7 +106,7 @@ pub(super) fn ast_callable_ty(
     (ty, errors)
 }
 
-pub(super) fn hir_callable_ty(decl: &hir::CallableDecl) -> Ty {
+pub(crate) fn hir_callable_ty(decl: &hir::CallableDecl) -> Ty {
     Ty::Arrow(
         decl.kind,
         Box::new(decl.input.ty.clone()),

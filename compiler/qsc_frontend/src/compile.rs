@@ -21,9 +21,9 @@ use qsc_data_structures::{
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
-    hir::{self, PackageId},
+    hir::{self, ItemId, PackageId, Ty},
 };
-use std::{fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Arc};
 use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
@@ -139,6 +139,7 @@ pub(crate) enum ErrorKind {
 }
 
 pub struct PackageStore {
+    core: Metadata,
     units: IndexMap<PackageId, CompileUnit>,
     next_id: PackageId,
 }
@@ -146,12 +147,19 @@ pub struct PackageStore {
 impl PackageStore {
     #[must_use]
     pub fn new(core: CompileUnit) -> Self {
+        let metadata = Metadata::new(PackageId::CORE, &core.package);
         let mut units = IndexMap::new();
         units.insert(PackageId::CORE, core);
         Self {
+            core: metadata,
             units,
             next_id: PackageId::CORE.successor(),
         }
+    }
+
+    #[must_use]
+    pub fn core(&self) -> &Metadata {
+        &self.core
     }
 
     pub fn insert(&mut self, unit: CompileUnit) -> PackageId {
@@ -180,6 +188,62 @@ impl<'a> Iterator for Iter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
+}
+
+pub struct Metadata {
+    terms: HashMap<Rc<str>, HashMap<Rc<str>, Term>>,
+}
+
+impl Metadata {
+    fn new(id: PackageId, package: &hir::Package) -> Self {
+        let mut terms: HashMap<_, HashMap<_, _>> = HashMap::new();
+        for item in package.items.values() {
+            let Some(parent) = item.parent else { continue; };
+            let hir::ItemKind::Namespace(namespace, _) =
+                &package.items.get(parent).expect("parent should exist").kind else { continue; };
+
+            let item_id = ItemId {
+                package: Some(id),
+                item: item.id,
+            };
+
+            match &item.kind {
+                hir::ItemKind::Callable(decl) => {
+                    let term = Term {
+                        id: item_id,
+                        ty: typeck::convert::hir_callable_ty(decl),
+                    };
+                    terms
+                        .entry(Rc::clone(&namespace.name))
+                        .or_default()
+                        .insert(Rc::clone(&decl.name.name), term);
+                }
+                hir::ItemKind::Ty(name, def) => {
+                    let term = Term {
+                        id: item_id,
+                        ty: typeck::convert::hir_ty_def_ty(def),
+                    };
+                    terms
+                        .entry(Rc::clone(&namespace.name))
+                        .or_default()
+                        .insert(Rc::clone(&name.name), term);
+                }
+                hir::ItemKind::Namespace(..) => {}
+            }
+        }
+
+        Self { terms }
+    }
+
+    #[must_use]
+    pub fn term(&self, namespace: &str, name: &str) -> Option<&Term> {
+        self.terms.get(namespace).and_then(|terms| terms.get(name))
+    }
+}
+
+pub struct Term {
+    id: ItemId,
+    ty: Ty,
 }
 
 struct Offsetter(usize);
@@ -230,7 +294,12 @@ pub fn compile(
 /// Panics if the core library does not compile without errors.
 #[must_use]
 pub fn core() -> CompileUnit {
+    let core = Metadata {
+        terms: HashMap::new(),
+    };
+
     let store = PackageStore {
+        core,
         units: IndexMap::new(),
         next_id: PackageId::CORE,
     };
