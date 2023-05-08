@@ -87,7 +87,6 @@ pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
 pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
     match &def.kind {
         TyDefKind::Field(name, _) => name.iter().for_each(|n| vis.visit_ident(n)),
-        TyDefKind::Paren(def) => vis.visit_ty_def(def),
         TyDefKind::Tuple(defs) => defs.iter().for_each(|d| vis.visit_ty_def(d)),
     }
 }

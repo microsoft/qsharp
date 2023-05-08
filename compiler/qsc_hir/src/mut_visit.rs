@@ -99,7 +99,6 @@ pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
 
     match &mut def.kind {
         TyDefKind::Field(name, _) => name.iter_mut().for_each(|n| vis.visit_ident(n)),
-        TyDefKind::Paren(def) => vis.visit_ty_def(def),
         TyDefKind::Tuple(defs) => defs.iter_mut().for_each(|d| vis.visit_ty_def(d)),
     }
 }

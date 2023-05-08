@@ -334,8 +334,6 @@ impl Display for TyDef {
 pub enum TyDefKind {
     /// A field definition with an optional name but required type.
     Field(Option<Ident>, Ty),
-    /// A parenthesized type definition.
-    Paren(Box<TyDef>),
     /// A tuple.
     Tuple(Vec<TyDef>),
 }
@@ -350,11 +348,6 @@ impl Display for TyDefKind {
                 if let Some(n) = name {
                     write!(indent, "\n{n}")?;
                 }
-                write!(indent, "\n{t}")?;
-            }
-            TyDefKind::Paren(t) => {
-                write!(indent, "Paren:")?;
-                indent = set_indentation(indent, 1);
                 write!(indent, "\n{t}")?;
             }
             TyDefKind::Tuple(ts) => {

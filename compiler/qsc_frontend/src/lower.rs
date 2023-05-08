@@ -192,20 +192,20 @@ impl With<'_> {
     }
 
     fn lower_ty_def(&mut self, def: &ast::TyDef) -> hir::TyDef {
-        hir::TyDef {
-            id: self.lower_id(def.id),
-            span: def.span,
-            kind: match &def.kind {
-                ast::TyDefKind::Field(name, ty) => hir::TyDefKind::Field(
+        match &def.kind {
+            ast::TyDefKind::Field(name, ty) => hir::TyDef {
+                id: self.lower_id(def.id),
+                span: def.span,
+                kind: hir::TyDefKind::Field(
                     name.as_ref().map(|n| self.lower_ident(n)),
                     convert::ty_from_ast(self.resolutions, ty).0,
                 ),
-                ast::TyDefKind::Paren(inner) => {
-                    hir::TyDefKind::Paren(Box::new(self.lower_ty_def(inner)))
-                }
-                ast::TyDefKind::Tuple(defs) => {
-                    hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect())
-                }
+            },
+            ast::TyDefKind::Paren(inner) => self.lower_ty_def(inner),
+            ast::TyDefKind::Tuple(defs) => hir::TyDef {
+                id: self.lower_id(def.id),
+                span: def.span,
+                kind: hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect()),
             },
         }
     }
