@@ -361,18 +361,18 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
                         kind: StmtKind::Semi(Expr {
                             id: NodeId::default(),
                             span: expr.span,
-                            ty: Ty::UNIT, //ToDo: should have unresolved type
+                            ty: expr.ty.clone(),
                             kind: ExprKind::Return(Box::new(rtrn_capture.gen_local_ref())),
                         }),
                     });
                     let new_expr = Expr {
                         id: NodeId::default(),
                         span: expr.span,
-                        ty: Ty::UNIT, //ToDo: should have unresolved type
+                        ty: expr.ty.clone(),
                         kind: ExprKind::Block(Block {
                             id: NodeId::default(),
                             span: expr.span,
-                            ty: Ty::UNIT, //ToDo: should have unresolved type
+                            ty: expr.ty.clone(),
                             stmts,
                         }),
                     };
