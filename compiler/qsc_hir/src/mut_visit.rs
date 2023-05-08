@@ -247,7 +247,6 @@ pub fn walk_pat(vis: &mut impl MutVisitor, pat: &mut Pat) {
     match &mut pat.kind {
         PatKind::Bind(name) => vis.visit_ident(name),
         PatKind::Discard | PatKind::Elided => {}
-        PatKind::Paren(pat) => vis.visit_pat(pat),
         PatKind::Tuple(pats) => pats.iter_mut().for_each(|p| vis.visit_pat(p)),
     }
 }

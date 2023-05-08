@@ -384,27 +384,44 @@ impl With<'_> {
     }
 
     fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
-        let id = self.lower_id(pat.id);
-        let ty = self.tys.get(pat.id).map_or_else(
-            || convert::ast_pat_ty(self.resolutions, pat).0,
-            Clone::clone,
-        );
-
-        let kind = match &pat.kind {
-            ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
-            ast::PatKind::Discard(_) => hir::PatKind::Discard,
-            ast::PatKind::Elided => hir::PatKind::Elided,
-            ast::PatKind::Paren(inner) => hir::PatKind::Paren(Box::new(self.lower_pat(inner))),
-            ast::PatKind::Tuple(items) => {
-                hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
-            }
-        };
-
-        hir::Pat {
-            id,
-            span: pat.span,
-            ty,
-            kind,
+        match &pat.kind {
+            ast::PatKind::Bind(name, _) => hir::Pat {
+                id: self.lower_id(pat.id),
+                span: pat.span,
+                ty: self.tys.get(pat.id).map_or_else(
+                    || convert::ast_pat_ty(self.resolutions, pat).0,
+                    Clone::clone,
+                ),
+                kind: hir::PatKind::Bind(self.lower_ident(name)),
+            },
+            ast::PatKind::Discard(_) => hir::Pat {
+                id: self.lower_id(pat.id),
+                span: pat.span,
+                ty: self.tys.get(pat.id).map_or_else(
+                    || convert::ast_pat_ty(self.resolutions, pat).0,
+                    Clone::clone,
+                ),
+                kind: hir::PatKind::Discard,
+            },
+            ast::PatKind::Elided => hir::Pat {
+                id: self.lower_id(pat.id),
+                span: pat.span,
+                ty: self.tys.get(pat.id).map_or_else(
+                    || convert::ast_pat_ty(self.resolutions, pat).0,
+                    Clone::clone,
+                ),
+                kind: hir::PatKind::Elided,
+            },
+            ast::PatKind::Paren(inner) => self.lower_pat(inner),
+            ast::PatKind::Tuple(items) => hir::Pat {
+                id: self.lower_id(pat.id),
+                span: pat.span,
+                ty: self.tys.get(pat.id).map_or_else(
+                    || convert::ast_pat_ty(self.resolutions, pat).0,
+                    Clone::clone,
+                ),
+                kind: hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect()),
+            },
         }
     }
 

@@ -1023,8 +1023,6 @@ pub enum PatKind {
     Discard,
     /// An elided pattern, `...`, used by specializations.
     Elided,
-    /// Parentheses: `(a)`.
-    Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }
@@ -1038,11 +1036,6 @@ impl Display for PatKind {
             }
             PatKind::Discard => write!(indent, "Discard")?,
             PatKind::Elided => write!(indent, "Elided")?,
-            PatKind::Paren(p) => {
-                write!(indent, "Paren:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{p}")?;
-            }
             PatKind::Tuple(ps) => {
                 if ps.is_empty() {
                     write!(indent, "Unit")?;

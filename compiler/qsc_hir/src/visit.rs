@@ -220,7 +220,6 @@ pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name) => vis.visit_ident(name),
         PatKind::Discard | PatKind::Elided => {}
-        PatKind::Paren(pat) => vis.visit_pat(pat),
         PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
     }
 }

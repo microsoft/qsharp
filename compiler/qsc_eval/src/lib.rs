@@ -690,9 +690,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             PatKind::Elided => {
                 self.bind_value(decl_pat, args_val, args_span, Mutability::Immutable)
             }
-            PatKind::Paren(pat) => {
-                self.bind_args_for_spec(decl_pat, pat, args_val, args_span, ctl_count)
-            }
             PatKind::Tuple(pats) => {
                 assert_eq!(pats.len(), 2, "spec pattern tuple should have 2 elements");
                 assert!(
@@ -928,7 +925,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
             PatKind::Discard => Continue(()),
             PatKind::Elided => panic!("elision used in binding"),
-            PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
                 let val_tup = value.try_into_tuple().with_span(span)?;
                 if val_tup.len() == tup.len() {
