@@ -443,9 +443,7 @@ fn apply_to_each_with_user_defined() {
     check_intrinsic_result(
         indoc! {"
         namespace Test {
-            operation Foo(q: Qubit) : Unit {
-                X(q);
-            }
+            operation Foo(q: Qubit) : Unit {X(q);}
         }
         "},
         indoc! {r#"{
@@ -461,9 +459,7 @@ fn apply_to_each_with_user_defined() {
     check_intrinsic_result(
         indoc! {"
         namespace Test {
-            operation Foo(q: Qubit) : Unit {
-                X(q);
-            }
+            operation Foo(q: Qubit) : Unit {X(q);}
         }
         "},
         indoc! {r#"{
@@ -479,8 +475,8 @@ fn apply_to_each_with_user_defined() {
         MissingSpec(
             Adj,
             Span {
-                lo: 2397,
-                hi: 2419,
+                lo: 2576,
+                hi: 2598,
             },
         )
         "#
@@ -490,9 +486,7 @@ fn apply_to_each_with_user_defined() {
     check_intrinsic_result(
         indoc! {"
         namespace Test {
-            operation Foo(q: Qubit) : Unit {
-                X(q);
-            }
+            operation Foo(q: Qubit) : Unit {X(q);}
         }
         "},
         indoc! {r#"{
@@ -509,8 +503,8 @@ fn apply_to_each_with_user_defined() {
         MissingSpec(
             Ctl,
             Span {
-                lo: 2397,
-                hi: 2419,
+                lo: 2576,
+                hi: 2598,
             },
         )
         "#
@@ -520,9 +514,7 @@ fn apply_to_each_with_user_defined() {
     check_intrinsic_result(
         indoc! {"
         namespace Test {
-            operation Foo(q: Qubit) : Unit {
-                X(q);
-            }
+            operation Foo(q: Qubit) : Unit {X(q);}
         }
         "},
         indoc! {r#"{
@@ -539,8 +531,8 @@ fn apply_to_each_with_user_defined() {
         MissingSpec(
             CtlAdj,
             Span {
-                lo: 2397,
-                hi: 2419,
+                lo: 2576,
+                hi: 2598,
             },
         )
         "#
