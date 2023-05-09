@@ -278,6 +278,22 @@ fn tanh() {
 }
 
 #[test]
+fn measure_each_z() {
+    check_intrinsic_result(
+        "",
+        indoc! {r#"{
+            use register = Qubit[3];
+            X(register[0]);
+            X(register[2]);
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            results
+        }"#},
+        &expect!["[One, Zero, One]"],
+    );
+}
+
+#[test]
 fn draw_random_int() {
     check_intrinsic_value(
         "",

@@ -260,6 +260,10 @@ pub fn std() -> CompileUnit {
                 include_str!("../../../library/math.qs").into(),
             ),
             (
+                "measurement.qs".into(),
+                include_str!("../../../library/measurement.qs").into(),
+            ),
+            (
                 "qir.qs".into(),
                 include_str!("../../../library/qir.qs").into(),
             ),
