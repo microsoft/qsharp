@@ -360,6 +360,26 @@ namespace Microsoft.Quantum.Math {
         return res;
     }
 
+    /// # Summary
+    /// Returns the multiplicative inverse of a modular integer:
+    /// $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
+    function InverseModI(a : Int, modulus : Int) : Int {
+        let (u, v) = ExtendedGreatestCommonDivisorI(a, modulus);
+        let gcd = u * a + v * modulus;
+        Fact(gcd == 1, "`a` and `modulus` must be co-prime");
+        return ModulusI(u, modulus);
+    }
+
+    /// # Summary
+    /// Returns the multiplicative inverse of a modular integer:
+    /// $b$ such that $a \cdot b = 1 (\operatorname{mod} \texttt{modulus})$.
+    function InverseModL(a : BigInt, modulus : BigInt) : BigInt {
+        let (u, v) = ExtendedGreatestCommonDivisorL(a, modulus);
+        let gcd = u * a + v * modulus;
+        Fact(gcd == 1L, "`a` and `modulus` must be co-prime");
+        return ModulusL(u, modulus);
+    }
+
     //
     // GCD, etc.
     //
@@ -430,6 +450,31 @@ namespace Microsoft.Quantum.Math {
         }
 
         return (s1 * signA, t1 * signB);
+    }
+
+    /// # Summary
+    /// Finds the continued fraction convergent closest to `fraction`
+    /// with the denominator less or equal to `denominatorBound`
+    function ContinuedFractionConvergentI(fraction : (Int, Int), denominatorBound : Int): (Int, Int) {
+        Fact(denominatorBound > 0, "Denominator bound must be positive");
+
+        let (a, b) = fraction;
+        let signA = SignI(a);
+        let signB = SignI(b);
+        mutable (s1, s2) = (1, 0);
+        mutable (t1, t2) = (0, 1);
+        mutable (r1, r2) = (a * signA, b * signB);
+
+        while r2 != 0 and AbsI(s2) <= denominatorBound {
+            let quotient = r1 / r2;
+            set (r1, r2) = (r2, r1 - quotient * r2);
+            set (s1, s2) = (s2, s1 - quotient * s2);
+            set (t1, t2) = (t2, t1 - quotient * t2);
+        }
+
+        return (r2 == 0 and AbsI(s2) <= denominatorBound)
+                ? (-t2 * signB, s2 * signA)
+                | (-t1 * signB, s1 * signA);
     }
 
     //

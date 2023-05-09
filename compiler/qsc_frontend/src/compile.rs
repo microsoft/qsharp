@@ -228,6 +228,10 @@ pub fn std() -> CompileUnit {
     let sources = SourceMap::new(
         [
             (
+                "arithmetic.qs".into(),
+                include_str!("../../../library/arithmetic.qs").into(),
+            ),
+            (
                 "arrays.qs".into(),
                 include_str!("../../../library/arrays.qs").into(),
             ),
