@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
 // First, note that every Q# function must have a namespace. We define
 // a new one for this purpose.
 namespace Microsoft.Quantum.Samples.DeutschJozsa {

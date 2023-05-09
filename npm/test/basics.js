@@ -9,6 +9,7 @@ import { log } from "../dist/log.js";
 import { getCompiler, getCompilerWorker } from "../dist/main.js";
 import { QscEventTarget } from "../dist/events.js";
 import { getKata } from "../dist/katas.js";
+import samples from "../dist/samples.generated.js";
 
 log.setLogLevel("warn");
 
@@ -231,5 +232,20 @@ test("worker 100 shots", async () => {
     assert(result.success);
     assert.equal(result.result, "42");
     assert.equal(result.events.length, 2);
+  });
+});
+
+test("Run samples", async () => {
+  const compiler = getCompilerWorker();
+  const resultsHandler = new QscEventTarget(true);
+
+  for await (const sample of samples) {
+    await compiler.run(sample.code, "", 1, resultsHandler);
+  }
+
+  compiler.terminate();
+  assert.equal(resultsHandler.resultCount(), samples.length);
+  resultsHandler.getResults().forEach((result) => {
+    assert(result.success);
   });
 });
