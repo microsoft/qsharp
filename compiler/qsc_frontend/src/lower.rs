@@ -281,182 +281,170 @@ impl With<'_> {
 
     #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
-        let (mut id, mut span, mut ty) = if let ast::ExprKind::Paren(_) = &expr.kind {
-            (hir::NodeId::default(), Span::default(), hir::Ty::Err)
+        if let ast::ExprKind::Paren(inner) = &expr.kind {
+            self.lower_expr(inner)
         } else {
-            (
-                self.lower_id(expr.id),
-                expr.span,
-                self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone),
-            )
-        };
-        let kind = match &expr.kind {
-            ast::ExprKind::Array(items) => {
-                hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
-            }
-            ast::ExprKind::ArrayRepeat(value, size) => hir::ExprKind::ArrayRepeat(
-                Box::new(self.lower_expr(value)),
-                Box::new(self.lower_expr(size)),
-            ),
-            ast::ExprKind::Assign(lhs, rhs) => hir::ExprKind::Assign(
-                Box::new(self.lower_expr(lhs)),
-                Box::new(self.lower_expr(rhs)),
-            ),
-            ast::ExprKind::AssignOp(op, lhs, rhs) => hir::ExprKind::AssignOp(
-                lower_binop(*op),
-                Box::new(self.lower_expr(lhs)),
-                Box::new(self.lower_expr(rhs)),
-            ),
-            ast::ExprKind::AssignUpdate(container, index, value) => hir::ExprKind::AssignUpdate(
-                Box::new(self.lower_expr(container)),
-                Box::new(self.lower_expr(index)),
-                Box::new(self.lower_expr(value)),
-            ),
-            ast::ExprKind::BinOp(op, lhs, rhs) => hir::ExprKind::BinOp(
-                lower_binop(*op),
-                Box::new(self.lower_expr(lhs)),
-                Box::new(self.lower_expr(rhs)),
-            ),
-            ast::ExprKind::Block(block) => hir::ExprKind::Block(self.lower_block(block)),
-            ast::ExprKind::Call(callee, arg) => hir::ExprKind::Call(
-                Box::new(self.lower_expr(callee)),
-                Box::new(self.lower_expr(arg)),
-            ),
-            ast::ExprKind::Conjugate(within, apply) => {
-                hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
-            }
-            ast::ExprKind::Err => hir::ExprKind::Err,
-            ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
-            ast::ExprKind::Field(container, name) => {
-                let container = self.lower_expr(container);
-                let field = name.name.parse().unwrap_or_default();
-                hir::ExprKind::Field(Box::new(container), field)
-            }
-            ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
-                self.lower_pat(pat),
-                Box::new(self.lower_expr(iter)),
-                self.lower_block(block),
-            ),
-            ast::ExprKind::Hole => hir::ExprKind::Hole,
-            ast::ExprKind::If(cond, if_true, if_false) => hir::ExprKind::If(
-                Box::new(self.lower_expr(cond)),
-                self.lower_block(if_true),
-                if_false.as_ref().map(|e| Box::new(self.lower_expr(e))),
-            ),
-            ast::ExprKind::Index(container, index) => hir::ExprKind::Index(
-                Box::new(self.lower_expr(container)),
-                Box::new(self.lower_expr(index)),
-            ),
-            ast::ExprKind::Lambda(kind, input, body) => hir::ExprKind::Lambda(
-                lower_callable_kind(*kind),
-                self.lower_pat(input),
-                Box::new(self.lower_expr(body)),
-            ),
-            ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
-            ast::ExprKind::Paren(inner) => {
-                let inner = self.lower_expr(inner);
-                id = inner.id;
-                span = inner.span;
-                ty = inner.ty;
-                inner.kind
-            }
-            ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
-            ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
-                start.as_ref().map(|s| Box::new(self.lower_expr(s))),
-                step.as_ref().map(|s| Box::new(self.lower_expr(s))),
-                end.as_ref().map(|e| Box::new(self.lower_expr(e))),
-            ),
-            ast::ExprKind::Repeat(body, cond, fixup) => hir::ExprKind::Repeat(
-                self.lower_block(body),
-                Box::new(self.lower_expr(cond)),
-                fixup.as_ref().map(|f| self.lower_block(f)),
-            ),
-            ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
-            ast::ExprKind::TernOp(op, lhs, middle, rhs) => hir::ExprKind::TernOp(
-                lower_ternop(*op),
-                Box::new(self.lower_expr(lhs)),
-                Box::new(self.lower_expr(middle)),
-                Box::new(self.lower_expr(rhs)),
-            ),
-            ast::ExprKind::Tuple(items) => {
-                hir::ExprKind::Tuple(items.iter().map(|i| self.lower_expr(i)).collect())
-            }
-            ast::ExprKind::UnOp(op, operand) => {
-                hir::ExprKind::UnOp(lower_unop(*op), Box::new(self.lower_expr(operand)))
-            }
-            ast::ExprKind::While(cond, body) => {
-                hir::ExprKind::While(Box::new(self.lower_expr(cond)), self.lower_block(body))
-            }
-        };
+            let id = self.lower_id(expr.id);
+            let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
+            let kind = match &expr.kind {
+                ast::ExprKind::Array(items) => {
+                    hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
+                }
+                ast::ExprKind::ArrayRepeat(value, size) => hir::ExprKind::ArrayRepeat(
+                    Box::new(self.lower_expr(value)),
+                    Box::new(self.lower_expr(size)),
+                ),
+                ast::ExprKind::Assign(lhs, rhs) => hir::ExprKind::Assign(
+                    Box::new(self.lower_expr(lhs)),
+                    Box::new(self.lower_expr(rhs)),
+                ),
+                ast::ExprKind::AssignOp(op, lhs, rhs) => hir::ExprKind::AssignOp(
+                    lower_binop(*op),
+                    Box::new(self.lower_expr(lhs)),
+                    Box::new(self.lower_expr(rhs)),
+                ),
+                ast::ExprKind::AssignUpdate(container, index, value) => {
+                    hir::ExprKind::AssignUpdate(
+                        Box::new(self.lower_expr(container)),
+                        Box::new(self.lower_expr(index)),
+                        Box::new(self.lower_expr(value)),
+                    )
+                }
+                ast::ExprKind::BinOp(op, lhs, rhs) => hir::ExprKind::BinOp(
+                    lower_binop(*op),
+                    Box::new(self.lower_expr(lhs)),
+                    Box::new(self.lower_expr(rhs)),
+                ),
+                ast::ExprKind::Block(block) => hir::ExprKind::Block(self.lower_block(block)),
+                ast::ExprKind::Call(callee, arg) => hir::ExprKind::Call(
+                    Box::new(self.lower_expr(callee)),
+                    Box::new(self.lower_expr(arg)),
+                ),
+                ast::ExprKind::Conjugate(within, apply) => {
+                    hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
+                }
+                ast::ExprKind::Err => hir::ExprKind::Err,
+                ast::ExprKind::Fail(message) => {
+                    hir::ExprKind::Fail(Box::new(self.lower_expr(message)))
+                }
+                ast::ExprKind::Field(container, name) => {
+                    let container = self.lower_expr(container);
+                    let field = name.name.parse().unwrap_or_default();
+                    hir::ExprKind::Field(Box::new(container), field)
+                }
+                ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
+                    self.lower_pat(pat),
+                    Box::new(self.lower_expr(iter)),
+                    self.lower_block(block),
+                ),
+                ast::ExprKind::Hole => hir::ExprKind::Hole,
+                ast::ExprKind::If(cond, if_true, if_false) => hir::ExprKind::If(
+                    Box::new(self.lower_expr(cond)),
+                    self.lower_block(if_true),
+                    if_false.as_ref().map(|e| Box::new(self.lower_expr(e))),
+                ),
+                ast::ExprKind::Index(container, index) => hir::ExprKind::Index(
+                    Box::new(self.lower_expr(container)),
+                    Box::new(self.lower_expr(index)),
+                ),
+                ast::ExprKind::Lambda(kind, input, body) => hir::ExprKind::Lambda(
+                    lower_callable_kind(*kind),
+                    self.lower_pat(input),
+                    Box::new(self.lower_expr(body)),
+                ),
+                ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
+                ast::ExprKind::Paren(inner) => return self.lower_expr(inner),
+                ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
+                ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
+                    start.as_ref().map(|s| Box::new(self.lower_expr(s))),
+                    step.as_ref().map(|s| Box::new(self.lower_expr(s))),
+                    end.as_ref().map(|e| Box::new(self.lower_expr(e))),
+                ),
+                ast::ExprKind::Repeat(body, cond, fixup) => hir::ExprKind::Repeat(
+                    self.lower_block(body),
+                    Box::new(self.lower_expr(cond)),
+                    fixup.as_ref().map(|f| self.lower_block(f)),
+                ),
+                ast::ExprKind::Return(expr) => {
+                    hir::ExprKind::Return(Box::new(self.lower_expr(expr)))
+                }
+                ast::ExprKind::TernOp(op, lhs, middle, rhs) => hir::ExprKind::TernOp(
+                    lower_ternop(*op),
+                    Box::new(self.lower_expr(lhs)),
+                    Box::new(self.lower_expr(middle)),
+                    Box::new(self.lower_expr(rhs)),
+                ),
+                ast::ExprKind::Tuple(items) => {
+                    hir::ExprKind::Tuple(items.iter().map(|i| self.lower_expr(i)).collect())
+                }
+                ast::ExprKind::UnOp(op, operand) => {
+                    hir::ExprKind::UnOp(lower_unop(*op), Box::new(self.lower_expr(operand)))
+                }
+                ast::ExprKind::While(cond, body) => {
+                    hir::ExprKind::While(Box::new(self.lower_expr(cond)), self.lower_block(body))
+                }
+            };
 
-        hir::Expr { id, span, ty, kind }
+            hir::Expr {
+                id,
+                span: expr.span,
+                ty,
+                kind,
+            }
+        }
     }
 
     fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
-        match &pat.kind {
-            ast::PatKind::Bind(name, _) => hir::Pat {
-                id: self.lower_id(pat.id),
+        if let ast::PatKind::Paren(inner) = &pat.kind {
+            self.lower_pat(inner)
+        } else {
+            let id = self.lower_id(pat.id);
+            let ty = self.tys.get(pat.id).map_or_else(
+                || convert::ast_pat_ty(self.resolutions, pat).0,
+                Clone::clone,
+            );
+            let kind = match &pat.kind {
+                ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
+                ast::PatKind::Discard(_) => hir::PatKind::Discard,
+                ast::PatKind::Elided => hir::PatKind::Elided,
+                ast::PatKind::Paren(inner) => return self.lower_pat(inner),
+                ast::PatKind::Tuple(items) => {
+                    hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
+                }
+            };
+
+            hir::Pat {
+                id,
                 span: pat.span,
-                ty: self.tys.get(pat.id).map_or_else(
-                    || convert::ast_pat_ty(self.resolutions, pat).0,
-                    Clone::clone,
-                ),
-                kind: hir::PatKind::Bind(self.lower_ident(name)),
-            },
-            ast::PatKind::Discard(_) => hir::Pat {
-                id: self.lower_id(pat.id),
-                span: pat.span,
-                ty: self.tys.get(pat.id).map_or_else(
-                    || convert::ast_pat_ty(self.resolutions, pat).0,
-                    Clone::clone,
-                ),
-                kind: hir::PatKind::Discard,
-            },
-            ast::PatKind::Elided => hir::Pat {
-                id: self.lower_id(pat.id),
-                span: pat.span,
-                ty: self.tys.get(pat.id).map_or_else(
-                    || convert::ast_pat_ty(self.resolutions, pat).0,
-                    Clone::clone,
-                ),
-                kind: hir::PatKind::Elided,
-            },
-            ast::PatKind::Paren(inner) => self.lower_pat(inner),
-            ast::PatKind::Tuple(items) => hir::Pat {
-                id: self.lower_id(pat.id),
-                span: pat.span,
-                ty: self.tys.get(pat.id).map_or_else(
-                    || convert::ast_pat_ty(self.resolutions, pat).0,
-                    Clone::clone,
-                ),
-                kind: hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect()),
-            },
+                ty,
+                kind,
+            }
         }
     }
 
     fn lower_qubit_init(&mut self, init: &ast::QubitInit) -> hir::QubitInit {
-        match &init.kind {
-            ast::QubitInitKind::Array(length) => hir::QubitInit {
-                id: self.lower_id(init.id),
-                span: init.span,
-                ty: self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone),
-                kind: hir::QubitInitKind::Array(Box::new(self.lower_expr(length))),
-            },
-            ast::QubitInitKind::Paren(inner) => self.lower_qubit_init(inner),
-            ast::QubitInitKind::Single => hir::QubitInit {
-                id: self.lower_id(init.id),
-                span: init.span,
-                ty: self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone),
-                kind: hir::QubitInitKind::Single,
-            },
-            ast::QubitInitKind::Tuple(items) => hir::QubitInit {
-                id: self.lower_id(init.id),
-                span: init.span,
-                ty: self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone),
-                kind: hir::QubitInitKind::Tuple(
+        if let ast::QubitInitKind::Paren(inner) = &init.kind {
+            self.lower_qubit_init(inner)
+        } else {
+            let id = self.lower_id(init.id);
+            let ty = self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone);
+            let kind = match &init.kind {
+                ast::QubitInitKind::Array(length) => {
+                    hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))
+                }
+                ast::QubitInitKind::Paren(inner) => return self.lower_qubit_init(inner),
+                ast::QubitInitKind::Single => hir::QubitInitKind::Single,
+                ast::QubitInitKind::Tuple(items) => hir::QubitInitKind::Tuple(
                     items.iter().map(|i| self.lower_qubit_init(i)).collect(),
                 ),
-            },
+            };
+
+            hir::QubitInit {
+                id,
+                span: init.span,
+                ty,
+                kind,
+            }
         }
     }
 
