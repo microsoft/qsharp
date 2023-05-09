@@ -172,7 +172,6 @@ impl AssignmentCheck {
     fn check_assign(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Hole => {}
-            ExprKind::Paren(expr) => self.check_assign(expr),
             ExprKind::Var(Res::Local(id)) => {
                 if self.used.contains(id) {
                     self.errors.push(Error::ApplyAssign(expr.span));

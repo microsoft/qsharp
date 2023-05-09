@@ -373,7 +373,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 }
             }
             ExprKind::Lit(lit) => Continue(lit_to_val(lit)),
-            ExprKind::Paren(expr) => self.eval_expr(expr),
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
             ExprKind::Return(expr) => Break(Reason::Return(self.eval_expr(expr)?)),
@@ -558,7 +557,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     arr,
                 ))
             }
-            QubitInitKind::Paren(qubit_init) => self.eval_qubit_init(qubit_init),
             QubitInitKind::Single => {
                 let qubit = Qubit(__quantum__rt__qubit_allocate());
                 Continue((Value::Qubit(qubit), vec![(qubit, qubit_init.span)]))
@@ -690,9 +688,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
             PatKind::Elided => {
                 self.bind_value(decl_pat, args_val, args_span, Mutability::Immutable)
-            }
-            PatKind::Paren(pat) => {
-                self.bind_args_for_spec(decl_pat, pat, args_val, args_span, ctl_count)
             }
             PatKind::Tuple(pats) => {
                 assert_eq!(pats.len(), 2, "spec pattern tuple should have 2 elements");
@@ -929,7 +924,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
             PatKind::Discard => Continue(()),
             PatKind::Elided => panic!("elision used in binding"),
-            PatKind::Paren(pat) => self.bind_value(pat, value, span, mutability),
             PatKind::Tuple(tup) => {
                 let val_tup = value.try_into_tuple().with_span(span)?;
                 if val_tup.len() == tup.len() {
@@ -971,7 +965,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     fn update_binding(&mut self, lhs: &Expr, rhs: Value) -> ControlFlow<Reason, Value> {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => Continue(Value::unit()),
-            (ExprKind::Paren(expr), rhs) => self.update_binding(expr, rhs),
             (&ExprKind::Var(Res::Local(node)), rhs) => match self.env.get_mut(node) {
                 Some(var) if var.is_mutable() => {
                     var.value = rhs;
