@@ -1,4 +1,4 @@
-namespace Sample {
+namespace Microsoft.Quantum.Samples.BellState {
     open Microsoft.Quantum.Diagnostics;
 
     @EntryPoint()
