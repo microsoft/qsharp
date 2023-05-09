@@ -16,14 +16,15 @@ use qsc_hir::{
 };
 use std::{mem::take, rc::Rc};
 
-use crate::{Common::IdentTemplate, Error};
+use crate::{
+    Common::{BuiltInApi, IdentTemplate},
+    Error,
+};
 
-use self::other::BuiltInApi;
-
-pub fn replace_qubit_allocation(unit: &mut CompileUnit) -> Vec<Error> {
+pub fn replace_qubit_allocation(unit: &mut CompileUnit, built_in_api: &BuiltInApi) -> Vec<Error> {
     let mut pass = ReplaceQubitAllocation {
         assigner: &mut unit.assigner,
-        built_in_api: todo!(),
+        built_in_api,
         qubits_curr_callable: Vec::new(),
         qubits_curr_block: Vec::new(),
         prefix_qubits: Vec::new(),
@@ -340,145 +341,6 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
                 self.qubits_curr_block = super_block_qubits;
             }
             _ => walk_expr(self, expr),
-        }
-    }
-}
-
-mod other {
-    use std::{
-        collections::{HashMap, HashSet},
-        rc::Rc,
-    };
-
-    use qsc_data_structures::span::Span;
-    use qsc_hir::{
-        hir::{
-            CallableKind, Expr, ExprKind, Functor, Item, ItemId, ItemKind, LocalItemId, NodeId,
-            Package, PackageId, PrimTy, Res, Ty,
-        },
-        visit::Visitor,
-    };
-
-    struct GetApiIds {
-        pub map: HashMap<Rc<str>, LocalItemId>,
-    }
-
-    impl GetApiIds {
-        pub fn new(base_package: &Package) -> GetApiIds {
-            let mut visitor = GetApiIds {
-                map: HashMap::new(),
-            };
-            visitor.visit_package(base_package);
-            visitor
-        }
-    }
-
-    impl<'a> Visitor<'a> for GetApiIds {
-        fn visit_item(&mut self, item: &'a Item) {
-            if let ItemKind::Callable(decl) = &item.kind {
-                self.map.insert(decl.name.name.clone(), item.id);
-                self.map = HashMap::new();
-            }
-        }
-    }
-
-    pub struct BuiltInApi {
-        visitor: GetApiIds,
-    }
-
-    impl BuiltInApi {
-        pub fn new(base_package: &Package) -> BuiltInApi {
-            BuiltInApi {
-                visitor: GetApiIds::new(base_package),
-            }
-        }
-
-        pub fn __quantum__rt__qubit_allocate(&self, span: Span) -> Expr {
-            let id = self
-                .visitor
-                .map
-                .get("__quantum__rt__qubit_allocate")
-                .expect("Cannot find function __quantum__rt__qubit_allocate");
-            Expr {
-                id: NodeId::default(),
-                span,
-                ty: Ty::Arrow(
-                    CallableKind::Function,
-                    Box::new(Ty::UNIT),
-                    Box::new(Ty::Prim(PrimTy::Qubit)),
-                    HashSet::<Functor>::new(),
-                ),
-                kind: ExprKind::Var(Res::Item(ItemId {
-                    package: Some(PackageId::from(0)),
-                    item: *id,
-                })),
-            }
-        }
-
-        pub fn __quantum__rt__qubit_release(&self, span: Span) -> Expr {
-            let id = self
-                .visitor
-                .map
-                .get("__quantum__rt__qubit_release")
-                .expect("Cannot find function __quantum__rt__qubit_release");
-            Expr {
-                id: NodeId::default(),
-                span,
-                ty: Ty::Arrow(
-                    CallableKind::Function,
-                    Box::new(Ty::Prim(PrimTy::Qubit)),
-                    Box::new(Ty::UNIT),
-                    HashSet::<Functor>::new(),
-                ),
-                kind: ExprKind::Var(Res::Item(ItemId {
-                    package: Some(PackageId::from(0)),
-                    item: *id,
-                })),
-            }
-        }
-
-        pub fn __quantum__rt__qubit_allocate_array(&self, span: Span) -> Expr {
-            let id = self
-                .visitor
-                .map
-                .get("__quantum__rt__qubit_allocate_array")
-                .expect("Cannot find function __quantum__rt__qubit_allocate_array");
-            Expr {
-                id: NodeId::default(),
-                span,
-                ty: Ty::Arrow(
-                    CallableKind::Function,
-                    Box::new(Ty::Prim(PrimTy::Int)),
-                    Box::new(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)))),
-                    HashSet::<Functor>::new(),
-                ),
-                kind: ExprKind::Var(Res::Item(ItemId {
-                    package: Some(PackageId::from(0)),
-                    item: *id,
-                })),
-            }
-        }
-
-        pub fn __quantum__rt__qubit_release_array(&self, span: Span) -> Expr {
-            let id = self
-                .visitor
-                .map
-                .get("__quantum__rt__qubit_release_array")
-                .expect("Cannot find function __quantum__rt__qubit_release_array");
-            Expr {
-                id: NodeId::default(),
-                span,
-                ty: Ty::Arrow(
-                    CallableKind::Function,
-                    Box::new(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)))),
-                    Box::new(Ty::UNIT),
-                    HashSet::<Functor>::new(),
-                ),
-                kind: ExprKind::Var(Res::Item(ItemId {
-                    package: Some(PackageId::from(0)),
-                    item: *id,
-                })),
-            }
         }
     }
 }
