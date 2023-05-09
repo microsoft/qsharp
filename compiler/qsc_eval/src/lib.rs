@@ -6,11 +6,13 @@
 #[cfg(test)]
 mod tests;
 
+pub mod debug;
 mod intrinsic;
 pub mod output;
 pub mod val;
 
 use crate::val::{ConversionError, FunctorApp, Value};
+use debug::{CallStack, Frame};
 use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
 use num_bigint::BigInt;
@@ -105,8 +107,8 @@ pub enum Error {
     #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
     Unassignable(#[label("not assignable")] Span),
 
-    #[error("variable is not bound")]
-    UnboundVar(#[label] Span),
+    #[error("symbol is not bound")]
+    Unbound(#[label] Span),
 
     #[error("{0} support is not implemented")]
     #[diagnostic(help("this language feature is not yet supported"))]
@@ -220,16 +222,17 @@ pub fn eval_stmt<'a>(
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
-) -> Result<Value, Error> {
+) -> Result<Value, (Error, CallStack)> {
     let mut eval = Evaluator {
         globals,
         package,
         env: take(env),
+        call_stack: CallStack::default(),
         out: Some(out),
     };
     let res = match eval.eval_stmt(stmt) {
         Continue(res) | Break(Reason::Return(res)) => Ok(res),
-        Break(Reason::Error(error)) => Err(error),
+        Break(Reason::Error(error)) => Err((error, eval.call_stack.clone())),
     };
     *env = take(&mut eval.env);
     res
@@ -244,16 +247,17 @@ pub fn eval_expr<'a>(
     package: PackageId,
     env: &mut Env,
     out: &'a mut dyn Receiver,
-) -> Result<Value, Error> {
+) -> Result<Value, (Error, CallStack)> {
     let mut eval = Evaluator {
         globals,
         package,
         env: take(env),
+        call_stack: CallStack::default(),
         out: Some(out),
     };
     let res = match eval.eval_expr(expr) {
         Continue(res) | Break(Reason::Return(res)) => Ok(res),
-        Break(Reason::Error(error)) => Err(error),
+        Break(Reason::Error(error)) => Err((error, eval.call_stack.clone())),
     };
     *env = take(&mut eval.env);
     res
@@ -299,6 +303,7 @@ struct Evaluator<'a, G> {
     globals: &'a G,
     package: PackageId,
     env: Env,
+    call_stack: CallStack,
     out: Option<&'a mut dyn Receiver>,
 }
 
@@ -436,7 +441,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
 
     fn eval_stmt(&mut self, stmt: &Stmt) -> ControlFlow<Reason, Value> {
         match &stmt.kind {
-            StmtKind::Empty => Continue(Value::unit()),
+            StmtKind::Item(_) => Continue(Value::unit()),
             StmtKind::Expr(expr) => self.eval_expr(expr),
             StmtKind::Local(mutability, pat, expr) => {
                 let val = self.eval_expr(expr)?;
@@ -571,19 +576,30 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_call(&mut self, call: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
-        let call_val = self.eval_expr(call)?;
-        let call_span = call.span;
-        let (call, functor) = value_to_call_id(call_val, call.span)?;
+    fn eval_call(&mut self, call_expr: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
+        let call_val = self.eval_expr(call_expr)?;
+        let call_span = call_expr.span;
+        let (call, functor) = value_to_call_id(&call_val, call_expr.span)?;
         let args_val = self.eval_expr(args)?;
-        let decl = self.globals.callable(call).expect("call should resolve");
-        let spec = spec_from_functor_app(&functor);
+        let decl = match self.globals.callable(call) {
+            Some(decl) => Continue(decl),
+            None => Break(Reason::Error(Error::Unbound(call_expr.span))),
+        }?;
+        let spec = spec_from_functor_app(functor);
+
+        self.push_frame(Frame {
+            id: call,
+            span: Some(call_span),
+            caller: self.package,
+            functor,
+        });
 
         let mut new_self = Self {
             globals: self.globals,
             package: call.package,
             env: Env::default(),
             out: self.out.take(),
+            call_stack: CallStack::default(),
         };
         let call_res = new_self.eval_call_spec(
             decl,
@@ -596,8 +612,21 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         self.out = new_self.out.take();
 
         match call_res {
-            Break(Reason::Return(val)) => Continue(val),
-            Continue(_) | Break(_) => call_res,
+            Break(Reason::Return(val)) => {
+                self.pop_frame();
+                Continue(val)
+            }
+            Break(Reason::Error(_)) => {
+                for frame in new_self.call_stack.clone().into_frames() {
+                    self.call_stack.push_frame(frame);
+                }
+
+                call_res
+            }
+            Continue(_) => {
+                self.pop_frame();
+                call_res
+            }
         }
     }
 
@@ -742,7 +771,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             UnOp::Functor(functor) => match val {
                 Value::Closure => Break(Reason::Error(Error::Unimplemented("closure", expr.span))),
                 Value::Global(id, app) => {
-                    Continue(Value::Global(id, update_functor_app(functor, &app)))
+                    Continue(Value::Global(id, update_functor_app(functor, app)))
                 }
                 _ => Break(Reason::Error(Error::Type(
                     "Callable",
@@ -932,7 +961,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             Res::Local(node) => self
                 .env
                 .get(node)
-                .ok_or(Error::UnboundVar(span))?
+                .ok_or(Error::Unbound(span))?
                 .value
                 .clone(),
         })
@@ -949,7 +978,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     Continue(Value::unit())
                 }
                 Some(_) => Break(Reason::Error(Error::Mutability(lhs.span))),
-                None => Break(Reason::Error(Error::UnboundVar(lhs.span))),
+                None => Break(Reason::Error(Error::Unbound(lhs.span))),
             },
             (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
                 if var_tup.len() == tup.len() {
@@ -968,9 +997,17 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             _ => Break(Reason::Error(Error::Unassignable(lhs.span))),
         }
     }
+
+    fn push_frame(&mut self, frame: Frame) {
+        self.call_stack.push_frame(frame);
+    }
+
+    fn pop_frame(&mut self) {
+        self.call_stack.pop_frame();
+    }
 }
 
-fn spec_from_functor_app(functor: &FunctorApp) -> Spec {
+fn spec_from_functor_app(functor: FunctorApp) -> Spec {
     match (functor.adjoint, functor.controlled) {
         (false, 0) => Spec::Body,
         (true, 0) => Spec::Adj,
@@ -979,10 +1016,10 @@ fn spec_from_functor_app(functor: &FunctorApp) -> Spec {
     }
 }
 
-fn value_to_call_id(val: Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
+fn value_to_call_id(val: &Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
     match val {
         Value::Closure => Break(Reason::Error(Error::Unimplemented("closure", span))),
-        Value::Global(global, functor) => Continue((global, functor)),
+        Value::Global(global, functor) => Continue((*global, *functor)),
         _ => Break(Reason::Error(Error::Type(
             "Callable",
             val.type_name(),
@@ -1041,7 +1078,7 @@ fn slice_array(
     }
 }
 
-fn update_functor_app(functor: Functor, app: &FunctorApp) -> FunctorApp {
+fn update_functor_app(functor: Functor, app: FunctorApp) -> FunctorApp {
     match functor {
         Functor::Adj => FunctorApp {
             adjoint: !app.adjoint,

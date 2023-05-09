@@ -9,14 +9,8 @@ use crate::{
     typeck::{self, Checker},
 };
 use miette::Diagnostic;
-use qsc_ast::{
-    assigner::Assigner,
-    ast::{self, ItemKind, NodeId},
-    mut_visit::MutVisitor,
-    visit::Visitor,
-};
+use qsc_ast::{assigner::Assigner, ast, mut_visit::MutVisitor, visit::Visitor};
 use qsc_hir::hir::{self, PackageId};
-use std::{collections::HashMap, rc::Rc};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -37,7 +31,7 @@ enum ErrorKind {
 
 pub enum Fragment {
     Stmt(hir::Stmt),
-    Callable(hir::CallableDecl),
+    Item(hir::Item),
     Error(Vec<Error>),
 }
 
@@ -45,7 +39,6 @@ pub struct Compiler {
     assigner: Assigner,
     resolver: Resolver,
     checker: Checker,
-    scope: HashMap<Rc<str>, NodeId>,
     lowerer: Lowerer,
 }
 
@@ -63,9 +56,8 @@ impl Compiler {
 
         Self {
             assigner: Assigner::new(),
-            resolver: resolve_globals.into_resolver(),
-            checker: typeck_globals.into_checker(),
-            scope: HashMap::new(),
+            resolver: Resolver::with_persistent_local_scope(resolve_globals),
+            checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
         }
     }
@@ -74,16 +66,8 @@ impl Compiler {
         self.lowerer.assigner_mut()
     }
 
-    pub fn compile_fragments(&mut self, source: impl AsRef<str>) -> Vec<Fragment> {
-        let (item, errors) = parse::item(source.as_ref());
-        match item.kind {
-            ItemKind::Callable(decl) if errors.is_empty() => {
-                return vec![self.compile_callable_decl(decl)];
-            }
-            _ => {}
-        }
-
-        let (stmts, errors) = parse::stmts(source.as_ref());
+    pub fn compile_fragments(&mut self, input: &str) -> Vec<Fragment> {
+        let (fragments, errors) = parse::fragments(input);
         if !errors.is_empty() {
             return vec![Fragment::Error(
                 errors
@@ -93,70 +77,65 @@ impl Compiler {
             )];
         }
 
-        let mut fragments = Vec::new();
-        for stmt in stmts {
-            fragments.push(self.compile_stmt(stmt));
-            if matches!(fragments.last(), Some(Fragment::Error(_))) {
-                break;
-            }
-        }
         fragments
+            .into_iter()
+            .flat_map(|f| self.compile_fragment(f))
+            .collect()
     }
 
-    fn compile_callable_decl(&mut self, mut decl: ast::CallableDecl) -> Fragment {
-        self.assigner.visit_callable_decl(&mut decl);
-        self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.add_global_callable(&decl);
-            resolver.visit_callable_decl(&decl);
-        });
+    fn compile_fragment(&mut self, fragment: parse::Fragment) -> Vec<Fragment> {
+        let fragment = match fragment {
+            parse::Fragment::Namespace(namespace) => {
+                self.compile_namespace(namespace).err().map(Fragment::Error)
+            }
+            parse::Fragment::Stmt(stmt) => self.compile_stmt(stmt),
+        };
+
+        fragment
+            .into_iter()
+            .chain(self.lowerer.drain_items().map(Fragment::Item))
+            .collect()
+    }
+
+    fn compile_namespace(&mut self, mut namespace: ast::Namespace) -> Result<(), Vec<Error>> {
+        self.assigner.visit_namespace(&mut namespace);
+        self.resolver.visit_namespace(&namespace);
         self.checker
-            .add_global_callable(self.resolver.resolutions(), &decl);
-        self.checker
-            .check_callable_decl(self.resolver.resolutions(), &decl);
+            .check_namespace(self.resolver.resolutions(), &namespace);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
-            Fragment::Callable(
-                self.lowerer
-                    .with(self.resolver.resolutions(), self.checker.tys())
-                    .lower_callable_decl(&decl),
-            )
+            self.lowerer
+                .with(self.resolver.resolutions(), self.checker.tys())
+                .lower_namespace(&namespace);
+            Ok(())
         } else {
-            Fragment::Error(errors)
+            Err(errors)
         }
     }
 
-    fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Fragment {
+    fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Option<Fragment> {
         self.assigner.visit_stmt(&mut stmt);
-        self.resolver.with_scope(&mut self.scope, |resolver| {
-            resolver.visit_stmt(&stmt);
-        });
-        self.checker.check_stmt(self.resolver.resolutions(), &stmt);
+        self.resolver.visit_stmt(&stmt);
+        self.checker
+            .check_stmt_fragment(self.resolver.resolutions(), &stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
-            Fragment::Stmt(
-                self.lowerer
-                    .with(self.resolver.resolutions(), self.checker.tys())
-                    .lower_stmt(&stmt),
-            )
+            self.lowerer
+                .with(self.resolver.resolutions(), self.checker.tys())
+                .lower_stmt(&stmt)
+                .map(Fragment::Stmt)
         } else {
-            Fragment::Error(errors)
+            Some(Fragment::Error(errors))
         }
     }
 
     fn drain_errors(&mut self) -> Vec<Error> {
-        let mut errors = Vec::new();
-        errors.extend(
-            self.resolver
-                .drain_errors()
-                .map(|e| Error(ErrorKind::Resolve(e))),
-        );
-        errors.extend(
-            self.checker
-                .drain_errors()
-                .map(|e| Error(ErrorKind::Type(e))),
-        );
-        errors
+        self.resolver
+            .drain_errors()
+            .map(|e| Error(e.into()))
+            .chain(self.checker.drain_errors().map(|e| Error(e.into())))
+            .collect()
     }
 }

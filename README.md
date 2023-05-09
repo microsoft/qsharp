@@ -7,7 +7,12 @@ This repository contains Q# tooling, specifically:
 - **[compiler](./compiler/qsc/)**: command line compiler
 - **[library](./library/)**: standard library
 - **[npm](./npm/)**: Q# npm module
+- **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
+- **[vscode](./vscode/)**: Visual Studio Code extension
+
+There are also the learning 'katas' and Q# samples in the `./katas` and `./samples`
+directories, respectively.
 
 ## Building
 
@@ -21,16 +26,19 @@ To build this repository there are 4 dependencies that need to be installed. The
 The build script will check these dependencies and their versions and fail if not met. (Or run
 `python ./prereqs.py` directly to check if the minimum required versions are installed).
 
-To build, in the root directory run `python ./build.py`. By default this will run a development
-build of each project.
+To build, in the root directory run `python ./build.py`. By default this will run a release
+build of each project, including running tests and checks such as linting. Run with the
+`--help` option for detailed usage.
 
 ### Playground
+
 To run the "playground" locally, `cd` into the `playground` directory, and run `npm start`.
 This will launch a local web server and output the URL to visit to the console.
 
 ### Python
+
 If the build script does not detect a current Python virtual environment, it will automatically create
-one under `pip/.venv` to run the tests for the `pip` package. When developing locally, 
+one under `pip/.venv` to run the tests for the `pip` package. When developing locally,
 you can use this virtual environment to run the tests by running `source pip/.venv/bin/activate`
 (Linux/MacOS) or `pip/.venv/Scripts/activate.bat` (Windows).
 
@@ -44,7 +52,7 @@ Security issues and bugs should be reported privately following our [security is
 
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+This project welcomes contributions and suggestions. Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>.
 
@@ -66,5 +74,5 @@ This project may contain trademarks or logos for projects, products, or services
 trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion
-or imply Microsoft sponsorship.  Any use of third-party trademarks or logos are subject to those
+or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those
 third-party's policies.

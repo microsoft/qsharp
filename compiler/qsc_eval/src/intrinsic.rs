@@ -9,6 +9,7 @@ use crate::{
     val::{Qubit, Value},
     Error, Reason, WithSpan,
 };
+use num_bigint::BigInt;
 use qir_backend::{
     __quantum__qis__ccx__body, __quantum__qis__cx__body, __quantum__qis__cy__body,
     __quantum__qis__cz__body, __quantum__qis__h__body, __quantum__qis__m__body,
@@ -41,6 +42,11 @@ pub(crate) fn invoke_intrinsic(
             "IntAsDouble" => {
                 let val: i64 = args.try_into().with_span(args_span)?;
                 Continue(Value::Double(val as f64))
+            }
+
+            "IntAsBigInt" => {
+                let val: i64 = args.try_into().with_span(args_span)?;
+                Continue(Value::BigInt(BigInt::from(val)))
             }
 
             "DumpMachine" => {
@@ -116,10 +122,26 @@ pub(crate) fn invoke_intrinsic(
                 Continue(Value::Double(val.tanh()))
             }
 
+            "Sqrt" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                Continue(Value::Double(val.sqrt()))
+            }
+
+            "Log" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                Continue(Value::Double(val.ln()))
+            }
+
             "DrawRandomInt" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
                 [lo, hi] => invoke_draw_random_int(lo.clone(), hi.clone(), args_span),
                 args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span))),
             },
+
+            "Truncate" => {
+                let val: f64 = args.try_into().with_span(args_span)?;
+                #[allow(clippy::cast_possible_truncation)]
+                Continue(Value::Int(val as i64))
+            }
 
             "__quantum__rt__qubit_allocate" => {
                 let qubit = Qubit(__quantum__rt__qubit_allocate());

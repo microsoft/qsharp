@@ -3,11 +3,8 @@
     "moduleResolution": "nodenext",
     "target": "ES2020",
     "noEmit": true,
-    "lib": [
-      "DOM",
-      "ES2020"
-    ],
-    "strict": true, /* enable all strict type-checking options */
+    "lib": ["DOM", "ES2020"],
+    "strict": true /* enable all strict type-checking options */,
     "isolatedModules": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",

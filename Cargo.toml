@@ -8,9 +8,10 @@ members = [
     "compiler/qsc_frontend",
     "compiler/qsc_hir",
     "compiler/qsc_passes",
-    "compiler/qsc_wasm",
     "katas",
+    "library/tests",
     "pip",
+    "wasm",
 ]
 
 [workspace.package]

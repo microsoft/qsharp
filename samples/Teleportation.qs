@@ -1,25 +1,21 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
-
 namespace Microsoft.Quantum.Samples.Teleportation {
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Random; 
 
-    //////////////////////////////////////////////////////////////////////////
-    // Introduction //////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
+    // Introduction ////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
 
-    // Quantum teleportation provides a way of moving a quantum state from one
-    // location to another without having to move physical particle(s) along
-    // with it. This is done with the help of previously shared quantum
-    // entanglement between the sending and the receiving locations and
-    // classical communication.
+    // Quantum teleportation provides a way of moving a quantum state
+    // from one location to another without having to move physical
+    // particle(s) along with it. This is done with the help of
+    // previously shared quantum entanglement between the sending and
+    // the receiving locations and classical communication.
 
-    //////////////////////////////////////////////////////////////////////////
-    // Teleportation /////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
+    // Teleportation ///////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////
 
     /// # Summary
     /// Sends the state of one qubit to a target qubit by using
@@ -171,7 +167,7 @@ namespace Microsoft.Quantum.Samples.Teleportation {
                 "Round " + AsString(idxRun) +
                 ": Sent " + AsString(sent) +
                 ", got " + AsString(received) + ".");
-            Message(sent == received ? "Teleportation successful!" | "");
+            Message(sent==received ? "Teleportation successful!" | "");
         }
         for idxRun in 1 .. 10 {
             TeleportRandomMessage();
@@ -180,16 +176,16 @@ namespace Microsoft.Quantum.Samples.Teleportation {
     }
 }
 
-// ////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////
 // Other teleportation scenarios not illustrated here
-// ////////////////////////////////////////////////////////////////////////
-
-// ● Teleport a rotation. Rotate a basis state by a certain angle φ ∈ [0, 2π),
-// for example by preparing Rₓ(φ) |0〉, and teleport the rotated state to the target qubit.
-// When successful, the target qubit captures the angle φ [although, on course one does
-// not have classical access to its value].
-// ● "Super dense coding".  Given an EPR state |β〉 shared between the source and target
-// qubits, the source can encode two classical bits a,b by applying Z^b X^a to its half
-// of |β〉. Both bits can be recovered on the target by measurement in the Bell basis.
-// For details refer to discussion and code in Unit Testing Sample, in file SuperdenseCoding.qs.
-// ////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////
+// ● Teleport a rotation. Rotate a basis state by a certain angle
+// φ ∈ [0, 2π), for example by preparing Rₓ(φ) |0〉, and teleport the
+// rotated state to the target qubit. When successful, the target qubit
+// captures the angle φ [although, on course one does not have classical
+// access to its value].
+// ● "Super dense coding".  Given an EPR state |β〉 shared between the
+// source and target qubits, the source can encode two classical bits
+// a,b by applying Z^b X^a to its half of |β〉. Both bits can be
+// recovered on the target by measurement in the Bell basis.
+// /////////////////////////////////////////////////////////////////////

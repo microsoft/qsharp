@@ -7,8 +7,8 @@ mod tests;
 use crate::{
     lower::Lowerer,
     parse,
-    resolve::{self, Resolutions},
-    typeck::{self, Tys},
+    resolve::{self, Resolutions, Resolver},
+    typeck::{self, Checker, Tys},
     validate::{self, validate},
 };
 use miette::{
@@ -326,8 +326,6 @@ fn resolve_all(
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    globals.add_local_package(package);
-
     for id in dependencies {
         let unit = store
             .get(id)
@@ -335,7 +333,8 @@ fn resolve_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    let mut resolver = globals.into_resolver();
+    globals.add_local_package(package);
+    let mut resolver = Resolver::new(globals);
     resolver.visit_package(package);
     resolver.into_resolutions()
 }
@@ -347,8 +346,6 @@ fn typeck_all(
     resolutions: &Resolutions,
 ) -> (Tys, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
-    globals.add_local_package(resolutions, package);
-
     for id in dependencies {
         let unit = store
             .get(id)
@@ -356,7 +353,7 @@ fn typeck_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    let mut checker = globals.into_checker();
+    let mut checker = Checker::new(globals);
     checker.check_package(resolutions, package);
     checker.into_tys()
 }
