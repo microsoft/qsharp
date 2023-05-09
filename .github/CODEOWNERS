@@ -1,16 +1,16 @@
 * @billti @idavis @minestarks @samarsha @swernli
 
 /compiler @idavis @samarsha @swernli
-/katas @cesarzc @swernli
-/library @cesarzc @swernli
-/npm @billti @minestarks
-/pip @idavis @minestarks
-/playground @billti @minestarks
+/katas @billti @cesarzc @swernli
+/library @cesarzc @DmitryVasilevsky @swernli
+/npm @billti @cesarzc @minestarks
+/pip @billti @idavis @minestarks
+/playground @billti @cesarzc @minestarks
 /samples @cesarzc @DmitryVasilevsky @swernli
-/vscode @billti @minestarks
+/vscode @billti @idavis @minestarks
 /wasm @billti @cesarzc @swernli
 
 /Cargo.lock @idavis @samarsha @swernli
 /Cargo.toml @idavis @samarsha @swernli
-/package-lock.json @billti @minestarks
-/package.json @billti @minestarks
+/package-lock.json @billti @cesarzc @minestarks
+/package.json @billti @cesarzc @minestarks
