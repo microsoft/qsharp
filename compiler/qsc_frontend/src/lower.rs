@@ -192,30 +192,30 @@ impl With<'_> {
     }
 
     fn lower_ty_def(&mut self, def: &ast::TyDef) -> hir::TyDef {
-        hir::TyDef {
-            id: self.lower_id(def.id),
-            span: def.span,
-            kind: match &def.kind {
-                ast::TyDefKind::Field(name, ty) => hir::TyDefKind::Field(
+        match &def.kind {
+            ast::TyDefKind::Field(name, ty) => hir::TyDef {
+                id: self.lower_id(def.id),
+                span: def.span,
+                kind: hir::TyDefKind::Field(
                     name.as_ref().map(|n| self.lower_ident(n)),
                     convert::ty_from_ast(self.resolutions, ty).0,
                 ),
-                ast::TyDefKind::Paren(inner) => {
-                    hir::TyDefKind::Paren(Box::new(self.lower_ty_def(inner)))
-                }
-                ast::TyDefKind::Tuple(defs) => {
-                    hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect())
-                }
+            },
+            ast::TyDefKind::Paren(inner) => self.lower_ty_def(inner),
+            ast::TyDefKind::Tuple(defs) => hir::TyDef {
+                id: self.lower_id(def.id),
+                span: def.span,
+                kind: hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect()),
             },
         }
     }
 
     fn lower_functor_expr(&mut self, expr: &ast::FunctorExpr) -> hir::FunctorExpr {
-        hir::FunctorExpr {
-            id: self.lower_id(expr.id),
-            span: expr.span,
-            kind: match &expr.kind {
-                ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExprKind::BinOp(
+        match &expr.kind {
+            ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExpr {
+                id: self.lower_id(expr.id),
+                span: expr.span,
+                kind: hir::FunctorExprKind::BinOp(
                     match op {
                         ast::SetOp::Union => hir::SetOp::Union,
                         ast::SetOp::Intersect => hir::SetOp::Intersect,
@@ -223,13 +223,13 @@ impl With<'_> {
                     Box::new(self.lower_functor_expr(lhs)),
                     Box::new(self.lower_functor_expr(rhs)),
                 ),
-                &ast::FunctorExprKind::Lit(functor) => {
-                    hir::FunctorExprKind::Lit(lower_functor(functor))
-                }
-                ast::FunctorExprKind::Paren(inner) => {
-                    hir::FunctorExprKind::Paren(Box::new(self.lower_functor_expr(inner)))
-                }
             },
+            &ast::FunctorExprKind::Lit(functor) => hir::FunctorExpr {
+                id: self.lower_id(expr.id),
+                span: expr.span,
+                kind: hir::FunctorExprKind::Lit(lower_functor(functor)),
+            },
+            ast::FunctorExprKind::Paren(inner) => self.lower_functor_expr(inner),
         }
     }
 
@@ -279,7 +279,11 @@ impl With<'_> {
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
+        if let ast::ExprKind::Paren(inner) = &expr.kind {
+            return self.lower_expr(inner);
+        }
         let id = self.lower_id(expr.id);
         let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
         let kind = match &expr.kind {
@@ -345,7 +349,7 @@ impl With<'_> {
                 Box::new(self.lower_expr(body)),
             ),
             ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
-            ast::ExprKind::Paren(inner) => hir::ExprKind::Paren(Box::new(self.lower_expr(inner))),
+            ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
@@ -384,17 +388,19 @@ impl With<'_> {
     }
 
     fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
+        if let ast::PatKind::Paren(inner) = &pat.kind {
+            return self.lower_pat(inner);
+        }
         let id = self.lower_id(pat.id);
         let ty = self.tys.get(pat.id).map_or_else(
             || convert::ast_pat_ty(self.resolutions, pat).0,
             Clone::clone,
         );
-
         let kind = match &pat.kind {
             ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
             ast::PatKind::Elided => hir::PatKind::Elided,
-            ast::PatKind::Paren(inner) => hir::PatKind::Paren(Box::new(self.lower_pat(inner))),
+            ast::PatKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             ast::PatKind::Tuple(items) => {
                 hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
             }
@@ -409,15 +415,16 @@ impl With<'_> {
     }
 
     fn lower_qubit_init(&mut self, init: &ast::QubitInit) -> hir::QubitInit {
+        if let ast::QubitInitKind::Paren(inner) = &init.kind {
+            return self.lower_qubit_init(inner);
+        }
         let id = self.lower_id(init.id);
         let ty = self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone);
         let kind = match &init.kind {
             ast::QubitInitKind::Array(length) => {
                 hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))
             }
-            ast::QubitInitKind::Paren(inner) => {
-                hir::QubitInitKind::Paren(Box::new(self.lower_qubit_init(inner)))
-            }
+            ast::QubitInitKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             ast::QubitInitKind::Single => hir::QubitInitKind::Single,
             ast::QubitInitKind::Tuple(items) => {
                 hir::QubitInitKind::Tuple(items.iter().map(|i| self.lower_qubit_init(i)).collect())
