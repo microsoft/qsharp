@@ -6,7 +6,7 @@ use crate::{
     typeck::{convert, Tys},
 };
 use qsc_ast::ast;
-use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
