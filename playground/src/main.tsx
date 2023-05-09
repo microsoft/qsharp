@@ -10,13 +10,13 @@ import {
   getAllKatas,
   Kata,
   VSDiagnostic,
+  samples,
 } from "qsharp";
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
 import { Results } from "./results.js";
 import { useState } from "preact/hooks";
-import { samples } from "./samples.js";
 import { Kata as Katas } from "./kata.js";
 import { base64ToCode } from "./utils.js";
 
@@ -46,10 +46,14 @@ function App(props: {
   );
 
   const kataTitles = props.katas.map((elem) => elem.title);
-  const sampleTitles = Object.keys(samples);
+  const sampleTitles = samples.map((sample) => sample.title);
 
   const sampleCode =
-    (samples as { [idx: string]: string })[currentNavItem] || props.linkedCode;
+    samples.find((sample) => sample.title === currentNavItem)?.code ||
+    props.linkedCode;
+
+  const defaultShots =
+    samples.find((sample) => sample.title === currentNavItem)?.shots || 100;
 
   const activeKata = kataTitles.includes(currentNavItem)
     ? props.katas.find((kata) => kata.title === currentNavItem)
@@ -86,7 +90,7 @@ function App(props: {
             code={sampleCode}
             compiler={props.compiler}
             evtTarget={props.evtTarget}
-            defaultShots={100}
+            defaultShots={defaultShots}
             showShots={true}
             showExpr={false}
             shotError={shotError}
