@@ -76,7 +76,7 @@ pub struct PackageIter<'a> {
 }
 
 impl PackageIter<'_> {
-    fn rawr(&mut self, item: &Item) -> Option<Global> {
+    fn global_item(&mut self, item: &Item) -> Option<Global> {
         let parent = self
             .package
             .items
@@ -129,7 +129,7 @@ impl<'a> Iterator for PackageIter<'a> {
         } else {
             loop {
                 let item = self.items.next()?;
-                if let Some(global) = self.rawr(item) {
+                if let Some(global) = self.global_item(item) {
                     break Some(global);
                 }
             }
