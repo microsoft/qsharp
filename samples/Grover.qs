@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-
 namespace Microsoft.Quantum.Samples.SimpleGrover {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
