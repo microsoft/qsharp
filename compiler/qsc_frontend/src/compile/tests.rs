@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{compile, Error, Metadata, PackageStore, SourceMap};
+use super::{compile, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
+    global,
     hir::{
         Block, CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy,
         Res, Stmt, StmtKind, Ty,
@@ -294,20 +295,20 @@ fn replace_node() {
 #[test]
 fn insert_core_call() {
     struct Inserter<'a> {
-        core: &'a Metadata,
+        core: &'a global::Table,
     }
 
     impl MutVisitor for Inserter<'_> {
         fn visit_block(&mut self, block: &mut Block) {
             let allocate = self
                 .core
-                .term("QIR.Intrinsic", "__quantum__rt__qubit_allocate")
+                .resolve_term("QIR.Intrinsic", "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
 
             let callee = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: allocate.ty().clone(),
+                ty: allocate.ty.clone(),
                 kind: ExprKind::Var(Res::Item(allocate.id)),
             };
 
