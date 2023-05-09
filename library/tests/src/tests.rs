@@ -54,7 +54,7 @@ fn check_apply_to_each_a() {
 }
 
 #[test]
-fn check_apply_to_each_c() {
+fn check_apply_to_each_c_applied() {
     run_stdlib_test(
         indoc! {r#"{
             use control = Qubit();
@@ -74,7 +74,10 @@ fn check_apply_to_each_c() {
             .into(),
         ),
     );
+}
 
+#[test]
+fn check_apply_to_each_c_not_applied() {
     run_stdlib_test(
         indoc! {r#"{
             use control = Qubit();
@@ -98,7 +101,7 @@ fn check_apply_to_each_c() {
 }
 
 #[test]
-fn check_apply_to_each_ca() {
+fn check_apply_to_each_ca_applied() {
     run_stdlib_test(
         indoc! {r#"{
             use control = Qubit();
@@ -119,7 +122,10 @@ fn check_apply_to_each_ca() {
             .into(),
         ),
     );
+}
 
+#[test]
+fn check_apply_to_each_ca_not_applied() {
     run_stdlib_test(
         indoc! {r#"{
             use control = Qubit();
