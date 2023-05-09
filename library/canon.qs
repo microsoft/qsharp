@@ -6,7 +6,7 @@ namespace Microsoft.Quantum.Canon {
     open Microsoft.Quantum.Intrinsic;
 
     /// # Summary
-    /// Applies a single-qubit operation to each element in a register.
+    /// Applies an operation to each element in a register.
     ///
     /// # Input
     /// ## singleElementOperation
@@ -25,11 +25,100 @@ namespace Microsoft.Quantum.Canon {
     ///     ApplyToEach(H, register);
     /// }
     /// ```
+    operation ApplyToEach<'T> (singleElementOperation : ('T => Unit), register : 'T[]) : Unit {
+        for item in register {
+            singleElementOperation(item);
+        }
+    }
+
+    /// # Summary
+    /// Applies an operation to each element in a register.
+    /// The modifier `A` indicates that the single-element operation is adjointable.
     ///
-    /// # Remarks
-    /// Using an operation with missing specializations will result in a runtime error if this operation is used with
-    /// the corresponding functor.
-    operation ApplyToEach<'T> (singleElementOperation : ('T => Unit is Adj + Ctl), register : 'T[]) : Unit is Adj + Ctl {
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each element.
+    /// ## register
+    /// Array of elements on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEachA(H, register);
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Canon.ApplyToEach
+    operation ApplyToEachA<'T> (singleElementOperation : ('T => Unit is Adj), register : 'T[])
+    : Unit is Adj {
+        for item in register {
+            singleElementOperation(item);
+        }
+    }
+
+    /// # Summary
+    /// Applies an operation to each element in a register.
+    /// The modifier `C` indicates that the single-element operation is controllable.
+    ///
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each element.
+    /// ## register
+    /// Array of elements on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEachC(H, register);
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Canon.ApplyToEach
+    operation ApplyToEachC<'T> (singleElementOperation : ('T => Unit is Ctl), register : 'T[])
+    : Unit is Ctl {
+        for item in register {
+            singleElementOperation(item);
+        }
+    }
+
+    /// # Summary
+    /// Applies an operation to each element in a register.
+    /// The modifier `CA` indicates that the single-element operation is controllable and adjointable.
+    ///
+    /// # Input
+    /// ## singleElementOperation
+    /// Operation to apply to each element.
+    /// ## register
+    /// Array of elements on which to apply the given operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The target on which the operation acts.
+    ///
+    /// # Example
+    /// Prepare a three-qubit $\ket{+}$ state:
+    /// ```qsharp
+    /// using (register = Qubit[3]) {
+    ///     ApplyToEachCA(H, register);
+    /// }
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Canon.ApplyToEach
+    operation ApplyToEachCA<'T> (singleElementOperation : ('T => Unit is Adj + Ctl), register : 'T[])
+    : Unit is Adj + Ctl {
         for item in register {
             singleElementOperation(item);
         }
