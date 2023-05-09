@@ -26,10 +26,25 @@ thiserror = { workspace = true }
 criterion = { workspace = true, features = ["cargo_bench_support"] }
 indoc = { workspace = true }
 
+[lib]
+bench = false
+
+[[bin]]
+name = "qsc"
+bench = false
+
+[[bin]]
+name = "qsi"
+bench = false
+
 [[bench]]
 name = "nqueens"
 harness = false
 
 [[bench]]
 name = "library"
+harness = false
+
+[[bench]]
+name = "eval"
 harness = false
