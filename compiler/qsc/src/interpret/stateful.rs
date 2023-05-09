@@ -73,13 +73,13 @@ impl Interpreter {
     pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<CompileError>> {
         qsc_eval::init();
 
-        let mut store = PackageStore::new();
+        let mut store = PackageStore::new(compile::core());
         let mut dependencies = Vec::new();
         if std {
-            dependencies.push(store.insert(compile::std()));
+            dependencies.push(store.insert(compile::std(&store)));
         }
 
-        let (unit, errors) = compile(&store, dependencies.iter().copied(), sources);
+        let (unit, errors) = compile(&store, &dependencies, sources);
         if !errors.is_empty() {
             return Err(errors
                 .into_iter()

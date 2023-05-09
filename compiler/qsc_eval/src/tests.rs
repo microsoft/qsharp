@@ -4,14 +4,14 @@
 use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::hir::{CallableDecl, ItemKind};
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
-    let mut store = PackageStore::new();
+    let mut store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, [], sources);
+    let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let pass_errors = run_default_passes(&mut unit);
@@ -1986,7 +1986,7 @@ fn unop_adjoint_functor_expr() {
             }
         "},
         "Adjoint Test.Foo",
-        &expect!["Adjoint <item 1 in package 0>"],
+        &expect!["Adjoint <item 1 in package 1>"],
     );
 }
 
@@ -2001,7 +2001,7 @@ fn unop_controlled_functor_expr() {
             }
         "},
         "Controlled Test.Foo",
-        &expect!["Controlled <item 1 in package 0>"],
+        &expect!["Controlled <item 1 in package 1>"],
     );
 }
 
@@ -2016,7 +2016,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "},
         "Adjoint (Adjoint Test.Foo)",
-        &expect!["<item 1 in package 0>"],
+        &expect!["<item 1 in package 1>"],
     );
 }
 
@@ -2031,7 +2031,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "},
         "Controlled Adjoint Test.Foo",
-        &expect!["Controlled Adjoint <item 1 in package 0>"],
+        &expect!["Controlled Adjoint <item 1 in package 1>"],
     );
 }
 
@@ -2046,7 +2046,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "},
         "Adjoint Controlled Test.Foo",
-        &expect!["Controlled Adjoint <item 1 in package 0>"],
+        &expect!["Controlled Adjoint <item 1 in package 1>"],
     );
 }
 
@@ -2061,7 +2061,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "},
         "Controlled (Controlled Test.Foo)",
-        &expect!["Controlled Controlled <item 1 in package 0>"],
+        &expect!["Controlled Controlled <item 1 in package 1>"],
     );
 }
 
@@ -2292,14 +2292,14 @@ fn call_adjoint_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    0,
+                                    1,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                0,
+                                1,
                             ),
                             functor: FunctorApp {
                                 adjoint: true,
@@ -2355,14 +2355,14 @@ fn call_adjoint_adjoint_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    0,
+                                    1,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                0,
+                                1,
                             ),
                             functor: FunctorApp {
                                 adjoint: false,
@@ -2413,14 +2413,14 @@ fn call_adjoint_self_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    0,
+                                    1,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                0,
+                                1,
                             ),
                             functor: FunctorApp {
                                 adjoint: true,

@@ -80,10 +80,13 @@ impl From<usize> for NodeId {
 }
 
 /// A unique identifier for a package within a package store.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageId(usize);
 
 impl PackageId {
+    /// The package ID of the core library.
+    pub const CORE: Self = Self(0);
+
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
@@ -323,6 +326,30 @@ pub struct TyDef {
     pub kind: TyDefKind,
 }
 
+impl TyDef {
+    /// The type of the constructor for this type definition.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the constructed type.
+    #[must_use]
+    pub fn cons_ty(&self, id: ItemId) -> Ty {
+        Ty::Arrow(
+            CallableKind::Function,
+            Box::new(self.ty()),
+            Box::new(Ty::Udt(Res::Item(id))),
+            HashSet::new(),
+        )
+    }
+
+    fn ty(&self) -> Ty {
+        match &self.kind {
+            TyDefKind::Field(_, ty) => ty.clone(),
+            TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(Self::ty).collect()),
+        }
+    }
+}
+
 impl Display for TyDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
@@ -334,8 +361,6 @@ impl Display for TyDef {
 pub enum TyDefKind {
     /// A field definition with an optional name but required type.
     Field(Option<Ident>, Ty),
-    /// A parenthesized type definition.
-    Paren(Box<TyDef>),
     /// A tuple.
     Tuple(Vec<TyDef>),
 }
@@ -350,11 +375,6 @@ impl Display for TyDefKind {
                 if let Some(n) = name {
                     write!(indent, "\n{n}")?;
                 }
-                write!(indent, "\n{t}")?;
-            }
-            TyDefKind::Paren(t) => {
-                write!(indent, "Paren:")?;
-                indent = set_indentation(indent, 1);
                 write!(indent, "\n{t}")?;
             }
             TyDefKind::Tuple(ts) => {
@@ -394,6 +414,38 @@ pub struct CallableDecl {
     pub functors: Option<FunctorExpr>,
     /// The body of the callable.
     pub body: CallableBody,
+}
+
+impl CallableDecl {
+    /// The type of the callable.
+    #[must_use]
+    pub fn ty(&self) -> Ty {
+        Ty::Arrow(
+            self.kind,
+            Box::new(self.input.ty.clone()),
+            Box::new(self.output.clone()),
+            self.functors(),
+        )
+    }
+
+    fn functors(&self) -> HashSet<Functor> {
+        let mut functors = self.functors.as_ref().map_or(HashSet::new(), |f| {
+            f.to_set().into_iter().map(Into::into).collect()
+        });
+
+        if let CallableBody::Specs(specs) = &self.body {
+            for spec in specs {
+                match spec.spec {
+                    Spec::Body => {}
+                    Spec::Adj => functors.extend([Functor::Adj]),
+                    Spec::Ctl => functors.extend([Functor::Ctl]),
+                    Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
+                }
+            }
+        }
+
+        functors
+    }
 }
 
 impl Display for CallableDecl {
@@ -524,7 +576,6 @@ impl FunctorExpr {
                 functors
             }
             &FunctorExprKind::Lit(functor) => [functor].into(),
-            FunctorExprKind::Paren(inner) => inner.to_set(),
         }
     }
 }
@@ -542,8 +593,6 @@ pub enum FunctorExprKind {
     BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
     /// A literal for a specific functor.
     Lit(Functor),
-    /// A parenthesized group.
-    Paren(Box<FunctorExpr>),
 }
 
 impl Display for FunctorExprKind {
@@ -551,7 +600,6 @@ impl Display for FunctorExprKind {
         match self {
             FunctorExprKind::BinOp(op, l, r) => write!(f, "BinOp {op:?}: ({l}) ({r})"),
             FunctorExprKind::Lit(func) => write!(f, "{func:?}"),
-            FunctorExprKind::Paren(func) => write!(f, "Paren: {func}"),
         }
     }
 }
@@ -715,8 +763,6 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
-    /// Parentheses: `(a)`.
-    Paren(Box<Expr>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
@@ -759,7 +805,6 @@ impl Display for ExprKind {
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
@@ -1034,8 +1079,6 @@ pub enum PatKind {
     Discard,
     /// An elided pattern, `...`, used by specializations.
     Elided,
-    /// Parentheses: `(a)`.
-    Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }
@@ -1049,11 +1092,6 @@ impl Display for PatKind {
             }
             PatKind::Discard => write!(indent, "Discard")?,
             PatKind::Elided => write!(indent, "Elided")?,
-            PatKind::Paren(p) => {
-                write!(indent, "Paren:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{p}")?;
-            }
             PatKind::Tuple(ps) => {
                 if ps.is_empty() {
                     write!(indent, "Unit")?;
@@ -1098,8 +1136,6 @@ impl Display for QubitInit {
 pub enum QubitInitKind {
     /// An array of qubits: `Qubit[a]`.
     Array(Box<Expr>),
-    /// A parenthesized initializer: `(a)`.
-    Paren(Box<QubitInit>),
     /// A single qubit: `Qubit()`.
     Single,
     /// A tuple: `(a, b, c)`.
@@ -1114,11 +1150,6 @@ impl Display for QubitInitKind {
                 write!(indent, "Array:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{e}")?;
-            }
-            QubitInitKind::Paren(qi) => {
-                write!(indent, "Parens:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{qi}")?;
             }
             QubitInitKind::Single => write!(indent, "Single")?,
             QubitInitKind::Tuple(qis) => {

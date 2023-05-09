@@ -18,14 +18,14 @@ use crate::{
 };
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
-    let mut store = PackageStore::new();
-    let mut std = compile::std();
+    let mut store = PackageStore::new(compile::core());
+    let mut std = compile::std(&store);
     assert!(std.errors.is_empty());
     assert!(run_default_passes(&mut std).is_empty());
 
     let std_id = store.insert(std);
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, [std_id], sources);
+    let mut unit = compile(&store, &[std_id], sources);
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(&mut unit).is_empty());
 
