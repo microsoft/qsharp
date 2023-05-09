@@ -25,7 +25,11 @@ namespace Microsoft.Quantum.Canon {
     ///     ApplyToEach(H, register);
     /// }
     /// ```
-    operation ApplyToEach<'T> (singleElementOperation : ('T => Unit), register : 'T[]) : Unit {
+    ///
+    /// # Remarks
+    /// Using an operation with missing specializations will result in a runtime error if this operation is used with
+    /// the corresponding functor.
+    operation ApplyToEach<'T> (singleElementOperation : ('T => Unit is Adj + Ctl), register : 'T[]) : Unit is Adj + Ctl {
         for item in register {
             singleElementOperation(item);
         }
