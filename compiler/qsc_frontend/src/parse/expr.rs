@@ -308,49 +308,33 @@ fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
 
 fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     let token = s.peek();
-    if let TokenKind::String(StringToken::Interpolated(InterpolatedStart::Dollar, mut end)) =
-        token.kind
-    {
-        // Slice off starting dollar-quote and ending quote or brace.
-        let lexeme = s.read();
-        let lexeme = &lexeme[2..lexeme.len() - 1];
+    let TokenKind::String(StringToken::Interpolated(InterpolatedStart::Dollar, mut end)) =
+        token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
 
-        let mut components = Vec::new();
-        if !lexeme.is_empty() {
-            components.push(StringComponent::Lit(lexeme.into()));
+    let mut components = Vec::new();
+    let lit = shorten(2, 1, s.read());
+    if !lit.is_empty() {
+        components.push(StringComponent::Lit(lit.into()));
+    }
+
+    s.advance();
+    while end == InterpolatedEnding::Brace {
+        components.push(StringComponent::Expr(expr(s)?));
+
+        let token = s.peek();
+        let TokenKind::String(StringToken::Interpolated(InterpolatedStart::Brace, next_end)) =
+            token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
+
+        let lit = shorten(1, 1, s.read());
+        if !lit.is_empty() {
+            components.push(StringComponent::Lit(lit.into()));
         }
 
         s.advance();
-
-        loop {
-            match end {
-                InterpolatedEnding::Brace => {
-                    components.push(StringComponent::Expr(expr(s)?));
-
-                    let token = s.peek();
-                    if let TokenKind::String(StringToken::Interpolated(
-                        InterpolatedStart::Brace,
-                        next_end,
-                    )) = token.kind
-                    {
-                        let lexeme = s.read();
-                        let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
-                        if !lexeme.is_empty() {
-                            components.push(StringComponent::Lit(lexeme.into()));
-                        }
-
-                        s.advance();
-                        end = next_end;
-                    } else {
-                        break Err(Error::Rule("string continuation", token.kind, token.span));
-                    }
-                }
-                InterpolatedEnding::Quote => break Ok(components),
-            }
-        }
-    } else {
-        Err(Error::Rule("interpolated string", token.kind, token.span))
+        end = next_end;
     }
+
+    Ok(components)
 }
 
 fn lit(s: &mut Scanner) -> Result<Option<Lit>> {
@@ -395,8 +379,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             Ok(Some(Lit::Int(value)))
         }
         TokenKind::String(StringToken::Normal) => {
-            let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
-            Ok(Some(Lit::String(lexeme.into())))
+            Ok(Some(Lit::String(shorten(1, 1, lexeme).into())))
         }
         _ => Ok(None),
     }
@@ -674,4 +657,8 @@ fn expr_as_pat(expr: Expr) -> Result<Pat> {
         span: expr.span,
         kind,
     })
+}
+
+fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
+    &s[from_start..s.len() - from_end]
 }
