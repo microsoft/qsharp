@@ -266,7 +266,7 @@ fn lit_string_escape_quote() {
     check(
         expr,
         r#""foo\"bar""#,
-        &expect![[r#"Expr _id_ [0-10]: Lit: String("foo\"bar")"#]],
+        &expect![[r#"Expr _id_ [0-10]: Lit: String("foo\\\"bar")"#]],
     );
 }
 
