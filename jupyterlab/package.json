@@ -31,8 +31,8 @@
     "build:prod": "jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
     "build:labextension": "jupyter labextension build .",
     "build:labextension:dev": "jupyter labextension build --development True .",
-    "build:lib": "tsc --sourceMap",
-    "build:lib:prod": "tsc",
+    "build:lib": "npx -p typescript --no-install tsc --sourceMap",
+    "build:lib:prod": "npx -p typescript --no-install tsc",
     "clean": "jlpm clean:lib",
     "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
     "clean:lintcache": "rimraf .eslintcache .stylelintcache",
@@ -50,17 +50,22 @@
     "stylelint:check": "stylelint --cache \"style/**/*.css\"",
     "test": "jest --coverage",
     "watch": "run-p watch:src watch:labextension",
-    "watch:src": "tsc -w",
+    "watch:src": "npx -p typescript --no-install tsc -w",
     "watch:labextension": "jupyter labextension watch ."
   },
   "dependencies": {
-    "@jupyterlab/application": "^3.1.0"
+    "@jupyterlab/application": "^3.6.3",
+    "@jupyterlab/apputils": "^3.6.3",
+    "@jupyterlab/codemirror": "^3.6.3",
+    "@jupyterlab/notebook": "^3.6.3",
+    "@lumino/widgets": "^1.37.2"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
     "@babel/preset-env": "^7.0.0",
     "@jupyterlab/builder": "^3.1.0",
     "@jupyterlab/testutils": "^3.0.0",
+    "@types/codemirror": "^5.60.7",
     "@types/jest": "^26.0.0",
     "@typescript-eslint/eslint-plugin": "^4.8.1",
     "@typescript-eslint/parser": "^4.8.1",
@@ -76,8 +81,8 @@
     "stylelint-config-recommended": "^6.0.0",
     "stylelint-config-standard": "~24.0.0",
     "stylelint-prettier": "^2.0.0",
-    "typescript": "~4.1.3",
-    "ts-jest": "^26.0.0"
+    "ts-jest": "^26.0.0",
+    "typescript": "~4.1.3"
   },
   "sideEffects": [
     "style/*.css",
