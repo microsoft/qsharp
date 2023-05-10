@@ -88,7 +88,6 @@ pub(super) fn ast_ty_def_ty(
 pub(super) fn hir_ty_def_ty(def: &hir::TyDef) -> Ty {
     match &def.kind {
         hir::TyDefKind::Field(_, ty) => ty.clone(),
-        hir::TyDefKind::Paren(inner) => hir_ty_def_ty(inner),
         hir::TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(hir_ty_def_ty).collect()),
     }
 }
