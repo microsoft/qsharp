@@ -2561,3 +2561,75 @@ fn global_callable_as_arg() {
         &expect!["[2, 2, 2]"],
     );
 }
+
+#[test]
+fn interpolated_string() {
+    check_expr("", r#"$"string""#, &expect!["string"]);
+}
+
+#[test]
+fn interpolated_string_var() {
+    check_expr(
+        "",
+        indoc! {r#"{
+            let x = 5;
+            $"{x}"
+        }"#},
+        &expect!["5"],
+    );
+}
+
+#[test]
+fn interpolated_string_array_index() {
+    check_expr(
+        "",
+        indoc! {r#"{
+            let xs = [1, 2, 3];
+            $"{xs[0]}"
+        }"#},
+        &expect!["1"],
+    );
+}
+
+#[test]
+fn interpolated_string_two_vars() {
+    check_expr(
+        "",
+        indoc! {r#"{
+            let x = 4;
+            let y = (true, Zero);
+            $"{x} {y}"
+        }"#},
+        &expect!["4 (true, Zero)"],
+    );
+}
+
+#[test]
+fn interpolated_string_nested_normal_string() {
+    check_expr("", r#"$"{"{}"}""#, &expect!["{}"]);
+}
+
+#[test]
+fn nested_interpolated_string() {
+    check_expr(
+        "",
+        indoc! {r#"{
+            let x = 4;
+            $"{$"{x}"}"
+        }"#},
+        &expect!["4"],
+    );
+}
+
+#[test]
+fn nested_interpolated_string_with_exprs() {
+    check_expr(
+        "",
+        indoc! {r#"{
+            let x = "hello!";
+            let y = 1.5;
+            $"foo {x + $"bar {y}"} baz"
+        }"#},
+        &expect!["foo hello!bar 1.5 baz"],
+    );
+}
