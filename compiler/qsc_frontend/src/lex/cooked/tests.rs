@@ -996,6 +996,7 @@ fn interpolated_string() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Quote,
                             ),
                         ),
@@ -1020,6 +1021,7 @@ fn interpolated_string_braced() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1042,6 +1044,7 @@ fn interpolated_string_braced() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),
@@ -1066,6 +1069,7 @@ fn interpolated_string_braced_index() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1121,6 +1125,7 @@ fn interpolated_string_braced_index() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),
@@ -1145,6 +1150,7 @@ fn interpolated_string_two_braced() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1168,6 +1174,7 @@ fn interpolated_string_two_braced() {
                         kind: String(
                             Interpolated(
                                 Brace,
+                                Brace,
                             ),
                         ),
                         span: Span {
@@ -1189,6 +1196,7 @@ fn interpolated_string_two_braced() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),
@@ -1213,6 +1221,7 @@ fn interpolated_string_braced_normal_string() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1237,6 +1246,7 @@ fn interpolated_string_braced_normal_string() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),
@@ -1261,6 +1271,7 @@ fn nested_interpolated_string() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1274,6 +1285,7 @@ fn nested_interpolated_string() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1296,6 +1308,7 @@ fn nested_interpolated_string() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),
@@ -1309,6 +1322,7 @@ fn nested_interpolated_string() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),
@@ -1333,6 +1347,7 @@ fn nested_interpolated_string_with_exprs() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1366,6 +1381,7 @@ fn nested_interpolated_string_with_exprs() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Dollar,
                                 Brace,
                             ),
                         ),
@@ -1388,6 +1404,7 @@ fn nested_interpolated_string_with_exprs() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),
@@ -1401,6 +1418,7 @@ fn nested_interpolated_string_with_exprs() {
                     Token {
                         kind: String(
                             Interpolated(
+                                Brace,
                                 Quote,
                             ),
                         ),

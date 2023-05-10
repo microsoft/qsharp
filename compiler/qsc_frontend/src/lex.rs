@@ -39,6 +39,12 @@ impl From<Radix> for u32 {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(super) enum InterpolatedStart {
+    Brace,
+    Dollar,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(super) enum InterpolatedEnding {
     Brace,
     Quote,

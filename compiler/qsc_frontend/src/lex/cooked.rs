@@ -16,7 +16,7 @@ mod tests;
 
 use super::{
     raw::{self, Number, Single},
-    Delim, InterpolatedEnding, Radix,
+    Delim, InterpolatedEnding, InterpolatedStart, Radix,
 };
 use enum_iterator::Sequence;
 use miette::Diagnostic;
@@ -250,7 +250,7 @@ impl Display for ClosedBinOp {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(crate) enum StringToken {
     Normal,
-    Interpolated(InterpolatedEnding),
+    Interpolated(InterpolatedStart, InterpolatedEnding),
 }
 
 pub(crate) struct Lexer<'a> {
@@ -307,12 +307,12 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
                 Ok(Some(TokenKind::String(StringToken::Normal)))
             }
-            raw::TokenKind::String(raw::StringToken::Interpolated(Some(ending))) => {
-                Ok(Some(TokenKind::String(StringToken::Interpolated(ending))))
-            }
+            raw::TokenKind::String(raw::StringToken::Interpolated(start, Some(ending))) => Ok(
+                Some(TokenKind::String(StringToken::Interpolated(start, ending))),
+            ),
             raw::TokenKind::String(
                 raw::StringToken::Normal { terminated: false }
-                | raw::StringToken::Interpolated(None),
+                | raw::StringToken::Interpolated(_, None),
             ) => Err(Error::UnterminatedString(Span {
                 lo: token.offset,
                 hi: token.offset,

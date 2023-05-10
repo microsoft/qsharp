@@ -15,7 +15,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::{Delim, InterpolatedEnding, Radix};
+use super::{Delim, InterpolatedEnding, InterpolatedStart, Radix};
 use enum_iterator::Sequence;
 use std::{
     fmt::{self, Display, Formatter, Write},
@@ -151,7 +151,7 @@ pub(crate) enum Number {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(crate) enum StringToken {
     Normal { terminated: bool },
-    Interpolated(Option<InterpolatedEnding>),
+    Interpolated(InterpolatedStart, Option<InterpolatedEnding>),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -302,25 +302,25 @@ impl<'a> Lexer<'a> {
     }
 
     fn string(&mut self, c: char) -> Option<TokenKind> {
-        let interpolated = if c == '$' {
+        let (interpolated, dollar) = if c == '$' {
             if self.next_if_eq('"') {
-                true
+                (true, true)
             } else {
                 return None;
             }
         } else if self.mode == Mode::Interpolated {
             if c == '"' {
-                false
+                (false, false)
             } else if c == '}' {
                 self.pop_mode().expect("mode pls");
-                true
+                (true, false)
             } else {
                 return None;
             }
         } else if c != '"' {
             return None;
         } else {
-            false
+            (false, false)
         };
 
         while self.first().is_some()
@@ -333,17 +333,25 @@ impl<'a> Lexer<'a> {
         }
 
         if interpolated {
+            let start = if dollar {
+                InterpolatedStart::Dollar
+            } else {
+                InterpolatedStart::Brace
+            };
+
             if self.next_if_eq('{') {
                 self.push_mode(Mode::Interpolated);
-                Some(TokenKind::String(StringToken::Interpolated(Some(
-                    InterpolatedEnding::Brace,
-                ))))
+                Some(TokenKind::String(StringToken::Interpolated(
+                    start,
+                    Some(InterpolatedEnding::Brace),
+                )))
             } else if self.next_if_eq('"') {
-                Some(TokenKind::String(StringToken::Interpolated(Some(
-                    InterpolatedEnding::Quote,
-                ))))
+                Some(TokenKind::String(StringToken::Interpolated(
+                    start,
+                    Some(InterpolatedEnding::Quote),
+                )))
             } else {
-                Some(TokenKind::String(StringToken::Interpolated(None)))
+                Some(TokenKind::String(StringToken::Interpolated(start, None)))
             }
         } else {
             Some(TokenKind::String(StringToken::Normal {
