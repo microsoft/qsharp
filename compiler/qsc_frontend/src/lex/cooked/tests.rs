@@ -1060,6 +1060,133 @@ fn interpolated_string_braced() {
 }
 
 #[test]
+fn interpolated_string_escape_brace() {
+    check(
+        r#"$"\{""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Dollar,
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 5,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unclosed_brace() {
+    check(
+        r#"$"{"#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Dollar,
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unclosed_brace_quote() {
+    check(
+        r#"$"{""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Dollar,
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Err(
+                    UnterminatedString(
+                        Span {
+                            lo: 3,
+                            hi: 3,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unopened_brace() {
+    check(
+        r#"$"}"#,
+        &expect![[r#"
+            [
+                Err(
+                    UnterminatedString(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unopened_brace_quote() {
+    check(
+        r#"$"}""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Dollar,
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn interpolated_string_braced_index() {
     check(
         r#"$"{xs[0]}""#,

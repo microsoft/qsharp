@@ -252,6 +252,122 @@ fn interpolated_string_braced() {
 }
 
 #[test]
+fn interpolated_string_escape_brace() {
+    check(
+        r#"$"\{""#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String(
+                        Interpolated(
+                            Dollar,
+                            Some(
+                                Quote,
+                            ),
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unclosed_brace() {
+    check(
+        r#"$"{"#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String(
+                        Interpolated(
+                            Dollar,
+                            Some(
+                                Brace,
+                            ),
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unclosed_brace_quote() {
+    check(
+        r#"$"{""#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String(
+                        Interpolated(
+                            Dollar,
+                            Some(
+                                Brace,
+                            ),
+                        ),
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: String(
+                        Normal {
+                            terminated: false,
+                        },
+                    ),
+                    offset: 3,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unopened_brace() {
+    check(
+        r#"$"}"#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String(
+                        Interpolated(
+                            Dollar,
+                            None,
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unopened_brace_quote() {
+    check(
+        r#"$"}""#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String(
+                        Interpolated(
+                            Dollar,
+                            Some(
+                                Quote,
+                            ),
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn interpolated_string_braced_index() {
     check(
         r#"$"{xs[0]}""#,
