@@ -3,9 +3,8 @@
 
 use num_bigint::BigUint;
 use num_complex::{Complex, Complex64, ComplexFloat};
-use qsc::interpret::output::{Error, Receiver};
 
-pub struct DisplayableState(Vec<(BigUint, Complex64)>, usize);
+pub struct DisplayableState(pub Vec<(BigUint, Complex64)>, pub usize);
 
 impl DisplayableState {
     pub fn to_plain(&self) -> String {
@@ -80,31 +79,4 @@ impl DisplayableState {
 pub enum DisplayableOutput {
     State(DisplayableState),
     Message(String),
-}
-
-pub struct FormattingReceiver {
-    pub outputs: Vec<DisplayableOutput>,
-}
-
-impl FormattingReceiver {
-    pub fn new() -> Self {
-        Self {
-            outputs: Vec::new(),
-        }
-    }
-}
-
-impl Receiver for FormattingReceiver {
-    fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
-        self.outputs.push(DisplayableOutput::State({
-            DisplayableState(state, qubit_count)
-        }));
-        Ok(())
-    }
-
-    fn message(&mut self, msg: &str) -> Result<(), Error> {
-        self.outputs
-            .push(DisplayableOutput::Message(msg.to_owned()));
-        Ok(())
-    }
 }
