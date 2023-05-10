@@ -301,7 +301,7 @@ pub fn std(store: &PackageStore) -> CompileUnit {
             ),
             (
                 "measurement.qs".into(),
-                include_str!("../../../library/measurement.qs").into(),
+                include_str!("../../../library/std/measurement.qs").into(),
             ),
             (
                 "qir.qs".into(),
