@@ -302,7 +302,7 @@ fn insert_core_call() {
         fn visit_block(&mut self, block: &mut Block) {
             let allocate = self
                 .core
-                .resolve_term("QIR.Intrinsic", "__quantum__rt__qubit_allocate")
+                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
 
             let callee = Expr {

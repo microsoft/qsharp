@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace QIR.Intrinsic {
+namespace QIR.Runtime {
     operation __quantum__rt__qubit_allocate() : Qubit {
         body intrinsic;
     }
