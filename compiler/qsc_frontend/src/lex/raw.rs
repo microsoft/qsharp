@@ -15,7 +15,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::{Delim, Radix};
+use super::{Delim, InterpolatedEnding, Radix};
 use enum_iterator::Sequence;
 use std::{
     fmt::{self, Display, Formatter, Write},
@@ -38,15 +38,9 @@ pub(crate) enum TokenKind {
     Ident,
     Number(Number),
     Single(Single),
-    String(Terminator),
+    String(StringToken),
     Unknown,
     Whitespace,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum Terminator {
-    Quote,
-    Eof,
 }
 
 impl Display for TokenKind {
@@ -58,7 +52,7 @@ impl Display for TokenKind {
             TokenKind::Number(Number::Float) => f.write_str("float"),
             TokenKind::Number(Number::Int(_)) => f.write_str("integer"),
             TokenKind::Single(single) => write!(f, "`{single}`"),
-            TokenKind::String(_) => f.write_str("string"),
+            TokenKind::String { .. } => f.write_str("string"),
             TokenKind::Unknown => f.write_str("unknown"),
             TokenKind::Whitespace => f.write_str("whitespace"),
         }
@@ -154,16 +148,41 @@ pub(crate) enum Number {
     Int(Radix),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(crate) enum StringToken {
+    Normal { terminated: bool },
+    Interpolated(Option<InterpolatedEnding>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Mode {
+    Normal,
+    Interpolated,
+}
+
 #[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
+    mode: Mode,
+    modes: Vec<Mode>,
 }
 
 impl<'a> Lexer<'a> {
     pub(super) fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
+            mode: Mode::Normal,
+            modes: Vec::new(),
         }
+    }
+
+    fn push_mode(&mut self, mode: Mode) {
+        self.modes.push(self.mode);
+        self.mode = mode;
+    }
+
+    fn pop_mode(&mut self) -> Option<Mode> {
+        self.modes.pop()
     }
 
     fn next_if_eq(&mut self, c: char) -> bool {
@@ -283,23 +302,54 @@ impl<'a> Lexer<'a> {
     }
 
     fn string(&mut self, c: char) -> Option<TokenKind> {
-        if c != '"' {
+        let interpolated = if c == '$' {
+            if self.next_if_eq('"') {
+                true
+            } else {
+                return None;
+            }
+        } else if self.mode == Mode::Interpolated {
+            if c == '"' {
+                false
+            } else if c == '}' {
+                self.pop_mode().expect("mode pls");
+                true
+            } else {
+                return None;
+            }
+        } else if c != '"' {
             return None;
-        }
+        } else {
+            false
+        };
 
-        while self.first().is_some() && self.first() != Some('"') {
-            self.eat_while(|c| c != '\\' && c != '"');
+        while self.first().is_some()
+            && !(self.first() == Some('"') || (interpolated && self.first() == Some('{')))
+        {
+            self.eat_while(|c| c != '\\' && c != '"' && (!interpolated || c != '{'));
             if self.next_if_eq('\\') {
-                self.next_if_eq('"');
+                self.chars.next_if(|&(_, c)| c == '"' || c == '{');
             }
         }
 
-        let terminator = if self.next_if_eq('"') {
-            Terminator::Quote
+        if interpolated {
+            if self.next_if_eq('{') {
+                self.push_mode(Mode::Interpolated);
+                Some(TokenKind::String(StringToken::Interpolated(Some(
+                    InterpolatedEnding::Brace,
+                ))))
+            } else if self.next_if_eq('"') {
+                Some(TokenKind::String(StringToken::Interpolated(Some(
+                    InterpolatedEnding::Quote,
+                ))))
+            } else {
+                Some(TokenKind::String(StringToken::Interpolated(None)))
+            }
         } else {
-            Terminator::Eof
-        };
-        Some(TokenKind::String(terminator))
+            Some(TokenKind::String(StringToken::Normal {
+                terminated: self.next_if_eq('"'),
+            }))
+        }
     }
 }
 
@@ -317,8 +367,8 @@ impl Iterator for Lexer<'_> {
         } else {
             self.number(c)
                 .map(TokenKind::Number)
-                .or_else(|| single(c).map(TokenKind::Single))
                 .or_else(|| self.string(c))
+                .or_else(|| single(c).map(TokenKind::Single))
                 .unwrap_or(TokenKind::Unknown)
         };
         Some(Token { kind, offset })

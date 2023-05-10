@@ -51,7 +51,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         | TokenKind::Float
         | TokenKind::Ident
         | TokenKind::Int(_)
-        | TokenKind::String => None,
+        | TokenKind::String { .. } => None,
     }
 }
 
@@ -912,7 +912,9 @@ fn string() {
             [
                 Ok(
                     Token {
-                        kind: String,
+                        kind: String(
+                            Normal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 8,
@@ -932,7 +934,9 @@ fn string_empty() {
             [
                 Ok(
                     Token {
-                        kind: String,
+                        kind: String(
+                            Normal,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 2,
@@ -945,7 +949,7 @@ fn string_empty() {
 }
 
 #[test]
-fn string_missing_quote() {
+fn string_missing_ending() {
     check(
         r#""Uh oh..."#,
         &expect![[r#"
@@ -957,6 +961,454 @@ fn string_missing_quote() {
                             hi: 0,
                         },
                     ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_missing_ending() {
+    check(
+        r#"$"string"#,
+        &expect![[r#"
+            [
+                Err(
+                    UnterminatedString(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string() {
+    check(
+        r#"$"string""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 9,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_braced() {
+    check(
+        r#"$"{x}""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 3,
+                            hi: 4,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 4,
+                            hi: 6,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_braced_index() {
+    check(
+        r#"$"{xs[0]}""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 3,
+                            hi: 5,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Open(
+                            Bracket,
+                        ),
+                        span: Span {
+                            lo: 5,
+                            hi: 6,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Int(
+                            Decimal,
+                        ),
+                        span: Span {
+                            lo: 6,
+                            hi: 7,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Close(
+                            Bracket,
+                        ),
+                        span: Span {
+                            lo: 7,
+                            hi: 8,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 8,
+                            hi: 10,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_two_braced() {
+    check(
+        r#"$"{x} {y}""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 3,
+                            hi: 4,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 4,
+                            hi: 7,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 7,
+                            hi: 8,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 8,
+                            hi: 10,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_braced_normal_string() {
+    check(
+        r#"$"{"{}"}""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Normal,
+                        ),
+                        span: Span {
+                            lo: 3,
+                            hi: 7,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 7,
+                            hi: 9,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn nested_interpolated_string() {
+    check(
+        r#"$"{$"{x}"}""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 3,
+                            hi: 6,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 6,
+                            hi: 7,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 7,
+                            hi: 9,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 9,
+                            hi: 11,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn nested_interpolated_string_with_exprs() {
+    check(
+        r#"$"foo {x + $"bar {y}"} baz""#,
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 7,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 7,
+                            hi: 8,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
+                            Plus,
+                        ),
+                        span: Span {
+                            lo: 9,
+                            hi: 10,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Brace,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 11,
+                            hi: 18,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 18,
+                            hi: 19,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 19,
+                            hi: 21,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: String(
+                            Interpolated(
+                                Quote,
+                            ),
+                        ),
+                        span: Span {
+                            lo: 21,
+                            hi: 27,
+                        },
+                    },
                 ),
             ]
         "#]],

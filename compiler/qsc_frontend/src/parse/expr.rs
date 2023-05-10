@@ -13,7 +13,7 @@ use super::{
     scan::Scanner,
     stmt, Error, Result,
 };
-use crate::lex::{ClosedBinOp, Delim, Radix, Token, TokenKind};
+use crate::lex::{ClosedBinOp, Delim, Radix, StringToken, Token, TokenKind};
 use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
@@ -343,7 +343,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                 .ok_or(Error::Lit("integer", token.span))?;
             Ok(Some(Lit::Int(value)))
         }
-        TokenKind::String => {
+        TokenKind::String(StringToken::Normal) => {
             let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
             Ok(Some(Lit::String(lexeme.into())))
         }
