@@ -3,13 +3,13 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 
 use crate::entry_point::extract_entry;
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     match extract_entry(&unit.package) {

@@ -38,10 +38,10 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
 }
 
 fn check(source: &str, entry_expr: &str, expect: &Expect) {
-    let mut store = PackageStore::new();
-    let std = store.insert(compile::std());
+    let mut store = PackageStore::new(compile::core());
+    let std = store.insert(compile::std(&store));
     let sources = SourceMap::new([("test".into(), source.into())], Some(entry_expr.into()));
-    let unit = compile(&store, [std], sources);
+    let unit = compile(&store, &[std], sources);
     let mut tys = TyCollector { tys: Vec::new() };
     tys.visit_package(&unit.package);
 

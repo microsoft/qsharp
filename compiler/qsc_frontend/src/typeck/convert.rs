@@ -55,13 +55,19 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
     }
 }
 
-pub(super) fn ty_cons_ty(id: ItemId, input: Ty) -> Ty {
-    Ty::Arrow(
+pub(super) fn ast_ty_def_cons_ty(
+    resolutions: &Resolutions,
+    id: ItemId,
+    def: &ast::TyDef,
+) -> (Ty, Vec<MissingTyError>) {
+    let (input, errors) = ast_ty_def_ty(resolutions, def);
+    let ty = Ty::Arrow(
         hir::CallableKind::Function,
         Box::new(input),
         Box::new(Ty::Udt(hir::Res::Item(id))),
         HashSet::new(),
-    )
+    );
+    (ty, errors)
 }
 
 pub(super) fn ast_ty_def_ty(
@@ -85,13 +91,6 @@ pub(super) fn ast_ty_def_ty(
     }
 }
 
-pub(super) fn hir_ty_def_ty(def: &hir::TyDef) -> Ty {
-    match &def.kind {
-        hir::TyDefKind::Field(_, ty) => ty.clone(),
-        hir::TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(hir_ty_def_ty).collect()),
-    }
-}
-
 pub(super) fn ast_callable_ty(
     resolutions: &Resolutions,
     decl: &ast::CallableDecl,
@@ -103,15 +102,6 @@ pub(super) fn ast_callable_ty(
     let functors = ast_callable_functors(decl);
     let ty = Ty::Arrow(kind, Box::new(input), Box::new(output), functors);
     (ty, errors)
-}
-
-pub(super) fn hir_callable_ty(decl: &hir::CallableDecl) -> Ty {
-    Ty::Arrow(
-        decl.kind,
-        Box::new(decl.input.ty.clone()),
-        Box::new(decl.output.clone()),
-        hir_callable_functors(decl),
-    )
 }
 
 pub(crate) fn ast_pat_ty(resolutions: &Resolutions, pat: &ast::Pat) -> (Ty, Vec<MissingTyError>) {
@@ -148,25 +138,6 @@ pub(super) fn ast_callable_functors(decl: &ast::CallableDecl) -> HashSet<Functor
                 ast::Spec::Adj => functors.extend([Functor::Adj]),
                 ast::Spec::Ctl => functors.extend([Functor::Ctl]),
                 ast::Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
-            }
-        }
-    }
-
-    functors
-}
-
-fn hir_callable_functors(decl: &hir::CallableDecl) -> HashSet<Functor> {
-    let mut functors = decl.functors.as_ref().map_or(HashSet::new(), |f| {
-        f.to_set().into_iter().map(Into::into).collect()
-    });
-
-    if let hir::CallableBody::Specs(specs) = &decl.body {
-        for spec in specs {
-            match spec.spec {
-                hir::Spec::Body => {}
-                hir::Spec::Adj => functors.extend([Functor::Adj]),
-                hir::Spec::Ctl => functors.extend([Functor::Ctl]),
-                hir::Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
             }
         }
     }

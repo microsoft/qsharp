@@ -5,14 +5,14 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 
 use crate::loop_unification::loop_unification;
 
 fn check(file: &str, expect: &Expect) {
-    let store = PackageStore::new();
+    let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, [], sources);
+    let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let errors = loop_unification(&mut unit);
     if errors.is_empty() {
