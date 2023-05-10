@@ -52,7 +52,7 @@ impl Display for TokenKind {
             TokenKind::Number(Number::Float) => f.write_str("float"),
             TokenKind::Number(Number::Int(_)) => f.write_str("integer"),
             TokenKind::Single(single) => write!(f, "`{single}`"),
-            TokenKind::String { .. } => f.write_str("string"),
+            TokenKind::String(_) => f.write_str("string"),
             TokenKind::Unknown => f.write_str("unknown"),
             TokenKind::Whitespace => f.write_str("whitespace"),
         }
@@ -152,6 +152,12 @@ pub(crate) enum Number {
 pub(crate) enum StringToken {
     Normal { terminated: bool },
     Interpolated(InterpolatedStart, Option<InterpolatedEnding>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StringKind {
+    Normal,
+    Interpolated,
 }
 
 #[derive(Clone)]
@@ -285,61 +291,67 @@ impl<'a> Lexer<'a> {
     }
 
     fn string(&mut self, c: char) -> Option<TokenKind> {
-        let (interpolated, dollar) = if c == '$' {
-            if self.next_if_eq('"') {
-                (true, true)
-            } else {
-                return None;
-            }
-        } else if self.interpolation > 0 {
-            if c == '"' {
-                (false, false)
-            } else if c == '}' {
-                self.interpolation = self.interpolation.checked_sub(1).expect("pls");
-                (true, false)
-            } else {
-                return None;
-            }
-        } else if c != '"' {
-            return None;
-        } else {
-            (false, false)
-        };
+        let kind = self.start_string(c)?;
 
-        while self.first().is_some()
-            && !(self.first() == Some('"') || (interpolated && self.first() == Some('{')))
+        while self
+            .first()
+            .map_or(false, |c| !is_string_terminator(kind, c))
         {
-            self.eat_while(|c| c != '\\' && c != '"' && (!interpolated || c != '{'));
+            self.eat_while(|c| c != '\\' && !is_string_terminator(kind, c));
             if self.next_if_eq('\\') {
-                self.chars.next_if(|&(_, c)| c == '"' || c == '{');
+                self.chars.next();
             }
         }
 
-        if interpolated {
-            let start = if dollar {
-                InterpolatedStart::Dollar
-            } else {
-                InterpolatedStart::Brace
-            };
+        Some(TokenKind::String(self.finish_string(c, kind)))
+    }
 
-            if self.next_if_eq('{') {
-                self.interpolation = self.interpolation.checked_add(1).expect("pls");
-                Some(TokenKind::String(StringToken::Interpolated(
-                    start,
-                    Some(InterpolatedEnding::Brace),
-                )))
-            } else if self.next_if_eq('"') {
-                Some(TokenKind::String(StringToken::Interpolated(
-                    start,
-                    Some(InterpolatedEnding::Quote),
-                )))
+    fn start_string(&mut self, c: char) -> Option<StringKind> {
+        if c == '$' {
+            if self.next_if_eq('"') {
+                Some(StringKind::Interpolated)
             } else {
-                Some(TokenKind::String(StringToken::Interpolated(start, None)))
+                None
             }
+        } else if c == '"' {
+            Some(StringKind::Normal)
+        } else if self.interpolation > 0 && c == '}' {
+            self.interpolation = self
+                .interpolation
+                .checked_sub(1)
+                .expect("interpolation level should have been incremented at open brace");
+            Some(StringKind::Interpolated)
         } else {
-            Some(TokenKind::String(StringToken::Normal {
+            None
+        }
+    }
+
+    fn finish_string(&mut self, start: char, kind: StringKind) -> StringToken {
+        match kind {
+            StringKind::Normal => StringToken::Normal {
                 terminated: self.next_if_eq('"'),
-            }))
+            },
+            StringKind::Interpolated => {
+                let start = if start == '$' {
+                    InterpolatedStart::Dollar
+                } else {
+                    InterpolatedStart::Brace
+                };
+
+                let end = if self.next_if_eq('{') {
+                    self.interpolation = self
+                        .interpolation
+                        .checked_add(1)
+                        .expect("interpolation should not exceed maximum depth");
+                    Some(InterpolatedEnding::Brace)
+                } else if self.next_if_eq('"') {
+                    Some(InterpolatedEnding::Quote)
+                } else {
+                    None
+                };
+
+                StringToken::Interpolated(start, end)
+            }
         }
     }
 }
@@ -396,4 +408,8 @@ fn single(c: char) -> Option<Single> {
         '~' => Some(Single::Tilde),
         _ => None,
     }
+}
+
+fn is_string_terminator(kind: StringKind, c: char) -> bool {
+    c == '"' || kind == StringKind::Interpolated && c == '{'
 }
