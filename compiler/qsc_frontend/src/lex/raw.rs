@@ -319,7 +319,7 @@ impl<'a> Lexer<'a> {
             self.interpolation = self
                 .interpolation
                 .checked_sub(1)
-                .expect("interpolation level should have been incremented at open brace");
+                .expect("interpolation level should have been incremented at left brace");
             Some(StringKind::Interpolated)
         } else {
             None
@@ -333,9 +333,9 @@ impl<'a> Lexer<'a> {
             },
             StringKind::Interpolated => {
                 let start = if start == '$' {
-                    InterpolatedStart::Dollar
+                    InterpolatedStart::DollarQuote
                 } else {
-                    InterpolatedStart::Brace
+                    InterpolatedStart::LBrace
                 };
 
                 let end = if self.next_if_eq('{') {
@@ -343,7 +343,7 @@ impl<'a> Lexer<'a> {
                         .interpolation
                         .checked_add(1)
                         .expect("interpolation should not exceed maximum depth");
-                    Some(InterpolatedEnding::Brace)
+                    Some(InterpolatedEnding::RBrace)
                 } else if self.next_if_eq('"') {
                     Some(InterpolatedEnding::Quote)
                 } else {

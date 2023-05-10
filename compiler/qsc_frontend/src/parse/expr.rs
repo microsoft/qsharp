@@ -308,7 +308,7 @@ fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
 
 fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     let token = s.peek();
-    let TokenKind::String(StringToken::Interpolated(InterpolatedStart::Dollar, mut end)) =
+    let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
         token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
 
     let mut components = Vec::new();
@@ -318,11 +318,11 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     }
 
     s.advance();
-    while end == InterpolatedEnding::Brace {
+    while end == InterpolatedEnding::RBrace {
         components.push(StringComponent::Expr(expr(s)?));
 
         let token = s.peek();
-        let TokenKind::String(StringToken::Interpolated(InterpolatedStart::Brace, next_end)) =
+        let TokenKind::String(StringToken::Interpolated(InterpolatedStart::LBrace, next_end)) =
             token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
 
         let lit = shorten(1, 1, s.read());
