@@ -658,6 +658,89 @@ fn nested_interpolated_string_with_exprs() {
 }
 
 #[test]
+fn nested_interpolated_string_followed_by_braces() {
+    check(
+        r#"$"{$"{x}"}" {y}"#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String(
+                        Interpolated(
+                            DollarQuote,
+                            Some(
+                                RBrace,
+                            ),
+                        ),
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: String(
+                        Interpolated(
+                            DollarQuote,
+                            Some(
+                                RBrace,
+                            ),
+                        ),
+                    ),
+                    offset: 3,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 6,
+                },
+                Token {
+                    kind: String(
+                        Interpolated(
+                            LBrace,
+                            Some(
+                                Quote,
+                            ),
+                        ),
+                    ),
+                    offset: 7,
+                },
+                Token {
+                    kind: String(
+                        Interpolated(
+                            LBrace,
+                            Some(
+                                Quote,
+                            ),
+                        ),
+                    ),
+                    offset: 9,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 11,
+                },
+                Token {
+                    kind: Single(
+                        Open(
+                            Brace,
+                        ),
+                    ),
+                    offset: 12,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 13,
+                },
+                Token {
+                    kind: Single(
+                        Close(
+                            Brace,
+                        ),
+                    ),
+                    offset: 14,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn binary() {
     check(
         "0b10110",
