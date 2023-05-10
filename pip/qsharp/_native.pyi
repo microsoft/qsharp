@@ -57,4 +57,7 @@ class Output:
 
 
 class QSharpError(BaseException):
+    """
+    An error returned from the Q# interpreter.
+    """
     ...

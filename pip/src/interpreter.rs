@@ -73,7 +73,12 @@ impl Interpreter {
     }
 }
 
-create_exception!(module, QSharpError, pyo3::exceptions::PyException);
+create_exception!(
+    module,
+    QSharpError,
+    pyo3::exceptions::PyException,
+    "An error returned from the Q# interpreter."
+);
 
 fn format_errors(expr: &str, errors: Vec<LineError>) -> String {
     errors
