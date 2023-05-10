@@ -18,10 +18,8 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
 
     props.kata.items.forEach((item, idx) => {
       const parentDiv = itemContent.current[idx];
-      const h2 = parentDiv?.querySelector(".kata-item-title");
       const div = parentDiv?.querySelector(".kata-item-content");
-      if (!h2 || !div) return;
-      h2.innerHTML = item.title;
+      if (!div) return;
       div.innerHTML = item.contentAsHtml;
     });
     // In case we're now rendering less items than before, be sure to truncate
@@ -35,11 +33,18 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
       <div ref={kataContent}></div>
       <br></br>
       {props.kata.items.map((item, idx) => {
+        if (item.type === "reading") {
+          return (
+            <div ref={(elem) => (itemContent.current[idx] = elem)}>
+              <div class="kata-item-content"></div>
+            </div>
+          );
+        }
+
         const evtTarget = new QscEventTarget(true);
         return (
           <div>
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
-              <h2 class="kata-item-title"></h2>
               <div class="kata-item-content"></div>
             </div>
             <Editor

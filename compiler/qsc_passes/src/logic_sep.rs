@@ -118,7 +118,6 @@ impl<'a> Visitor<'a> for SepCheck {
                     | ExprKind::Index(..)
                     | ExprKind::Lambda(..)
                     | ExprKind::Lit(..)
-                    | ExprKind::Paren(..)
                     | ExprKind::Range(..)
                     | ExprKind::TernOp(..)
                     | ExprKind::Tuple(..)

@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
 // First, note that every Q# function must have a namespace. We define
 // a new one for this purpose.
 namespace Microsoft.Quantum.Samples.DeutschJozsa {
@@ -113,7 +110,7 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
         args: Qubit[],
         target: Qubit): Unit {
 
-        for i in 0..(2^Length(args))-1 {
+        for i in 0..(2^args::Length)-1 {
             ApplyControlledOnInt(i, args, X, target);
         }
     }
@@ -123,7 +120,7 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
     operation BalancedBoolF(
         args: Qubit[], target: Qubit): Unit {
 
-        for i in 0..2..(2^Length(args))-1 {
+        for i in 0..2..(2^args::Length)-1 {
             ApplyControlledOnInt(i, args, X, target);
         }
     }

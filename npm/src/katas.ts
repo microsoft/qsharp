@@ -23,7 +23,15 @@ export type Exercise = {
   placeholderImplementation: string;
 };
 
-export type KataItem = Example | Exercise;
+export type Reading = {
+  type: "reading";
+  id: string;
+  title: string;
+  contentAsHtml: string;
+  contentAsMarkdown: string;
+};
+
+export type KataItem = Example | Exercise | Reading;
 
 export type Kata = {
   id: string;
