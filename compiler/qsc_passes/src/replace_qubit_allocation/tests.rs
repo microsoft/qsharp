@@ -29,27 +29,27 @@ fn test_single_qubit() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-98] (Ident 2 [10-15] "input"):
-                Item 3 [22-96]:
-                    Callable 4 [22-96] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-96]:
+            Package:
+                Item 0 [0-98]:
+                    Namespace (Ident 12 [10-15] "input"): Item 1
+                Item 1 [22-96]:
+                    Parent: 0
+                    Callable 0 [22-96] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-96] [Type ()]:
                             Stmt _id_ [59-60]: Local (Immutable):
-                                Pat _id_ [59-60]: Bind:
-                                    Ident 11 [59-60] "q"
-                                Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [59-60]: Unit
-                            Stmt 13 [80-90]: Local (Immutable):
-                                Pat 14 [84-85]: Bind:
-                                    Ident 15 [84-85] "x"
-                                Expr 16 [88-89]: Lit: Int(3)
-                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release")
-                                Expr _id_ [59-60]: Tuple:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "q")"#]],
+                                Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "q"
+                                Expr _id_ [59-60] [Type Qubit]: Call:
+                                    Expr _id_ [59-60] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [59-60] [Type ()]: Unit
+                            Stmt 8 [80-90]: Local (Immutable):
+                                Pat 9 [84-85] [Type Int]: Bind: Ident 10 [84-85] "x"
+                                Expr 11 [88-89] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                Expr _id_ [59-60] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [59-60] [Type Qubit]: Var: Local 6"#]],
     );
 }
 
@@ -63,28 +63,27 @@ fn test_qubit_array() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-99] (Ident 2 [10-15] "input"):
-                Item 3 [22-97]:
-                    Callable 4 [22-97] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-97]:
+            Package:
+                Item 0 [0-99]:
+                    Namespace (Ident 13 [10-15] "input"): Item 1
+                Item 1 [22-97]:
+                    Parent: 0
+                    Callable 0 [22-97] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-97] [Type ()]:
                             Stmt _id_ [59-60]: Local (Immutable):
-                                Pat _id_ [59-60]: Bind:
-                                    Ident 11 [59-60] "q"
-                                Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate_array")
-                                    Expr _id_ [59-60]: Tuple:
-                                        Expr 13 [69-70]: Lit: Int(3)
-                            Stmt 14 [81-91]: Local (Immutable):
-                                Pat 15 [85-86]: Bind:
-                                    Ident 16 [85-86] "x"
-                                Expr 17 [89-90]: Lit: Int(3)
-                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release_array")
-                                Expr _id_ [59-60]: Tuple:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "q")"#]],
+                                Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 6 [59-60] "q"
+                                Expr _id_ [59-60] [Type Qubit]: Call:
+                                    Expr _id_ [59-60] [Type (Int -> (Qubit)[])]: Var: Item 3 (Package 0)
+                                    Expr 8 [69-70] [Type Int]: Lit: Int(3)
+                            Stmt 9 [81-91]: Local (Immutable):
+                                Pat 10 [85-86] [Type Int]: Bind: Ident 11 [85-86] "x"
+                                Expr 12 [89-90] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                Expr _id_ [59-60] [Type ((Qubit)[] -> ())]: Var: Item 4 (Package 0)
+                                Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 6"#]],
     );
 }
 
@@ -98,43 +97,40 @@ fn test_qubit_tuple() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-109] (Ident 2 [10-15] "input"):
-                Item 3 [22-107]:
-                    Callable 4 [22-107] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-107]:
+            Package:
+                Item 0 [0-109]:
+                    Namespace (Ident 14 [10-15] "input"): Item 1
+                Item 1 [22-107]:
+                    Parent: 0
+                    Callable 0 [22-107] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-107] [Type ()]:
                             Stmt _id_ [64-71]: Local (Immutable):
-                                Pat _id_ [64-71]: Bind:
-                                    Ident _id_ [64-71] "__generated_ident_0__"
-                                Expr _id_ [64-71]: Call:
-                                    Expr _id_ [64-71]: Path: Path _id_ [64-71] (Ident _id_ [64-71] "QIR.Runtime") (Ident _id_ [64-71] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [64-71]: Unit
+                                Pat _id_ [64-71] [Type Qubit]: Bind: Ident 15 [64-71] "generated_ident_15"
+                                Expr _id_ [64-71] [Type Qubit]: Call:
+                                    Expr _id_ [64-71] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [64-71] [Type ()]: Unit
                             Stmt _id_ [73-80]: Local (Immutable):
-                                Pat _id_ [73-80]: Bind:
-                                    Ident _id_ [73-80] "__generated_ident_1__"
-                                Expr _id_ [73-80]: Call:
-                                    Expr _id_ [73-80]: Path: Path _id_ [73-80] (Ident _id_ [73-80] "QIR.Runtime") (Ident _id_ [73-80] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [73-80]: Unit
+                                Pat _id_ [73-80] [Type Qubit]: Bind: Ident 16 [73-80] "generated_ident_16"
+                                Expr _id_ [73-80] [Type Qubit]: Call:
+                                    Expr _id_ [73-80] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [73-80] [Type ()]: Unit
                             Stmt _id_ [55-82]: Local (Immutable):
-                                Pat 10 [59-60]: Bind:
-                                    Ident 11 [59-60] "q"
-                                Expr _id_ [63-81]: Tuple:
-                                    Expr _id_ [64-71]: Path: Path _id_ [64-71] (Ident _id_ [64-71] "__generated_ident_0__")
-                                    Expr _id_ [73-80]: Path: Path _id_ [73-80] (Ident _id_ [73-80] "__generated_ident_1__")
-                            Stmt 15 [91-101]: Local (Immutable):
-                                Pat 16 [95-96]: Bind:
-                                    Ident 17 [95-96] "x"
-                                Expr 18 [99-100]: Lit: Int(3)
-                            Stmt _id_ [73-80]: Semi: Expr _id_ [73-80]: Call:
-                                Expr _id_ [73-80]: Path: Path _id_ [73-80] (Ident _id_ [73-80] "QIR.Runtime") (Ident _id_ [73-80] "__quantum__rt__qubit_release")
-                                Expr _id_ [73-80]: Tuple:
-                                    Expr _id_ [73-80]: Path: Path _id_ [73-80] (Ident _id_ [73-80] "__generated_ident_1__")
-                            Stmt _id_ [64-71]: Semi: Expr _id_ [64-71]: Call:
-                                Expr _id_ [64-71]: Path: Path _id_ [64-71] (Ident _id_ [64-71] "QIR.Runtime") (Ident _id_ [64-71] "__quantum__rt__qubit_release")
-                                Expr _id_ [64-71]: Tuple:
-                                    Expr _id_ [64-71]: Path: Path _id_ [64-71] (Ident _id_ [64-71] "__generated_ident_0__")"#]],
+                                Pat 5 [59-60] [Type (Qubit, Qubit)]: Bind: Ident 6 [59-60] "q"
+                                Expr _id_ [63-81] [Type (Qubit, Qubit)]: Tuple:
+                                    Expr _id_ [64-71] [Type Qubit]: Var: Local 15
+                                    Expr _id_ [73-80] [Type Qubit]: Var: Local 16
+                            Stmt 10 [91-101]: Local (Immutable):
+                                Pat 11 [95-96] [Type Int]: Bind: Ident 12 [95-96] "x"
+                                Expr 13 [99-100] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [73-80]: Semi: Expr _id_ [73-80] [Type ()]: Call:
+                                Expr _id_ [73-80] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [73-80] [Type Qubit]: Var: Local 16
+                            Stmt _id_ [64-71]: Semi: Expr _id_ [64-71] [Type ()]: Call:
+                                Expr _id_ [64-71] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [64-71] [Type Qubit]: Var: Local 15"#]],
     );
 }
 
@@ -148,47 +144,42 @@ fn test_multiple_qubits_tuple() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-115] (Ident 2 [10-15] "input"):
-                Item 3 [22-113]:
-                    Callable 4 [22-113] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-113]:
+            Package:
+                Item 0 [0-115]:
+                    Namespace (Ident 18 [10-15] "input"): Item 1
+                Item 1 [22-113]:
+                    Parent: 0
+                    Callable 0 [22-113] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-113] [Type ()]:
                             Stmt _id_ [69-76]: Local (Immutable):
-                                Pat _id_ [69-76]: Bind:
-                                    Ident _id_ [69-76] "__generated_ident_0__"
-                                Expr _id_ [69-76]: Call:
-                                    Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "QIR.Runtime") (Ident _id_ [69-76] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [69-76]: Unit
+                                Pat _id_ [69-76] [Type Qubit]: Bind: Ident 19 [69-76] "generated_ident_19"
+                                Expr _id_ [69-76] [Type Qubit]: Call:
+                                    Expr _id_ [69-76] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [69-76] [Type ()]: Unit
                             Stmt _id_ [78-86]: Local (Immutable):
-                                Pat _id_ [78-86]: Bind:
-                                    Ident _id_ [78-86] "__generated_ident_1__"
-                                Expr _id_ [78-86]: Call:
-                                    Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "QIR.Runtime") (Ident _id_ [78-86] "__quantum__rt__qubit_allocate_array")
-                                    Expr _id_ [78-86]: Tuple:
-                                        Expr 18 [84-85]: Lit: Int(3)
+                                Pat _id_ [78-86] [Type (Qubit)[]]: Bind: Ident 20 [78-86] "generated_ident_20"
+                                Expr _id_ [78-86] [Type Qubit]: Call:
+                                    Expr _id_ [78-86] [Type (Int -> (Qubit)[])]: Var: Item 3 (Package 0)
+                                    Expr 13 [84-85] [Type Int]: Lit: Int(3)
                             Stmt _id_ [55-88]: Local (Immutable):
-                                Pat 10 [59-65]: Tuple:
-                                    Pat 11 [60-61]: Bind:
-                                        Ident 12 [60-61] "a"
-                                    Pat 13 [63-64]: Bind:
-                                        Ident 14 [63-64] "b"
-                                Expr _id_ [68-87]: Tuple:
-                                    Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "__generated_ident_0__")
-                                    Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "__generated_ident_1__")
-                            Stmt 19 [97-107]: Local (Immutable):
-                                Pat 20 [101-102]: Bind:
-                                    Ident 21 [101-102] "x"
-                                Expr 22 [105-106]: Lit: Int(3)
-                            Stmt _id_ [78-86]: Semi: Expr _id_ [78-86]: Call:
-                                Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "QIR.Runtime") (Ident _id_ [78-86] "__quantum__rt__qubit_release_array")
-                                Expr _id_ [78-86]: Tuple:
-                                    Expr _id_ [78-86]: Path: Path _id_ [78-86] (Ident _id_ [78-86] "__generated_ident_1__")
-                            Stmt _id_ [69-76]: Semi: Expr _id_ [69-76]: Call:
-                                Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "QIR.Runtime") (Ident _id_ [69-76] "__quantum__rt__qubit_release")
-                                Expr _id_ [69-76]: Tuple:
-                                    Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "__generated_ident_0__")"#]],
+                                Pat 5 [59-65] [Type (Qubit, (Qubit)[])]: Tuple:
+                                    Pat 6 [60-61] [Type Qubit]: Bind: Ident 7 [60-61] "a"
+                                    Pat 8 [63-64] [Type (Qubit)[]]: Bind: Ident 9 [63-64] "b"
+                                Expr _id_ [68-87] [Type (Qubit, (Qubit)[])]: Tuple:
+                                    Expr _id_ [69-76] [Type Qubit]: Var: Local 19
+                                    Expr _id_ [78-86] [Type (Qubit)[]]: Var: Local 20
+                            Stmt 14 [97-107]: Local (Immutable):
+                                Pat 15 [101-102] [Type Int]: Bind: Ident 16 [101-102] "x"
+                                Expr 17 [105-106] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [78-86]: Semi: Expr _id_ [78-86] [Type ()]: Call:
+                                Expr _id_ [78-86] [Type ((Qubit)[] -> ())]: Var: Item 4 (Package 0)
+                                Expr _id_ [78-86] [Type (Qubit)[]]: Var: Local 20
+                            Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type ()]: Call:
+                                Expr _id_ [69-76] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [69-76] [Type Qubit]: Var: Local 19"#]],
     );
 }
 
@@ -207,85 +198,75 @@ fn test_multiple_callables() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-214] (Ident 2 [10-15] "input"):
-                Item 3 [22-112]:
-                    Callable 4 [22-112] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-112]:
+            Package:
+                Item 0 [0-214]:
+                    Namespace (Ident 34 [10-15] "input"): Item 1, Item 2
+                Item 1 [22-112]:
+                    Parent: 0
+                    Callable 0 [22-112] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-112] [Type ()]:
                             Stmt _id_ [69-76]: Local (Immutable):
-                                Pat _id_ [69-76]: Bind:
-                                    Ident _id_ [69-76] "__generated_ident_0__"
-                                Expr _id_ [69-76]: Call:
-                                    Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "QIR.Runtime") (Ident _id_ [69-76] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [69-76]: Unit
+                                Pat _id_ [69-76] [Type Qubit]: Bind: Ident 35 [69-76] "generated_ident_35"
+                                Expr _id_ [69-76] [Type Qubit]: Call:
+                                    Expr _id_ [69-76] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [69-76] [Type ()]: Unit
                             Stmt _id_ [78-85]: Local (Immutable):
-                                Pat _id_ [78-85]: Bind:
-                                    Ident _id_ [78-85] "__generated_ident_1__"
-                                Expr _id_ [78-85]: Call:
-                                    Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "QIR.Runtime") (Ident _id_ [78-85] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [78-85]: Unit
+                                Pat _id_ [78-85] [Type Qubit]: Bind: Ident 36 [78-85] "generated_ident_36"
+                                Expr _id_ [78-85] [Type Qubit]: Call:
+                                    Expr _id_ [78-85] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [78-85] [Type ()]: Unit
                             Stmt _id_ [55-87]: Local (Immutable):
-                                Pat 10 [59-65]: Tuple:
-                                    Pat 11 [60-61]: Bind:
-                                        Ident 12 [60-61] "a"
-                                    Pat 13 [63-64]: Bind:
-                                        Ident 14 [63-64] "b"
-                                Expr _id_ [68-86]: Tuple:
-                                    Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "__generated_ident_0__")
-                                    Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "__generated_ident_1__")
-                            Stmt 18 [96-106]: Local (Immutable):
-                                Pat 19 [100-101]: Bind:
-                                    Ident 20 [100-101] "x"
-                                Expr 21 [104-105]: Lit: Int(3)
-                            Stmt _id_ [78-85]: Semi: Expr _id_ [78-85]: Call:
-                                Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "QIR.Runtime") (Ident _id_ [78-85] "__quantum__rt__qubit_release")
-                                Expr _id_ [78-85]: Tuple:
-                                    Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "__generated_ident_1__")
-                            Stmt _id_ [69-76]: Semi: Expr _id_ [69-76]: Call:
-                                Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "QIR.Runtime") (Ident _id_ [69-76] "__quantum__rt__qubit_release")
-                                Expr _id_ [69-76]: Tuple:
-                                    Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "__generated_ident_0__")
-                Item 22 [122-212]:
-                    Callable 23 [122-212] (Operation):
-                        name: Ident 24 [132-135] "Bar"
-                        input: Pat 25 [135-137]: Unit
-                        output: Type 26 [140-144]: Unit
-                        body: Block: Block 27 [145-212]:
+                                Pat 5 [59-65] [Type (Qubit, Qubit)]: Tuple:
+                                    Pat 6 [60-61] [Type Qubit]: Bind: Ident 7 [60-61] "a"
+                                    Pat 8 [63-64] [Type Qubit]: Bind: Ident 9 [63-64] "b"
+                                Expr _id_ [68-86] [Type (Qubit, Qubit)]: Tuple:
+                                    Expr _id_ [69-76] [Type Qubit]: Var: Local 35
+                                    Expr _id_ [78-85] [Type Qubit]: Var: Local 36
+                            Stmt 13 [96-106]: Local (Immutable):
+                                Pat 14 [100-101] [Type Int]: Bind: Ident 15 [100-101] "x"
+                                Expr 16 [104-105] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [78-85]: Semi: Expr _id_ [78-85] [Type ()]: Call:
+                                Expr _id_ [78-85] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [78-85] [Type Qubit]: Var: Local 36
+                            Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type ()]: Call:
+                                Expr _id_ [69-76] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [69-76] [Type Qubit]: Var: Local 35
+                Item 2 [122-212]:
+                    Parent: 0
+                    Callable 17 [122-212] (Operation):
+                        name: Ident 18 [132-135] "Bar"
+                        input: Pat 19 [135-137] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 20 [145-212] [Type ()]:
                             Stmt _id_ [169-176]: Local (Immutable):
-                                Pat _id_ [169-176]: Bind:
-                                    Ident _id_ [169-176] "__generated_ident_2__"
-                                Expr _id_ [169-176]: Call:
-                                    Expr _id_ [169-176]: Path: Path _id_ [169-176] (Ident _id_ [169-176] "QIR.Runtime") (Ident _id_ [169-176] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [169-176]: Unit
+                                Pat _id_ [169-176] [Type Qubit]: Bind: Ident 37 [169-176] "generated_ident_37"
+                                Expr _id_ [169-176] [Type Qubit]: Call:
+                                    Expr _id_ [169-176] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [169-176] [Type ()]: Unit
                             Stmt _id_ [178-185]: Local (Immutable):
-                                Pat _id_ [178-185]: Bind:
-                                    Ident _id_ [178-185] "__generated_ident_3__"
-                                Expr _id_ [178-185]: Call:
-                                    Expr _id_ [178-185]: Path: Path _id_ [178-185] (Ident _id_ [178-185] "QIR.Runtime") (Ident _id_ [178-185] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [178-185]: Unit
+                                Pat _id_ [178-185] [Type Qubit]: Bind: Ident 38 [178-185] "generated_ident_38"
+                                Expr _id_ [178-185] [Type Qubit]: Call:
+                                    Expr _id_ [178-185] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [178-185] [Type ()]: Unit
                             Stmt _id_ [155-187]: Local (Immutable):
-                                Pat 29 [159-165]: Tuple:
-                                    Pat 30 [160-161]: Bind:
-                                        Ident 31 [160-161] "c"
-                                    Pat 32 [163-164]: Bind:
-                                        Ident 33 [163-164] "d"
-                                Expr _id_ [168-186]: Tuple:
-                                    Expr _id_ [169-176]: Path: Path _id_ [169-176] (Ident _id_ [169-176] "__generated_ident_2__")
-                                    Expr _id_ [178-185]: Path: Path _id_ [178-185] (Ident _id_ [178-185] "__generated_ident_3__")
-                            Stmt 37 [196-206]: Local (Immutable):
-                                Pat 38 [200-201]: Bind:
-                                    Ident 39 [200-201] "x"
-                                Expr 40 [204-205]: Lit: Int(3)
-                            Stmt _id_ [178-185]: Semi: Expr _id_ [178-185]: Call:
-                                Expr _id_ [178-185]: Path: Path _id_ [178-185] (Ident _id_ [178-185] "QIR.Runtime") (Ident _id_ [178-185] "__quantum__rt__qubit_release")
-                                Expr _id_ [178-185]: Tuple:
-                                    Expr _id_ [178-185]: Path: Path _id_ [178-185] (Ident _id_ [178-185] "__generated_ident_3__")
-                            Stmt _id_ [169-176]: Semi: Expr _id_ [169-176]: Call:
-                                Expr _id_ [169-176]: Path: Path _id_ [169-176] (Ident _id_ [169-176] "QIR.Runtime") (Ident _id_ [169-176] "__quantum__rt__qubit_release")
-                                Expr _id_ [169-176]: Tuple:
-                                    Expr _id_ [169-176]: Path: Path _id_ [169-176] (Ident _id_ [169-176] "__generated_ident_2__")"#]],
+                                Pat 22 [159-165] [Type (Qubit, Qubit)]: Tuple:
+                                    Pat 23 [160-161] [Type Qubit]: Bind: Ident 24 [160-161] "c"
+                                    Pat 25 [163-164] [Type Qubit]: Bind: Ident 26 [163-164] "d"
+                                Expr _id_ [168-186] [Type (Qubit, Qubit)]: Tuple:
+                                    Expr _id_ [169-176] [Type Qubit]: Var: Local 37
+                                    Expr _id_ [178-185] [Type Qubit]: Var: Local 38
+                            Stmt 30 [196-206]: Local (Immutable):
+                                Pat 31 [200-201] [Type Int]: Bind: Ident 32 [200-201] "x"
+                                Expr 33 [204-205] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [178-185]: Semi: Expr _id_ [178-185] [Type ()]: Call:
+                                Expr _id_ [178-185] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [178-185] [Type Qubit]: Var: Local 38
+                            Stmt _id_ [169-176]: Semi: Expr _id_ [169-176] [Type ()]: Call:
+                                Expr _id_ [169-176] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [169-176] [Type Qubit]: Var: Local 37"#]],
     );
 }
 
@@ -303,65 +284,57 @@ fn test_qubit_block() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-200] (Ident 2 [10-15] "input"):
-                Item 3 [22-198]:
-                    Callable 4 [22-198] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-198]:
-                            Stmt _id_ [55-173]: Expr: Expr _id_ [55-173]: Expr Block: Block 18 [87-173]:
+            Package:
+                Item 0 [0-200]:
+                    Namespace (Ident 30 [10-15] "input"): Item 1
+                Item 1 [22-198]:
+                    Parent: 0
+                    Callable 0 [22-198] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-198] [Type ()]:
+                            Stmt _id_ [55-173]: Expr: Expr _id_ [55-173] [Type ()]: Expr Block: Block 13 [87-173] [Type ()]:
                                 Stmt _id_ [69-76]: Local (Immutable):
-                                    Pat _id_ [69-76]: Bind:
-                                        Ident _id_ [69-76] "__generated_ident_0__"
-                                    Expr _id_ [69-76]: Call:
-                                        Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "QIR.Runtime") (Ident _id_ [69-76] "__quantum__rt__qubit_allocate")
-                                        Expr _id_ [69-76]: Unit
+                                    Pat _id_ [69-76] [Type Qubit]: Bind: Ident 31 [69-76] "generated_ident_31"
+                                    Expr _id_ [69-76] [Type Qubit]: Call:
+                                        Expr _id_ [69-76] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                        Expr _id_ [69-76] [Type ()]: Unit
                                 Stmt _id_ [78-85]: Local (Immutable):
-                                    Pat _id_ [78-85]: Bind:
-                                        Ident _id_ [78-85] "__generated_ident_1__"
-                                    Expr _id_ [78-85]: Call:
-                                        Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "QIR.Runtime") (Ident _id_ [78-85] "__quantum__rt__qubit_allocate")
-                                        Expr _id_ [78-85]: Unit
+                                    Pat _id_ [78-85] [Type Qubit]: Bind: Ident 32 [78-85] "generated_ident_32"
+                                    Expr _id_ [78-85] [Type Qubit]: Call:
+                                        Expr _id_ [78-85] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                        Expr _id_ [78-85] [Type ()]: Unit
                                 Stmt _id_ [55-173]: Local (Immutable):
-                                    Pat 10 [59-65]: Tuple:
-                                        Pat 11 [60-61]: Bind:
-                                            Ident 12 [60-61] "a"
-                                        Pat 13 [63-64]: Bind:
-                                            Ident 14 [63-64] "b"
-                                    Expr _id_ [68-86]: Tuple:
-                                        Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "__generated_ident_0__")
-                                        Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "__generated_ident_1__")
-                                Stmt 19 [101-111]: Local (Immutable):
-                                    Pat 20 [105-106]: Bind:
-                                        Ident 21 [105-106] "x"
-                                    Expr 22 [109-110]: Lit: Int(3)
+                                    Pat 5 [59-65] [Type (Qubit, Qubit)]: Tuple:
+                                        Pat 6 [60-61] [Type Qubit]: Bind: Ident 7 [60-61] "a"
+                                        Pat 8 [63-64] [Type Qubit]: Bind: Ident 9 [63-64] "b"
+                                    Expr _id_ [68-86] [Type (Qubit, Qubit)]: Tuple:
+                                        Expr _id_ [69-76] [Type Qubit]: Var: Local 31
+                                        Expr _id_ [78-85] [Type Qubit]: Var: Local 32
+                                Stmt 14 [101-111]: Local (Immutable):
+                                    Pat 15 [105-106] [Type Int]: Bind: Ident 16 [105-106] "x"
+                                    Expr 17 [109-110] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [128-129]: Local (Immutable):
-                                    Pat _id_ [128-129]: Bind:
-                                        Ident 25 [128-129] "c"
-                                    Expr _id_ [128-129]: Call:
-                                        Expr _id_ [128-129]: Path: Path _id_ [128-129] (Ident _id_ [128-129] "QIR.Runtime") (Ident _id_ [128-129] "__quantum__rt__qubit_allocate")
-                                        Expr _id_ [128-129]: Unit
-                                Stmt 27 [153-163]: Local (Immutable):
-                                    Pat 28 [157-158]: Bind:
-                                        Ident 29 [157-158] "y"
-                                    Expr 30 [161-162]: Lit: Int(3)
-                                Stmt _id_ [128-129]: Semi: Expr _id_ [128-129]: Call:
-                                    Expr _id_ [128-129]: Path: Path _id_ [128-129] (Ident _id_ [128-129] "QIR.Runtime") (Ident _id_ [128-129] "__quantum__rt__qubit_release")
-                                    Expr _id_ [128-129]: Tuple:
-                                        Expr _id_ [128-129]: Path: Path _id_ [128-129] (Ident 25 [128-129] "c")
-                                Stmt _id_ [78-85]: Semi: Expr _id_ [78-85]: Call:
-                                    Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "QIR.Runtime") (Ident _id_ [78-85] "__quantum__rt__qubit_release")
-                                    Expr _id_ [78-85]: Tuple:
-                                        Expr _id_ [78-85]: Path: Path _id_ [78-85] (Ident _id_ [78-85] "__generated_ident_1__")
-                                Stmt _id_ [69-76]: Semi: Expr _id_ [69-76]: Call:
-                                    Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "QIR.Runtime") (Ident _id_ [69-76] "__quantum__rt__qubit_release")
-                                    Expr _id_ [69-76]: Tuple:
-                                        Expr _id_ [69-76]: Path: Path _id_ [69-76] (Ident _id_ [69-76] "__generated_ident_0__")
-                            Stmt 31 [182-192]: Local (Immutable):
-                                Pat 32 [186-187]: Bind:
-                                    Ident 33 [186-187] "z"
-                                Expr 34 [190-191]: Lit: Int(3)"#]],
+                                    Pat _id_ [128-129] [Type Qubit]: Bind: Ident 20 [128-129] "c"
+                                    Expr _id_ [128-129] [Type Qubit]: Call:
+                                        Expr _id_ [128-129] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                        Expr _id_ [128-129] [Type ()]: Unit
+                                Stmt 22 [153-163]: Local (Immutable):
+                                    Pat 23 [157-158] [Type Int]: Bind: Ident 24 [157-158] "y"
+                                    Expr 25 [161-162] [Type Int]: Lit: Int(3)
+                                Stmt _id_ [128-129]: Semi: Expr _id_ [128-129] [Type ()]: Call:
+                                    Expr _id_ [128-129] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                    Expr _id_ [128-129] [Type Qubit]: Var: Local 20
+                                Stmt _id_ [78-85]: Semi: Expr _id_ [78-85] [Type ()]: Call:
+                                    Expr _id_ [78-85] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                    Expr _id_ [78-85] [Type Qubit]: Var: Local 32
+                                Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type ()]: Call:
+                                    Expr _id_ [69-76] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                    Expr _id_ [69-76] [Type Qubit]: Var: Local 31
+                            Stmt 26 [182-192]: Local (Immutable):
+                                Pat 27 [186-187] [Type Int]: Bind: Ident 28 [186-187] "z"
+                                Expr 29 [190-191] [Type Int]: Lit: Int(3)"#]],
     );
 }
 
@@ -378,42 +351,39 @@ fn test_qubit_nested_block() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-157] (Ident 2 [10-15] "input"):
-                Item 3 [22-155]:
-                    Callable 4 [22-155] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-155]:
+            Package:
+                Item 0 [0-157]:
+                    Namespace (Ident 21 [10-15] "input"): Item 1
+                Item 1 [22-155]:
+                    Parent: 0
+                    Callable 0 [22-155] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-155] [Type ()]:
                             Stmt _id_ [59-60]: Local (Immutable):
-                                Pat _id_ [59-60]: Bind:
-                                    Ident 11 [59-60] "a"
-                                Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [59-60]: Unit
-                            Stmt _id_ [80-130]: Expr: Expr _id_ [80-130]: Expr Block: Block 17 [96-130]:
+                                Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
+                                Expr _id_ [59-60] [Type Qubit]: Call:
+                                    Expr _id_ [59-60] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [59-60] [Type ()]: Unit
+                            Stmt _id_ [80-130]: Expr: Expr _id_ [80-130] [Type ()]: Expr Block: Block 12 [96-130] [Type ()]:
                                 Stmt _id_ [84-85]: Local (Immutable):
-                                    Pat _id_ [84-85]: Bind:
-                                        Ident 15 [84-85] "b"
-                                    Expr _id_ [84-85]: Call:
-                                        Expr _id_ [84-85]: Path: Path _id_ [84-85] (Ident _id_ [84-85] "QIR.Runtime") (Ident _id_ [84-85] "__quantum__rt__qubit_allocate")
-                                        Expr _id_ [84-85]: Unit
-                                Stmt 18 [110-120]: Local (Immutable):
-                                    Pat 19 [114-115]: Bind:
-                                        Ident 20 [114-115] "x"
-                                    Expr 21 [118-119]: Lit: Int(3)
-                                Stmt _id_ [84-85]: Semi: Expr _id_ [84-85]: Call:
-                                    Expr _id_ [84-85]: Path: Path _id_ [84-85] (Ident _id_ [84-85] "QIR.Runtime") (Ident _id_ [84-85] "__quantum__rt__qubit_release")
-                                    Expr _id_ [84-85]: Tuple:
-                                        Expr _id_ [84-85]: Path: Path _id_ [84-85] (Ident 15 [84-85] "b")
-                            Stmt 22 [139-149]: Local (Immutable):
-                                Pat 23 [143-144]: Bind:
-                                    Ident 24 [143-144] "y"
-                                Expr 25 [147-148]: Lit: Int(3)
-                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release")
-                                Expr _id_ [59-60]: Tuple:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "a")"#]],
+                                    Pat _id_ [84-85] [Type Qubit]: Bind: Ident 10 [84-85] "b"
+                                    Expr _id_ [84-85] [Type Qubit]: Call:
+                                        Expr _id_ [84-85] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                        Expr _id_ [84-85] [Type ()]: Unit
+                                Stmt 13 [110-120]: Local (Immutable):
+                                    Pat 14 [114-115] [Type Int]: Bind: Ident 15 [114-115] "x"
+                                    Expr 16 [118-119] [Type Int]: Lit: Int(3)
+                                Stmt _id_ [84-85]: Semi: Expr _id_ [84-85] [Type ()]: Call:
+                                    Expr _id_ [84-85] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                    Expr _id_ [84-85] [Type Qubit]: Var: Local 10
+                            Stmt 17 [139-149]: Local (Immutable):
+                                Pat 18 [143-144] [Type Int]: Bind: Ident 19 [143-144] "y"
+                                Expr 20 [147-148] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                Expr _id_ [59-60] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [59-60] [Type Qubit]: Var: Local 6"#]],
     );
 }
 
@@ -440,77 +410,66 @@ fn test_qubit_multiple_nested_blocks() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-353] (Ident 2 [10-15] "input"):
-                Item 3 [22-351]:
-                    Callable 4 [22-351] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-351]:
-                            Stmt 9 [55-66]: Local (Immutable):
-                                Pat 10 [59-61]: Bind:
-                                    Ident 11 [59-61] "x1"
-                                Expr 12 [64-65]: Lit: Int(3)
+            Package:
+                Item 0 [0-353]:
+                    Namespace (Ident 54 [10-15] "input"): Item 1
+                Item 1 [22-351]:
+                    Parent: 0
+                    Callable 0 [22-351] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-351] [Type ()]:
+                            Stmt 4 [55-66]: Local (Immutable):
+                                Pat 5 [59-61] [Type Int]: Bind: Ident 6 [59-61] "x1"
+                                Expr 7 [64-65] [Type Int]: Lit: Int(3)
                             Stmt _id_ [79-80]: Local (Immutable):
-                                Pat _id_ [79-80]: Bind:
-                                    Ident 15 [79-80] "a"
-                                Expr _id_ [79-80]: Call:
-                                    Expr _id_ [79-80]: Path: Path _id_ [79-80] (Ident _id_ [79-80] "QIR.Runtime") (Ident _id_ [79-80] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [79-80]: Unit
-                            Stmt 17 [100-111]: Local (Immutable):
-                                Pat 18 [104-106]: Bind:
-                                    Ident 19 [104-106] "x2"
-                                Expr 20 [109-110]: Lit: Int(3)
-                            Stmt 21 [120-208]: Expr: Expr 22 [120-208]: Expr Block: Block 23 [120-208]:
-                                Stmt 24 [134-145]: Local (Immutable):
-                                    Pat 25 [138-140]: Bind:
-                                        Ident 26 [138-140] "y1"
-                                    Expr 27 [143-144]: Lit: Int(3)
+                                Pat _id_ [79-80] [Type Qubit]: Bind: Ident 10 [79-80] "a"
+                                Expr _id_ [79-80] [Type Qubit]: Call:
+                                    Expr _id_ [79-80] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [79-80] [Type ()]: Unit
+                            Stmt 12 [100-111]: Local (Immutable):
+                                Pat 13 [104-106] [Type Int]: Bind: Ident 14 [104-106] "x2"
+                                Expr 15 [109-110] [Type Int]: Lit: Int(3)
+                            Stmt 16 [120-208]: Expr: Expr 17 [120-208] [Type ()]: Expr Block: Block 18 [120-208] [Type ()]:
+                                Stmt 19 [134-145]: Local (Immutable):
+                                    Pat 20 [138-140] [Type Int]: Bind: Ident 21 [138-140] "y1"
+                                    Expr 22 [143-144] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [162-163]: Local (Immutable):
-                                    Pat _id_ [162-163]: Bind:
-                                        Ident 30 [162-163] "b"
-                                    Expr _id_ [162-163]: Call:
-                                        Expr _id_ [162-163]: Path: Path _id_ [162-163] (Ident _id_ [162-163] "QIR.Runtime") (Ident _id_ [162-163] "__quantum__rt__qubit_allocate")
-                                        Expr _id_ [162-163]: Unit
-                                Stmt 32 [187-198]: Local (Immutable):
-                                    Pat 33 [191-193]: Bind:
-                                        Ident 34 [191-193] "y2"
-                                    Expr 35 [196-197]: Lit: Int(3)
-                                Stmt _id_ [162-163]: Semi: Expr _id_ [162-163]: Call:
-                                    Expr _id_ [162-163]: Path: Path _id_ [162-163] (Ident _id_ [162-163] "QIR.Runtime") (Ident _id_ [162-163] "__quantum__rt__qubit_release")
-                                    Expr _id_ [162-163]: Tuple:
-                                        Expr _id_ [162-163]: Path: Path _id_ [162-163] (Ident 30 [162-163] "b")
-                            Stmt 36 [217-228]: Local (Immutable):
-                                Pat 37 [221-223]: Bind:
-                                    Ident 38 [221-223] "x3"
-                                Expr 39 [226-227]: Lit: Int(3)
-                            Stmt 40 [237-325]: Expr: Expr 41 [237-325]: Expr Block: Block 42 [237-325]:
-                                Stmt 43 [251-262]: Local (Immutable):
-                                    Pat 44 [255-257]: Bind:
-                                        Ident 45 [255-257] "z1"
-                                    Expr 46 [260-261]: Lit: Int(3)
+                                    Pat _id_ [162-163] [Type Qubit]: Bind: Ident 25 [162-163] "b"
+                                    Expr _id_ [162-163] [Type Qubit]: Call:
+                                        Expr _id_ [162-163] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                        Expr _id_ [162-163] [Type ()]: Unit
+                                Stmt 27 [187-198]: Local (Immutable):
+                                    Pat 28 [191-193] [Type Int]: Bind: Ident 29 [191-193] "y2"
+                                    Expr 30 [196-197] [Type Int]: Lit: Int(3)
+                                Stmt _id_ [162-163]: Semi: Expr _id_ [162-163] [Type ()]: Call:
+                                    Expr _id_ [162-163] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                    Expr _id_ [162-163] [Type Qubit]: Var: Local 25
+                            Stmt 31 [217-228]: Local (Immutable):
+                                Pat 32 [221-223] [Type Int]: Bind: Ident 33 [221-223] "x3"
+                                Expr 34 [226-227] [Type Int]: Lit: Int(3)
+                            Stmt 35 [237-325]: Expr: Expr 36 [237-325] [Type ()]: Expr Block: Block 37 [237-325] [Type ()]:
+                                Stmt 38 [251-262]: Local (Immutable):
+                                    Pat 39 [255-257] [Type Int]: Bind: Ident 40 [255-257] "z1"
+                                    Expr 41 [260-261] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [279-280]: Local (Immutable):
-                                    Pat _id_ [279-280]: Bind:
-                                        Ident 49 [279-280] "c"
-                                    Expr _id_ [279-280]: Call:
-                                        Expr _id_ [279-280]: Path: Path _id_ [279-280] (Ident _id_ [279-280] "QIR.Runtime") (Ident _id_ [279-280] "__quantum__rt__qubit_allocate")
-                                        Expr _id_ [279-280]: Unit
-                                Stmt 51 [304-315]: Local (Immutable):
-                                    Pat 52 [308-310]: Bind:
-                                        Ident 53 [308-310] "z2"
-                                    Expr 54 [313-314]: Lit: Int(3)
-                                Stmt _id_ [279-280]: Semi: Expr _id_ [279-280]: Call:
-                                    Expr _id_ [279-280]: Path: Path _id_ [279-280] (Ident _id_ [279-280] "QIR.Runtime") (Ident _id_ [279-280] "__quantum__rt__qubit_release")
-                                    Expr _id_ [279-280]: Tuple:
-                                        Expr _id_ [279-280]: Path: Path _id_ [279-280] (Ident 49 [279-280] "c")
-                            Stmt 55 [334-345]: Local (Immutable):
-                                Pat 56 [338-340]: Bind:
-                                    Ident 57 [338-340] "x4"
-                                Expr 58 [343-344]: Lit: Int(3)
-                            Stmt _id_ [79-80]: Semi: Expr _id_ [79-80]: Call:
-                                Expr _id_ [79-80]: Path: Path _id_ [79-80] (Ident _id_ [79-80] "QIR.Runtime") (Ident _id_ [79-80] "__quantum__rt__qubit_release")
-                                Expr _id_ [79-80]: Tuple:
-                                    Expr _id_ [79-80]: Path: Path _id_ [79-80] (Ident 15 [79-80] "a")"#]],
+                                    Pat _id_ [279-280] [Type Qubit]: Bind: Ident 44 [279-280] "c"
+                                    Expr _id_ [279-280] [Type Qubit]: Call:
+                                        Expr _id_ [279-280] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                        Expr _id_ [279-280] [Type ()]: Unit
+                                Stmt 46 [304-315]: Local (Immutable):
+                                    Pat 47 [308-310] [Type Int]: Bind: Ident 48 [308-310] "z2"
+                                    Expr 49 [313-314] [Type Int]: Lit: Int(3)
+                                Stmt _id_ [279-280]: Semi: Expr _id_ [279-280] [Type ()]: Call:
+                                    Expr _id_ [279-280] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                    Expr _id_ [279-280] [Type Qubit]: Var: Local 44
+                            Stmt 50 [334-345]: Local (Immutable):
+                                Pat 51 [338-340] [Type Int]: Bind: Ident 52 [338-340] "x4"
+                                Expr 53 [343-344] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [79-80]: Semi: Expr _id_ [79-80] [Type ()]: Call:
+                                Expr _id_ [79-80] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [79-80] [Type Qubit]: Var: Local 10"#]],
     );
 }
 
@@ -532,81 +491,71 @@ fn test_early_returns() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-241] (Ident 2 [10-15] "input"):
-                Item 3 [22-239]:
-                    Callable 4 [22-239] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-239]:
+            Package:
+                Item 0 [0-241]:
+                    Namespace (Ident 30 [10-15] "input"): Item 1
+                Item 1 [22-239]:
+                    Parent: 0
+                    Callable 0 [22-239] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-239] [Type ()]:
                             Stmt _id_ [59-60]: Local (Immutable):
-                                Pat _id_ [59-60]: Bind:
-                                    Ident 11 [59-60] "a"
-                                Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [59-60]: Unit
-                            Stmt 13 [80-151]: Expr: Expr 14 [80-151]: If:
-                                Expr 15 [83-87]: Lit: Bool(true)
-                                Block 16 [88-151]:
+                                Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
+                                Expr _id_ [59-60] [Type Qubit]: Call:
+                                    Expr _id_ [59-60] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [59-60] [Type ()]: Unit
+                            Stmt 8 [80-151]: Expr: Expr 9 [80-151] [Type ()]: If:
+                                Expr 10 [83-87] [Type Bool]: Lit: Bool(true)
+                                Block 11 [88-151] [Type ()]:
                                     Stmt _id_ [106-107]: Local (Immutable):
-                                        Pat _id_ [106-107]: Bind:
-                                            Ident 19 [106-107] "b"
-                                        Expr _id_ [106-107]: Call:
-                                            Expr _id_ [106-107]: Path: Path _id_ [106-107] (Ident _id_ [106-107] "QIR.Runtime") (Ident _id_ [106-107] "__quantum__rt__qubit_allocate")
-                                            Expr _id_ [106-107]: Unit
-                                    Stmt 21 [131-141]: Semi: Expr _id_ [131-140]: Expr Block: Block _id_ [131-140]:
+                                        Pat _id_ [106-107] [Type Qubit]: Bind: Ident 14 [106-107] "b"
+                                        Expr _id_ [106-107] [Type Qubit]: Call:
+                                            Expr _id_ [106-107] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                            Expr _id_ [106-107] [Type ()]: Unit
+                                    Stmt 16 [131-141]: Semi: Expr _id_ [131-140] [Type ?2]: Expr Block: Block _id_ [131-140] [Type ?2]:
                                         Stmt _id_ [138-140]: Local (Immutable):
-                                            Pat _id_ [138-140]: Bind:
-                                                Ident _id_ [138-140] "__generated_ident_0__"
-                                            Expr 23 [138-140]: Unit
-                                        Stmt _id_ [106-107]: Semi: Expr _id_ [106-107]: Call:
-                                            Expr _id_ [106-107]: Path: Path _id_ [106-107] (Ident _id_ [106-107] "QIR.Runtime") (Ident _id_ [106-107] "__quantum__rt__qubit_release")
-                                            Expr _id_ [106-107]: Tuple:
-                                                Expr _id_ [106-107]: Path: Path _id_ [106-107] (Ident 19 [106-107] "b")
-                                        Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                            Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release")
-                                            Expr _id_ [59-60]: Tuple:
-                                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "a")
-                                        Stmt _id_ [131-140]: Semi: Expr _id_ [131-140]: Return: Expr _id_ [138-140]: Path: Path _id_ [138-140] (Ident _id_ [138-140] "__generated_ident_0__")
-                                    Stmt _id_ [106-107]: Semi: Expr _id_ [106-107]: Call:
-                                        Expr _id_ [106-107]: Path: Path _id_ [106-107] (Ident _id_ [106-107] "QIR.Runtime") (Ident _id_ [106-107] "__quantum__rt__qubit_release")
-                                        Expr _id_ [106-107]: Tuple:
-                                            Expr _id_ [106-107]: Path: Path _id_ [106-107] (Ident 19 [106-107] "b")
+                                            Pat _id_ [138-140] [Type ()]: Bind: Ident 31 [138-140] "generated_ident_31"
+                                            Expr 18 [138-140] [Type ()]: Unit
+                                        Stmt _id_ [106-107]: Semi: Expr _id_ [106-107] [Type ()]: Call:
+                                            Expr _id_ [106-107] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                            Expr _id_ [106-107] [Type Qubit]: Var: Local 14
+                                        Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                            Expr _id_ [59-60] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                            Expr _id_ [59-60] [Type Qubit]: Var: Local 6
+                                        Stmt _id_ [131-140]: Semi: Expr _id_ [131-140] [Type ?2]: Return: Expr _id_ [138-140] [Type ()]: Var: Local 31
+                                    Stmt _id_ [106-107]: Semi: Expr _id_ [106-107] [Type ()]: Call:
+                                        Expr _id_ [106-107] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                        Expr _id_ [106-107] [Type Qubit]: Var: Local 14
                             Stmt _id_ [161-233]: Local (Immutable):
-                                Pat _id_ [161-233]: Bind:
-                                    Ident _id_ [161-233] "__generated_ident_2__"
-                                Expr 25 [161-233]: If:
-                                    Expr 26 [164-169]: Lit: Bool(false)
-                                    Block 27 [170-233]:
+                                Pat _id_ [161-233] [Type ()]: Bind: Ident 33 [161-233] "generated_ident_33"
+                                Expr 20 [161-233] [Type ()]: If:
+                                    Expr 21 [164-169] [Type Bool]: Lit: Bool(false)
+                                    Block 22 [170-233] [Type ()]:
                                         Stmt _id_ [188-189]: Local (Immutable):
-                                            Pat _id_ [188-189]: Bind:
-                                                Ident 30 [188-189] "c"
-                                            Expr _id_ [188-189]: Call:
-                                                Expr _id_ [188-189]: Path: Path _id_ [188-189] (Ident _id_ [188-189] "QIR.Runtime") (Ident _id_ [188-189] "__quantum__rt__qubit_allocate")
-                                                Expr _id_ [188-189]: Unit
-                                        Stmt 32 [213-223]: Semi: Expr _id_ [213-222]: Expr Block: Block _id_ [213-222]:
+                                            Pat _id_ [188-189] [Type Qubit]: Bind: Ident 25 [188-189] "c"
+                                            Expr _id_ [188-189] [Type Qubit]: Call:
+                                                Expr _id_ [188-189] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                                Expr _id_ [188-189] [Type ()]: Unit
+                                        Stmt 27 [213-223]: Semi: Expr _id_ [213-222] [Type ?5]: Expr Block: Block _id_ [213-222] [Type ?5]:
                                             Stmt _id_ [220-222]: Local (Immutable):
-                                                Pat _id_ [220-222]: Bind:
-                                                    Ident _id_ [220-222] "__generated_ident_1__"
-                                                Expr 34 [220-222]: Unit
-                                            Stmt _id_ [188-189]: Semi: Expr _id_ [188-189]: Call:
-                                                Expr _id_ [188-189]: Path: Path _id_ [188-189] (Ident _id_ [188-189] "QIR.Runtime") (Ident _id_ [188-189] "__quantum__rt__qubit_release")
-                                                Expr _id_ [188-189]: Tuple:
-                                                    Expr _id_ [188-189]: Path: Path _id_ [188-189] (Ident 30 [188-189] "c")
-                                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release")
-                                                Expr _id_ [59-60]: Tuple:
-                                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "a")
-                                            Stmt _id_ [213-222]: Semi: Expr _id_ [213-222]: Return: Expr _id_ [220-222]: Path: Path _id_ [220-222] (Ident _id_ [220-222] "__generated_ident_1__")
-                                        Stmt _id_ [188-189]: Semi: Expr _id_ [188-189]: Call:
-                                            Expr _id_ [188-189]: Path: Path _id_ [188-189] (Ident _id_ [188-189] "QIR.Runtime") (Ident _id_ [188-189] "__quantum__rt__qubit_release")
-                                            Expr _id_ [188-189]: Tuple:
-                                                Expr _id_ [188-189]: Path: Path _id_ [188-189] (Ident 30 [188-189] "c")
-                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release")
-                                Expr _id_ [59-60]: Tuple:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "a")
-                            Stmt _id_ [161-233]: Expr: Expr _id_ [161-233]: Path: Path _id_ [161-233] (Ident _id_ [161-233] "__generated_ident_2__")"#]],
+                                                Pat _id_ [220-222] [Type ()]: Bind: Ident 32 [220-222] "generated_ident_32"
+                                                Expr 29 [220-222] [Type ()]: Unit
+                                            Stmt _id_ [188-189]: Semi: Expr _id_ [188-189] [Type ()]: Call:
+                                                Expr _id_ [188-189] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                                Expr _id_ [188-189] [Type Qubit]: Var: Local 25
+                                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                                Expr _id_ [59-60] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                                Expr _id_ [59-60] [Type Qubit]: Var: Local 6
+                                            Stmt _id_ [213-222]: Semi: Expr _id_ [213-222] [Type ?5]: Return: Expr _id_ [220-222] [Type ()]: Var: Local 32
+                                        Stmt _id_ [188-189]: Semi: Expr _id_ [188-189] [Type ()]: Call:
+                                            Expr _id_ [188-189] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                            Expr _id_ [188-189] [Type Qubit]: Var: Local 25
+                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                Expr _id_ [59-60] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [59-60] [Type Qubit]: Var: Local 6
+                            Stmt _id_ [161-233]: Expr: Expr _id_ [161-233] [Type ()]: Var: Local 33"#]],
     );
 }
 
@@ -624,47 +573,43 @@ fn test_end_exprs() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-172] (Ident 2 [10-15] "input"):
-                Item 3 [22-170]:
-                    Callable 4 [22-170] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-170]:
+            Package:
+                Item 0 [0-172]:
+                    Namespace (Ident 26 [10-15] "input"): Item 1
+                Item 1 [22-170]:
+                    Parent: 0
+                    Callable 0 [22-170] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-170] [Type ()]:
                             Stmt _id_ [59-60]: Local (Immutable):
-                                Pat _id_ [59-60]: Bind:
-                                    Ident 11 [59-60] "a"
-                                Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [59-60]: Unit
-                            Stmt 13 [80-92]: Local (Immutable):
-                                Pat 14 [84-85]: Bind:
-                                    Ident 15 [84-85] "x"
-                                Expr 16 [88-91]: Expr Block: Block 17 [88-91]:
-                                    Stmt 18 [89-90]: Expr: Expr 19 [89-90]: Lit: Int(3)
-                            Stmt 20 [101-164]: Local (Immutable):
-                                Pat 21 [105-106]: Bind:
-                                    Ident 22 [105-106] "y"
-                                Expr 23 [109-163]: Expr Block: Block 24 [109-163]:
+                                Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
+                                Expr _id_ [59-60] [Type Qubit]: Call:
+                                    Expr _id_ [59-60] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [59-60] [Type ()]: Unit
+                            Stmt 8 [80-92]: Local (Immutable):
+                                Pat 9 [84-85] [Type Int]: Bind: Ident 10 [84-85] "x"
+                                Expr 11 [88-91] [Type Int]: Expr Block: Block 12 [88-91] [Type Int]:
+                                    Stmt 13 [89-90]: Expr: Expr 14 [89-90] [Type Int]: Lit: Int(3)
+                            Stmt 15 [101-164]: Local (Immutable):
+                                Pat 16 [105-106] [Type Int]: Bind: Ident 17 [105-106] "y"
+                                Expr 18 [109-163] [Type Int]: Expr Block: Block 19 [109-163] [Type Int]:
                                     Stmt _id_ [127-128]: Local (Immutable):
-                                        Pat _id_ [127-128]: Bind:
-                                            Ident 27 [127-128] "b"
-                                        Expr _id_ [127-128]: Call:
-                                            Expr _id_ [127-128]: Path: Path _id_ [127-128] (Ident _id_ [127-128] "QIR.Runtime") (Ident _id_ [127-128] "__quantum__rt__qubit_allocate")
-                                            Expr _id_ [127-128]: Unit
+                                        Pat _id_ [127-128] [Type Qubit]: Bind: Ident 22 [127-128] "b"
+                                        Expr _id_ [127-128] [Type Qubit]: Call:
+                                            Expr _id_ [127-128] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                            Expr _id_ [127-128] [Type ()]: Unit
                                     Stmt _id_ [152-153]: Local (Immutable):
-                                        Pat _id_ [152-153]: Bind:
-                                            Ident _id_ [152-153] "__generated_ident_0__"
-                                        Expr 30 [152-153]: Lit: Int(3)
-                                    Stmt _id_ [127-128]: Semi: Expr _id_ [127-128]: Call:
-                                        Expr _id_ [127-128]: Path: Path _id_ [127-128] (Ident _id_ [127-128] "QIR.Runtime") (Ident _id_ [127-128] "__quantum__rt__qubit_release")
-                                        Expr _id_ [127-128]: Tuple:
-                                            Expr _id_ [127-128]: Path: Path _id_ [127-128] (Ident 27 [127-128] "b")
-                                    Stmt _id_ [152-153]: Expr: Expr _id_ [152-153]: Path: Path _id_ [152-153] (Ident _id_ [152-153] "__generated_ident_0__")
-                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release")
-                                Expr _id_ [59-60]: Tuple:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "a")"#]],
+                                        Pat _id_ [152-153] [Type Int]: Bind: Ident 27 [152-153] "generated_ident_27"
+                                        Expr 25 [152-153] [Type Int]: Lit: Int(3)
+                                    Stmt _id_ [127-128]: Semi: Expr _id_ [127-128] [Type ()]: Call:
+                                        Expr _id_ [127-128] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                        Expr _id_ [127-128] [Type Qubit]: Var: Local 22
+                                    Stmt _id_ [152-153]: Expr: Expr _id_ [152-153] [Type Int]: Var: Local 27
+                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                Expr _id_ [59-60] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [59-60] [Type Qubit]: Var: Local 6"#]],
     );
 }
 
@@ -681,43 +626,39 @@ fn test_array_expr() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-152] (Ident 2 [10-15] "input"):
-                Item 3 [22-150]:
-                    Callable 4 [22-150] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-44]: Unit
-                        body: Block: Block 8 [45-150]:
+            Package:
+                Item 0 [0-152]:
+                    Namespace (Ident 20 [10-15] "input"): Item 1
+                Item 1 [22-150]:
+                    Parent: 0
+                    Callable 0 [22-150] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: ()
+                        body: Block: Block 3 [45-150] [Type ()]:
                             Stmt _id_ [59-60]: Local (Immutable):
-                                Pat _id_ [59-60]: Bind:
-                                    Ident 11 [59-60] "a"
-                                Expr _id_ [59-60]: Call:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_allocate_array")
-                                    Expr _id_ [59-60]: Tuple:
-                                        Expr 13 [69-123]: Expr Block: Block 14 [69-123]:
-                                            Stmt _id_ [87-88]: Local (Immutable):
-                                                Pat _id_ [87-88]: Bind:
-                                                    Ident 17 [87-88] "b"
-                                                Expr _id_ [87-88]: Call:
-                                                    Expr _id_ [87-88]: Path: Path _id_ [87-88] (Ident _id_ [87-88] "QIR.Runtime") (Ident _id_ [87-88] "__quantum__rt__qubit_allocate")
-                                                    Expr _id_ [87-88]: Unit
-                                            Stmt _id_ [112-113]: Local (Immutable):
-                                                Pat _id_ [112-113]: Bind:
-                                                    Ident _id_ [112-113] "__generated_ident_0__"
-                                                Expr 20 [112-113]: Lit: Int(3)
-                                            Stmt _id_ [87-88]: Semi: Expr _id_ [87-88]: Call:
-                                                Expr _id_ [87-88]: Path: Path _id_ [87-88] (Ident _id_ [87-88] "QIR.Runtime") (Ident _id_ [87-88] "__quantum__rt__qubit_release")
-                                                Expr _id_ [87-88]: Tuple:
-                                                    Expr _id_ [87-88]: Path: Path _id_ [87-88] (Ident 17 [87-88] "b")
-                                            Stmt _id_ [112-113]: Expr: Expr _id_ [112-113]: Path: Path _id_ [112-113] (Ident _id_ [112-113] "__generated_ident_0__")
-                            Stmt 21 [134-144]: Local (Immutable):
-                                Pat 22 [138-139]: Bind:
-                                    Ident 23 [138-139] "x"
-                                Expr 24 [142-143]: Lit: Int(3)
-                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60]: Call:
-                                Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident _id_ [59-60] "QIR.Runtime") (Ident _id_ [59-60] "__quantum__rt__qubit_release_array")
-                                Expr _id_ [59-60]: Tuple:
-                                    Expr _id_ [59-60]: Path: Path _id_ [59-60] (Ident 11 [59-60] "a")"#]],
+                                Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 6 [59-60] "a"
+                                Expr _id_ [59-60] [Type Qubit]: Call:
+                                    Expr _id_ [59-60] [Type (Int -> (Qubit)[])]: Var: Item 3 (Package 0)
+                                    Expr 8 [69-123] [Type Int]: Expr Block: Block 9 [69-123] [Type Int]:
+                                        Stmt _id_ [87-88]: Local (Immutable):
+                                            Pat _id_ [87-88] [Type Qubit]: Bind: Ident 12 [87-88] "b"
+                                            Expr _id_ [87-88] [Type Qubit]: Call:
+                                                Expr _id_ [87-88] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                                Expr _id_ [87-88] [Type ()]: Unit
+                                        Stmt _id_ [112-113]: Local (Immutable):
+                                            Pat _id_ [112-113] [Type Int]: Bind: Ident 21 [112-113] "generated_ident_21"
+                                            Expr 15 [112-113] [Type Int]: Lit: Int(3)
+                                        Stmt _id_ [87-88]: Semi: Expr _id_ [87-88] [Type ()]: Call:
+                                            Expr _id_ [87-88] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                            Expr _id_ [87-88] [Type Qubit]: Var: Local 12
+                                        Stmt _id_ [112-113]: Expr: Expr _id_ [112-113] [Type Int]: Var: Local 21
+                            Stmt 16 [134-144]: Local (Immutable):
+                                Pat 17 [138-139] [Type Int]: Bind: Ident 18 [138-139] "x"
+                                Expr 19 [142-143] [Type Int]: Lit: Int(3)
+                            Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type ()]: Call:
+                                Expr _id_ [59-60] [Type ((Qubit)[] -> ())]: Var: Item 4 (Package 0)
+                                Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 6"#]],
     );
 }
 
@@ -734,48 +675,44 @@ fn test_rtrn_expr() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-149] (Ident 2 [10-15] "input"):
-                Item 3 [22-147]:
-                    Callable 4 [22-147] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-43]: Prim (Int)
-                        body: Block: Block 8 [44-147]:
+            Package:
+                Item 0 [0-149]:
+                    Namespace (Ident 18 [10-15] "input"): Item 1
+                Item 1 [22-147]:
+                    Parent: 0
+                    Callable 0 [22-147] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: Int
+                        body: Block: Block 3 [44-147] [Type Int]:
                             Stmt _id_ [58-59]: Local (Immutable):
-                                Pat _id_ [58-59]: Bind:
-                                    Ident 11 [58-59] "a"
-                                Expr _id_ [58-59]: Call:
-                                    Expr _id_ [58-59]: Path: Path _id_ [58-59] (Ident _id_ [58-59] "QIR.Runtime") (Ident _id_ [58-59] "__quantum__rt__qubit_allocate")
-                                    Expr _id_ [58-59]: Unit
-                            Stmt 13 [79-141]: Semi: Expr _id_ [79-140]: Expr Block: Block _id_ [79-140]:
+                                Pat _id_ [58-59] [Type Qubit]: Bind: Ident 6 [58-59] "a"
+                                Expr _id_ [58-59] [Type Qubit]: Call:
+                                    Expr _id_ [58-59] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                    Expr _id_ [58-59] [Type ()]: Unit
+                            Stmt 8 [79-141]: Semi: Expr _id_ [79-140] [Type ?2]: Expr Block: Block _id_ [79-140] [Type ?2]:
                                 Stmt _id_ [86-140]: Local (Immutable):
-                                    Pat _id_ [86-140]: Bind:
-                                        Ident _id_ [86-140] "__generated_ident_0__"
-                                    Expr 15 [86-140]: Expr Block: Block 16 [86-140]:
+                                    Pat _id_ [86-140] [Type Int]: Bind: Ident 19 [86-140] "generated_ident_19"
+                                    Expr 10 [86-140] [Type Int]: Expr Block: Block 11 [86-140] [Type Int]:
                                         Stmt _id_ [104-105]: Local (Immutable):
-                                            Pat _id_ [104-105]: Bind:
-                                                Ident 19 [104-105] "b"
-                                            Expr _id_ [104-105]: Call:
-                                                Expr _id_ [104-105]: Path: Path _id_ [104-105] (Ident _id_ [104-105] "QIR.Runtime") (Ident _id_ [104-105] "__quantum__rt__qubit_allocate")
-                                                Expr _id_ [104-105]: Unit
+                                            Pat _id_ [104-105] [Type Qubit]: Bind: Ident 14 [104-105] "b"
+                                            Expr _id_ [104-105] [Type Qubit]: Call:
+                                                Expr _id_ [104-105] [Type (() -> Qubit)]: Var: Item 1 (Package 0)
+                                                Expr _id_ [104-105] [Type ()]: Unit
                                         Stmt _id_ [129-130]: Local (Immutable):
-                                            Pat _id_ [129-130]: Bind:
-                                                Ident _id_ [129-130] "__generated_ident_1__"
-                                            Expr 22 [129-130]: Lit: Int(3)
-                                        Stmt _id_ [104-105]: Semi: Expr _id_ [104-105]: Call:
-                                            Expr _id_ [104-105]: Path: Path _id_ [104-105] (Ident _id_ [104-105] "QIR.Runtime") (Ident _id_ [104-105] "__quantum__rt__qubit_release")
-                                            Expr _id_ [104-105]: Tuple:
-                                                Expr _id_ [104-105]: Path: Path _id_ [104-105] (Ident 19 [104-105] "b")
-                                        Stmt _id_ [129-130]: Expr: Expr _id_ [129-130]: Path: Path _id_ [129-130] (Ident _id_ [129-130] "__generated_ident_1__")
-                                Stmt _id_ [58-59]: Semi: Expr _id_ [58-59]: Call:
-                                    Expr _id_ [58-59]: Path: Path _id_ [58-59] (Ident _id_ [58-59] "QIR.Runtime") (Ident _id_ [58-59] "__quantum__rt__qubit_release")
-                                    Expr _id_ [58-59]: Tuple:
-                                        Expr _id_ [58-59]: Path: Path _id_ [58-59] (Ident 11 [58-59] "a")
-                                Stmt _id_ [79-140]: Semi: Expr _id_ [79-140]: Return: Expr _id_ [86-140]: Path: Path _id_ [86-140] (Ident _id_ [86-140] "__generated_ident_0__")
-                            Stmt _id_ [58-59]: Semi: Expr _id_ [58-59]: Call:
-                                Expr _id_ [58-59]: Path: Path _id_ [58-59] (Ident _id_ [58-59] "QIR.Runtime") (Ident _id_ [58-59] "__quantum__rt__qubit_release")
-                                Expr _id_ [58-59]: Tuple:
-                                    Expr _id_ [58-59]: Path: Path _id_ [58-59] (Ident 11 [58-59] "a")"#]],
+                                            Pat _id_ [129-130] [Type Int]: Bind: Ident 20 [129-130] "generated_ident_20"
+                                            Expr 17 [129-130] [Type Int]: Lit: Int(3)
+                                        Stmt _id_ [104-105]: Semi: Expr _id_ [104-105] [Type ()]: Call:
+                                            Expr _id_ [104-105] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                            Expr _id_ [104-105] [Type Qubit]: Var: Local 14
+                                        Stmt _id_ [129-130]: Expr: Expr _id_ [129-130] [Type Int]: Var: Local 20
+                                Stmt _id_ [58-59]: Semi: Expr _id_ [58-59] [Type ()]: Call:
+                                    Expr _id_ [58-59] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                    Expr _id_ [58-59] [Type Qubit]: Var: Local 6
+                                Stmt _id_ [79-140]: Semi: Expr _id_ [79-140] [Type ?2]: Return: Expr _id_ [86-140] [Type Int]: Var: Local 19
+                            Stmt _id_ [58-59]: Semi: Expr _id_ [58-59] [Type ()]: Call:
+                                Expr _id_ [58-59] [Type (Qubit -> ())]: Var: Item 2 (Package 0)
+                                Expr _id_ [58-59] [Type Qubit]: Var: Local 6"#]],
     );
 }
 
@@ -812,22 +749,24 @@ fn test_unrelated_unaffected() {
             }
         }" },
         &expect![[r#"
-            Namespace 1 [0-161] (Ident 2 [10-15] "input"):
-                Item 3 [22-159]:
-                    Callable 4 [22-159] (Operation):
-                        name: Ident 5 [32-35] "Foo"
-                        input: Pat 6 [35-37]: Unit
-                        output: Type 7 [40-43]: Prim (Int)
-                        body: Block: Block 8 [44-159]:
-                            Stmt 9 [54-95]: Expr: Expr 10 [54-95]: If:
-                                Expr 11 [57-61]: Lit: Bool(true)
-                                Block 12 [62-95]:
-                                    Stmt 13 [76-85]: Semi: Expr 14 [76-84]: Return: Expr 15 [83-84]: Lit: Int(3)
-                            Stmt 16 [105-153]: Expr: Expr 17 [105-153]: Expr Block: Block 18 [105-153]:
-                                Stmt 19 [119-129]: Local (Immutable):
-                                    Pat 20 [123-124]: Bind:
-                                        Ident 21 [123-124] "x"
-                                    Expr 22 [127-128]: Lit: Int(4)
-                                Stmt 23 [142-143]: Expr: Expr 24 [142-143]: Path: Path 25 [142-143] (Ident 26 [142-143] "x")"#]],
+            Package:
+                Item 0 [0-161]:
+                    Namespace (Ident 20 [10-15] "input"): Item 1
+                Item 1 [22-159]:
+                    Parent: 0
+                    Callable 0 [22-159] (Operation):
+                        name: Ident 1 [32-35] "Foo"
+                        input: Pat 2 [35-37] [Type ()]: Unit
+                        output: Int
+                        body: Block: Block 3 [44-159] [Type Int]:
+                            Stmt 4 [54-95]: Expr: Expr 5 [54-95] [Type ()]: If:
+                                Expr 6 [57-61] [Type Bool]: Lit: Bool(true)
+                                Block 7 [62-95] [Type ()]:
+                                    Stmt 8 [76-85]: Semi: Expr 9 [76-84] [Type ?0]: Return: Expr 10 [83-84] [Type Int]: Lit: Int(3)
+                            Stmt 11 [105-153]: Expr: Expr 12 [105-153] [Type Int]: Expr Block: Block 13 [105-153] [Type Int]:
+                                Stmt 14 [119-129]: Local (Immutable):
+                                    Pat 15 [123-124] [Type Int]: Bind: Ident 16 [123-124] "x"
+                                    Expr 17 [127-128] [Type Int]: Lit: Int(4)
+                                Stmt 18 [142-143]: Expr: Expr 19 [142-143] [Type Int]: Var: Local 16"#]],
     );
 }
