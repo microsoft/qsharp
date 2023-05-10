@@ -2,8 +2,152 @@
 // Licensed under the MIT License.
 
 use crate::run_stdlib_test;
+use indoc::indoc;
 use num_bigint::BigInt;
 use qsc::interpret::Value;
+
+//
+// Canon namespace
+//
+
+#[test]
+fn check_apply_to_each() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[3];
+            Microsoft.Quantum.Canon.ApplyToEach(X, register);
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            results
+        }"#},
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_to_each_a() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[3];
+            Microsoft.Quantum.Canon.ApplyToEach(X, register);
+            Adjoint Microsoft.Quantum.Canon.ApplyToEachA(X, register);
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            results
+        }"#},
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(false),
+                Value::Result(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_to_each_c_applied() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use control = Qubit();
+            use register = Qubit[3];
+            Controlled Microsoft.Quantum.Canon.ApplyToEachC([control], (X, register));
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            Reset(control);
+            results
+        }"#},
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(false),
+                Value::Result(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_to_each_c_not_applied() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use control = Qubit();
+            use register = Qubit[3];
+            X(control);
+            Controlled Microsoft.Quantum.Canon.ApplyToEachC([control], (X, register));
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            Reset(control);
+            results
+        }"#},
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_to_each_ca_applied() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use control = Qubit();
+            use register = Qubit[3];
+            Microsoft.Quantum.Canon.ApplyToEach(X, register);
+            Controlled Adjoint Microsoft.Quantum.Canon.ApplyToEachCA([control], (X, register));
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            Reset(control);
+            results
+        }"#},
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_to_each_ca_not_applied() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use control = Qubit();
+            use register = Qubit[3];
+            X(control);
+            Microsoft.Quantum.Canon.ApplyToEach(X, register);
+            Controlled Adjoint Microsoft.Quantum.Canon.ApplyToEachCA([control], (X, register));
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            Reset(control);
+            results
+        }"#},
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(false),
+                Value::Result(false),
+            ]
+            .into(),
+        ),
+    );
+}
 
 //
 // Sign, Abs, Min, Max, etc.
@@ -171,6 +315,24 @@ fn check_lg() {
     run_stdlib_test("Microsoft.Quantum.Math.Lg(2.0)", &Value::Double(1.0));
 }
 
+#[test]
+fn check_ceiling() {
+    run_stdlib_test("Microsoft.Quantum.Math.Ceiling(3.1)", &Value::Int(4));
+    run_stdlib_test("Microsoft.Quantum.Math.Ceiling(-3.7)", &Value::Int(-3));
+}
+
+#[test]
+fn check_floor() {
+    run_stdlib_test("Microsoft.Quantum.Math.Floor(3.7)", &Value::Int(3));
+    run_stdlib_test("Microsoft.Quantum.Math.Floor(-3.1)", &Value::Int(-4));
+}
+
+#[test]
+fn check_round() {
+    run_stdlib_test("Microsoft.Quantum.Math.Round(3.1)", &Value::Int(3));
+    run_stdlib_test("Microsoft.Quantum.Math.Round(-3.7)", &Value::Int(-4));
+}
+
 //
 // Modular arithmetic
 //
@@ -280,5 +442,65 @@ fn check_bitsize_i() {
     run_stdlib_test(
         "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
         &Value::Int(63),
+    );
+}
+
+#[test]
+fn check_reversed() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Reversed([5,6,7,8])",
+        &Value::Array(vec![Value::Int(8), Value::Int(7), Value::Int(6), Value::Int(5)].into()),
+    );
+}
+
+#[test]
+fn check_head() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
+}
+
+#[test]
+fn check_rest() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",
+        &Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
+    );
+}
+
+#[test]
+fn check_tail() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.Tail([5,6,7,8])", &Value::Int(8));
+}
+
+#[test]
+fn check_most() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
+        &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+    );
+}
+
+//
+// Mesurement namespace
+//
+
+#[test]
+fn check_measure_each_z() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[3];
+            X(register[0]);
+            X(register[2]);
+            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            ResetAll(register);
+            results
+        }"#},
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(false),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
     );
 }

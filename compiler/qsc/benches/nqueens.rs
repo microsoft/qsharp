@@ -10,10 +10,10 @@ const INPUT: &str = include_str!("./nqueens.qs");
 pub fn nqueens(c: &mut Criterion) {
     c.bench_function("NQueens large input file", |b| {
         b.iter(|| {
-            let mut store = PackageStore::new();
-            let std = store.insert(compile::std());
+            let mut store = PackageStore::new(compile::core());
+            let std = store.insert(compile::std(&store));
             let sources = SourceMap::new([("nqueens.qs".into(), INPUT.into())], None);
-            let (_, reports) = compile(&store, [std], sources);
+            let (_, reports) = compile(&store, &[std], sources);
             assert!(reports.is_empty());
         })
     });

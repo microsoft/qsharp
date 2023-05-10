@@ -15,10 +15,14 @@ let wasmModule: WebAssembly.Module | null = null;
 // Used to track if an instance is already instantiated
 let wasmInstance: wasm.InitOutput;
 
-export async function loadWasmModule(uri: string) {
-  const wasmRequst = await fetch(uri);
-  const wasmBuffer = await wasmRequst.arrayBuffer();
-  wasmModule = await WebAssembly.compile(wasmBuffer);
+export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
+  if (typeof uriOrBuffer === "string") {
+    const wasmRequst = await fetch(uriOrBuffer);
+    const wasmBuffer = await wasmRequst.arrayBuffer();
+    wasmModule = await WebAssembly.compile(wasmBuffer);
+  } else {
+    wasmModule = await WebAssembly.compile(uriOrBuffer);
+  }
 }
 
 export async function getCompiler(): Promise<ICompiler> {
@@ -28,12 +32,15 @@ export async function getCompiler(): Promise<ICompiler> {
   return new Compiler(wasm);
 }
 
-// Create the compiler inside a WebWorker and proxy requests
-export function getCompilerWorker(script: string): ICompilerWorker {
+// Create the compiler inside a WebWorker and proxy requests.
+// If the Worker was already created via other means and is ready to receive
+// messages, then the worker may be passed in and it will be initialized.
+export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 
-  // Create a WebWorker
-  const worker = new Worker(script);
+  // Create or use the WebWorker
+  const worker =
+    typeof workerArg === "string" ? new Worker(workerArg) : workerArg;
 
   // Send it the Wasm module to instantiate
   worker.postMessage({
@@ -62,4 +69,5 @@ export {
   type Example,
   type Exercise,
 } from "./katas.js";
+export { default as samples } from "./samples.generated.js";
 export { QscEventTarget } from "./events.js";

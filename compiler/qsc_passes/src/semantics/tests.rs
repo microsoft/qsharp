@@ -5,14 +5,14 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 
 use crate::semantics::validate_semantics;
 
 fn check(file: &str, expect: &Expect) {
-    let store = PackageStore::new();
+    let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let unit = compile(&store, [], sources);
+    let unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = validate_semantics(&unit);

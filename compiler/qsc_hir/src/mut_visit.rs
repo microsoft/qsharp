@@ -99,7 +99,6 @@ pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
 
     match &mut def.kind {
         TyDefKind::Field(name, _) => name.iter_mut().for_each(|n| vis.visit_ident(n)),
-        TyDefKind::Paren(def) => vis.visit_ty_def(def),
         TyDefKind::Tuple(defs) => defs.iter_mut().for_each(|d| vis.visit_ty_def(d)),
     }
 }
@@ -140,7 +139,6 @@ pub fn walk_functor_expr(vis: &mut impl MutVisitor, expr: &mut FunctorExpr) {
             vis.visit_functor_expr(rhs);
         }
         FunctorExprKind::Lit(_) => {}
-        FunctorExprKind::Paren(expr) => vis.visit_functor_expr(expr),
     }
 }
 
@@ -216,7 +214,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_pat(pat);
             vis.visit_expr(expr);
         }
-        ExprKind::Paren(expr) | ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
+        ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
             vis.visit_expr(expr);
         }
         ExprKind::Range(start, step, end) => {
@@ -249,7 +247,6 @@ pub fn walk_pat(vis: &mut impl MutVisitor, pat: &mut Pat) {
     match &mut pat.kind {
         PatKind::Bind(name) => vis.visit_ident(name),
         PatKind::Discard | PatKind::Elided => {}
-        PatKind::Paren(pat) => vis.visit_pat(pat),
         PatKind::Tuple(pats) => pats.iter_mut().for_each(|p| vis.visit_pat(p)),
     }
 }
@@ -259,7 +256,6 @@ pub fn walk_qubit_init(vis: &mut impl MutVisitor, init: &mut QubitInit) {
 
     match &mut init.kind {
         QubitInitKind::Array(len) => vis.visit_expr(len),
-        QubitInitKind::Paren(init) => vis.visit_qubit_init(init),
         QubitInitKind::Single => {}
         QubitInitKind::Tuple(inits) => inits.iter_mut().for_each(|i| vis.visit_qubit_init(i)),
     }
