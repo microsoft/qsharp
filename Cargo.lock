@@ -901,6 +901,7 @@ dependencies = [
 name = "qsharp_python"
 version = "0.0.0"
 dependencies = [
+ "miette",
  "num-bigint",
  "num-complex",
  "pyo3",
