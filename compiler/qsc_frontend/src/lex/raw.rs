@@ -154,35 +154,18 @@ pub(crate) enum StringToken {
     Interpolated(InterpolatedStart, Option<InterpolatedEnding>),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum Mode {
-    Normal,
-    Interpolated,
-}
-
 #[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
-    mode: Mode,
-    modes: Vec<Mode>,
+    interpolation: u8,
 }
 
 impl<'a> Lexer<'a> {
     pub(super) fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
-            mode: Mode::Normal,
-            modes: Vec::new(),
+            interpolation: 0,
         }
-    }
-
-    fn push_mode(&mut self, mode: Mode) {
-        self.modes.push(self.mode);
-        self.mode = mode;
-    }
-
-    fn pop_mode(&mut self) -> Option<Mode> {
-        self.modes.pop()
     }
 
     fn next_if_eq(&mut self, c: char) -> bool {
@@ -308,11 +291,11 @@ impl<'a> Lexer<'a> {
             } else {
                 return None;
             }
-        } else if self.mode == Mode::Interpolated {
+        } else if self.interpolation > 0 {
             if c == '"' {
                 (false, false)
             } else if c == '}' {
-                self.pop_mode().expect("mode pls");
+                self.interpolation = self.interpolation.checked_sub(1).expect("pls");
                 (true, false)
             } else {
                 return None;
@@ -340,7 +323,7 @@ impl<'a> Lexer<'a> {
             };
 
             if self.next_if_eq('{') {
-                self.push_mode(Mode::Interpolated);
+                self.interpolation = self.interpolation.checked_add(1).expect("pls");
                 Some(TokenKind::String(StringToken::Interpolated(
                     start,
                     Some(InterpolatedEnding::Brace),
