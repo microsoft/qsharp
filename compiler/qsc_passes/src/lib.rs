@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-mod Common;
+mod common;
 pub mod conjugate_invert;
 pub mod entry_point;
 mod invert_block;

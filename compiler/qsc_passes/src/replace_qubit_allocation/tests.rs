@@ -1,18 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{replace_qubit_allocation::replace_qubit_allocation, Common::BuiltInApi};
+use crate::replace_qubit_allocation::replace_qubit_allocation;
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 
 fn check(file: &str, expect: &Expect) {
-    let store = PackageStore::new();
+    let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, [], sources);
+    let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let build_in_api = BuiltInApi::mock();
-    let errors = replace_qubit_allocation(&mut unit, &build_in_api);
+    let errors = replace_qubit_allocation(&mut unit, store.core());
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());
     } else {

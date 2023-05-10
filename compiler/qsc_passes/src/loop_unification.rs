@@ -15,7 +15,7 @@ use qsc_hir::{
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::{Common::IdentTemplate, Error};
+use crate::{common::IdentTemplate, Error};
 
 #[cfg(test)]
 mod tests;
