@@ -300,6 +300,10 @@ pub fn std(store: &PackageStore) -> CompileUnit {
                 include_str!("../../../library/std/math.qs").into(),
             ),
             (
+                "measurement.qs".into(),
+                include_str!("../../../library/measurement.qs").into(),
+            ),
+            (
                 "qir.qs".into(),
                 include_str!("../../../library/std/qir.qs").into(),
             ),
