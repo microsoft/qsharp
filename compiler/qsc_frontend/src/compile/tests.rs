@@ -302,7 +302,7 @@ fn insert_core_call() {
         fn visit_block(&mut self, block: &mut Block) {
             let allocate = self
                 .core
-                .resolve_term("QIR.Intrinsic", "__quantum__rt__qubit_allocate")
+                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
 
             let callee = Expr {
@@ -361,12 +361,12 @@ fn insert_core_call() {
                 Parent: 0
                 Callable 0 [18-41] (Operation):
                     name: Ident 1 [28-31] "Foo"
-                    input: Pat 2 [31-33] [Type ()]: Unit
-                    output: ()
-                    body: Block: Block 3 [39-41] [Type ()]:
+                    input: Pat 2 [31-33] [Type Unit]: Unit
+                    output: Unit
+                    body: Block: Block 3 [39-41] [Type Unit]:
                         Stmt 5 [0-0]: Semi: Expr 6 [0-0] [Type Qubit]: Call:
-                            Expr 7 [0-0] [Type (() => Qubit)]: Var: Item 1 (Package 0)
-                            Expr 8 [0-0] [Type ()]: Unit"#]]
+                            Expr 7 [0-0] [Type (Unit -> Qubit)]: Var: Item 1 (Package 0)
+                            Expr 8 [0-0] [Type Unit]: Unit"#]]
     .assert_eq(&unit.package.to_string());
 }
 
