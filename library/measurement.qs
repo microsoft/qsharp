@@ -17,11 +17,11 @@ namespace Microsoft.Quantum.Measurement {
     /// This operation does not reset the measured qubits to the |0⟩ state, 
     /// leaving them in the state that corresponds to the measurement results.
     operation MeasureEachZ (register : Qubit[]) : Result[] {
-        let len = Length(register);
+        let len = register::Length;
         mutable results = [Zero, size = len];
         for i in 0..(len - 1) {
             set results w/= i <- M(register[i]);
         }
-        return results;
+        results
     }
 }
