@@ -51,7 +51,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         | TokenKind::Float
         | TokenKind::Ident
         | TokenKind::Int(_)
-        | TokenKind::String { .. } => None,
+        | TokenKind::String(_) => None,
     }
 }
 
