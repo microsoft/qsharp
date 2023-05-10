@@ -10,7 +10,10 @@ use qsc_ast::{
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, ItemId, LocalItemId, PackageId, PrimTy};
+use qsc_hir::{
+    global,
+    hir::{self, ItemId, LocalItemId, PackageId, PrimTy},
+};
 use std::{
     collections::{HashMap, HashSet},
     rc::Rc,
@@ -402,40 +405,24 @@ impl GlobalTable {
     }
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
-        for item in package.items.values() {
-            if item.visibility.map(|v| v.kind) == Some(hir::VisibilityKind::Internal) {
-                continue;
-            }
-            let Some(parent) = item.parent else { continue; };
-            let hir::ItemKind::Namespace(namespace, _) =
-                &package.items.get(parent).expect("parent should exist").kind else { continue; };
-
-            let res = Res::Item(ItemId {
-                package: Some(id),
-                item: item.id,
-            });
-
-            match &item.kind {
-                hir::ItemKind::Callable(decl) => {
-                    self.scope
-                        .terms
-                        .entry(Rc::clone(&namespace.name))
-                        .or_default()
-                        .insert(Rc::clone(&decl.name.name), res);
-                }
-                hir::ItemKind::Ty(name, _) => {
+        for global in global::iter_package(Some(id), package)
+            .filter(|global| global.visibility == hir::VisibilityKind::Public)
+        {
+            match global.kind {
+                global::Kind::Ty(ty) => {
                     self.scope
                         .tys
-                        .entry(Rc::clone(&namespace.name))
+                        .entry(global.namespace)
                         .or_default()
-                        .insert(Rc::clone(&name.name), res);
+                        .insert(global.name, Res::Item(ty.id));
+                }
+                global::Kind::Term(term) => {
                     self.scope
                         .terms
-                        .entry(Rc::clone(&namespace.name))
+                        .entry(global.namespace)
                         .or_default()
-                        .insert(Rc::clone(&name.name), res);
+                        .insert(global.name, Res::Item(term.id));
                 }
-                hir::ItemKind::Namespace(..) => {}
             }
         }
     }

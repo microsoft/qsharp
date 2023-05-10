@@ -53,13 +53,13 @@ impl Context {
     ///
     /// Returns a vector of errors if compiling the given sources fails.
     pub fn new(std: bool, sources: SourceMap) -> Result<Self, Vec<Error>> {
-        let mut store = PackageStore::new();
+        let mut store = PackageStore::new(compile::core());
         let mut dependencies = Vec::new();
         if std {
-            dependencies.push(store.insert(compile::std()));
+            dependencies.push(store.insert(compile::std(&store)));
         }
 
-        let (unit, errors) = compile(&store, dependencies, sources);
+        let (unit, errors) = compile(&store, &dependencies, sources);
         if errors.is_empty() {
             let package = store.insert(unit);
             Ok(Self { store, package })

@@ -52,10 +52,10 @@ enum Emit {
 
 fn main() -> miette::Result<ExitCode> {
     let cli = Cli::parse();
-    let mut store = PackageStore::new();
+    let mut store = PackageStore::new(qsc::compile::core());
     let mut dependencies = Vec::new();
     if !cli.nostdlib {
-        dependencies.push(store.insert(qsc::compile::std()));
+        dependencies.push(store.insert(qsc::compile::std(&store)));
     }
 
     let sources = cli
@@ -66,7 +66,7 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, dependencies, sources);
+    let (unit, errors) = compile(&store, &dependencies, sources);
 
     let out_dir = cli.out_dir.as_ref().map_or(".".as_ref(), PathBuf::as_path);
     for emit in &cli.emit {
