@@ -51,6 +51,14 @@ impl Interpreter {
         }
     }
 
+    /// Interprets Q# source code.
+    ///
+    /// :param input: The Q# source code to interpret.
+    /// :param output_fn: A callback function that will be called with each output.
+    ///
+    /// :returns value: The value returned by the last statement in the input.
+    ///
+    /// :raises QSharpError: If there is an error interpreting the input.
     fn interpret(
         &mut self,
         py: Python,
