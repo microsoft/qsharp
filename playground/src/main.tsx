@@ -15,7 +15,7 @@ import {
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
-import { Results } from "./results.js";
+import { Tabs } from "./results.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
 import { base64ToCode } from "./utils.js";
@@ -95,11 +95,11 @@ function App(props: {
             showExpr={false}
             shotError={shotError}
           ></Editor>
-          <Results
+          <Tabs
             evtTarget={props.evtTarget}
             showPanel={true}
             onShotError={onShotError}
-          ></Results>
+          ></Tabs>
         </>
       ) : (
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
