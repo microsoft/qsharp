@@ -550,9 +550,10 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
 }
 
 fn callable_functors(callable: &ast::CallableDecl) -> HashSet<hir::Functor> {
-    let mut functors = callable.functors.as_ref().map_or(HashSet::new(), |f| {
-        f.to_set().into_iter().map(lower_functor).collect()
-    });
+    let mut functors = callable
+        .functors
+        .as_ref()
+        .map_or(HashSet::new(), convert::eval_functor_expr);
 
     if let ast::CallableBody::Specs(specs) = &callable.body {
         for spec in specs {
