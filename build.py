@@ -6,6 +6,7 @@
 import argparse
 import os
 import platform
+import re
 import sys
 import venv
 import shutil
@@ -112,13 +113,14 @@ if build_cli:
     cargo_build_args = ["cargo", "build"]
     if build_type == "release":
         cargo_build_args.append("--release")
-    result = subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
+    subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
 
     if run_tests:
+        print("Running tests for the command line compiler")
         cargo_test_args = ["cargo", "test"]
         if build_type == "release":
             cargo_test_args.append("--release")
-        result = subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
+        subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
 
 if build_pip:
     print("Building the pip package")
@@ -155,9 +157,10 @@ if build_pip:
         wheels_dir,
         pip_src,
     ]
-    result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src)
+    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src)
 
     if run_tests:
+        print("Running tests for the pip package")
         pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pip_install_args = [
@@ -170,7 +173,7 @@ if build_pip:
         ]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]
-        result = subprocess.run(pytest_args, check=True, text=True, cwd=pip_src)
+        subprocess.run(pytest_args, check=True, text=True, cwd=pip_src)
 
 if build_wasm:
     print("Building the wasm crate")
@@ -211,21 +214,22 @@ if build_npm:
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
 
     npm_args = [npm_cmd, "run", "build"]
-    result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
+    subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
 
     if run_tests:
+        print("Running tests for the npm package")
         npm_test_args = ["node", "--test"]
-        result = subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
+        subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
 
 if build_play:
     print("Building the playground")
     play_args = [npm_cmd, "run", "build"]
-    result = subprocess.run(play_args, check=True, text=True, cwd=play_src)
+    subprocess.run(play_args, check=True, text=True, cwd=play_src)
 
 if build_vscode:
     print("Building the VS Code extension")
     vscode_args = [npm_cmd, "run", "build"]
-    result = subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+    subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
 
 if build_jupyter:
     print("Building the JupyterLab extension")
@@ -237,7 +241,7 @@ if build_jupyter:
     ):
         print("Not in a virtual python environment")
 
-        venv_dir = os.path.join(pip_src, ".venv")
+        venv_dir = os.path.join(jupyter_src, ".venv")
         # Create virtual environment under repo root
         if not os.path.exists(venv_dir):
             print(f"Creating a virtual environment under {venv_dir}")
@@ -254,15 +258,6 @@ if build_jupyter:
 
     # TODO: have a requirements.txt or some other way to do all this
 
-    pip_install_args = [python_bin, "-m", "pip", "install", "jupyterlab==4.0.0rc1"]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
-
-    # TEST:
-    # python -m pip install .[test]
-    # jupyter labextension list
-    # jupyter labextension list 2>&1 | grep -ie "qsharp_jupyterlab.*OK"
-    # python -m jupyterlab.browser_check
-
     # RELEASE BUILD:
     pip_install_args = [python_bin, "-m", "pip", "install", "build"]
     subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
@@ -270,14 +265,47 @@ if build_jupyter:
     pip_install_args = [python_bin, "-m", "build"]
     subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
 
-    # pip uninstall -y "qsharp_jupyterlab" jupyterlab
+    if run_tests:
+        print("Running tests for the JupyterLab extension")
+
+        # TODO: Make the below into a pytest
+
+        pip_install_args = [python_bin, "-m", "pip", "install", "jupyterlab==4.0.0rc1"]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
+
+        pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
+
+        # Run once just so the output shows up in the build log
+        subprocess.run(
+            [python_bin, "-m", "jupyter", "labextension", "list"],
+            check=True,
+            text=True,
+            cwd=jupyter_src,
+        )
+
+        # Run again, now capturing the output
+        result = subprocess.run(
+            [python_bin, "-m", "jupyter", "labextension", "list"],
+            capture_output=True,
+            check=True,
+            text=True,
+            cwd=jupyter_src,
+        )
+
+        if not re.search(r"qsharp_jupyterlab.*ok", result.stderr, re.IGNORECASE):
+            raise Exception(
+                "qsharp_jupyterlab extension is not properly installed (see output for details)"
+            )
+
+        # TODO: (also try it with --no-browser-test)
+        # python -m jupyterlab.browser_check
 
     # ARTIFACTS:
     # dist/qsharp_jupyterlab*
 
     # ISOLATED TEST:
     # pip install "jupyterlab~=3.1" qsharp_jupyterlab*.whl
-
     # jupyter labextension list
     # jupyter labextension list 2>&1 | grep -ie "qsharp_jupyterlab.*OK"
     # python -m jupyterlab.browser_check --no-chrome-test
