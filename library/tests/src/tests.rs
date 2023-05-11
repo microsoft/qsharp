@@ -431,8 +431,9 @@ fn check_gcd_l() {
 
 #[test]
 fn check_cfc_i() {
-    // TODO: It is not important if the function returns -3/-4 or 3/4,
-    // we should ignore this implementation details.
+    // NOTE: It is not important if the function returns -3/-4 or 3/4,
+    // we can ignore this implementation details or update a function
+    // to return canonical result.
     run_stdlib_test(
         "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 2)",
         &Value::Tuple(vec![Value::Int(-1), Value::Int(-1)].into()),
