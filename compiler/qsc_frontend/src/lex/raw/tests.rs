@@ -225,7 +225,7 @@ fn interpolated_string_braced() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -238,7 +238,7 @@ fn interpolated_string_braced() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -284,7 +284,7 @@ fn interpolated_string_unclosed_brace() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -306,7 +306,7 @@ fn interpolated_string_unclosed_brace_quote() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -378,7 +378,7 @@ fn interpolated_string_braced_index() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -415,7 +415,7 @@ fn interpolated_string_braced_index() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -439,7 +439,7 @@ fn interpolated_string_two_braced() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -452,9 +452,9 @@ fn interpolated_string_two_braced() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -467,7 +467,7 @@ fn interpolated_string_two_braced() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -491,7 +491,7 @@ fn interpolated_string_braced_normal_string() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -508,7 +508,7 @@ fn interpolated_string_braced_normal_string() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -532,7 +532,7 @@ fn nested_interpolated_string() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -543,7 +543,7 @@ fn nested_interpolated_string() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -556,7 +556,7 @@ fn nested_interpolated_string() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -567,7 +567,7 @@ fn nested_interpolated_string() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -591,7 +591,7 @@ fn nested_interpolated_string_with_exprs() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -620,7 +620,7 @@ fn nested_interpolated_string_with_exprs() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -633,7 +633,7 @@ fn nested_interpolated_string_with_exprs() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -644,7 +644,7 @@ fn nested_interpolated_string_with_exprs() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -668,7 +668,7 @@ fn nested_interpolated_string_followed_by_braces() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -679,7 +679,7 @@ fn nested_interpolated_string_followed_by_braces() {
                         Interpolated(
                             DollarQuote,
                             Some(
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                     ),
@@ -692,7 +692,7 @@ fn nested_interpolated_string_followed_by_braces() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),
@@ -703,7 +703,7 @@ fn nested_interpolated_string_followed_by_braces() {
                 Token {
                     kind: String(
                         Interpolated(
-                            LBrace,
+                            RBrace,
                             Some(
                                 Quote,
                             ),

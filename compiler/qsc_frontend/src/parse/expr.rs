@@ -318,11 +318,11 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     }
 
     s.advance();
-    while end == InterpolatedEnding::RBrace {
+    while end == InterpolatedEnding::LBrace {
         components.push(StringComponent::Expr(expr(s)?));
 
         let token = s.peek();
-        let TokenKind::String(StringToken::Interpolated(InterpolatedStart::LBrace, next_end)) =
+        let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
             token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
 
         let lit = shorten(1, 1, s.read());

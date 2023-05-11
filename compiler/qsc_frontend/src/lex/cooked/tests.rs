@@ -1022,7 +1022,7 @@ fn interpolated_string_braced() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1044,7 +1044,7 @@ fn interpolated_string_braced() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),
@@ -1095,7 +1095,7 @@ fn interpolated_string_unclosed_brace() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1120,7 +1120,7 @@ fn interpolated_string_unclosed_brace_quote() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1197,7 +1197,7 @@ fn interpolated_string_braced_index() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1252,7 +1252,7 @@ fn interpolated_string_braced_index() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),
@@ -1278,7 +1278,7 @@ fn interpolated_string_two_braced() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1300,8 +1300,8 @@ fn interpolated_string_two_braced() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
                                 RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1323,7 +1323,7 @@ fn interpolated_string_two_braced() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),
@@ -1349,7 +1349,7 @@ fn interpolated_string_braced_normal_string() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1373,7 +1373,7 @@ fn interpolated_string_braced_normal_string() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),
@@ -1399,7 +1399,7 @@ fn nested_interpolated_string() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1413,7 +1413,7 @@ fn nested_interpolated_string() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1435,7 +1435,7 @@ fn nested_interpolated_string() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),
@@ -1449,7 +1449,7 @@ fn nested_interpolated_string() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),
@@ -1475,7 +1475,7 @@ fn nested_interpolated_string_with_exprs() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1509,7 +1509,7 @@ fn nested_interpolated_string_with_exprs() {
                         kind: String(
                             Interpolated(
                                 DollarQuote,
-                                RBrace,
+                                LBrace,
                             ),
                         ),
                         span: Span {
@@ -1531,7 +1531,7 @@ fn nested_interpolated_string_with_exprs() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),
@@ -1545,7 +1545,7 @@ fn nested_interpolated_string_with_exprs() {
                     Token {
                         kind: String(
                             Interpolated(
-                                LBrace,
+                                RBrace,
                                 Quote,
                             ),
                         ),

@@ -335,7 +335,7 @@ impl<'a> Lexer<'a> {
                 let start = if start == '$' {
                     InterpolatedStart::DollarQuote
                 } else {
-                    InterpolatedStart::LBrace
+                    InterpolatedStart::RBrace
                 };
 
                 let end = if self.next_if_eq('{') {
@@ -343,7 +343,7 @@ impl<'a> Lexer<'a> {
                         .interpolation
                         .checked_add(1)
                         .expect("interpolation should not exceed maximum depth");
-                    Some(InterpolatedEnding::RBrace)
+                    Some(InterpolatedEnding::LBrace)
                 } else if self.next_if_eq('"') {
                     Some(InterpolatedEnding::Quote)
                 } else {
