@@ -47,10 +47,8 @@ path = "qsharp_jupyterlab/_version.py"
 dependencies = ["hatch-jupyter-builder>=0.5"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "qsharp_jupyterlab/labextension/static/style.js",
     "qsharp_jupyterlab/labextension/package.json",
 ]
-skip-if-exists = ["qsharp_jupyterlab/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
