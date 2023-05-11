@@ -80,10 +80,13 @@ impl From<usize> for NodeId {
 }
 
 /// A unique identifier for a package within a package store.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageId(usize);
 
 impl PackageId {
+    /// The package ID of the core library.
+    pub const CORE: Self = Self(0);
+
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
@@ -323,6 +326,30 @@ pub struct TyDef {
     pub kind: TyDefKind,
 }
 
+impl TyDef {
+    /// The type of the constructor for this type definition.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the constructed type.
+    #[must_use]
+    pub fn cons_ty(&self, id: ItemId) -> Ty {
+        Ty::Arrow(
+            CallableKind::Function,
+            Box::new(self.ty()),
+            Box::new(Ty::Udt(Res::Item(id))),
+            HashSet::new(),
+        )
+    }
+
+    fn ty(&self) -> Ty {
+        match &self.kind {
+            TyDefKind::Field(_, ty) => ty.clone(),
+            TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(Self::ty).collect()),
+        }
+    }
+}
+
 impl Display for TyDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
@@ -387,6 +414,38 @@ pub struct CallableDecl {
     pub functors: Option<FunctorExpr>,
     /// The body of the callable.
     pub body: CallableBody,
+}
+
+impl CallableDecl {
+    /// The type of the callable.
+    #[must_use]
+    pub fn ty(&self) -> Ty {
+        Ty::Arrow(
+            self.kind,
+            Box::new(self.input.ty.clone()),
+            Box::new(self.output.clone()),
+            self.functors(),
+        )
+    }
+
+    fn functors(&self) -> HashSet<Functor> {
+        let mut functors = self.functors.as_ref().map_or(HashSet::new(), |f| {
+            f.to_set().into_iter().map(Into::into).collect()
+        });
+
+        if let CallableBody::Specs(specs) = &self.body {
+            for spec in specs {
+                match spec.spec {
+                    Spec::Body => {}
+                    Spec::Adj => functors.extend([Functor::Adj]),
+                    Spec::Ctl => functors.extend([Functor::Ctl]),
+                    Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
+                }
+            }
+        }
+
+        functors
+    }
 }
 
 impl Display for CallableDecl {

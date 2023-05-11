@@ -14,6 +14,7 @@ num-bigint = { workspace = true }
 num-complex = { workspace = true }
 pyo3 = { workspace = true }
 qsc = { path = "../compiler/qsc" }
+miette = { workspace = true, features = ["fancy"] }
 
 [lib]
 crate-type = ["cdylib"]

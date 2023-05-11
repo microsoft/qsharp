@@ -37,17 +37,10 @@ impl GlobalTable {
             };
 
             match &item.kind {
-                hir::ItemKind::Callable(decl) => {
-                    self.globals.insert(item_id, convert::hir_callable_ty(decl));
-                }
-                hir::ItemKind::Namespace(..) => {}
-                hir::ItemKind::Ty(_, def) => {
-                    self.globals.insert(
-                        item_id,
-                        convert::ty_cons_ty(item_id, convert::hir_ty_def_ty(def)),
-                    );
-                }
-            }
+                hir::ItemKind::Callable(decl) => self.globals.insert(item_id, decl.ty()),
+                hir::ItemKind::Namespace(..) => None,
+                hir::ItemKind::Ty(_, def) => self.globals.insert(item_id, def.cons_ty(item_id)),
+            };
         }
     }
 }
@@ -221,12 +214,12 @@ impl Visitor<'_> for ItemCollector<'_> {
                     panic!("type should have item ID");
                 };
 
-                let (ty, errors) = convert::ast_ty_def_ty(self.resolutions, def);
+                let (ty, errors) = convert::ast_ty_def_cons_ty(self.resolutions, item, def);
                 for MissingTyError(span) in errors {
                     self.errors.push(Error(ErrorKind::MissingItemTy(span)));
                 }
 
-                self.globals.insert(item, convert::ty_cons_ty(item, ty));
+                self.globals.insert(item, ty);
             }
             _ => {}
         }

@@ -1,25 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::formatting::{DisplayableOutput, FormattingReceiver};
-use pyo3::{exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
+use crate::displayable_output::{DisplayableOutput, DisplayableState};
+use miette::Report;
+use num_bigint::BigUint;
+use num_complex::Complex64;
+use pyo3::{create_exception, exceptions::PyException, prelude::*, types::PyList, types::PyTuple};
 use qsc::{
     hir,
     interpret::{
-        stateful::{self, LineError, LineErrorKind},
+        output::{Error, Receiver},
+        stateful::{self, LineError},
         Value,
     },
     SourceMap,
 };
-use std::fmt::Write;
+use std::{fmt::Write, sync::Arc};
 
 #[pymodule]
-fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
     m.add_class::<Output>()?;
-    m.add_class::<Error>()?;
+    m.add("QSharpError", py.get_type::<QSharpError>())?;
 
     Ok(())
 }
@@ -47,75 +51,48 @@ impl Interpreter {
         }
     }
 
-    /// Interprets a line of Q#.
+    /// Interprets Q# source code.
     ///
-    /// :param expr: The line of Q# to interpret.
+    /// :param input: The Q# source code to interpret.
+    /// :param output_fn: A callback function that will be called with each output.
     ///
-    /// :returns (value, outputs, errors):
-    ///    value: The value of the last statement in the line.
-    ///    outputs: A list of outputs from the line. An output can be a state or a message.
-    ///    errors: A list of errors from the line. Errors can be compilation or runtime errors.
-    #[pyo3(text_signature = "(expr)")]
-    fn interpret(&mut self, py: Python, expr: &str) -> PyResult<(PyObject, PyObject, PyObject)> {
-        let mut receiver = FormattingReceiver::new();
-        let (value, errors) = match self.interpreter.interpret_line(&mut receiver, expr) {
-            Ok(value) => (value, Vec::new()),
-            Err(errors) => (Value::unit(), errors),
-        };
-        let outputs = receiver.outputs;
-
-        Ok((
-            ValueWrapper(value).into_py(py),
-            PyList::new(
-                py,
-                outputs.into_iter().map(|o| Py::new(py, Output(o)).unwrap()),
-            )
-            .into_py(py),
-            PyList::new(
-                py,
-                errors
-                    .into_iter()
-                    .map(|e| Py::new(py, Error::from(e)).unwrap()),
-            )
-            .into_py(py),
-        ))
-    }
-}
-
-#[pyclass(unsendable)]
-/// An error returned from the Q# interpreter.
-pub(crate) struct Error {
-    #[pyo3(get, set)]
-    error_type: String,
-    #[pyo3(get, set)]
-    message: String,
-}
-
-#[pymethods]
-/// An error returned from the Q# interpreter.
-impl Error {
-    fn __repr__(&self) -> String {
-        format!("{}: {}", self.error_type, self.message)
-    }
-
-    fn __str__(&self) -> String {
-        self.__repr__()
-    }
-}
-
-impl From<LineError> for Error {
-    fn from(error: LineError) -> Error {
-        match error.kind() {
-            LineErrorKind::Compile(e) => Error {
-                error_type: String::from("CompilationError"),
-                message: e.to_string(),
-            },
-            LineErrorKind::Eval(e) => Error {
-                error_type: String::from("RuntimeError"),
-                message: e.to_string(),
-            },
+    /// :returns value: The value returned by the last statement in the input.
+    ///
+    /// :raises QSharpError: If there is an error interpreting the input.
+    fn interpret(
+        &mut self,
+        py: Python,
+        input: &str,
+        callback: Option<PyObject>,
+    ) -> PyResult<PyObject> {
+        let mut receiver = OptionalCallbackReceiver { callback, py };
+        match self.interpreter.interpret_line(&mut receiver, input) {
+            Ok(value) => Ok(ValueWrapper(value).into_py(py)),
+            Err(errors) => Err(QSharpError::new_err(format_errors(input, errors))),
         }
     }
+}
+
+create_exception!(
+    module,
+    QSharpError,
+    pyo3::exceptions::PyException,
+    "An error returned from the Q# interpreter."
+);
+
+fn format_errors(expr: &str, errors: Vec<LineError>) -> String {
+    errors
+        .into_iter()
+        .map(|e| {
+            let mut message = String::new();
+            if let Some(stack_trace) = e.stack_trace() {
+                write!(message, "{stack_trace}").unwrap();
+            }
+            let report = Report::new(e).with_source_code(Arc::new(expr.to_owned()));
+            write!(message, "{report:?}").unwrap();
+            message
+        })
+        .collect::<String>()
 }
 
 #[pyclass(unsendable)]
@@ -139,7 +116,7 @@ impl Output {
     fn _repr_html_(&self) -> String {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_html(),
-            DisplayableOutput::Message(msg) => msg.clone(),
+            DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
         }
     }
 }
@@ -191,5 +168,48 @@ impl IntoPy<PyObject> for ValueWrapper {
             }
             _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
         }
+    }
+}
+
+struct OptionalCallbackReceiver<'a> {
+    callback: Option<PyObject>,
+    py: Python<'a>,
+}
+
+impl Receiver for OptionalCallbackReceiver<'_> {
+    fn state(
+        &mut self,
+        state: Vec<(BigUint, Complex64)>,
+        qubit_count: usize,
+    ) -> core::result::Result<(), Error> {
+        if let Some(callback) = &self.callback {
+            let out = DisplayableOutput::State(DisplayableState(state, qubit_count));
+            callback
+                .call1(
+                    self.py,
+                    PyTuple::new(
+                        self.py,
+                        &[Py::new(self.py, Output(out)).expect("should be able to create output")],
+                    ),
+                )
+                .map_err(|_| Error)?;
+        }
+        Ok(())
+    }
+
+    fn message(&mut self, msg: &str) -> core::result::Result<(), Error> {
+        if let Some(callback) = &self.callback {
+            let out = DisplayableOutput::Message(msg.to_owned());
+            callback
+                .call1(
+                    self.py,
+                    PyTuple::new(
+                        self.py,
+                        &[Py::new(self.py, Output(out)).expect("should be able to create output")],
+                    ),
+                )
+                .map_err(|_| Error)?;
+        }
+        Ok(())
     }
 }

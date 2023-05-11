@@ -21,6 +21,7 @@ use qsc_data_structures::{
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
+    global,
     hir::{self, PackageId},
 };
 use std::{fmt::Debug, sync::Arc};
@@ -138,16 +139,28 @@ pub(crate) enum ErrorKind {
     Validate(#[from] validate::Error),
 }
 
-#[derive(Default)]
 pub struct PackageStore {
+    core: global::Table,
     units: IndexMap<PackageId, CompileUnit>,
     next_id: PackageId,
 }
 
 impl PackageStore {
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(core: CompileUnit) -> Self {
+        let table = global::iter_package(Some(PackageId::CORE), &core.package).collect();
+        let mut units = IndexMap::new();
+        units.insert(PackageId::CORE, core);
+        Self {
+            core: table,
+            units,
+            next_id: PackageId::CORE.successor(),
+        }
+    }
+
+    #[must_use]
+    pub fn core(&self) -> &global::Table {
+        &self.core
     }
 
     pub fn insert(&mut self, unit: CompileUnit) -> PackageId {
@@ -189,16 +202,15 @@ impl MutVisitor for Offsetter {
 
 pub fn compile(
     store: &PackageStore,
-    dependencies: impl IntoIterator<Item = PackageId>,
+    dependencies: &[PackageId],
     sources: SourceMap,
 ) -> CompileUnit {
     let (mut package, parse_errors) = parse_all(&sources);
     let mut assigner = AstAssigner::new();
     assigner.visit_package(&mut package);
 
-    let dependencies: Vec<_> = dependencies.into_iter().collect();
-    let (resolutions, resolve_errors) = resolve_all(store, dependencies.iter().copied(), &package);
-    let (tys, ty_errors) = typeck_all(store, dependencies.iter().copied(), &package, &resolutions);
+    let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
+    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
     let validate_errors = validate(&package);
     let mut lowerer = Lowerer::new();
     let package = lowerer.with(&resolutions, &tys).lower_package(&package);
@@ -220,11 +232,39 @@ pub fn compile(
     }
 }
 
+/// Compiles the core library.
+///
+/// # Panics
+///
+/// Panics if the core library does not compile without errors.
+#[must_use]
+pub fn core() -> CompileUnit {
+    let store = PackageStore {
+        core: global::Table::default(),
+        units: IndexMap::new(),
+        next_id: PackageId::CORE,
+    };
+
+    let sources = SourceMap::new(
+        [(
+            "qir.qs".into(),
+            include_str!("../../../library/core/qir.qs").into(),
+        )],
+        None,
+    );
+
+    let mut unit = compile(&store, &[], sources);
+    assert_no_errors(&unit.sources, &mut unit.errors);
+    unit
+}
+
+/// Compiles the standard library.
+///
 /// # Panics
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std() -> CompileUnit {
+pub fn std(store: &PackageStore) -> CompileUnit {
     let sources = SourceMap::new(
         [
             (
@@ -233,62 +273,55 @@ pub fn std() -> CompileUnit {
             ),
             (
                 "arrays.qs".into(),
-                include_str!("../../../library/arrays.qs").into(),
+                include_str!("../../../library/std/arrays.qs").into(),
             ),
             (
                 "canon.qs".into(),
-                include_str!("../../../library/canon.qs").into(),
+                include_str!("../../../library/std/canon.qs").into(),
             ),
             (
                 "convert.qs".into(),
-                include_str!("../../../library/convert.qs").into(),
+                include_str!("../../../library/std/convert.qs").into(),
             ),
             (
                 "core.qs".into(),
-                include_str!("../../../library/core.qs").into(),
+                include_str!("../../../library/std/core.qs").into(),
             ),
             (
                 "diagnostics.qs".into(),
-                include_str!("../../../library/diagnostics.qs").into(),
+                include_str!("../../../library/std/diagnostics.qs").into(),
             ),
             (
                 "internal.qs".into(),
-                include_str!("../../../library/internal.qs").into(),
+                include_str!("../../../library/std/internal.qs").into(),
             ),
             (
                 "intrinsic.qs".into(),
-                include_str!("../../../library/intrinsic.qs").into(),
+                include_str!("../../../library/std/intrinsic.qs").into(),
             ),
             (
                 "math.qs".into(),
-                include_str!("../../../library/math.qs").into(),
+                include_str!("../../../library/std/math.qs").into(),
+            ),
+            (
+                "measurement.qs".into(),
+                include_str!("../../../library/std/measurement.qs").into(),
             ),
             (
                 "qir.qs".into(),
-                include_str!("../../../library/qir.qs").into(),
+                include_str!("../../../library/std/qir.qs").into(),
             ),
             (
                 "random.qs".into(),
-                include_str!("../../../library/random.qs").into(),
+                include_str!("../../../library/std/random.qs").into(),
             ),
         ],
         None,
     );
 
-    let mut unit = compile(&PackageStore::new(), [], sources);
-    if unit.errors.is_empty() {
-        unit
-    } else {
-        for error in unit.errors.drain(..) {
-            if let Some(source) = unit.sources.find_diagnostic(&error) {
-                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
-            } else {
-                eprintln!("{:?}", Report::new(error));
-            }
-        }
-
-        panic!("could not compile standard library");
-    }
+    let mut unit = compile(store, &[PackageId::CORE], sources);
+    assert_no_errors(&unit.sources, &mut unit.errors);
+    unit
 }
 
 fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
@@ -326,11 +359,11 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
 
 fn resolve_all(
     store: &PackageStore,
-    dependencies: impl IntoIterator<Item = PackageId>,
+    dependencies: &[PackageId],
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
-    for id in dependencies {
+    for &id in dependencies {
         let unit = store
             .get(id)
             .expect("dependency should be in package store before compilation");
@@ -345,12 +378,12 @@ fn resolve_all(
 
 fn typeck_all(
     store: &PackageStore,
-    dependencies: impl IntoIterator<Item = PackageId>,
+    dependencies: &[PackageId],
     package: &ast::Package,
     resolutions: &Resolutions,
 ) -> (Tys, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
-    for id in dependencies {
+    for &id in dependencies {
         let unit = store
             .get(id)
             .expect("dependency should be added to package store before compilation");
@@ -374,4 +407,18 @@ fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan 
 
 fn next_offset(sources: &[Source]) -> usize {
     sources.last().map_or(0, |s| s.offset + s.contents.len())
+}
+
+fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
+    if !errors.is_empty() {
+        for error in errors.drain(..) {
+            if let Some(source) = sources.find_diagnostic(&error) {
+                eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
+            } else {
+                eprintln!("{:?}", Report::new(error));
+            }
+        }
+
+        panic!("could not compile package");
+    }
 }

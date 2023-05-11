@@ -3,15 +3,13 @@
 
 from ._qsharp import (
     interpret,
-    interpret_file,
-    QSharpException,
-    CompilationException,
-    RuntimeException
+    interpret_file
 )
 
 from ._native import (
     Result,
-    Pauli
+    Pauli,
+    QSharpError
 )
 
 # IPython notebook specific features
@@ -30,7 +28,5 @@ __all__ = [
     "interpret_file",
     "Result",
     "Pauli",
-    "QSharpException",
-    "CompilationException",
-    "RuntimeException",
+    "QSharpError"
 ]
