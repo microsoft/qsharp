@@ -91,6 +91,79 @@ fn conjugate_invert() {
 }
 
 #[test]
+fn conjugate_invert_with_output() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation B(i : Int) : Unit is Adj {}
+                operation A() : Int {
+                    let val = within {
+                        B(1);
+                        B(2);
+                    }
+                    apply {
+                        B(3);
+                        B(4);
+                        7
+                    };
+                    val
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-254]:
+                    Namespace (Ident 36 [10-14] "Test"): Item 1, Item 2
+                Item 1 [21-58]:
+                    Parent: 0
+                    Callable 0 [21-58] (Operation):
+                        name: Ident 1 [31-32] "B"
+                        input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
+                        output: ()
+                        functors: Functor Expr 4 [52-55]: Adj
+                        body: Block: Block 5 [56-58]: <empty>
+                Item 2 [63-252]:
+                    Parent: 0
+                    Callable 6 [63-252] (Operation):
+                        name: Ident 7 [73-74] "A"
+                        input: Pat 8 [74-76] [Type ()]: Unit
+                        output: Int
+                        body: Block: Block 9 [83-252] [Type Int]:
+                            Stmt 10 [93-234]: Local (Immutable):
+                                Pat 11 [97-100] [Type Int]: Bind: Ident 12 [97-100] "val"
+                                Expr _id_ [0-0] [Type Int]: Expr Block: Block _id_ [0-0] [Type Int]:
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type ()]: Expr Block: Block 14 [110-157] [Type ()]:
+                                        Stmt 15 [124-129]: Semi: Expr 16 [124-128] [Type ()]: Call:
+                                            Expr 17 [124-125] [Type (Int => () is Adj)]: Var: Item 1
+                                            Expr 18 [126-127] [Type Int]: Lit: Int(1)
+                                        Stmt 19 [142-147]: Semi: Expr 20 [142-146] [Type ()]: Call:
+                                            Expr 21 [142-143] [Type (Int => () is Adj)]: Var: Item 1
+                                            Expr 22 [144-145] [Type Int]: Lit: Int(2)
+                                    Stmt 38 [0-0]: Local (Immutable):
+                                        Pat 39 [0-0] [Type Int]: Bind: Ident 37 [0-0] "apply_res"
+                                        Expr _id_ [0-0] [Type Int]: Expr Block: Block 23 [172-233] [Type Int]:
+                                            Stmt 24 [186-191]: Semi: Expr 25 [186-190] [Type ()]: Call:
+                                                Expr 26 [186-187] [Type (Int => () is Adj)]: Var: Item 1
+                                                Expr 27 [188-189] [Type Int]: Lit: Int(3)
+                                            Stmt 28 [204-209]: Semi: Expr 29 [204-208] [Type ()]: Call:
+                                                Expr 30 [204-205] [Type (Int => () is Adj)]: Var: Item 1
+                                                Expr 31 [206-207] [Type Int]: Lit: Int(4)
+                                            Stmt 32 [222-223]: Expr: Expr 33 [222-223] [Type Int]: Lit: Int(7)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type ()]: Expr Block: Block 14 [110-157] [Type ()]:
+                                        Stmt 19 [142-147]: Semi: Expr 20 [142-146] [Type ()]: Call:
+                                            Expr _id_ [142-143] [Type (Int => () is Adj)]: UnOp (Functor Adj):
+                                                Expr 21 [142-143] [Type (Int => () is Adj)]: Var: Item 1
+                                            Expr 22 [144-145] [Type Int]: Lit: Int(2)
+                                        Stmt 15 [124-129]: Semi: Expr 16 [124-128] [Type ()]: Call:
+                                            Expr _id_ [124-125] [Type (Int => () is Adj)]: UnOp (Functor Adj):
+                                                Expr 17 [124-125] [Type (Int => () is Adj)]: Var: Item 1
+                                            Expr 18 [126-127] [Type Int]: Lit: Int(1)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Int]: Var: Local 37
+                            Stmt 34 [243-246]: Expr: Expr 35 [243-246] [Type Int]: Var: Local 12"#]],
+    );
+}
+
+#[test]
 fn nested_conjugate_invert() {
     check(
         indoc! {"
