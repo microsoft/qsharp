@@ -7,9 +7,17 @@ namespace Microsoft.Quantum.Arithmetic {
     open Microsoft.Quantum.Diagnostics;
 
     /// # Summary
-    /// Applies `X` operations to qubits in a little-endian register for
-    /// corresponding 1 bits in an integer.
-     operation ApplyXorInPlace(value : Int, target : Qubit[]) : Unit is Adj+Ctl {
+    /// Applies a bitwise-XOR operation between a classical integer and an
+    /// integer represented by a register of qubits.
+    ///
+    /// # Description
+    /// Applies `X` operations to qubits in a little-endian register based on
+    /// 1 bits in an integer.
+    ///
+    /// Let us denote `value` by a and let y be an unsigned integer encoded in `target`,
+    /// then `ApplyXorInPlace` performs an operation given by the following map:
+    /// $\ket{y}\rightarrow \ket{y\oplus a}$ , where $\oplus$ is the bitwise exclusive OR operator.
+    operation ApplyXorInPlace(value : Int, target : Qubit[]) : Unit is Adj+Ctl {
         body(...) {
             Fact(value >= 0, "value must be non-negative");
             mutable runningValue = value;
