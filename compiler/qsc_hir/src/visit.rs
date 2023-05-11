@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
-    StmtKind, TyDef, TyDefKind, Visibility,
+    Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident, Item,
+    ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
+    TyDef, TyDefKind, Visibility,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -14,10 +14,6 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_item(&mut self, item: &'a Item) {
         walk_item(self, item);
-    }
-
-    fn visit_attr(&mut self, attr: &'a Attr) {
-        walk_attr(self, attr);
     }
 
     fn visit_visibility(&mut self, _: &'a Visibility) {}
@@ -67,7 +63,6 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 }
 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
-    item.attrs.iter().for_each(|a| vis.visit_attr(a));
     item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
@@ -77,11 +72,6 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
             vis.visit_ty_def(def);
         }
     }
-}
-
-pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
-    vis.visit_ident(&attr.name);
-    vis.visit_expr(&attr.arg);
 }
 
 pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {

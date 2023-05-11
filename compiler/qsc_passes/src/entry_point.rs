@@ -8,7 +8,9 @@ use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableBody, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind},
+    hir::{
+        Attr, CallableBody, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind,
+    },
     visit::Visitor,
 };
 use thiserror::Error;
@@ -34,11 +36,12 @@ pub enum Error {
 /// # Errors
 /// Returns an error if a single entry point with no parameters cannot be found.
 pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
-    let mut entry_points = vec![];
-    let mut visitor = EntryPointVisitor {
-        entry_points: &mut entry_points,
+    let mut finder = EntryPointFinder {
+        callables: Vec::new(),
     };
-    visitor.visit_package(package);
+    finder.visit_package(package);
+    let entry_points = finder.callables;
+
     if entry_points.len() == 1 {
         let ep = entry_points[0];
         let arg_count = if let PatKind::Tuple(args) = &ep.input.kind {
@@ -77,19 +80,15 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
     }
 }
 
-struct EntryPointVisitor<'a, 'b> {
-    entry_points: &'a mut Vec<&'b CallableDecl>,
+struct EntryPointFinder<'a> {
+    callables: Vec<&'a CallableDecl>,
 }
 
-impl<'a, 'b> Visitor<'b> for EntryPointVisitor<'a, 'b> {
-    fn visit_item(&mut self, item: &'b Item) {
-        if let ItemKind::Callable(decl) = &item.kind {
-            if item
-                .attrs
-                .iter()
-                .any(|attr| attr.name.name.as_ref() == "EntryPoint")
-            {
-                self.entry_points.push(decl);
+impl<'a> Visitor<'a> for EntryPointFinder<'a> {
+    fn visit_item(&mut self, item: &'a Item) {
+        if let ItemKind::Callable(callable) = &item.kind {
+            if item.attrs.iter().any(|a| a == &Attr::EntryPoint) {
+                self.callables.push(callable);
             }
         }
     }

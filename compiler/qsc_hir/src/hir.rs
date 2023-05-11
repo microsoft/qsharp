@@ -232,7 +232,7 @@ impl Display for Item {
             write!(indent, "\nParent: {parent}")?;
         }
         for attr in &self.attrs {
-            write!(indent, "\n{attr}")?;
+            write!(indent, "\n{attr:?}")?;
         }
         if let Some(visibility) = &self.visibility {
             write!(indent, "\n{visibility}")?;
@@ -289,29 +289,6 @@ pub struct Visibility {
 impl Display for Visibility {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Visibility {} {} ({:?})", self.id, self.span, self.kind)
-    }
-}
-
-/// An attribute.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Attr {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The name of the attribute.
-    pub name: Ident,
-    /// The argument to the attribute.
-    pub arg: Expr,
-}
-
-impl Display for Attr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Attr {} {} ({}):", self.id, self.span, self.name)?;
-        indent = set_indentation(indent, 1);
-        write!(indent, "\n{}", self.arg)?;
-        Ok(())
     }
 }
 
@@ -1183,6 +1160,13 @@ impl Display for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Ident {} {} \"{}\"", self.id, self.span, self.name)
     }
+}
+
+/// An attribute.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Attr {
+    /// Indicates that a callable is an entry point to a program.
+    EntryPoint,
 }
 
 /// A type.

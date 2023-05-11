@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
-    StmtKind, TyDef, TyDefKind, Visibility,
+    Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident, Item,
+    ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
+    TyDef, TyDefKind, Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -15,10 +15,6 @@ pub trait MutVisitor: Sized {
 
     fn visit_item(&mut self, item: &mut Item) {
         walk_item(self, item);
-    }
-
-    fn visit_attr(&mut self, attr: &mut Attr) {
-        walk_attr(self, attr);
     }
 
     fn visit_visibility(&mut self, _: &mut Visibility) {}
@@ -73,7 +69,6 @@ pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
 
 pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
     vis.visit_span(&mut item.span);
-    item.attrs.iter_mut().for_each(|a| vis.visit_attr(a));
     item.visibility
         .iter_mut()
         .for_each(|v| vis.visit_visibility(v));
@@ -86,12 +81,6 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             vis.visit_ty_def(def);
         }
     }
-}
-
-pub fn walk_attr(vis: &mut impl MutVisitor, attr: &mut Attr) {
-    vis.visit_span(&mut attr.span);
-    vis.visit_ident(&mut attr.name);
-    vis.visit_expr(&mut attr.arg);
 }
 
 pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {

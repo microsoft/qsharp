@@ -1,23 +1,38 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use crate::{
     resolve::{self, Resolutions},
     typeck::{convert, Tys},
 };
+use miette::Diagnostic;
 use qsc_ast::ast;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
 };
 use std::{clone::Clone, vec};
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub(super) enum Error {
+    #[error("unknown attribute {0}")]
+    #[diagnostic(help("supported attributes are: EntryPoint"))]
+    UnknownAttr(String, #[label] Span),
+    #[error("invalid attribute arguments: expected {0}")]
+    InvalidAttrArgs(&'static str, #[label] Span),
+}
 
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
+    errors: Vec<Error>,
 }
 
 impl Lowerer {
@@ -27,6 +42,7 @@ impl Lowerer {
             nodes: IndexMap::new(),
             parent: None,
             items: Vec::new(),
+            errors: Vec::new(),
         }
     }
 
@@ -38,6 +54,10 @@ impl Lowerer {
         self.items.drain(..)
     }
 
+    pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
+        self.errors.drain(..)
+    }
+
     pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions, tys: &'a Tys) -> With {
         With {
             lowerer: self,
@@ -46,8 +66,8 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn into_assigner(self) -> Assigner {
-        self.assigner
+    pub(super) fn into_assigner(self) -> (Assigner, Vec<Error>) {
+        (self.assigner, self.errors)
     }
 }
 
@@ -96,7 +116,12 @@ impl With<'_> {
     }
 
     fn lower_item(&mut self, item: &ast::Item) -> Option<LocalItemId> {
-        let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
+        let attrs = item
+            .attrs
+            .iter()
+            .filter_map(|a| self.lower_attr(a))
+            .collect();
+
         let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
         let (name_id, kind) = match &item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
@@ -125,12 +150,23 @@ impl With<'_> {
         Some(id)
     }
 
-    fn lower_attr(&mut self, attr: &ast::Attr) -> hir::Attr {
-        hir::Attr {
-            id: self.lower_id(attr.id),
-            span: attr.span,
-            name: self.lower_ident(&attr.name),
-            arg: self.lower_expr(&attr.arg),
+    fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
+        if attr.name.name.as_ref() == "EntryPoint" {
+            match &attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::EntryPoint),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()", attr.arg.span));
+                    None
+                }
+            }
+        } else {
+            self.lowerer.errors.push(Error::UnknownAttr(
+                attr.name.name.to_string(),
+                attr.name.span,
+            ));
+            None
         }
     }
 

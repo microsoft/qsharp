@@ -3,7 +3,7 @@
 
 use crate::{
     compile::PackageStore,
-    lower::Lowerer,
+    lower::{self, Lowerer},
     parse,
     resolve::{self, Resolver},
     typeck::{self, Checker},
@@ -27,6 +27,8 @@ enum ErrorKind {
     Resolve(#[from] resolve::Error),
     #[error("type error")]
     Type(#[from] typeck::Error),
+    #[error(transparent)]
+    Lower(#[from] lower::Error),
 }
 
 pub enum Fragment {
@@ -136,6 +138,7 @@ impl Compiler {
             .drain_errors()
             .map(|e| Error(e.into()))
             .chain(self.checker.drain_errors().map(|e| Error(e.into())))
+            .chain(self.lowerer.drain_errors().map(|e| Error(e.into())))
             .collect()
     }
 }
