@@ -176,7 +176,7 @@ fn generate_ctladj_distrib() {
                                 Block 18 [140-142]: <empty>
                             SpecDecl _id_ [21-148] (CtlAdj): Impl:
                                 Pat _id_ [21-148] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [21-148] [Type (Qubit)[]]: Bind: Ident 16 [21-148] "ctls"
+                                    Pat _id_ [21-148] [Type (Qubit)[]]: Bind: Ident 42 [21-148] "ctls"
                                     Pat _id_ [21-148] [Type Qubit]: Elided
                                 Block 12 [106-108]: <empty>
                 Item 2 [153-308]:
@@ -202,18 +202,18 @@ fn generate_ctladj_distrib() {
                                         Expr 40 [289-290] [Type Qubit]: Var: Local 22
                             SpecDecl _id_ [153-308] (Ctl): Impl:
                                 Pat _id_ [153-308] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [153-308] [Type (Qubit)[]]: Bind: Ident 42 [153-308] "ctls"
+                                    Pat _id_ [153-308] [Type (Qubit)[]]: Bind: Ident 43 [153-308] "ctls"
                                     Pat _id_ [153-308] [Type Qubit]: Elided
                                 Block 28 [215-244] [Type ()]:
                                     Stmt 29 [229-234]: Semi: Expr 30 [229-233] [Type ()]: Call:
                                         Expr 31 [229-230] [Type (((Qubit)[], Qubit) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 31 [229-230] [Type (Qubit => () is Adj + Ctl)]: Var: Item 1
                                         Expr 32 [231-232] [Type ((Qubit)[], Qubit)]: Tuple:
-                                            Expr _id_ [231-232] [Type (Qubit)[]]: Var: Local 42
+                                            Expr _id_ [231-232] [Type (Qubit)[]]: Var: Local 43
                                             Expr 32 [231-232] [Type Qubit]: Var: Local 22
                             SpecDecl _id_ [153-308] (CtlAdj): Impl:
                                 Pat _id_ [153-308] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [153-308] [Type (Qubit)[]]: Bind: Ident 42 [153-308] "ctls"
+                                    Pat _id_ [153-308] [Type (Qubit)[]]: Bind: Ident 44 [153-308] "ctls"
                                     Pat _id_ [153-308] [Type Qubit]: Elided
                                 Block 35 [265-302] [Type ()]:
                                     Stmt 36 [279-292]: Semi: Expr 37 [279-291] [Type ()]: Call:
@@ -221,7 +221,7 @@ fn generate_ctladj_distrib() {
                                             Expr 38 [279-288] [Type (Qubit => () is Adj + Ctl)]: UnOp (Functor Adj):
                                                 Expr 39 [287-288] [Type (Qubit => () is Adj + Ctl)]: Var: Item 1
                                         Expr 40 [289-290] [Type ((Qubit)[], Qubit)]: Tuple:
-                                            Expr _id_ [289-290] [Type (Qubit)[]]: Var: Local 42
+                                            Expr _id_ [289-290] [Type (Qubit)[]]: Var: Local 44
                                             Expr 40 [289-290] [Type Qubit]: Var: Local 22"#]],
     );
 }
@@ -502,7 +502,7 @@ fn generate_ctladj_self() {
                                 Block 7 [66-68]: <empty>
                             SpecDecl _id_ [21-68] (CtlAdj): Impl:
                                 Pat _id_ [21-68] [Type ((Qubit)[], Int)]: Tuple:
-                                    Pat _id_ [21-68] [Type (Qubit)[]]: Bind: Ident 28 [21-68] "ctls"
+                                    Pat _id_ [21-68] [Type (Qubit)[]]: Bind: Ident 29 [21-68] "ctls"
                                     Pat _id_ [21-68] [Type Int]: Elided
                                 Block 7 [66-68]: <empty>
                 Item 2 [73-178]:
@@ -533,37 +533,37 @@ fn generate_ctladj_self() {
                                         Expr 25 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-178] (Ctl): Impl:
                                 Pat _id_ [73-178] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [73-178] [Type (Qubit)[]]: Bind: Ident 29 [73-178] "ctls"
+                                    Pat _id_ [73-178] [Type (Qubit)[]]: Bind: Ident 30 [73-178] "ctls"
                                     Pat _id_ [73-178] [Type Qubit]: Elided
                                 Block 17 [135-150] [Type ()]:
                                     Stmt 18 [137-142]: Semi: Expr 19 [137-141] [Type ()]: Call:
                                         Expr 20 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 20 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 21 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 30
                                             Expr 21 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 22 [143-148]: Semi: Expr 23 [143-147] [Type ()]: Call:
                                         Expr 24 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 24 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 25 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 30
                                             Expr 25 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-178] (CtlAdj): Impl:
                                 Pat _id_ [73-178] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [73-178] [Type (Qubit)[]]: Bind: Ident 29 [73-178] "ctls"
+                                    Pat _id_ [73-178] [Type (Qubit)[]]: Bind: Ident 30 [73-178] "ctls"
                                     Pat _id_ [73-178] [Type Qubit]: Elided
                                 Block 17 [135-150] [Type ()]:
                                     Stmt 18 [137-142]: Semi: Expr 19 [137-141] [Type ()]: Call:
                                         Expr 20 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 20 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 21 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 30
                                             Expr 21 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 22 [143-148]: Semi: Expr 23 [143-147] [Type ()]: Call:
                                         Expr 24 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 24 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 25 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 30
                                             Expr 25 [145-146] [Type Int]: Lit: Int(2)"#]],
     );
 }
@@ -1227,7 +1227,7 @@ fn generate_ctladj_distribute() {
                                 Block 7 [66-68]: <empty>
                             SpecDecl _id_ [21-68] (CtlAdj): Impl:
                                 Pat _id_ [21-68] [Type ((Qubit)[], Int)]: Tuple:
-                                    Pat _id_ [21-68] [Type (Qubit)[]]: Bind: Ident 27 [21-68] "ctls"
+                                    Pat _id_ [21-68] [Type (Qubit)[]]: Bind: Ident 28 [21-68] "ctls"
                                     Pat _id_ [21-68] [Type Int]: Elided
                                 Block 7 [66-68]: <empty>
                 Item 2 [73-156]:
@@ -1260,24 +1260,24 @@ fn generate_ctladj_distribute() {
                                         Expr 21 [139-140] [Type Int]: Lit: Int(1)
                             SpecDecl _id_ [73-156] (Ctl): Impl:
                                 Pat _id_ [73-156] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [73-156] [Type (Qubit)[]]: Bind: Ident 28 [73-156] "ctls"
+                                    Pat _id_ [73-156] [Type (Qubit)[]]: Bind: Ident 29 [73-156] "ctls"
                                     Pat _id_ [73-156] [Type Qubit]: Elided
                                 Block 17 [135-150] [Type ()]:
                                     Stmt 18 [137-142]: Semi: Expr 19 [137-141] [Type ()]: Call:
                                         Expr 20 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 20 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 21 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 28
+                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 29
                                             Expr 21 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 22 [143-148]: Semi: Expr 23 [143-147] [Type ()]: Call:
                                         Expr 24 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 24 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 25 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 28
+                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 29
                                             Expr 25 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl _id_ [73-156] (CtlAdj): Impl:
                                 Pat _id_ [73-156] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [73-156] [Type (Qubit)[]]: Bind: Ident 28 [73-156] "ctls"
+                                    Pat _id_ [73-156] [Type (Qubit)[]]: Bind: Ident 30 [73-156] "ctls"
                                     Pat _id_ [73-156] [Type Qubit]: Elided
                                 Block 17 [135-150] [Type ()]:
                                     Stmt 22 [143-148]: Semi: Expr 23 [143-147] [Type ()]: Call:
@@ -1285,14 +1285,14 @@ fn generate_ctladj_distribute() {
                                             Expr _id_ [143-144] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
                                                 Expr 24 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 25 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 28
+                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 30
                                             Expr 25 [145-146] [Type Int]: Lit: Int(2)
                                     Stmt 18 [137-142]: Semi: Expr 19 [137-141] [Type ()]: Call:
                                         Expr _id_ [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr _id_ [137-138] [Type (Int => () is Adj + Ctl)]: UnOp (Functor Adj):
                                                 Expr 20 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 21 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 28
+                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 30
                                             Expr 21 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }
@@ -1334,7 +1334,7 @@ fn generate_ctladj_invert() {
                                 Block 7 [66-68]: <empty>
                             SpecDecl _id_ [21-68] (CtlAdj): Impl:
                                 Pat _id_ [21-68] [Type ((Qubit)[], Int)]: Tuple:
-                                    Pat _id_ [21-68] [Type (Qubit)[]]: Bind: Ident 28 [21-68] "ctls"
+                                    Pat _id_ [21-68] [Type (Qubit)[]]: Bind: Ident 29 [21-68] "ctls"
                                     Pat _id_ [21-68] [Type Int]: Elided
                                 Block 7 [66-68]: <empty>
                 Item 2 [73-191]:
@@ -1367,39 +1367,39 @@ fn generate_ctladj_invert() {
                                         Expr 21 [139-140] [Type Int]: Lit: Int(1)
                             SpecDecl _id_ [73-191] (Ctl): Impl:
                                 Pat _id_ [73-191] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [73-191] [Type (Qubit)[]]: Bind: Ident 29 [73-191] "ctls"
+                                    Pat _id_ [73-191] [Type (Qubit)[]]: Bind: Ident 30 [73-191] "ctls"
                                     Pat _id_ [73-191] [Type Qubit]: Elided
                                 Block 17 [135-150] [Type ()]:
                                     Stmt 18 [137-142]: Semi: Expr 19 [137-141] [Type ()]: Call:
                                         Expr 20 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 20 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 21 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 30
                                             Expr 21 [139-140] [Type Int]: Lit: Int(1)
                                     Stmt 22 [143-148]: Semi: Expr 23 [143-147] [Type ()]: Call:
                                         Expr 24 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                             Expr 24 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 25 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 30
                                             Expr 25 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl 26 [159-185] (CtlAdj): Impl:
-                                Pat _id_ [159-185] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [159-185] [Type (Qubit)[]]: Bind: Ident 29 [159-185] "ctls"
-                                    Pat _id_ [159-185] [Type Qubit]: Elided
+                                Pat _id_ [73-191] [Type ((Qubit)[], Qubit)]: Tuple:
+                                    Pat _id_ [73-191] [Type (Qubit)[]]: Bind: Ident 30 [73-191] "ctls"
+                                    Pat _id_ [73-191] [Type Qubit]: Elided
                                 Block 17 [135-150] [Type ()]:
                                     Stmt 22 [143-148]: Semi: Expr 23 [143-147] [Type ()]: Call:
                                         Expr _id_ [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Adj):
                                             Expr 24 [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                                 Expr 24 [143-144] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 25 [145-146] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 30
                                             Expr 25 [145-146] [Type Int]: Lit: Int(2)
                                     Stmt 18 [137-142]: Semi: Expr 19 [137-141] [Type ()]: Call:
                                         Expr _id_ [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Adj):
                                             Expr 20 [137-138] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Ctl):
                                                 Expr 20 [137-138] [Type (Int => () is Adj + Ctl)]: Var: Item 1
                                         Expr 21 [139-140] [Type ((Qubit)[], Int)]: Tuple:
-                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 29
+                                            Expr _id_ [139-140] [Type (Qubit)[]]: Var: Local 30
                                             Expr 21 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }

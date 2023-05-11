@@ -188,13 +188,9 @@ struct SpecImplPass<'a> {
 }
 
 impl<'a> SpecImplPass<'a> {
-    fn ctl_distrib(
-        &mut self,
-        input_ty: Ty,
-        spec_decl: &mut SpecDecl,
-        block: &Block,
-        ctls_id: NodeId,
-    ) {
+    fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
+        let ctls_id = self.assigner.next_id();
+
         // Clone the reference block and use the pass to update the calls inside.
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
@@ -242,7 +238,7 @@ impl<'a> SpecImplPass<'a> {
         input_ty: Ty,
         spec_decl: &mut SpecDecl,
         block: &Block,
-        ctls_id: Option<NodeId>,
+        ctls_pat: Option<&Pat>,
     ) {
         // Clone the reference block and use the pass to update the calls inside.
         let mut adj_block = block.clone();
@@ -262,8 +258,8 @@ impl<'a> SpecImplPass<'a> {
 
         // Update the specialization body to reflect the generated block.
         spec_decl.body = SpecBody::Impl(
-            if let Some(ctls_id) = ctls_id {
-                create_pat_for_ctl(input_ty, ctls_id, spec_decl.span)
+            if let Some(pat) = ctls_pat {
+                pat.clone()
             } else {
                 Pat {
                     id: NodeId::default(),
@@ -303,22 +299,11 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 return;
             };
 
-            let mut ctls_id = NodeId::default();
-
             if let Some(ctl) = ctl.as_mut() {
                 if ctl.body == SpecBody::Gen(SpecGen::Distribute)
                     || ctl.body == SpecBody::Gen(SpecGen::Auto)
                 {
-                    ctls_id = self.assigner.next_id();
-                    self.ctl_distrib(decl.input.ty.clone(), ctl, body_block, ctls_id);
-                } else if let SpecBody::Impl(pat, _) = &ctl.body {
-                    let PatKind::Tuple(tup) = &pat.kind else {
-                        panic!("control pattern should be tuple");
-                    };
-                    let PatKind::Bind(ctls) = &tup[0].kind else {
-                        panic!("first entry in controls tuple should be bind");
-                    };
-                    ctls_id = ctls.id;
+                    self.ctl_distrib(decl.input.ty.clone(), ctl, body_block);
                 }
             };
 
@@ -334,18 +319,13 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 match &ctladj.body {
                     SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
                         if let SpecBody::Impl(_, adj_block) = &adj.body {
-                            self.ctl_distrib(decl.input.ty.clone(), ctladj, adj_block, ctls_id);
+                            self.ctl_distrib(decl.input.ty.clone(), ctladj, adj_block);
                         }
                     }
                     SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),
                     SpecBody::Gen(SpecGen::Invert) => {
-                        if let SpecBody::Impl(_, ctl_block) = &ctl.body {
-                            self.adj_invert(
-                                decl.input.ty.clone(),
-                                ctladj,
-                                ctl_block,
-                                Some(ctls_id),
-                            );
+                        if let SpecBody::Impl(pat, ctl_block) = &ctl.body {
+                            self.adj_invert(decl.input.ty.clone(), ctladj, ctl_block, Some(pat));
                         }
                     }
                     _ => {}
@@ -357,34 +337,5 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             ctl.into_iter().for_each(|spec| spec_decls.push(spec));
             ctladj.into_iter().for_each(|spec| spec_decls.push(spec));
         }
-    }
-}
-
-fn create_pat_for_ctl(input_ty: Ty, ctls_id: NodeId, span: Span) -> Pat {
-    Pat {
-        id: NodeId::default(),
-        span,
-        ty: Ty::Tuple(vec![
-            Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-            input_ty.clone(),
-        ]),
-        kind: PatKind::Tuple(vec![
-            Pat {
-                id: NodeId::default(),
-                span,
-                ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                kind: PatKind::Bind(Ident {
-                    id: ctls_id,
-                    span,
-                    name: "ctls".into(),
-                }),
-            },
-            Pat {
-                id: NodeId::default(),
-                span,
-                ty: input_ty,
-                kind: PatKind::Elided,
-            },
-        ]),
     }
 }
