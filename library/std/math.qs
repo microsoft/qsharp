@@ -455,6 +455,7 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Finds the continued fraction convergent closest to `fraction`
     /// with the denominator less or equal to `denominatorBound`
+    /// Using process similar to this: https://nrich.maths.org/1397
     function ContinuedFractionConvergentI(fraction : (Int, Int), denominatorBound : Int): (Int, Int) {
         Fact(denominatorBound > 0, "Denominator bound must be positive");
 

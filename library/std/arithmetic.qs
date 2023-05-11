@@ -55,8 +55,8 @@ namespace Microsoft.Quantum.Arithmetic {
     /// # Description
     /// Given two $n$-bit integers encoded in LittleEndian registers `xs` and `ys`,
     /// the operation computes the sum of the two integers modulo $2^n$,
-    /// where $n$ is the bit size of the inputs `xs` and `ys`. It does not compute
-    /// the carry out bit.
+    /// where $n$ is the length of the inputs arrays `xs` and `ys`,
+    /// which must be positive. It does not compute the carry out bit.
     ///
     /// # Input
     /// ## xs
@@ -78,6 +78,7 @@ namespace Microsoft.Quantum.Arithmetic {
     : Unit is Adj + Ctl {
         Fact(xs::Length == ys::Length,
             "Input registers must have the same number of qubits." );
+        Fact(xs::Length > 0, "Array should not be empty.");
 
         if (xs::Length > 1) {
             within {
@@ -103,7 +104,7 @@ namespace Microsoft.Quantum.Arithmetic {
     /// LittleEndian qubit register encoding the second integer summand, is
     /// modified to hold the $n$ least significant bits of the sum.
     /// ## carry
-    /// Carry qubit, is xored with the most significant bit of the sum.
+    /// Carry qubit, is xored with the carry out bit of the addition.
     ///
     /// # References
     /// - Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro: "Quantum
@@ -118,6 +119,8 @@ namespace Microsoft.Quantum.Arithmetic {
     : Unit is Adj + Ctl {
         Fact(xs::Length == ys::Length,
             "Input registers must have the same number of qubits." );
+        Fact(xs::Length > 0, "Array should not be empty.");
+
 
         if (xs::Length > 1) {
             CNOT(xs[xs::Length-1], carry);
@@ -135,7 +138,8 @@ namespace Microsoft.Quantum.Arithmetic {
 
     /// # Summary
     /// Implements the outer operation for RippleCarryAdderTTK to conjugate
-    /// the inner operation to construct the full adder.
+    /// the inner operation to construct the full adder. Input registers
+    /// must be of the same size.
     ///
     /// # Input
     /// ## xs
@@ -237,6 +241,8 @@ namespace Microsoft.Quantum.Arithmetic {
         controlled ( controls, ... ) {
             Fact(xs::Length == ys::Length,
                 "Input registers must have the same number of qubits." );
+            Fact(xs::Length > 0, "Array should not be empty.");
+
 
             let nQubits = xs::Length; 
             for idx in 0..nQubits - 2 {

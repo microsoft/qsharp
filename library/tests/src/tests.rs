@@ -382,6 +382,7 @@ fn check_exp_mod_l() {
 fn check_inverse_mod_i() {
     run_stdlib_test("Microsoft.Quantum.Math.InverseModI(2,5)", &Value::Int(3));
     run_stdlib_test("Microsoft.Quantum.Math.InverseModI(3,10)", &Value::Int(7));
+    run_stdlib_test("Microsoft.Quantum.Math.InverseModI(-1,5)", &Value::Int(4));
 }
 
 #[test]
@@ -393,6 +394,10 @@ fn check_inverse_mod_l() {
     run_stdlib_test(
         "Microsoft.Quantum.Math.InverseModL(3L,10L)",
         &Value::BigInt(BigInt::from(7)),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.InverseModL(-1L,5L)",
+        &Value::BigInt(BigInt::from(4)),
     );
 }
 
@@ -709,5 +714,50 @@ fn check_add_i_c() {
             ]
             .into(),
         ), // 10010b = 18
+    );
+}
+
+#[test]
+fn check_add_i_1_1() {
+    run_stdlib_test(
+        {
+            "{  // Shortest case
+                use x = Qubit[1];
+                use y = Qubit[1];
+                open Microsoft.Quantum.Arithmetic;
+                X(x[0]);
+                AddI(x,y);
+                let result = M(y[0]);
+                ResetAll(x+y);
+                return result;
+        }"
+        },
+        &Value::Result(true)
+    );
+}
+
+#[test]
+fn check_add_i_1_2() {
+    run_stdlib_test(
+        {
+            "{  // Shortest unequal length case
+                use x = Qubit[1];
+                use y = Qubit[2];
+                open Microsoft.Quantum.Arithmetic;
+                X(x[0]);
+                X(y[0]);
+                AddI(x,y);
+                let result = [M(y[0]),M(y[1])];
+                ResetAll(x+y);
+                return result;
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(true), // 2
+            ]
+            .into(),
+        ),
     );
 }
