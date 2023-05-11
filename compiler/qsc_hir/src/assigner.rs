@@ -4,7 +4,7 @@
 use crate::{
     hir::{
         Block, CallableDecl, Expr, FunctorExpr, Ident, NodeId, Pat, QubitInit, SpecDecl, Stmt,
-        TyDef, Visibility,
+        TyDef,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -42,10 +42,6 @@ impl Default for Assigner {
 }
 
 impl MutVisitor for Assigner {
-    fn visit_visibility(&mut self, visibility: &mut Visibility) {
-        self.assign(&mut visibility.id);
-    }
-
     fn visit_ty_def(&mut self, def: &mut TyDef) {
         self.assign(&mut def.id);
         mut_visit::walk_ty_def(self, def);

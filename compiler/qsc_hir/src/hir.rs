@@ -218,7 +218,7 @@ pub struct Item {
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
-    pub visibility: Option<Visibility>,
+    pub visibility: Visibility,
     /// The item kind.
     pub kind: ItemKind,
 }
@@ -226,16 +226,17 @@ pub struct Item {
 impl Display for Item {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Item {} {}:", self.id, self.span)?;
+        write!(
+            indent,
+            "Item {} {} ({:?}):",
+            self.id, self.span, self.visibility
+        )?;
         indent = set_indentation(indent, 1);
         if let Some(parent) = self.parent {
             write!(indent, "\nParent: {parent}")?;
         }
         for attr in &self.attrs {
             write!(indent, "\n{attr:?}")?;
-        }
-        if let Some(visibility) = &self.visibility {
-            write!(indent, "\n{visibility}")?;
         }
         write!(indent, "\n{}", self.kind)?;
         Ok(())
@@ -272,23 +273,6 @@ impl Display for ItemKind {
             }
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
         }
-    }
-}
-
-/// A visibility modifier.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Visibility {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The visibility kind.
-    pub kind: VisibilityKind,
-}
-
-impl Display for Visibility {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Visibility {} {} ({:?})", self.id, self.span, self.kind)
     }
 }
 
@@ -1328,9 +1312,9 @@ impl FromStr for PrimField {
     }
 }
 
-/// A declaration visibility kind.
+/// The visibility of a declaration.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum VisibilityKind {
+pub enum Visibility {
     /// Visible everywhere.
     Public,
     /// Visible within a package.

@@ -36,9 +36,9 @@ fn convert_for_array() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-133]:
+                Item 0 [0-133] (Public):
                     Namespace (Ident 15 [10-14] "test"): Item 1
-                Item 1 [21-131]:
+                Item 1 [21-131] (Public):
                     Parent: 0
                     Callable 0 [21-131] (Operation):
                         name: Ident 1 [31-35] "Main"
@@ -90,9 +90,9 @@ fn convert_for_array_deconstruct() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-148]:
+                Item 0 [0-148] (Public):
                     Namespace (Ident 18 [10-14] "test"): Item 1
-                Item 1 [21-146]:
+                Item 1 [21-146] (Public):
                     Parent: 0
                     Callable 0 [21-146] (Operation):
                         name: Ident 1 [31-35] "Main"
@@ -146,9 +146,9 @@ fn convert_for_slice() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-143]:
+                Item 0 [0-143] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1
-                Item 1 [21-141]:
+                Item 1 [21-141] (Public):
                     Parent: 0
                     Callable 0 [21-141] (Operation):
                         name: Ident 1 [31-35] "Main"
@@ -206,9 +206,9 @@ fn convert_for_range() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-123]:
+                Item 0 [0-123] (Public):
                     Namespace (Ident 16 [10-14] "test"): Item 1
-                Item 1 [21-121]:
+                Item 1 [21-121] (Public):
                     Parent: 0
                     Callable 0 [21-121] (Operation):
                         name: Ident 1 [31-35] "Main"
@@ -280,9 +280,9 @@ fn convert_for_reverse_range() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-127]:
+                Item 0 [0-127] (Public):
                     Namespace (Ident 18 [10-14] "test"): Item 1
-                Item 1 [21-125]:
+                Item 1 [21-125] (Public):
                     Parent: 0
                     Callable 0 [21-125] (Operation):
                         name: Ident 1 [31-35] "Main"
@@ -355,9 +355,9 @@ fn convert_repeat() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-128]:
+                Item 0 [0-128] (Public):
                     Namespace (Ident 12 [10-14] "test"): Item 1
-                Item 1 [21-126]:
+                Item 1 [21-126] (Public):
                     Parent: 0
                     Callable 0 [21-126] (Operation):
                         name: Ident 1 [31-35] "Main"
@@ -398,9 +398,9 @@ fn convert_repeat_fixup() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-182]:
+                Item 0 [0-182] (Public):
                     Namespace (Ident 17 [10-14] "test"): Item 1
-                Item 1 [21-180]:
+                Item 1 [21-180] (Public):
                     Parent: 0
                     Callable 0 [21-180] (Operation):
                         name: Ident 1 [31-35] "Main"
@@ -457,9 +457,9 @@ fn convert_repeat_nested() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-403]:
+                Item 0 [0-403] (Public):
                     Namespace (Ident 42 [10-14] "test"): Item 1
-                Item 1 [21-401]:
+                Item 1 [21-401] (Public):
                     Parent: 0
                     Callable 0 [21-401] (Operation):
                         name: Ident 1 [31-35] "Main"

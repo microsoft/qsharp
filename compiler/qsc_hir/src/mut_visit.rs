@@ -4,7 +4,7 @@
 use crate::hir::{
     Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident, Item,
     ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
-    TyDef, TyDefKind, Visibility,
+    TyDef, TyDefKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -16,8 +16,6 @@ pub trait MutVisitor: Sized {
     fn visit_item(&mut self, item: &mut Item) {
         walk_item(self, item);
     }
-
-    fn visit_visibility(&mut self, _: &mut Visibility) {}
 
     fn visit_ty_def(&mut self, def: &mut TyDef) {
         walk_ty_def(self, def);
@@ -69,9 +67,6 @@ pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
 
 pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
     vis.visit_span(&mut item.span);
-    item.visibility
-        .iter_mut()
-        .for_each(|v| vis.visit_visibility(v));
 
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),

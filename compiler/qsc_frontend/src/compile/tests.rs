@@ -355,9 +355,9 @@ fn insert_core_call() {
 
     expect![[r#"
         Package:
-            Item 0 [0-43]:
+            Item 0 [0-43] (Public):
                 Namespace (Ident 4 [10-11] "A"): Item 1
-            Item 1 [18-41]:
+            Item 1 [18-41] (Public):
                 Parent: 0
                 Callable 0 [18-41] (Operation):
                     name: Ident 1 [28-31] "Foo"

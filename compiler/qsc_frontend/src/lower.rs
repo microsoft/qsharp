@@ -108,7 +108,7 @@ impl With<'_> {
             span: namespace.span,
             parent: None,
             attrs: Vec::new(),
-            visibility: None,
+            visibility: hir::Visibility::Public,
             kind: hir::ItemKind::Namespace(name, items),
         });
 
@@ -122,7 +122,11 @@ impl With<'_> {
             .filter_map(|a| self.lower_attr(a))
             .collect();
 
-        let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
+        let visibility = item
+            .visibility
+            .as_ref()
+            .map_or(hir::Visibility::Public, lower_visibility);
+
         let (name_id, kind) = match &item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Callable(decl) => (
@@ -167,17 +171,6 @@ impl With<'_> {
                 attr.name.span,
             ));
             None
-        }
-    }
-
-    fn lower_visibility(&mut self, visibility: &ast::Visibility) -> hir::Visibility {
-        hir::Visibility {
-            id: self.lower_id(visibility.id),
-            span: visibility.span,
-            kind: match visibility.kind {
-                ast::VisibilityKind::Public => hir::VisibilityKind::Public,
-                ast::VisibilityKind::Internal => hir::VisibilityKind::Internal,
-            },
         }
     }
 
@@ -497,6 +490,13 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
+    }
+}
+
+fn lower_visibility(visibility: &ast::Visibility) -> hir::Visibility {
+    match visibility.kind {
+        ast::VisibilityKind::Public => hir::Visibility::Public,
+        ast::VisibilityKind::Internal => hir::Visibility::Internal,
     }
 }
 

@@ -43,9 +43,9 @@ fn conjugate_invert() {
         "},
         &expect![[r#"
             Package:
-                Item 0 [0-218]:
+                Item 0 [0-218] (Public):
                     Namespace (Ident 30 [10-14] "Test"): Item 1, Item 2
-                Item 1 [21-58]:
+                Item 1 [21-58] (Public):
                     Parent: 0
                     Callable 0 [21-58] (Operation):
                         name: Ident 1 [31-32] "B"
@@ -53,7 +53,7 @@ fn conjugate_invert() {
                         output: ()
                         functors: Functor Expr 4 [52-55]: Adj
                         body: Block: Block 5 [56-58]: <empty>
-                Item 2 [63-216]:
+                Item 2 [63-216] (Public):
                     Parent: 0
                     Callable 6 [63-216] (Operation):
                         name: Ident 7 [73-74] "A"
@@ -114,9 +114,9 @@ fn nested_conjugate_invert() {
         "},
         &expect![[r#"
             Package:
-                Item 0 [0-357]:
+                Item 0 [0-357] (Public):
                     Namespace (Ident 46 [10-14] "Test"): Item 1, Item 2
-                Item 1 [21-58]:
+                Item 1 [21-58] (Public):
                     Parent: 0
                     Callable 0 [21-58] (Operation):
                         name: Ident 1 [31-32] "B"
@@ -124,7 +124,7 @@ fn nested_conjugate_invert() {
                         output: ()
                         functors: Functor Expr 4 [52-55]: Adj
                         body: Block: Block 5 [56-58]: <empty>
-                Item 2 [63-355]:
+                Item 2 [63-355] (Public):
                     Parent: 0
                     Callable 6 [63-355] (Operation):
                         name: Ident 7 [73-74] "A"
@@ -337,9 +337,9 @@ fn conjugate_mutable_correct_use_succeeds() {
         "},
         &expect![[r#"
             Package:
-                Item 0 [0-314]:
+                Item 0 [0-314] (Public):
                     Namespace (Ident 46 [10-14] "Test"): Item 1, Item 2
-                Item 1 [21-58]:
+                Item 1 [21-58] (Public):
                     Parent: 0
                     Callable 0 [21-58] (Operation):
                         name: Ident 1 [31-32] "B"
@@ -347,7 +347,7 @@ fn conjugate_mutable_correct_use_succeeds() {
                         output: ()
                         functors: Functor Expr 4 [52-55]: Adj
                         body: Block: Block 5 [56-58]: <empty>
-                Item 2 [63-312]:
+                Item 2 [63-312] (Public):
                     Parent: 0
                     Callable 6 [63-312] (Operation):
                         name: Ident 7 [73-74] "A"

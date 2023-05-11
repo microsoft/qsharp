@@ -4,7 +4,7 @@
 use crate::hir::{
     Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident, Item,
     ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
-    TyDef, TyDefKind, Visibility,
+    TyDef, TyDefKind,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -15,8 +15,6 @@ pub trait Visitor<'a>: Sized {
     fn visit_item(&mut self, item: &'a Item) {
         walk_item(self, item);
     }
-
-    fn visit_visibility(&mut self, _: &'a Visibility) {}
 
     fn visit_ty_def(&mut self, def: &'a TyDef) {
         walk_ty_def(self, def);
@@ -63,7 +61,6 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 }
 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
-    item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) => vis.visit_ident(name),
