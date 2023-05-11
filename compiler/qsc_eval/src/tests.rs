@@ -2561,3 +2561,8 @@ fn global_callable_as_arg() {
         &expect!["[2, 2, 2]"],
     );
 }
+
+#[test]
+fn conjugate_output_preserved() {
+    check_expr("", "{let x = within{}apply{4}; x}", &expect!["4"]);
+}

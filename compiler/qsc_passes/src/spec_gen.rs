@@ -109,9 +109,18 @@ impl MutVisitor for SpecPlacePass {
                 });
             }
 
+            let has_explicit_adj = spec_decl
+                .iter()
+                .any(|s| s.spec == Spec::Adj && matches!(s.body, SpecBody::Impl(..)));
+            let has_explicit_ctl = spec_decl
+                .iter()
+                .any(|s| s.spec == Spec::Ctl && matches!(s.body, SpecBody::Impl(..)));
+
             if is_ctladj && spec_decl.iter().all(|s| s.spec != Spec::CtlAdj) {
                 let gen = if is_self_adjoint(&spec_decl) {
                     SpecGen::Slf
+                } else if has_explicit_ctl && !has_explicit_adj {
+                    SpecGen::Invert
                 } else {
                     SpecGen::Distribute
                 };
@@ -179,9 +188,14 @@ struct SpecImplPass<'a> {
 }
 
 impl<'a> SpecImplPass<'a> {
-    fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
+    fn ctl_distrib(
+        &mut self,
+        input_ty: Ty,
+        spec_decl: &mut SpecDecl,
+        block: &Block,
+        ctls_id: NodeId,
+    ) {
         // Clone the reference block and use the pass to update the calls inside.
-        let ctls_id = self.assigner.next_id();
         let mut ctl_block = block.clone();
         let mut distrib = CtlDistrib {
             ctls: Res::Local(ctls_id),
@@ -223,7 +237,13 @@ impl<'a> SpecImplPass<'a> {
         );
     }
 
-    fn adj_invert(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
+    fn adj_invert(
+        &mut self,
+        input_ty: Ty,
+        spec_decl: &mut SpecDecl,
+        block: &Block,
+        ctls_id: Option<NodeId>,
+    ) {
         // Clone the reference block and use the pass to update the calls inside.
         let mut adj_block = block.clone();
         if let Err(invert_errors) = adj_invert_block(self.assigner, &mut adj_block) {
@@ -242,11 +262,15 @@ impl<'a> SpecImplPass<'a> {
 
         // Update the specialization body to reflect the generated block.
         spec_decl.body = SpecBody::Impl(
-            Pat {
-                id: NodeId::default(),
-                ty: input_ty,
-                span: spec_decl.span,
-                kind: PatKind::Elided,
+            if let Some(ctls_id) = ctls_id {
+                create_pat_for_ctl(input_ty, ctls_id, spec_decl.span)
+            } else {
+                Pat {
+                    id: NodeId::default(),
+                    ty: input_ty,
+                    span: spec_decl.span,
+                    kind: PatKind::Elided,
+                }
             },
             adj_block,
         );
@@ -267,23 +291,34 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             }
 
             let Some(body) = body else {
-                    self.errors.push(Error::MissingBody(decl.span));
-                    return;
-                };
+                self.errors.push(Error::MissingBody(decl.span));
+                return;
+            };
             let SpecBody::Impl(_, body_block) = &body.body else {
-                    if body.body == SpecBody::Gen(SpecGen::Intrinsic) && [adj, ctl, ctladj].iter().any(Option::is_some) {
-                        self.errors.push(Error::MissingBody(body.span));
-                    } else {
-                        spec_decls.push(body);
-                    }
-                    return;
-                };
+                if body.body == SpecBody::Gen(SpecGen::Intrinsic) && [adj, ctl, ctladj].iter().any(Option::is_some) {
+                    self.errors.push(Error::MissingBody(body.span));
+                } else {
+                    spec_decls.push(body);
+                }
+                return;
+            };
+
+            let mut ctls_id = NodeId::default();
 
             if let Some(ctl) = ctl.as_mut() {
                 if ctl.body == SpecBody::Gen(SpecGen::Distribute)
                     || ctl.body == SpecBody::Gen(SpecGen::Auto)
                 {
-                    self.ctl_distrib(decl.input.ty.clone(), ctl, body_block);
+                    ctls_id = self.assigner.next_id();
+                    self.ctl_distrib(decl.input.ty.clone(), ctl, body_block, ctls_id);
+                } else if let SpecBody::Impl(pat, _) = &ctl.body {
+                    let PatKind::Tuple(tup) = &pat.kind else {
+                        panic!("control pattern should be tuple");
+                    };
+                    let PatKind::Bind(ctls) = &tup[0].kind else {
+                        panic!("first entry in controls tuple should be bind");
+                    };
+                    ctls_id = ctls.id;
                 }
             };
 
@@ -291,7 +326,7 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 if adj.body == SpecBody::Gen(SpecGen::Slf) {
                     adj.body = body.body.clone();
                 } else if adj.body == SpecBody::Gen(SpecGen::Invert) {
-                    self.adj_invert(decl.input.ty.clone(), adj, body_block);
+                    self.adj_invert(decl.input.ty.clone(), adj, body_block, None);
                 }
             }
 
@@ -299,13 +334,18 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
                 match &ctladj.body {
                     SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
                         if let SpecBody::Impl(_, adj_block) = &adj.body {
-                            self.ctl_distrib(decl.input.ty.clone(), ctladj, adj_block);
+                            self.ctl_distrib(decl.input.ty.clone(), ctladj, adj_block, ctls_id);
                         }
                     }
                     SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),
                     SpecBody::Gen(SpecGen::Invert) => {
                         if let SpecBody::Impl(_, ctl_block) = &ctl.body {
-                            self.adj_invert(decl.input.ty.clone(), ctladj, ctl_block);
+                            self.adj_invert(
+                                decl.input.ty.clone(),
+                                ctladj,
+                                ctl_block,
+                                Some(ctls_id),
+                            );
                         }
                     }
                     _ => {}
@@ -317,5 +357,34 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             ctl.into_iter().for_each(|spec| spec_decls.push(spec));
             ctladj.into_iter().for_each(|spec| spec_decls.push(spec));
         }
+    }
+}
+
+fn create_pat_for_ctl(input_ty: Ty, ctls_id: NodeId, span: Span) -> Pat {
+    Pat {
+        id: NodeId::default(),
+        span,
+        ty: Ty::Tuple(vec![
+            Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+            input_ty.clone(),
+        ]),
+        kind: PatKind::Tuple(vec![
+            Pat {
+                id: NodeId::default(),
+                span,
+                ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                kind: PatKind::Bind(Ident {
+                    id: ctls_id,
+                    span,
+                    name: "ctls".into(),
+                }),
+            },
+            Pat {
+                id: NodeId::default(),
+                span,
+                ty: input_ty,
+                kind: PatKind::Elided,
+            },
+        ]),
     }
 }
