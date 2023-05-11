@@ -3,25 +3,21 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
-import { ICommandPalette } from '@jupyterlab/apputils';
 import * as codemirror from '@jupyterlab/codemirror';
+import * as simpleMode from '@codemirror/legacy-modes/mode/simple-mode';
 import * as notebook from '@jupyterlab/notebook';
+import { LanguageSupport, StreamLanguage } from '@codemirror/language';
 
 /**
  * Initialization data for the qsharp_jupyterlab extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: 'jupyterlab-apod',
+  id: 'qsharp',
   autoStart: true,
-  requires: [
-    ICommandPalette,
-    codemirror.ICodeMirror,
-    notebook.INotebookTracker
-  ],
+  requires: [codemirror.IEditorLanguageRegistry, notebook.INotebookTracker],
   activate: async (
     app: JupyterFrontEnd,
-    palette: ICommandPalette,
-    codemirror: codemirror.ICodeMirror,
+    codemirrorLanguageRegistry: codemirror.IEditorLanguageRegistry,
     notebookTracker: notebook.INotebookTracker
   ) => {
     let rules = [
@@ -93,53 +89,39 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     }
 
-    // Register the mode defined above with CodeMirror
-    codemirror.CodeMirror.defineSimpleMode('qsharp', { start: simpleRules });
-    codemirror.CodeMirror.defineMIME('text/x-qsharp', 'qsharp');
+    const parser = simpleMode.simpleMode({ start: simpleRules });
 
-    console.log(codemirror.CodeMirror.modes);
-    console.log(codemirror.CodeMirror.mimeModes);
+    const languageSupport = new LanguageSupport(StreamLanguage.define(parser));
 
-    notebookTracker.currentChanged.connect((sender, args) => {
+    codemirrorLanguageRegistry.addLanguage({
+      name: 'qsharp',
+      mime: 'text/x-qsharp',
+      support: languageSupport
+    });
+
+    notebookTracker.currentChanged.connect((notebookTracker, notebookPanel) => {
       console.log('current notebook changed.');
-      console.log(sender);
-      console.log(args);
 
-      if (args) {
-        args.content.modelContentChanged.connect((sender, args) => {
+      if (notebookPanel) {
+        // TODO: I'm pretty sure I'm attaching too many handlers
+        notebookPanel.content.modelContentChanged.connect((sender, args) => {
           console.log('notebook model content changed.');
-          console.log(sender);
 
-          sender.widgets.forEach(c => {
-            if (c.model.type === 'code') {
-              c.editor.model.mimeTypeChanged.connect((sender, args) => {
-                console.trace();
-                console.log(
-                  `mime type changed! ${args.name} ${args.oldValue} ${args.newValue}`
-                );
-                sender.value
-              });
-
-              const cellMagic =
-                (c.model.value.text.startsWith('%%qsharp') && 'qsharp') ||
-                (c.model.value.text.startsWith('%%javascript') && 'javascript');
-
-              if (cellMagic) {
-                if (cellMagic === 'qsharp') {
+          for (const cell of sender.widgets) {
+            if (cell.model.type === 'code') {
+              cell.ready.then(() => {
+                if (
+                  cell.model.sharedModel.source.startsWith('%%qsharp') &&
+                  cell.model.mimeType !== 'text/x-qsharp'
+                ) {
                   console.log("updating type to 'text/x-qsharp'");
-                  c.model.mimeType = 'text/x-qsharp';
-                } else if (cellMagic === 'javascript') {
-                  console.log("updating type to 'text/javascript'");
-                  c.model.mimeType = 'text/javascript';
+                  cell.model.mimeType = 'text/x-qsharp';
+                  console.log(cell.editorConfig);
+                  cell.update();
                 }
-                
-                console.log(c.editor);
-                console.log(c.editor.model.mimeType);
-                console.log(c.editor.getOption('mode' as any));
-                c.editor.setOption('mode' as any, cellMagic);
-              }
+              });
             }
-          });
+          }
         });
       }
     });
