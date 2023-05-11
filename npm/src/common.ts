@@ -33,7 +33,12 @@ export interface ResultMsg {
   result: Result;
 }
 
-export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
+export interface HirMsg {
+  type: "HIR";
+  hir: string;
+}
+
+export type EventMsg = ResultMsg | DumpMsg | MessageMsg | HirMsg;
 
 export function outputAsResult(msg: string): ResultMsg | null {
   try {
@@ -65,6 +70,18 @@ export function outputAsMessage(msg: string): MessageMsg | null {
   return null;
 }
 
+export function outputAsHir(msg: string): HirMsg | null {
+  try {
+    const obj = JSON.parse(msg);
+    if (obj?.type == "HIR" && typeof obj.hir == "string") {
+      return obj as HirMsg;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function outputAsDump(msg: string): DumpMsg | null {
   try {
     const obj = JSON.parse(msg);
@@ -78,7 +95,7 @@ export function outputAsDump(msg: string): DumpMsg | null {
 }
 
 export function eventStringToMsg(msg: string): EventMsg | null {
-  return outputAsResult(msg) || outputAsMessage(msg) || outputAsDump(msg);
+  return outputAsResult(msg) || outputAsMessage(msg) || outputAsDump(msg) || outputAsHir(msg);
 }
 
 export type ShotResult = {
@@ -138,7 +155,7 @@ export function mapUtf8UnitsToUtf16Units(
   let utf8Index = 0;
   let posArrayIndex = 0;
   let nextUtf8Target = sorted_pos[posArrayIndex];
-  for (;;) {
+  for (; ;) {
     // Walk though the source code maintaining a UTF-8 to UTF-16 code unit index mapping.
     // When the UTF-8 index >= the next searched for index, save that result and increment.
     // If the end of source or end of searched for positions is reached, then break

@@ -10,6 +10,7 @@ interface QscEventMap {
   Message: QscEvent<string>;
   DumpMachine: QscEvent<Dump>;
   Result: QscEvent<Result>;
+  HIR: QscEvent<string>;
   uiResultsRefresh: QscEvent<void>;
 }
 
@@ -55,6 +56,7 @@ function makeResultObj(): ShotResult {
 
 export class QscEventTarget extends EventTarget implements IQscEventTarget {
   private results: ShotResult[] = [];
+  private hir: string = "Default HIR";
   private shotActive = false;
   private animationFrameId = 0;
   private supportsUiRefresh = false;
@@ -93,6 +95,7 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
         this.onDumpMachine(ev.detail)
       );
       this.addEventListener("Result", (ev) => this.onResult(ev.detail));
+      this.addEventListener("HIR", (ev) => this.onHir(ev.detail));
     }
   }
 
@@ -102,6 +105,11 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
     const shotIdx = this.results.length - 1;
     this.results[shotIdx].events.push({ type: "Message", message: msg });
 
+    this.queueUiRefresh();
+  }
+
+  private onHir(msg: string) {
+    this.hir = msg;
     this.queueUiRefresh();
   }
 
@@ -149,6 +157,10 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
 
   getResults(): ShotResult[] {
     return this.results;
+  }
+
+  getHir(): string {
+    return this.hir;
   }
 
   resultCount(): number {

@@ -268,12 +268,16 @@ function ResultsTab(props: {
 }
 
 function HirTab(props: {
+  evtTarget: QscEventTarget;
   activeTab: string;
 }) {
+  const evtTarget = props.evtTarget;
+  let hir = evtTarget.getHir();
+
   return (
     props.activeTab === "hir-tab" ?
       <div>
-        This is an HIR
+        {hir}
       </div>
       : null
   );
@@ -315,7 +319,7 @@ export function Tabs(props: {
         </div>
       ) : null}
       <ResultsTab {...props} activeTab={activeTab} />
-      <HirTab activeTab={activeTab} />
+      <HirTab {...props} activeTab={activeTab} />
     </div>
   );
 }
