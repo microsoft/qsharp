@@ -732,7 +732,7 @@ fn check_add_i_1_1() {
                 return result;
         }"
         },
-        &Value::Result(true)
+        &Value::Result(true),
     );
 }
 
