@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.4.0", "jupyterlab>=3.4.7,<4.0.0", "hatch-nodejs-version"]
+requires = ["hatchling>=1.4.0", "jupyterlab==4.0.0rc1", "hatch-nodejs-version"]
 build-backend = "hatchling.build"
 
 [project]
@@ -10,7 +10,7 @@ requires-python = ">=3.7"
 classifiers = [
     "Framework :: Jupyter",
     "Framework :: Jupyter :: JupyterLab",
-    "Framework :: Jupyter :: JupyterLab :: 3",
+    "Framework :: Jupyter :: JupyterLab :: 4",
     "Framework :: Jupyter :: JupyterLab :: Extensions",
     "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
     "License :: OSI Approved :: BSD License",
@@ -54,11 +54,11 @@ skip-if-exists = ["qsharp_jupyterlab/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:prod"
-npm = ["jlpm"]
+npm = ["npm"]
 
 [tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
 build_cmd = "install:extension"
-npm = ["jlpm"]
+npm = ["npm"]
 source_dir = "src"
 build_dir = "qsharp_jupyterlab/labextension"
 
@@ -66,8 +66,8 @@ build_dir = "qsharp_jupyterlab/labextension"
 version_cmd = "hatch version"
 
 [tool.jupyter-releaser.hooks]
-before-build-npm = ["python -m pip install jupyterlab~=3.1", "jlpm", "jlpm build:prod"]
-before-build-python = ["jlpm clean:all"]
+before-build-npm = ["python -m pip install jupyterlab==4.0.0rc1", "npm", "npm build:prod"]
+before-build-python = ["npm clean:all"]
 
 [tool.check-wheel-contents]
 ignore = ["W002"]

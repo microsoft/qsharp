@@ -10,6 +10,7 @@ module.exports = {
     "npm/dist/",
     "npm/lib/",
     "vscode/out/",
+    "jupyterlab", // TODO: add it back in
   ],
   env: {
     browser: true,

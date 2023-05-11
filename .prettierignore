@@ -15,3 +15,5 @@ playground/public/libs/
 samples/
 target/
 wasm/
+vscode/out
+jupyterlab/
