@@ -523,7 +523,6 @@ fn check_most() {
     );
 }
 
-<<<<<<< HEAD
 #[test]
 fn check_apply_xor_in_place() {
     run_stdlib_test(

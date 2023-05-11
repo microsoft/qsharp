@@ -269,7 +269,7 @@ pub fn std(store: &PackageStore) -> CompileUnit {
         [
             (
                 "arithmetic.qs".into(),
-                include_str!("../../../library/arithmetic.qs").into(),
+                include_str!("../../../library/std/arithmetic.qs").into(),
             ),
             (
                 "arrays.qs".into(),
