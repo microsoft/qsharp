@@ -11,7 +11,7 @@ import { QscEventTarget } from "../dist/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
-log.setLogLevel("warn");
+log.setLogLevel("debug");
 
 /**
  *
@@ -247,5 +247,77 @@ test("Run samples", async () => {
   assert.equal(resultsHandler.resultCount(), samples.length);
   resultsHandler.getResults().forEach((result) => {
     assert(result.success);
+  });
+});
+
+test("state change", async () => {
+  const compiler = getCompilerWorker();
+  const resultsHandler = new QscEventTarget(false);
+  const stateChanges = [];
+
+  compiler.onstatechange = (state) => {
+    stateChanges.push(state);
+  };
+  const code = `namespace Test {
+    @EntryPoint()
+    operation MyEntry() : Result {
+        use q1 = Qubit();
+        return M(q1);
+    }
+  }`;
+  await compiler.run(code, "", 10, resultsHandler);
+  compiler.terminate();
+  // There SHOULDN'T be a race condition here between the 'run' promise completing and the
+  // statechange events firing, as the run promise should 'resolve' in the next microtask,
+  // whereas the idle event should fire synchronously when the queue is empty.
+  // For more details, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises#task_queues_vs._microtasks
+  assert(stateChanges.length === 2);
+  assert(stateChanges[0] === "busy");
+  assert(stateChanges[1] === "idle");
+});
+
+test("cancel worker", () => {
+  return new Promise((resolve) => {
+    const code = `namespace MyQuantumApp {
+      open Microsoft.Quantum.Diagnostics;
+
+      @EntryPoint()
+      operation Main() : Result[] {
+          repeat {} until false;
+          return [];
+      }
+    }`;
+
+    const cancelledArray = [];
+    const compiler = getCompilerWorker();
+    const resultsHandler = new QscEventTarget(false);
+
+    // Queue some tasks that will never complete
+    compiler.run(code, "", 10, resultsHandler).catch((err) => {
+      cancelledArray.push(err);
+    });
+    compiler.checkCode(code).catch((err) => {
+      cancelledArray.push(err);
+    });
+
+    // Ensure those tasks are running/queued before terminating.
+    setTimeout(async () => {
+      // Terminate the compiler, which should reject the queued promises
+      compiler.terminate();
+
+      // Start a new compiler and ensure that works fine
+      const compiler2 = getCompilerWorker();
+      const result = await compiler2.checkCode(code);
+      compiler2.terminate();
+
+      // New 'check' result is good
+      assert(Array.isArray(result) && result.length === 0);
+
+      // Old requests were cancelled
+      assert(cancelledArray.length === 2);
+      assert(cancelledArray[0] === "terminated");
+      assert(cancelledArray[1] === "terminated");
+      resolve(null);
+    }, 4);
   });
 });
