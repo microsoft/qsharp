@@ -2,10 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{
-        Block, CallableDecl, Expr, FunctorExpr, Ident, NodeId, Pat, QubitInit, SpecDecl, Stmt,
-        TyDef,
-    },
+    hir::{Block, CallableDecl, Expr, Ident, NodeId, Pat, QubitInit, SpecDecl, Stmt, TyDef},
     mut_visit::{self, MutVisitor},
 };
 
@@ -55,11 +52,6 @@ impl MutVisitor for Assigner {
     fn visit_spec_decl(&mut self, decl: &mut SpecDecl) {
         self.assign(&mut decl.id);
         mut_visit::walk_spec_decl(self, decl);
-    }
-
-    fn visit_functor_expr(&mut self, expr: &mut FunctorExpr) {
-        self.assign(&mut expr.id);
-        mut_visit::walk_functor_expr(self, expr);
     }
 
     fn visit_block(&mut self, block: &mut Block) {

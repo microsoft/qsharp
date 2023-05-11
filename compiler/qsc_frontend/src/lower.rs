@@ -15,7 +15,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
 };
-use std::{clone::Clone, vec};
+use std::{clone::Clone, collections::HashSet, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -183,7 +183,7 @@ impl With<'_> {
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(&decl.input),
             output: convert::ty_from_ast(self.resolutions, &decl.output).0,
-            functors: decl.functors.as_ref().map(|f| self.lower_functor_expr(f)),
+            functors: callable_functors(decl),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
                     hir::CallableBody::Block(self.lower_block(block))
@@ -236,29 +236,6 @@ impl With<'_> {
                 span: def.span,
                 kind: hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect()),
             },
-        }
-    }
-
-    fn lower_functor_expr(&mut self, expr: &ast::FunctorExpr) -> hir::FunctorExpr {
-        match &expr.kind {
-            ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExpr {
-                id: self.lower_id(expr.id),
-                span: expr.span,
-                kind: hir::FunctorExprKind::BinOp(
-                    match op {
-                        ast::SetOp::Union => hir::SetOp::Union,
-                        ast::SetOp::Intersect => hir::SetOp::Intersect,
-                    },
-                    Box::new(self.lower_functor_expr(lhs)),
-                    Box::new(self.lower_functor_expr(rhs)),
-                ),
-            },
-            &ast::FunctorExprKind::Lit(functor) => hir::FunctorExpr {
-                id: self.lower_id(expr.id),
-                span: expr.span,
-                kind: hir::FunctorExprKind::Lit(lower_functor(functor)),
-            },
-            ast::FunctorExprKind::Paren(inner) => self.lower_functor_expr(inner),
         }
     }
 
@@ -570,4 +547,23 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
         ast::Functor::Adj => hir::Functor::Adj,
         ast::Functor::Ctl => hir::Functor::Ctl,
     }
+}
+
+fn callable_functors(callable: &ast::CallableDecl) -> HashSet<hir::Functor> {
+    let mut functors = callable.functors.as_ref().map_or(HashSet::new(), |f| {
+        f.to_set().into_iter().map(lower_functor).collect()
+    });
+
+    if let ast::CallableBody::Specs(specs) = &callable.body {
+        for spec in specs {
+            match spec.spec {
+                ast::Spec::Body => {}
+                ast::Spec::Adj => functors.extend([hir::Functor::Adj]),
+                ast::Spec::Ctl => functors.extend([hir::Functor::Ctl]),
+                ast::Spec::CtlAdj => functors.extend([hir::Functor::Adj, hir::Functor::Ctl]),
+            }
+        }
+    }
+
+    functors
 }

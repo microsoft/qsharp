@@ -8,7 +8,6 @@ pub mod entry_point;
 mod invert_block;
 mod logic_sep;
 pub mod loop_unification;
-pub mod semantics;
 pub mod spec_gen;
 
 use miette::Diagnostic;
@@ -26,32 +25,18 @@ pub enum Error {
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
     ConjInvert(conjugate_invert::Error),
-    Semantic(semantics::Error),
 }
 
 /// Run the default set of passes required for evaluation.
 pub fn run_default_passes(unit: &mut CompileUnit) -> Vec<Error> {
-    let mut errors = Vec::new();
+    let spec_errors = spec_gen::generate_specs(unit);
+    let conjugate_errors = conjugate_invert::invert_conjugate_exprs(unit);
 
-    errors.extend(
-        semantics::validate_semantics(unit)
-            .into_iter()
-            .map(Error::Semantic),
-    );
-
-    errors.extend(
-        spec_gen::generate_specs(unit)
-            .into_iter()
-            .map(Error::SpecGen),
-    );
-
-    errors.extend(
-        conjugate_invert::invert_conjugate_exprs(unit)
-            .into_iter()
-            .map(Error::ConjInvert),
-    );
-
-    errors
+    spec_errors
+        .into_iter()
+        .map(Error::SpecGen)
+        .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
+        .collect()
 }
 
 pub fn run_default_passes_for_fragment(

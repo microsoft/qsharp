@@ -372,7 +372,7 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: Option<FunctorExpr>,
+    pub functors: HashSet<Functor>,
     /// The body of the callable.
     pub body: CallableBody,
 }
@@ -385,27 +385,8 @@ impl CallableDecl {
             self.kind,
             Box::new(self.input.ty.clone()),
             Box::new(self.output.clone()),
-            self.functors(),
+            self.functors.clone(),
         )
-    }
-
-    fn functors(&self) -> HashSet<Functor> {
-        let mut functors = self.functors.as_ref().map_or(HashSet::new(), |f| {
-            f.to_set().into_iter().map(Into::into).collect()
-        });
-
-        if let CallableBody::Specs(specs) = &self.body {
-            for spec in specs {
-                match spec.spec {
-                    Spec::Body => {}
-                    Spec::Adj => functors.extend([Functor::Adj]),
-                    Spec::Ctl => functors.extend([Functor::Ctl]),
-                    Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
-                }
-            }
-        }
-
-        functors
     }
 }
 
@@ -429,9 +410,7 @@ impl Display for CallableDecl {
         }
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
-        if let Some(f) = &self.functors {
-            write!(indent, "\nfunctors: {f}")?;
-        }
+        write!(indent, "\nfunctors: {}", functors_as_str(&self.functors))?;
         write!(indent, "\nbody: {}", self.body)?;
         Ok(())
     }
@@ -508,60 +487,6 @@ impl Display for SpecBody {
             }
         }
         Ok(())
-    }
-}
-
-/// An expression that describes a set of functors.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct FunctorExpr {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The functor expression kind.
-    pub kind: FunctorExprKind,
-}
-
-impl FunctorExpr {
-    /// Evaluates the functor expression.
-    #[must_use]
-    pub fn to_set(&self) -> HashSet<Functor> {
-        match &self.kind {
-            FunctorExprKind::BinOp(op, lhs, rhs) => {
-                let mut functors = lhs.to_set();
-                let rhs_functors = rhs.to_set();
-                match op {
-                    SetOp::Union => functors.extend(rhs_functors),
-                    SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
-                }
-                functors
-            }
-            &FunctorExprKind::Lit(functor) => [functor].into(),
-        }
-    }
-}
-
-impl Display for FunctorExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Functor Expr {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A functor expression kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum FunctorExprKind {
-    /// A binary operation.
-    BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
-    /// A literal for a specific functor.
-    Lit(Functor),
-}
-
-impl Display for FunctorExprKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            FunctorExprKind::BinOp(op, l, r) => write!(f, "BinOp {op:?}: ({l}) ({r})"),
-            FunctorExprKind::Lit(func) => write!(f, "{func:?}"),
-        }
     }
 }
 
@@ -1188,16 +1113,12 @@ impl Display for Ty {
                     CallableKind::Function => "->",
                     CallableKind::Operation => "=>",
                 };
-                let is = match (
-                    functors.contains(&Functor::Adj),
-                    functors.contains(&Functor::Ctl),
-                ) {
-                    (true, true) => " is Adj + Ctl",
-                    (true, false) => " is Adj",
-                    (false, true) => " is Ctl",
-                    (false, false) => "",
-                };
-                write!(f, "({input} {arrow} {output}{is})")
+                write!(f, "({input} {arrow} {output}")?;
+                if !functors.is_empty() {
+                    f.write_str(" is ")?;
+                    f.write_str(functors_as_str(functors))?;
+                }
+                f.write_char(')')
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
@@ -1533,11 +1454,14 @@ pub enum TernOp {
     Update,
 }
 
-/// A set operator.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum SetOp {
-    /// The set union.
-    Union,
-    /// The set intersection.
-    Intersect,
+fn functors_as_str(functors: &HashSet<Functor>) -> &str {
+    match (
+        functors.contains(&Functor::Adj),
+        functors.contains(&Functor::Ctl),
+    ) {
+        (true, true) => "Adj + Ctl",
+        (true, false) => "Adj",
+        (false, true) => "Ctl",
+        (false, false) => "",
+    }
 }

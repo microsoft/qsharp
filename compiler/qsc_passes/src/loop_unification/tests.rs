@@ -44,6 +44,7 @@ fn convert_for_array() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
                         output: ()
+                        functors: 
                         body: Block: Block 4 [56-131] [Type ()]:
                             Stmt 5 [66-125]: Expr: Expr _id_ [66-125] [Type ()]: Expr Block: Block _id_ [66-125] [Type ()]:
                                 Stmt _id_ [75-78]: Local (Immutable):
@@ -98,6 +99,7 @@ fn convert_for_array_deconstruct() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-57] [Type ((Int, Double))[]]: Bind: Ident 3 [36-39] "arr"
                         output: ()
+                        functors: 
                         body: Block: Block 4 [66-146] [Type ()]:
                             Stmt 5 [76-140]: Expr: Expr _id_ [76-140] [Type ()]: Expr Block: Block _id_ [76-140] [Type ()]:
                                 Stmt _id_ [90-93]: Local (Immutable):
@@ -154,6 +156,7 @@ fn convert_for_slice() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
                         output: ()
+                        functors: 
                         body: Block: Block 4 [56-141] [Type ()]:
                             Stmt 5 [66-135]: Expr: Expr _id_ [66-135] [Type ()]: Expr Block: Block _id_ [66-135] [Type ()]:
                                 Stmt _id_ [75-88]: Local (Immutable):
@@ -214,6 +217,7 @@ fn convert_for_range() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type ()]: Unit
                         output: ()
+                        functors: 
                         body: Block: Block 3 [45-121] [Type ()]:
                             Stmt 4 [55-115]: Expr: Expr _id_ [55-115] [Type ()]: Expr Block: Block _id_ [55-115] [Type ()]:
                                 Stmt _id_ [64-68]: Local (Immutable):
@@ -288,6 +292,7 @@ fn convert_for_reverse_range() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type ()]: Unit
                         output: ()
+                        functors: 
                         body: Block: Block 3 [45-125] [Type ()]:
                             Stmt 4 [55-119]: Expr: Expr _id_ [55-119] [Type ()]: Expr Block: Block _id_ [55-119] [Type ()]:
                                 Stmt _id_ [64-72]: Local (Immutable):
@@ -363,6 +368,7 @@ fn convert_repeat() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type ()]: Unit
                         output: ()
+                        functors: 
                         body: Block: Block 3 [45-126] [Type ()]:
                             Stmt 4 [55-120]: Semi: Expr _id_ [55-119] [Type ()]: Expr Block: Block _id_ [55-119] [Type ()]:
                                 Stmt _id_ [115-119]: Local (Mutable):
@@ -406,6 +412,7 @@ fn convert_repeat_fixup() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type ()]: Unit
                         output: ()
+                        functors: 
                         body: Block: Block 3 [45-180] [Type ()]:
                             Stmt 4 [55-174]: Expr: Expr _id_ [55-174] [Type ()]: Expr Block: Block _id_ [55-174] [Type ()]:
                                 Stmt _id_ [115-119]: Local (Mutable):
@@ -465,6 +472,7 @@ fn convert_repeat_nested() {
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type ()]: Unit
                         output: ()
+                        functors: 
                         body: Block: Block 3 [45-401] [Type ()]:
                             Stmt 4 [55-68]: Local (Immutable):
                                 Pat 5 [59-60] [Type Bool]: Bind: Ident 6 [59-60] "a"

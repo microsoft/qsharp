@@ -363,6 +363,7 @@ fn insert_core_call() {
                     name: Ident 1 [28-31] "Foo"
                     input: Pat 2 [31-33] [Type ()]: Unit
                     output: ()
+                    functors: 
                     body: Block: Block 3 [39-41] [Type ()]:
                         Stmt 5 [0-0]: Semi: Expr 6 [0-0] [Type Qubit]: Call:
                             Expr 7 [0-0] [Type (() => Qubit)]: Var: Item 1 (Package 0)

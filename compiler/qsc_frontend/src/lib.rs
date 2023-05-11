@@ -9,5 +9,6 @@ mod lex;
 mod lower;
 mod parse;
 pub mod resolve;
+mod semantics;
 pub mod typeck;
 mod validate;

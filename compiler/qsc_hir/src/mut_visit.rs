@@ -2,9 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident, Item,
-    ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind,
-    TyDef, TyDefKind,
+    Block, CallableBody, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat,
+    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, TyDef, TyDefKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -27,10 +26,6 @@ pub trait MutVisitor: Sized {
 
     fn visit_spec_decl(&mut self, decl: &mut SpecDecl) {
         walk_spec_decl(self, decl);
-    }
-
-    fn visit_functor_expr(&mut self, expr: &mut FunctorExpr) {
-        walk_functor_expr(self, expr);
     }
 
     fn visit_block(&mut self, block: &mut Block) {
@@ -92,9 +87,6 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_ident(&mut decl.name);
     decl.ty_params.iter_mut().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&mut decl.input);
-    decl.functors
-        .iter_mut()
-        .for_each(|f| vis.visit_functor_expr(f));
 
     match &mut decl.body {
         CallableBody::Block(block) => vis.visit_block(block),
@@ -111,18 +103,6 @@ pub fn walk_spec_decl(vis: &mut impl MutVisitor, decl: &mut SpecDecl) {
             vis.visit_pat(pat);
             vis.visit_block(block);
         }
-    }
-}
-
-pub fn walk_functor_expr(vis: &mut impl MutVisitor, expr: &mut FunctorExpr) {
-    vis.visit_span(&mut expr.span);
-
-    match &mut expr.kind {
-        FunctorExprKind::BinOp(_, lhs, rhs) => {
-            vis.visit_functor_expr(lhs);
-            vis.visit_functor_expr(rhs);
-        }
-        FunctorExprKind::Lit(_) => {}
     }
 }
 
