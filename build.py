@@ -253,10 +253,33 @@ if build_jupyter:
         python_bin = sys.executable
 
     # TODO: have a requirements.txt or some other way to do all this
+
+    pip_install_args = [python_bin, "-m", "pip", "install", "jupyterlab==4.0.0rc1"]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
+
+    # TEST:
+    # python -m pip install .[test]
+    # jupyter labextension list
+    # jupyter labextension list 2>&1 | grep -ie "qsharp_jupyterlab.*OK"
+    # python -m jupyterlab.browser_check
+
+    # RELEASE BUILD:
     pip_install_args = [python_bin, "-m", "pip", "install", "build"]
     subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
 
     pip_install_args = [python_bin, "-m", "build"]
     subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
+
+    # pip uninstall -y "qsharp_jupyterlab" jupyterlab
+
+    # ARTIFACTS:
+    # dist/qsharp_jupyterlab*
+
+    # ISOLATED TEST:
+    # pip install "jupyterlab~=3.1" qsharp_jupyterlab*.whl
+
+    # jupyter labextension list
+    # jupyter labextension list 2>&1 | grep -ie "qsharp_jupyterlab.*OK"
+    # python -m jupyterlab.browser_check --no-chrome-test
 
     # TODO: copy wheel to output directory
