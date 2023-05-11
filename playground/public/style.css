@@ -227,6 +227,7 @@ body {
 
 .main-button:disabled {
   background-color: gray;
+  cursor: default;
 }
 
 .histogram {

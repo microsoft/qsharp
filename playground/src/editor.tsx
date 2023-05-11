@@ -4,12 +4,20 @@
 /// <reference types="../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ICompilerWorker, QscEventTarget, VSDiagnostic, log } from "qsharp";
+import {
+  CompilerState,
+  ICompilerWorker,
+  QscEventTarget,
+  VSDiagnostic,
+  log,
+} from "qsharp";
 import { codeToBase64 } from "./utils.js";
 
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
+  compilerState: CompilerState;
+  onRestartCompiler: () => void;
   evtTarget: QscEventTarget;
   showExpr: boolean;
   defaultShots: number;
@@ -163,11 +171,20 @@ export function Editor(props: {
       : props.defaultShots;
     if (!code) return;
     props.evtTarget.clearResults();
-    if (props.kataVerify) {
-      // This is for a kata. Provide the verification code.
-      await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
-    } else {
-      await props.compiler.run(code, "", shots, props.evtTarget);
+    try {
+      if (props.kataVerify) {
+        // This is for a kata. Provide the verification code.
+        await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
+      } else {
+        await props.compiler.run(code, "", shots, props.evtTarget);
+      }
+    } catch (err) {
+      // This could fail for several reasons, e.g. the run being cancelled.
+      if (err === "terminated") {
+        log.info("Run was terminated");
+      } else {
+        log.error("Run failed with error: %o", err);
+      }
     }
   }
 
@@ -256,9 +273,17 @@ export function Editor(props: {
           id="run"
           class="main-button"
           onClick={onRun}
-          disabled={errors.length > 0}
+          disabled={errors.length > 0 || props.compilerState === "busy"}
         >
           Run
+        </button>
+        <button
+          id="cancel"
+          class="main-button"
+          onClick={props.onRestartCompiler}
+          disabled={props.compilerState === "idle"}
+        >
+          Cancel
         </button>
       </div>
       {errors.length ? (

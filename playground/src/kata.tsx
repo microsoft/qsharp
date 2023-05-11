@@ -42,6 +42,7 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
         }
 
         const evtTarget = new QscEventTarget(true);
+        // TODO: Cancellation support
         return (
           <div>
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
@@ -53,6 +54,8 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
               showShots={false}
               evtTarget={evtTarget}
               compiler={props.compiler}
+              compilerState="idle"
+              onRestartCompiler={() => undefined}
               code={
                 item.type === "exercise"
                   ? item.placeholderImplementation
