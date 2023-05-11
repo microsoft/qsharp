@@ -7,7 +7,12 @@
     "vscode": "^1.77.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Notebooks"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onNotebook:jupyter"
   ],
   "contributes": {
     "languages": [
@@ -30,5 +35,8 @@
         "path": "./syntaxes/qsharp.tmLanguage.json"
       }
     ]
+  },
+  "scripts": {
+    "build": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json"
   }
 }
