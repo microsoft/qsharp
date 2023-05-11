@@ -385,12 +385,14 @@ fn check_apply_xor_in_place() {
         {
             "{
             use a = Qubit[3];
+            mutable result = [];
             within {
                 Microsoft.Quantum.Arithmetic.ApplyXorInPlace(3, a);
             }
             apply {
-                return [M(a[0]),M(a[1]),M(a[2])]
+                set result = [M(a[0]),M(a[1]),M(a[2])];
             }
+            return result;
         }"
         },
         &Value::Array(
@@ -410,14 +412,16 @@ fn check_apply_cnot_chain_2() {
         {
             "{
             use a = Qubit[2];
+            mutable result = [];
             within {
                 X(a[0]);
                 X(a[1]);
                 ApplyCNOTChain(a);
             }
             apply {
-                return [M(a[0]),M(a[1])]
+                set result = [M(a[0]),M(a[1])];
             }
+            return result;
         }"
         },
         &Value::Array(vec![Value::Result(true), Value::Result(false)].into()),
@@ -430,13 +434,15 @@ fn check_apply_cnot_chain_3() {
         {
             "{
             use a = Qubit[3];
+            mutable result = [];
             within {
                 X(a[0]);
                 ApplyCNOTChain(a);
             }
             apply {
-                return [M(a[0]),M(a[1]),M(a[2])]
+                set result = [M(a[0]),M(a[1]),M(a[2])];
             }
+            return result;
         }"
         },
         &Value::Array(
@@ -456,14 +462,16 @@ fn check_apply_cnot_chain_3a() {
         {
             "{
             use a = Qubit[3];
+            mutable result = [];
             within {
                 X(a[0]);
                 X(a[2]);
                 ApplyCNOTChain(a);
             }
             apply {
-                return [M(a[0]),M(a[1]),M(a[2])]
+                set result = [M(a[0]),M(a[1]),M(a[2])];
             }
+            return result;
         }"
         },
         &Value::Array(
@@ -484,13 +492,13 @@ fn check_add_i_nc() {
             "{  // RippleCarryAdderNoCarryTTK case
                 use x = Qubit[4];
                 use y = Qubit[4];
-                within {
-                    Microsoft.Quantum.Arithmetic.ApplyXorInPlace(3, x);
-                    Microsoft.Quantum.Arithmetic.ApplyXorInPlace(5, y);
-                    Microsoft.Quantum.Arithmetic.AddI(x,y); // 3+5=8
-                } apply {
-                    return [M(y[0]),M(y[1]),M(y[2]),M(y[3])];
-                }
+                open Microsoft.Quantum.Arithmetic;
+                ApplyXorInPlace(3, x);
+                ApplyXorInPlace(5, y);
+                AddI(x,y); // 3+5=8
+                let result = [M(y[0]),M(y[1]),M(y[2]),M(y[3])];
+                ResetAll(x+y);
+                return result;
         }"
         },
         &Value::Array(
@@ -512,13 +520,13 @@ fn check_add_i_c() {
             "{  // RippleCarryAdderTTK case
                 use x = Qubit[4];
                 use y = Qubit[5];
-                within {
-                    Microsoft.Quantum.Arithmetic.ApplyXorInPlace(7, x);
-                    Microsoft.Quantum.Arithmetic.ApplyXorInPlace(11, y);
-                    Microsoft.Quantum.Arithmetic.AddI(x,y); // 7+11=18
-                } apply {
-                    return [M(y[0]),M(y[1]),M(y[2]),M(y[3]),M(y[4])];
-                }
+                open Microsoft.Quantum.Arithmetic;
+                ApplyXorInPlace(7, x);
+                ApplyXorInPlace(11, y);
+                AddI(x,y); // 7+11=18
+                let result = [M(y[0]),M(y[1]),M(y[2]),M(y[3]),M(y[4])];
+                ResetAll(x+y);
+                return result;
         }"
         },
         &Value::Array(
