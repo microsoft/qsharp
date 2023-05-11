@@ -1,7 +1,7 @@
 {
   "name": "qsharp_jupyterlab",
   "version": "0.1.0",
-  "description": "Q# extension for Jupyterlab",
+  "description": "Q# extension for JupyterLab",
   "keywords": [
     "jupyter",
     "jupyterlab",
@@ -11,9 +11,9 @@
   "bugs": {
     "url": "https://github.com/microsoft/qsharp/issues"
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "author": {
-    "name": "microsoft"
+    "name": "Microsoft"
   },
   "files": [
     "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}"
@@ -25,11 +25,11 @@
     "url": "https://github.com/microsoft/qsharp.git"
   },
   "scripts": {
-    "build": "jlpm build:lib && jlpm build:labextension:dev",
-    "build:prod": "rimraf lib tsconfig.tsbuildinfo && npx -p typescript --no-install tsc && jupyter labextension build .",
+    "build": "npx -p typescript --no-install tsc && npm run build:labextension:dev",
+    "build:prod": "rimraf lib tsconfig.tsbuildinfo && npm run build:lib && jupyter labextension build .",
     "build:labextension:dev": "jupyter labextension build --development True .",
     "build:lib": "npx -p typescript --no-install tsc --sourceMap",
-    "install:extension": "jlpm build",
+    "install:extension": "npm run build",
     "watch": "run-p watch:src watch:labextension",
     "watch:src": "npx -p typescript --no-install tsc -w",
     "watch:labextension": "jupyter labextension watch ."
@@ -38,18 +38,12 @@
     "@codemirror/language": "6.6.0",
     "@codemirror/legacy-modes": "6.3.2",
     "@jupyterlab/application": "^4.0.0-rc.1",
-    "@jupyterlab/apputils": "^4.0.0-rc.1",
     "@jupyterlab/codemirror": "^4.0.0-rc.1",
     "@jupyterlab/notebook": "^4.0.0-rc.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.0.0",
-    "@babel/preset-env": "^7.0.0",
     "@jupyterlab/builder": "^4.0.0-rc.1",
-    "@jupyterlab/testutils": "^4.0.0-rc.1",
     "@types/codemirror": "^5.60.7",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^2.1.1",
     "rimraf": "^3.0.2",
     "typescript": "^5.0.2"
   },
@@ -59,74 +53,5 @@
   "jupyterlab": {
     "extension": true,
     "outputDir": "qsharp_jupyterlab/labextension"
-  },
-  "eslintIgnore": [
-    "node_modules",
-    "dist",
-    "coverage",
-    "**/*.d.ts",
-    "tests",
-    "**/__tests__",
-    "ui-tests"
-  ],
-  "eslintConfig": {
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:prettier/recommended"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-      "project": "tsconfig.json",
-      "sourceType": "module"
-    },
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "rules": {
-      "@typescript-eslint/naming-convention": [
-        "error",
-        {
-          "selector": "interface",
-          "format": [
-            "PascalCase"
-          ],
-          "custom": {
-            "regex": "^I[A-Z]",
-            "match": true
-          }
-        }
-      ],
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          "args": "none"
-        }
-      ],
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-namespace": "off",
-      "@typescript-eslint/no-use-before-define": "off",
-      "@typescript-eslint/quotes": [
-        "error",
-        "single",
-        {
-          "avoidEscape": true,
-          "allowTemplateLiterals": false
-        }
-      ],
-      "curly": [
-        "error",
-        "all"
-      ],
-      "eqeqeq": "error",
-      "prefer-arrow-callback": "error"
-    }
-  },
-  "prettier": {
-    "singleQuote": true,
-    "trailingComma": "none",
-    "arrowParens": "avoid",
-    "endOfLine": "auto"
   }
 }

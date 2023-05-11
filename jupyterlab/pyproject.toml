@@ -5,7 +5,6 @@ build-backend = "hatchling.build"
 [project]
 name = "qsharp_jupyterlab"
 readme = "README.md"
-license = { file = "LICENSE" }
 requires-python = ">=3.7"
 classifiers = [
     "Framework :: Jupyter",
@@ -13,7 +12,7 @@ classifiers = [
     "Framework :: Jupyter :: JupyterLab :: 4",
     "Framework :: Jupyter :: JupyterLab :: Extensions",
     "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
-    "License :: OSI Approved :: BSD License",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
