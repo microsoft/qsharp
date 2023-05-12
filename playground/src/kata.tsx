@@ -2,11 +2,16 @@
 // Licensed under the MIT License.
 
 import { useEffect, useRef } from "preact/hooks";
-import { ICompilerWorker, Kata, KataItem, QscEventTarget } from "qsharp";
+import { CompilerState, ICompilerWorker, Kata, QscEventTarget } from "qsharp";
 import { Editor } from "./editor.js";
 import { Results } from "./results.js";
 
-export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
+export function Kata(props: {
+  kata: Kata;
+  compiler: ICompilerWorker;
+  compilerState: CompilerState;
+  onRestartCompiler: () => void;
+}) {
   const kataContent = useRef<HTMLDivElement>(null);
   const itemContent = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -64,8 +69,8 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
               showShots={false}
               evtTarget={itemEvtHandlers[idx]}
               compiler={props.compiler}
-              compilerState="idle"
-              onRestartCompiler={() => undefined}
+              compilerState={props.compilerState}
+              onRestartCompiler={props.onRestartCompiler}
               code={
                 item.type === "exercise"
                   ? item.placeholderImplementation

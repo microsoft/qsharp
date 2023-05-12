@@ -126,6 +126,11 @@ body {
   font-weight: 200;
 }
 
+.error-help {
+  font-weight: 200;
+  font-style: italic;
+}
+
 .results-labels {
   display: flex;
   height: 32px;

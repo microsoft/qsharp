@@ -56,7 +56,9 @@ export function Editor(props: {
 
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
-  const [errors, setErrors] = useState<{ location: string; msg: string }[]>([]);
+  const [errors, setErrors] = useState<{ location: string; msg: string[] }[]>(
+    []
+  );
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
   function markErrors() {
@@ -73,7 +75,7 @@ export function Editor(props: {
 
     const errList = markers.map((err) => ({
       location: `main.qs@(${err.startLineNumber},${err.startColumn})`,
-      msg: err.message, // TODO: Handle line breaks and 'help' notes
+      msg: err.message.split("\\\\n\\\\n"),
     }));
     setErrors(errList);
   }
@@ -270,7 +272,11 @@ export function Editor(props: {
       <div class="error-list">
         {errors.map((err) => (
           <div class="error-row">
-            <span>{err.location}</span>: {err.msg}
+            <span>{err.location}: </span>
+            <span>{err.msg[0]}</span>
+            {err.msg.length > 1 ? (
+              <div class="error-help">{err.msg[1]}</div>
+            ) : null}
           </div>
         ))}
       </div>
