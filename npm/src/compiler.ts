@@ -118,8 +118,6 @@ export class Compiler implements ICompiler {
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
-
-  // let qscEvent = makeEvent("Message", `Attempting to process message: ${msg}`);
   const qscMsg = eventStringToMsg(msg);
   if (!qscMsg) {
     log.error("Unknown event message: %s", msg);
@@ -140,7 +138,6 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       qscEvent = makeEvent("Result", qscMsg.result);
       break;
     case "HIR":
-      //qscEvent = makeEvent("Message", qscMsg.hir);
       qscEvent = makeEvent("HIR", qscMsg.hir);
       break;
     default:

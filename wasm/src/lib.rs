@@ -332,8 +332,6 @@ where
     let context = context.expect("context should be valid");
     let hir = context.hir().replace('\"', r#"\""#).replace('\'', r#"\'"#);
     let msg_string = format!(r#"{{"type": "HIR", "hir": "{hir}"}}"#);
-    // let msg_string = r#"{"type": "HIR", "hir": "HIR msg"}"#.to_string();
-    // let msg_string = r#"{"type": "Message", "message": "This is an HIR msg"}"#.to_string();
     (out.event_cb)(&msg_string);
     for _ in 0..shots {
         let result = context.eval(&mut out);
