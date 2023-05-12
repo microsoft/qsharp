@@ -71,7 +71,7 @@ fn convert_for_array() {
                                             Pat 12 [97-98] [Type String]: Bind: Ident 13 [97-98] "x"
                                             Expr 14 [101-114] [Type String]: String:
                                                 Lit: "Hello World"
-                                        Stmt _id_ [75-78]: Semi: Expr _id_ [75-78] [Type ()]: AssignOp (Add):
+                                        Stmt _id_ [75-78]: Semi: Expr _id_ [75-78] [Type Unit]: AssignOp (Add):
                                             Expr _id_ [75-78] [Type Int]: Var: Local 18
                                             Expr _id_ [75-78] [Type Int]: Lit: Int(1)"#]],
     );
@@ -128,7 +128,7 @@ fn convert_for_array_deconstruct() {
                                             Pat 15 [112-113] [Type String]: Bind: Ident 16 [112-113] "x"
                                             Expr 17 [116-129] [Type String]: String:
                                                 Lit: "Hello World"
-                                        Stmt _id_ [90-93]: Semi: Expr _id_ [90-93] [Type ()]: AssignOp (Add):
+                                        Stmt _id_ [90-93]: Semi: Expr _id_ [90-93] [Type Unit]: AssignOp (Add):
                                             Expr _id_ [90-93] [Type Int]: Var: Local 21
                                             Expr _id_ [90-93] [Type Int]: Lit: Int(1)"#]],
     );
@@ -189,7 +189,7 @@ fn convert_for_slice() {
                                             Pat 18 [107-108] [Type String]: Bind: Ident 19 [107-108] "x"
                                             Expr 20 [111-124] [Type String]: String:
                                                 Lit: "Hello World"
-                                        Stmt _id_ [75-88]: Semi: Expr _id_ [75-88] [Type ()]: AssignOp (Add):
+                                        Stmt _id_ [75-88]: Semi: Expr _id_ [75-88] [Type Unit]: AssignOp (Add):
                                             Expr _id_ [75-88] [Type Int]: Var: Local 24
                                             Expr _id_ [75-88] [Type Int]: Lit: Int(1)"#]],
     );
@@ -264,7 +264,7 @@ fn convert_for_range() {
                                             Pat 13 [87-88] [Type String]: Bind: Ident 14 [87-88] "x"
                                             Expr 15 [91-104] [Type String]: String:
                                                 Lit: "Hello World"
-                                        Stmt _id_ [64-68]: Semi: Expr _id_ [64-68] [Type ()]: AssignOp (Add):
+                                        Stmt _id_ [64-68]: Semi: Expr _id_ [64-68] [Type Unit]: AssignOp (Add):
                                             Expr _id_ [64-68] [Type Int]: Var: Local 18
                                             Expr _id_ [64-68] [Type Int]: Var: Local 19"#]],
     );
@@ -340,7 +340,7 @@ fn convert_for_reverse_range() {
                                             Pat 15 [91-92] [Type String]: Bind: Ident 16 [91-92] "x"
                                             Expr 17 [95-108] [Type String]: String:
                                                 Lit: "Hello World"
-                                        Stmt _id_ [64-72]: Semi: Expr _id_ [64-72] [Type ()]: AssignOp (Add):
+                                        Stmt _id_ [64-72]: Semi: Expr _id_ [64-72] [Type Unit]: AssignOp (Add):
                                             Expr _id_ [64-72] [Type Int]: Var: Local 20
                                             Expr _id_ [64-72] [Type Int]: Var: Local 21"#]],
     );
@@ -380,7 +380,7 @@ fn convert_repeat() {
                                             Pat 8 [80-81] [Type String]: Bind: Ident 9 [80-81] "x"
                                             Expr 10 [84-97] [Type String]: String:
                                                 Lit: "Hello World"
-                                        Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type ()]: Assign:
+                                        Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type Unit]: Assign:
                                             Expr _id_ [115-119] [Type Bool]: Var: Local 13
                                             Expr _id_ [115-119] [Type Bool]: UnOp (NotL):
                                                 Expr 11 [115-119] [Type Bool]: Lit: Bool(true)"#]],
@@ -424,7 +424,7 @@ fn convert_repeat_fixup() {
                                             Pat 8 [80-81] [Type String]: Bind: Ident 9 [80-81] "x"
                                             Expr 10 [84-97] [Type String]: String:
                                                 Lit: "Hello World"
-                                        Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type ()]: Assign:
+                                        Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type Unit]: Assign:
                                             Expr _id_ [115-119] [Type Bool]: Var: Local 18
                                             Expr _id_ [115-119] [Type Bool]: UnOp (NotL):
                                                 Expr 11 [115-119] [Type Bool]: Lit: Bool(true)
@@ -501,7 +501,7 @@ fn convert_repeat_nested() {
                                                         Pat 23 [172-173] [Type String]: Bind: Ident 24 [172-173] "x"
                                                         Expr 25 [176-183] [Type String]: String:
                                                             Lit: "First"
-                                                    Stmt _id_ [205-206]: Semi: Expr _id_ [205-206] [Type ()]: Assign:
+                                                    Stmt _id_ [205-206]: Semi: Expr _id_ [205-206] [Type Unit]: Assign:
                                                         Expr _id_ [205-206] [Type Bool]: Var: Local 43
                                                         Expr _id_ [205-206] [Type Bool]: UnOp (NotL):
                                                             Expr 26 [205-206] [Type Bool]: Var: Local 6
@@ -512,7 +512,7 @@ fn convert_repeat_nested() {
                                                                 Pat 29 [247-248] [Type String]: Bind: Ident 30 [247-248] "y"
                                                                 Expr 31 [251-259] [Type String]: String:
                                                                     Lit: "Second"
-                                        Stmt _id_ [291-292]: Semi: Expr _id_ [291-292] [Type ()]: Assign:
+                                        Stmt _id_ [291-292]: Semi: Expr _id_ [291-292] [Type Unit]: Assign:
                                             Expr _id_ [291-292] [Type Bool]: Var: Local 45
                                             Expr _id_ [291-292] [Type Bool]: UnOp (NotL):
                                                 Expr 32 [291-292] [Type Bool]: Var: Local 10
@@ -530,7 +530,7 @@ fn convert_repeat_nested() {
                                                                 Pat 38 [350-351] [Type String]: Bind: Ident 39 [350-351] "z"
                                                                 Expr 40 [354-361] [Type String]: String:
                                                                     Lit: "Third"
-                                                            Stmt _id_ [383-384]: Semi: Expr _id_ [383-384] [Type ()]: Assign:
+                                                            Stmt _id_ [383-384]: Semi: Expr _id_ [383-384] [Type Unit]: Assign:
                                                                 Expr _id_ [383-384] [Type Bool]: Var: Local 44
                                                                 Expr _id_ [383-384] [Type Bool]: UnOp (NotL):
                                                                     Expr 41 [383-384] [Type Bool]: Var: Local 14"#]],
