@@ -206,13 +206,18 @@ impl Range {
 }
 
 pub trait GlobalLookup<'a> {
-    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
+    fn get(&self, id: GlobalId) -> Option<Global<'a>>;
 }
 
-impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
-    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl> {
+impl<'a, F: Fn(GlobalId) -> Option<Global<'a>>> GlobalLookup<'a> for F {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
         self(id)
     }
+}
+
+pub enum Global<'a> {
+    Callable(&'a CallableDecl),
+    Udt,
 }
 
 /// Evaluates the given statement with the given context.
@@ -596,27 +601,27 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_call(&mut self, call_expr: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
-        let call_val = self.eval_expr(call_expr)?;
-        let call_span = call_expr.span;
-        let (call, functor) = value_to_call_id(&call_val, call_expr.span)?;
-        let args_val = self.eval_expr(args)?;
-        let decl = match self.globals.callable(call) {
-            Some(decl) => Continue(decl),
-            None => Break(Reason::Error(Error::Unbound(call_expr.span))),
-        }?;
+    fn eval_call(&mut self, callee: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
+        let callee_val = self.eval_expr(callee)?;
+        let (callee_id, functor) = value_to_call_id(&callee_val, callee.span)?;
         let spec = spec_from_functor_app(functor);
+        let args_val = self.eval_expr(args)?;
+        let decl = match self.globals.get(callee_id) {
+            Some(Global::Callable(decl)) => Continue(decl),
+            Some(Global::Udt) => return Continue(args_val),
+            None => Break(Reason::Error(Error::Unbound(callee.span))),
+        }?;
 
         self.push_frame(Frame {
-            id: call,
-            span: Some(call_span),
+            id: callee_id,
+            span: Some(callee.span),
             caller: self.package,
             functor,
         });
 
         let mut new_self = Self {
             globals: self.globals,
-            package: call.package,
+            package: callee_id.package,
             env: Env::default(),
             out: self.out.take(),
             call_stack: CallStack::default(),
@@ -626,7 +631,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             spec,
             args_val,
             args.span,
-            call_span,
+            callee.span,
             functor.controlled,
         );
         self.out = new_self.out.take();

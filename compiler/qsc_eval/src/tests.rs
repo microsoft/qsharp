@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
+use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env, Global};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::hir::{CallableDecl, ItemKind};
+use qsc_hir::hir::ItemKind;
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
@@ -26,7 +26,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut out = Vec::new();
     match eval_expr(
         entry,
-        &|id| get_callable(&store, id),
+        &|id| get_global(&store, id),
         id,
         &mut Env::default(),
         &mut GenericReceiver::new(&mut out),
@@ -36,15 +36,14 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     }
 }
 
-pub(super) fn get_callable(store: &PackageStore, id: GlobalId) -> Option<&CallableDecl> {
-    store.get(id.package).and_then(|unit| {
-        let item = unit.package.items.get(id.item)?;
-        if let ItemKind::Callable(callable) = &item.kind {
-            Some(callable)
-        } else {
-            None
-        }
-    })
+pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {
+    store
+        .get(id.package)
+        .and_then(|unit| match &unit.package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
 }
 
 #[test]

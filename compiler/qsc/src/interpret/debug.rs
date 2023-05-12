@@ -6,7 +6,7 @@ mod tests;
 
 use qsc_frontend::compile::PackageStore;
 
-use qsc_eval::{debug::CallStack, val::GlobalId, GlobalLookup};
+use qsc_eval::{debug::CallStack, val::GlobalId, Global, GlobalLookup};
 use qsc_hir::hir::{Item, ItemKind};
 
 #[must_use]
@@ -24,7 +24,7 @@ pub(crate) fn format_call_stack<'a>(
     frames.reverse();
 
     for frame in frames {
-        let call = globals.callable(frame.id).expect("missing global");
+        let Some(Global::Callable(call)) = globals.get(frame.id) else { panic!("missing global"); };
 
         trace.push_str("    at ");
         if frame.functor.adjoint {

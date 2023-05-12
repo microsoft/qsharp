@@ -12,7 +12,7 @@ use qsc_passes::run_default_passes;
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
-    tests::get_callable,
+    tests::get_global,
     val::Value,
     Env, Error,
 };
@@ -37,7 +37,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
 
     eval_expr(
         entry,
-        &|id| get_callable(&store, id),
+        &|id| get_global(&store, id),
         id,
         &mut Env::default(),
         out,
