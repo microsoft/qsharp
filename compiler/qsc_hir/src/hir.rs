@@ -336,16 +336,17 @@ impl TyDef {
     pub fn cons_ty(&self, id: ItemId) -> Ty {
         Ty::Arrow(
             CallableKind::Function,
-            Box::new(self.ty()),
+            Box::new(self.base_ty()),
             Box::new(Ty::Udt(Res::Item(id))),
             HashSet::new(),
         )
     }
 
-    fn ty(&self) -> Ty {
+    /// The type used as the basis for this type definition.
+    pub fn base_ty(&self) -> Ty {
         match &self.kind {
             TyDefKind::Field(_, ty) => ty.clone(),
-            TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(Self::ty).collect()),
+            TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(Self::base_ty).collect()),
         }
     }
 }

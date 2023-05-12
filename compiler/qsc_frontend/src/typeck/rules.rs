@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{
+    check::Udt,
     convert,
     infer::{self, Class, Inferrer},
     Error, Tys,
@@ -24,6 +25,7 @@ struct Partial {
 
 struct Context<'a> {
     resolutions: &'a Resolutions,
+    udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Ty>,
     return_ty: Option<&'a Ty>,
     tys: &'a mut Tys,
@@ -34,11 +36,13 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions,
+        udts: &'a HashMap<ItemId, Udt>,
         globals: &'a HashMap<ItemId, Ty>,
         tys: &'a mut Tys,
     ) -> Self {
         Self {
             resolutions,
+            udts,
             globals,
             return_ty: None,
             tys,
@@ -609,7 +613,7 @@ impl<'a> Context<'a> {
     }
 
     fn solve(self) -> Vec<Error> {
-        let (substs, errors) = self.inferrer.solve();
+        let (substs, errors) = self.inferrer.solve(self.udts);
         for id in self.nodes {
             let ty = self.tys.get_mut(id).expect("node should have type");
             infer::substitute(&substs, ty);
@@ -629,33 +633,36 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     resolutions: &Resolutions,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     tys: &mut Tys,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, tys);
     context.infer_spec(spec);
     context.solve()
 }
 
 pub(super) fn expr(
     resolutions: &Resolutions,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     tys: &mut Tys,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, tys);
     context.infer_expr(expr);
     context.solve()
 }
 
 pub(super) fn stmt(
     resolutions: &Resolutions,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     tys: &mut Tys,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, tys);
     context.infer_stmt(stmt);
     context.solve()
 }

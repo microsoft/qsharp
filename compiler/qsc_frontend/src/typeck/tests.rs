@@ -1270,7 +1270,7 @@ fn array_length_field_used_as_double_error() {
             #7 63-72 "x::Length" : Double
             #8 63-64 "x" : (Qubit)[]
             #9 75-78 "2.0" : Double
-            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 63, hi: 72 }))))
+            Error(Type(Error(TypeMismatch(Prim(Double), Prim(Int), Span { lo: 63, hi: 72 }))))
         "##]],
     );
 }
@@ -1543,6 +1543,77 @@ fn newtype_does_not_match_other_newtype() {
             Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
             Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 40 })))
             Error(Validate(NotCurrentlySupported("newtype", Span { lo: 45, hi: 67 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_unwrap() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Foo = (Int, Bool);
+                function Bar(x : Foo) : () {
+                    let y = x!;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 62-69 "x : Foo" : UDT<Item 1>
+            #8 76-103 "{\n        let y = x!;\n    }" : ()
+            #10 90-91 "y" : (Int, Bool)
+            #12 94-96 "x!" : (Int, Bool)
+            #13 94-95 "x" : UDT<Item 1>
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 44 })))
+            Error(Validate(NotCurrentlySupported("unwrap operator", Span { lo: 94, hi: 96 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_field() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Foo = Bar : Int;
+                function Baz(x : Foo) : () {
+                    let y = x::Bar;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 60-67 "x : Foo" : UDT<Item 1>
+            #7 74-105 "{\n        let y = x::Bar;\n    }" : ()
+            #9 88-89 "y" : Int
+            #11 92-98 "x::Bar" : Int
+            #12 92-93 "x" : UDT<Item 1>
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 42 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_field_invalid() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Foo = Bar : Int;
+                function Baz(x : Foo) : () {
+                    let y = x::Nope;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #5 60-67 "x : Foo" : UDT<Item 1>
+            #7 74-106 "{\n        let y = x::Nope;\n    }" : ()
+            #9 88-89 "y" : ?0
+            #11 92-99 "x::Nope" : ?0
+            #12 92-93 "x" : UDT<Item 1>
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferId(1)) }, Span { lo: 92, hi: 99 }))))
+            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 42 })))
         "##]],
     );
 }

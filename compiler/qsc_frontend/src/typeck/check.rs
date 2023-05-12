@@ -14,17 +14,19 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_hir::hir::{self, ItemId, PackageId, Ty};
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, rc::Rc, vec};
 
 pub(crate) struct GlobalTable {
-    globals: HashMap<ItemId, Ty>,
+    udts: HashMap<ItemId, Udt>,
+    terms: HashMap<ItemId, Ty>,
     errors: Vec<Error>,
 }
 
 impl GlobalTable {
     pub(crate) fn new() -> Self {
         Self {
-            globals: HashMap::new(),
+            udts: HashMap::new(),
+            terms: HashMap::new(),
             errors: Vec::new(),
         }
     }
@@ -37,15 +39,28 @@ impl GlobalTable {
             };
 
             match &item.kind {
-                hir::ItemKind::Callable(decl) => self.globals.insert(item_id, decl.ty()),
+                hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.ty()),
                 hir::ItemKind::Namespace(..) => None,
-                hir::ItemKind::Ty(_, def) => self.globals.insert(item_id, def.cons_ty(item_id)),
+                hir::ItemKind::Ty(_, def) => {
+                    let udt = Udt {
+                        base: def.base_ty(),
+                        fields: convert::hir_ty_def_fields(def),
+                    };
+                    self.udts.insert(item_id, udt);
+                    self.terms.insert(item_id, def.cons_ty(item_id))
+                }
             };
         }
     }
 }
 
+pub(super) struct Udt {
+    pub(super) base: Ty,
+    pub(super) fields: HashMap<Rc<str>, Ty>,
+}
+
 pub(crate) struct Checker {
+    udts: HashMap<ItemId, Udt>,
     globals: HashMap<ItemId, Ty>,
     tys: Tys,
     errors: Vec<Error>,
@@ -54,7 +69,8 @@ pub(crate) struct Checker {
 impl Checker {
     pub(crate) fn new(globals: GlobalTable) -> Self {
         Checker {
-            globals: globals.globals,
+            udts: globals.udts,
+            globals: globals.terms,
             tys: Tys::new(),
             errors: globals.errors,
         }
@@ -73,12 +89,19 @@ impl Checker {
     }
 
     pub(crate) fn check_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_package(package);
+        ItemCollector {
+            resolutions,
+            udts: &mut self.udts,
+            globals: &mut self.globals,
+            errors: &mut self.errors,
+        }
+        .visit_package(package);
         ItemChecker::new(self, resolutions).visit_package(package);
 
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 resolutions,
+                &self.udts,
                 &self.globals,
                 &mut self.tys,
                 entry,
@@ -91,8 +114,13 @@ impl Checker {
         resolutions: &Resolutions,
         namespace: &ast::Namespace,
     ) {
-        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors)
-            .visit_namespace(namespace);
+        ItemCollector {
+            resolutions,
+            udts: &mut self.udts,
+            globals: &mut self.globals,
+            errors: &mut self.errors,
+        }
+        .visit_namespace(namespace);
         ItemChecker::new(self, resolutions).visit_namespace(namespace);
     }
 
@@ -149,6 +177,7 @@ impl Checker {
     fn check_spec(&mut self, resolutions: &Resolutions, spec: SpecImpl) {
         self.errors.append(&mut rules::spec(
             resolutions,
+            &self.udts,
             &self.globals,
             &mut self.tys,
             spec,
@@ -156,7 +185,13 @@ impl Checker {
     }
 
     pub(crate) fn check_stmt_fragment(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) {
-        ItemCollector::new(resolutions, &mut self.globals, &mut self.errors).visit_stmt(stmt);
+        ItemCollector {
+            resolutions,
+            udts: &mut self.udts,
+            globals: &mut self.globals,
+            errors: &mut self.errors,
+        }
+        .visit_stmt(stmt);
         ItemChecker::new(self, resolutions).visit_stmt(stmt);
 
         // TODO: Normally, all statements in a specialization are type checked in the same inference
@@ -167,6 +202,7 @@ impl Checker {
         // https://github.com/microsoft/qsharp/issues/205
         self.errors.append(&mut rules::stmt(
             resolutions,
+            &self.udts,
             &self.globals,
             &mut self.tys,
             stmt,
@@ -176,22 +212,9 @@ impl Checker {
 
 struct ItemCollector<'a> {
     resolutions: &'a Resolutions,
+    udts: &'a mut HashMap<ItemId, Udt>,
     globals: &'a mut HashMap<ItemId, Ty>,
     errors: &'a mut Vec<Error>,
-}
-
-impl<'a> ItemCollector<'a> {
-    fn new(
-        resolutions: &'a Resolutions,
-        globals: &'a mut HashMap<ItemId, Ty>,
-        errors: &'a mut Vec<Error>,
-    ) -> Self {
-        Self {
-            resolutions,
-            globals,
-            errors,
-        }
-    }
 }
 
 impl Visitor<'_> for ItemCollector<'_> {
@@ -214,12 +237,20 @@ impl Visitor<'_> for ItemCollector<'_> {
                     panic!("type should have item ID");
                 };
 
-                let (ty, errors) = convert::ast_ty_def_cons_ty(self.resolutions, item, def);
-                for MissingTyError(span) in errors {
-                    self.errors.push(Error(ErrorKind::MissingItemTy(span)));
-                }
+                let (base, base_errors) = convert::ast_ty_def_base_ty(self.resolutions, def);
+                let (cons, cons_errors) = convert::ast_ty_def_cons_ty(self.resolutions, item, def);
+                let (fields, field_errors) = convert::ast_ty_def_fields(self.resolutions, def);
 
-                self.globals.insert(item, ty);
+                self.errors.extend(
+                    base_errors
+                        .into_iter()
+                        .chain(cons_errors)
+                        .chain(field_errors)
+                        .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
+                );
+
+                self.udts.insert(item, Udt { base, fields });
+                self.globals.insert(item, cons);
             }
             _ => {}
         }

@@ -5,7 +5,10 @@ use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{self, Functor, ItemId, Ty};
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
@@ -60,7 +63,7 @@ pub(super) fn ast_ty_def_cons_ty(
     id: ItemId,
     def: &ast::TyDef,
 ) -> (Ty, Vec<MissingTyError>) {
-    let (input, errors) = ast_ty_def_ty(resolutions, def);
+    let (input, errors) = ast_ty_def_base_ty(resolutions, def);
     let ty = Ty::Arrow(
         hir::CallableKind::Function,
         Box::new(input),
@@ -70,24 +73,58 @@ pub(super) fn ast_ty_def_cons_ty(
     (ty, errors)
 }
 
-pub(super) fn ast_ty_def_ty(
+pub(super) fn ast_ty_def_base_ty(
     resolutions: &Resolutions,
     def: &ast::TyDef,
 ) -> (Ty, Vec<MissingTyError>) {
     match &def.kind {
         ast::TyDefKind::Field(_, ty) => ty_from_ast(resolutions, ty),
-        ast::TyDefKind::Paren(inner) => ast_ty_def_ty(resolutions, inner),
+        ast::TyDefKind::Paren(inner) => ast_ty_def_base_ty(resolutions, inner),
         ast::TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ast_ty_def_ty(resolutions, item);
+                let (item_ty, item_errors) = ast_ty_def_base_ty(resolutions, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
 
             (Ty::Tuple(tys), errors)
         }
+    }
+}
+
+pub(super) fn ast_ty_def_fields(
+    resolutions: &Resolutions,
+    def: &ast::TyDef,
+) -> (HashMap<Rc<str>, Ty>, Vec<MissingTyError>) {
+    match &def.kind {
+        ast::TyDefKind::Field(Some(name), ty) => {
+            let (ty, errors) = ty_from_ast(resolutions, ty);
+            let fields = [(Rc::clone(&name.name), ty)].into();
+            (fields, errors)
+        }
+        ast::TyDefKind::Field(None, _) => (HashMap::new(), Vec::new()),
+        ast::TyDefKind::Paren(inner) => ast_ty_def_fields(resolutions, inner),
+        ast::TyDefKind::Tuple(items) => {
+            let mut fields = HashMap::new();
+            let mut errors = Vec::new();
+            for item in items {
+                let (item_fields, item_errors) = ast_ty_def_fields(resolutions, item);
+                fields.extend(item_fields);
+                errors.extend(item_errors);
+            }
+
+            (fields, errors)
+        }
+    }
+}
+
+pub(super) fn hir_ty_def_fields(def: &hir::TyDef) -> HashMap<Rc<str>, Ty> {
+    match &def.kind {
+        hir::TyDefKind::Field(Some(name), ty) => [(Rc::clone(&name.name), ty.clone())].into(),
+        hir::TyDefKind::Field(None, _) => HashMap::new(),
+        hir::TyDefKind::Tuple(items) => items.iter().flat_map(hir_ty_def_fields).collect(),
     }
 }
 
