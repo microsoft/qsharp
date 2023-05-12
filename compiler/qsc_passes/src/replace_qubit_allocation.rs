@@ -229,7 +229,7 @@ impl ReplaceQubitAllocation<'_> {
             create_gen_core_ref(
                 self.core_table,
                 "QIR.Runtime",
-                "__quantum__rt__qubit_allocate_array",
+                "AllocateQubitArray",
                 ident.span,
             ),
             Some(array_size),
@@ -253,7 +253,7 @@ impl ReplaceQubitAllocation<'_> {
             create_gen_core_ref(
                 self.core_table,
                 "QIR.Runtime",
-                "__quantum__rt__qubit_release_array",
+                "ReleaseQubitArray",
                 ident.span,
             ),
             ident,
