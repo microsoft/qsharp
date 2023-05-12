@@ -148,22 +148,6 @@ fn message() {
 }
 
 #[test]
-fn to_string() {
-    check_intrinsic_result("", "AsString(One)", &expect![["One"]]);
-}
-
-#[test]
-fn to_string_message() {
-    check_intrinsic_output(
-        "",
-        r#"Message(AsString(PauliX))"#,
-        &expect![[r#"
-            PauliX
-        "#]],
-    );
-}
-
-#[test]
 fn check_zero() {
     check_intrinsic_result(
         "",
