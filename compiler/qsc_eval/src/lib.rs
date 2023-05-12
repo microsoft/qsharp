@@ -801,7 +801,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     rhs.span,
                 ))),
             },
-            UnOp::Unwrap => Break(Reason::Error(Error::Unimplemented("unwrap", expr.span))),
+            UnOp::Unwrap => Continue(val),
         }
     }
 
