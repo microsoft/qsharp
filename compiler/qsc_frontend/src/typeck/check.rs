@@ -3,7 +3,7 @@
 
 use super::{
     rules::{self, SpecImpl},
-    Error, ErrorKind, Tys,
+    Error, ErrorKind, Tys, Udt,
 };
 use crate::{
     resolve::{Res, Resolutions},
@@ -14,7 +14,7 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_hir::hir::{self, ItemId, PackageId, Ty};
-use std::{collections::HashMap, rc::Rc, vec};
+use std::{collections::HashMap, vec};
 
 pub(crate) struct GlobalTable {
     udts: HashMap<ItemId, Udt>,
@@ -54,11 +54,6 @@ impl GlobalTable {
     }
 }
 
-pub(super) struct Udt {
-    pub(super) base: Ty,
-    pub(super) fields: HashMap<Rc<str>, Ty>,
-}
-
 pub(crate) struct Checker {
     udts: HashMap<ItemId, Udt>,
     globals: HashMap<ItemId, Ty>,
@@ -76,12 +71,16 @@ impl Checker {
         }
     }
 
+    pub(crate) fn udts(&self) -> &HashMap<ItemId, Udt> {
+        &self.udts
+    }
+
     pub(crate) fn tys(&self) -> &Tys {
         &self.tys
     }
 
-    pub(crate) fn into_tys(self) -> (Tys, Vec<Error>) {
-        (self.tys, self.errors)
+    pub(crate) fn into_tys(self) -> (Tys, HashMap<ItemId, Udt>, Vec<Error>) {
+        (self.tys, self.udts, self.errors)
     }
 
     pub(crate) fn drain_errors(&mut self) -> vec::Drain<Error> {

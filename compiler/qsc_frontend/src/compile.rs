@@ -8,7 +8,7 @@ use crate::{
     lower::Lowerer,
     parse,
     resolve::{self, Resolutions, Resolver},
-    typeck::{self, Checker, Tys},
+    typeck::{self, Checker, Tys, Udt},
     validate::{self, validate},
 };
 use miette::{
@@ -22,9 +22,9 @@ use qsc_data_structures::{
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     global,
-    hir::{self, PackageId},
+    hir::{self, ItemId, PackageId},
 };
-use std::{fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use thiserror::Error;
 
 #[allow(clippy::module_name_repetitions)]
@@ -210,10 +210,12 @@ pub fn compile(
     assigner.visit_package(&mut package);
 
     let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
-    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
+    let (tys, udts, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
     let validate_errors = validate(&package);
     let mut lowerer = Lowerer::new();
-    let package = lowerer.with(&resolutions, &tys).lower_package(&package);
+    let package = lowerer
+        .with(&resolutions, &tys, &udts)
+        .lower_package(&package);
 
     let errors = parse_errors
         .into_iter()
@@ -381,7 +383,7 @@ fn typeck_all(
     dependencies: &[PackageId],
     package: &ast::Package,
     resolutions: &Resolutions,
-) -> (Tys, Vec<typeck::Error>) {
+) -> (Tys, HashMap<ItemId, Udt>, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     for &id in dependencies {
         let unit = store

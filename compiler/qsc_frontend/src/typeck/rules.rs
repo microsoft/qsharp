@@ -2,10 +2,9 @@
 // Licensed under the MIT License.
 
 use super::{
-    check::Udt,
     convert,
     infer::{self, Class, Inferrer},
-    Error, Tys,
+    Error, Tys, Udt,
 };
 use crate::resolve::{Res, Resolutions};
 use qsc_ast::ast::{

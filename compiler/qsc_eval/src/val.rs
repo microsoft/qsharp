@@ -27,7 +27,6 @@ pub enum Value {
     Result(bool),
     String(Rc<str>),
     Tuple(Rc<[Value]>),
-    Udt,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -120,7 +119,6 @@ impl Display for Value {
                 }
                 write!(f, ")")
             }
-            Value::Udt => todo!("https://github.com/microsoft/qsharp/issues/148"),
         }
     }
 }
@@ -266,7 +264,6 @@ impl Value {
             Value::Result(_) => "Result",
             Value::String(_) => "String",
             Value::Tuple(_) => "Tuple",
-            Value::Udt => "Udt",
         }
     }
 }

@@ -9,8 +9,8 @@ use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimField,
-        PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Field, Ident, Lit, Mutability, NodeId, Pat, PatKind,
+        PrimField, PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
@@ -447,7 +447,7 @@ fn gen_field_access(container: &IdentTemplate, field: PrimField) -> Expr {
         id: NodeId::default(),
         span: container.span,
         ty: Ty::Prim(PrimTy::Int),
-        kind: ExprKind::Field(Box::new(container.gen_local_ref()), field),
+        kind: ExprKind::Field(Box::new(container.gen_local_ref()), Field::Prim(field)),
     }
 }
 

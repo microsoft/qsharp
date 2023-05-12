@@ -747,7 +747,7 @@ pub enum ExprKind {
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
-    Field(Box<Expr>, PrimField),
+    Field(Box<Expr>, Field),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -801,7 +801,7 @@ impl Display for ExprKind {
             ExprKind::Conjugate(within, apply) => display_conjugate(indent, within, apply)?,
             ExprKind::Err => write!(indent, "Err")?,
             ExprKind::Fail(e) => write!(indent, "Fail: {e}")?,
-            ExprKind::Field(expr, field) => display_field(indent, expr, *field)?,
+            ExprKind::Field(expr, field) => display_field(indent, expr, field)?,
             ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
             ExprKind::Hole => write!(indent, "Hole")?,
             ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
@@ -909,7 +909,7 @@ fn display_conjugate(
     Ok(())
 }
 
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: PrimField) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: &Field) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
@@ -1340,8 +1340,19 @@ impl From<InferId> for usize {
     }
 }
 
+/// A field for a type.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Field {
+    /// A path through a tuple, where each value is a tuple item index.
+    Path(Vec<usize>),
+    /// A primitive field for a built-in type.
+    Prim(PrimField),
+    /// An invalid field.
+    Err,
+}
+
 /// A primitive field for a built-in type.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum PrimField {
     /// The length of an array.
     Length,
@@ -1351,9 +1362,6 @@ pub enum PrimField {
     Step,
     /// The end of a range.
     End,
-    /// An invalid field.
-    #[default]
-    Err,
 }
 
 impl FromStr for PrimField {

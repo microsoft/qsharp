@@ -915,29 +915,29 @@ fn generate_adj_invert_with_range_loop() {
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Add):
                                                     Expr _id_ [0-0] [Type Int]: Field:
                                                         Expr _id_ [0-0] [Type Range]: Var: Local 29
-                                                        Start
+                                                        Prim(Start)
                                                     Expr _id_ [0-0] [Type Int]: BinOp (Mul):
                                                         Expr _id_ [0-0] [Type Int]: BinOp (Div):
                                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                                 Expr _id_ [0-0] [Type Int]: Field:
                                                                     Expr _id_ [0-0] [Type Range]: Var: Local 29
-                                                                    End
+                                                                    Prim(End)
                                                                 Expr _id_ [0-0] [Type Int]: Field:
                                                                     Expr _id_ [0-0] [Type Range]: Var: Local 29
-                                                                    Start
+                                                                    Prim(Start)
                                                             Expr _id_ [0-0] [Type Int]: Field:
                                                                 Expr _id_ [0-0] [Type Range]: Var: Local 29
-                                                                Step
+                                                                Prim(Step)
                                                         Expr _id_ [0-0] [Type Int]: Field:
                                                             Expr _id_ [0-0] [Type Range]: Var: Local 29
-                                                            Step
+                                                            Prim(Step)
                                                 Expr _id_ [0-0] [Type Int]: UnOp (Neg):
                                                     Expr _id_ [0-0] [Type Int]: Field:
                                                         Expr _id_ [0-0] [Type Range]: Var: Local 29
-                                                        Step
+                                                        Prim(Step)
                                                 Expr _id_ [0-0] [Type Int]: Field:
                                                     Expr _id_ [0-0] [Type Range]: Var: Local 29
-                                                    Start
+                                                    Prim(Start)
                                             Block 19 [128-175] [Type ()]:
                                                 Stmt 24 [160-165]: Semi: Expr 25 [160-164] [Type ()]: Call:
                                                     Expr _id_ [160-161] [Type (Int => () is Adj)]: UnOp (Functor Adj):
@@ -1022,7 +1022,7 @@ fn generate_adj_invert_with_array_loop() {
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                     Expr _id_ [0-0] [Type Int]: Field:
                                                         Expr _id_ [0-0] [Type (Int)[]]: Var: Local 30
-                                                        Length
+                                                        Prim(Length)
                                                     Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(0)
@@ -1136,7 +1136,7 @@ fn generate_adj_invert_with_nested_loops() {
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                     Expr _id_ [0-0] [Type Int]: Field:
                                                         Expr _id_ [0-0] [Type (Int)[]]: Var: Local 53
-                                                        Length
+                                                        Prim(Length)
                                                     Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(0)
@@ -1166,7 +1166,7 @@ fn generate_adj_invert_with_nested_loops() {
                                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                                 Expr _id_ [0-0] [Type Int]: Field:
                                                                     Expr _id_ [0-0] [Type (Bool)[]]: Var: Local 51
-                                                                    Length
+                                                                    Prim(Length)
                                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(0)

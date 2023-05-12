@@ -13,12 +13,22 @@ use miette::Diagnostic;
 use qsc_ast::ast;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::Ty;
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug, rc::Rc};
 use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
 pub type Tys = IndexMap<ast::NodeId, Ty>;
+
+pub(super) struct Udt {
+    pub(super) base: Ty,
+    pub(super) fields: HashMap<Rc<str>, UdtField>,
+}
+
+pub(super) struct UdtField {
+    pub(super) path: Vec<usize>,
+    pub(super) ty: Ty,
+}
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]

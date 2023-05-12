@@ -53,7 +53,7 @@ fn convert_for_array() {
                                     Pat _id_ [75-78] [Type Int]: Bind: Ident 17 [75-78] "len_id_17"
                                     Expr _id_ [75-78] [Type Int]: Field:
                                         Expr _id_ [75-78] [Type (Int)[]]: Var: Local 16
-                                        Length
+                                        Prim(Length)
                                 Stmt _id_ [75-78]: Local (Mutable):
                                     Pat _id_ [75-78] [Type Int]: Bind: Ident 18 [75-78] "index_id_18"
                                     Expr _id_ [75-78] [Type Int]: Lit: Int(0)
@@ -108,7 +108,7 @@ fn convert_for_array_deconstruct() {
                                     Pat _id_ [90-93] [Type Int]: Bind: Ident 20 [90-93] "len_id_20"
                                     Expr _id_ [90-93] [Type Int]: Field:
                                         Expr _id_ [90-93] [Type ((Int, Double))[]]: Var: Local 19
-                                        Length
+                                        Prim(Length)
                                 Stmt _id_ [90-93]: Local (Mutable):
                                     Pat _id_ [90-93] [Type Int]: Bind: Ident 21 [90-93] "index_id_21"
                                     Expr _id_ [90-93] [Type Int]: Lit: Int(0)
@@ -171,7 +171,7 @@ fn convert_for_slice() {
                                     Pat _id_ [75-88] [Type Int]: Bind: Ident 23 [75-88] "len_id_23"
                                     Expr _id_ [75-88] [Type Int]: Field:
                                         Expr _id_ [75-88] [Type (Int)[]]: Var: Local 22
-                                        Length
+                                        Prim(Length)
                                 Stmt _id_ [75-88]: Local (Mutable):
                                     Pat _id_ [75-88] [Type Int]: Bind: Ident 24 [75-88] "index_id_24"
                                     Expr _id_ [75-88] [Type Int]: Lit: Int(0)
@@ -229,17 +229,17 @@ fn convert_for_range() {
                                     Pat _id_ [64-68] [Type Int]: Bind: Ident 18 [64-68] "index_id_18"
                                     Expr _id_ [64-68] [Type Int]: Field:
                                         Expr _id_ [64-68] [Type Range]: Var: Local 17
-                                        Start
+                                        Prim(Start)
                                 Stmt _id_ [64-68]: Local (Immutable):
                                     Pat _id_ [64-68] [Type Int]: Bind: Ident 19 [64-68] "step_id_19"
                                     Expr _id_ [64-68] [Type Int]: Field:
                                         Expr _id_ [64-68] [Type Range]: Var: Local 17
-                                        Step
+                                        Prim(Step)
                                 Stmt _id_ [64-68]: Local (Immutable):
                                     Pat _id_ [64-68] [Type Int]: Bind: Ident 20 [64-68] "end_id_20"
                                     Expr _id_ [64-68] [Type Int]: Field:
                                         Expr _id_ [64-68] [Type Range]: Var: Local 17
-                                        End
+                                        Prim(End)
                                 Stmt _id_ [55-115]: Expr: Expr _id_ [55-115] [Type ()]: While:
                                     Expr _id_ [64-68] [Type Bool]: BinOp (OrL):
                                         Expr _id_ [64-68] [Type Bool]: BinOp (AndL):
@@ -305,17 +305,17 @@ fn convert_for_reverse_range() {
                                     Pat _id_ [64-72] [Type Int]: Bind: Ident 20 [64-72] "index_id_20"
                                     Expr _id_ [64-72] [Type Int]: Field:
                                         Expr _id_ [64-72] [Type Range]: Var: Local 19
-                                        Start
+                                        Prim(Start)
                                 Stmt _id_ [64-72]: Local (Immutable):
                                     Pat _id_ [64-72] [Type Int]: Bind: Ident 21 [64-72] "step_id_21"
                                     Expr _id_ [64-72] [Type Int]: Field:
                                         Expr _id_ [64-72] [Type Range]: Var: Local 19
-                                        Step
+                                        Prim(Step)
                                 Stmt _id_ [64-72]: Local (Immutable):
                                     Pat _id_ [64-72] [Type Int]: Bind: Ident 22 [64-72] "end_id_22"
                                     Expr _id_ [64-72] [Type Int]: Field:
                                         Expr _id_ [64-72] [Type Range]: Var: Local 19
-                                        End
+                                        Prim(End)
                                 Stmt _id_ [55-119]: Expr: Expr _id_ [55-119] [Type ()]: While:
                                     Expr _id_ [64-72] [Type Bool]: BinOp (OrL):
                                         Expr _id_ [64-72] [Type Bool]: BinOp (AndL):

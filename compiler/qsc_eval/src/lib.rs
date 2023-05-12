@@ -23,9 +23,9 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
-    NodeId, PackageId, Pat, PatKind, PrimField, QubitInit, QubitInitKind, Res, Spec, SpecBody,
-    SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Field, Functor, Lit,
+    Mutability, NodeId, PackageId, Pat, PatKind, PrimField, QubitInit, QubitInitKind, Res, Spec,
+    SpecBody, SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -348,7 +348,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
                 Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
             }
-            ExprKind::Field(record, field) => self.eval_field(expr.span, record, *field),
+            ExprKind::Field(record, field) => self.eval_field(record, field),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
@@ -872,27 +872,30 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_field(
-        &mut self,
-        span: Span,
-        record: &Expr,
-        field: PrimField,
-    ) -> ControlFlow<Reason, Value> {
-        let record_span = record.span;
-        let record = self.eval_expr(record)?;
-        // For now we only support built-in fields for Arrays and Ranges.
-        match (record, field) {
-            (Value::Array(arr), PrimField::Length) => {
+    fn eval_field(&mut self, record: &Expr, field: &Field) -> ControlFlow<Reason, Value> {
+        match (self.eval_expr(record)?, field) {
+            (Value::Array(arr), Field::Prim(PrimField::Length)) => {
                 let len: i64 = match arr.len().try_into() {
                     Ok(len) => Continue(len),
-                    Err(_) => Break(Reason::Error(Error::ArrayTooLarge(record_span))),
+                    Err(_) => Break(Reason::Error(Error::ArrayTooLarge(record.span))),
                 }?;
                 Continue(Value::Int(len))
             }
-            (Value::Range(Some(start), _, _), PrimField::Start) => Continue(Value::Int(start)),
-            (Value::Range(_, step, _), PrimField::Step) => Continue(Value::Int(step)),
-            (Value::Range(_, _, Some(end)), PrimField::End) => Continue(Value::Int(end)),
-            _ => Break(Reason::Error(Error::Unimplemented("field access", span))),
+            (Value::Range(Some(start), _, _), Field::Prim(PrimField::Start)) => {
+                Continue(Value::Int(start))
+            }
+            (Value::Range(_, step, _), Field::Prim(PrimField::Step)) => Continue(Value::Int(step)),
+            (Value::Range(_, _, Some(end)), Field::Prim(PrimField::End)) => {
+                Continue(Value::Int(end))
+            }
+            (mut value, Field::Path(path)) => {
+                for &index in path {
+                    let Value::Tuple(items) = value else { panic!("field path on non-tuple value"); };
+                    value = items[index].clone();
+                }
+                Continue(value)
+            }
+            _ => panic!("invalid field access"),
         }
     }
 

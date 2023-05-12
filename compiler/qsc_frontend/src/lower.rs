@@ -3,15 +3,15 @@
 
 use crate::{
     resolve::{self, Resolutions},
-    typeck::{convert, Tys},
+    typeck::{convert, Tys, Udt},
 };
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, LocalItemId},
+    hir::{self, ItemId, LocalItemId},
 };
-use std::{clone::Clone, rc::Rc, vec};
+use std::{clone::Clone, collections::HashMap, rc::Rc, vec};
 
 pub(super) struct Lowerer {
     assigner: Assigner,
@@ -38,11 +38,17 @@ impl Lowerer {
         self.items.drain(..)
     }
 
-    pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions, tys: &'a Tys) -> With {
+    pub(super) fn with<'a>(
+        &'a mut self,
+        resolutions: &'a Resolutions,
+        tys: &'a Tys,
+        udts: &'a HashMap<ItemId, Udt>,
+    ) -> With {
         With {
             lowerer: self,
             resolutions,
             tys,
+            udts,
         }
     }
 
@@ -55,6 +61,7 @@ pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
     resolutions: &'a Resolutions,
     tys: &'a Tys,
+    udts: &'a HashMap<ItemId, Udt>,
 }
 
 impl With<'_> {
@@ -325,7 +332,17 @@ impl With<'_> {
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
                 let container = self.lower_expr(container);
-                let field = name.name.parse().unwrap_or_default();
+                let field = if let hir::Ty::Udt(hir::Res::Item(id)) = container.ty {
+                    self.udts
+                        .get(&id)
+                        .and_then(|udt| udt.fields.get(&name.name))
+                        .map_or(hir::Field::Err, |f| hir::Field::Path(f.path.clone()))
+                } else if let Ok(prim) = name.name.parse() {
+                    hir::Field::Prim(prim)
+                } else {
+                    hir::Field::Err
+                };
+
                 hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(

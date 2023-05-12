@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use super::UdtField;
 use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::span::Span;
@@ -97,21 +98,28 @@ pub(super) fn ast_ty_def_base_ty(
 pub(super) fn ast_ty_def_fields(
     resolutions: &Resolutions,
     def: &ast::TyDef,
-) -> (HashMap<Rc<str>, Ty>, Vec<MissingTyError>) {
+) -> (HashMap<Rc<str>, UdtField>, Vec<MissingTyError>) {
     match &def.kind {
         ast::TyDefKind::Field(Some(name), ty) => {
             let (ty, errors) = ty_from_ast(resolutions, ty);
-            let fields = [(Rc::clone(&name.name), ty)].into();
-            (fields, errors)
+            let field = UdtField {
+                ty,
+                path: Vec::new(),
+            };
+            ([(Rc::clone(&name.name), field)].into(), errors)
         }
         ast::TyDefKind::Field(None, _) => (HashMap::new(), Vec::new()),
         ast::TyDefKind::Paren(inner) => ast_ty_def_fields(resolutions, inner),
         ast::TyDefKind::Tuple(items) => {
             let mut fields = HashMap::new();
             let mut errors = Vec::new();
-            for item in items {
+
+            for (index, item) in items.iter().enumerate() {
                 let (item_fields, item_errors) = ast_ty_def_fields(resolutions, item);
-                fields.extend(item_fields);
+                for (name, mut field) in item_fields {
+                    field.path.insert(0, index);
+                    fields.insert(name, field);
+                }
                 errors.extend(item_errors);
             }
 
@@ -120,11 +128,27 @@ pub(super) fn ast_ty_def_fields(
     }
 }
 
-pub(super) fn hir_ty_def_fields(def: &hir::TyDef) -> HashMap<Rc<str>, Ty> {
+pub(super) fn hir_ty_def_fields(def: &hir::TyDef) -> HashMap<Rc<str>, UdtField> {
     match &def.kind {
-        hir::TyDefKind::Field(Some(name), ty) => [(Rc::clone(&name.name), ty.clone())].into(),
+        hir::TyDefKind::Field(Some(name), ty) => {
+            let field = UdtField {
+                ty: ty.clone(),
+                path: Vec::new(),
+            };
+            [(Rc::clone(&name.name), field)].into()
+        }
         hir::TyDefKind::Field(None, _) => HashMap::new(),
-        hir::TyDefKind::Tuple(items) => items.iter().flat_map(hir_ty_def_fields).collect(),
+        hir::TyDefKind::Tuple(items) => items
+            .iter()
+            .enumerate()
+            .flat_map(|(index, item)| {
+                let mut fields = hir_ty_def_fields(item);
+                for field in fields.values_mut() {
+                    field.path.insert(0, index);
+                }
+                fields
+            })
+            .collect(),
     }
 }
 

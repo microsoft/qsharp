@@ -106,7 +106,11 @@ impl Compiler {
         let errors = self.drain_errors();
         if errors.is_empty() {
             self.lowerer
-                .with(self.resolver.resolutions(), self.checker.tys())
+                .with(
+                    self.resolver.resolutions(),
+                    self.checker.tys(),
+                    self.checker.udts(),
+                )
                 .lower_namespace(&namespace);
             Ok(())
         } else {
@@ -123,7 +127,11 @@ impl Compiler {
         let errors = self.drain_errors();
         if errors.is_empty() {
             self.lowerer
-                .with(self.resolver.resolutions(), self.checker.tys())
+                .with(
+                    self.resolver.resolutions(),
+                    self.checker.tys(),
+                    self.checker.udts(),
+                )
                 .lower_stmt(&stmt)
                 .map(Fragment::Stmt)
         } else {

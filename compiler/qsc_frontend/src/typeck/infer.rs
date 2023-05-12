@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{check::Udt, Error, ErrorKind};
+use super::{Error, ErrorKind, Udt};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{Functor, InferId, ItemId, PrimField, PrimTy, Res, Ty};
 use std::{
@@ -580,9 +580,9 @@ fn check_has_field(
         }),
         (Err(()), Ty::Udt(Res::Item(id))) => {
             match udts.get(id).and_then(|udt| udt.fields.get(name.as_str())) {
-                Some(ty) => Ok(Constraint::Eq {
+                Some(field) => Ok(Constraint::Eq {
                     expected: item,
-                    actual: ty.clone(),
+                    actual: field.ty.clone(),
                     span,
                 }),
                 None => Err(ClassError(Class::HasField { record, name, item }, span)),
