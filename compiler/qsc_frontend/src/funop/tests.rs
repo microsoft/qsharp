@@ -9,13 +9,13 @@ fn check(file: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], None);
     let unit = compile(&PackageStore::new(compile::core()), &[], sources);
 
-    let semantic_errors: Vec<_> = unit
+    let funop_errors: Vec<_> = unit
         .errors
         .into_iter()
         .filter_map(try_into_funop_error)
         .collect();
 
-    expect.assert_debug_eq(&semantic_errors);
+    expect.assert_debug_eq(&funop_errors);
 }
 
 fn try_into_funop_error(error: compile::Error) -> Option<super::Error> {
