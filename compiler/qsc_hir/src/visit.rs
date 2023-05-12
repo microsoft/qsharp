@@ -4,7 +4,7 @@
 use crate::hir::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
-    StmtKind, StringComponent, TyDef, TyDefKind, Visibility,
+    StmtKind, StringComponent, Visibility,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -21,10 +21,6 @@ pub trait Visitor<'a>: Sized {
     }
 
     fn visit_visibility(&mut self, _: &'a Visibility) {}
-
-    fn visit_ty_def(&mut self, def: &'a TyDef) {
-        walk_ty_def(self, def);
-    }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         walk_callable_decl(self, decl);
@@ -71,24 +67,13 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_ident(name),
-        ItemKind::Ty(ident, def) => {
-            vis.visit_ident(ident);
-            vis.visit_ty_def(def);
-        }
+        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }
 
 pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
     vis.visit_ident(&attr.name);
     vis.visit_expr(&attr.arg);
-}
-
-pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
-    match &def.kind {
-        TyDefKind::Field(name, _) => name.iter().for_each(|n| vis.visit_ident(n)),
-        TyDefKind::Tuple(defs) => defs.iter().for_each(|d| vis.visit_ty_def(d)),
-    }
 }
 
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {

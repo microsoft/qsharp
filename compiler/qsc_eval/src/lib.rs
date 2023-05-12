@@ -897,7 +897,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 Continue(Value::Int(end))
             }
             (mut value, Field::Path(path)) => {
-                for &index in path {
+                for &index in &path.indices {
                     let Value::Tuple(items) = value else { panic!("field path on non-tuple value"); };
                     value = items[index].clone();
                 }

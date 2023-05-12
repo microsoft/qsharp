@@ -4,7 +4,7 @@
 use crate::hir::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
-    StmtKind, StringComponent, TyDef, TyDefKind, Visibility,
+    StmtKind, StringComponent, Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -22,10 +22,6 @@ pub trait MutVisitor: Sized {
     }
 
     fn visit_visibility(&mut self, _: &mut Visibility) {}
-
-    fn visit_ty_def(&mut self, def: &mut TyDef) {
-        walk_ty_def(self, def);
-    }
 
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
         walk_callable_decl(self, decl);
@@ -80,11 +76,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_ident(name),
-        ItemKind::Ty(ident, def) => {
-            vis.visit_ident(ident);
-            vis.visit_ty_def(def);
-        }
+        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }
 
@@ -92,15 +84,6 @@ pub fn walk_attr(vis: &mut impl MutVisitor, attr: &mut Attr) {
     vis.visit_span(&mut attr.span);
     vis.visit_ident(&mut attr.name);
     vis.visit_expr(&mut attr.arg);
-}
-
-pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
-    vis.visit_span(&mut def.span);
-
-    match &mut def.kind {
-        TyDefKind::Field(name, _) => name.iter_mut().for_each(|n| vis.visit_ident(n)),
-        TyDefKind::Tuple(defs) => defs.iter_mut().for_each(|d| vis.visit_ty_def(d)),
-    }
 }
 
 pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {

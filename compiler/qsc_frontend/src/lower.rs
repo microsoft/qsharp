@@ -3,15 +3,15 @@
 
 use crate::{
     resolve::{self, Resolutions},
-    typeck::{convert, Tys, Udt},
+    typeck::{self, convert},
 };
 use qsc_ast::ast;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_hir::{
     assigner::Assigner,
-    hir::{self, ItemId, LocalItemId},
+    hir::{self, LocalItemId},
 };
-use std::{clone::Clone, collections::HashMap, rc::Rc, vec};
+use std::{clone::Clone, rc::Rc, vec};
 
 pub(super) struct Lowerer {
     assigner: Assigner,
@@ -41,14 +41,12 @@ impl Lowerer {
     pub(super) fn with<'a>(
         &'a mut self,
         resolutions: &'a Resolutions,
-        tys: &'a Tys,
-        udts: &'a HashMap<ItemId, Udt>,
+        tys: &'a typeck::Table,
     ) -> With {
         With {
             lowerer: self,
             resolutions,
             tys,
-            udts,
         }
     }
 
@@ -60,8 +58,7 @@ impl Lowerer {
 pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
     resolutions: &'a Resolutions,
-    tys: &'a Tys,
-    udts: &'a HashMap<ItemId, Udt>,
+    tys: &'a typeck::Table,
 }
 
 impl With<'_> {
@@ -103,22 +100,35 @@ impl With<'_> {
     }
 
     fn lower_item(&mut self, item: &ast::Item) -> Option<LocalItemId> {
-        let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
-        let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let (name_id, kind) = match &item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
-            ast::ItemKind::Callable(decl) => (
-                decl.name.id,
-                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
-            ),
-            ast::ItemKind::Ty(name, def) => (
-                name.id,
-                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def)),
-            ),
+        let resolve_id = |id| match self.resolutions.get(id) {
+            Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
+            _ => panic!("item should have item ID"),
         };
 
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) = self.resolutions.get(name_id)
-            else { panic!("item should have item ID"); };
+        let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
+        let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
+
+        let (id, kind) = match &item.kind {
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            ast::ItemKind::Callable(decl) => (
+                resolve_id(decl.name.id),
+                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
+            ),
+            ast::ItemKind::Ty(name, _) => {
+                let id = resolve_id(name.id);
+                let item_id = hir::ItemId {
+                    package: None,
+                    item: id,
+                };
+                let udt = self
+                    .tys
+                    .udts
+                    .get(&item_id)
+                    .expect("type item should have lowered UDT");
+
+                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+            }
+        };
 
         self.lowerer.items.push(hir::Item {
             id,
@@ -198,25 +208,6 @@ impl With<'_> {
         }
     }
 
-    fn lower_ty_def(&mut self, def: &ast::TyDef) -> hir::TyDef {
-        match &def.kind {
-            ast::TyDefKind::Field(name, ty) => hir::TyDef {
-                id: self.lower_id(def.id),
-                span: def.span,
-                kind: hir::TyDefKind::Field(
-                    name.as_ref().map(|n| self.lower_ident(n)),
-                    convert::ty_from_ast(self.resolutions, ty).0,
-                ),
-            },
-            ast::TyDefKind::Paren(inner) => self.lower_ty_def(inner),
-            ast::TyDefKind::Tuple(defs) => hir::TyDef {
-                id: self.lower_id(def.id),
-                span: def.span,
-                kind: hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect()),
-            },
-        }
-    }
-
     fn lower_functor_expr(&mut self, expr: &ast::FunctorExpr) -> hir::FunctorExpr {
         match &expr.kind {
             ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExpr {
@@ -244,7 +235,11 @@ impl With<'_> {
         hir::Block {
             id: self.lower_id(block.id),
             span: block.span,
-            ty: self.tys.get(block.id).map_or(hir::Ty::Err, Clone::clone),
+            ty: self
+                .tys
+                .terms
+                .get(block.id)
+                .map_or(hir::Ty::Err, Clone::clone),
             stmts: block
                 .stmts
                 .iter()
@@ -291,8 +286,14 @@ impl With<'_> {
         if let ast::ExprKind::Paren(inner) = &expr.kind {
             return self.lower_expr(inner);
         }
+
         let id = self.lower_id(expr.id);
-        let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
+        let ty = self
+            .tys
+            .terms
+            .get(expr.id)
+            .map_or(hir::Ty::Err, Clone::clone);
+
         let kind = match &expr.kind {
             ast::ExprKind::Array(items) => {
                 hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
@@ -333,10 +334,11 @@ impl With<'_> {
             ast::ExprKind::Field(container, name) => {
                 let container = self.lower_expr(container);
                 let field = if let hir::Ty::Udt(hir::Res::Item(id)) = container.ty {
-                    self.udts
+                    self.tys
+                        .udts
                         .get(&id)
                         .and_then(|udt| udt.fields.get(&name.name))
-                        .map_or(hir::Field::Err, |f| hir::Field::Path(f.path.clone()))
+                        .map_or(hir::Field::Err, |f| hir::Field::Path(f.clone()))
                 } else if let Ok(prim) = name.name.parse() {
                     hir::Field::Prim(prim)
                 } else {
@@ -421,11 +423,13 @@ impl With<'_> {
         if let ast::PatKind::Paren(inner) = &pat.kind {
             return self.lower_pat(inner);
         }
+
         let id = self.lower_id(pat.id);
-        let ty = self.tys.get(pat.id).map_or_else(
+        let ty = self.tys.terms.get(pat.id).map_or_else(
             || convert::ast_pat_ty(self.resolutions, pat).0,
             Clone::clone,
         );
+
         let kind = match &pat.kind {
             ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
@@ -448,8 +452,14 @@ impl With<'_> {
         if let ast::QubitInitKind::Paren(inner) = &init.kind {
             return self.lower_qubit_init(inner);
         }
+
         let id = self.lower_id(init.id);
-        let ty = self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone);
+        let ty = self
+            .tys
+            .terms
+            .get(init.id)
+            .map_or(hir::Ty::Err, Clone::clone);
+
         let kind = match &init.kind {
             ast::QubitInitKind::Array(length) => {
                 hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))

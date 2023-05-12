@@ -4,15 +4,15 @@
 use super::{
     convert,
     infer::{self, Class, Inferrer},
-    Error, Tys, Udt,
+    Error,
 };
 use crate::resolve::{Res, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
-use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, ItemId, PrimTy, Ty};
+use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_hir::hir::{self, ItemId, PrimTy, Ty, Udt};
 use std::collections::{HashMap, HashSet};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -27,8 +27,8 @@ struct Context<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Ty>,
     return_ty: Option<&'a Ty>,
-    tys: &'a mut Tys,
-    nodes: Vec<NodeId>,
+    terms: &'a mut IndexMap<NodeId, Ty>,
+    new: Vec<NodeId>,
     inferrer: Inferrer,
 }
 
@@ -37,15 +37,15 @@ impl<'a> Context<'a> {
         resolutions: &'a Resolutions,
         udts: &'a HashMap<ItemId, Udt>,
         globals: &'a HashMap<ItemId, Ty>,
-        tys: &'a mut Tys,
+        terms: &'a mut IndexMap<NodeId, Ty>,
     ) -> Self {
         Self {
             resolutions,
             udts,
             globals,
             return_ty: None,
-            tys,
-            nodes: Vec::new(),
+            terms,
+            new: Vec::new(),
             inferrer: Inferrer::new(),
         }
     }
@@ -326,7 +326,7 @@ impl<'a> Context<'a> {
                     converge(ty)
                 }
                 Some(&Res::Local(node)) => converge(
-                    self.tys
+                    self.terms
                         .get(node)
                         .expect("local variable should have inferred type")
                         .clone(),
@@ -609,14 +609,14 @@ impl<'a> Context<'a> {
     }
 
     fn record(&mut self, id: NodeId, ty: Ty) {
-        self.nodes.push(id);
-        self.tys.insert(id, ty);
+        self.new.push(id);
+        self.terms.insert(id, ty);
     }
 
     fn solve(self) -> Vec<Error> {
         let (substs, errors) = self.inferrer.solve(self.udts);
-        for id in self.nodes {
-            let ty = self.tys.get_mut(id).expect("node should have type");
+        for id in self.new {
+            let ty = self.terms.get_mut(id).expect("node should have type");
             infer::substitute(&substs, ty);
         }
         errors
@@ -636,10 +636,10 @@ pub(super) fn spec(
     resolutions: &Resolutions,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, udts, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, terms);
     context.infer_spec(spec);
     context.solve()
 }
@@ -648,10 +648,10 @@ pub(super) fn expr(
     resolutions: &Resolutions,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, udts, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, terms);
     context.infer_expr(expr);
     context.solve()
 }
@@ -660,10 +660,10 @@ pub(super) fn stmt(
     resolutions: &Resolutions,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, udts, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, terms);
     context.infer_stmt(stmt);
     context.solve()
 }

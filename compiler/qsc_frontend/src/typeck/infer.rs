@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{Error, ErrorKind, Udt};
+use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferId, ItemId, PrimField, PrimTy, Res, Ty};
+use qsc_hir::hir::{Functor, InferId, ItemId, PrimField, PrimTy, Res, Ty, Udt};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -600,10 +600,13 @@ fn check_has_field(
             span,
         }),
         (Err(()), Ty::Udt(Res::Item(id))) => {
-            match udts.get(id).and_then(|udt| udt.fields.get(name.as_str())) {
-                Some(field) => Ok(Constraint::Eq {
+            match udts
+                .get(id)
+                .and_then(|udt| udt.fields.get(name.as_str()).and_then(|f| udt.field_ty(f)))
+            {
+                Some(ty) => Ok(Constraint::Eq {
                     expected: item,
-                    actual: field.ty.clone(),
+                    actual: ty.clone(),
                     span,
                 }),
                 None => Err(ClassError(Class::HasField { record, name, item }, span)),

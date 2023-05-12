@@ -9,7 +9,7 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
     result,
@@ -250,7 +250,7 @@ pub enum ItemKind {
     /// A `namespace` declaration.
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
-    Ty(Ident, TyDef),
+    Ty(Ident, Udt),
 }
 
 impl Display for ItemKind {
@@ -270,7 +270,7 @@ impl Display for ItemKind {
                     write!(f, " <empty>")
                 }
             }
-            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
+            ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
         }
     }
 }
@@ -311,85 +311,6 @@ impl Display for Attr {
         write!(indent, "Attr {} {} ({}):", self.id, self.span, self.name)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\n{}", self.arg)?;
-        Ok(())
-    }
-}
-
-/// A type definition.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TyDef {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The type definition kind.
-    pub kind: TyDefKind,
-}
-
-impl TyDef {
-    /// The type of the constructor for this type definition.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ID of the constructed type.
-    #[must_use]
-    pub fn cons_ty(&self, id: ItemId) -> Ty {
-        Ty::Arrow(
-            CallableKind::Function,
-            Box::new(self.base_ty()),
-            Box::new(Ty::Udt(Res::Item(id))),
-            HashSet::new(),
-        )
-    }
-
-    /// The type used as the basis for this type definition.
-    pub fn base_ty(&self) -> Ty {
-        match &self.kind {
-            TyDefKind::Field(_, ty) => ty.clone(),
-            TyDefKind::Tuple(items) => Ty::Tuple(items.iter().map(Self::base_ty).collect()),
-        }
-    }
-}
-
-impl Display for TyDef {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A type definition kind.
-#[derive(Clone, Debug, PartialEq)]
-pub enum TyDefKind {
-    /// A field definition with an optional name but required type.
-    Field(Option<Ident>, Ty),
-    /// A tuple.
-    Tuple(Vec<TyDef>),
-}
-
-impl Display for TyDefKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        match &self {
-            TyDefKind::Field(name, t) => {
-                write!(indent, "Field:")?;
-                indent = set_indentation(indent, 1);
-                if let Some(n) = name {
-                    write!(indent, "\n{n}")?;
-                }
-                write!(indent, "\n{t}")?;
-            }
-            TyDefKind::Tuple(ts) => {
-                if ts.is_empty() {
-                    write!(indent, "Unit")?;
-                } else {
-                    write!(indent, "Tuple:")?;
-                    indent = set_indentation(indent, 1);
-                    for t in ts {
-                        write!(indent, "\n{t}")?;
-                    }
-                }
-            }
-        }
         Ok(())
     }
 }
@@ -1345,15 +1266,79 @@ impl From<InferId> for usize {
     }
 }
 
-/// A field for a type.
+/// A user-defined type.
 #[derive(Clone, Debug, PartialEq)]
+pub struct Udt {
+    /// The basis type used as the definition of the user-defined type.
+    pub base: Ty,
+    /// The named fields of the user-defined type.
+    pub fields: HashMap<Rc<str>, FieldPath>,
+}
+
+impl Udt {
+    /// The type of the constructor for this type definition.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the constructed type.
+    #[must_use]
+    pub fn cons_ty(&self, id: ItemId) -> Ty {
+        Ty::Arrow(
+            CallableKind::Function,
+            Box::new(self.base.clone()),
+            Box::new(Ty::Udt(Res::Item(id))),
+            HashSet::new(),
+        )
+    }
+
+    /// The type of the field at the given path. Returns [None] if the path is not valid for this
+    /// user-defined type.
+    #[must_use]
+    pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
+        let mut ty = &self.base;
+        for &index in &path.indices {
+            let Ty::Tuple(items) = ty else { return None; };
+            ty = &items[index];
+        }
+        Some(ty)
+    }
+}
+
+impl Display for Udt {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        indent.write_str("Udt:")?;
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nbase: {}", self.base)?;
+        indent.write_str("\nfields:")?;
+
+        indent = set_indentation(indent, 2);
+        let mut fields: Vec<_> = self.fields.iter().collect();
+        fields.sort();
+        for (name, field) in fields {
+            write!(indent, "\n{name}: {:?}", field.indices)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// A field for a type.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Field {
-    /// A path through a tuple, where each value is a tuple item index.
-    Path(Vec<usize>),
+    /// A field path.
+    Path(FieldPath),
     /// A primitive field for a built-in type.
     Prim(PrimField),
     /// An invalid field.
     Err,
+}
+
+/// A path to a field in a tuple or user-defined type.
+#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct FieldPath {
+    /// The tuple item indices to follow in order from top to bottom.
+    pub indices: Vec<usize>,
 }
 
 /// A primitive field for a built-in type.

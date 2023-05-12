@@ -1621,11 +1621,11 @@ fn newtype_cons() {
         "},
         "",
         &expect![[r##"
-            #4 56-58 "()" : Unit
-            #5 68-81 "{ NewInt(5) }" : UDT<Item 1>
-            #7 70-79 "NewInt(5)" : UDT<Item 1>
-            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
-            #9 77-78 "5" : Int
+            #3 56-58 "()" : Unit
+            #4 68-81 "{ NewInt(5) }" : UDT<Item 1>
+            #6 70-79 "NewInt(5)" : UDT<Item 1>
+            #7 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #8 77-78 "5" : Int
         "##]],
     );
 }
@@ -1641,11 +1641,11 @@ fn newtype_cons_wrong_input() {
         "},
         "",
         &expect![[r##"
-            #4 56-58 "()" : Unit
-            #5 68-83 "{ NewInt(5.0) }" : UDT<Item 1>
-            #7 70-81 "NewInt(5.0)" : UDT<Item 1>
-            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
-            #9 77-80 "5.0" : Double
+            #3 56-58 "()" : Unit
+            #4 68-83 "{ NewInt(5.0) }" : UDT<Item 1>
+            #6 70-81 "NewInt(5.0)" : UDT<Item 1>
+            #7 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #8 77-80 "5.0" : Double
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
         "##]],
     );
@@ -1662,11 +1662,11 @@ fn newtype_does_not_match_base_ty() {
         "},
         "",
         &expect![[r##"
-            #4 56-58 "()" : Unit
-            #5 65-78 "{ NewInt(5) }" : Int
-            #7 67-76 "NewInt(5)" : Int
-            #8 67-73 "NewInt" : (Int -> UDT<Item 1>)
-            #9 74-75 "5" : Int
+            #3 56-58 "()" : Unit
+            #4 65-78 "{ NewInt(5) }" : Int
+            #6 67-76 "NewInt(5)" : Int
+            #7 67-73 "NewInt" : (Int -> UDT<Item 1>)
+            #8 74-75 "5" : Int
             Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Prim(Int), Span { lo: 67, hi: 76 }))))
         "##]],
     );
@@ -1684,11 +1684,11 @@ fn newtype_does_not_match_other_newtype() {
         "},
         "",
         &expect![[r##"
-            #6 84-86 "()" : Unit
-            #7 97-111 "{ NewInt1(5) }" : UDT<Item 2>
-            #9 99-109 "NewInt1(5)" : UDT<Item 2>
-            #10 99-106 "NewInt1" : (Int -> UDT<Item 1>)
-            #11 107-108 "5" : Int
+            #4 84-86 "()" : Unit
+            #5 97-111 "{ NewInt1(5) }" : UDT<Item 2>
+            #7 99-109 "NewInt1(5)" : UDT<Item 2>
+            #8 99-106 "NewInt1" : (Int -> UDT<Item 1>)
+            #9 107-108 "5" : Int
             Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
         "##]],
     );
@@ -1707,11 +1707,11 @@ fn newtype_unwrap() {
         "},
         "",
         &expect![[r##"
-            #6 62-69 "x : Foo" : UDT<Item 1>
-            #8 76-103 "{\n        let y = x!;\n    }" : Unit
-            #10 90-91 "y" : (Int, Bool)
-            #12 94-96 "x!" : (Int, Bool)
-            #13 94-95 "x" : UDT<Item 1>
+            #3 62-69 "x : Foo" : UDT<Item 1>
+            #5 76-103 "{\n        let y = x!;\n    }" : Unit
+            #7 90-91 "y" : (Int, Bool)
+            #9 94-96 "x!" : (Int, Bool)
+            #10 94-95 "x" : UDT<Item 1>
         "##]],
     );
 }
@@ -1729,11 +1729,11 @@ fn newtype_field() {
         "},
         "",
         &expect![[r##"
-            #5 60-67 "x : Foo" : UDT<Item 1>
-            #7 74-105 "{\n        let y = x::Bar;\n    }" : Unit
-            #9 88-89 "y" : Int
-            #11 92-98 "x::Bar" : Int
-            #12 92-93 "x" : UDT<Item 1>
+            #3 60-67 "x : Foo" : UDT<Item 1>
+            #5 74-105 "{\n        let y = x::Bar;\n    }" : Unit
+            #7 88-89 "y" : Int
+            #9 92-98 "x::Bar" : Int
+            #10 92-93 "x" : UDT<Item 1>
         "##]],
     );
 }
@@ -1751,11 +1751,11 @@ fn newtype_field_invalid() {
         "},
         "",
         &expect![[r##"
-            #5 60-67 "x : Foo" : UDT<Item 1>
-            #7 74-106 "{\n        let y = x::Nope;\n    }" : Unit
-            #9 88-89 "y" : ?0
-            #11 92-99 "x::Nope" : ?0
-            #12 92-93 "x" : UDT<Item 1>
+            #3 60-67 "x : Foo" : UDT<Item 1>
+            #5 74-106 "{\n        let y = x::Nope;\n    }" : Unit
+            #7 88-89 "y" : ?0
+            #9 92-99 "x::Nope" : ?0
+            #10 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferId(1)) }, Span { lo: 92, hi: 99 }))))
         "##]],
     );
@@ -1917,10 +1917,10 @@ fn local_type() {
         &expect![[r##"
             #2 30-32 "()" : Unit
             #3 38-96 "{\n        newtype Bar = Int;\n        let x = Bar(5);\n    }" : Unit
-            #8 79-80 "x" : UDT<Item 2>
-            #10 83-89 "Bar(5)" : UDT<Item 2>
-            #11 83-86 "Bar" : (Int -> UDT<Item 2>)
-            #12 87-88 "5" : Int
+            #7 79-80 "x" : UDT<Item 2>
+            #9 83-89 "Bar(5)" : UDT<Item 2>
+            #10 83-86 "Bar" : (Int -> UDT<Item 2>)
+            #11 87-88 "5" : Int
         "##]],
     );
 }
