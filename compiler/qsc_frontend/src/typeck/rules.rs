@@ -280,7 +280,9 @@ impl<'a> Context<'a> {
                 for component in components {
                     match component {
                         StringComponent::Expr(expr) => {
+                            let span = expr.span;
                             let expr = self.infer_expr(expr);
+                            self.inferrer.class(span, Class::Show(expr.ty));
                             diverges = diverges || expr.diverges;
                         }
                         StringComponent::Lit(_) => {}
