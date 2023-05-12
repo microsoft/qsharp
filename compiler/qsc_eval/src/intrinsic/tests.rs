@@ -882,3 +882,101 @@ fn qubit_release_non_zero_failure() {
         "#]],
     );
 }
+
+#[test]
+fn qubit_not_unique_two_qubit_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            CNOT(q , q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 32166,
+                    hi: 32183,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_two_qubit_rotation_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Rxx(0.1, q, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 45069,
+                    hi: 45092,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_first_second() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(q , q, a);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 31122,
+                    hi: 31150,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_first_third() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(q , a, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 31122,
+                    hi: 31150,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_second_third() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(a , q, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 31122,
+                    hi: 31150,
+                },
+            )
+        "#]],
+    );
+}
