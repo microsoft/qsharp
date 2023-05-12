@@ -4,7 +4,7 @@
 use crate::hir::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
     Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
-    StmtKind, TyDef, TyDefKind, Visibility,
+    StmtKind, StringComponent, TyDef, TyDefKind, Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -226,6 +226,14 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_block(body);
             vis.visit_expr(until);
             fixup.iter_mut().for_each(|f| vis.visit_block(f));
+        }
+        ExprKind::String(components) => {
+            for component in components {
+                match component {
+                    StringComponent::Expr(expr) => vis.visit_expr(expr),
+                    StringComponent::Lit(_) => {}
+                }
+            }
         }
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);

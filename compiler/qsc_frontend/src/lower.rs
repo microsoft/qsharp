@@ -11,7 +11,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
 };
-use std::{clone::Clone, vec};
+use std::{clone::Clone, rc::Rc, vec};
 
 pub(super) struct Lowerer {
     assigner: Assigner,
@@ -348,7 +348,7 @@ impl With<'_> {
                 self.lower_pat(input),
                 Box::new(self.lower_expr(body)),
             ),
-            ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
+            ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
@@ -362,6 +362,12 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
+            ast::ExprKind::Interpolate(components) => hir::ExprKind::String(
+                components
+                    .iter()
+                    .map(|c| self.lower_string_component(c))
+                    .collect(),
+            ),
             ast::ExprKind::TernOp(op, lhs, middle, rhs) => hir::ExprKind::TernOp(
                 lower_ternop(*op),
                 Box::new(self.lower_expr(lhs)),
@@ -384,6 +390,13 @@ impl With<'_> {
             span: expr.span,
             ty,
             kind,
+        }
+    }
+
+    fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {
+        match component {
+            ast::StringComponent::Expr(expr) => hir::StringComponent::Expr(self.lower_expr(expr)),
+            ast::StringComponent::Lit(str) => hir::StringComponent::Lit(Rc::clone(str)),
         }
     }
 
@@ -513,19 +526,25 @@ fn lower_ternop(op: ast::TernOp) -> hir::TernOp {
     }
 }
 
-fn lower_lit(lit: &ast::Lit) -> hir::Lit {
+fn lower_lit(lit: &ast::Lit) -> hir::ExprKind {
     match lit {
-        ast::Lit::BigInt(i) => hir::Lit::BigInt(i.clone()),
-        &ast::Lit::Bool(b) => hir::Lit::Bool(b),
-        &ast::Lit::Double(d) => hir::Lit::Double(d),
-        &ast::Lit::Int(i) => hir::Lit::Int(i),
-        ast::Lit::Pauli(ast::Pauli::I) => hir::Lit::Pauli(hir::Pauli::I),
-        ast::Lit::Pauli(ast::Pauli::X) => hir::Lit::Pauli(hir::Pauli::X),
-        ast::Lit::Pauli(ast::Pauli::Y) => hir::Lit::Pauli(hir::Pauli::Y),
-        ast::Lit::Pauli(ast::Pauli::Z) => hir::Lit::Pauli(hir::Pauli::Z),
-        ast::Lit::Result(ast::Result::One) => hir::Lit::Result(hir::Result::One),
-        ast::Lit::Result(ast::Result::Zero) => hir::Lit::Result(hir::Result::Zero),
-        ast::Lit::String(s) => hir::Lit::String(s.clone()),
+        ast::Lit::BigInt(value) => hir::ExprKind::Lit(hir::Lit::BigInt(value.clone())),
+        &ast::Lit::Bool(value) => hir::ExprKind::Lit(hir::Lit::Bool(value)),
+        &ast::Lit::Double(value) => hir::ExprKind::Lit(hir::Lit::Double(value)),
+        &ast::Lit::Int(value) => hir::ExprKind::Lit(hir::Lit::Int(value)),
+        ast::Lit::Pauli(ast::Pauli::I) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::I)),
+        ast::Lit::Pauli(ast::Pauli::X) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::X)),
+        ast::Lit::Pauli(ast::Pauli::Y) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::Y)),
+        ast::Lit::Pauli(ast::Pauli::Z) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::Z)),
+        ast::Lit::Result(ast::Result::One) => {
+            hir::ExprKind::Lit(hir::Lit::Result(hir::Result::One))
+        }
+        ast::Lit::Result(ast::Result::Zero) => {
+            hir::ExprKind::Lit(hir::Lit::Result(hir::Result::Zero))
+        }
+        ast::Lit::String(value) => {
+            hir::ExprKind::String(vec![hir::StringComponent::Lit(Rc::clone(value))])
+        }
     }
 }
 

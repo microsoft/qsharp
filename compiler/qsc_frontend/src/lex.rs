@@ -6,7 +6,7 @@ mod raw;
 
 use enum_iterator::Sequence;
 
-pub(super) use cooked::{ClosedBinOp, Error, Lexer, Token, TokenKind};
+pub(super) use cooked::{ClosedBinOp, Error, Lexer, StringToken, Token, TokenKind};
 
 /// A delimiter token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
@@ -36,4 +36,16 @@ impl From<Radix> for u32 {
             Radix::Hexadecimal => 16,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(super) enum InterpolatedStart {
+    DollarQuote,
+    RBrace,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(super) enum InterpolatedEnding {
+    Quote,
+    LBrace,
 }
