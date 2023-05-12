@@ -69,7 +69,8 @@ fn convert_for_array() {
                                                 Expr _id_ [75-78] [Type Int]: Var: Local 18
                                         Stmt 11 [93-115]: Local (Immutable):
                                             Pat 12 [97-98] [Type String]: Bind: Ident 13 [97-98] "x"
-                                            Expr 14 [101-114] [Type String]: Lit: String("Hello World")
+                                            Expr 14 [101-114] [Type String]: String:
+                                                Lit: "Hello World"
                                         Stmt _id_ [75-78]: Semi: Expr _id_ [75-78] [Type ()]: AssignOp (Add):
                                             Expr _id_ [75-78] [Type Int]: Var: Local 18
                                             Expr _id_ [75-78] [Type Int]: Lit: Int(1)"#]],
@@ -125,7 +126,8 @@ fn convert_for_array_deconstruct() {
                                                 Expr _id_ [90-93] [Type Int]: Var: Local 21
                                         Stmt 14 [108-130]: Local (Immutable):
                                             Pat 15 [112-113] [Type String]: Bind: Ident 16 [112-113] "x"
-                                            Expr 17 [116-129] [Type String]: Lit: String("Hello World")
+                                            Expr 17 [116-129] [Type String]: String:
+                                                Lit: "Hello World"
                                         Stmt _id_ [90-93]: Semi: Expr _id_ [90-93] [Type ()]: AssignOp (Add):
                                             Expr _id_ [90-93] [Type Int]: Var: Local 21
                                             Expr _id_ [90-93] [Type Int]: Lit: Int(1)"#]],
@@ -185,7 +187,8 @@ fn convert_for_slice() {
                                                 Expr _id_ [75-88] [Type Int]: Var: Local 24
                                         Stmt 17 [103-125]: Local (Immutable):
                                             Pat 18 [107-108] [Type String]: Bind: Ident 19 [107-108] "x"
-                                            Expr 20 [111-124] [Type String]: Lit: String("Hello World")
+                                            Expr 20 [111-124] [Type String]: String:
+                                                Lit: "Hello World"
                                         Stmt _id_ [75-88]: Semi: Expr _id_ [75-88] [Type ()]: AssignOp (Add):
                                             Expr _id_ [75-88] [Type Int]: Var: Local 24
                                             Expr _id_ [75-88] [Type Int]: Lit: Int(1)"#]],
@@ -259,7 +262,8 @@ fn convert_for_range() {
                                             Expr _id_ [64-68] [Type Int]: Var: Local 18
                                         Stmt 12 [83-105]: Local (Immutable):
                                             Pat 13 [87-88] [Type String]: Bind: Ident 14 [87-88] "x"
-                                            Expr 15 [91-104] [Type String]: Lit: String("Hello World")
+                                            Expr 15 [91-104] [Type String]: String:
+                                                Lit: "Hello World"
                                         Stmt _id_ [64-68]: Semi: Expr _id_ [64-68] [Type ()]: AssignOp (Add):
                                             Expr _id_ [64-68] [Type Int]: Var: Local 18
                                             Expr _id_ [64-68] [Type Int]: Var: Local 19"#]],
@@ -334,7 +338,8 @@ fn convert_for_reverse_range() {
                                             Expr _id_ [64-72] [Type Int]: Var: Local 20
                                         Stmt 14 [87-109]: Local (Immutable):
                                             Pat 15 [91-92] [Type String]: Bind: Ident 16 [91-92] "x"
-                                            Expr 17 [95-108] [Type String]: Lit: String("Hello World")
+                                            Expr 17 [95-108] [Type String]: String:
+                                                Lit: "Hello World"
                                         Stmt _id_ [64-72]: Semi: Expr _id_ [64-72] [Type ()]: AssignOp (Add):
                                             Expr _id_ [64-72] [Type Int]: Var: Local 20
                                             Expr _id_ [64-72] [Type Int]: Var: Local 21"#]],
@@ -373,7 +378,8 @@ fn convert_repeat() {
                                     Block 6 [62-108] [Type ()]:
                                         Stmt 7 [76-98]: Local (Immutable):
                                             Pat 8 [80-81] [Type String]: Bind: Ident 9 [80-81] "x"
-                                            Expr 10 [84-97] [Type String]: Lit: String("Hello World")
+                                            Expr 10 [84-97] [Type String]: String:
+                                                Lit: "Hello World"
                                         Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type ()]: Assign:
                                             Expr _id_ [115-119] [Type Bool]: Var: Local 13
                                             Expr _id_ [115-119] [Type Bool]: UnOp (NotL):
@@ -416,7 +422,8 @@ fn convert_repeat_fixup() {
                                     Block 6 [62-108] [Type ()]:
                                         Stmt 7 [76-98]: Local (Immutable):
                                             Pat 8 [80-81] [Type String]: Bind: Ident 9 [80-81] "x"
-                                            Expr 10 [84-97] [Type String]: Lit: String("Hello World")
+                                            Expr 10 [84-97] [Type String]: String:
+                                                Lit: "Hello World"
                                         Stmt _id_ [115-119]: Semi: Expr _id_ [115-119] [Type ()]: Assign:
                                             Expr _id_ [115-119] [Type Bool]: Var: Local 18
                                             Expr _id_ [115-119] [Type Bool]: UnOp (NotL):
@@ -426,7 +433,8 @@ fn convert_repeat_fixup() {
                                             Block 12 [134-174] [Type ()]:
                                                 Stmt 13 [148-164]: Local (Immutable):
                                                     Pat 14 [152-153] [Type String]: Bind: Ident 15 [152-153] "y"
-                                                    Expr 16 [156-163] [Type String]: Lit: String("Fixup")"#]],
+                                                    Expr 16 [156-163] [Type String]: String:
+                                                        Lit: "Fixup""#]],
     );
 }
 
@@ -491,7 +499,8 @@ fn convert_repeat_nested() {
                                                 Block 21 [150-198] [Type ()]:
                                                     Stmt 22 [168-184]: Local (Immutable):
                                                         Pat 23 [172-173] [Type String]: Bind: Ident 24 [172-173] "x"
-                                                        Expr 25 [176-183] [Type String]: Lit: String("First")
+                                                        Expr 25 [176-183] [Type String]: String:
+                                                            Lit: "First"
                                                     Stmt _id_ [205-206]: Semi: Expr _id_ [205-206] [Type ()]: Assign:
                                                         Expr _id_ [205-206] [Type Bool]: Var: Local 43
                                                         Expr _id_ [205-206] [Type Bool]: UnOp (NotL):
@@ -501,7 +510,8 @@ fn convert_repeat_nested() {
                                                         Block 27 [225-274] [Type ()]:
                                                             Stmt 28 [243-260]: Local (Immutable):
                                                                 Pat 29 [247-248] [Type String]: Bind: Ident 30 [247-248] "y"
-                                                                Expr 31 [251-259] [Type String]: Lit: String("Second")
+                                                                Expr 31 [251-259] [Type String]: String:
+                                                                    Lit: "Second"
                                         Stmt _id_ [291-292]: Semi: Expr _id_ [291-292] [Type ()]: Assign:
                                             Expr _id_ [291-292] [Type Bool]: Var: Local 45
                                             Expr _id_ [291-292] [Type Bool]: UnOp (NotL):
@@ -518,7 +528,8 @@ fn convert_repeat_nested() {
                                                         Block 36 [328-376] [Type ()]:
                                                             Stmt 37 [346-362]: Local (Immutable):
                                                                 Pat 38 [350-351] [Type String]: Bind: Ident 39 [350-351] "z"
-                                                                Expr 40 [354-361] [Type String]: Lit: String("Third")
+                                                                Expr 40 [354-361] [Type String]: String:
+                                                                    Lit: "Third"
                                                             Stmt _id_ [383-384]: Semi: Expr _id_ [383-384] [Type ()]: Assign:
                                                                 Expr _id_ [383-384] [Type Bool]: Var: Local 44
                                                                 Expr _id_ [383-384] [Type Bool]: UnOp (NotL):

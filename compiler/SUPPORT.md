@@ -13,18 +13,6 @@ and are not called out specifically here.
 
 ## Unsupported Features
 
-### String Interpolation
-
-```qsharp
-Message($"The value is: {val}");
-```
-
-#### Alternative: Use `AsString` and String Concatenation
-
-```qsharp
-Message("The value is: " + AsString(val));
-```
-
 ### User Defined Types, Field Accessors, and the Unwrap Operator
 
 ```qsharp
@@ -50,7 +38,7 @@ let opLambda = q => H(q);
 ## Supported Features
 
 - Literals for `Int`, `BigInt`, `Double`, `Bool`, `Pauli`, `Result`, and `String`
-- Array delcarion with either explicit (`[1, 2, 3]`) or array repeat (`[Zero, size = 4]`) syntax
+- Array declaration with either explicit (`[1, 2, 3]`) or array repeat (`[Zero, size = 4]`) syntax
 - Array indexing
 - Array copy-update (`arr w/ index <- val`)
 - Locally bound immutable (`let x = 4;`) or mutable (`mutable x = 4;`) variables
@@ -72,3 +60,4 @@ supported by the evaluator, matching the callables present in the standard libra
 - Controlled generator (`controlled distribute` and `controlled adjoint distribute`)
 - Adjoint generator (`adjoint invert` and `controlled adjoint invert`)
 - Conjugate expressions (within-apply)
+- String interpolation
