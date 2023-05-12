@@ -330,7 +330,14 @@ where
         return Err(e);
     }
     let context = context.expect("context should be valid");
-    let hir = context.hir().replace('\"', r#"\""#).replace('\'', r#"\'"#);
+    let hir = context
+        .hir()
+        .replace('\\', r#"\\"#)
+        .replace('\"', r#"\""#)
+        .replace('\'', r#"\'"#)
+        .replace('\t', r#"\t"#)
+        .replace('\n', r#"\n"#)
+        .replace('\r', r#"\r"#);
     let msg_string = format!(r#"{{"type": "HIR", "hir": "{hir}"}}"#);
     (out.event_cb)(&msg_string);
     for _ in 0..shots {

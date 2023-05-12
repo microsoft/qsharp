@@ -78,9 +78,8 @@ impl Context {
     }
 
     #[must_use]
-    pub fn hir(&self) -> String {
-        "This is a place-holder for an HIR".to_string()
-        //self.hir
+    pub fn hir(&self) -> &String {
+        &self.hir
     }
 
     /// # Errors

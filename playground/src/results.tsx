@@ -276,7 +276,7 @@ function HirTab(props: {
 
   return (
     props.activeTab === "hir-tab" ?
-      <div>
+      <div style="white-space: pre-wrap;">
         {hir}
       </div>
       : null
