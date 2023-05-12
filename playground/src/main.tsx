@@ -120,8 +120,8 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           ></Results>
         </>
       ) : (
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         <Katas
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
           compiler={compiler}
           compilerState={compilerState}
