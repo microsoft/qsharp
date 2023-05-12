@@ -2637,3 +2637,54 @@ fn nested_interpolated_string_with_exprs() {
         &expect!["foo hello!bar 1.5 baz"],
     );
 }
+
+#[test]
+fn udt_unwrap() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Foo = (Int, Bool);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let foo = Foo(1, true);
+            foo!
+        }"},
+        &expect!["(1, true)"],
+    );
+}
+
+#[test]
+fn udt_fields() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Point = (X : Int, Y : Int);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Point(1, 2);
+            (p::X, p::Y)
+        }"},
+        &expect!["(1, 2)"],
+    );
+}
+
+#[test]
+fn udt_field_nested() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Point = (X : Int, (Y : Int, Z : Int));
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Point(1, (2, 3));
+            (p::Y, p::Z)
+        }"},
+        &expect!["(2, 3)"],
+    );
+}
