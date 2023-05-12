@@ -3,11 +3,13 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
+mod common;
 pub mod conjugate_invert;
 pub mod entry_point;
 mod invert_block;
 mod logic_sep;
 pub mod loop_unification;
+pub mod replace_qubit_allocation;
 pub mod semantics;
 pub mod spec_gen;
 
