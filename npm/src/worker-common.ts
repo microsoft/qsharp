@@ -4,7 +4,7 @@
 import { log } from "./log.js";
 import { ICompletionList } from "../lib/web/qsc_wasm.js";
 import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
-import { ICompiler, ICompilerWorker } from "./compiler.js";
+import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
 import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
 
@@ -46,6 +46,13 @@ export function createWorkerProxy(
 ): ICompilerWorker {
   const queue: RequestState[] = [];
   let curr: RequestState | undefined;
+  let state: CompilerState = "idle";
+
+  function setState(newState: CompilerState) {
+    if (state === newState) return;
+    state = newState;
+    if (proxy.onstatechange) proxy.onstatechange(state);
+  }
 
   function queueRequest(
     type: string,
@@ -73,7 +80,12 @@ export function createWorkerProxy(
         break;
       }
     }
-    if (!curr) return;
+    if (!curr) {
+      // Nothing else queued, signal that we're now idle and exit.
+      log.debug("Worker queue is empty");
+      setState("idle");
+      return;
+    }
 
     let msg: CompilerReqMsg | null = null;
     switch (curr.type) {
@@ -84,6 +96,8 @@ export function createWorkerProxy(
         msg = { type: "getCompletions" };
         break;
       case "run":
+        // run and runKata can take a long time, so set state to busy
+        setState("busy");
         msg = {
           type: "run",
           code: curr.args[0],
@@ -92,6 +106,7 @@ export function createWorkerProxy(
         };
         break;
       case "runKata":
+        setState("busy");
         msg = {
           type: "runKata",
           user_code: curr.args[0],
@@ -182,9 +197,20 @@ export function createWorkerProxy(
     runKata(user_code, verify_code, evtHandler) {
       return queueRequest("runKata", [user_code, verify_code], evtHandler);
     },
+    onstatechange: null,
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
     terminate: () => {
       log.info("Terminating the worker");
+      if (curr) {
+        log.debug("Terminating running worker item of type: %s", curr.type);
+        curr.reject("terminated");
+      }
+      // Reject any outstanding items
+      while (queue.length) {
+        const item = queue.shift();
+        log.debug("Terminating outstanding work item of type: %s", item?.type);
+        item?.reject("terminated");
+      }
       terminator();
     },
   };
