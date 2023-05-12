@@ -713,23 +713,6 @@ fn test_rtrn_expr() {
 }
 
 #[test]
-#[ignore = "lambdas are not supported yet"]
-fn test_lambdas() {
-    check(
-        indoc! { "namespace input {
-            operation Foo() : Unit {
-                use a = Qubit();
-                let lambda = x => {
-                    use b = Qubit();
-                    return x;
-                };
-            }
-        }" },
-        &expect![[""]],
-    );
-}
-
-#[test]
 fn test_unrelated_unaffected() {
     check(
         indoc! { "namespace input {

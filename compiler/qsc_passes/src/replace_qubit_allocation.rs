@@ -345,13 +345,6 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
                     *expr = new_expr;
                 }
             }
-            ExprKind::Lambda(_, _, e) => {
-                let super_block_qubits = take(&mut self.qubits_curr_block);
-                let super_callable_qubits = take(&mut self.qubits_curr_callable);
-                self.visit_expr(e);
-                self.qubits_curr_callable = super_callable_qubits;
-                self.qubits_curr_block = super_block_qubits;
-            }
             _ => walk_expr(self, expr),
         }
     }
