@@ -245,4 +245,27 @@ namespace Microsoft.Quantum.Canon {
         let (_, snd) = pair;
         return snd;
     }
+
+    /// # Summary
+    /// Computes the parity of a register of qubits in-place.
+    ///
+    /// # Description
+    /// This operation transforms the state of its input as
+    /// $$
+    /// \begin{align}
+    ///     \ket{q_0} \ket{q_1} \cdots \ket{q_{n - 1}} & \mapsto
+    ///     \ket{q_0} \ket{q_0 \oplus q_1} \ket{q_0 \oplus q_1 \oplus q_2} \cdots
+    ///         \ket{q_0 \oplus \cdots \oplus q_{n - 1}}.
+    /// \end{align}
+    /// $$
+    ///
+    /// # Input
+    /// ## qubits
+    /// Array of qubits whose parity is to be computed and stored.
+    operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
+        for i in 0..qubits::Length-2 {
+            CNOT(qubits[i], qubits[i+1]);
+        }
+    }
+
 }
