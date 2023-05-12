@@ -108,16 +108,18 @@ body {
 }
 
 .error-list {
-  border: 1px solid var(--border-color);
-  border-bottom: 0px;
   margin-top: 24px;
+  margin-bottom: 24px;
+  min-height: 48px;
 }
 
 .error-row {
+  border: 1px solid var(--border-color);
   background-color: var(--error-background-color);
   padding: 4px;
   border-bottom: 0.5px solid gray;
   font-size: 0.9rem;
+  margin-bottom: -1px;
 }
 
 .error-row > span {

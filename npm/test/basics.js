@@ -11,7 +11,7 @@ import { QscEventTarget } from "../dist/events.js";
 import { getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
 
-log.setLogLevel("debug");
+log.setLogLevel("warn");
 
 /**
  *

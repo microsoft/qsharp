@@ -10,6 +10,7 @@ import {
   getAllKatas,
   Kata,
   VSDiagnostic,
+  log,
   samples,
 } from "qsharp";
 
@@ -33,6 +34,7 @@ declare global {
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
 function createCompiler(onStateChange: (val: CompilerState) => void) {
+  log.info("In createCompiler");
   const compiler = getCompilerWorker(workerPath);
   compiler.onstatechange = onStateChange;
   return compiler;
