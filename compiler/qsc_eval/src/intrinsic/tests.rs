@@ -882,3 +882,41 @@ fn qubit_release_non_zero_failure() {
         "#]],
     );
 }
+
+#[test]
+fn qubit_not_unique_two_qubit_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            CNOT(q , q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 32244,
+                    hi: 32261,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_two_qubit_rotation_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Rxx(0.1, q, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 45147,
+                    hi: 45170,
+                },
+            )
+        "#]],
+    );
+}

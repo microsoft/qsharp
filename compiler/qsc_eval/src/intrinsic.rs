@@ -166,6 +166,9 @@ fn invoke_quantum_intrinsic(
                 $(stringify!($op2) => {
                     match args.try_into_tuple().with_span(args_span)?.as_ref() {
                         [x, y] =>  {
+                            if x == y {
+                                return Break(Reason::Error(Error::QubitUniqueness(args_span)));
+                            }
                             $op2(
                                 x.clone().try_into().with_span(args_span)?,
                                 y.clone().try_into().with_span(args_span)?,
@@ -178,6 +181,9 @@ fn invoke_quantum_intrinsic(
                 $(stringify!($op3) => {
                     match args.try_into_tuple().with_span(args_span)?.as_ref() {
                         [x, y, z] => {
+                            if x == y || y == z || x == z {
+                                return Break(Reason::Error(Error::QubitUniqueness(args_span)));
+                            }
                             $op3(
                                 x.clone().try_into().with_span(args_span)?,
                                 y.clone().try_into().with_span(args_span)?,
