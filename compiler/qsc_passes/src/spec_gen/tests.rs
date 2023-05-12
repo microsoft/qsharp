@@ -1384,7 +1384,9 @@ fn generate_ctladj_invert() {
                                             Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 24
                                             Expr 19 [145-146] [Type Int]: Lit: Int(2)
                             SpecDecl 20 [159-185] (CtlAdj): Impl:
-                                Pat _id_ [159-185] [Type Qubit]: Elided
+                                Pat _id_ [73-191] [Type ((Qubit)[], Qubit)]: Tuple:
+                                    Pat _id_ [73-191] [Type (Qubit)[]]: Bind: Ident 24 [73-191] "ctls"
+                                    Pat _id_ [73-191] [Type Qubit]: Elided
                                 Block 11 [135-150] [Type ()]:
                                     Stmt 16 [143-148]: Semi: Expr 17 [143-147] [Type ()]: Call:
                                         Expr _id_ [143-144] [Type (((Qubit)[], Int) => () is Adj + Ctl)]: UnOp (Functor Adj):

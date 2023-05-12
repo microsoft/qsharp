@@ -3,7 +3,8 @@
 
 use crate::hir::{
     Block, CallableBody, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat,
-    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, TyDef, TyDefKind,
+    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TyDef,
+    TyDefKind,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -172,6 +173,14 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_block(body);
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
+        }
+        ExprKind::String(components) => {
+            for component in components {
+                match component {
+                    StringComponent::Expr(expr) => vis.visit_expr(expr),
+                    StringComponent::Lit(_) => {}
+                }
+            }
         }
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);

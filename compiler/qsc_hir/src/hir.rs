@@ -655,6 +655,8 @@ pub enum ExprKind {
     Repeat(Block, Box<Expr>, Option<Block>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A string.
+    String(Vec<StringComponent>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -694,6 +696,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::String(components) => display_string(indent, components)?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -890,6 +893,19 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_string(mut indent: Indented<Formatter>, components: &[StringComponent]) -> fmt::Result {
+    write!(indent, "String:")?;
+    indent = set_indentation(indent, 1);
+    for component in components {
+        match component {
+            StringComponent::Expr(expr) => write!(indent, "\nExpr: {expr}")?,
+            StringComponent::Lit(str) => write!(indent, "\nLit: {str:?}")?,
+        }
+    }
+
+    Ok(())
+}
+
 fn display_tern_op(
     mut indent: Indented<Formatter>,
     op: TernOp,
@@ -931,6 +947,15 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A string component.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StringComponent {
+    /// An expression.
+    Expr(Expr),
+    /// A string literal.
+    Lit(Rc<str>),
 }
 
 /// A pattern.
@@ -1285,8 +1310,6 @@ pub enum Lit {
     Pauli(Pauli),
     /// A measurement result literal.
     Result(Result),
-    /// A string literal.
-    String(Rc<str>),
 }
 
 impl Display for Lit {
@@ -1298,7 +1321,6 @@ impl Display for Lit {
             Lit::Int(val) => write!(f, "Int({val})")?,
             Lit::Pauli(val) => write!(f, "Pauli({val:?})")?,
             Lit::Result(val) => write!(f, "Result({val:?})")?,
-            Lit::String(val) => write!(f, "String(\"{val}\")")?,
         }
         Ok(())
     }

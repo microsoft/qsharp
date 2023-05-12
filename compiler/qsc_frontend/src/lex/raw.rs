@@ -15,7 +15,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::{Delim, Radix};
+use super::{Delim, InterpolatedEnding, InterpolatedStart, Radix};
 use enum_iterator::Sequence;
 use std::{
     fmt::{self, Display, Formatter, Write},
@@ -38,15 +38,9 @@ pub(crate) enum TokenKind {
     Ident,
     Number(Number),
     Single(Single),
-    String(Terminator),
+    String(StringToken),
     Unknown,
     Whitespace,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum Terminator {
-    Quote,
-    Eof,
 }
 
 impl Display for TokenKind {
@@ -154,15 +148,29 @@ pub(crate) enum Number {
     Int(Radix),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(crate) enum StringToken {
+    Normal { terminated: bool },
+    Interpolated(InterpolatedStart, Option<InterpolatedEnding>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StringKind {
+    Normal,
+    Interpolated,
+}
+
 #[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
+    interpolation: u8,
 }
 
 impl<'a> Lexer<'a> {
     pub(super) fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
+            interpolation: 0,
         }
     }
 
@@ -283,23 +291,68 @@ impl<'a> Lexer<'a> {
     }
 
     fn string(&mut self, c: char) -> Option<TokenKind> {
-        if c != '"' {
-            return None;
-        }
+        let kind = self.start_string(c)?;
 
-        while self.first().is_some() && self.first() != Some('"') {
-            self.eat_while(|c| c != '\\' && c != '"');
+        while self
+            .first()
+            .map_or(false, |c| !is_string_terminator(kind, c))
+        {
+            self.eat_while(|c| c != '\\' && !is_string_terminator(kind, c));
             if self.next_if_eq('\\') {
-                self.next_if_eq('"');
+                self.chars.next();
             }
         }
 
-        let terminator = if self.next_if_eq('"') {
-            Terminator::Quote
+        Some(TokenKind::String(self.finish_string(c, kind)))
+    }
+
+    fn start_string(&mut self, c: char) -> Option<StringKind> {
+        if c == '$' {
+            if self.next_if_eq('"') {
+                Some(StringKind::Interpolated)
+            } else {
+                None
+            }
+        } else if c == '"' {
+            Some(StringKind::Normal)
+        } else if self.interpolation > 0 && c == '}' {
+            self.interpolation = self
+                .interpolation
+                .checked_sub(1)
+                .expect("interpolation level should have been incremented at left brace");
+            Some(StringKind::Interpolated)
         } else {
-            Terminator::Eof
-        };
-        Some(TokenKind::String(terminator))
+            None
+        }
+    }
+
+    fn finish_string(&mut self, start: char, kind: StringKind) -> StringToken {
+        match kind {
+            StringKind::Normal => StringToken::Normal {
+                terminated: self.next_if_eq('"'),
+            },
+            StringKind::Interpolated => {
+                let start = if start == '$' {
+                    InterpolatedStart::DollarQuote
+                } else {
+                    InterpolatedStart::RBrace
+                };
+
+                let end = if self.next_if_eq('{') {
+                    self.interpolation = self
+                        .interpolation
+                        .checked_add(1)
+                        .expect("interpolation should not exceed maximum depth");
+                    Some(InterpolatedEnding::LBrace)
+                } else if self.next_if_eq('"') {
+                    Some(InterpolatedEnding::Quote)
+                } else {
+                    None // Unterminated string.
+                };
+
+                StringToken::Interpolated(start, end)
+            }
+        }
     }
 }
 
@@ -317,8 +370,8 @@ impl Iterator for Lexer<'_> {
         } else {
             self.number(c)
                 .map(TokenKind::Number)
-                .or_else(|| single(c).map(TokenKind::Single))
                 .or_else(|| self.string(c))
+                .or_else(|| single(c).map(TokenKind::Single))
                 .unwrap_or(TokenKind::Unknown)
         };
         Some(Token { kind, offset })
@@ -355,4 +408,8 @@ fn single(c: char) -> Option<Single> {
         '~' => Some(Single::Tilde),
         _ => None,
     }
+}
+
+fn is_string_terminator(kind: StringKind, c: char) -> bool {
+    c == '"' || kind == StringKind::Interpolated && c == '{'
 }
