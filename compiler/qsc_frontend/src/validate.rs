@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, UnOp},
+    ast::{Attr, Expr, ExprKind, Item, Package},
     visit::{self, Visitor},
 };
 use qsc_data_structures::span::Span;
@@ -55,10 +55,6 @@ impl Validator {
 impl Visitor<'_> for Validator {
     fn visit_item(&mut self, item: &Item) {
         self.validate_attrs(&item.attrs);
-        if matches!(&item.kind, ItemKind::Ty(..)) {
-            self.errors
-                .push(Error::NotCurrentlySupported("newtype", item.span));
-        }
         visit::walk_item(self, item);
     }
 
@@ -70,9 +66,6 @@ impl Visitor<'_> for Validator {
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
-            ExprKind::UnOp(UnOp::Unwrap, _) => self
-                .errors
-                .push(Error::NotCurrentlySupported("unwrap operator", expr.span)),
             _ => {}
         };
 

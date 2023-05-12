@@ -1474,7 +1474,6 @@ fn newtype_cons() {
             #7 70-79 "NewInt(5)" : UDT<Item 1>
             #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
             #9 77-78 "5" : Int
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
         "##]],
     );
 }
@@ -1496,7 +1495,6 @@ fn newtype_cons_wrong_input() {
             #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
             #9 77-80 "5.0" : Double
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
         "##]],
     );
 }
@@ -1518,7 +1516,6 @@ fn newtype_does_not_match_base_ty() {
             #8 67-73 "NewInt" : (Int -> UDT<Item 1>)
             #9 74-75 "5" : Int
             Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Prim(Int), Span { lo: 67, hi: 76 }))))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
         "##]],
     );
 }
@@ -1541,8 +1538,6 @@ fn newtype_does_not_match_other_newtype() {
             #10 99-106 "NewInt1" : (Int -> UDT<Item 1>)
             #11 107-108 "5" : Int
             Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 40 })))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 45, hi: 67 })))
         "##]],
     );
 }
@@ -1565,8 +1560,6 @@ fn newtype_unwrap() {
             #10 90-91 "y" : (Int, Bool)
             #12 94-96 "x!" : (Int, Bool)
             #13 94-95 "x" : UDT<Item 1>
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 44 })))
-            Error(Validate(NotCurrentlySupported("unwrap operator", Span { lo: 94, hi: 96 })))
         "##]],
     );
 }
@@ -1589,7 +1582,6 @@ fn newtype_field() {
             #9 88-89 "y" : Int
             #11 92-98 "x::Bar" : Int
             #12 92-93 "x" : UDT<Item 1>
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 42 })))
         "##]],
     );
 }
@@ -1613,7 +1605,6 @@ fn newtype_field_invalid() {
             #11 92-99 "x::Nope" : ?0
             #12 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferId(1)) }, Span { lo: 92, hi: 99 }))))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 42 })))
         "##]],
     );
 }
@@ -1778,7 +1769,6 @@ fn local_type() {
             #10 83-89 "Bar(5)" : UDT<Item 2>
             #11 83-86 "Bar" : (Int -> UDT<Item 2>)
             #12 87-88 "5" : Int
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 48, hi: 66 })))
         "##]],
     );
 }
