@@ -894,8 +894,8 @@ fn qubit_not_unique_two_qubit_error() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 32244,
-                    hi: 32261,
+                    lo: 32166,
+                    hi: 32183,
                 },
             )
         "#]],
@@ -913,8 +913,8 @@ fn qubit_not_unique_two_qubit_rotation_error() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 45147,
-                    hi: 45170,
+                    lo: 45069,
+                    hi: 45092,
                 },
             )
         "#]],
