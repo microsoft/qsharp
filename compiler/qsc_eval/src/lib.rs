@@ -85,6 +85,9 @@ pub enum Error {
     #[error("output failure")]
     Output(#[label("failed to generate output")] Span),
 
+    #[error("qubits in gate invocation are not unique")]
+    QubitUniqueness(#[label] Span),
+
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
 

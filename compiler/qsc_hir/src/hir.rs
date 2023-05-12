@@ -583,7 +583,7 @@ impl Display for StmtKind {
 }
 
 /// An expression.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Expr {
     /// The node ID.
     pub id: NodeId,
@@ -1104,13 +1104,14 @@ pub enum Attr {
 }
 
 /// A type.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
     Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
     /// An invalid type caused by an error.
+    #[default]
     Err,
     /// A placeholder type variable used during type inference.
     Infer(InferId),
@@ -1150,19 +1151,23 @@ impl Display for Ty {
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
-                f.write_str("(")?;
-                if let Some((first, rest)) = items.split_first() {
-                    Display::fmt(first, f)?;
-                    if rest.is_empty() {
-                        f.write_str(",")?;
-                    } else {
-                        for item in rest {
-                            f.write_str(", ")?;
-                            Display::fmt(item, f)?;
+                if items.is_empty() {
+                    f.write_str("Unit")
+                } else {
+                    f.write_str("(")?;
+                    if let Some((first, rest)) = items.split_first() {
+                        Display::fmt(first, f)?;
+                        if rest.is_empty() {
+                            f.write_str(",")?;
+                        } else {
+                            for item in rest {
+                                f.write_str(", ")?;
+                                Display::fmt(item, f)?;
+                            }
                         }
                     }
+                    f.write_str(")")
                 }
-                f.write_str(")")
             }
             Ty::Udt(res) => write!(f, "UDT<{res}>"),
         }
