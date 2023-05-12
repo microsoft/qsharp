@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Core {
-
     /// # Summary
     /// Returns the number of elements in an array.
     ///
@@ -97,9 +96,4 @@ namespace Microsoft.Quantum.Core {
         let start = r::Start + ((r::End - r::Start) / r::Step) * r::Step;
         start..-r::Step..r::Start
     }
-
-    function AsString<'T>(v : 'T) : String {
-        body intrinsic;
-    }
-
 }

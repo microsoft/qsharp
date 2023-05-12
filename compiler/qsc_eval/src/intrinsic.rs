@@ -56,8 +56,6 @@ pub(crate) fn invoke_intrinsic(
                 Err(_) => Break(Reason::Error(Error::Output(name_span))),
             },
 
-            "AsString" => Continue(Value::String(args.to_string().into())),
-
             "CheckZero" => Continue(Value::Bool(qubit_is_zero(
                 args.try_into().with_span(args_span)?,
             ))),
