@@ -213,14 +213,6 @@ body {
   cursor: pointer;
 }
 
-#expr {
-  width: 160px;
-}
-
-#shot {
-  width: 80px;
-}
-
 .main-button {
   background-color: var(--nav-background);
   font-size: 1rem;

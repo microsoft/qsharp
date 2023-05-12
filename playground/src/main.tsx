@@ -110,7 +110,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             evtTarget={evtTarget}
             defaultShots={defaultShots}
             showShots={true}
-            showExpr={false}
+            showExpr={true}
             shotError={shotError}
           ></Editor>
           <Results

@@ -185,6 +185,11 @@ export function Editor(props: {
     setShotCount(parseInt(target.value) || 1);
   }
 
+  function runExprChanged(e: Event) {
+    const target = e.target as HTMLInputElement;
+    setRunExpr(target.value);
+  }
+
   return (
     <div class="editor-column">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -234,13 +239,18 @@ export function Editor(props: {
         {props.showExpr ? (
           <>
             <span>Start</span>
-            <input id="expr" value="" />
+            <input
+              style="width: 160px"
+              value={runExpr}
+              onChange={runExprChanged}
+            />
           </>
         ) : null}
         {props.showShots ? (
           <>
             <span>Shots</span>
             <input
+              style="width: 88px;"
               type="number"
               value={shotCount || 100}
               max="1000"
