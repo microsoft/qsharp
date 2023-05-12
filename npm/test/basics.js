@@ -78,24 +78,24 @@ test("completions include CNOT", async () => {
   assert.ok(cnot);
 });
 
-// test("dump and message output", async () => {
-//   let code = `namespace Test {
-//         function Answer() : Int {
-//             Microsoft.Quantum.Diagnostics.DumpMachine();
-//             Message("hello, qsharp");
-//             return 42;
-//         }
-//     }`;
-//   let expr = `Test.Answer()`;
+test("dump and message output", async () => {
+  let code = `namespace Test {
+        function Answer() : Int {
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Message("hello, qsharp");
+            return 42;
+        }
+    }`;
+  let expr = `Test.Answer()`;
 
-//   const result = await runSingleShot(code, expr, true);
-//   assert(result.success);
-//   assert(result.events.length == 2);
-//   assert(result.events[0].type == "DumpMachine");
-//   assert(result.events[0].state["|0⟩"].length == 2);
-//   assert(result.events[1].type == "Message");
-//   assert(result.events[1].message == "hello, qsharp");
-// });
+  const result = await runSingleShot(code, expr, true);
+  assert(result.success);
+  assert(result.events.length == 2);
+  assert(result.events[0].type == "DumpMachine");
+  assert(result.events[0].state["|0⟩"].length == 2);
+  assert(result.events[1].type == "Message");
+  assert(result.events[1].message == "hello, qsharp");
+});
 
 test("type error", async () => {
   let code = `namespace Sample {
@@ -210,30 +210,30 @@ test("worker check", async () => {
   );
 });
 
-// test("worker 100 shots", async () => {
-//   let code = `namespace Test {
-//         function Answer() : Int {
-//             Microsoft.Quantum.Diagnostics.DumpMachine();
-//             Message("hello, qsharp");
-//             return 42;
-//         }
-//     }`;
-//   let expr = `Test.Answer()`;
+test("worker 100 shots", async () => {
+  let code = `namespace Test {
+        function Answer() : Int {
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Message("hello, qsharp");
+            return 42;
+        }
+    }`;
+  let expr = `Test.Answer()`;
 
-//   const resultsHandler = new QscEventTarget(true);
-//   const compiler = getCompilerWorker();
-//   await compiler.run(code, expr, 100, resultsHandler);
-//   compiler.terminate();
+  const resultsHandler = new QscEventTarget(true);
+  const compiler = getCompilerWorker();
+  await compiler.run(code, expr, 100, resultsHandler);
+  compiler.terminate();
 
-//   const results = resultsHandler.getResults();
+  const results = resultsHandler.getResults();
 
-//   assert.equal(results.length, 100);
-//   results.forEach((result) => {
-//     assert(result.success);
-//     assert.equal(result.result, "42");
-//     assert.equal(result.events.length, 2);
-//   });
-// });
+  assert.equal(results.length, 100);
+  results.forEach((result) => {
+    assert(result.success);
+    assert.equal(result.result, "42");
+    assert.equal(result.events.length, 2);
+  });
+});
 
 test("Run samples", async () => {
   const compiler = getCompilerWorker();
