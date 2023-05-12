@@ -170,5 +170,6 @@ export class QscEventTarget extends EventTarget implements IQscEventTarget {
 
   clearResults(): void {
     this.results = [];
+    this.shotActive = false;
   }
 }

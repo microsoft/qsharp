@@ -9,13 +9,13 @@ use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimField,
-        PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PrimField, PrimTy, Stmt,
+        StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::Error;
+use crate::{common::IdentTemplate, Error};
 
 #[cfg(test)]
 mod tests;
@@ -26,36 +26,6 @@ pub fn loop_unification(unit: &mut CompileUnit) -> Vec<Error> {
     };
     pass.visit_package(&mut unit.package);
     vec![]
-}
-
-struct IdentTemplate {
-    id: NodeId,
-    span: Span,
-    ty: Ty,
-}
-
-impl IdentTemplate {
-    fn gen_local_ref(&self) -> Expr {
-        Expr {
-            id: NodeId::default(),
-            span: self.span,
-            ty: self.ty.clone(),
-            kind: ExprKind::Var(Res::Local(self.id)),
-        }
-    }
-
-    fn gen_pat(&self, label: &str) -> Pat {
-        Pat {
-            id: NodeId::default(),
-            span: self.span,
-            ty: self.ty.clone(),
-            kind: PatKind::Bind(Ident {
-                id: self.id,
-                span: self.span,
-                name: Rc::from(format!("{label}_{}", self.id)),
-            }),
-        }
-    }
 }
 
 struct LoopUni<'a> {
@@ -72,11 +42,9 @@ impl LoopUni<'_> {
     ) -> Expr {
         let cond_span = cond.span;
 
-        let continue_cond_id = self.gen_ident(Ty::Prim(PrimTy::Bool), cond_span);
-        let continue_cond_init = gen_id_init(
+        let continue_cond_id = self.gen_ident("continue_cond", Ty::Prim(PrimTy::Bool), cond_span);
+        let continue_cond_init = continue_cond_id.gen_id_init(
             Mutability::Mutable,
-            &continue_cond_id,
-            "continue_cond",
             Expr {
                 id: NodeId::default(),
                 span: cond_span,
@@ -155,22 +123,18 @@ impl LoopUni<'_> {
     ) -> Expr {
         let iterable_span = iterable.span;
 
-        let array_id = self.gen_ident(iterable.ty.clone(), iterable_span);
-        let array_capture = gen_id_init(Mutability::Immutable, &array_id, "array_id", *iterable);
+        let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
+        let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable);
 
-        let len_id = self.gen_ident(Ty::Prim(PrimTy::Int), iterable_span);
-        let len_capture = gen_id_init(
+        let len_id = self.gen_ident("len_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let len_capture = len_id.gen_id_init(
             Mutability::Immutable,
-            &len_id,
-            "len_id",
-            gen_field_access(&array_id, PrimField::Length),
+            array_id.gen_field_access(PrimField::Length),
         );
 
-        let index_id = self.gen_ident(Ty::Prim(PrimTy::Int), iterable_span);
-        let index_init = gen_id_init(
+        let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let index_init = index_id.gen_id_init(
             Mutability::Mutable,
-            &index_id,
-            "index_id",
             Expr {
                 id: NodeId::default(),
                 span: iterable_span,
@@ -255,31 +219,25 @@ impl LoopUni<'_> {
     ) -> Expr {
         let iterable_span = iterable.span;
 
-        let range_id = self.gen_ident(Ty::Prim(PrimTy::Range), iterable_span);
-        let range_capture = gen_id_init(Mutability::Immutable, &range_id, "range_id", *iterable);
+        let range_id = self.gen_ident("range_id", Ty::Prim(PrimTy::Range), iterable_span);
+        let range_capture = range_id.gen_id_init(Mutability::Immutable, *iterable);
 
-        let index_id = self.gen_ident(Ty::Prim(PrimTy::Int), iterable_span);
-        let index_init = gen_id_init(
+        let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let index_init = index_id.gen_id_init(
             Mutability::Mutable,
-            &index_id,
-            "index_id",
-            gen_field_access(&range_id, PrimField::Start),
+            range_id.gen_field_access(PrimField::Start),
         );
 
-        let step_id = self.gen_ident(Ty::Prim(PrimTy::Int), iterable_span);
-        let step_init = gen_id_init(
+        let step_id = self.gen_ident("step_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let step_init = step_id.gen_id_init(
             Mutability::Immutable,
-            &step_id,
-            "step_id",
-            gen_field_access(&range_id, PrimField::Step),
+            range_id.gen_field_access(PrimField::Step),
         );
 
-        let end_id = self.gen_ident(Ty::Prim(PrimTy::Int), iterable_span);
-        let end_init = gen_id_init(
+        let end_id = self.gen_ident("end_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let end_init = end_id.gen_id_init(
             Mutability::Immutable,
-            &end_id,
-            "end_id",
-            gen_field_access(&range_id, PrimField::End),
+            range_id.gen_field_access(PrimField::End),
         );
 
         let pat_init = Stmt {
@@ -319,11 +277,13 @@ impl LoopUni<'_> {
         }
     }
 
-    fn gen_ident(&mut self, ty: Ty, span: Span) -> IdentTemplate {
+    fn gen_ident(&mut self, label: &str, ty: Ty, span: Span) -> IdentTemplate {
+        let id = self.assigner.next_id();
         IdentTemplate {
-            id: self.assigner.next_id(),
+            id,
             span,
             ty,
+            name: Rc::from(format!("{label}_{id}")),
         }
     }
 }
@@ -431,23 +391,6 @@ fn gen_range_cond(
                 ),
             }),
         ),
-    }
-}
-
-fn gen_id_init(mutability: Mutability, ident: &IdentTemplate, label: &str, expr: Expr) -> Stmt {
-    Stmt {
-        id: NodeId::default(),
-        span: ident.span,
-        kind: StmtKind::Local(mutability, ident.gen_pat(label), expr),
-    }
-}
-
-fn gen_field_access(container: &IdentTemplate, field: PrimField) -> Expr {
-    Expr {
-        id: NodeId::default(),
-        span: container.span,
-        ty: Ty::Prim(PrimTy::Int),
-        kind: ExprKind::Field(Box::new(container.gen_local_ref()), field),
     }
 }
 

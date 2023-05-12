@@ -3,13 +3,14 @@
 
 import { render } from "preact";
 import {
-  ICompilerWorker,
+  CompilerState,
   QscEventTarget,
   getCompilerWorker,
   loadWasmModule,
   getAllKatas,
   Kata,
   VSDiagnostic,
+  log,
   samples,
 } from "qsharp";
 
@@ -32,18 +33,33 @@ declare global {
 
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
-function App(props: {
-  compiler: ICompilerWorker;
-  evtTarget: QscEventTarget;
-  katas: Kata[];
-  linkedCode?: string;
-}) {
+function createCompiler(onStateChange: (val: CompilerState) => void) {
+  log.info("In createCompiler");
+  const compiler = getCompilerWorker(workerPath);
+  compiler.onstatechange = onStateChange;
+  return compiler;
+}
+
+function App(props: { katas: Kata[]; linkedCode?: string }) {
+  const [compilerState, setCompilerState] = useState<CompilerState>("idle");
+  const [compiler, setCompiler] = useState(() =>
+    createCompiler(setCompilerState)
+  );
+  const [evtTarget] = useState(new QscEventTarget(true));
+
   const [currentNavItem, setCurrentNavItem] = useState(
     props.linkedCode ? "linked" : "Minimal"
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined
   );
+
+  const onRestartCompiler = () => {
+    compiler.terminate();
+    const newCompiler = createCompiler(setCompilerState);
+    setCompiler(newCompiler);
+    setCompilerState("idle");
+  };
 
   const kataTitles = props.katas.map((elem) => elem.title);
   const sampleTitles = samples.map((sample) => sample.title);
@@ -88,22 +104,29 @@ function App(props: {
         <>
           <Editor
             code={sampleCode}
-            compiler={props.compiler}
-            evtTarget={props.evtTarget}
+            compiler={compiler}
+            compilerState={compilerState}
+            onRestartCompiler={onRestartCompiler}
+            evtTarget={evtTarget}
             defaultShots={defaultShots}
             showShots={true}
-            showExpr={false}
+            showExpr={true}
             shotError={shotError}
           ></Editor>
           <Tabs
-            evtTarget={props.evtTarget}
+            evtTarget={evtTarget}
             showPanel={true}
             onShotError={onShotError}
           ></Tabs>
         </>
       ) : (
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        <Katas kata={activeKata!} compiler={props.compiler}></Katas>
+        <Katas
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          kata={activeKata!}
+          compiler={compiler}
+          compilerState={compilerState}
+          onRestartCompiler={onRestartCompiler}
+        ></Katas>
       )}
     </>
   );
@@ -113,8 +136,6 @@ function App(props: {
 async function loaded() {
   await wasmPromise; // Block until the wasm module is loaded
   const katas = await getAllKatas();
-  const evtHander = new QscEventTarget(true);
-  const compiler = await getCompilerWorker(workerPath);
 
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.
@@ -125,15 +146,7 @@ async function loaded() {
     linkedCode = base64ToCode(base64code);
   }
 
-  render(
-    <App
-      compiler={compiler}
-      evtTarget={evtHander}
-      katas={katas}
-      linkedCode={linkedCode}
-    ></App>,
-    document.body
-  );
+  render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
 }
 
 // Monaco provides the 'require' global for loading modules.

@@ -24,13 +24,19 @@ pub(super) enum Class {
     Integral(Ty),
     Iterable { container: Ty, item: Ty },
     Num(Ty),
+    Show(Ty),
     Unwrap { wrapper: Ty, base: Ty },
 }
 
 impl Class {
     fn dependencies(&self) -> Vec<&Ty> {
         match self {
-            Self::Add(ty) | Self::Adj(ty) | Self::Eq(ty) | Self::Integral(ty) | Self::Num(ty) => {
+            Self::Add(ty)
+            | Self::Adj(ty)
+            | Self::Eq(ty)
+            | Self::Integral(ty)
+            | Self::Num(ty)
+            | Self::Show(ty) => {
                 vec![ty]
             }
             Self::Call { callee, .. } => vec![callee],
@@ -87,6 +93,7 @@ impl Class {
                 item: f(item),
             },
             Self::Num(ty) => Self::Num(f(ty)),
+            Self::Show(ty) => Self::Show(f(ty)),
             Self::Unwrap { wrapper, base } => Self::Unwrap {
                 wrapper: f(wrapper),
                 base: f(base),
@@ -127,6 +134,7 @@ impl Class {
             Class::Num(ty) => check_num(&ty)
                 .then_some(Vec::new())
                 .ok_or(ClassError(Class::Num(ty), span)),
+            Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => {
                 // TODO: If the wrapper type is a user-defined type, look up its underlying type.
                 // https://github.com/microsoft/qsharp/issues/148
@@ -152,6 +160,7 @@ impl Display for Class {
             Class::Integral(ty) => write!(f, "Integral<{ty}>"),
             Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
             Class::Num(ty) => write!(f, "Num<{ty}>"),
+            Class::Show(ty) => write!(f, "Show<{ty}>"),
             Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
     }
@@ -554,6 +563,18 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, Cla
 
 fn check_num(ty: &Ty) -> bool {
     matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int))
+}
+
+fn check_show(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
+    match ty {
+        Ty::Array(item) => Ok(vec![Constraint::Class(Class::Show(*item), span)]),
+        Ty::Prim(_) => Ok(Vec::new()),
+        Ty::Tuple(items) => Ok(items
+            .into_iter()
+            .map(|item| Constraint::Class(Class::Show(item), span))
+            .collect()),
+        _ => Err(ClassError(Class::Show(ty), span)),
+    }
 }
 
 fn check_has_field(

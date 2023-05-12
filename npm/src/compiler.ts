@@ -12,6 +12,7 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
+export type CompilerState = "idle" | "busy";
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getCompletions(): Promise<ICompletionList>;
@@ -26,6 +27,7 @@ export interface ICompiler {
     verify_code: string,
     eventHandler: IQscEventTarget
   ): Promise<boolean>;
+  onstatechange: ((state: CompilerState) => void) | null;
 }
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -54,6 +56,8 @@ function errToDiagnostic(err: any): VSDiagnostic {
 export class Compiler implements ICompiler {
   private wasm: Wasm;
 
+  onstatechange: ((state: CompilerState) => void) | null = null;
+
   constructor(wasm: Wasm) {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
@@ -77,12 +81,16 @@ export class Compiler implements ICompiler {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
+    if (this.onstatechange) this.onstatechange("busy");
+
     this.wasm.run(
       code,
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler),
       shots
     );
+
+    if (this.onstatechange) this.onstatechange("idle");
   }
 
   async runKata(
@@ -93,6 +101,7 @@ export class Compiler implements ICompiler {
     let success = false;
     let err: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
+      if (this.onstatechange) this.onstatechange("busy");
       success = this.wasm.run_kata_exercise(
         verify_code,
         user_code,
@@ -101,6 +110,7 @@ export class Compiler implements ICompiler {
     } catch (e) {
       err = e;
     }
+    if (this.onstatechange) this.onstatechange("idle");
     // Currently the kata wasm doesn't emit the success/failure events, so do those here.
     if (!err) {
       const evt = makeEvent("Result", {

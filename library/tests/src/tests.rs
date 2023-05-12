@@ -378,6 +378,29 @@ fn check_exp_mod_l() {
     );
 }
 
+#[test]
+fn check_inverse_mod_i() {
+    run_stdlib_test("Microsoft.Quantum.Math.InverseModI(2,5)", &Value::Int(3));
+    run_stdlib_test("Microsoft.Quantum.Math.InverseModI(3,10)", &Value::Int(7));
+    run_stdlib_test("Microsoft.Quantum.Math.InverseModI(-1,5)", &Value::Int(4));
+}
+
+#[test]
+fn check_inverse_mod_l() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.InverseModL(2L,5L)",
+        &Value::BigInt(BigInt::from(3)),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.InverseModL(3L,10L)",
+        &Value::BigInt(BigInt::from(7)),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.InverseModL(-1L,5L)",
+        &Value::BigInt(BigInt::from(4)),
+    );
+}
+
 //
 // GCD, etc.
 //
@@ -409,6 +432,33 @@ fn check_gcd_l() {
     );
     run_stdlib_test("Microsoft.Quantum.Math.GreatestCommonDivisorL(222232244629420445529739893461909967206666939096499764990979600L,359579325206583560961765665172189099052367214309267232255589801L)", &Value::BigInt(
         BigInt::from(1)));
+}
+
+#[test]
+fn check_cfc_i() {
+    // NOTE: It is not important if the function returns -3/-4 or 3/4,
+    // we can ignore this implementation details or update a function
+    // to return canonical result.
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 2)",
+        &Value::Tuple(vec![Value::Int(-1), Value::Int(-1)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 3)",
+        &Value::Tuple(vec![Value::Int(2), Value::Int(3)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 4)",
+        &Value::Tuple(vec![Value::Int(-3), Value::Int(-4)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 7)",
+        &Value::Tuple(vec![Value::Int(5), Value::Int(7)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.ContinuedFractionConvergentI((72,100), 25)",
+        &Value::Tuple(vec![Value::Int(-18), Value::Int(-25)].into()),
+    );
 }
 
 #[test]
@@ -479,6 +529,82 @@ fn check_most() {
     );
 }
 
+#[test]
+fn check_apply_xor_in_place() {
+    run_stdlib_test(
+        {
+            "{
+            use a = Qubit[3];
+            mutable result = [];
+            within {
+                Microsoft.Quantum.Arithmetic.ApplyXorInPlace(3, a);
+            }
+            apply {
+                set result = [M(a[0]),M(a[1]),M(a[2])];
+            }
+            return result;
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_cnot_chain_2() {
+    run_stdlib_test(
+        {
+            "{
+            use a = Qubit[2];
+            mutable result = [];
+            within {
+                X(a[0]);
+                X(a[1]);
+                ApplyCNOTChain(a);
+            }
+            apply {
+                set result = [M(a[0]),M(a[1])];
+            }
+            return result;
+        }"
+        },
+        &Value::Array(vec![Value::Result(true), Value::Result(false)].into()),
+    );
+}
+
+#[test]
+fn check_apply_cnot_chain_3() {
+    run_stdlib_test(
+        {
+            "{
+            use a = Qubit[3];
+            mutable result = [];
+            within {
+                X(a[0]);
+                ApplyCNOTChain(a);
+            }
+            apply {
+                set result = [M(a[0]),M(a[1]),M(a[2])];
+            }
+            return result;
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
 //
 // Mesurement namespace
 //
@@ -499,6 +625,137 @@ fn check_measure_each_z() {
                 Value::Result(true),
                 Value::Result(false),
                 Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_cnot_chain_3a() {
+    run_stdlib_test(
+        {
+            "{
+            use a = Qubit[3];
+            mutable result = [];
+            within {
+                X(a[0]);
+                X(a[2]);
+                ApplyCNOTChain(a);
+            }
+            apply {
+                set result = [M(a[0]),M(a[1]),M(a[2])];
+            }
+            return result;
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_add_i_nc() {
+    run_stdlib_test(
+        {
+            "{  // RippleCarryAdderNoCarryTTK case
+                use x = Qubit[4];
+                use y = Qubit[4];
+                open Microsoft.Quantum.Arithmetic;
+                ApplyXorInPlace(3, x);
+                ApplyXorInPlace(5, y);
+                AddI(x,y); // 3+5=8
+                let result = [M(y[0]),M(y[1]),M(y[2]),M(y[3])];
+                ResetAll(x+y);
+                return result;
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(false),
+                Value::Result(false),
+                Value::Result(true), // 3+5=8
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_add_i_c() {
+    run_stdlib_test(
+        {
+            "{  // RippleCarryAdderTTK case
+                use x = Qubit[4];
+                use y = Qubit[5];
+                open Microsoft.Quantum.Arithmetic;
+                ApplyXorInPlace(7, x);
+                ApplyXorInPlace(11, y);
+                AddI(x,y); // 7+11=18
+                let result = [M(y[0]),M(y[1]),M(y[2]),M(y[3]),M(y[4])];
+                ResetAll(x+y);
+                return result;
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(true), // 2
+                Value::Result(false),
+                Value::Result(false),
+                Value::Result(true), // 16
+            ]
+            .into(),
+        ), // 10010b = 18
+    );
+}
+
+#[test]
+fn check_add_i_1_1() {
+    run_stdlib_test(
+        {
+            "{  // Shortest case
+                use x = Qubit[1];
+                use y = Qubit[1];
+                open Microsoft.Quantum.Arithmetic;
+                X(x[0]);
+                AddI(x,y);
+                let result = M(y[0]);
+                ResetAll(x+y);
+                return result;
+        }"
+        },
+        &Value::Result(true),
+    );
+}
+
+#[test]
+fn check_add_i_1_2() {
+    run_stdlib_test(
+        {
+            "{  // Shortest unequal length case
+                use x = Qubit[1];
+                use y = Qubit[2];
+                open Microsoft.Quantum.Arithmetic;
+                X(x[0]);
+                X(y[0]);
+                AddI(x,y);
+                let result = [M(y[0]),M(y[1])];
+                ResetAll(x+y);
+                return result;
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(true), // 2
             ]
             .into(),
         ),

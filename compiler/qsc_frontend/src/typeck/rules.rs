@@ -9,7 +9,7 @@ use super::{
 use crate::resolve::{Res, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
-    QubitInitKind, Spec, Stmt, StmtKind, TernOp, TyKind, UnOp,
+    QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{self, ItemId, PrimTy, Ty};
@@ -274,6 +274,22 @@ impl<'a> Context<'a> {
                     },
                 );
                 self.diverge_if(container.diverges || index.diverges, converge(item_ty))
+            }
+            ExprKind::Interpolate(components) => {
+                let mut diverges = false;
+                for component in components {
+                    match component {
+                        StringComponent::Expr(expr) => {
+                            let span = expr.span;
+                            let expr = self.infer_expr(expr);
+                            self.inferrer.class(span, Class::Show(expr.ty));
+                            diverges = diverges || expr.diverges;
+                        }
+                        StringComponent::Lit(_) => {}
+                    }
+                }
+
+                self.diverge_if(diverges, converge(Ty::Prim(PrimTy::String)))
             }
             ExprKind::Lambda(kind, input, body) => {
                 // TODO: Infer the supported functors or require that they are explicitly listed.

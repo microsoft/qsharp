@@ -44,8 +44,7 @@ namespace Microsoft.Quantum.Samples.Qrng {
     @EntryPoint()
     operation Main() : Int {
         let max = 50;
-        Message("Sampling a random number between 0 and " +
-            AsString(max) + ": ");
+        Message($"Sampling a random number between 0 and {max}: ");
         return SampleRandomNumberInRange(max);
     }
 }

@@ -68,44 +68,38 @@ impl<'a> Visitor<'a> for SepCheck {
         let prior = self.op_call_allowed;
         let mut has_inner_op_call = false;
         for stmt in &block.stmts {
-            match &stmt.kind {
-                StmtKind::Item(_) => {}
+            let has_op_call = match &stmt.kind {
+                StmtKind::Item(_) => false,
 
                 StmtKind::Local(..) | StmtKind::Qubit(_, _, _, None) => {
                     self.op_call_allowed = false;
                     self.visit_stmt(stmt);
                     self.op_call_allowed = prior;
+                    false
                 }
 
                 StmtKind::Qubit(_, _, init, Some(qubit_block)) => {
                     self.op_call_allowed = false;
                     self.visit_qubit_init(init);
                     self.op_call_allowed = prior;
-                    self.handle_block(qubit_block, stmt.id);
+                    self.handle_block(qubit_block)
                 }
 
                 StmtKind::Expr(expr) | StmtKind::Semi(expr) => match &expr.kind {
-                    ExprKind::Block(block) => self.handle_block(block, stmt.id),
-                    ExprKind::Call(callee, args) => {
-                        has_inner_op_call = self.handle_call(expr, stmt.id, callee, args, prior)
-                            || has_inner_op_call;
-                    }
+                    ExprKind::Block(block) => self.handle_block(block),
+                    ExprKind::Call(callee, args) => self.handle_call(expr, callee, args, prior),
                     ExprKind::Conjugate(within, apply) => {
-                        self.handle_block(within, stmt.id);
-                        self.handle_block(apply, stmt.id);
+                        let within_has_op = self.handle_block(within);
+                        self.handle_block(apply) || within_has_op
                     }
                     ExprKind::For(_, iter, loop_block) => {
                         self.op_call_allowed = false;
                         self.visit_expr(iter);
                         self.op_call_allowed = prior;
-                        self.handle_block(loop_block, stmt.id);
+                        self.handle_block(loop_block)
                     }
                     ExprKind::If(cond, then_block, else_expr) => {
-                        self.handle_if_expr(prior, cond, then_block, else_expr);
-                        if self.has_op_call {
-                            self.has_op_call = false;
-                            self.op_call_present.insert(stmt.id);
-                        }
+                        self.handle_if_expr(prior, cond, then_block, else_expr)
                     }
 
                     ExprKind::Array(_)
@@ -119,6 +113,7 @@ impl<'a> Visitor<'a> for SepCheck {
                     | ExprKind::Lambda(..)
                     | ExprKind::Lit(..)
                     | ExprKind::Range(..)
+                    | ExprKind::String(..)
                     | ExprKind::TernOp(..)
                     | ExprKind::Tuple(..)
                     | ExprKind::UnOp(..)
@@ -126,6 +121,7 @@ impl<'a> Visitor<'a> for SepCheck {
                         self.op_call_allowed = false;
                         self.visit_expr(expr);
                         self.op_call_allowed = prior;
+                        false
                     }
 
                     ExprKind::Assign(..)
@@ -135,8 +131,13 @@ impl<'a> Visitor<'a> for SepCheck {
                     | ExprKind::Return(..)
                     | ExprKind::While(..) => {
                         self.errors.push(Error::ExprForbidden(expr.span));
+                        false
                     }
                 },
+            };
+            if has_op_call {
+                self.op_call_present.insert(stmt.id);
+                has_inner_op_call = true;
             }
         }
         self.has_op_call = self.has_op_call || has_inner_op_call;
@@ -159,42 +160,36 @@ impl SepCheck {
         cond: &Expr,
         then_block: &Block,
         else_expr: &Option<Box<Expr>>,
-    ) {
+    ) -> bool {
         self.op_call_allowed = false;
         self.visit_expr(cond);
         self.op_call_allowed = prior;
 
-        self.visit_block(then_block);
-
-        if let Some(else_expr) = else_expr {
+        let then_has_op = self.handle_block(then_block);
+        let else_has_op = if let Some(else_expr) = else_expr {
             match &else_expr.kind {
-                ExprKind::Block(else_block) => {
-                    self.visit_block(else_block);
-                }
+                ExprKind::Block(else_block) => self.handle_block(else_block),
                 ExprKind::If(inner_cond, inner_then, inner_else) => {
-                    self.handle_if_expr(prior, inner_cond, inner_then, inner_else);
+                    self.handle_if_expr(prior, inner_cond, inner_then, inner_else)
                 }
                 _ => panic!("else expr should be if-expr or block-expr, got: {else_expr}"),
             }
-        }
+        } else {
+            false
+        };
+        then_has_op || else_has_op
     }
 
-    fn handle_block(&mut self, block: &Block, id: NodeId) {
+    fn handle_block(&mut self, block: &Block) -> bool {
         self.visit_block(block);
         if self.has_op_call {
             self.has_op_call = false;
-            self.op_call_present.insert(id);
+            return true;
         }
+        false
     }
 
-    fn handle_call(
-        &mut self,
-        expr: &Expr,
-        id: NodeId,
-        callee: &Expr,
-        args: &Expr,
-        prior: bool,
-    ) -> bool {
+    fn handle_call(&mut self, expr: &Expr, callee: &Expr, args: &Expr, prior: bool) -> bool {
         let is_op_call = matches!(callee.ty, Ty::Arrow(CallableKind::Operation, _, _, _));
         self.op_call_allowed = false;
         self.visit_expr(callee);
@@ -202,7 +197,6 @@ impl SepCheck {
         self.op_call_allowed = prior;
         let mut has_inner_op_call = false;
         if is_op_call {
-            self.op_call_present.insert(id);
             if self.op_call_allowed {
                 has_inner_op_call = true;
             } else {

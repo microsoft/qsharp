@@ -25,16 +25,18 @@ use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
     NodeId, PackageId, Pat, PatKind, PrimField, QubitInit, QubitInitKind, Res, Spec, SpecBody,
-    SpecGen, Stmt, StmtKind, TernOp, UnOp,
+    SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
+    fmt::Write,
     mem::take,
     ops::{
         ControlFlow::{self, Break, Continue},
         Neg,
     },
     ptr::null_mut,
+    rc::Rc,
 };
 use thiserror::Error;
 use val::{GlobalId, Qubit};
@@ -82,6 +84,9 @@ pub enum Error {
 
     #[error("output failure")]
     Output(#[label("failed to generate output")] Span),
+
+    #[error("qubits in gate invocation are not unique")]
+    QubitUniqueness(#[label] Span),
 
     #[error("range with step size of zero")]
     RangeStepZero(#[label("invalid range")] Span),
@@ -376,6 +381,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::Range(start, step, end) => self.eval_range(start, step, end),
             ExprKind::Repeat(repeat, cond, fixup) => self.eval_repeat_loop(repeat, cond, fixup),
             ExprKind::Return(expr) => Break(Reason::Return(self.eval_expr(expr)?)),
+            ExprKind::String(components) => self.eval_string(components),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
                 TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
@@ -422,6 +428,25 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             to_opt_i64(step)?.unwrap_or(val::DEFAULT_RANGE_STEP),
             to_opt_i64(end)?,
         ))
+    }
+
+    fn eval_string(&mut self, components: &[StringComponent]) -> ControlFlow<Reason, Value> {
+        if let [StringComponent::Lit(str)] = components {
+            return Continue(Value::String(Rc::clone(str)));
+        }
+
+        let mut string = String::new();
+        for component in components {
+            match component {
+                StringComponent::Expr(expr) => {
+                    let value = self.eval_expr(expr)?;
+                    write!(string, "{value}").expect("string should be writable");
+                }
+                StringComponent::Lit(lit) => string += lit,
+            }
+        }
+
+        Continue(Value::String(string.into()))
     }
 
     fn eval_block(&mut self, block: &Block) -> ControlFlow<Reason, Value> {
@@ -1030,7 +1055,6 @@ fn lit_to_val(lit: &Lit) -> Value {
         Lit::Pauli(v) => Value::Pauli(*v),
         Lit::Result(hir::Result::Zero) => Value::Result(false),
         Lit::Result(hir::Result::One) => Value::Result(true),
-        Lit::String(v) => Value::String(v.clone()),
     }
 }
 

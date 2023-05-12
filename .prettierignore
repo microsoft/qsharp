@@ -3,6 +3,7 @@ __pycache__/
 .ado/
 .cargo/
 .github/
+.vscode/
 compiler/
 library/
 npm/dist/

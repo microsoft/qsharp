@@ -15,8 +15,8 @@
 mod tests;
 
 use super::{
-    raw::{self, Number, Single, Terminator},
-    Delim, Radix,
+    raw::{self, Number, Single},
+    Delim, InterpolatedEnding, InterpolatedStart, Radix,
 };
 use enum_iterator::Sequence;
 use miette::Diagnostic;
@@ -129,7 +129,7 @@ pub(crate) enum TokenKind {
     /// `;`
     Semi,
     /// A string literal.
-    String,
+    String(StringToken),
     /// `~~~`
     TildeTildeTilde,
     /// `w/`
@@ -176,7 +176,7 @@ impl Display for TokenKind {
             TokenKind::Question => f.write_str("`?`"),
             TokenKind::RArrow => f.write_str("`->`"),
             TokenKind::Semi => f.write_str("`;`"),
-            TokenKind::String => f.write_str("string"),
+            TokenKind::String(_) => f.write_str("string"),
             TokenKind::TildeTildeTilde => f.write_str("`~~~`"),
             TokenKind::WSlash => f.write_str("`w/`"),
             TokenKind::WSlashEq => f.write_str("`w/=`"),
@@ -247,6 +247,12 @@ impl Display for ClosedBinOp {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(crate) enum StringToken {
+    Normal,
+    Interpolated(InterpolatedStart, InterpolatedEnding),
+}
+
 pub(crate) struct Lexer<'a> {
     input: &'a str,
 
@@ -298,8 +304,16 @@ impl<'a> Lexer<'a> {
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String(Terminator::Quote) => Ok(Some(TokenKind::String)),
-            raw::TokenKind::String(Terminator::Eof) => Err(Error::UnterminatedString(Span {
+            raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
+                Ok(Some(TokenKind::String(StringToken::Normal)))
+            }
+            raw::TokenKind::String(raw::StringToken::Interpolated(start, Some(ending))) => Ok(
+                Some(TokenKind::String(StringToken::Interpolated(start, ending))),
+            ),
+            raw::TokenKind::String(
+                raw::StringToken::Normal { terminated: false }
+                | raw::StringToken::Interpolated(_, None),
+            ) => Err(Error::UnterminatedString(Span {
                 lo: token.offset,
                 hi: token.offset,
             })),

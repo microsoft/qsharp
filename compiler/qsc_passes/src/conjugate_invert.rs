@@ -11,7 +11,10 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
-    hir::{Block, CallableDecl, Expr, ExprKind, NodeId, Res, Stmt, StmtKind, Ty},
+    hir::{
+        Block, CallableDecl, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Res, Stmt,
+        StmtKind, Ty,
+    },
     mut_visit::{self, MutVisitor},
     visit::{self, Visitor},
 };
@@ -31,6 +34,9 @@ pub enum Error {
     #[error("variable cannot be assigned in apply-block since it is used in within-block")]
     #[diagnostic(help("updating mutable variables in the apply-block that are used in the within-block can violate logic reversibility"))]
     ApplyAssign(#[label] Span),
+
+    #[error("return expressions are not allowed in apply-blocks")]
+    ReturnForbidden(#[label] Span),
 }
 
 /// Generates adjoint inverted blocks for within-blocks across all conjugate expressions,
@@ -72,8 +78,6 @@ struct ConjugateElim<'a> {
 
 impl<'a> MutVisitor for ConjugateElim<'a> {
     fn visit_expr(&mut self, expr: &mut Expr) {
-        mut_visit::walk_expr(self, expr);
-
         match take(&mut expr.kind) {
             ExprKind::Conjugate(within, apply) => {
                 let mut usage = Usage {
@@ -86,6 +90,10 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
                 };
                 assign_check.visit_block(&apply);
                 self.errors.extend(assign_check.errors);
+
+                let mut return_check = ReturnCheck { errors: Vec::new() };
+                return_check.visit_block(&apply);
+                self.errors.extend(return_check.errors);
 
                 let mut adj_within = within.clone();
                 if let Err(invert_errors) = adj_invert_block(self.assigner, &mut adj_within) {
@@ -102,28 +110,43 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
                 self.errors
                     .extend(distrib.errors.into_iter().map(Error::AdjGen));
 
+                let (bind_id, apply_as_bind) =
+                    block_as_binding(apply, expr.ty.clone(), self.assigner);
+
                 let new_block = Block {
                     id: NodeId::default(),
                     span: Span::default(),
-                    ty: Ty::UNIT,
+                    ty: expr.ty.clone(),
                     stmts: vec![
                         block_as_stmt(within),
-                        block_as_stmt(apply),
+                        apply_as_bind,
                         block_as_stmt(adj_within),
+                        Stmt {
+                            id: NodeId::default(),
+                            span: Span::default(),
+                            kind: StmtKind::Expr(Expr {
+                                id: NodeId::default(),
+                                span: Span::default(),
+                                ty: expr.ty.clone(),
+                                kind: ExprKind::Var(Res::Local(bind_id)),
+                            }),
+                        },
                     ],
                 };
-                *expr = block_as_expr(new_block);
+                *expr = block_as_expr(new_block, expr.ty.clone());
             }
             kind => expr.kind = kind,
         }
+
+        mut_visit::walk_expr(self, expr);
     }
 }
 
-fn block_as_expr(block: Block) -> Expr {
+fn block_as_expr(block: Block, ty: Ty) -> Expr {
     Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::UNIT,
+        ty,
         kind: ExprKind::Block(block),
     }
 }
@@ -132,8 +155,33 @@ fn block_as_stmt(block: Block) -> Stmt {
     Stmt {
         id: NodeId::default(),
         span: Span::default(),
-        kind: StmtKind::Expr(block_as_expr(block)),
+        kind: StmtKind::Expr(block_as_expr(block, Ty::UNIT)),
     }
+}
+
+fn block_as_binding(block: Block, ty: Ty, assigner: &mut Assigner) -> (NodeId, Stmt) {
+    let bind_id = assigner.next_id();
+    (
+        bind_id,
+        Stmt {
+            id: assigner.next_id(),
+            span: Span::default(),
+            kind: StmtKind::Local(
+                Mutability::Immutable,
+                Pat {
+                    id: assigner.next_id(),
+                    span: Span::default(),
+                    ty: ty.clone(),
+                    kind: PatKind::Bind(Ident {
+                        id: bind_id,
+                        span: Span::default(),
+                        name: "apply_res".into(),
+                    }),
+                },
+                block_as_expr(block, ty),
+            ),
+        },
+    )
 }
 
 struct Usage {
@@ -183,6 +231,18 @@ impl AssignmentCheck {
                 }
             }
             _ => panic!("unexpected expr type in assignment"),
+        }
+    }
+}
+
+struct ReturnCheck {
+    errors: Vec<Error>,
+}
+
+impl<'a> Visitor<'a> for ReturnCheck {
+    fn visit_expr(&mut self, expr: &'a Expr) {
+        if matches!(&expr.kind, ExprKind::Return(..)) {
+            self.errors.push(Error::ReturnForbidden(expr.span));
         }
     }
 }
