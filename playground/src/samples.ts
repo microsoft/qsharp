@@ -200,10 +200,7 @@ const teleportation = `namespace Microsoft.Quantum.Samples.Teleportation {
         for idxRun in 1 .. 10 {
             let sent = DrawRandomInt(0, 1) == 1;
             let received = TeleportClassicalMessage(sent);
-            Message(
-                "Round " + AsString(idxRun) +
-                ": Sent " + AsString(sent) +
-                ", got " + AsString(received) + ".");
+            Message($"Round {idxRun}: Sent {sent}, got {received}.");
             Message(sent == received ? "Teleportation successful!" | "");
         }
         for idxRun in 1 .. 10 {
@@ -268,8 +265,7 @@ const qrng = `namespace Microsoft.Quantum.Samples.Qrng {
     @EntryPoint()
     operation Main() : Int {
         let max = 50;
-        Message("Sampling a random number between 0 and " +
-            AsString(max) + ": ");
+        Message($"Sampling a random number between 0 and {max}: ");
         return SampleRandomNumberInRange(max);
     }
 }`;

@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.Samples.SimpleGrover {
         // the result is still detected with the sufficient
         // probability.
         let nIterations = NIterations(nQubits); // Try setting to 1.
-        Message("Number of iterations: " + AsString(nIterations));
+        Message($"Number of iterations: {nIterations}");
 
         let results =  GroverSearch(
             nQubits,
