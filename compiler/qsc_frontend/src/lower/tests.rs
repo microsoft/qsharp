@@ -19,8 +19,8 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn try_into_lower_error(error: compile::Error) -> Option<super::Error> {
-    if let compile::ErrorKind::Lower(lower) = error.0 {
-        Some(lower)
+    if let compile::ErrorKind::Lower(error) = error.0 {
+        Some(error)
     } else {
         None
     }

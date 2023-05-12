@@ -5,10 +5,10 @@
 mod tests;
 
 use crate::{
+    funop,
     lower::{self, Lowerer},
     parse,
     resolve::{self, Resolutions, Resolver},
-    semantics,
     typeck::{self, Checker, Tys},
     validate::{self, validate},
 };
@@ -137,7 +137,7 @@ pub(super) enum ErrorKind {
     #[error("type error")]
     Type(#[from] typeck::Error),
     #[error(transparent)]
-    Semantic(#[from] semantics::Error),
+    FunOp(#[from] funop::Error),
     #[error(transparent)]
     Validate(#[from] validate::Error),
     #[error(transparent)]
@@ -217,7 +217,7 @@ pub fn compile(
     let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
     let validate_errors = validate(&package);
-    let semantic_errors = semantics::validate(&tys, &package);
+    let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
     let package = lowerer.with(&resolutions, &tys).lower_package(&package);
     let (assigner, lower_errors) = lowerer.into_assigner();
@@ -227,7 +227,7 @@ pub fn compile(
         .map(Into::into)
         .chain(resolve_errors.into_iter().map(Into::into))
         .chain(ty_errors.into_iter().map(Into::into))
-        .chain(semantic_errors.into_iter().map(Into::into))
+        .chain(funop_errors.into_iter().map(Into::into))
         .chain(validate_errors.into_iter().map(Into::into))
         .chain(lower_errors.into_iter().map(Into::into))
         .map(Error)

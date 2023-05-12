@@ -40,25 +40,26 @@ pub(super) enum Error {
     WhileInOp(#[label] Span),
 }
 
-pub(super) fn validate(tys: &Tys, package: &Package) -> Vec<Error> {
-    let mut validator = Validator {
+/// Checks that restrictions for functions and operations are followed.
+pub(super) fn check(tys: &Tys, package: &Package) -> Vec<Error> {
+    let mut checker = Checker {
         tys,
         in_func: false,
         in_op: false,
         errors: Vec::new(),
     };
-    validator.visit_package(package);
-    validator.errors
+    checker.visit_package(package);
+    checker.errors
 }
 
-struct Validator<'a> {
+struct Checker<'a> {
     tys: &'a Tys,
     in_func: bool,
     in_op: bool,
     errors: Vec<Error>,
 }
 
-impl Visitor<'_> for Validator<'_> {
+impl Visitor<'_> for Checker<'_> {
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         self.in_func = decl.kind == CallableKind::Function;
         self.in_op = decl.kind == CallableKind::Operation;

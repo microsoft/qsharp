@@ -12,15 +12,15 @@ fn check(file: &str, expect: &Expect) {
     let semantic_errors: Vec<_> = unit
         .errors
         .into_iter()
-        .filter_map(try_into_semantic_error)
+        .filter_map(try_into_funop_error)
         .collect();
 
     expect.assert_debug_eq(&semantic_errors);
 }
 
-fn try_into_semantic_error(error: compile::Error) -> Option<super::Error> {
-    if let compile::ErrorKind::Semantic(semantic) = error.0 {
-        Some(semantic)
+fn try_into_funop_error(error: compile::Error) -> Option<super::Error> {
+    if let compile::ErrorKind::FunOp(error) = error.0 {
+        Some(error)
     } else {
         None
     }
