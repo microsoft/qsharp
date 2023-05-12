@@ -920,3 +920,63 @@ fn qubit_not_unique_two_qubit_rotation_error() {
         "#]],
     );
 }
+
+#[test]
+fn qubit_not_unique_three_qubit_error_first_second() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(q , q, a);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 31122,
+                    hi: 31150,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_first_third() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(q , a, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 31122,
+                    hi: 31150,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_second_third() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(a , q, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 31122,
+                    hi: 31150,
+                },
+            )
+        "#]],
+    );
+}
