@@ -266,7 +266,7 @@ fn lit_string_escape_quote() {
     check(
         expr,
         r#""foo\"bar""#,
-        &expect![[r#"Expr _id_ [0-10]: Lit: String("foo\"bar")"#]],
+        &expect![[r#"Expr _id_ [0-10]: Lit: String("foo\\\"bar")"#]],
     );
 }
 
@@ -1851,5 +1851,195 @@ fn lambda_invalid_tuple_input() {
                 ),
             )
         "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_missing_ending() {
+    check(
+        expr,
+        r#"$"string"#,
+        &expect![[r#"
+            Err(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 8,
+                        hi: 8,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string() {
+    check(
+        expr,
+        r#"$"string""#,
+        &expect![[r#"
+            Expr _id_ [0-9]: Interpolate:
+                Lit: "string""#]],
+    );
+}
+
+#[test]
+fn interpolated_string_braced() {
+    check(
+        expr,
+        r#"$"{x}""#,
+        &expect![[r#"
+            Expr _id_ [0-6]: Interpolate:
+                Expr: Expr _id_ [3-4]: Path: Path _id_ [3-4] (Ident _id_ [3-4] "x")"#]],
+    );
+}
+
+#[test]
+fn interpolated_string_escape_brace() {
+    check(
+        expr,
+        r#"$"\{""#,
+        &expect![[r#"
+            Expr _id_ [0-5]: Interpolate:
+                Lit: "\\{""#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unclosed_brace() {
+    check(
+        expr,
+        r#"$"{"#,
+        &expect![[r#"
+            Err(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 3,
+                        hi: 3,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unclosed_brace_quote() {
+    check(
+        expr,
+        r#"$"{""#,
+        &expect![[r#"
+            Err(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 4,
+                        hi: 4,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unopened_brace() {
+    check(
+        expr,
+        r#"$"}"#,
+        &expect![[r#"
+            Err(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 3,
+                        hi: 3,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn interpolated_string_unopened_brace_quote() {
+    check(
+        expr,
+        r#"$"}""#,
+        &expect![[r#"
+            Expr _id_ [0-4]: Interpolate:
+                Lit: "}""#]],
+    );
+}
+
+#[test]
+fn interpolated_string_braced_index() {
+    check(
+        expr,
+        r#"$"{xs[0]}""#,
+        &expect![[r#"
+            Expr _id_ [0-10]: Interpolate:
+                Expr: Expr _id_ [3-8]: Index:
+                    Expr _id_ [3-5]: Path: Path _id_ [3-5] (Ident _id_ [3-5] "xs")
+                    Expr _id_ [6-7]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn interpolated_string_two_braced() {
+    check(
+        expr,
+        r#"$"{x} {y}""#,
+        &expect![[r#"
+            Expr _id_ [0-10]: Interpolate:
+                Expr: Expr _id_ [3-4]: Path: Path _id_ [3-4] (Ident _id_ [3-4] "x")
+                Lit: " "
+                Expr: Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")"#]],
+    );
+}
+
+#[test]
+fn interpolated_string_braced_normal_string() {
+    check(
+        expr,
+        r#"$"{"{}"}""#,
+        &expect![[r#"
+            Expr _id_ [0-9]: Interpolate:
+                Expr: Expr _id_ [3-7]: Lit: String("{}")"#]],
+    );
+}
+
+#[test]
+fn nested_interpolated_string() {
+    check(
+        expr,
+        r#"$"{$"{x}"}""#,
+        &expect![[r#"
+            Expr _id_ [0-11]: Interpolate:
+                Expr: Expr _id_ [3-9]: Interpolate:
+                    Expr: Expr _id_ [6-7]: Path: Path _id_ [6-7] (Ident _id_ [6-7] "x")"#]],
+    );
+}
+
+#[test]
+fn nested_interpolated_string_with_exprs() {
+    check(
+        expr,
+        r#"$"foo {x + $"bar {y}"} baz""#,
+        &expect![[r#"
+            Expr _id_ [0-27]: Interpolate:
+                Lit: "foo "
+                Expr: Expr _id_ [7-21]: BinOp (Add):
+                    Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "x")
+                    Expr _id_ [11-21]: Interpolate:
+                        Lit: "bar "
+                        Expr: Expr _id_ [18-19]: Path: Path _id_ [18-19] (Ident _id_ [18-19] "y")
+                Lit: " baz""#]],
     );
 }

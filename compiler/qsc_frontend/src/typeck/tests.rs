@@ -1459,6 +1459,158 @@ fn range_full_field_end() {
 }
 
 #[test]
+fn interpolate_int() {
+    check(
+        "",
+        r#"$"{4}""#,
+        &expect![[r##"
+            #0 0-6 "$\"{4}\"" : String
+            #1 3-4 "4" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_string() {
+    check(
+        "",
+        r#"$"{"foo"}""#,
+        &expect![[r##"
+            #0 0-10 "$\"{\"foo\"}\"" : String
+            #1 3-8 "\"foo\"" : String
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_qubit() {
+    check(
+        "",
+        r#"{ use q = Qubit(); $"{q}" }"#,
+        &expect![[r##"
+            #0 0-27 "{ use q = Qubit(); $\"{q}\" }" : String
+            #1 0-27 "{ use q = Qubit(); $\"{q}\" }" : String
+            #3 6-7 "q" : Qubit
+            #5 10-17 "Qubit()" : Qubit
+            #7 19-25 "$\"{q}\"" : String
+            #8 22-23 "q" : Qubit
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_function() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {}
+            }
+        "},
+        r#"$"{A.Foo}""#,
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 38-40 "{}" : ()
+            #5 43-53 "$\"{A.Foo}\"" : String
+            #6 46-51 "A.Foo" : (() -> ())
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 46, hi: 51 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_operation() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo() : () {}
+            }
+        "},
+        r#"$"{A.Foo}""#,
+        &expect![[r##"
+            #2 31-33 "()" : ()
+            #3 39-41 "{}" : ()
+            #5 44-54 "$\"{A.Foo}\"" : String
+            #6 47-52 "A.Foo" : (() => ())
+            Error(Type(Error(MissingClass(Show(Arrow(Operation, Tuple([]), Tuple([]), {})), Span { lo: 47, hi: 52 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_int_array() {
+    check(
+        "",
+        r#"$"{[1, 2, 3]}""#,
+        &expect![[r##"
+            #0 0-14 "$\"{[1, 2, 3]}\"" : String
+            #1 3-12 "[1, 2, 3]" : (Int)[]
+            #2 4-5 "1" : Int
+            #3 7-8 "2" : Int
+            #4 10-11 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_function_array() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {}
+                function Bar() : () {}
+            }
+        "},
+        r#"$"{[A.Foo, A.Bar]}""#,
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 38-40 "{}" : ()
+            #6 57-59 "()" : ()
+            #7 65-67 "{}" : ()
+            #9 70-89 "$\"{[A.Foo, A.Bar]}\"" : String
+            #10 73-87 "[A.Foo, A.Bar]" : ((() -> ()))[]
+            #11 74-79 "A.Foo" : (() -> ())
+            #12 81-86 "A.Bar" : (() -> ())
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 87 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_int_string_tuple() {
+    check(
+        "",
+        r#"$"{(1, "foo")}""#,
+        &expect![[r##"
+            #0 0-15 "$\"{(1, \"foo\")}\"" : String
+            #1 3-13 "(1, \"foo\")" : (Int, String)
+            #2 4-5 "1" : Int
+            #3 7-12 "\"foo\"" : String
+        "##]],
+    );
+}
+
+#[test]
+fn interpolate_int_function_tuple() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {}
+            }
+        "},
+        r#"$"{(1, A.Foo)}""#,
+        &expect![[r##"
+            #2 30-32 "()" : ()
+            #3 38-40 "{}" : ()
+            #5 43-58 "$\"{(1, A.Foo)}\"" : String
+            #6 46-56 "(1, A.Foo)" : (Int, (() -> ()))
+            #7 47-48 "1" : Int
+            #8 50-55 "A.Foo" : (() -> ())
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 46, hi: 56 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn newtype_cons() {
     check(
         indoc! {"

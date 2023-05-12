@@ -121,6 +121,42 @@ fn qubit_scope_expr_is_quantum_stmts() {
 }
 
 #[test]
+fn if_with_nested_if_with_op_call_is_quantum_stmts() {
+    check(
+        "{use q = Qubit(); X(q); let val = true; if val { if val { Z(q);}}}",
+        &expect![[r#"
+            X(q);
+            if val { if val { Z(q);}}
+            if val { Z(q);}
+            Z(q);"#]],
+    );
+}
+
+#[test]
+fn if_with_nested_if_with_mix_of_op_call_is_quantum_stmts() {
+    check(
+        "{use q = Qubit(); X(q); let val = true; if val { if val { Z(q);} if val {let x = 1;}}}",
+        &expect![[r#"
+            X(q);
+            if val { if val { Z(q);} if val {let x = 1;}}
+            if val { Z(q);}
+            Z(q);"#]],
+    );
+}
+
+#[test]
+fn if_with_nested_conjugate_with_op_call_is_quantum_stmts() {
+    check(
+        "{use q = Qubit(); X(q); let val = true; if val { within { Z(q);} apply {}}}",
+        &expect![[r#"
+            X(q);
+            if val { within { Z(q);} apply {}}
+            within { Z(q);} apply {}
+            Z(q);"#]],
+    );
+}
+
+#[test]
 fn conjugate_with_op_call_is_quantum_stmts() {
     check(
         "{use q = Qubit(); within {X(q); let val = 0;} apply {Y(q); let val2 = 1;} let val = 2; Z(q);}",
@@ -311,6 +347,23 @@ fn op_call_in_if_cond_forbidden() {
             ),
         ]
     "#]],
+    );
+}
+
+#[test]
+fn op_call_in_interpolated_string_forbidden() {
+    check(
+        r#"{ use q = Qubit(); let x = $"foo {X(q)}"; }"#,
+        &expect![[r#"
+            [
+                OpCallForbidden(
+                    Span {
+                        lo: 34,
+                        hi: 38,
+                    },
+                ),
+            ]
+        "#]],
     );
 }
 

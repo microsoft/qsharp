@@ -163,10 +163,7 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         for idxRun in 1 .. 10 {
             let sent = DrawRandomInt(0, 1) == 1;
             let received = TeleportClassicalMessage(sent);
-            Message(
-                "Round " + AsString(idxRun) +
-                ": Sent " + AsString(sent) +
-                ", got " + AsString(received) + ".");
+            Message($"Round {idxRun}: Sent {sent}, got {received}.");
             Message(sent==received ? "Teleportation successful!" | "");
         }
         for idxRun in 1 .. 10 {
