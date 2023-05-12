@@ -11,12 +11,8 @@ fn check(file: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], None);
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let errors = replace_qubit_allocation(&mut unit, store.core());
-    if errors.is_empty() {
-        expect.assert_eq(&unit.package.to_string());
-    } else {
-        expect.assert_debug_eq(&errors);
-    }
+    replace_qubit_allocation(&mut unit, store.core());
+    expect.assert_eq(&unit.package.to_string());
 }
 
 #[test]

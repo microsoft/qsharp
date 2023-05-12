@@ -17,12 +17,9 @@ use qsc_hir::{
 };
 use std::{mem::take, rc::Rc};
 
-use crate::{
-    common::{create_gen_core_ref, IdentTemplate},
-    Error,
-};
+use crate::common::{create_gen_core_ref, IdentTemplate};
 
-pub fn replace_qubit_allocation(unit: &mut CompileUnit, core_table: &Table) -> Vec<Error> {
+pub fn replace_qubit_allocation(unit: &mut CompileUnit, core_table: &Table) {
     let mut pass = ReplaceQubitAllocation {
         assigner: &mut unit.assigner,
         core_table,
@@ -31,7 +28,6 @@ pub fn replace_qubit_allocation(unit: &mut CompileUnit, core_table: &Table) -> V
         prefix_qubits: Vec::new(),
     };
     pass.visit_package(&mut unit.package);
-    vec![]
 }
 
 struct QubitIdent {
