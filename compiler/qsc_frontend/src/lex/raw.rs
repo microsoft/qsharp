@@ -347,7 +347,7 @@ impl<'a> Lexer<'a> {
                 } else if self.next_if_eq('"') {
                     Some(InterpolatedEnding::Quote)
                 } else {
-                    None
+                    None // Unterminated string.
                 };
 
                 StringToken::Interpolated(start, end)

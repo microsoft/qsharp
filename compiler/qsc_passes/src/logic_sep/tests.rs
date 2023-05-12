@@ -315,6 +315,23 @@ fn op_call_in_if_cond_forbidden() {
 }
 
 #[test]
+fn op_call_in_interpolated_string_forbidden() {
+    check(
+        r#"{ use q = Qubit(); let x = $"foo {X(q)}"; }"#,
+        &expect![[r#"
+            [
+                OpCallForbidden(
+                    Span {
+                        lo: 34,
+                        hi: 38,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn assign_forbidden() {
     check(
         "{mutable val = 0; set val = 1;}",
