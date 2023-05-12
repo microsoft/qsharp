@@ -138,7 +138,6 @@ export function Editor(props: {
   useEffect(() => {
     const theEditor = editor.current;
     if (!theEditor) return;
-    // TODO: Ensure when the compiler changes the old onCheck isn't still firing
     theEditor.getModel()?.onDidChangeContent(onCheck);
   }, [props.compiler]);
 
@@ -150,7 +149,6 @@ export function Editor(props: {
     theEditor.revealLineNearTop(1);
     setShotCount(props.defaultShots);
     setRunExpr("");
-    onCheck(); // TODO: onCheck depend on props.compiler
   }, [props.code, props.defaultShots]);
 
   useEffect(() => {
@@ -231,8 +229,8 @@ export function Editor(props: {
           </svg>
         </div>
       </div>
-      <div id="editor" ref={editorDiv}></div>
-      <div id="button-row">
+      <div class="code-editor" ref={editorDiv}></div>
+      <div class="button-row">
         {props.showExpr ? (
           <>
             <span>Start</span>
@@ -243,7 +241,6 @@ export function Editor(props: {
           <>
             <span>Shots</span>
             <input
-              id="shot"
               type="number"
               value={shotCount || 100}
               max="1000"
@@ -253,7 +250,6 @@ export function Editor(props: {
           </>
         ) : null}
         <button
-          id="run"
           class="main-button"
           onClick={onRun}
           disabled={hasCheckErrors || props.compilerState === "busy"}
@@ -261,7 +257,6 @@ export function Editor(props: {
           Run
         </button>
         <button
-          id="cancel"
           class="main-button"
           onClick={props.onRestartCompiler}
           disabled={props.compilerState === "idle"}

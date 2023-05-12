@@ -189,20 +189,20 @@ body {
   margin-right: 2px;
 }
 
-#editor {
+.code-editor {
   height: 40vh;
   min-height: 400px;
   border: 1px solid var(--border-color);
 }
 
-#button-row {
+.button-row {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   margin-top: 8px;
 }
 
-#button-row > * {
+.button-row > * {
   margin-left: 10px;
   font-size: 1rem;
 }

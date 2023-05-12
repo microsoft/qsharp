@@ -57,7 +57,6 @@ export function Kata(props: {
           );
         }
 
-        // TODO: Cancellation support
         return (
           <div>
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
