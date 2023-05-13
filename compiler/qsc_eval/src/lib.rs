@@ -345,9 +345,13 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let update = self.eval_binop(*op, lhs, rhs)?;
                 self.update_binding(lhs, update)
             }
-            ExprKind::AssignUpdate(lhs, mid, rhs) => {
-                let update = self.eval_ternop_update(lhs, mid, rhs)?;
-                self.update_binding(lhs, update)
+            ExprKind::AssignField(record, field, value) => {
+                let update = self.eval_update_field(record, field, value)?;
+                self.update_binding(record, update)
+            }
+            ExprKind::AssignIndex(array, index, value) => {
+                let update = self.eval_update_index(array, index, value)?;
+                self.update_binding(array, update)
             }
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
@@ -389,7 +393,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::String(components) => self.eval_string(components),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
                 TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
-                TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
+                TernOp::UpdateIndex => self.eval_update_index(lhs, mid, rhs),
             },
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
@@ -399,6 +403,9 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 Continue(Value::Tuple(val_tup.into()))
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
+            ExprKind::UpdateField(record, field, value) => {
+                self.eval_update_field(record, field, value)
+            }
             &ExprKind::Var(res) => match self.resolve_binding(res, expr.span) {
                 Ok(val) => Continue(val),
                 Err(e) => Break(Reason::Error(e)),
@@ -858,7 +865,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_ternop_update(
+    fn eval_update_index(
         &mut self,
         lhs: &Expr,
         mid: &Expr,
@@ -902,6 +909,38 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     value = items[index].clone();
                 }
                 Continue(value)
+            }
+            _ => panic!("invalid field access"),
+        }
+    }
+
+    fn eval_update_field(
+        &mut self,
+        record: &Expr,
+        field: &Field,
+        value: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let record = self.eval_expr(record)?;
+        let value_span = value.span;
+        let value = self.eval_expr(value)?;
+        match (record, field) {
+            (Value::Range(_, step, end), Field::Prim(PrimField::Start)) => Continue(Value::Range(
+                Some(value.try_into().with_span(value_span)?),
+                step,
+                end,
+            )),
+            (Value::Range(start, _, end), Field::Prim(PrimField::Step)) => Continue(Value::Range(
+                start,
+                value.try_into().with_span(value_span)?,
+                end,
+            )),
+            (Value::Range(start, step, _), Field::Prim(PrimField::End)) => Continue(Value::Range(
+                start,
+                step,
+                Some(value.try_into().with_span(value_span)?),
+            )),
+            (record, Field::Path(path)) => {
+                Continue(update_field_path(&record, &path.indices, &value))
             }
             _ => panic!("invalid field access"),
         }
@@ -1595,5 +1634,28 @@ fn eval_binop_xorb(
             lhs_val.type_name(),
             lhs_span,
         ))),
+    }
+}
+
+fn update_field_path(record: &Value, path: &[usize], replacement: &Value) -> Value {
+    if path.is_empty() {
+        replacement.clone()
+    } else if let Value::Tuple(items) = record {
+        let next_index = path[0];
+        let items = items
+            .iter()
+            .enumerate()
+            .map(|(index, item)| {
+                if index == next_index {
+                    update_field_path(item, &path[1..], replacement)
+                } else {
+                    item.clone()
+                }
+            })
+            .collect();
+
+        Value::Tuple(items)
+    } else {
+        panic!("invalid field path")
     }
 }

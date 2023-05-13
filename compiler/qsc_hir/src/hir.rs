@@ -652,8 +652,10 @@ pub enum ExprKind {
     Assign(Box<Expr>, Box<Expr>),
     /// An assignment with a compound operator. For example: `set a += b`.
     AssignOp(BinOp, Box<Expr>, Box<Expr>),
-    /// An assignment with a compound update operator: `set a w/= b <- c`.
-    AssignUpdate(Box<Expr>, Box<Expr>, Box<Expr>),
+    /// An assignment with a compound field update operator: `set a w/= B <- c`.
+    AssignField(Box<Expr>, Field, Box<Expr>),
+    /// An assignment with a compound index update operator: `set a w/= b <- c`.
+    AssignIndex(Box<Expr>, Box<Expr>, Box<Expr>),
     /// A binary operator.
     BinOp(BinOp, Box<Expr>, Box<Expr>),
     /// A block: `{ ... }`.
@@ -662,9 +664,6 @@ pub enum ExprKind {
     Call(Box<Expr>, Box<Expr>),
     /// A conjugation: `within { ... } apply { ... }`.
     Conjugate(Block, Block),
-    /// An expression with invalid syntax that can't be parsed.
-    #[default]
-    Err,
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
@@ -699,10 +698,15 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
+    /// A record field update.
+    UpdateField(Box<Expr>, Field, Box<Expr>),
     /// A variable.
     Var(Res),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
+    /// An invalid expression.
+    #[default]
+    Err,
 }
 
 impl Display for ExprKind {
@@ -713,8 +717,11 @@ impl Display for ExprKind {
             ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, val, size)?,
             ExprKind::Assign(lhs, rhs) => display_assign(indent, lhs, rhs)?,
             ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, lhs, rhs)?,
-            ExprKind::AssignUpdate(container, item, val) => {
-                display_assign_update(indent, container, item, val)?;
+            ExprKind::AssignField(record, field, value) => {
+                display_assign_field(indent, record, field, value)?;
+            }
+            ExprKind::AssignIndex(container, item, value) => {
+                display_assign_index(indent, container, item, value)?;
             }
             ExprKind::BinOp(op, lhs, rhs) => display_bin_op(indent, *op, lhs, rhs)?,
             ExprKind::Block(block) => write!(indent, "Expr Block: {block}")?,
@@ -738,6 +745,9 @@ impl Display for ExprKind {
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
+            ExprKind::UpdateField(record, field, value) => {
+                display_update_field(indent, record, field, value)?;
+            }
             ExprKind::Var(res) => write!(indent, "Var: {res}")?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
@@ -783,17 +793,31 @@ fn display_assign_op(
     Ok(())
 }
 
-fn display_assign_update(
+fn display_assign_field(
     mut indent: Indented<Formatter>,
-    container: &Expr,
-    item: &Expr,
-    val: &Expr,
+    record: &Expr,
+    field: &Field,
+    value: &Expr,
 ) -> fmt::Result {
-    write!(indent, "AssignUpdate:")?;
+    write!(indent, "AssignField:")?;
     indent = set_indentation(indent, 1);
-    write!(indent, "\n{container}")?;
-    write!(indent, "\n{item}")?;
-    write!(indent, "\n{val}")?;
+    write!(indent, "\n{record}")?;
+    write!(indent, "\n{field}")?;
+    write!(indent, "\n{value}")?;
+    Ok(())
+}
+
+fn display_assign_index(
+    mut indent: Indented<Formatter>,
+    array: &Expr,
+    index: &Expr,
+    value: &Expr,
+) -> fmt::Result {
+    write!(indent, "AssignIndex:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{array}")?;
+    write!(indent, "\n{index}")?;
+    write!(indent, "\n{value}")?;
     Ok(())
 }
 
@@ -974,6 +998,20 @@ fn display_un_op(mut indent: Indented<Formatter>, op: UnOp, expr: &Expr) -> fmt:
     write!(indent, "UnOp ({op}):")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
+    Ok(())
+}
+
+fn display_update_field(
+    mut indent: Indented<Formatter>,
+    record: &Expr,
+    field: &Field,
+    value: &Expr,
+) -> fmt::Result {
+    write!(indent, "UpdateField:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{record}")?;
+    write!(indent, "\n{field}")?;
+    write!(indent, "\n{value}")?;
     Ok(())
 }
 
@@ -1362,6 +1400,16 @@ pub enum Field {
     Err,
 }
 
+impl Display for Field {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Field::Path(path) => write!(f, "Path({:?})", path.indices),
+            Field::Prim(prim) => write!(f, "Prim({prim:?}"),
+            Field::Err => f.write_str("Err"),
+        }
+    }
+}
+
 /// A path to a field in a tuple or user-defined type.
 #[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct FieldPath {
@@ -1610,8 +1658,8 @@ pub enum BinOp {
 pub enum TernOp {
     /// Conditional: `a ? b | c`.
     Cond,
-    /// Aggregate update: `a w/ b <- c`.
-    Update,
+    /// Update array index: `a w/ b <- c`.
+    UpdateIndex,
 }
 
 /// A set operator.

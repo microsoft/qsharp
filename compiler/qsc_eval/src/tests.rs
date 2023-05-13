@@ -1875,6 +1875,66 @@ fn ternop_update_invalid_index_negative_expr() {
 }
 
 #[test]
+fn ternop_update_array_index_var() {
+    check_expr(
+        "",
+        indoc! {"{
+            let xs = [2];
+            let i = 0;
+            xs w/ i <- 3
+        }"},
+        &expect!["[3]"],
+    );
+}
+
+#[test]
+fn ternop_update_array_index_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            let xs = [1, 2];
+            let i = 0;
+            xs w/ i + 1 <- 3
+        }"},
+        &expect!["[1, 3]"],
+    );
+}
+
+#[test]
+fn ternop_update_udt_known_field_name() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Pair(1, 2);
+            p w/ First <- 3
+        }"},
+        &expect!["(3, 2)"],
+    );
+}
+
+#[test]
+fn ternop_update_udt_nested_field() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Triple = (First : Int, (Second : Int, Third : Int));
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Triple(1, (2, 3));
+            p w/ Third <- 4
+        }"},
+        &expect!["(1, (2, 4))"],
+    );
+}
+
+#[test]
 fn assignupdate_expr() {
     check_expr(
         "",

@@ -526,17 +526,35 @@ impl<'a> Context<'a> {
 
     fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Partial {
         let container = self.infer_expr(container);
-        let index = self.infer_expr(index);
         let item = self.infer_expr(item);
-        self.inferrer.class(
-            span,
-            Class::HasIndex {
-                container: container.ty.clone(),
-                index: index.ty,
-                item: item.ty,
-            },
-        );
-        self.diverge_if(index.diverges || item.diverges, container)
+
+        match &index.kind {
+            ExprKind::Path(path)
+                if path.namespace.is_none() && !self.resolutions.contains_key(path.id) =>
+            {
+                self.inferrer.class(
+                    span,
+                    Class::SetField {
+                        record: container.ty.clone(),
+                        name: path.name.name.to_string(),
+                        item: item.ty.clone(),
+                    },
+                );
+                self.diverge_if(item.diverges, container)
+            }
+            _ => {
+                let index = self.infer_expr(index);
+                self.inferrer.class(
+                    span,
+                    Class::HasIndex {
+                        container: container.ty.clone(),
+                        index: index.ty,
+                        item: item.ty,
+                    },
+                );
+                self.diverge_if(index.diverges || item.diverges, container)
+            }
+        }
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {

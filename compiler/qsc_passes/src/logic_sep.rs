@@ -117,6 +117,7 @@ impl<'a> Visitor<'a> for SepCheck {
                     | ExprKind::TernOp(..)
                     | ExprKind::Tuple(..)
                     | ExprKind::UnOp(..)
+                    | ExprKind::UpdateField(..)
                     | ExprKind::Var(..) => {
                         self.op_call_allowed = false;
                         self.visit_expr(expr);
@@ -126,7 +127,8 @@ impl<'a> Visitor<'a> for SepCheck {
 
                     ExprKind::Assign(..)
                     | ExprKind::AssignOp(..)
-                    | ExprKind::AssignUpdate(..)
+                    | ExprKind::AssignField(..)
+                    | ExprKind::AssignIndex(..)
                     | ExprKind::Repeat(..)
                     | ExprKind::Return(..)
                     | ExprKind::While(..) => {

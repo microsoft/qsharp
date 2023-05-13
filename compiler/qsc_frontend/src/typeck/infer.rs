@@ -24,6 +24,7 @@ pub(super) enum Class {
     Integral(Ty),
     Iterable { container: Ty, item: Ty },
     Num(Ty),
+    SetField { record: Ty, name: String, item: Ty },
     Show(Ty),
     Unwrap { wrapper: Ty, base: Ty },
 }
@@ -42,7 +43,7 @@ impl Class {
             Self::Call { callee, .. } => vec![callee],
             Self::Ctl { op, .. } => vec![op],
             Self::Exp { base, .. } => vec![base],
-            Self::HasField { record, .. } => vec![record],
+            Self::HasField { record, .. } | Self::SetField { record, .. } => vec![record],
             Self::HasIndex {
                 container, index, ..
             } => vec![container, index],
@@ -93,6 +94,11 @@ impl Class {
                 item: f(item),
             },
             Self::Num(ty) => Self::Num(f(ty)),
+            Self::SetField { record, name, item } => Self::SetField {
+                record: f(record),
+                name,
+                item: f(item),
+            },
             Self::Show(ty) => Self::Show(f(ty)),
             Self::Unwrap { wrapper, base } => Self::Unwrap {
                 wrapper: f(wrapper),
@@ -134,6 +140,9 @@ impl Class {
             Class::Num(ty) => check_num(&ty)
                 .then_some(Vec::new())
                 .ok_or(ClassError(Class::Num(ty), span)),
+            Class::SetField { record, name, item } => {
+                check_set_field(udts, record, name, item, span).map(|c| vec![c])
+            }
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => {
                 check_unwrap(udts, wrapper, base, span).map(|c| vec![c])
@@ -158,6 +167,7 @@ impl Display for Class {
             Class::Integral(ty) => write!(f, "Integral<{ty}>"),
             Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
             Class::Num(ty) => write!(f, "Num<{ty}>"),
+            Class::SetField { record, name, .. } => write!(f, "SetField<{record}, {name}>"),
             Class::Show(ty) => write!(f, "Show<{ty}>"),
             Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
@@ -513,6 +523,39 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> 
     }
 }
 
+fn check_has_field(
+    udts: &HashMap<ItemId, Udt>,
+    record: Ty,
+    name: String,
+    item: Ty,
+    span: Span,
+) -> Result<Constraint, ClassError> {
+    match (name.parse(), &record) {
+        (Ok(PrimField::Start), Ty::Prim(PrimTy::Range | PrimTy::RangeFrom))
+        | (
+            Ok(PrimField::Step),
+            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+        )
+        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo))
+        | (Ok(PrimField::Length), Ty::Array(..)) => Ok(Constraint::Eq {
+            expected: item,
+            actual: Ty::Prim(PrimTy::Int),
+            span,
+        }),
+        (Err(()), Ty::Udt(Res::Item(id))) => {
+            match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
+                Some(ty) => Ok(Constraint::Eq {
+                    expected: item,
+                    actual: ty.clone(),
+                    span,
+                }),
+                None => Err(ClassError(Class::HasField { record, name, item }, span)),
+            }
+        }
+        _ => Err(ClassError(Class::HasField { record, name, item }, span)),
+    }
+}
+
 fn check_has_index(
     container: Ty,
     index: Ty,
@@ -568,19 +611,7 @@ fn check_num(ty: &Ty) -> bool {
     matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int))
 }
 
-fn check_show(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
-    match ty {
-        Ty::Array(item) => Ok(vec![Constraint::Class(Class::Show(*item), span)]),
-        Ty::Prim(_) => Ok(Vec::new()),
-        Ty::Tuple(items) => Ok(items
-            .into_iter()
-            .map(|item| Constraint::Class(Class::Show(item), span))
-            .collect()),
-        _ => Err(ClassError(Class::Show(ty), span)),
-    }
-}
-
-fn check_has_field(
+fn check_set_field(
     udts: &HashMap<ItemId, Udt>,
     record: Ty,
     name: String,
@@ -593,8 +624,7 @@ fn check_has_field(
             Ok(PrimField::Step),
             Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
         )
-        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo))
-        | (Ok(PrimField::Length), Ty::Array(..)) => Ok(Constraint::Eq {
+        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo)) => Ok(Constraint::Eq {
             expected: item,
             actual: Ty::Prim(PrimTy::Int),
             span,
@@ -606,10 +636,22 @@ fn check_has_field(
                     actual: ty.clone(),
                     span,
                 }),
-                None => Err(ClassError(Class::HasField { record, name, item }, span)),
+                None => Err(ClassError(Class::SetField { record, name, item }, span)),
             }
         }
-        _ => Err(ClassError(Class::HasField { record, name, item }, span)),
+        _ => Err(ClassError(Class::SetField { record, name, item }, span)),
+    }
+}
+
+fn check_show(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
+    match ty {
+        Ty::Array(item) => Ok(vec![Constraint::Class(Class::Show(*item), span)]),
+        Ty::Prim(_) => Ok(Vec::new()),
+        Ty::Tuple(items) => Ok(items
+            .into_iter()
+            .map(|item| Constraint::Class(Class::Show(item), span))
+            .collect()),
+        _ => Err(ClassError(Class::Show(ty), span)),
     }
 }
 

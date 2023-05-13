@@ -820,6 +820,202 @@ fn ternop_update_invalid_index() {
 }
 
 #[test]
+fn ternop_update_array_index_var() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 38-117 "{\n        let xs = [2];\n        let i = 0;\n        let ys = xs w/ i <- 3;\n    }" : Unit
+            #5 52-54 "xs" : (Int)[]
+            #7 57-60 "[2]" : (Int)[]
+            #8 58-59 "2" : Int
+            #10 74-75 "i" : Int
+            #12 78-79 "0" : Int
+            #14 93-95 "ys" : (Int)[]
+            #16 98-110 "xs w/ i <- 3" : (Int)[]
+            #17 98-100 "xs" : (Int)[]
+            #18 104-105 "i" : Int
+            #19 109-110 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_array_index_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i + 1 <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 38-121 "{\n        let xs = [2];\n        let i = 0;\n        let ys = xs w/ i + 1 <- 3;\n    }" : Unit
+            #5 52-54 "xs" : (Int)[]
+            #7 57-60 "[2]" : (Int)[]
+            #8 58-59 "2" : Int
+            #10 74-75 "i" : Int
+            #12 78-79 "0" : Int
+            #14 93-95 "ys" : (Int)[]
+            #16 98-114 "xs w/ i + 1 <- 3" : (Int)[]
+            #17 98-100 "xs" : (Int)[]
+            #18 104-109 "i + 1" : Int
+            #19 104-105 "i" : Int
+            #20 108-109 "1" : Int
+            #21 113-114 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_known_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 79-81 "()" : Unit
+            #4 87-155 "{\n        let p = Pair(1, 2);\n        let q = p w/ First <- 3;\n    }" : Unit
+            #6 101-102 "p" : UDT<Item 1>
+            #8 105-115 "Pair(1, 2)" : UDT<Item 1>
+            #9 105-109 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #10 109-115 "(1, 2)" : (Int, Int)
+            #11 110-111 "1" : Int
+            #12 113-114 "2" : Int
+            #14 129-130 "q" : UDT<Item 1>
+            #16 133-148 "p w/ First <- 3" : UDT<Item 1>
+            #17 133-134 "p" : UDT<Item 1>
+            #18 147-148 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_known_field_name_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First + 1 <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 79-81 "()" : Unit
+            #4 87-159 "{\n        let p = Pair(1, 2);\n        let q = p w/ First + 1 <- 3;\n    }" : Unit
+            #6 101-102 "p" : UDT<Item 1>
+            #8 105-115 "Pair(1, 2)" : UDT<Item 1>
+            #9 105-109 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #10 109-115 "(1, 2)" : (Int, Int)
+            #11 110-111 "1" : Int
+            #12 113-114 "2" : Int
+            #14 129-130 "q" : UDT<Item 1>
+            #16 133-152 "p w/ First + 1 <- 3" : UDT<Item 1>
+            #17 133-134 "p" : UDT<Item 1>
+            #18 138-147 "First + 1" : ?
+            #19 138-143 "First" : ?
+            #20 146-147 "1" : Int
+            #21 151-152 "3" : Int
+            Error(Resolve(NotFound("First", Span { lo: 138, hi: 143 })))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_unknown_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 79-81 "()" : Unit
+            #4 87-155 "{\n        let p = Pair(1, 2);\n        let q = p w/ Third <- 3;\n    }" : Unit
+            #6 101-102 "p" : UDT<Item 1>
+            #8 105-115 "Pair(1, 2)" : UDT<Item 1>
+            #9 105-109 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #10 109-115 "(1, 2)" : (Int, Int)
+            #11 110-111 "1" : Int
+            #12 113-114 "2" : Int
+            #14 129-130 "q" : UDT<Item 1>
+            #16 133-148 "p w/ Third <- 3" : UDT<Item 1>
+            #17 133-134 "p" : UDT<Item 1>
+            #18 147-148 "3" : Int
+            Error(Type(Error(MissingClass(SetField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 129, hi: 130 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_unknown_field_name_known_global() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Third() : () {}
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 81-83 "()" : Unit
+            #4 89-91 "{}" : Unit
+            #7 109-111 "()" : Unit
+            #8 117-185 "{\n        let p = Pair(1, 2);\n        let q = p w/ Third <- 3;\n    }" : Unit
+            #10 131-132 "p" : UDT<Item 1>
+            #12 135-145 "Pair(1, 2)" : UDT<Item 1>
+            #13 135-139 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #14 139-145 "(1, 2)" : (Int, Int)
+            #15 140-141 "1" : Int
+            #16 143-144 "2" : Int
+            #18 159-160 "q" : UDT<Item 1>
+            #20 163-178 "p w/ Third <- 3" : UDT<Item 1>
+            #21 163-164 "p" : UDT<Item 1>
+            #22 177-178 "3" : Int
+            Error(Type(Error(MissingClass(SetField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 159, hi: 160 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn unop_bitwise_not_bool() {
     check(
         "",

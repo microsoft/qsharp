@@ -348,6 +348,27 @@ impl AstVisitor<'_> for Resolver {
                 });
             }
             ast::ExprKind::Path(path) => self.resolve(NameKind::Term, path),
+            ast::ExprKind::TernOp(ast::TernOp::Update, lhs, middle, rhs) => {
+                self.visit_expr(lhs);
+
+                // Disambiguate the update operator by looking at the middle expression. If it's an
+                // unqualified path that doesn't resolve to a local, this indicates that it's
+                // actually a field name, not an index expression. Because it's not an expression,
+                // it shouldn't have an entry in the resolutions table. This is how we communicate
+                // to later compiler stages that this is a field update.
+                match &middle.kind {
+                    ast::ExprKind::Path(path) if path.namespace.is_none() => {
+                        if let Ok(Res::Local(id)) =
+                            resolve(NameKind::Term, &self.globals, &self.scopes, path)
+                        {
+                            self.resolutions.insert(path.id, Res::Local(id));
+                        }
+                    }
+                    _ => self.visit_expr(middle),
+                }
+
+                self.visit_expr(rhs);
+            }
             _ => ast_visit::walk_expr(self, expr),
         }
     }

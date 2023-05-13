@@ -163,8 +163,12 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(lhs);
             vis.visit_expr(rhs);
         }
-        ExprKind::AssignUpdate(record, index, value) => {
+        ExprKind::AssignField(record, _, value) | ExprKind::UpdateField(record, _, value) => {
             vis.visit_expr(record);
+            vis.visit_expr(value);
+        }
+        ExprKind::AssignIndex(array, index, value) => {
+            vis.visit_expr(array);
             vis.visit_expr(index);
             vis.visit_expr(value);
         }

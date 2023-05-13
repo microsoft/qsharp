@@ -311,11 +311,21 @@ impl With<'_> {
                 Box::new(self.lower_expr(lhs)),
                 Box::new(self.lower_expr(rhs)),
             ),
-            ast::ExprKind::AssignUpdate(container, index, value) => hir::ExprKind::AssignUpdate(
-                Box::new(self.lower_expr(container)),
-                Box::new(self.lower_expr(index)),
-                Box::new(self.lower_expr(value)),
-            ),
+            ast::ExprKind::AssignUpdate(container, index, value) => match &index.kind {
+                ast::ExprKind::Path(path)
+                    if path.namespace.is_none() && !self.resolutions.contains_key(path.id) =>
+                {
+                    let container = self.lower_expr(container);
+                    let field = self.lower_field(&container.ty, &path.name.name);
+                    let value = self.lower_expr(value);
+                    hir::ExprKind::AssignField(Box::new(container), field, Box::new(value))
+                }
+                _ => hir::ExprKind::AssignIndex(
+                    Box::new(self.lower_expr(container)),
+                    Box::new(self.lower_expr(index)),
+                    Box::new(self.lower_expr(value)),
+                ),
+            },
             ast::ExprKind::BinOp(op, lhs, rhs) => hir::ExprKind::BinOp(
                 lower_binop(*op),
                 Box::new(self.lower_expr(lhs)),
@@ -333,18 +343,7 @@ impl With<'_> {
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
                 let container = self.lower_expr(container);
-                let field = if let hir::Ty::Udt(hir::Res::Item(id)) = container.ty {
-                    self.tys
-                        .udts
-                        .get(&id)
-                        .and_then(|udt| udt.field_path(&name.name))
-                        .map_or(hir::Field::Err, |f| hir::Field::Path(f.clone()))
-                } else if let Ok(prim) = name.name.parse() {
-                    hir::Field::Prim(prim)
-                } else {
-                    hir::Field::Err
-                };
-
+                let field = self.lower_field(&container.ty, &name.name);
                 hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
@@ -387,12 +386,25 @@ impl With<'_> {
                     .map(|c| self.lower_string_component(c))
                     .collect(),
             ),
-            ast::ExprKind::TernOp(op, lhs, middle, rhs) => hir::ExprKind::TernOp(
-                lower_ternop(*op),
-                Box::new(self.lower_expr(lhs)),
-                Box::new(self.lower_expr(middle)),
-                Box::new(self.lower_expr(rhs)),
-            ),
+            ast::ExprKind::TernOp(op, lhs, middle, rhs) => match (op, &middle.kind) {
+                (ast::TernOp::Update, ast::ExprKind::Path(path))
+                    if path.namespace.is_none() && !self.resolutions.contains_key(path.id) =>
+                {
+                    let lhs = self.lower_expr(lhs);
+                    let field = self.lower_field(&lhs.ty, &path.name.name);
+                    let rhs = self.lower_expr(rhs);
+                    hir::ExprKind::UpdateField(Box::new(lhs), field, Box::new(rhs))
+                }
+                _ => hir::ExprKind::TernOp(
+                    match op {
+                        ast::TernOp::Cond => hir::TernOp::Cond,
+                        ast::TernOp::Update => hir::TernOp::UpdateIndex,
+                    },
+                    Box::new(self.lower_expr(lhs)),
+                    Box::new(self.lower_expr(middle)),
+                    Box::new(self.lower_expr(rhs)),
+                ),
+            },
             ast::ExprKind::Tuple(items) => {
                 hir::ExprKind::Tuple(items.iter().map(|i| self.lower_expr(i)).collect())
             }
@@ -409,6 +421,20 @@ impl With<'_> {
             span: expr.span,
             ty,
             kind,
+        }
+    }
+
+    fn lower_field(&mut self, record_ty: &hir::Ty, name: &str) -> hir::Field {
+        if let hir::Ty::Udt(hir::Res::Item(id)) = record_ty {
+            self.tys
+                .udts
+                .get(id)
+                .and_then(|udt| udt.field_path(name))
+                .map_or(hir::Field::Err, |f| hir::Field::Path(f.clone()))
+        } else if let Ok(prim) = name.parse() {
+            hir::Field::Prim(prim)
+        } else {
+            hir::Field::Err
         }
     }
 
@@ -543,13 +569,6 @@ fn lower_binop(op: ast::BinOp) -> hir::BinOp {
         ast::BinOp::Shr => hir::BinOp::Shr,
         ast::BinOp::Sub => hir::BinOp::Sub,
         ast::BinOp::XorB => hir::BinOp::XorB,
-    }
-}
-
-fn lower_ternop(op: ast::TernOp) -> hir::TernOp {
-    match op {
-        ast::TernOp::Cond => hir::TernOp::Cond,
-        ast::TernOp::Update => hir::TernOp::Update,
     }
 }
 
