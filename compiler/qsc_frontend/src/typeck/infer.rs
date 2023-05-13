@@ -600,10 +600,7 @@ fn check_has_field(
             span,
         }),
         (Err(()), Ty::Udt(Res::Item(id))) => {
-            match udts
-                .get(id)
-                .and_then(|udt| udt.fields.get(name.as_str()).and_then(|f| udt.field_ty(f)))
-            {
+            match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
                 Some(ty) => Ok(Constraint::Eq {
                     expected: item,
                     actual: ty.clone(),

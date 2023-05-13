@@ -337,7 +337,7 @@ impl With<'_> {
                     self.tys
                         .udts
                         .get(&id)
-                        .and_then(|udt| udt.fields.get(&name.name))
+                        .and_then(|udt| udt.field_path(&name.name))
                         .map_or(hir::Field::Err, |f| hir::Field::Path(f.clone()))
                 } else if let Ok(prim) = name.name.parse() {
                     hir::Field::Prim(prim)

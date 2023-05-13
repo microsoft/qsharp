@@ -9,7 +9,7 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
     result,
@@ -1272,7 +1272,7 @@ pub struct Udt {
     /// The basis type used as the definition of the user-defined type.
     pub base: Ty,
     /// The named fields of the user-defined type.
-    pub fields: HashMap<Rc<str>, FieldPath>,
+    pub fields: Vec<UdtField>,
 }
 
 impl Udt {
@@ -1291,6 +1291,19 @@ impl Udt {
         )
     }
 
+    /// The path to the field with the given name. Returns [None] if this user-defined type does not
+    /// have a field with the given name.
+    #[must_use]
+    pub fn field_path(&self, name: &str) -> Option<&FieldPath> {
+        for field in &self.fields {
+            if field.name.as_ref() == name {
+                return Some(&field.path);
+            }
+        }
+
+        None
+    }
+
     /// The type of the field at the given path. Returns [None] if the path is not valid for this
     /// user-defined type.
     #[must_use]
@@ -1301,6 +1314,14 @@ impl Udt {
             ty = &items[index];
         }
         Some(ty)
+    }
+
+    /// The type of the field with the given name. Returns [None] if this user-defined type does not
+    /// have a field with the given name.
+    #[must_use]
+    pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
+        let path = self.field_path(name)?;
+        self.field_ty(path)
     }
 }
 
@@ -1313,14 +1334,21 @@ impl Display for Udt {
         indent.write_str("\nfields:")?;
 
         indent = set_indentation(indent, 2);
-        let mut fields: Vec<_> = self.fields.iter().collect();
-        fields.sort();
-        for (name, field) in fields {
-            write!(indent, "\n{name}: {:?}", field.indices)?;
+        for field in &self.fields {
+            write!(indent, "\n{}: {:?}", field.name, field.path.indices)?;
         }
 
         Ok(())
     }
+}
+
+/// A named field in a user-defined type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UdtField {
+    /// The field name.
+    pub name: Rc<str>,
+    /// The field path.
+    pub path: FieldPath,
 }
 
 /// A field for a type.

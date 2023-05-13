@@ -4,11 +4,8 @@
 use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, FieldPath, Functor, ItemId, Ty};
-use std::{
-    collections::{HashMap, HashSet},
-    rc::Rc,
-};
+use qsc_hir::hir::{self, FieldPath, Functor, ItemId, Ty, UdtField};
+use std::{collections::HashSet, rc::Rc};
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
@@ -94,19 +91,22 @@ pub(super) fn ast_ty_def_base_ty(
     }
 }
 
-pub(super) fn ast_ty_def_fields(def: &ast::TyDef) -> HashMap<Rc<str>, FieldPath> {
+pub(super) fn ast_ty_def_fields(def: &ast::TyDef) -> Vec<UdtField> {
     match &def.kind {
         ast::TyDefKind::Field(Some(name), _) => {
-            [(Rc::clone(&name.name), FieldPath::default())].into()
+            vec![UdtField {
+                name: Rc::clone(&name.name),
+                path: FieldPath::default(),
+            }]
         }
-        ast::TyDefKind::Field(None, _) => HashMap::new(),
+        ast::TyDefKind::Field(None, _) => Vec::new(),
         ast::TyDefKind::Paren(inner) => ast_ty_def_fields(inner),
         ast::TyDefKind::Tuple(items) => {
-            let mut fields = HashMap::new();
+            let mut fields = Vec::new();
             for (index, item) in items.iter().enumerate() {
-                for (name, mut field) in ast_ty_def_fields(item) {
-                    field.indices.insert(0, index);
-                    fields.insert(name, field);
+                for mut field in ast_ty_def_fields(item) {
+                    field.path.indices.insert(0, index);
+                    fields.push(field);
                 }
             }
             fields
