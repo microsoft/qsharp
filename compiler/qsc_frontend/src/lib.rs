@@ -3,6 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
+mod closure;
 pub mod compile;
 pub mod incremental;
 mod lex;

@@ -77,7 +77,7 @@ fn resolve_names(input: &str) -> String {
     globals.add_local_package(&package);
     let mut resolver = Resolver::new(globals);
     resolver.visit_package(&package);
-    let (resolutions, errors) = resolver.into_resolutions();
+    let (_, resolutions, errors) = resolver.into_resolutions();
     let mut renamer = Renamer::new(&resolutions);
     renamer.visit_package(&package);
     let mut output = input.to_string();

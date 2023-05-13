@@ -22,7 +22,7 @@ use qsc_data_structures::{
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     global,
-    hir::{self, PackageId},
+    hir::{self, LocalItemId, PackageId},
 };
 use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
@@ -209,11 +209,14 @@ pub fn compile(
     let mut assigner = AstAssigner::new();
     assigner.visit_package(&mut package);
 
-    let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
+    let (mut next_item_id, resolutions, resolve_errors) =
+        resolve_all(store, dependencies, &package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
     let validate_errors = validate(&package);
     let mut lowerer = Lowerer::new();
-    let package = lowerer.with(&resolutions, &tys).lower_package(&package);
+    let package = lowerer
+        .with((&mut next_item_id, &resolutions), &tys)
+        .lower_package(&package);
 
     let errors = parse_errors
         .into_iter()
@@ -361,7 +364,7 @@ fn resolve_all(
     store: &PackageStore,
     dependencies: &[PackageId],
     package: &ast::Package,
-) -> (Resolutions, Vec<resolve::Error>) {
+) -> (LocalItemId, Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     for &id in dependencies {
         let unit = store

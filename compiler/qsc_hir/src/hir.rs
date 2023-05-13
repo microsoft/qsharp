@@ -738,6 +738,8 @@ pub enum ExprKind {
     Block(Block),
     /// A call: `a(b)`.
     Call(Box<Expr>, Box<Expr>),
+    /// A closure that fixes the vector of local variables as arguments to the callable item.
+    Closure(Vec<NodeId>, ItemId),
     /// A conjugation: `within { ... } apply { ... }`.
     Conjugate(Block, Block),
     /// An expression with invalid syntax that can't be parsed.
@@ -759,8 +761,6 @@ pub enum ExprKind {
     If(Box<Expr>, Block, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
-    /// A lambda: `a -> b` for a function and `a => b` for an operation.
-    Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
@@ -797,6 +797,7 @@ impl Display for ExprKind {
             ExprKind::BinOp(op, lhs, rhs) => display_bin_op(indent, *op, lhs, rhs)?,
             ExprKind::Block(block) => write!(indent, "Expr Block: {block}")?,
             ExprKind::Call(callable, arg) => display_call(indent, callable, arg)?,
+            ExprKind::Closure(args, callable) => display_closure(indent, args, *callable)?,
             ExprKind::Conjugate(within, apply) => display_conjugate(indent, within, apply)?,
             ExprKind::Err => write!(indent, "Err")?,
             ExprKind::Fail(e) => write!(indent, "Fail: {e}")?,
@@ -805,7 +806,6 @@ impl Display for ExprKind {
             ExprKind::Hole => write!(indent, "Hole")?,
             ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
-            ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
@@ -896,6 +896,19 @@ fn display_call(mut indent: Indented<Formatter>, callable: &Expr, arg: &Expr) ->
     Ok(())
 }
 
+fn display_closure(
+    mut indent: Indented<Formatter>,
+    args: &[NodeId],
+    callable: ItemId,
+) -> fmt::Result {
+    write!(indent, "Closure ({callable}):")?;
+    indent = set_indentation(indent, 1);
+    for arg in args {
+        write!(indent, "\n{arg}")?;
+    }
+    Ok(())
+}
+
 fn display_conjugate(
     mut indent: Indented<Formatter>,
     within: &Block,
@@ -951,19 +964,6 @@ fn display_index(mut indent: Indented<Formatter>, array: &Expr, index: &Expr) ->
     indent = set_indentation(indent, 1);
     write!(indent, "\n{array}")?;
     write!(indent, "\n{index}")?;
-    Ok(())
-}
-
-fn display_lambda(
-    mut indent: Indented<Formatter>,
-    kind: CallableKind,
-    param: &Pat,
-    expr: &Expr,
-) -> fmt::Result {
-    write!(indent, "Lambda ({kind:?}):")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{param}")?;
-    write!(indent, "\n{expr}")?;
     Ok(())
 }
 

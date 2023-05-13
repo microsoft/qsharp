@@ -2638,3 +2638,36 @@ fn nested_interpolated_string_with_exprs() {
         &expect!["foo hello!bar 1.5 baz"],
     );
 }
+
+#[test]
+fn lambda_no_free_vars() {
+    check_expr(
+        indoc! {r#"
+            namespace A {
+                function Foo() : Int {
+                    let f = x -> x + 1;
+                    f(1)
+                }
+            }
+        "#},
+        "A.Foo()",
+        &expect!["2"],
+    );
+}
+
+#[test]
+fn lambda_closure() {
+    check_expr(
+        indoc! {r#"
+            namespace A {
+                function Foo() : Int {
+                    let x = 5;
+                    let f = y -> x + y;
+                    f(2)
+                }
+            }
+        "#},
+        "A.Foo()",
+        &expect!["7"],
+    );
+}

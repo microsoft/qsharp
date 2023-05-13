@@ -101,7 +101,7 @@ impl Compiler {
         self.assigner.visit_namespace(&mut namespace);
         self.resolver.visit_namespace(&namespace);
         self.checker
-            .check_namespace(self.resolver.resolutions(), &namespace);
+            .check_namespace(self.resolver.resolutions().1, &namespace);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
@@ -118,7 +118,7 @@ impl Compiler {
         self.assigner.visit_stmt(&mut stmt);
         self.resolver.visit_stmt(&stmt);
         self.checker
-            .check_stmt_fragment(self.resolver.resolutions(), &stmt);
+            .check_stmt_fragment(self.resolver.resolutions().1, &stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {

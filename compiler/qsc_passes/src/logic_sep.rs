@@ -105,12 +105,12 @@ impl<'a> Visitor<'a> for SepCheck {
                     ExprKind::Array(_)
                     | ExprKind::ArrayRepeat(..)
                     | ExprKind::BinOp(..)
+                    | ExprKind::Closure(..)
                     | ExprKind::Err
                     | ExprKind::Fail(..)
                     | ExprKind::Field(..)
                     | ExprKind::Hole
                     | ExprKind::Index(..)
-                    | ExprKind::Lambda(..)
                     | ExprKind::Lit(..)
                     | ExprKind::Range(..)
                     | ExprKind::String(..)

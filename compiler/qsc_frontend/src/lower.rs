@@ -2,11 +2,12 @@
 // Licensed under the MIT License.
 
 use crate::{
+    closure,
     resolve::{self, Resolutions},
     typeck::{convert, Tys},
 };
 use qsc_ast::ast;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
@@ -38,9 +39,14 @@ impl Lowerer {
         self.items.drain(..)
     }
 
-    pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions, tys: &'a Tys) -> With {
+    pub(super) fn with<'a>(
+        &'a mut self,
+        (next_item_id, resolutions): (&'a mut LocalItemId, &'a Resolutions),
+        tys: &'a Tys,
+    ) -> With {
         With {
             lowerer: self,
+            next_item_id,
             resolutions,
             tys,
         }
@@ -53,6 +59,7 @@ impl Lowerer {
 
 pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
+    next_item_id: &'a mut LocalItemId,
     resolutions: &'a Resolutions,
     tys: &'a Tys,
 }
@@ -343,11 +350,9 @@ impl With<'_> {
                 Box::new(self.lower_expr(container)),
                 Box::new(self.lower_expr(index)),
             ),
-            ast::ExprKind::Lambda(kind, input, body) => hir::ExprKind::Lambda(
-                lower_callable_kind(*kind),
-                self.lower_pat(input),
-                Box::new(self.lower_expr(body)),
-            ),
+            ast::ExprKind::Lambda(kind, input, body) => {
+                self.lower_lambda(*kind, input, body, expr.span)
+            }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
@@ -391,6 +396,38 @@ impl With<'_> {
             ty,
             kind,
         }
+    }
+
+    fn lower_lambda(
+        &mut self,
+        kind: ast::CallableKind,
+        input: &ast::Pat,
+        body: &ast::Expr,
+        span: Span,
+    ) -> hir::ExprKind {
+        let kind = lower_callable_kind(kind);
+        let input = self.lower_pat(input);
+        let body = self.lower_expr(body);
+
+        let (args, callable) = closure::lift(&mut self.lowerer.assigner, kind, input, body, span);
+        let id = *self.next_item_id;
+        *self.next_item_id = id.successor();
+        self.lowerer.items.push(hir::Item {
+            id,
+            span,
+            parent: self.lowerer.parent,
+            attrs: Vec::new(),
+            visibility: None,
+            kind: hir::ItemKind::Callable(callable),
+        });
+
+        hir::ExprKind::Closure(
+            args,
+            hir::ItemId {
+                package: None,
+                item: id,
+            },
+        )
     }
 
     fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {

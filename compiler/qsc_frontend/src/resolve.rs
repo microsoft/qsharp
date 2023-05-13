@@ -152,16 +152,16 @@ impl Resolver {
         }
     }
 
-    pub(super) fn resolutions(&self) -> &Resolutions {
-        &self.resolutions
+    pub(super) fn resolutions(&mut self) -> (&mut LocalItemId, &Resolutions) {
+        (&mut self.next_item_id, &self.resolutions)
     }
 
     pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
         self.errors.drain(..)
     }
 
-    pub(super) fn into_resolutions(self) -> (Resolutions, Vec<Error>) {
-        (self.resolutions, self.errors)
+    pub(super) fn into_resolutions(self) -> (LocalItemId, Resolutions, Vec<Error>) {
+        (self.next_item_id, self.resolutions, self.errors)
     }
 
     fn resolve(&mut self, kind: NameKind, path: &ast::Path) {

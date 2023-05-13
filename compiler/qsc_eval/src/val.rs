@@ -17,7 +17,7 @@ pub enum Value {
     Array(Rc<[Value]>),
     BigInt(BigInt),
     Bool(bool),
-    Closure,
+    Closure(Rc<[Value]>, GlobalId, FunctorApp),
     Double(f64),
     Global(GlobalId, FunctorApp),
     Int(i64),
@@ -74,7 +74,7 @@ impl Display for Value {
             }
             Value::BigInt(v) => write!(f, "{v}"),
             Value::Bool(v) => write!(f, "{v}"),
-            Value::Closure => todo!("https://github.com/microsoft/qsharp/issues/151"),
+            Value::Closure(..) => f.write_str("<closure>"),
             Value::Double(v) => {
                 if (v.floor() - v.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which by convention is displayed with one decimal point
@@ -256,13 +256,13 @@ impl Value {
             Value::Array(_) => "Array",
             Value::BigInt(_) => "BigInt",
             Value::Bool(_) => "Bool",
-            Value::Closure => "Closure",
+            Value::Closure(..) => "Closure",
             Value::Double(_) => "Double",
-            Value::Global(_, _) => "Global",
+            Value::Global(..) => "Global",
             Value::Int(_) => "Int",
             Value::Pauli(_) => "Pauli",
             Value::Qubit(_) => "Qubit",
-            Value::Range(_, _, _) => "Range",
+            Value::Range(..) => "Range",
             Value::Result(_) => "Result",
             Value::String(_) => "String",
             Value::Tuple(_) => "Tuple",

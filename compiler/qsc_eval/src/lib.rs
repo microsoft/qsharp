@@ -30,6 +30,7 @@ use qsc_hir::hir::{
 use std::{
     collections::{hash_map::Entry, HashMap},
     fmt::Write,
+    iter,
     mem::take,
     ops::{
         ControlFlow::{self, Break, Continue},
@@ -347,6 +348,27 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
             ExprKind::Call(call, args) => self.eval_call(call, args),
+            ExprKind::Closure(args, callable) => {
+                let mut arg_values = Vec::new();
+                for &arg in args {
+                    if let Some(var) = self.env.get(arg) {
+                        arg_values.push(var.value.clone());
+                    } else {
+                        return Break(Reason::Error(Error::Unbound(expr.span)));
+                    }
+                }
+
+                let callable = GlobalId {
+                    package: callable.package.unwrap_or(self.package),
+                    item: callable.item,
+                };
+
+                Continue(Value::Closure(
+                    arg_values.into(),
+                    callable,
+                    FunctorApp::default(),
+                ))
+            }
             ExprKind::Fail(msg) => {
                 let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
                 Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
@@ -409,7 +431,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             }
             ExprKind::Err => Break(Reason::Error(Error::Unimplemented("error", expr.span))),
             ExprKind::Hole => Break(Reason::Error(Error::Unimplemented("hole", expr.span))),
-            ExprKind::Lambda(..) => Break(Reason::Error(Error::Unimplemented("lambda", expr.span))),
         }
     }
 
@@ -602,8 +623,27 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
     fn eval_call(&mut self, call_expr: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
         let call_val = self.eval_expr(call_expr)?;
         let call_span = call_expr.span;
-        let (call, functor) = value_to_call_id(&call_val, call_expr.span)?;
         let args_val = self.eval_expr(args)?;
+
+        let (call, functor, args_val) = match call_val {
+            Value::Closure(fixed_args, global, functor) => {
+                let args = fixed_args
+                    .iter()
+                    .cloned()
+                    .chain(iter::once(args_val))
+                    .collect();
+                (global, functor, Value::Tuple(args))
+            }
+            Value::Global(global, functor) => (global, functor, args_val),
+            _ => {
+                return Break(Reason::Error(Error::Type(
+                    "Callable",
+                    call_val.type_name(),
+                    call_span,
+                )))
+            }
+        };
+
         let decl = match self.globals.callable(call) {
             Some(decl) => Continue(decl),
             None => Break(Reason::Error(Error::Unbound(call_expr.span))),
@@ -789,7 +829,9 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 ))),
             },
             UnOp::Functor(functor) => match val {
-                Value::Closure => Break(Reason::Error(Error::Unimplemented("closure", expr.span))),
+                Value::Closure(args, id, app) => {
+                    Continue(Value::Closure(args, id, update_functor_app(functor, app)))
+                }
                 Value::Global(id, app) => {
                     Continue(Value::Global(id, update_functor_app(functor, app)))
                 }
@@ -1034,18 +1076,6 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
     }
 }
 
-fn value_to_call_id(val: &Value, span: Span) -> ControlFlow<Reason, (GlobalId, FunctorApp)> {
-    match val {
-        Value::Closure => Break(Reason::Error(Error::Unimplemented("closure", span))),
-        Value::Global(global, functor) => Continue((*global, *functor)),
-        _ => Break(Reason::Error(Error::Type(
-            "Callable",
-            val.type_name(),
-            span,
-        ))),
-    }
-}
-
 fn lit_to_val(lit: &Lit) -> Value {
     match lit {
         Lit::BigInt(v) => Value::BigInt(v.clone()),
@@ -1208,7 +1238,7 @@ fn eval_binop_div(
 
 fn supports_eq(val: &Value, val_span: Span) -> ControlFlow<Reason, ()> {
     match val {
-        Value::Closure | Value::Global(..) => {
+        Value::Closure(..) | Value::Global(..) => {
             Break(Reason::Error(Error::Equality(val.type_name(), val_span)))
         }
         _ => Continue(()),
