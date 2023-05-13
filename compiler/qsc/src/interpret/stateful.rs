@@ -20,7 +20,7 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
-use qsc_hir::hir::{CallableDecl, Item, ItemKind, LocalItemId, PackageId, Stmt};
+use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
 use qsc_passes::run_default_passes_for_fragment;
 use std::{collections::HashSet, sync::Arc};
 use thiserror::Error;
@@ -114,21 +114,13 @@ impl Interpreter {
         for mut fragment in self.compiler.compile_fragments(line) {
             run_default_passes_for_fragment(self.compiler.assigner_mut(), &mut fragment);
             match fragment {
-                Fragment::Item(Item {
-                    id,
-                    kind: ItemKind::Callable(decl),
-                    ..
-                }) => {
-                    self.callables.insert(id, decl);
-                }
-                Fragment::Item(Item {
-                    id,
-                    kind: ItemKind::Ty(..),
-                    ..
-                }) => {
-                    self.udts.insert(id);
-                }
-                Fragment::Item(_) => {}
+                Fragment::Item(item) => match item.kind {
+                    ItemKind::Callable(callable) => self.callables.insert(item.id, callable),
+                    ItemKind::Namespace(..) => {}
+                    ItemKind::Ty(..) => {
+                        self.udts.insert(item.id);
+                    }
+                },
                 Fragment::Stmt(stmt) => match self.eval_stmt(receiver, &stmt) {
                     Ok(value) => result = value,
                     Err((error, call_stack)) => {

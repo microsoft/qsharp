@@ -55,12 +55,12 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
     }
 }
 
-pub(super) fn ast_ty_def_cons_ty(
+pub(super) fn ast_ty_def_cons(
     resolutions: &Resolutions,
     id: ItemId,
     def: &ast::TyDef,
 ) -> (Ty, Vec<MissingTyError>) {
-    let (input, errors) = ast_ty_def_base_ty(resolutions, def);
+    let (input, errors) = ast_ty_def_base(resolutions, def);
     let ty = Ty::Arrow(
         hir::CallableKind::Function,
         Box::new(input),
@@ -70,18 +70,18 @@ pub(super) fn ast_ty_def_cons_ty(
     (ty, errors)
 }
 
-pub(super) fn ast_ty_def_base_ty(
+pub(super) fn ast_ty_def_base(
     resolutions: &Resolutions,
     def: &ast::TyDef,
 ) -> (Ty, Vec<MissingTyError>) {
     match &def.kind {
         ast::TyDefKind::Field(_, ty) => ty_from_ast(resolutions, ty),
-        ast::TyDefKind::Paren(inner) => ast_ty_def_base_ty(resolutions, inner),
+        ast::TyDefKind::Paren(inner) => ast_ty_def_base(resolutions, inner),
         ast::TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ast_ty_def_base_ty(resolutions, item);
+                let (item_ty, item_errors) = ast_ty_def_base(resolutions, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }

@@ -26,8 +26,8 @@ struct Context<'a> {
     resolutions: &'a Resolutions,
     udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Ty>,
-    return_ty: Option<&'a Ty>,
     terms: &'a mut IndexMap<NodeId, Ty>,
+    return_ty: Option<&'a Ty>,
     new: Vec<NodeId>,
     inferrer: Inferrer,
 }
@@ -43,8 +43,8 @@ impl<'a> Context<'a> {
             resolutions,
             udts,
             globals,
-            return_ty: None,
             terms,
+            return_ty: None,
             new: Vec::new(),
             inferrer: Inferrer::new(),
         }

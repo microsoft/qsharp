@@ -231,10 +231,8 @@ impl Visitor<'_> for ItemCollector<'_> {
                     panic!("type should have item ID");
                 };
 
-                let (base, base_errors) = convert::ast_ty_def_base_ty(self.resolutions, def);
-                let (cons, cons_errors) = convert::ast_ty_def_cons_ty(self.resolutions, item, def);
-                let fields = convert::ast_ty_def_fields(def);
-
+                let (base, base_errors) = convert::ast_ty_def_base(self.resolutions, def);
+                let (cons, cons_errors) = convert::ast_ty_def_cons(self.resolutions, item, def);
                 self.errors.extend(
                     base_errors
                         .into_iter()
@@ -242,6 +240,7 @@ impl Visitor<'_> for ItemCollector<'_> {
                         .map(|MissingTyError(span)| Error(ErrorKind::MissingItemTy(span))),
                 );
 
+                let fields = convert::ast_ty_def_fields(def);
                 self.udts.insert(item, Udt { base, fields });
                 self.terms.insert(item, cons);
             }
