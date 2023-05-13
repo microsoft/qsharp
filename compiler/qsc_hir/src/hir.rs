@@ -1347,8 +1347,6 @@ impl From<InferId> for usize {
 /// A primitive field for a built-in type.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum PrimField {
-    /// The length of an array.
-    Length,
     /// The start of a range.
     Start,
     /// The step of a range.
@@ -1365,7 +1363,6 @@ impl FromStr for PrimField {
 
     fn from_str(s: &str) -> result::Result<Self, <Self as FromStr>::Err> {
         match s {
-            "Length" => Ok(Self::Length),
             "Start" => Ok(Self::Start),
             "Step" => Ok(Self::Step),
             "End" => Ok(Self::End),

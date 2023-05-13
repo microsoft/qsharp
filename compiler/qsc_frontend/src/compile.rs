@@ -246,10 +246,16 @@ pub fn core() -> CompileUnit {
     };
 
     let sources = SourceMap::new(
-        [(
-            "qir.qs".into(),
-            include_str!("../../../library/core/qir.qs").into(),
-        )],
+        [
+            (
+                "core.qs".into(),
+                include_str!("../../../library/core/core.qs").into(),
+            ),
+            (
+                "qir.qs".into(),
+                include_str!("../../../library/core/qir.qs").into(),
+            ),
+        ],
         None,
     );
 
@@ -363,6 +369,10 @@ fn resolve_all(
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
+    if let Some(unit) = store.get(PackageId::CORE) {
+        globals.add_external_package(PackageId::CORE, &unit.package);
+    }
+
     for &id in dependencies {
         let unit = store
             .get(id)
@@ -383,6 +393,10 @@ fn typeck_all(
     resolutions: &Resolutions,
 ) -> (Tys, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
+    if let Some(unit) = store.get(PackageId::CORE) {
+        globals.add_external_package(PackageId::CORE, &unit.package);
+    }
+
     for &id in dependencies {
         let unit = store
             .get(id)

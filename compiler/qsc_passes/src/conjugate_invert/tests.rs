@@ -15,7 +15,7 @@ fn check(file: &str, expect: &Expect) {
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    let errors = invert_conjugate_exprs(&mut unit);
+    let errors = invert_conjugate_exprs(store.core(), &mut unit);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());
     } else {

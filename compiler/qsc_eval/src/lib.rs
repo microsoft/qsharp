@@ -881,17 +881,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         record: &Expr,
         field: PrimField,
     ) -> ControlFlow<Reason, Value> {
-        let record_span = record.span;
-        let record = self.eval_expr(record)?;
         // For now we only support built-in fields for Arrays and Ranges.
-        match (record, field) {
-            (Value::Array(arr), PrimField::Length) => {
-                let len: i64 = match arr.len().try_into() {
-                    Ok(len) => Continue(len),
-                    Err(_) => Break(Reason::Error(Error::ArrayTooLarge(record_span))),
-                }?;
-                Continue(Value::Int(len))
-            }
+        match (self.eval_expr(record)?, field) {
             (Value::Range(Some(start), _, _), PrimField::Start) => Continue(Value::Int(start)),
             (Value::Range(_, step, _), PrimField::Step) => Continue(Value::Int(step)),
             (Value::Range(_, _, Some(end)), PrimField::End) => Continue(Value::Int(end)),
