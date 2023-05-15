@@ -70,6 +70,15 @@ export function Histogram(props: {
 
   // TODO: If filtering removes the currently filtered to bar, clear the filter.
   let filteredData = [...props.data];
+
+  // Calculate bucket percentages before filtering
+  let totalAllBuckets = 0;
+  let sizeBiggestBucket = 0;
+  filteredData.forEach((x) => {
+    totalAllBuckets += x[1];
+    sizeBiggestBucket = Math.max(x[1], sizeBiggestBucket);
+  });
+
   if (maxItemsToShow > 0) {
     // Sort from high to low then take the first n
     filteredData.sort((a, b) => (a[1] < b[1] ? 1 : -1));
@@ -145,13 +154,6 @@ export function Histogram(props: {
   // Menu items are 38px apart on the x-axis, and 11px on the y-axis.
   const menuBoxWidth = menuItems.length * 38 - 2;
   const menuBoxHeight = maxMenuOptions * 11 + 3;
-
-  let totalAllBuckets = 0;
-  let sizeBiggestBucket = 0;
-  barArray.forEach((x) => {
-    totalAllBuckets += x[1];
-    sizeBiggestBucket = Math.max(x[1], sizeBiggestBucket);
-  });
 
   const barAreaWidth = 163;
   const barAreaHeight = 72;
