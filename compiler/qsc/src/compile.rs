@@ -4,7 +4,7 @@
 use crate::error::WithSource;
 use miette::{Diagnostic, Report};
 use qsc_frontend::compile::{CompileUnit, PackageStore, SourceMap};
-use qsc_hir::hir::PackageId;
+use qsc_hir::{global, hir::PackageId};
 use qsc_passes::run_default_passes;
 use thiserror::Error;
 
@@ -29,7 +29,7 @@ pub fn compile(
     }
 
     if errors.is_empty() {
-        for error in run_default_passes(&mut unit) {
+        for error in run_default_passes(store.core(), &mut unit) {
             errors.push(error.into());
         }
     }
@@ -45,7 +45,8 @@ pub fn compile(
 #[must_use]
 pub fn core() -> CompileUnit {
     let mut unit = qsc_frontend::compile::core();
-    let pass_errors = run_default_passes(&mut unit);
+    let table = global::iter_package(None, &unit.package).collect();
+    let pass_errors = run_default_passes(&table, &mut unit);
     if pass_errors.is_empty() {
         unit
     } else {
@@ -66,7 +67,7 @@ pub fn core() -> CompileUnit {
 #[must_use]
 pub fn std(store: &PackageStore) -> CompileUnit {
     let mut unit = qsc_frontend::compile::std(store);
-    let pass_errors = run_default_passes(&mut unit);
+    let pass_errors = run_default_passes(store.core(), &mut unit);
     if pass_errors.is_empty() {
         unit
     } else {
