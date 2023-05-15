@@ -2,7 +2,6 @@ namespace Microsoft.Quantum.Samples.Shor {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Random;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.Arrays;
 
@@ -339,8 +338,7 @@ namespace Microsoft.Quantum.Samples.Shor {
         // The oracle we use for order finding implements
         // |x⟩ ↦ |x⋅a mod N⟩. We also use `ExpModI` to compute a
         // by which x must be multiplied. Also note that we interpret
-        // target as unsigned integer in little-endian
-        // encoding by using the `LittleEndian` type.
+        // target as unsigned integer in little-endian fromat.
         ModularMultiplyByConstant(
             modulus,
             ExpModI(generator, power, modulus),
