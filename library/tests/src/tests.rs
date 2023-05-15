@@ -632,6 +632,51 @@ fn check_measure_each_z() {
 }
 
 #[test]
+fn check_mreset_x() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[2];
+            X(register[1]);
+            Microsoft.Quantum.Canon.ApplyToEach(H, register);
+            let r0 = Microsoft.Quantum.Measurement.MResetX(register[0]);
+            let r1 = Microsoft.Quantum.Measurement.MResetX(register[1]);
+            [r0, r1]
+        }"#},
+        &Value::Array(vec![Value::Result(false), Value::Result(true)].into()),
+    );
+}
+
+#[test]
+fn check_mreset_y() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[2];
+            X(register[1]);
+            Microsoft.Quantum.Canon.ApplyToEach(H, register);
+            Microsoft.Quantum.Canon.ApplyToEach(S, register);
+            let r0 = Microsoft.Quantum.Measurement.MResetY(register[0]);
+            let r1 = Microsoft.Quantum.Measurement.MResetY(register[1]);
+            [r0, r1]
+        }"#},
+        &Value::Array(vec![Value::Result(false), Value::Result(true)].into()),
+    );
+}
+
+#[test]
+fn check_mreset_z() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[2];
+            X(register[1]);
+            let r0 = Microsoft.Quantum.Measurement.MResetZ(register[0]);
+            let r1 = Microsoft.Quantum.Measurement.MResetZ(register[1]);
+            [r0, r1]
+        }"#},
+        &Value::Array(vec![Value::Result(false), Value::Result(true)].into()),
+    );
+}
+
+#[test]
 fn check_apply_cnot_chain_3a() {
     run_stdlib_test(
         {
