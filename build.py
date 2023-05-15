@@ -270,7 +270,7 @@ if build_jupyter:
 
         # TODO: Make the below into a pytest
 
-        pip_install_args = [python_bin, "-m", "pip", "install", "jupyterlab==4.0.0rc1"]
+        pip_install_args = [python_bin, "-m", "pip", "install", "jupyterlab==4.0.0"]
         subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
 
         pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
