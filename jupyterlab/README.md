@@ -1,11 +1,8 @@
-# qsharp_jupyterlab
-
-[![Github Actions Status](https://github.com/microsoft/qsharp/workflows/Build/badge.svg)](https://github.com/microsoft/qsharp/actions/workflows/build.yml)
-Q# extension for Jupyterlab
+# Q# extension for Jupyterlab
 
 ## Requirements
 
-- JupyterLab >= 3.0
+- JupyterLab >= 4.0
 
 ## Install
 
@@ -29,10 +26,6 @@ pip uninstall qsharp_jupyterlab
 
 Note: You will need NodeJS to build the extension package.
 
-The `jlpm` command is JupyterLab's pinned version of
-[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
-`yarn` or `npm` in lieu of `jlpm` below.
-
 ```bash
 # Clone the repo to your local environment
 # Change directory to the qsharp_jupyterlab directory
@@ -41,7 +34,7 @@ pip install -e "."
 # Link your development version of the extension with JupyterLab
 jupyter labextension develop . --overwrite
 # Rebuild extension Typescript source after making changes
-jlpm build
+npm run build
 ```
 
 You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension.
@@ -50,7 +43,7 @@ You can watch the source directory and run JupyterLab at the same time in differ
 # Watch the source directory in one terminal, automatically rebuilding when needed
 jlpm watch
 # Run JupyterLab in another terminal
-jupyter lab
+npm run lab
 ```
 
 With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
