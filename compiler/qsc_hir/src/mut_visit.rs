@@ -127,14 +127,14 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(lhs);
             vis.visit_expr(rhs);
         }
-        ExprKind::AssignField(record, _, value) | ExprKind::UpdateField(record, _, value) => {
+        ExprKind::AssignField(record, _, replace) | ExprKind::UpdateField(record, _, replace) => {
             vis.visit_expr(record);
-            vis.visit_expr(value);
+            vis.visit_expr(replace);
         }
-        ExprKind::AssignIndex(array, index, value) => {
+        ExprKind::AssignIndex(array, index, replace) => {
             vis.visit_expr(array);
             vis.visit_expr(index);
-            vis.visit_expr(value);
+            vis.visit_expr(replace);
         }
         ExprKind::Block(block) => vis.visit_block(block),
         ExprKind::Call(callee, arg) => {

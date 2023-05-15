@@ -345,12 +345,12 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let update = self.eval_binop(*op, lhs, rhs)?;
                 self.update_binding(lhs, update)
             }
-            ExprKind::AssignField(record, field, value) => {
-                let update = self.eval_update_field(record, field, value)?;
+            ExprKind::AssignField(record, field, replace) => {
+                let update = self.eval_update_field(record, field, replace)?;
                 self.update_binding(record, update)
             }
-            ExprKind::AssignIndex(array, index, value) => {
-                let update = self.eval_update_index(array, index, value)?;
+            ExprKind::AssignIndex(array, index, replace) => {
+                let update = self.eval_update_index(array, index, replace)?;
                 self.update_binding(array, update)
             }
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
@@ -403,8 +403,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 Continue(Value::Tuple(val_tup.into()))
             }
             ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
-            ExprKind::UpdateField(record, field, value) => {
-                self.eval_update_field(record, field, value)
+            ExprKind::UpdateField(record, field, replace) => {
+                self.eval_update_field(record, field, replace)
             }
             &ExprKind::Var(res) => match self.resolve_binding(res, expr.span) {
                 Ok(val) => Continue(val),

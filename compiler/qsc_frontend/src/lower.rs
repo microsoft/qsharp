@@ -316,19 +316,19 @@ impl With<'_> {
                 Box::new(self.lower_expr(lhs)),
                 Box::new(self.lower_expr(rhs)),
             ),
-            ast::ExprKind::AssignUpdate(container, index, value) => match &index.kind {
+            ast::ExprKind::AssignUpdate(container, index, replace) => match &index.kind {
                 ast::ExprKind::Path(path)
                     if path.namespace.is_none() && !self.resolutions.contains_key(path.id) =>
                 {
                     let container = self.lower_expr(container);
                     let field = self.lower_field(&container.ty, &path.name.name);
-                    let value = self.lower_expr(value);
-                    hir::ExprKind::AssignField(Box::new(container), field, Box::new(value))
+                    let replace = self.lower_expr(replace);
+                    hir::ExprKind::AssignField(Box::new(container), field, Box::new(replace))
                 }
                 _ => hir::ExprKind::AssignIndex(
                     Box::new(self.lower_expr(container)),
                     Box::new(self.lower_expr(index)),
-                    Box::new(self.lower_expr(value)),
+                    Box::new(self.lower_expr(replace)),
                 ),
             },
             ast::ExprKind::BinOp(op, lhs, rhs) => hir::ExprKind::BinOp(

@@ -603,11 +603,11 @@ impl Display for ExprKind {
             ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, val, size)?,
             ExprKind::Assign(lhs, rhs) => display_assign(indent, lhs, rhs)?,
             ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, lhs, rhs)?,
-            ExprKind::AssignField(record, field, value) => {
-                display_assign_field(indent, record, field, value)?;
+            ExprKind::AssignField(record, field, replace) => {
+                display_assign_field(indent, record, field, replace)?;
             }
-            ExprKind::AssignIndex(container, item, value) => {
-                display_assign_index(indent, container, item, value)?;
+            ExprKind::AssignIndex(container, item, replace) => {
+                display_assign_index(indent, container, item, replace)?;
             }
             ExprKind::BinOp(op, lhs, rhs) => display_bin_op(indent, *op, lhs, rhs)?,
             ExprKind::Block(block) => write!(indent, "Expr Block: {block}")?,
@@ -631,8 +631,8 @@ impl Display for ExprKind {
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
-            ExprKind::UpdateField(record, field, value) => {
-                display_update_field(indent, record, field, value)?;
+            ExprKind::UpdateField(record, field, replace) => {
+                display_update_field(indent, record, field, replace)?;
             }
             ExprKind::Var(res) => write!(indent, "Var: {res}")?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
@@ -683,13 +683,13 @@ fn display_assign_field(
     mut indent: Indented<Formatter>,
     record: &Expr,
     field: &Field,
-    value: &Expr,
+    replace: &Expr,
 ) -> fmt::Result {
     write!(indent, "AssignField:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{record}")?;
     write!(indent, "\n{field}")?;
-    write!(indent, "\n{value}")?;
+    write!(indent, "\n{replace}")?;
     Ok(())
 }
 
@@ -697,13 +697,13 @@ fn display_assign_index(
     mut indent: Indented<Formatter>,
     array: &Expr,
     index: &Expr,
-    value: &Expr,
+    replace: &Expr,
 ) -> fmt::Result {
     write!(indent, "AssignIndex:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{array}")?;
     write!(indent, "\n{index}")?;
-    write!(indent, "\n{value}")?;
+    write!(indent, "\n{replace}")?;
     Ok(())
 }
 
@@ -891,13 +891,13 @@ fn display_update_field(
     mut indent: Indented<Formatter>,
     record: &Expr,
     field: &Field,
-    value: &Expr,
+    replace: &Expr,
 ) -> fmt::Result {
     write!(indent, "UpdateField:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{record}")?;
     write!(indent, "\n{field}")?;
-    write!(indent, "\n{value}")?;
+    write!(indent, "\n{replace}")?;
     Ok(())
 }
 
