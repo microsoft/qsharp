@@ -15,6 +15,7 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
+    global::Table,
     hir::{
         Block, CallableBody, CallableDecl, Functor, Ident, NodeId, Pat, PatKind, PrimTy, Res, Spec,
         SpecBody, SpecDecl, SpecGen, Ty,
@@ -39,19 +40,23 @@ pub enum Error {
 }
 
 /// Generates specializations for the given compile unit, updating it in-place.
-pub fn generate_specs(unit: &mut CompileUnit) -> Vec<Error> {
+pub fn generate_specs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     generate_placeholders(unit);
 
     // TODO: Generating specialization violates the invariant of node ids being unique because of how
     // it depends on cloning parts of the tree. We should update this when HIR supports the notion of
     // generating new, properly mapped node ids such the uniqueness invariant is preserved without the burden
     // of keeping out-of-band type and symbol resolution context updated.
-    generate_spec_impls(unit)
+    generate_spec_impls(core, unit)
 }
 
-pub fn generate_specs_for_callable(assigner: &mut Assigner, decl: &mut CallableDecl) -> Vec<Error> {
+pub fn generate_specs_for_callable(
+    core: &Table,
+    assigner: &mut Assigner,
+    decl: &mut CallableDecl,
+) -> Vec<Error> {
     generate_placeholders_for_callable(decl);
-    generate_spec_impls_for_decl(assigner, decl)
+    generate_spec_impls_for_decl(core, assigner, decl)
 }
 
 fn generate_placeholders(unit: &mut CompileUnit) {
@@ -143,8 +148,9 @@ fn is_self_adjoint(spec_decl: &[SpecDecl]) -> bool {
         .any(|s| s.spec == Spec::Adj && s.body == SpecBody::Gen(SpecGen::Slf))
 }
 
-fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
+fn generate_spec_impls(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = SpecImplPass {
+        core,
         assigner: &mut unit.assigner,
         errors: Vec::new(),
     };
@@ -152,8 +158,13 @@ fn generate_spec_impls(unit: &mut CompileUnit) -> Vec<Error> {
     pass.errors
 }
 
-fn generate_spec_impls_for_decl(assigner: &mut Assigner, decl: &mut CallableDecl) -> Vec<Error> {
+fn generate_spec_impls_for_decl(
+    core: &Table,
+    assigner: &mut Assigner,
+    decl: &mut CallableDecl,
+) -> Vec<Error> {
     let mut pass = SpecImplPass {
+        core,
         assigner,
         errors: Vec::new(),
     };
@@ -162,6 +173,7 @@ fn generate_spec_impls_for_decl(assigner: &mut Assigner, decl: &mut CallableDecl
 }
 
 struct SpecImplPass<'a> {
+    core: &'a Table,
     assigner: &'a mut Assigner,
     errors: Vec<Error>,
 }
@@ -221,7 +233,7 @@ impl<'a> SpecImplPass<'a> {
     ) {
         // Clone the reference block and use the pass to update the calls inside.
         let mut adj_block = block.clone();
-        if let Err(invert_errors) = adj_invert_block(self.assigner, &mut adj_block) {
+        if let Err(invert_errors) = adj_invert_block(self.core, self.assigner, &mut adj_block) {
             self.errors.extend(
                 invert_errors
                     .into_iter()

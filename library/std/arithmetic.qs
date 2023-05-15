@@ -37,11 +37,11 @@ namespace Microsoft.Quantum.Arithmetic {
     /// carry and without, depending on the register size of `ys`,
     /// which holds the result after operation is complete.
     operation AddI (xs: Qubit[], ys: Qubit[]) : Unit is Adj + Ctl {
-        if xs::Length == ys::Length {
+        if Length(xs) == Length(ys) {
             RippleCarryAdderNoCarryTTK(xs, ys);
         }
-        elif ys::Length > xs::Length {
-            use qs = Qubit[ys::Length - xs::Length - 1];
+        elif Length(ys) > Length(xs) {
+            use qs = Qubit[Length(ys) - Length(xs) - 1];
             RippleCarryAdderTTK(xs + qs, Most(ys), Tail(ys));
         }
         else {
@@ -76,11 +76,11 @@ namespace Microsoft.Quantum.Arithmetic {
     /// not return the carry bit.
     operation RippleCarryAdderNoCarryTTK(xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
-        Fact(xs::Length == ys::Length,
+        Fact(Length(xs) == Length(ys),
             "Input registers must have the same number of qubits." );
-        Fact(xs::Length > 0, "Array should not be empty.");
+        Fact(Length(xs) > 0, "Array should not be empty.");
 
-        if (xs::Length > 1) {
+        if (Length(xs) > 1) {
             within {
                 ApplyOuterTTKAdder(xs, ys);
             } apply {
@@ -117,13 +117,13 @@ namespace Microsoft.Quantum.Arithmetic {
     /// RippleCarryAdderCDKM but does not use any ancilla qubits.
     operation RippleCarryAdderTTK(xs : Qubit[], ys : Qubit[], carry : Qubit)
     : Unit is Adj + Ctl {
-        Fact(xs::Length == ys::Length,
+        Fact(Length(xs) == Length(ys),
             "Input registers must have the same number of qubits." );
-        Fact(xs::Length > 0, "Array should not be empty.");
+        Fact(Length(xs) > 0, "Array should not be empty.");
 
 
-        if (xs::Length > 1) {
-            CNOT(xs[xs::Length-1], carry);
+        if (Length(xs) > 1) {
+            CNOT(xs[Length(xs)-1], carry);
             within {
                 ApplyOuterTTKAdder(xs, ys);
             } apply {
@@ -156,12 +156,12 @@ namespace Microsoft.Quantum.Arithmetic {
     ///   https://arxiv.org/abs/0910.2530
     internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
-        Fact(xs::Length == ys::Length,
+        Fact(Length(xs) == Length(ys),
             "Input registers must have the same number of qubits." );
-        for i in 1..xs::Length-1 {
+        for i in 1..Length(xs)-1 {
             CNOT(xs[i], ys[i]);
         }
-        for i in xs::Length-2..-1..1 {
+        for i in Length(xs)-2..-1..1 {
             CNOT(xs[i], xs[i+1]);
         }
     }
@@ -195,13 +195,13 @@ namespace Microsoft.Quantum.Arithmetic {
             (Controlled ApplyInnerTTKAdderWithoutCarry) ([], (xs, ys));
         }
         controlled ( controls, ... ) {
-            Fact(xs::Length == ys::Length,
+            Fact(Length(xs) == Length(ys),
                 "Input registers must have the same number of qubits." );
 
-            for idx in 0..xs::Length - 2 {
+            for idx in 0..Length(xs) - 2 {
                 CCNOT (xs[idx], ys[idx], xs[idx + 1]);
             }
-            for idx in xs::Length-1..-1..1 {
+            for idx in Length(xs)-1..-1..1 {
                 Controlled CNOT(controls, (xs[idx], ys[idx]));
                 CCNOT(xs[idx - 1], ys[idx - 1], xs[idx]);
             }
@@ -239,12 +239,12 @@ namespace Microsoft.Quantum.Arithmetic {
             (Controlled ApplyInnerTTKAdder)([], (xs, ys, carry));
         }
         controlled ( controls, ... ) {
-            Fact(xs::Length == ys::Length,
+            Fact(Length(xs) == Length(ys),
                 "Input registers must have the same number of qubits." );
-            Fact(xs::Length > 0, "Array should not be empty.");
+            Fact(Length(xs) > 0, "Array should not be empty.");
 
 
-            let nQubits = xs::Length; 
+            let nQubits = Length(xs); 
             for idx in 0..nQubits - 2 {
                 CCNOT(xs[idx], ys[idx], xs[idx+1]);
             }
