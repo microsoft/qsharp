@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qsharp._native import (Interpreter, Result, Pauli, QSharpError)
+from qsharp._native import Interpreter, Result, Pauli, QSharpError
 import pytest
 
 
@@ -30,13 +30,16 @@ def test_dump_output() -> None:
         assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000i"
 
     called = False
-    value = e.interpret("""
+    value = e.interpret(
+        """
     use q1 = Qubit();
     use q2 = Qubit();
     X(q1);
     Microsoft.Quantum.Diagnostics.DumpMachine();
     ResetAll([q1, q2]);
-    """, callback)
+    """,
+        callback,
+    )
     assert called
 
 
@@ -89,13 +92,13 @@ def test_value_string() -> None:
 
 def test_value_result() -> None:
     e = Interpreter()
-    value = e.interpret('One')
+    value = e.interpret("One")
     assert value == Result.One
 
 
 def test_value_pauli() -> None:
     e = Interpreter()
-    value = e.interpret('PauliX')
+    value = e.interpret("PauliX")
     assert value == Pauli.X
 
 
@@ -107,11 +110,11 @@ def test_value_tuple() -> None:
 
 def test_value_unit() -> None:
     e = Interpreter()
-    value = e.interpret('()')
+    value = e.interpret("()")
     assert value is None
 
 
 def test_value_array() -> None:
     e = Interpreter()
-    value = e.interpret('[1, 2, 3]')
+    value = e.interpret("[1, 2, 3]")
     assert value == [1, 2, 3]
