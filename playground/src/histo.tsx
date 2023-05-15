@@ -54,7 +54,6 @@ export function Histogram(props: {
   const [scale, setScale] = useState({ zoom: 1.0, offset: 1.0 });
   const [menuSelection, setMenuSelection] = useState(defaultMenuSelection);
 
-  const gRef = useRef(null);
   const gMenu = useRef<SVGGElement>(null);
 
   let maxItemsToShow = 0; // All
@@ -83,16 +82,17 @@ export function Histogram(props: {
     // Sort from high to low then take the first n
     bucketArray.sort((a, b) => (a[1] < b[1] ? 1 : -1));
     if (bucketArray.length > maxItemsToShow) {
-      histogramLabel = `Top ${maxItemsToShow} of ${histogramLabel}`
+      histogramLabel = `Top ${maxItemsToShow} of ${histogramLabel}`;
       bucketArray.length = maxItemsToShow;
     }
   }
   if (props.filter) {
     histogramLabel += `. Shot filter: ${
-        showKetLabels ? resultToKet(props.filter) : props.filter}`;
+      showKetLabels ? resultToKet(props.filter) : props.filter
+    }`;
   }
 
- bucketArray.sort((a, b) => {
+  bucketArray.sort((a, b) => {
     // If they can be converted to numbers, then sort as numbers, else lexically
     const ax = Number(a[0]);
     const bx = Number(b[0]);
@@ -141,12 +141,12 @@ export function Histogram(props: {
 
   function menuClicked(category: string, idx: number) {
     if (!gMenu.current) return;
-    gMenu.current.style.display === "inline"
+    gMenu.current.style.display === "inline";
     const newMenuSelection = { ...menuSelection };
     newMenuSelection[category] = idx;
     setMenuSelection(newMenuSelection);
     if (category === "itemCount") {
-      setScale({zoom: 1, offset: 1});
+      setScale({ zoom: 1, offset: 1 });
     }
     gMenu.current.style.display = "none";
   }
@@ -196,41 +196,43 @@ export function Histogram(props: {
 
     // *** First handle any zooming ***
     if (!altKeyPans || !e.altKey) {
-        newZoom = scale.zoom + e.deltaY * 0.05;
-        newZoom = Math.min(Math.max(1, newZoom), 50);
+      newZoom = scale.zoom + e.deltaY * 0.05;
+      newZoom = Math.min(Math.max(1, newZoom), 50);
 
-        // On zooming in, need to shift left to maintain mouse point, and vice-verca.
-        const oldChartWidth = 165 * scale.zoom;
-        const mousePointOnChart = 0 - scale.offset + mousePoint.x;
-        const percentRightOnChart = mousePointOnChart / oldChartWidth;
-        const chartWidthGrowth = newZoom * 165 - scale.zoom * 165;
-        const shiftLeftAdjust = percentRightOnChart * chartWidthGrowth;
-        newScrollOffset = scale.offset - shiftLeftAdjust;
+      // On zooming in, need to shift left to maintain mouse point, and vice-verca.
+      const oldChartWidth = 165 * scale.zoom;
+      const mousePointOnChart = 0 - scale.offset + mousePoint.x;
+      const percentRightOnChart = mousePointOnChart / oldChartWidth;
+      const chartWidthGrowth = newZoom * 165 - scale.zoom * 165;
+      const shiftLeftAdjust = percentRightOnChart * chartWidthGrowth;
+      newScrollOffset = scale.offset - shiftLeftAdjust;
     }
 
     // *** Then handle any panning ***
     if (enablePanning) {
-        newScrollOffset -= e.deltaX;
+      newScrollOffset -= e.deltaX;
     }
     if (!enablePanning && altKeyPans && e.altKey) {
-        newScrollOffset -= e.deltaY;
+      newScrollOffset -= e.deltaY;
     }
 
-    // Don't allow offset > 1 (scrolls the first bar right of the left of the screen)
+    // Don't allow offset > 1 (scrolls the first bar right of the left edge of the area)
     // Don't allow for less than 0 - barwidths + screen width (scrolls last bar left of the right edge)
     const maxScrollRight = 1 - (barAreaWidth * newZoom - barAreaWidth);
-    const boundScrollOffset = Math.min(Math.max(newScrollOffset, maxScrollRight), 1);
+    const boundScrollOffset = Math.min(
+      Math.max(newScrollOffset, maxScrollRight),
+      1
+    );
 
     setScale({ zoom: newZoom, offset: boundScrollOffset });
   }
 
-
   return (
     <svg class="histogram" viewBox="0 0 165 100" onWheel={onWheel}>
-      <g ref={gRef} transform={`translate(${scale.offset},4) scale(1 1)`}>
+      <g transform={`translate(${scale.offset},4)`}>
         {bucketArray.map((entry, idx) => {
           const label = showKetLabels ? resultToKet(entry[0]) : entry[0];
-          
+
           const height = barAreaHeight * (entry[1] / sizeBiggestBucket);
           const x = barBoxWidth * idx + barPaddingSize;
           const labelX = barBoxWidth * idx + barBoxWidth / 2 - fontOffset;
@@ -260,7 +262,7 @@ export function Histogram(props: {
               >
                 <title>{barLabel}</title>
               </rect>
-              {(
+              {
                 <text
                   class="bar-label"
                   x={labelX}
@@ -270,30 +272,74 @@ export function Histogram(props: {
                 >
                   {label}
                 </text>
-              )}
+              }
             </>
           );
         })}
       </g>
 
-      <text class="histo-label" x="2" y="97"> {histogramLabel} </text>
-      <text class="hover-text" x="85" y="6"> {hoverLabel} </text>
+      <text class="histo-label" x="2" y="97">
+        {" "}
+        {histogramLabel}{" "}
+      </text>
+      <text class="hover-text" x="85" y="6">
+        {" "}
+        {hoverLabel}{" "}
+      </text>
 
       <g transform="scale(0.3 0.3)" onClick={toggleMenu}>
         <rect width="24" height="24" fill="white"></rect>
         <path
-            d="M3 5 H21 M3 12 H21 M3 19 H21"
-            stroke="black"
-            stroke-width="1.75"
-            stroke-linecap="round" />
-        <rect x="6" y="3" width="4" height="4" rx="1" fill="white" stroke="black" stroke-width="1.5"/>
-        <rect x="15" y="10" width="4" height="4" rx="1" fill="white" stroke="black" stroke-width="1.5"/>
-        <rect x="9" y="17" width="4" height="4" rx="1" fill="white" stroke="black" stroke-width="1.5"    />
+          d="M3 5 H21 M3 12 H21 M3 19 H21"
+          stroke="black"
+          stroke-width="1.75"
+          stroke-linecap="round"
+        />
+        <rect
+          x="6"
+          y="3"
+          width="4"
+          height="4"
+          rx="1"
+          fill="white"
+          stroke="black"
+          stroke-width="1.5"
+        />
+        <rect
+          x="15"
+          y="10"
+          width="4"
+          height="4"
+          rx="1"
+          fill="white"
+          stroke="black"
+          stroke-width="1.5"
+        />
+        <rect
+          x="9"
+          y="17"
+          width="4"
+          height="4"
+          rx="1"
+          fill="white"
+          stroke="black"
+          stroke-width="1.5"
+        />
       </g>
       <g transform="translate(158, 0) scale(0.3 0.3)">
         <rect width="24" height="24" fill="white"></rect>
-        <circle cx="12" cy="13" r="10" stroke="black" stroke-width="1.5" fill="white" />
-        <path stroke="black" stroke-width="2.5" stroke-linecap="round"
+        <circle
+          cx="12"
+          cy="13"
+          r="10"
+          stroke="black"
+          stroke-width="1.5"
+          fill="white"
+        />
+        <path
+          stroke="black"
+          stroke-width="2.5"
+          stroke-linecap="round"
           d="M12 8 V8 M12 12.5 V18"
         />
       </g>
