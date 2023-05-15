@@ -263,7 +263,7 @@ namespace Microsoft.Quantum.Canon {
     /// ## qubits
     /// Array of qubits whose parity is to be computed and stored.
     operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
-        for i in 0..qubits::Length-2 {
+        for i in 0..Length(qubits)-2 {
             CNOT(qubits[i], qubits[i+1]);
         }
     }

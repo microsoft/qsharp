@@ -14,7 +14,7 @@ fn check(file: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], None);
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let errors = loop_unification(&mut unit);
+    let errors = loop_unification(store.core(), &mut unit);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());
     } else {
@@ -51,9 +51,9 @@ fn convert_for_array() {
                                     Expr 9 [75-78] [Type (Int)[]]: Var: Local 3
                                 Stmt _id_ [75-78]: Local (Immutable):
                                     Pat _id_ [75-78] [Type Int]: Bind: Ident 17 [75-78] "len_id_17"
-                                    Expr _id_ [75-78] [Type Int]: Field:
+                                    Expr _id_ [75-78] [Type (Int)[]]: Call:
+                                        Expr _id_ [75-78] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
                                         Expr _id_ [75-78] [Type (Int)[]]: Var: Local 16
-                                        Length
                                 Stmt _id_ [75-78]: Local (Mutable):
                                     Pat _id_ [75-78] [Type Int]: Bind: Ident 18 [75-78] "index_id_18"
                                     Expr _id_ [75-78] [Type Int]: Lit: Int(0)
@@ -106,9 +106,9 @@ fn convert_for_array_deconstruct() {
                                     Expr 12 [90-93] [Type ((Int, Double))[]]: Var: Local 3
                                 Stmt _id_ [90-93]: Local (Immutable):
                                     Pat _id_ [90-93] [Type Int]: Bind: Ident 20 [90-93] "len_id_20"
-                                    Expr _id_ [90-93] [Type Int]: Field:
+                                    Expr _id_ [90-93] [Type ((Int, Double))[]]: Call:
+                                        Expr _id_ [90-93] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
                                         Expr _id_ [90-93] [Type ((Int, Double))[]]: Var: Local 19
-                                        Length
                                 Stmt _id_ [90-93]: Local (Mutable):
                                     Pat _id_ [90-93] [Type Int]: Bind: Ident 21 [90-93] "index_id_21"
                                     Expr _id_ [90-93] [Type Int]: Lit: Int(0)
@@ -169,9 +169,9 @@ fn convert_for_slice() {
                                             Expr 15 [86-87] [Type Int]: Lit: Int(2)
                                 Stmt _id_ [75-88]: Local (Immutable):
                                     Pat _id_ [75-88] [Type Int]: Bind: Ident 23 [75-88] "len_id_23"
-                                    Expr _id_ [75-88] [Type Int]: Field:
+                                    Expr _id_ [75-88] [Type (Int)[]]: Call:
+                                        Expr _id_ [75-88] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
                                         Expr _id_ [75-88] [Type (Int)[]]: Var: Local 22
-                                        Length
                                 Stmt _id_ [75-88]: Local (Mutable):
                                     Pat _id_ [75-88] [Type Int]: Bind: Ident 24 [75-88] "index_id_24"
                                     Expr _id_ [75-88] [Type Int]: Lit: Int(0)

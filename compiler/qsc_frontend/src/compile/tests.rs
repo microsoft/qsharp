@@ -365,7 +365,7 @@ fn insert_core_call() {
                     output: Unit
                     body: Block: Block 3 [39-41] [Type Unit]:
                         Stmt 5 [0-0]: Semi: Expr 6 [0-0] [Type Qubit]: Call:
-                            Expr 7 [0-0] [Type (Unit => Qubit)]: Var: Item 1 (Package 0)
+                            Expr 7 [0-0] [Type (Unit => Qubit)]: Var: Item 3 (Package 0)
                             Expr 8 [0-0] [Type Unit]: Unit"#]]
     .assert_eq(&unit.package.to_string());
 }

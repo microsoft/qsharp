@@ -17,6 +17,7 @@ use miette::Diagnostic;
 use qsc_frontend::{compile::CompileUnit, incremental::Fragment};
 use qsc_hir::{
     assigner::Assigner,
+    global::Table,
     hir::{Item, ItemKind},
 };
 use thiserror::Error;
@@ -32,7 +33,7 @@ pub enum Error {
 }
 
 /// Run the default set of passes required for evaluation.
-pub fn run_default_passes(unit: &mut CompileUnit) -> Vec<Error> {
+pub fn run_default_passes(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     let mut errors = Vec::new();
 
     errors.extend(
@@ -42,13 +43,13 @@ pub fn run_default_passes(unit: &mut CompileUnit) -> Vec<Error> {
     );
 
     errors.extend(
-        spec_gen::generate_specs(unit)
+        spec_gen::generate_specs(core, unit)
             .into_iter()
             .map(Error::SpecGen),
     );
 
     errors.extend(
-        conjugate_invert::invert_conjugate_exprs(unit)
+        conjugate_invert::invert_conjugate_exprs(core, unit)
             .into_iter()
             .map(Error::ConjInvert),
     );
@@ -57,6 +58,7 @@ pub fn run_default_passes(unit: &mut CompileUnit) -> Vec<Error> {
 }
 
 pub fn run_default_passes_for_fragment(
+    core: &Table,
     assigner: &mut Assigner,
     fragment: &mut Fragment,
 ) -> Vec<Error> {
@@ -65,7 +67,7 @@ pub fn run_default_passes_for_fragment(
     match fragment {
         Fragment::Stmt(stmt) => {
             errors.extend(
-                conjugate_invert::invert_conjugate_exprs_for_stmt(assigner, stmt)
+                conjugate_invert::invert_conjugate_exprs_for_stmt(core, assigner, stmt)
                     .into_iter()
                     .map(Error::ConjInvert),
             );
@@ -75,12 +77,12 @@ pub fn run_default_passes_for_fragment(
             ..
         }) => {
             errors.extend(
-                spec_gen::generate_specs_for_callable(assigner, decl)
+                spec_gen::generate_specs_for_callable(core, assigner, decl)
                     .into_iter()
                     .map(Error::SpecGen),
             );
             errors.extend(
-                conjugate_invert::invert_conjugate_exprs_for_callable(assigner, decl)
+                conjugate_invert::invert_conjugate_exprs_for_callable(core, assigner, decl)
                     .into_iter()
                     .map(Error::ConjInvert),
             );
