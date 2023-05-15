@@ -19,9 +19,7 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
             let (input, mut errors) = ty_from_ast(resolutions, input);
             let (output, output_errors) = ty_from_ast(resolutions, output);
             errors.extend(output_errors);
-            let functors = functors.as_ref().map_or(HashSet::new(), |f| {
-                f.to_set().into_iter().map(functor_from_ast).collect()
-            });
+            let functors = functors.as_ref().map_or(HashSet::new(), eval_functor_expr);
             let ty = Ty::Arrow(
                 callable_kind_from_ast(*kind),
                 Box::new(input),
@@ -127,9 +125,10 @@ pub(crate) fn ast_pat_ty(resolutions: &Resolutions, pat: &ast::Pat) -> (Ty, Vec<
 }
 
 pub(super) fn ast_callable_functors(decl: &ast::CallableDecl) -> HashSet<Functor> {
-    let mut functors = decl.functors.as_ref().map_or(HashSet::new(), |f| {
-        f.to_set().into_iter().map(functor_from_ast).collect()
-    });
+    let mut functors = decl
+        .functors
+        .as_ref()
+        .map_or(HashSet::new(), eval_functor_expr);
 
     if let ast::CallableBody::Specs(specs) = &decl.body {
         for spec in specs {
@@ -145,16 +144,26 @@ pub(super) fn ast_callable_functors(decl: &ast::CallableDecl) -> HashSet<Functor
     functors
 }
 
-pub(super) fn functor_from_ast(functor: ast::Functor) -> hir::Functor {
-    match functor {
-        ast::Functor::Adj => hir::Functor::Adj,
-        ast::Functor::Ctl => hir::Functor::Ctl,
-    }
-}
-
 pub(super) fn callable_kind_from_ast(kind: ast::CallableKind) -> hir::CallableKind {
     match kind {
         ast::CallableKind::Function => hir::CallableKind::Function,
         ast::CallableKind::Operation => hir::CallableKind::Operation,
+    }
+}
+
+pub(crate) fn eval_functor_expr(expr: &ast::FunctorExpr) -> HashSet<Functor> {
+    match &expr.kind {
+        ast::FunctorExprKind::BinOp(op, lhs, rhs) => {
+            let mut functors = eval_functor_expr(lhs);
+            let rhs_functors = eval_functor_expr(rhs);
+            match op {
+                ast::SetOp::Union => functors.extend(rhs_functors),
+                ast::SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
+            }
+            functors
+        }
+        ast::FunctorExprKind::Lit(ast::Functor::Adj) => [hir::Functor::Adj].into(),
+        ast::FunctorExprKind::Lit(ast::Functor::Ctl) => [hir::Functor::Ctl].into(),
+        ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
 }

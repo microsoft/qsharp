@@ -9,7 +9,6 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use std::{
-    collections::HashSet,
     fmt::{self, Display, Formatter, Write},
     rc::Rc,
 };
@@ -427,26 +426,6 @@ pub struct FunctorExpr {
     pub span: Span,
     /// The functor expression kind.
     pub kind: FunctorExprKind,
-}
-
-impl FunctorExpr {
-    /// Evaluates the functor expression.
-    #[must_use]
-    pub fn to_set(&self) -> HashSet<Functor> {
-        match &self.kind {
-            FunctorExprKind::BinOp(op, lhs, rhs) => {
-                let mut functors = lhs.to_set();
-                let rhs_functors = rhs.to_set();
-                match op {
-                    SetOp::Union => functors.extend(rhs_functors),
-                    SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
-                }
-                functors
-            }
-            &FunctorExprKind::Lit(functor) => [functor].into(),
-            FunctorExprKind::Paren(inner) => inner.to_set(),
-        }
-    }
 }
 
 impl Display for FunctorExpr {

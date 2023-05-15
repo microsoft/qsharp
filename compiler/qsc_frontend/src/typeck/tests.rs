@@ -899,12 +899,12 @@ fn controlled_spec_impl() {
         "",
         &expect![[r##"
             #2 32-41 "q : Qubit" : Qubit
-            #6 72-75 "..." : Qubit
-            #7 76-78 "{}" : Unit
-            #9 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #10 99-101 "cs" : (Qubit)[]
-            #12 103-106 "..." : Qubit
-            #13 108-110 "{}" : Unit
+            #5 72-75 "..." : Qubit
+            #6 76-78 "{}" : Unit
+            #8 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #9 99-101 "cs" : (Qubit)[]
+            #11 103-106 "..." : Qubit
+            #12 108-110 "{}" : Unit
         "##]],
     );
 }
@@ -929,25 +929,25 @@ fn call_controlled() {
         "},
         &expect![[r##"
             #2 32-41 "q : Qubit" : Qubit
-            #6 72-75 "..." : Qubit
-            #7 76-78 "{}" : Unit
-            #9 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #10 99-101 "cs" : (Qubit)[]
-            #12 103-106 "..." : Qubit
-            #13 108-110 "{}" : Unit
+            #5 72-75 "..." : Qubit
+            #6 76-78 "{}" : Unit
+            #8 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #9 99-101 "cs" : (Qubit)[]
+            #11 103-106 "..." : Qubit
+            #12 108-110 "{}" : Unit
+            #14 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : Unit
             #15 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : Unit
-            #16 119-198 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    Controlled A.Foo([q1], q2);\n}" : Unit
-            #18 129-131 "q1" : Qubit
-            #20 134-141 "Qubit()" : Qubit
-            #22 151-153 "q2" : Qubit
-            #24 156-163 "Qubit()" : Qubit
-            #26 169-195 "Controlled A.Foo([q1], q2)" : Unit
-            #27 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit) => Unit is Ctl)
-            #28 180-185 "A.Foo" : (Qubit => Unit is Ctl)
-            #29 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
-            #30 186-190 "[q1]" : (Qubit)[]
-            #31 187-189 "q1" : Qubit
-            #32 192-194 "q2" : Qubit
+            #17 129-131 "q1" : Qubit
+            #19 134-141 "Qubit()" : Qubit
+            #21 151-153 "q2" : Qubit
+            #23 156-163 "Qubit()" : Qubit
+            #25 169-195 "Controlled A.Foo([q1], q2)" : Unit
+            #26 169-185 "Controlled A.Foo" : (((Qubit)[], Qubit) => Unit is Ctl)
+            #27 180-185 "A.Foo" : (Qubit => Unit is Ctl)
+            #28 185-195 "([q1], q2)" : ((Qubit)[], Qubit)
+            #29 186-190 "[q1]" : (Qubit)[]
+            #30 187-189 "q1" : Qubit
+            #31 192-194 "q2" : Qubit
         "##]],
     );
 }
@@ -973,31 +973,31 @@ fn call_controlled_nested() {
         "},
         &expect![[r##"
             #2 32-41 "q : Qubit" : Qubit
-            #6 72-75 "..." : Qubit
-            #7 76-78 "{}" : Unit
-            #9 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #10 99-101 "cs" : (Qubit)[]
-            #12 103-106 "..." : Qubit
-            #13 108-110 "{}" : Unit
+            #5 72-75 "..." : Qubit
+            #6 76-78 "{}" : Unit
+            #8 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #9 99-101 "cs" : (Qubit)[]
+            #11 103-106 "..." : Qubit
+            #12 108-110 "{}" : Unit
+            #14 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : Unit
             #15 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : Unit
-            #16 119-239 "{\n    use q1 = Qubit();\n    use q2 = Qubit();\n    use q3 = Qubit();\n    Controlled Controlled A.Foo([q1], ([q2], q3));\n}" : Unit
-            #18 129-131 "q1" : Qubit
-            #20 134-141 "Qubit()" : Qubit
-            #22 151-153 "q2" : Qubit
-            #24 156-163 "Qubit()" : Qubit
-            #26 173-175 "q3" : Qubit
-            #28 178-185 "Qubit()" : Qubit
-            #30 191-236 "Controlled Controlled A.Foo([q1], ([q2], q3))" : Unit
-            #31 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit)) => Unit is Ctl)
-            #32 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit) => Unit is Ctl)
-            #33 213-218 "A.Foo" : (Qubit => Unit is Ctl)
-            #34 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
-            #35 219-223 "[q1]" : (Qubit)[]
-            #36 220-222 "q1" : Qubit
-            #37 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
-            #38 226-230 "[q2]" : (Qubit)[]
-            #39 227-229 "q2" : Qubit
-            #40 232-234 "q3" : Qubit
+            #17 129-131 "q1" : Qubit
+            #19 134-141 "Qubit()" : Qubit
+            #21 151-153 "q2" : Qubit
+            #23 156-163 "Qubit()" : Qubit
+            #25 173-175 "q3" : Qubit
+            #27 178-185 "Qubit()" : Qubit
+            #29 191-236 "Controlled Controlled A.Foo([q1], ([q2], q3))" : Unit
+            #30 191-218 "Controlled Controlled A.Foo" : (((Qubit)[], ((Qubit)[], Qubit)) => Unit is Ctl)
+            #31 202-218 "Controlled A.Foo" : (((Qubit)[], Qubit) => Unit is Ctl)
+            #32 213-218 "A.Foo" : (Qubit => Unit is Ctl)
+            #33 218-236 "([q1], ([q2], q3))" : ((Qubit)[], ((Qubit)[], Qubit))
+            #34 219-223 "[q1]" : (Qubit)[]
+            #35 220-222 "q1" : Qubit
+            #36 225-235 "([q2], q3)" : ((Qubit)[], Qubit)
+            #37 226-230 "[q2]" : (Qubit)[]
+            #38 227-229 "q2" : Qubit
+            #39 232-234 "q3" : Qubit
         "##]],
     );
 }
@@ -1021,23 +1021,23 @@ fn call_controlled_error() {
         "},
         &expect![[r##"
             #2 32-41 "q : Qubit" : Qubit
-            #6 72-75 "..." : Qubit
-            #7 76-78 "{}" : Unit
-            #9 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
-            #10 99-101 "cs" : (Qubit)[]
-            #12 103-106 "..." : Qubit
-            #13 108-110 "{}" : Unit
+            #5 72-75 "..." : Qubit
+            #6 76-78 "{}" : Unit
+            #8 98-107 "(cs, ...)" : ((Qubit)[], Qubit)
+            #9 99-101 "cs" : (Qubit)[]
+            #11 103-106 "..." : Qubit
+            #12 108-110 "{}" : Unit
+            #14 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : Unit
             #15 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : Unit
-            #16 119-173 "{\n    use q = Qubit();\n    Controlled A.Foo([1], q);\n}" : Unit
-            #18 129-130 "q" : Qubit
-            #20 133-140 "Qubit()" : Qubit
-            #22 146-170 "Controlled A.Foo([1], q)" : Unit
-            #23 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit) => Unit is Ctl)
-            #24 157-162 "A.Foo" : (Qubit => Unit is Ctl)
-            #25 162-170 "([1], q)" : ((Int)[], Qubit)
-            #26 163-166 "[1]" : (Int)[]
-            #27 164-165 "1" : Int
-            #28 168-169 "q" : Qubit
+            #17 129-130 "q" : Qubit
+            #19 133-140 "Qubit()" : Qubit
+            #21 146-170 "Controlled A.Foo([1], q)" : Unit
+            #22 146-162 "Controlled A.Foo" : (((Qubit)[], Qubit) => Unit is Ctl)
+            #23 157-162 "A.Foo" : (Qubit => Unit is Ctl)
+            #24 162-170 "([1], q)" : ((Int)[], Qubit)
+            #25 163-166 "[1]" : (Int)[]
+            #26 164-165 "1" : Int
+            #27 168-169 "q" : Qubit
             Error(Type(Error(TypeMismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 }))))
         "##]],
     );
@@ -1054,8 +1054,8 @@ fn adj_requires_unit_return() {
         "",
         &expect![[r##"
             #2 31-33 "()" : Unit
-            #4 47-52 "{ 1 }" : Int
-            #6 49-50 "1" : Int
+            #3 47-52 "{ 1 }" : Int
+            #5 49-50 "1" : Int
             Error(Type(Error(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
@@ -1072,8 +1072,8 @@ fn ctl_requires_unit_return() {
         "",
         &expect![[r##"
             #2 31-33 "()" : Unit
-            #4 47-52 "{ 1 }" : Int
-            #6 49-50 "1" : Int
+            #3 47-52 "{ 1 }" : Int
+            #5 49-50 "1" : Int
             Error(Type(Error(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
@@ -1090,8 +1090,8 @@ fn adj_ctl_requires_unit_return() {
         "",
         &expect![[r##"
             #2 31-33 "()" : Unit
-            #6 53-58 "{ 1 }" : Int
-            #8 55-56 "1" : Int
+            #3 53-58 "{ 1 }" : Int
+            #5 55-56 "1" : Int
             Error(Type(Error(TypeMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
@@ -1200,77 +1200,6 @@ fn return_mismatch() {
             #6 57-68 "return true" : ?0
             #7 64-68 "true" : Bool
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
-        "##]],
-    );
-}
-
-#[test]
-fn array_length_field_is_int() {
-    check(
-        indoc! {"
-            namespace A {
-                function Foo(x : Qubit[]) : Int {
-                    x::Length
-                }
-            }
-        "},
-        "",
-        &expect![[r##"
-            #2 31-42 "x : Qubit[]" : (Qubit)[]
-            #4 50-75 "{\n        x::Length\n    }" : Int
-            #6 60-69 "x::Length" : Int
-            #7 60-61 "x" : (Qubit)[]
-        "##]],
-    );
-}
-
-#[test]
-fn array_length_generic_is_int() {
-    check(
-        indoc! {"
-            namespace A {
-                function Length<'T>(a : 'T[]) : Int {
-                    a::Length
-                }
-                function Foo(x : Qubit[]) : Int {
-                    Length(x)
-                }
-            }
-        "},
-        "",
-        &expect![[r##"
-            #3 38-46 "a : 'T[]" : ('T)[]
-            #5 54-79 "{\n        a::Length\n    }" : Int
-            #7 64-73 "a::Length" : Int
-            #8 64-65 "a" : ('T)[]
-            #11 97-108 "x : Qubit[]" : (Qubit)[]
-            #13 116-141 "{\n        Length(x)\n    }" : Int
-            #15 126-135 "Length(x)" : Int
-            #16 126-132 "Length" : ((Qubit)[] -> Int)
-            #17 133-134 "x" : (Qubit)[]
-        "##]],
-    );
-}
-
-#[test]
-fn array_length_field_used_as_double_error() {
-    check(
-        indoc! {"
-            namespace A {
-                function Foo(x : Qubit[]) : Double {
-                    x::Length * 2.0
-                }
-            }
-        "},
-        "",
-        &expect![[r##"
-            #2 31-42 "x : Qubit[]" : (Qubit)[]
-            #4 53-84 "{\n        x::Length * 2.0\n    }" : Double
-            #6 63-78 "x::Length * 2.0" : Double
-            #7 63-72 "x::Length" : Double
-            #8 63-64 "x" : (Qubit)[]
-            #9 75-78 "2.0" : Double
-            Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 63, hi: 72 }))))
         "##]],
     );
 }

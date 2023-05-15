@@ -591,8 +591,7 @@ fn check_has_field(
             Ok(PrimField::Step),
             Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
         )
-        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo))
-        | (Ok(PrimField::Length), Ty::Array(..)) => Ok(Constraint::Eq {
+        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo)) => Ok(Constraint::Eq {
             expected: Ty::Prim(PrimTy::Int),
             actual: item,
             span,
