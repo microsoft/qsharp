@@ -26,14 +26,15 @@ fn test_single_qubit() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-98]:
+                Item 0 [0-98] (Public):
                     Namespace (Ident 12 [10-15] "input"): Item 1
-                Item 1 [22-96]:
+                Item 1 [22-96] (Public):
                     Parent: 0
                     Callable 0 [22-96] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-96] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "q"
@@ -60,14 +61,15 @@ fn test_qubit_array() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-99]:
+                Item 0 [0-99] (Public):
                     Namespace (Ident 13 [10-15] "input"): Item 1
-                Item 1 [22-97]:
+                Item 1 [22-97] (Public):
                     Parent: 0
                     Callable 0 [22-97] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-97] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 6 [59-60] "q"
@@ -94,14 +96,15 @@ fn test_qubit_tuple() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-109]:
+                Item 0 [0-109] (Public):
                     Namespace (Ident 14 [10-15] "input"): Item 1
-                Item 1 [22-107]:
+                Item 1 [22-107] (Public):
                     Parent: 0
                     Callable 0 [22-107] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-107] [Type Unit]:
                             Stmt _id_ [64-71]: Local (Immutable):
                                 Pat _id_ [64-71] [Type Qubit]: Bind: Ident 15 [64-71] "generated_ident_15"
@@ -141,14 +144,15 @@ fn test_multiple_qubits_tuple() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-115]:
+                Item 0 [0-115] (Public):
                     Namespace (Ident 18 [10-15] "input"): Item 1
-                Item 1 [22-113]:
+                Item 1 [22-113] (Public):
                     Parent: 0
                     Callable 0 [22-113] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-113] [Type Unit]:
                             Stmt _id_ [69-76]: Local (Immutable):
                                 Pat _id_ [69-76] [Type Qubit]: Bind: Ident 19 [69-76] "generated_ident_19"
@@ -195,14 +199,15 @@ fn test_multiple_callables() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-214]:
+                Item 0 [0-214] (Public):
                     Namespace (Ident 34 [10-15] "input"): Item 1, Item 2
-                Item 1 [22-112]:
+                Item 1 [22-112] (Public):
                     Parent: 0
                     Callable 0 [22-112] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-112] [Type Unit]:
                             Stmt _id_ [69-76]: Local (Immutable):
                                 Pat _id_ [69-76] [Type Qubit]: Bind: Ident 35 [69-76] "generated_ident_35"
@@ -230,12 +235,13 @@ fn test_multiple_callables() {
                             Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type Unit]: Call:
                                 Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 4 (Package 0)
                                 Expr _id_ [69-76] [Type Qubit]: Var: Local 35
-                Item 2 [122-212]:
+                Item 2 [122-212] (Public):
                     Parent: 0
                     Callable 17 [122-212] (Operation):
                         name: Ident 18 [132-135] "Bar"
                         input: Pat 19 [135-137] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 20 [145-212] [Type Unit]:
                             Stmt _id_ [169-176]: Local (Immutable):
                                 Pat _id_ [169-176] [Type Qubit]: Bind: Ident 37 [169-176] "generated_ident_37"
@@ -281,14 +287,15 @@ fn test_qubit_block() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-200]:
+                Item 0 [0-200] (Public):
                     Namespace (Ident 30 [10-15] "input"): Item 1
-                Item 1 [22-198]:
+                Item 1 [22-198] (Public):
                     Parent: 0
                     Callable 0 [22-198] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-198] [Type Unit]:
                             Stmt _id_ [55-173]: Expr: Expr _id_ [55-173] [Type Unit]: Expr Block: Block 13 [87-173] [Type Unit]:
                                 Stmt _id_ [69-76]: Local (Immutable):
@@ -348,14 +355,15 @@ fn test_qubit_nested_block() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-157]:
+                Item 0 [0-157] (Public):
                     Namespace (Ident 21 [10-15] "input"): Item 1
-                Item 1 [22-155]:
+                Item 1 [22-155] (Public):
                     Parent: 0
                     Callable 0 [22-155] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-155] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
@@ -407,14 +415,15 @@ fn test_qubit_multiple_nested_blocks() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-353]:
+                Item 0 [0-353] (Public):
                     Namespace (Ident 54 [10-15] "input"): Item 1
-                Item 1 [22-351]:
+                Item 1 [22-351] (Public):
                     Parent: 0
                     Callable 0 [22-351] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-351] [Type Unit]:
                             Stmt 4 [55-66]: Local (Immutable):
                                 Pat 5 [59-61] [Type Int]: Bind: Ident 6 [59-61] "x1"
@@ -488,14 +497,15 @@ fn test_early_returns() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-241]:
+                Item 0 [0-241] (Public):
                     Namespace (Ident 30 [10-15] "input"): Item 1
-                Item 1 [22-239]:
+                Item 1 [22-239] (Public):
                     Parent: 0
                     Callable 0 [22-239] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-239] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
@@ -570,14 +580,15 @@ fn test_end_exprs() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-172]:
+                Item 0 [0-172] (Public):
                     Namespace (Ident 26 [10-15] "input"): Item 1
-                Item 1 [22-170]:
+                Item 1 [22-170] (Public):
                     Parent: 0
                     Callable 0 [22-170] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-170] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
@@ -623,14 +634,15 @@ fn test_array_expr() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-152]:
+                Item 0 [0-152] (Public):
                     Namespace (Ident 20 [10-15] "input"): Item 1
-                Item 1 [22-150]:
+                Item 1 [22-150] (Public):
                     Parent: 0
                     Callable 0 [22-150] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-150] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 6 [59-60] "a"
@@ -672,14 +684,15 @@ fn test_rtrn_expr() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-149]:
+                Item 0 [0-149] (Public):
                     Namespace (Ident 18 [10-15] "input"): Item 1
-                Item 1 [22-147]:
+                Item 1 [22-147] (Public):
                     Parent: 0
                     Callable 0 [22-147] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Int
+                        functors: 
                         body: Block: Block 3 [44-147] [Type Int]:
                             Stmt _id_ [58-59]: Local (Immutable):
                                 Pat _id_ [58-59] [Type Qubit]: Bind: Ident 6 [58-59] "a"
@@ -729,14 +742,15 @@ fn test_unrelated_unaffected() {
         }" },
         &expect![[r#"
             Package:
-                Item 0 [0-161]:
+                Item 0 [0-161] (Public):
                     Namespace (Ident 20 [10-15] "input"): Item 1
-                Item 1 [22-159]:
+                Item 1 [22-159] (Public):
                     Parent: 0
                     Callable 0 [22-159] (Operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Int
+                        functors: 
                         body: Block: Block 3 [44-159] [Type Int]:
                             Stmt 4 [54-95]: Expr: Expr 5 [54-95] [Type Unit]: If:
                                 Expr 6 [57-61] [Type Bool]: Lit: Bool(true)

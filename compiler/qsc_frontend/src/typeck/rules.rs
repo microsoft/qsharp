@@ -8,7 +8,7 @@ use super::{
 };
 use crate::resolve::{Res, Resolutions};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, FunctorExpr, Lit, NodeId, Pat, PatKind, QubitInit,
+    self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
@@ -79,10 +79,7 @@ impl<'a> Context<'a> {
                 Box::new(self.infer_ty(output)),
                 functors
                     .as_ref()
-                    .map_or(HashSet::new(), FunctorExpr::to_set)
-                    .into_iter()
-                    .map(convert::functor_from_ast)
-                    .collect(),
+                    .map_or(HashSet::new(), convert::eval_functor_expr),
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),

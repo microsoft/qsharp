@@ -406,7 +406,7 @@ impl GlobalTable {
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
         for global in global::iter_package(Some(id), package)
-            .filter(|global| global.visibility == hir::VisibilityKind::Public)
+            .filter(|global| global.visibility == hir::Visibility::Public)
         {
             match global.kind {
                 global::Kind::Ty(ty) => {
