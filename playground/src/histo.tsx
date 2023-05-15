@@ -69,29 +69,24 @@ export function Histogram(props: {
   }
 
   // TODO: If filtering removes the currently filtered to bar, clear the filter.
-  let filteredData = [...props.data];
+  const bucketArray = [...props.data];
 
-  // Calculate bucket percentages before filtering
+  // Calculate bucket percentages before truncating for display
   let totalAllBuckets = 0;
   let sizeBiggestBucket = 0;
-  filteredData.forEach((x) => {
+  bucketArray.forEach((x) => {
     totalAllBuckets += x[1];
     sizeBiggestBucket = Math.max(x[1], sizeBiggestBucket);
   });
 
   if (maxItemsToShow > 0) {
     // Sort from high to low then take the first n
-    filteredData.sort((a, b) => (a[1] < b[1] ? 1 : -1));
-    if (filteredData.length > maxItemsToShow)
-      filteredData.length = maxItemsToShow;
+    bucketArray.sort((a, b) => (a[1] < b[1] ? 1 : -1));
+    if (bucketArray.length > maxItemsToShow)
+      bucketArray.length = maxItemsToShow;
   }
 
-  if (menuSelection["labels"] === 1) {
-    // Convert to Ket label
-    filteredData = filteredData.map((item) => [resultToKet(item[0]), item[1]]);
-  }
-
-  const barArray = filteredData.sort((a, b) => {
+ bucketArray.sort((a, b) => {
     // If they can be converted to numbers, then sort as numbers, else lexically
     const ax = Number(a[0]);
     const bx = Number(b[0]);
@@ -121,13 +116,13 @@ export function Histogram(props: {
 
   function onClickRect(evt: MouseEvent) {
     const targetElem = evt.target as SVGRectElement;
-    const labelClicked = (targetElem.nextSibling as SVGTextElement).textContent;
+    const rawLabel = targetElem.getAttribute("data-raw-label");
 
-    if (labelClicked === props.filter) {
+    if (rawLabel === props.filter) {
       // Clicked the already selected bar. Clear the filter
       props.onFilter("");
     } else {
-      props.onFilter(labelClicked || "");
+      props.onFilter(rawLabel || "");
     }
   }
 
@@ -160,7 +155,7 @@ export function Histogram(props: {
   const fontOffset = 1.2;
 
   // Scale the below for when zoomed
-  const barBoxWidth = (barAreaWidth * scale.zoom) / barArray.length;
+  const barBoxWidth = (barAreaWidth * scale.zoom) / bucketArray.length;
   const barPaddingPercent = 0.1; // 10%
   const barPaddingSize = barBoxWidth * barPaddingPercent;
   const barFillWidth = barBoxWidth - 2 * barPaddingSize;
@@ -229,12 +224,15 @@ export function Histogram(props: {
     <svg class="histogram" viewBox="0 0 165 100" onWheel={onWheel}>
       {/* <rect width="165" height="100" fill="blue"></rect> */}
       <g ref={gRef} transform={`translate(${scale.offset},4) scale(1 1)`}>
-        {barArray.map((entry, idx) => {
+        {bucketArray.map((entry, idx) => {
+          const label = (menuSelection["labels"] === 1) ?
+              resultToKet(entry[0]) : entry[0];
+          
           const height = barAreaHeight * (entry[1] / sizeBiggestBucket);
           const x = barBoxWidth * idx + barPaddingSize;
           const labelX = barBoxWidth * idx + barBoxWidth / 2 - fontOffset;
           const y = barAreaHeight + 15 - height;
-          const barLabel = `${entry[0]} at ${(
+          const barLabel = `${label} at ${(
             (entry[1] / totalAllBuckets) *
             100
           ).toFixed(2)}%`;
@@ -242,7 +240,7 @@ export function Histogram(props: {
 
           if (entry[0] === props.filter) {
             barClass += " bar-selected";
-            histogramLabel = barLabel;
+            histogramLabel = label;
           }
 
           return (
@@ -256,6 +254,7 @@ export function Histogram(props: {
                 onMouseOver={onMouseOverRect}
                 onMouseOut={onMouseOutRect}
                 onClick={onClickRect}
+                data-raw-label={entry[0]}
               >
                 <title>{barLabel}</title>
               </rect>
@@ -267,7 +266,7 @@ export function Histogram(props: {
                   visibility={showLabels ? "visible" : "hidden"}
                   transform={`rotate(90, ${labelX}, 85)`}
                 >
-                  {entry[0]}
+                  {label}
                 </text>
               )}
             </>
