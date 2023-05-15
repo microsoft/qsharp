@@ -230,7 +230,7 @@ body {
 }
 
 .histogram {
-  width: 100%;
+  width: 500px;
   height: 300px;
   border: 1px solid var(--border-color);
   background-color: white;
@@ -258,7 +258,8 @@ body {
 .bar-label {
   font-size: 3pt;
   fill: var(--main-color);
-  text-anchor: middle;
+  text-anchor: end;
+  pointer-events: none;
 }
 
 .histo-label {
@@ -270,6 +271,39 @@ body {
   font-size: 3.5pt;
   fill: gray;
   text-anchor: middle;
+}
+
+.menu-box {
+  fill: #eaeaea;
+  stroke: black;
+  stroke-width: 0.1;
+}
+
+.menu-item {
+  width: 32px;
+  height: 10px;
+  fill: #c8cbd7;
+  stroke: gray;
+  stroke-width: 0.2;
+}
+
+.menu-item:hover {
+  stroke-width: 0.6;
+}
+
+.menu-selected {
+  stroke: #0800ff;
+  fill: #c5d2f5;
+}
+
+.menu-text {
+  font-size: 4px;
+  pointer-events: none;
+}
+
+.menu-separator {
+  stroke: gray;
+  stroke-width: 0.25;
 }
 
 .err-span {

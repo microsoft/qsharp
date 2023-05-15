@@ -7,22 +7,23 @@ import { useEffect, useState } from "preact/hooks";
 import { Histogram } from "./histo.js";
 import { StateTable } from "./state.js";
 
-const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/;
+// const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/;
 function resultToKet(result: string | VSDiagnostic): string {
   if (typeof result !== "string") return "ERROR";
+  return result;
 
-  if (reKetResult.test(result)) {
-    // The result is a simple array of Zero and One
-    // The below will return an array of "Zero" or "One" in the order found
-    const matches = result.match(/(One|Zero)/g);
-    matches?.reverse();
-    let ket = "|";
-    matches?.forEach((digit) => (ket += digit == "One" ? "1" : "0"));
-    ket += "⟩";
-    return ket;
-  } else {
-    return result;
-  }
+  // if (reKetResult.test(result)) {
+  //   // The result is a simple array of Zero and One
+  //   // The below will return an array of "Zero" or "One" in the order found
+  //   const matches = result.match(/(One|Zero)/g);
+  //   matches?.reverse();
+  //   let ket = "|";
+  //   matches?.forEach((digit) => (ket += digit == "One" ? "1" : "0"));
+  //   ket += "⟩";
+  //   return ket;
+  // } else {
+  //   return result;
+  // }
 }
 
 type ResultsState = {
