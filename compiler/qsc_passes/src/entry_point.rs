@@ -21,7 +21,7 @@ pub enum Error {
     #[diagnostic(help("only one callable should be annotated with the entry point attribute"))]
     DuplicateEntryPoint(String, #[label] Span),
 
-    #[error("entry point cannot have paramters")]
+    #[error("entry point cannot have parameters")]
     EntryPointArgs(#[label] Span),
 
     #[error("entry point must have body implementation only")]
