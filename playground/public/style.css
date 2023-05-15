@@ -9,6 +9,7 @@
   --nav-hover-background: #b3bede;
   --nav-current-background: #b5c5f2;
   --border-color: #768f9c;
+  --menu-box-fill: #f1f7fd;
   --error-background-color: #ffe3e3;
   --bar-selected-outline: #587ddd;
 }
@@ -274,7 +275,7 @@ body {
 }
 
 .menu-box {
-  fill: #eaeaea;
+  fill: var(--menu-box-fill);
   stroke: black;
   stroke-width: 0.1;
 }
@@ -282,7 +283,7 @@ body {
 .menu-item {
   width: 32px;
   height: 10px;
-  fill: #c8cbd7;
+  fill: var(--main-background);
   stroke: gray;
   stroke-width: 0.2;
 }
@@ -293,11 +294,11 @@ body {
 
 .menu-selected {
   stroke: #0800ff;
-  fill: #c5d2f5;
+  fill: var(--nav-background);
 }
 
 .menu-text {
-  font-size: 4px;
+  font-size: 4.5px;
   pointer-events: none;
 }
 

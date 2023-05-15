@@ -135,6 +135,9 @@ export function Histogram(props: {
     const newMenuSelection = { ...menuSelection };
     newMenuSelection[category] = idx;
     setMenuSelection(newMenuSelection);
+    if (category === "itemCount") {
+      setScale({zoom: 1, offset: 1});
+    }
     gMenu.current.style.display = "none";
   }
 
@@ -190,7 +193,7 @@ export function Histogram(props: {
 
     // *** First handle any zooming ***
     if (!altKeyPans || !e.altKey) {
-        newZoom = scale.zoom + e.deltaY * 0.1;
+        newZoom = scale.zoom + e.deltaY * 0.05;
         newZoom = Math.min(Math.max(1, newZoom), 50);
 
         // On zooming in, need to shift left to maintain mouse point, and vice-verca.
@@ -273,23 +276,33 @@ export function Histogram(props: {
       <text class="histo-label" x="5" y="98">
         {histogramLabel ? `Filter: ${histogramLabel}` : null}
       </text>
-      <text class="hover-text" x="90" y="8">
+      <text class="hover-text" x="85" y="6">
         {hoverLabel}
       </text>
+
       <g transform="scale(0.3 0.3)" onClick={toggleMenu}>
         <rect width="24" height="24" fill="white"></rect>
         <path
-          d="M3 6 H21 M3 12 H21 M3 18 H21"
-          stroke="#000000"
-          stroke-width="2.5"
-          stroke-linecap="round"
+            d="M3 5 H21 M3 12 H21 M3 19 H21"
+            stroke="black"
+            stroke-width="1.75"
+            stroke-linecap="round" />
+        <rect x="6" y="3" width="4" height="4" rx="1" fill="white" stroke="black" stroke-width="1.5"/>
+        <rect x="15" y="10" width="4" height="4" rx="1" fill="white" stroke="black" stroke-width="1.5"/>
+        <rect x="9" y="17" width="4" height="4" rx="1" fill="white" stroke="black" stroke-width="1.5"    />
+      </g>
+      <g transform="translate(158, 0) scale(0.3 0.3)">
+        <rect width="24" height="24" fill="white"></rect>
+        <circle cx="12" cy="13" r="10" stroke="black" stroke-width="1.5" fill="white" />
+        <path stroke="black" stroke-width="2.5" stroke-linecap="round"
+          d="M12 8 V8 M12 12.5 V18"
         />
       </g>
 
       <g
         id="menu"
         ref={gMenu}
-        transform="translate(10, 2)"
+        transform="translate(8, 2)"
         style="display: none;"
       >
         <rect
