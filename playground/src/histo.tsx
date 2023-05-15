@@ -9,7 +9,7 @@ const altKeyPans = true;
 const menuItems = [
   {
     category: "itemCount",
-    options: ["Show all", "Top 10", "Top 20"],
+    options: ["Show all", "Top 10", "Top 25"],
   },
   {
     category: "sortOrder",
@@ -64,7 +64,7 @@ export function Histogram(props: {
       maxItemsToShow = 10;
       break;
     case 2:
-      maxItemsToShow = 20;
+      maxItemsToShow = 25;
       break;
   }
 
@@ -155,7 +155,7 @@ export function Histogram(props: {
 
   const barAreaWidth = 163;
   const barAreaHeight = 72;
-  const fontOffset = 1;
+  const fontOffset = 1.2;
 
   // Scale the below for when zoomed
   const barBoxWidth = (barAreaWidth * scale.zoom) / barArray.length;
@@ -308,7 +308,7 @@ export function Histogram(props: {
         <rect
           x="0"
           y="0"
-          rx="3"
+          rx="2"
           width={menuBoxWidth}
           height={menuBoxHeight}
           class="menu-box"
@@ -326,7 +326,7 @@ export function Histogram(props: {
                   <rect
                     x={2 + col * 38}
                     y={2 + row * 11}
-                    rx="2"
+                    rx="1"
                     class={classList}
                     onClick={() => menuClicked(item.category, row)}
                   ></rect>
