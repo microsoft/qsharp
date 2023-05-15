@@ -1,0 +1,195 @@
+name: fuzz
+run-name: Fuzz
+env:
+  OWNER_RDPATH: .                             # Rel path to the dir that contains the fuzzing infra (contains "fuzz" dir).
+  DURATION_SEC: 7200                          # Fuzzing run duration in seconds.
+  STDERR_LOG_FNAME: fuzz.stderr.log           # File name to redirect the fuzzing run's stderr to.
+  TMIN_LOG_FNAME: fuzz.tmin.log               # File name to redirect the fuzzing input minimization log to.
+  GH_ISSUE_TEMPLATE_RFPATH: .github/ISSUE_TEMPLATE/fuzz_bug_report.md
+                                              # GitHub issue template rel file path.
+  TARGET_NAME: compile                        # Fuzzing target name. Fuzzes the `compile` func of the Q# compiler.
+  ARTIFACTS_RDPATH: fuzz/artifacts            # Fuzzing artifacts rel dir path.
+  SEEDS_RDPATH: fuzz/seed_inputs              # Fuzzing seed inputs rel dir path.
+  SEEDS_FNAME: list.txt                       # Fuzzing seed inputs list file name.
+on:
+  schedule:                                   # Production runs against default branch.
+    - cron: '24 11 * * 0'                     # Run after 11:24 UTC (4:24am PDT/3:24am PST) on Sun.
+  workflow_dispatch:                          # Manual runs.
+
+jobs:
+  fuzz:
+    name: Fuzzing
+    strategy:
+      matrix:
+        os: [ubuntu-latest]                   # Fuzzing is not supported on Win. The macos is temporarily removed
+                                              # because of low availability.
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Install and Configure Tools
+        run: |
+          rustup install nightly              # Install nightly toolchain.
+          rustup default nightly              # Make nightly toolchain default.
+          cargo install cargo-fuzz            # Install cargo-fuzz (fuzzing tool).
+
+      - name: Checkout the Repo
+        uses: actions/checkout@v3
+        with:
+          submodules: "true"
+
+      - name: Gather the Seed Inputs
+        run: |
+          cd $OWNER_RDPATH                    # Enter the dir containing the fuzzing infra.
+
+          # Clone the submodules of QDK:
+          REPOS="Quantum Quantum-NC QuantumKatas QuantumLibraries iqsharp qdk-python qsharp-compiler qsharp-runtime"
+          for REPO in $REPOS ; do
+            git clone --depth 1 --single-branch --no-tags --recurse-submodules --shallow-submodules --jobs 4 \
+              https://github.com/microsoft/$REPO.git $SEEDS_RDPATH/$TARGET_NAME/$REPO
+          done
+
+          # Build a comma-separated list of all the .qs files in $SEEDS_FNAME file:
+          find $SEEDS_RDPATH/$TARGET_NAME -name "*.qs" | tr "\n" "," > \
+            $SEEDS_RDPATH/$TARGET_NAME/$SEEDS_FNAME
+
+      - name: Build and Run the Fuzz Target
+        run: |
+          cd $OWNER_RDPATH               # Enter the dir containing the fuzzing infra.
+          cargo fuzz build --features do_fuzz $TARGET_NAME  # Build the fuzz target.
+
+          # Run fuzzing for specified number of seconds and redirect the `stderr` to a file
+          # whose name is specified by the STDERR_LOG_FNAME env var:
+          RUST_BACKTRACE=1 cargo fuzz run --features do_fuzz $TARGET_NAME -- \
+            -seed_inputs=@$SEEDS_RDPATH/$TARGET_NAME/$SEEDS_FNAME \
+            -max_total_time=$DURATION_SEC \
+            -rss_limit_mb=4096 \
+            -max_len=32767 \
+            2>$STDERR_LOG_FNAME
+            # The `-rss_limit_mb` and `-max_len` work around running out of memory.
+
+      - name: "If Fuzzing Failed: Collect Failure Info"
+        if: failure()
+        run: |
+          cd $OWNER_RDPATH               # Enter the dir containing the fuzzing infra.
+
+          # Extract from stderr log the panic message:
+          PANIC_MESSAGE=`cat $STDERR_LOG_FNAME |
+            grep "panicked at" | sed "s|thread '<unnamed>' panicked at '\([^']*\).*|\1|"`
+            # Explanation:
+            # `cat $STDERR_LOG_FNAME |`: Display the contents of the stderr log file and pass the contents
+            #     to the next command.
+            # `grep "panicked at" |`: Filter out (drop) all the lines except the ones containing "panicked at",
+            #     the script expects that there is only one such line, pass that line to the next command. Line example:
+            # thread '<unnamed>' panicked at 'global item should have type', . . ./compiler/qsc_frontend/src/typeck/rules.rs:300:26
+            # `sed "s|thread '<unnamed>' panicked at '\([^']*\).*|\1|"`: `sed` - stream editor.
+            #     `s` after quote: search command. After `s` there are two sections, each between a pair of '|'.
+            #     First section:
+            #     In the incoming stream search for a sequence starting with "thread '<unnamed>' panicked at '"
+            #     (sequence from the beginning of the line until after the apostrophe where the panic message starts),
+            #     followed by zero or more ('*' after ']') non-apostrophe chars (`[^']`)
+            #     and memorize ( `\(`, `\)` ) that sequence of non-apostrophe chars (between apostrophes -
+            #     "global item should have type") as a memory item 1;
+            #     followed by zero or more ('*' after '.') arbitrary chars ('.') till the end of the line.
+            #     Second section (`\1`):
+            #     If the sequence specified by the first section is found, then replace that sequence (the whole line)
+            #     with the memory item 1 (`\1`), ending up in a panic message between the apostrophes.
+            # PANIC_MESSAGE=`. . .`: The output of the command(s) between the backticks ('`') is saved in the
+            #     env var PANIC_MESSAGE.
+          # If the failure is not panic-based then extract any ERROR message(s):
+          if [ "$PANIC_MESSAGE" == "" ]; then
+            PANIC_MESSAGE=`cat $STDERR_LOG_FNAME | grep "ERROR"`
+          fi
+          echo "PANIC_MESSAGE: '$PANIC_MESSAGE'"                # Output the PANIC_MESSAGE var value to the log
+                                                                # (optional, for workflow failure analysis and sanity check).
+          echo "PANIC_MESSAGE=$PANIC_MESSAGE" >> "$GITHUB_ENV"  # Save the PANIC_MESSAGE var in the env, will be used in
+                                                                # the subsequent `run:` and `uses:` steps.
+
+          # Determine the name of a file containing the input of interest (that triggers the panic/crash):
+          if [ -e $ARTIFACTS_RDPATH/$TARGET_NAME/crash-* ]; then    # Panic and Stack Overflow Cases.
+            TO_MINIMIZE_FNAME=crash-*;
+          elif [ -e $ARTIFACTS_RDPATH/$TARGET_NAME/oom-* ]; then    # Out-of-Memory Case.
+            TO_MINIMIZE_FNAME=oom-*;
+          else
+            echo -e "File to minimize not found.\nContents of artifacts dir \"$ARTIFACTS_RDPATH/$TARGET_NAME/\":"
+            ls $ARTIFACTS_RDPATH/$TARGET_NAME/
+          fi
+
+          if [ "$TO_MINIMIZE_FNAME" != "" ]; then
+            echo "TO_MINIMIZE_FNAME: $TO_MINIMIZE_FNAME"
+
+            # Minimize the input:
+            ( cargo fuzz tmin --features do_fuzz -r 10000 $TARGET_NAME $ARTIFACTS_RDPATH/$TARGET_NAME/$TO_MINIMIZE_FNAME 2>&1 ) > \
+              $TMIN_LOG_FNAME || MINIMIZATION_FAILED=1
+
+            # Get the minimized input relative faile path:
+            if [ "$MINIMIZATION_FAILED" == "1" ]; then
+              # Minimization failed, get the latest successful minimized input relative faile path:
+              MINIMIZED_INPUT_RFPATH=`
+                cat $TMIN_LOG_FNAME | grep "CRASH_MIN: minimizing crash input: " | tail -n 1 |
+                sed "s|^.*\($ARTIFACTS_RDPATH/$TARGET_NAME/[^\']*\).*|\1|"`
+            else
+              # Minimization Succeeded, get the reported minimized input relative faile path::
+              MINIMIZED_INPUT_RFPATH=`
+                cat $TMIN_LOG_FNAME | grep "failed to minimize beyond" |
+                sed "s|.*\($ARTIFACTS_RDPATH/$TARGET_NAME/[^ ]*\).*|\1|" `
+            fi
+            echo "MINIMIZED_INPUT_RFPATH: $MINIMIZED_INPUT_RFPATH"
+            echo "MINIMIZED_INPUT_RFPATH=$MINIMIZED_INPUT_RFPATH" >> "$GITHUB_ENV"
+
+            # Extract the minimized input:
+            MINIMIZED_INPUT=`cat $MINIMIZED_INPUT_RFPATH | tr "\n" "\r"`
+              # Display the contents of the minimized input file and replace all the occurrences of '\n' with '\r'
+              # so that the potentially multiline sequence can be "serialized" into the env var,
+              # while preserving the information about the line breaks.
+          else
+            MINIMIZED_INPUT="(Input minimization failed, see the workflow logs and artifacts)"
+          fi
+          echo "MINIMIZED_INPUT: '$MINIMIZED_INPUT'"
+          echo "MINIMIZED_INPUT=$MINIMIZED_INPUT" >> "$GITHUB_ENV"
+
+          # Get the workflow agent system info:
+          WF_AGENT_SYS_INFO="`uname -a`"
+          echo "WF_AGENT_SYS_INFO: $WF_AGENT_SYS_INFO"
+          echo "WF_AGENT_SYS_INFO=$WF_AGENT_SYS_INFO" >> "$GITHUB_ENV"
+          echo "WF_AGENT_OS=${{ matrix.os }}" >> "$GITHUB_ENV"
+
+          # Get the commit info:
+          COMMIT_INFO=`git log -1 | tr "\n" "\r"`
+          echo "COMMIT_INFO: '$COMMIT_INFO'"
+          echo "COMMIT_INFO=$COMMIT_INFO" >> "$GITHUB_ENV"
+
+          # Get the last N bytes of the fuzzing stderr log into the env var
+          # (N is such that the subsequent GitHub issue reporting does not overflow):
+          STDERR_LOG=`tail -c 63488 $STDERR_LOG_FNAME | tr "\n" "\r"`
+          echo "STDERR_LOG: '$STDERR_LOG'"
+          echo "STDERR_LOG=$STDERR_LOG" >> "$GITHUB_ENV"
+
+      - name: "If Fuzzing Failed: Upload Failure Artifacts"
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          path: |
+            ${{ env.OWNER_RDPATH }}/${{ env.STDERR_LOG_FNAME }}
+            ${{ env.OWNER_RDPATH }}/${{ env.TMIN_LOG_FNAME }}
+            ${{ env.OWNER_RDPATH }}/${{ env.ARTIFACTS_RDPATH }}/${{ env.TARGET_NAME }}/*
+            ${{ env.OWNER_RDPATH }}/${{ env.SEEDS_RDPATH }}/${{ env.TARGET_NAME }}/${{ env.SEEDS_FNAME }}
+          if-no-files-found: error
+
+      # TODO(kzuminrobin):
+      #   Uncomment the automatic issue reporting below when the runs become successful. Currently
+      #   every run bumps into stack overflow or out-of-memory failure.
+      # - name: "If Fuzzing Failed: Report GutHub Issue"
+      #   if: failure()
+      #   uses: JasonEtco/create-an-issue@v2
+      #   env:
+      #     GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
+      #     WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      #   with:
+      #     filename: ${{ env.GH_ISSUE_TEMPLATE_RFPATH }}
+      #     # This issue template file uses a number of env vars collected above.
+      #   id: create-issue
+
+      # - name: "If Fuzzing Failed: Log Issue Info"
+      #   if: failure()
+      #   run: |
+      #     echo "Created issue #${{ steps.create-issue.outputs.number }} ${{ steps.create-issue.outputs.url }}"
