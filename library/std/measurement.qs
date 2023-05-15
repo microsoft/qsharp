@@ -68,6 +68,7 @@ namespace Microsoft.Quantum.Measurement {
     operation MResetY (target : Qubit) : Result {
         // Map the qubit's state from the Z-basis to the Y-basis.
         // Then measure and reset the qubit.
+        // Note: this use HSadj instead fo HSH since that is sufficient for measurement.
         Adjoint S(target);
         H(target);
         MResetZ(target)
