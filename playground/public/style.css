@@ -265,7 +265,7 @@ body {
 
 .histo-label {
   font-size: 3.5pt;
-  fill: var(--main-color);
+  fill: gray;
 }
 
 .hover-text {

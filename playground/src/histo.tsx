@@ -27,7 +27,6 @@ const defaultMenuSelection: { [idx: string]: number } = {
   labels: 0,
 };
 
-// TODO: Shows as Kets is breaking filtering currently
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/;
 function resultToKet(result: string): string {
   if (typeof result !== "string") return "ERROR";
@@ -67,8 +66,8 @@ export function Histogram(props: {
       maxItemsToShow = 25;
       break;
   }
+  const showKetLabels = menuSelection["labels"] === 1;
 
-  // TODO: If filtering removes the currently filtered to bar, clear the filter.
   const bucketArray = [...props.data];
 
   // Calculate bucket percentages before truncating for display
@@ -79,11 +78,18 @@ export function Histogram(props: {
     sizeBiggestBucket = Math.max(x[1], sizeBiggestBucket);
   });
 
+  let histogramLabel = `${bucketArray.length} results`;
   if (maxItemsToShow > 0) {
     // Sort from high to low then take the first n
     bucketArray.sort((a, b) => (a[1] < b[1] ? 1 : -1));
-    if (bucketArray.length > maxItemsToShow)
+    if (bucketArray.length > maxItemsToShow) {
+      histogramLabel = `Top ${maxItemsToShow} of ${histogramLabel}`
       bucketArray.length = maxItemsToShow;
+    }
+  }
+  if (props.filter) {
+    histogramLabel += `. Shot filter: ${
+        showKetLabels ? resultToKet(props.filter) : props.filter}`;
   }
 
  bucketArray.sort((a, b) => {
@@ -218,15 +224,12 @@ export function Histogram(props: {
     setScale({ zoom: newZoom, offset: boundScrollOffset });
   }
 
-  let histogramLabel = "";
 
   return (
     <svg class="histogram" viewBox="0 0 165 100" onWheel={onWheel}>
-      {/* <rect width="165" height="100" fill="blue"></rect> */}
       <g ref={gRef} transform={`translate(${scale.offset},4) scale(1 1)`}>
         {bucketArray.map((entry, idx) => {
-          const label = (menuSelection["labels"] === 1) ?
-              resultToKet(entry[0]) : entry[0];
+          const label = showKetLabels ? resultToKet(entry[0]) : entry[0];
           
           const height = barAreaHeight * (entry[1] / sizeBiggestBucket);
           const x = barBoxWidth * idx + barPaddingSize;
@@ -240,7 +243,6 @@ export function Histogram(props: {
 
           if (entry[0] === props.filter) {
             barClass += " bar-selected";
-            histogramLabel = label;
           }
 
           return (
@@ -274,12 +276,8 @@ export function Histogram(props: {
         })}
       </g>
 
-      <text class="histo-label" x="5" y="98">
-        {histogramLabel ? `Filter: ${histogramLabel}` : null}
-      </text>
-      <text class="hover-text" x="85" y="6">
-        {hoverLabel}
-      </text>
+      <text class="histo-label" x="2" y="97"> {histogramLabel} </text>
+      <text class="hover-text" x="85" y="6"> {hoverLabel} </text>
 
       <g transform="scale(0.3 0.3)" onClick={toggleMenu}>
         <rect width="24" height="24" fill="white"></rect>
