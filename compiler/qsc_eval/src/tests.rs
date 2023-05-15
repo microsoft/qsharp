@@ -1801,32 +1801,32 @@ fn while_false_shortcut_expr() {
 }
 
 #[test]
-fn ternop_cond_expr() {
+fn cond_expr() {
     check_expr("", "true ? 1 | 0", &expect!["1"]);
 }
 
 #[test]
-fn ternop_cond_false_expr() {
+fn cond_false_expr() {
     check_expr("", "false ? 1 | 0", &expect!["0"]);
 }
 
 #[test]
-fn ternop_cond_shortcircuit_expr() {
+fn cond_shortcircuit_expr() {
     check_expr("", r#"true ? 1 | fail "Shouldn't fail""#, &expect!["1"]);
 }
 
 #[test]
-fn ternop_cond_false_shortcircuit_expr() {
+fn cond_false_shortcircuit_expr() {
     check_expr("", r#"false ? fail "Shouldn't fail" | 0"#, &expect!["0"]);
 }
 
 #[test]
-fn ternop_update_expr() {
+fn update_expr() {
     check_expr("", "[1, 2, 3] w/ 2 <- 4", &expect!["[1, 2, 4]"]);
 }
 
 #[test]
-fn ternop_update_invalid_index_range_expr() {
+fn update_invalid_index_range_expr() {
     check_expr(
         "",
         "[1, 2, 3] w/ 7 <- 4",
@@ -1848,7 +1848,7 @@ fn ternop_update_invalid_index_range_expr() {
 }
 
 #[test]
-fn ternop_update_invalid_index_negative_expr() {
+fn update_invalid_index_negative_expr() {
     check_expr(
         "",
         "[1, 2, 3] w/ -1 <- 4",
@@ -1870,7 +1870,7 @@ fn ternop_update_invalid_index_negative_expr() {
 }
 
 #[test]
-fn ternop_update_array_index_var() {
+fn update_array_index_var() {
     check_expr(
         "",
         indoc! {"{
@@ -1883,7 +1883,7 @@ fn ternop_update_array_index_var() {
 }
 
 #[test]
-fn ternop_update_array_index_expr() {
+fn update_array_index_expr() {
     check_expr(
         "",
         indoc! {"{
@@ -1896,7 +1896,7 @@ fn ternop_update_array_index_expr() {
 }
 
 #[test]
-fn ternop_update_udt_known_field_name() {
+fn update_udt_known_field_name() {
     check_expr(
         indoc! {"
             namespace A {
@@ -1913,7 +1913,7 @@ fn ternop_update_udt_known_field_name() {
 }
 
 #[test]
-fn ternop_update_udt_nested_field() {
+fn update_udt_nested_field() {
     check_expr(
         indoc! {"
             namespace A {
@@ -1930,42 +1930,42 @@ fn ternop_update_udt_nested_field() {
 }
 
 #[test]
-fn ternop_update_range_start() {
+fn update_range_start() {
     check_expr("", "1..2..3 w/ Start <- 10", &expect!["10..2..3"]);
 }
 
 #[test]
-fn ternop_update_range_from_start() {
+fn update_range_from_start() {
     check_expr("", "1..2... w/ Start <- 10", &expect!["10..2..."]);
 }
 
 #[test]
-fn ternop_update_range_step() {
+fn update_range_step() {
     check_expr("", "1..2..3 w/ Step <- 10", &expect!["1..10..3"]);
 }
 
 #[test]
-fn ternop_update_range_from_step() {
+fn update_range_from_step() {
     check_expr("", "1..2... w/ Step <- 10", &expect!["1..10..."]);
 }
 
 #[test]
-fn ternop_update_range_to_step() {
+fn update_range_to_step() {
     check_expr("", "...2..3 w/ Step <- 10", &expect!["...10..3"]);
 }
 
 #[test]
-fn ternop_update_range_full_step() {
+fn update_range_full_step() {
     check_expr("", "...2... w/ Step <- 10", &expect!["...10..."]);
 }
 
 #[test]
-fn ternop_update_range_end() {
+fn update_range_end() {
     check_expr("", "1..2..3 w/ End <- 10", &expect!["1..2..10"]);
 }
 
 #[test]
-fn ternop_update_range_to_end() {
+fn update_range_to_end() {
     check_expr("", "...2..3 w/ End <- 10", &expect!["...2..10"]);
 }
 

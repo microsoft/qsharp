@@ -392,7 +392,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::Return(expr) => Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::String(components) => self.eval_string(components),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
-                TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
+                TernOp::Cond => self.eval_cond(lhs, mid, rhs),
                 TernOp::UpdateIndex => self.eval_update_index(lhs, mid, rhs),
             },
             ExprKind::Tuple(tup) => {
@@ -852,12 +852,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         ))
     }
 
-    fn eval_ternop_cond(
-        &mut self,
-        lhs: &Expr,
-        mid: &Expr,
-        rhs: &Expr,
-    ) -> ControlFlow<Reason, Value> {
+    fn eval_cond(&mut self, lhs: &Expr, mid: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
         if self.eval_expr(lhs)?.try_into().with_span(lhs.span)? {
             self.eval_expr(mid)
         } else {
