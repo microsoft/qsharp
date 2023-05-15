@@ -14,7 +14,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    let pass_errors = run_default_passes(&mut unit);
+    let pass_errors = run_default_passes(store.core(), &mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
 
     let id = store.insert(unit);
@@ -1295,11 +1295,6 @@ fn fail_shortcut_expr() {
 }
 
 #[test]
-fn field_array_len_expr() {
-    check_expr("", "[1, 2, 3]::Length", &expect!["3"]);
-}
-
-#[test]
 fn field_range_start_expr() {
     check_expr("", "(0..2..8)::Start", &expect!["0"]);
 }
@@ -2502,7 +2497,7 @@ fn check_ctls_count_expr() {
                     body (...) {}
                     adjoint self;
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2528,7 +2523,7 @@ fn check_ctls_count_nested_expr() {
                     body (...) {}
                     adjoint self;
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2554,7 +2549,7 @@ fn check_generated_ctl_expr() {
                 operation A() : Unit is Ctl {
                     body ... {}
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2578,12 +2573,12 @@ fn check_generated_ctladj_distrib_expr() {
                     body ... { fail "Shouldn't get here"; }
                     adjoint self;
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
                     controlled adjoint (ctls, ...) {
-                        if ctls::Length != 2 {
+                        if Length(ctls) != 2 {
                             fail "Incorrect ctls count!";
                         }
                     }

@@ -1,18 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{parse::namespaces, validate::Validator};
+use super::Error;
+use crate::{parse, validate::Validator};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{ast::Namespace, visit::Visitor};
 
-use super::Error;
-
 fn check(input: &str, expect: &Expect) {
-    let (parsed, errs) = &mut namespaces(input);
-    assert!(errs.is_empty());
-    let errs: Vec<Error> = parsed.iter().flat_map(validate).collect();
-    expect.assert_debug_eq(&errs);
+    let (namespaces, parse_errors) = &mut parse::namespaces(input);
+    assert!(parse_errors.is_empty());
+    let validate_errors: Vec<_> = namespaces.iter().flat_map(validate).collect();
+    expect.assert_debug_eq(&validate_errors);
 }
 
 fn validate(ns: &Namespace) -> Vec<Error> {
@@ -56,73 +55,6 @@ fn test_partial() {
                     Span {
                         lo: 111,
                         hi: 120,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_entrypoint_attr_allowed() {
-    check(
-        indoc! {"
-            namespace input {
-                @EntryPoint()
-                operation Foo() : Unit {
-                    body ... {}
-                }
-            }
-        "},
-        &expect![[r#"
-            []
-        "#]],
-    );
-}
-
-#[test]
-fn test_entrypoint_attr_wrong_args() {
-    check(
-        indoc! {r#"
-            namespace input {
-                @EntryPoint("Bar")
-                operation Foo() : Unit {
-                    body ... {}
-                }
-            }
-        "#},
-        &expect![[r#"
-            [
-                InvalidAttrArgs(
-                    "()",
-                    Span {
-                        lo: 33,
-                        hi: 40,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_unrecognized_attr() {
-    check(
-        indoc! {"
-            namespace input {
-                @Bar()
-                operation Foo() : Unit {
-                    body ... {}
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                UnrecognizedAttr(
-                    "Bar",
-                    Span {
-                        lo: 22,
-                        hi: 28,
                     },
                 ),
             ]

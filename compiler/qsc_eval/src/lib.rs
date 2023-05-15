@@ -889,13 +889,6 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
 
     fn eval_field(&mut self, record: &Expr, field: &Field) -> ControlFlow<Reason, Value> {
         match (self.eval_expr(record)?, field) {
-            (Value::Array(arr), Field::Prim(PrimField::Length)) => {
-                let len: i64 = match arr.len().try_into() {
-                    Ok(len) => Continue(len),
-                    Err(_) => Break(Reason::Error(Error::ArrayTooLarge(record.span))),
-                }?;
-                Continue(Value::Int(len))
-            }
             (Value::Range(Some(start), _, _), Field::Prim(PrimField::Start)) => {
                 Continue(Value::Int(start))
             }

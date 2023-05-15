@@ -112,7 +112,12 @@ impl Interpreter {
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
         for mut fragment in self.compiler.compile_fragments(line) {
-            run_default_passes_for_fragment(self.compiler.assigner_mut(), &mut fragment);
+            run_default_passes_for_fragment(
+                self.store.core(),
+                self.compiler.assigner_mut(),
+                &mut fragment,
+            );
+
             match fragment {
                 Fragment::Item(item) => match item.kind {
                     ItemKind::Callable(callable) => self.callables.insert(item.id, callable),

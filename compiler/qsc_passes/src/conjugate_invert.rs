@@ -11,6 +11,7 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
+    global::Table,
     hir::{
         Block, CallableDecl, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Res, Stmt,
         StmtKind, Ty,
@@ -41,8 +42,9 @@ pub enum Error {
 
 /// Generates adjoint inverted blocks for within-blocks across all conjugate expressions,
 /// eliminating the conjugate expression from the compilation unit.
-pub fn invert_conjugate_exprs(unit: &mut CompileUnit) -> Vec<Error> {
+pub fn invert_conjugate_exprs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = ConjugateElim {
+        core,
         assigner: &mut unit.assigner,
         errors: Vec::new(),
     };
@@ -51,10 +53,12 @@ pub fn invert_conjugate_exprs(unit: &mut CompileUnit) -> Vec<Error> {
 }
 
 pub fn invert_conjugate_exprs_for_callable(
+    core: &Table,
     assigner: &mut Assigner,
     decl: &mut CallableDecl,
 ) -> Vec<Error> {
     let mut pass = ConjugateElim {
+        core,
         assigner,
         errors: Vec::new(),
     };
@@ -62,8 +66,13 @@ pub fn invert_conjugate_exprs_for_callable(
     pass.errors
 }
 
-pub fn invert_conjugate_exprs_for_stmt(assigner: &mut Assigner, stmt: &mut Stmt) -> Vec<Error> {
+pub fn invert_conjugate_exprs_for_stmt(
+    core: &Table,
+    assigner: &mut Assigner,
+    stmt: &mut Stmt,
+) -> Vec<Error> {
     let mut pass = ConjugateElim {
+        core,
         assigner,
         errors: Vec::new(),
     };
@@ -72,6 +81,7 @@ pub fn invert_conjugate_exprs_for_stmt(assigner: &mut Assigner, stmt: &mut Stmt)
 }
 
 struct ConjugateElim<'a> {
+    core: &'a Table,
     assigner: &'a mut Assigner,
     errors: Vec<Error>,
 }
@@ -96,7 +106,9 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
                 self.errors.extend(return_check.errors);
 
                 let mut adj_within = within.clone();
-                if let Err(invert_errors) = adj_invert_block(self.assigner, &mut adj_within) {
+                if let Err(invert_errors) =
+                    adj_invert_block(self.core, self.assigner, &mut adj_within)
+                {
                     self.errors.extend(
                         invert_errors
                             .into_iter()

@@ -5,7 +5,8 @@
 mod tests;
 
 use crate::{
-    lower::Lowerer,
+    funop,
+    lower::{self, Lowerer},
     parse,
     resolve::{self, Resolutions, Resolver},
     typeck::{self, Checker},
@@ -124,19 +125,23 @@ pub type SourceContents = Arc<str>;
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
-pub struct Error(ErrorKind);
+pub struct Error(pub(super) ErrorKind);
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
-pub(crate) enum ErrorKind {
+pub(super) enum ErrorKind {
     #[error("syntax error")]
     Parse(#[from] parse::Error),
     #[error("name error")]
     Resolve(#[from] resolve::Error),
     #[error("type error")]
     Type(#[from] typeck::Error),
-    #[error("validation error")]
+    #[error(transparent)]
+    FunOp(#[from] funop::Error),
+    #[error(transparent)]
     Validate(#[from] validate::Error),
+    #[error(transparent)]
+    Lower(#[from] lower::Error),
 }
 
 pub struct PackageStore {
@@ -212,21 +217,25 @@ pub fn compile(
     let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
     let validate_errors = validate(&package);
+    let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
     let package = lowerer.with(&resolutions, &tys).lower_package(&package);
+    let (assigner, lower_errors) = lowerer.into_assigner();
 
     let errors = parse_errors
         .into_iter()
         .map(Into::into)
         .chain(resolve_errors.into_iter().map(Into::into))
         .chain(ty_errors.into_iter().map(Into::into))
+        .chain(funop_errors.into_iter().map(Into::into))
         .chain(validate_errors.into_iter().map(Into::into))
+        .chain(lower_errors.into_iter().map(Into::into))
         .map(Error)
         .collect();
 
     CompileUnit {
         package,
-        assigner: lowerer.into_assigner(),
+        assigner,
         sources,
         errors,
     }
@@ -246,10 +255,16 @@ pub fn core() -> CompileUnit {
     };
 
     let sources = SourceMap::new(
-        [(
-            "qir.qs".into(),
-            include_str!("../../../library/core/qir.qs").into(),
-        )],
+        [
+            (
+                "core.qs".into(),
+                include_str!("../../../library/core/core.qs").into(),
+            ),
+            (
+                "qir.qs".into(),
+                include_str!("../../../library/core/qir.qs").into(),
+            ),
+        ],
         None,
     );
 
@@ -363,6 +378,10 @@ fn resolve_all(
     package: &ast::Package,
 ) -> (Resolutions, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
+    if let Some(unit) = store.get(PackageId::CORE) {
+        globals.add_external_package(PackageId::CORE, &unit.package);
+    }
+
     for &id in dependencies {
         let unit = store
             .get(id)
@@ -383,6 +402,10 @@ fn typeck_all(
     resolutions: &Resolutions,
 ) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
+    if let Some(unit) = store.get(PackageId::CORE) {
+        globals.add_external_package(PackageId::CORE, &unit.package);
+    }
+
     for &id in dependencies {
         let unit = store
             .get(id)
