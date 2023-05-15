@@ -9,7 +9,7 @@ const altKeyPans = true;
 const menuItems = [
   {
     category: "itemCount",
-    options: ["Show all", "Top 8", "Top 16", "Top 32"],
+    options: ["Show all", "Top 10", "Top 20"],
   },
   {
     category: "sortOrder",
@@ -20,13 +20,14 @@ const menuItems = [
     options: ["Raw labels", "Ket labels", "No labels"],
   },
 ];
-const maxMenuOptions = 4;
+const maxMenuOptions = 3;
 const defaultMenuSelection: { [idx: string]: number } = {
   itemCount: 0,
   sortOrder: 0,
   labels: 0,
 };
 
+// TODO: Shows as Kets is breaking filtering currently
 const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/;
 function resultToKet(result: string): string {
   if (typeof result !== "string") return "ERROR";
@@ -60,16 +61,14 @@ export function Histogram(props: {
   let maxItemsToShow = 0; // All
   switch (menuSelection["itemCount"]) {
     case 1:
-      maxItemsToShow = 8;
+      maxItemsToShow = 10;
       break;
     case 2:
-      maxItemsToShow = 16;
-      break;
-    case 3:
-      maxItemsToShow = 32;
+      maxItemsToShow = 20;
       break;
   }
 
+  // TODO: If filtering removes the currently filtered to bar, clear the filter.
   let filteredData = [...props.data];
   if (maxItemsToShow > 0) {
     // Sort from high to low then take the first n
