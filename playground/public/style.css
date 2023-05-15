@@ -9,7 +9,7 @@
   --nav-hover-background: #b3bede;
   --nav-current-background: #b5c5f2;
   --border-color: #768f9c;
-  --menu-box-fill: #f1f7fd;
+  --menu-box-fill: #e9f2fc;
   --error-background-color: #ffe3e3;
   --bar-selected-outline: #587ddd;
 }
@@ -305,6 +305,17 @@ body {
 .menu-separator {
   stroke: gray;
   stroke-width: 0.25;
+}
+
+.help-info {
+  fill: var(--menu-box-fill);
+  stroke: gray;
+  stroke-width: 0.5;
+}
+
+.help-info-text {
+  font-size: 4.5px;
+  pointer-events: none;
 }
 
 .err-span {

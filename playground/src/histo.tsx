@@ -55,6 +55,7 @@ export function Histogram(props: {
   const [menuSelection, setMenuSelection] = useState(defaultMenuSelection);
 
   const gMenu = useRef<SVGGElement>(null);
+  const gInfo = useRef<SVGGElement>(null);
 
   let maxItemsToShow = 0; // All
   switch (menuSelection["itemCount"]) {
@@ -134,9 +135,12 @@ export function Histogram(props: {
 
   function toggleMenu() {
     if (!gMenu.current) return;
-    gMenu.current.style.display === "inline"
-      ? (gMenu.current.style.display = "none")
-      : (gMenu.current.style.display = "inline");
+    if (gMenu.current.style.display === "inline") {
+      gMenu.current.style.display = "none";
+    } else {
+      gMenu.current.style.display = "inline";
+      if (gInfo.current) gInfo.current.style.display = "none";
+    }
   }
 
   function menuClicked(category: string, idx: number) {
@@ -149,6 +153,14 @@ export function Histogram(props: {
       setScale({ zoom: 1, offset: 1 });
     }
     gMenu.current.style.display = "none";
+  }
+
+  function toggleInfo() {
+    if (!gInfo.current) return;
+
+    gInfo.current.style.display === "inline"
+      ? (gInfo.current.style.display = "none")
+      : (gInfo.current.style.display = "inline");
   }
 
   // Each menu item has a width of 32px and a height of 10px
@@ -326,7 +338,7 @@ export function Histogram(props: {
           stroke-width="1.5"
         />
       </g>
-      <g transform="translate(158, 0) scale(0.3 0.3)">
+      <g transform="translate(158, 0) scale(0.3 0.3)" onClick={toggleInfo}>
         <rect width="24" height="24" fill="white"></rect>
         <circle
           cx="12"
@@ -397,6 +409,40 @@ export function Histogram(props: {
             );
           })
         }
+      </g>
+      <g ref={gInfo} style="display: none;">
+        <rect
+          width="155"
+          height="76"
+          rx="5"
+          x="5"
+          y="6"
+          class="help-info"
+          onClick={toggleInfo}
+        />
+        <text y="6" class="help-info-text">
+          <tspan x="10" dy="10">
+            This histogram shows the frequency of unique 'shot' results.
+          </tspan>
+          <tspan x="10" dy="10">
+            Click the top-left 'settings' icon for display options.
+          </tspan>
+          <tspan x="10" dy="10">
+            You can zoom the chart using the mouse scroll wheel.
+          </tspan>
+          <tspan x="10" dy="7">
+            (Or using a trackpad gesture).
+          </tspan>
+          <tspan x="10" dy="10">
+            When zoomed, to pan left &amp; right, press 'Alt' while scrolling.
+          </tspan>
+          <tspan x="10" dy="10">
+            Click on a bar to filter the shot details to that result.
+          </tspan>
+          <tspan x="10" dy="12">
+            Click anywhere in this box to dismiss it.
+          </tspan>
+        </text>
       </g>
     </svg>
   );
