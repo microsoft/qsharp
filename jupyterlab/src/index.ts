@@ -20,7 +20,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     codemirrorLanguageRegistry: codemirror.IEditorLanguageRegistry,
     notebookTracker: notebook.INotebookTracker
   ) => {
-    let rules = [
+    const rules = [
       {
         token: 'comment',
         regex: /(\/\/).*/,
@@ -72,8 +72,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         beginWord: true
       }
     ];
-    let simpleRules = [];
-    for (let rule of rules) {
+    const simpleRules = [];
+    for (const rule of rules) {
       simpleRules.push({
         token: rule.token,
         regex: new RegExp(rule.regex, 'g'),
@@ -104,7 +104,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       if (notebookPanel) {
         // TODO: I'm pretty sure I'm attaching too many handlers
-        notebookPanel.content.modelContentChanged.connect((sender, args) => {
+        notebookPanel.content.modelContentChanged.connect((sender) => {
           console.log('notebook model content changed.');
 
           for (const cell of sender.widgets) {

@@ -10,7 +10,8 @@ module.exports = {
     "npm/dist/",
     "npm/lib/",
     "vscode/out/",
-    "jupyterlab", // TODO: add it back in
+    "jupyterlab/lib",
+    "jupyterlab/qsharp_jupyterlab/labextension"
   ],
   env: {
     browser: true,
