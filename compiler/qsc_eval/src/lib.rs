@@ -208,6 +208,11 @@ impl Range {
     }
 }
 
+pub enum Global<'a> {
+    Callable(&'a CallableDecl),
+    Udt,
+}
+
 pub trait GlobalLookup<'a> {
     fn get(&self, id: GlobalId) -> Option<Global<'a>>;
 }
@@ -216,11 +221,6 @@ impl<'a, F: Fn(GlobalId) -> Option<Global<'a>>> GlobalLookup<'a> for F {
     fn get(&self, id: GlobalId) -> Option<Global<'a>> {
         self(id)
     }
-}
-
-pub enum Global<'a> {
-    Callable(&'a CallableDecl),
-    Udt,
 }
 
 /// Evaluates the given statement with the given context.
@@ -896,12 +896,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             (Value::Range(_, _, Some(end)), Field::Prim(PrimField::End)) => {
                 Continue(Value::Int(end))
             }
-            (mut value, Field::Path(path)) => {
-                for &index in &path.indices {
-                    let Value::Tuple(items) = value else { panic!("field path on non-tuple value"); };
-                    value = items[index].clone();
-                }
-                Continue(value)
+            (record, Field::Path(path)) => {
+                Continue(get_field_path(record, &path.indices).expect("field path should be valid"))
             }
             _ => panic!("invalid field access"),
         }
@@ -932,9 +928,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 step,
                 Some(value.try_into().with_span(value_span)?),
             )),
-            (record, Field::Path(path)) => {
-                Continue(update_field_path(&record, &path.indices, &value))
-            }
+            (record, Field::Path(path)) => Continue(
+                update_field_path(&record, &path.indices, &value)
+                    .expect("field path should be valid"),
+            ),
             _ => panic!("invalid field access"),
         }
     }
@@ -1630,25 +1627,29 @@ fn eval_binop_xorb(
     }
 }
 
-fn update_field_path(record: &Value, path: &[usize], replacement: &Value) -> Value {
-    if path.is_empty() {
-        replacement.clone()
-    } else if let Value::Tuple(items) = record {
-        let next_index = path[0];
-        let items = items
-            .iter()
-            .enumerate()
-            .map(|(index, item)| {
-                if index == next_index {
-                    update_field_path(item, &path[1..], replacement)
-                } else {
-                    item.clone()
-                }
-            })
-            .collect();
+fn get_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
+    for &index in path {
+        let Value::Tuple(items) = value else { return None; };
+        value = items[index].clone();
+    }
+    Some(value)
+}
 
-        Value::Tuple(items)
-    } else {
-        panic!("invalid field path")
+fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<Value> {
+    match (record, path) {
+        (_, []) => Some(replace.clone()),
+        (Value::Tuple(items), &[next_index, ..]) if next_index < items.len() => {
+            let update = |(index, item)| {
+                if index == next_index {
+                    update_field_path(item, &path[1..], replace)
+                } else {
+                    Some(item.clone())
+                }
+            };
+
+            let items: Option<_> = items.iter().enumerate().map(update).collect();
+            Some(Value::Tuple(items?))
+        }
+        _ => None,
     }
 }

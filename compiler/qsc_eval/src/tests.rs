@@ -1930,6 +1930,46 @@ fn ternop_update_udt_nested_field() {
 }
 
 #[test]
+fn ternop_update_range_start() {
+    check_expr("", "1..2..3 w/ Start <- 10", &expect!["10..2..3"]);
+}
+
+#[test]
+fn ternop_update_range_from_start() {
+    check_expr("", "1..2... w/ Start <- 10", &expect!["10..2..."]);
+}
+
+#[test]
+fn ternop_update_range_step() {
+    check_expr("", "1..2..3 w/ Step <- 10", &expect!["1..10..3"]);
+}
+
+#[test]
+fn ternop_update_range_from_step() {
+    check_expr("", "1..2... w/ Step <- 10", &expect!["1..10..."]);
+}
+
+#[test]
+fn ternop_update_range_to_step() {
+    check_expr("", "...2..3 w/ Step <- 10", &expect!["...10..3"]);
+}
+
+#[test]
+fn ternop_update_range_full_step() {
+    check_expr("", "...2... w/ Step <- 10", &expect!["...10..."]);
+}
+
+#[test]
+fn ternop_update_range_end() {
+    check_expr("", "1..2..3 w/ End <- 10", &expect!["1..2..10"]);
+}
+
+#[test]
+fn ternop_update_range_to_end() {
+    check_expr("", "...2..3 w/ End <- 10", &expect!["...2..10"]);
+}
+
+#[test]
 fn assignupdate_expr() {
     check_expr(
         "",
