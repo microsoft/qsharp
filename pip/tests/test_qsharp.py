@@ -21,10 +21,12 @@ def test_stdout() -> None:
 def test_stdout_multiple_lines() -> None:
     f = io.StringIO()
     with redirect_stdout(f):
-        qsharp.interpret("""
+        qsharp.interpret(
+            """
         use q = Qubit();
         Microsoft.Quantum.Diagnostics.DumpMachine();
         Message("Hello!");
-        """)
+        """
+        )
 
     assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000i\nHello!\n"

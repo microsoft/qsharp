@@ -28,8 +28,13 @@ def enable_classic_notebook_codemirror_mode():
     and defines a CodeMirror mode to enable syntax highlighting.
     This only works in "classic" Jupyter notebooks, not Notebook v7.
     """
-    js_to_inject = open(pathlib.Path(__file__).parent.resolve().joinpath(
-        ".data", "qsharp_codemirror.js"), mode="r", encoding="utf-8").read()
+    js_to_inject = open(
+        pathlib.Path(__file__)
+        .parent.resolve()
+        .joinpath(".data", "qsharp_codemirror.js"),
+        mode="r",
+        encoding="utf-8",
+    ).read()
 
     # Extend the JavaScript display helper to print nothing when used
     # in a non-browser context (i.e. IPython console)
