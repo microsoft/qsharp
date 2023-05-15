@@ -891,9 +891,9 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             (Value::Range(_, _, Some(end)), Field::Prim(PrimField::End)) => {
                 Continue(Value::Int(end))
             }
-            (record, Field::Path(path)) => {
-                Continue(get_field_path(record, &path.indices).expect("field path should be valid"))
-            }
+            (record, Field::Path(path)) => Continue(
+                follow_field_path(record, &path.indices).expect("field path should be valid"),
+            ),
             _ => panic!("invalid field access"),
         }
     }
@@ -1622,7 +1622,7 @@ fn eval_binop_xorb(
     }
 }
 
-fn get_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
+fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
     for &index in path {
         let Value::Tuple(items) = value else { return None; };
         value = items[index].clone();

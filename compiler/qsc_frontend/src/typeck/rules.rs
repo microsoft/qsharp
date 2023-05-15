@@ -6,7 +6,7 @@ use super::{
     infer::{self, Class, Inferrer},
     Error,
 };
-use crate::resolve::{Res, Resolutions};
+use crate::resolve::{self, Res, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
@@ -183,8 +183,8 @@ impl<'a> Context<'a> {
                 let binop = self.infer_binop(expr.span, *op, lhs, rhs);
                 self.diverge_if(binop.diverges, converge(Ty::UNIT))
             }
-            ExprKind::AssignUpdate(container, index, item) => {
-                let update = self.infer_update(expr.span, container, index, item);
+            ExprKind::AssignUpdate(container, index, replace) => {
+                let update = self.infer_update(expr.span, container, index, replace);
                 self.diverge_if(update.diverges, converge(Ty::UNIT))
             }
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
@@ -387,8 +387,8 @@ impl<'a> Context<'a> {
                     },
                 )
             }
-            ExprKind::TernOp(TernOp::Update, container, index, item) => {
-                self.infer_update(expr.span, container, index, item)
+            ExprKind::TernOp(TernOp::Update, container, index, replace) => {
+                self.infer_update(expr.span, container, index, replace)
             }
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
@@ -524,33 +524,27 @@ impl<'a> Context<'a> {
     fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Partial {
         let container = self.infer_expr(container);
         let item = self.infer_expr(item);
-
-        match &index.kind {
-            ExprKind::Path(path)
-                if path.namespace.is_none() && !self.resolutions.contains_key(path.id) =>
-            {
-                self.inferrer.class(
-                    span,
-                    Class::HasField {
-                        record: container.ty.clone(),
-                        name: path.name.name.to_string(),
-                        item: item.ty.clone(),
-                    },
-                );
-                self.diverge_if(item.diverges, container)
-            }
-            _ => {
-                let index = self.infer_expr(index);
-                self.inferrer.class(
-                    span,
-                    Class::HasIndex {
-                        container: container.ty.clone(),
-                        index: index.ty,
-                        item: item.ty,
-                    },
-                );
-                self.diverge_if(index.diverges || item.diverges, container)
-            }
+        if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+            self.inferrer.class(
+                span,
+                Class::HasField {
+                    record: container.ty.clone(),
+                    name: field.to_string(),
+                    item: item.ty.clone(),
+                },
+            );
+            self.diverge_if(item.diverges, container)
+        } else {
+            let index = self.infer_expr(index);
+            self.inferrer.class(
+                span,
+                Class::HasIndex {
+                    container: container.ty.clone(),
+                    index: index.ty,
+                    item: item.ty,
+                },
+            );
+            self.diverge_if(index.diverges || item.diverges, container)
         }
     }
 

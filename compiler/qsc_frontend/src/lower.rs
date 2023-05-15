@@ -391,25 +391,29 @@ impl With<'_> {
                     .map(|c| self.lower_string_component(c))
                     .collect(),
             ),
-            ast::ExprKind::TernOp(op, lhs, middle, rhs) => match (op, &middle.kind) {
-                (ast::TernOp::Update, ast::ExprKind::Path(path))
-                    if path.namespace.is_none() && !self.resolutions.contains_key(path.id) =>
-                {
-                    let lhs = self.lower_expr(lhs);
-                    let field = self.lower_field(&lhs.ty, &path.name.name);
-                    let rhs = self.lower_expr(rhs);
-                    hir::ExprKind::UpdateField(Box::new(lhs), field, Box::new(rhs))
+            ast::ExprKind::TernOp(ast::TernOp::Cond, cond, if_true, if_false) => {
+                hir::ExprKind::TernOp(
+                    hir::TernOp::Cond,
+                    Box::new(self.lower_expr(cond)),
+                    Box::new(self.lower_expr(if_true)),
+                    Box::new(self.lower_expr(if_false)),
+                )
+            }
+            ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
+                if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+                    let record = self.lower_expr(container);
+                    let field = self.lower_field(&record.ty, field);
+                    let replace = self.lower_expr(replace);
+                    hir::ExprKind::UpdateField(Box::new(record), field, Box::new(replace))
+                } else {
+                    hir::ExprKind::TernOp(
+                        hir::TernOp::UpdateIndex,
+                        Box::new(self.lower_expr(container)),
+                        Box::new(self.lower_expr(index)),
+                        Box::new(self.lower_expr(replace)),
+                    )
                 }
-                _ => hir::ExprKind::TernOp(
-                    match op {
-                        ast::TernOp::Cond => hir::TernOp::Cond,
-                        ast::TernOp::Update => hir::TernOp::UpdateIndex,
-                    },
-                    Box::new(self.lower_expr(lhs)),
-                    Box::new(self.lower_expr(middle)),
-                    Box::new(self.lower_expr(rhs)),
-                ),
-            },
+            }
             ast::ExprKind::Tuple(items) => {
                 hir::ExprKind::Tuple(items.iter().map(|i| self.lower_expr(i)).collect())
             }
