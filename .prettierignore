@@ -5,6 +5,8 @@ __pycache__/
 .github/
 .vscode/
 compiler/
+jupyterlab/lib/
+jupyterlab/qsharp_jupyterlab/labextension/
 library/
 npm/dist/
 npm/lib/
@@ -17,5 +19,3 @@ samples/
 target/
 vscode/out/
 wasm/
-vscode/out
-jupyterlab/
