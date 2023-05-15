@@ -13,12 +13,14 @@ use super::{
     scan::Scanner,
     stmt, Error, Result,
 };
-use crate::lex::{ClosedBinOp, Delim, Radix, Token, TokenKind};
+use crate::lex::{
+    ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token, TokenKind,
+};
 use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
-    self, BinOp, CallableKind, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, Pauli, TernOp,
-    UnOp,
+    self, BinOp, CallableKind, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, Pauli,
+    StringComponent, TernOp, UnOp,
 };
 use std::{num::Wrapping, str::FromStr};
 
@@ -159,6 +161,8 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         Ok(ExprKind::For(vars, Box::new(iter), body))
     } else if keyword(s, Keyword::If).is_ok() {
         expr_if(s)
+    } else if let Some(components) = opt(s, expr_interpolate)? {
+        Ok(ExprKind::Interpolate(components))
     } else if keyword(s, Keyword::Repeat).is_ok() {
         let body = stmt::block(s)?;
         keyword(s, Keyword::Until)?;
@@ -302,6 +306,37 @@ fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
     }
 }
 
+fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
+    let token = s.peek();
+    let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
+        token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
+
+    let mut components = Vec::new();
+    let lit = shorten(2, 1, s.read());
+    if !lit.is_empty() {
+        components.push(StringComponent::Lit(lit.into()));
+    }
+
+    s.advance();
+    while end == InterpolatedEnding::LBrace {
+        components.push(StringComponent::Expr(expr(s)?));
+
+        let token = s.peek();
+        let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
+            token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
+
+        let lit = shorten(1, 1, s.read());
+        if !lit.is_empty() {
+            components.push(StringComponent::Lit(lit.into()));
+        }
+
+        s.advance();
+        end = next_end;
+    }
+
+    Ok(components)
+}
+
 fn lit(s: &mut Scanner) -> Result<Option<Lit>> {
     let lexeme = s.read();
     let token = s.peek();
@@ -343,9 +378,8 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                 .ok_or(Error::Lit("integer", token.span))?;
             Ok(Some(Lit::Int(value)))
         }
-        TokenKind::String => {
-            let lexeme = &lexeme[1..lexeme.len() - 1]; // Slice off quotation marks.
-            Ok(Some(Lit::String(lexeme.into())))
+        TokenKind::String(StringToken::Normal) => {
+            Ok(Some(Lit::String(shorten(1, 1, lexeme).into())))
         }
         _ => Ok(None),
     }
@@ -623,4 +657,8 @@ fn expr_as_pat(expr: Expr) -> Result<Pat> {
         span: expr.span,
         kind,
     })
+}
+
+fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
+    &s[from_start..s.len() - from_end]
 }

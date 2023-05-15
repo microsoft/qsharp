@@ -4,42 +4,169 @@
 /// <reference types="../../node_modules/monaco-editor/monaco.d.ts"/>
 
 import { useEffect, useRef, useState } from "preact/hooks";
-import { ICompilerWorker, QscEventTarget, VSDiagnostic, log } from "qsharp";
+import {
+  CompilerState,
+  ICompilerWorker,
+  QscEventTarget,
+  VSDiagnostic,
+  log,
+} from "qsharp";
 import { codeToBase64 } from "./utils.js";
+
+type ErrCollection = {
+  checkDiags: VSDiagnostic[];
+  shotDiags: VSDiagnostic[];
+};
+
+function VSDiagsToMarkers(
+  errors: VSDiagnostic[],
+  srcModel: monaco.editor.ITextModel
+): monaco.editor.IMarkerData[] {
+  return errors.map((err) => {
+    const startPos = srcModel.getPositionAt(err.start_pos);
+    const endPos = srcModel.getPositionAt(err.end_pos);
+    const marker: monaco.editor.IMarkerData = {
+      severity: monaco.MarkerSeverity.Error,
+      message: err.message,
+      startLineNumber: startPos.lineNumber,
+      startColumn: startPos.column,
+      endLineNumber: endPos.lineNumber,
+      endColumn: endPos.column,
+    };
+
+    return marker;
+  });
+}
 
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
-  evtTarget: QscEventTarget;
-  showExpr: boolean;
+  compilerState: CompilerState;
   defaultShots: number;
-  showShots: boolean;
+  evtTarget: QscEventTarget;
   kataVerify?: string;
+  onRestartCompiler: () => void;
   shotError?: VSDiagnostic;
+  showExpr: boolean;
+  showShots: boolean;
 }) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const shotsRef = useRef<HTMLInputElement>(null);
+  const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
+  const editorDiv = useRef<HTMLDivElement>(null);
 
-  const [editor, setEditor] =
-    useState<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const [errors, setErrors] = useState<{ location: string; msg: string }[]>([]);
-  const [initialCode, setInitialCode] = useState(props.code);
+  const [shotCount, setShotCount] = useState(props.defaultShots);
+  const [runExpr, setRunExpr] = useState("");
+  const [errors, setErrors] = useState<{ location: string; msg: string[] }[]>(
+    []
+  );
+  const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
-  // Check if the initial code changed (i.e. sample selected) since first created
-  // If so, need to load it into the editor and save as the new initial code.
-  if (initialCode !== props.code) {
-    editor?.getModel()?.setValue(props.code || "");
-    editor?.revealLineNearTop(1);
-    setInitialCode(props.code);
+  function markErrors() {
+    const model = editor.current?.getModel();
+    if (!model) return;
+
+    const errs = [
+      ...errMarks.current.checkDiags,
+      ...errMarks.current.shotDiags,
+    ];
+
+    const markers = VSDiagsToMarkers(errs, model);
+    monaco.editor.setModelMarkers(model, "qsharp", markers);
+
+    const errList = markers.map((err) => ({
+      location: `main.qs@(${err.startLineNumber},${err.startColumn})`,
+      msg: err.message.split("\\\\n\\\\n"),
+    }));
+    setErrors(errList);
   }
+
+  async function onCheck() {
+    const code = editor.current?.getValue();
+    if (code == null) return;
+    const results = await props.compiler.checkCode(code);
+    errMarks.current.checkDiags = results;
+    markErrors();
+    setHasCheckErrors(results.length > 0);
+  }
+
+  async function onRun() {
+    const code = editor.current?.getValue();
+    if (code == null) return;
+    props.evtTarget.clearResults();
+
+    try {
+      if (props.kataVerify) {
+        // This is for a kata. Provide the verification code.
+        await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
+      } else {
+        await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
+      }
+    } catch (err) {
+      // This could fail for several reasons, e.g. the run being cancelled.
+      if (err === "terminated") {
+        log.info("Run was terminated");
+      } else {
+        log.error("Run failed with error: %o", err);
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!editorDiv.current) return;
+    const newEditor = monaco.editor.create(editorDiv.current, {
+      minimap: { enabled: false },
+      lineNumbersMinChars: 3,
+    });
+
+    editor.current = newEditor;
+    const srcModel = monaco.editor.createModel(props.code, "qsharp");
+    newEditor.setModel(srcModel);
+
+    function onResize() {
+      newEditor.layout();
+    }
+
+    // If the browser window resizes, tell the editor to update it's layout
+    window.addEventListener("resize", onResize);
+    return () => {
+      log.info("Disposing a monaco editor");
+      window.removeEventListener("resize", onResize);
+      newEditor.dispose();
+    };
+  }, []);
+
+  useEffect(() => {
+    const theEditor = editor.current;
+    if (!theEditor) return;
+    theEditor.getModel()?.onDidChangeContent(onCheck);
+  }, [props.compiler]);
+
+  useEffect(() => {
+    const theEditor = editor.current;
+    if (!theEditor) return;
+
+    theEditor.getModel()?.setValue(props.code);
+    theEditor.revealLineNearTop(1);
+    setShotCount(props.defaultShots);
+    setRunExpr("");
+  }, [props.code, props.defaultShots]);
+
+  useEffect(() => {
+    errMarks.current.shotDiags = props.shotError ? [props.shotError] : [];
+    markErrors();
+  }, [props.shotError]);
 
   // On reset, reload the initial code
   function onReset() {
-    editor?.getModel()?.setValue(initialCode || "");
+    const theEditor = editor.current;
+    if (!theEditor) return;
+    theEditor.getModel()?.setValue(props.code || "");
+    setShotCount(props.defaultShots);
+    setRunExpr("");
   }
 
   function onGetLink() {
-    const code = editor?.getModel()?.getValue();
+    const code = editor.current?.getModel()?.getValue();
     if (!code) return;
 
     const encodedCode = codeToBase64(code);
@@ -53,122 +180,14 @@ export function Editor(props: {
     // TODO: Alert user somehow link is on the clipboard
   }
 
-  useEffect(() => {
-    // Create the monaco editor
-    log.info("Creating a monaco editor");
-    const editorDiv = editorRef.current;
-    if (!editorDiv) return;
-    const editor = monaco.editor.create(editorDiv, {
-      minimap: { enabled: false },
-      lineNumbersMinChars: 3,
-    });
-    const srcModel = monaco.editor.createModel(props.code, "qsharp");
-    editor.setModel(srcModel);
-    setEditor(editor);
+  function shotCountChanged(e: Event) {
+    const target = e.target as HTMLInputElement;
+    setShotCount(parseInt(target.value) || 1);
+  }
 
-    // If the browser window resizes, tell the editor to update it's layout
-    window.addEventListener("resize", () => editor.layout());
-
-    // As code is edited check it for errors and update the error list
-    async function check() {
-      // TODO: As this is async, code may be being edited while earlier check calls are still running.
-      // Need to ensure that if this occurs, wait and try again on the next animation frame.
-      // i.e. Don't queue a bunch of checks if some are still outstanding
-      diagnosticsFrame = 0;
-      const code = srcModel.getValue();
-      const errs = await props.compiler.checkCode(code);
-
-      // Note that as this is async, the code may have changed since checkCode was called.
-      // TODO: Account for this scenario (e.g. delta positions with old source version)
-      squiggleDiagnostics(errs);
-      // TODO: Disable run button on errors: errs.length ?
-      //    runButton.setAttribute("disabled", "true") : runButton.removeAttribute("disabled");
-    }
-
-    // Helpers to turn errors into editor squiggles
-    function squiggleDiagnostics(errors: VSDiagnostic[]) {
-      const errList: { location: string; msg: string }[] = [];
-      const newMarkers = errors?.map((err) => {
-        const startPos = srcModel.getPositionAt(err.start_pos);
-        const endPos = srcModel.getPositionAt(err.end_pos);
-        const marker: monaco.editor.IMarkerData = {
-          severity: monaco.MarkerSeverity.Error,
-          message: err.message,
-          startLineNumber: startPos.lineNumber,
-          startColumn: startPos.column,
-          endLineNumber: endPos.lineNumber,
-          endColumn: endPos.column,
-        };
-        errList.push({
-          location: `main.qs@(${startPos.lineNumber},${startPos.column})`,
-          msg: err.message, // TODO: Handle line breaks and 'help' notes
-        });
-        return marker;
-      });
-      monaco.editor.setModelMarkers(srcModel, "qsharp", newMarkers);
-      setErrors(errList);
-    }
-
-    // While the code is changing, update the diagnostics as fast as the browser will render frames
-    let diagnosticsFrame = requestAnimationFrame(check);
-
-    srcModel.onDidChangeContent(() => {
-      if (!diagnosticsFrame) {
-        diagnosticsFrame = requestAnimationFrame(check);
-      }
-    });
-
-    return () => {
-      log.info("Disposing a monaco editor");
-      editor.dispose();
-    };
-  }, []);
-
-  useEffect(() => {
-    // This code highlights the error in the editor if you move to a shot result that has an error
-    const srcModel = editor?.getModel();
-    if (!srcModel) return;
-
-    if (props.shotError) {
-      const err = props.shotError;
-      const startPos = srcModel.getPositionAt(err.start_pos);
-      const endPos = srcModel.getPositionAt(err.end_pos);
-
-      const marker: monaco.editor.IMarkerData = {
-        severity: monaco.MarkerSeverity.Error,
-        message: err.message,
-        startLineNumber: startPos.lineNumber,
-        startColumn: startPos.column,
-        endLineNumber: endPos.lineNumber,
-        endColumn: endPos.column,
-      };
-      monaco.editor.setModelMarkers(srcModel, "qsharp", [marker]);
-      setErrors([
-        {
-          location: `main.qs@(${startPos.lineNumber},${startPos.column})`,
-          msg: err.message, // TODO: Handle line breaks and 'help' notes
-        },
-      ]);
-    } else {
-      monaco.editor.setModelMarkers(srcModel, "qsharp", []);
-      setErrors([]);
-    }
-  }, [props.shotError]);
-
-  async function onRun() {
-    const code = editor?.getModel()?.getValue();
-    const shotsInput = shotsRef.current;
-    const shots = shotsInput
-      ? parseInt(shotsInput.value) || 1
-      : props.defaultShots;
-    if (!code) return;
-    props.evtTarget.clearResults();
-    if (props.kataVerify) {
-      // This is for a kata. Provide the verification code.
-      await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
-    } else {
-      await props.compiler.run(code, "", shots, props.evtTarget);
-    }
+  function runExprChanged(e: Event) {
+    const target = e.target as HTMLInputElement;
+    setRunExpr(target.value);
   }
 
   return (
@@ -192,84 +211,80 @@ export function Editor(props: {
               stroke-linejoin="round"
             />
           </svg>
-          <svg onClick={onReset} width="24px" height="24px" viewBox="0 0 24 24">
+          <svg
+            onClick={onReset}
+            width="24px"
+            height="24px"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
             <title>Reset code to initial state</title>
-            <g
-              id="Page-1"
-              stroke="none"
-              stroke-width="1"
-              fill="none"
-              fill-rule="evenodd"
-            >
-              <g id="Reload">
-                <rect
-                  id="Rectangle"
-                  fill-rule="nonzero"
-                  x="0"
-                  y="0"
-                  width="24"
-                  height="24"
-                >
-                  {" "}
-                </rect>
-                <path
-                  d="M4,13 C4,17.4183 7.58172,21 12,21 C16.4183,21 20,17.4183 20,13 C20,8.58172 16.4183,5 12,5 C10.4407,5 8.98566,5.44609 7.75543,6.21762"
-                  id="Path"
-                  stroke="#0C0310"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                ></path>
-                <path
-                  d="M9.2384,1.89795 L7.49856,5.83917 C7.27552,6.34441 7.50429,6.9348 8.00954,7.15784 L11.9508,8.89768"
-                  id="Path"
-                  stroke="#0C0310"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                ></path>
-              </g>
-            </g>
+            <path
+              d="M4,13 C4,17.4183 7.58172,21 12,21 C16.4183,21 20,17.4183 20,13 C20,8.58172 16.4183,5 12,5 C10.4407,5 8.98566,5.44609 7.75543,6.21762"
+              stroke="#0C0310"
+              stroke-width="2"
+              stroke-linecap="round"
+            ></path>
+            <path
+              d="M9.2384,1.89795 L7.49856,5.83917 C7.27552,6.34441 7.50429,6.9348 8.00954,7.15784 L11.9508,8.89768"
+              stroke="#0C0310"
+              stroke-width="2"
+              stroke-linecap="round"
+            ></path>
           </svg>
         </div>
       </div>
-      <div id="editor" ref={editorRef}></div>
-      <div id="button-row">
+      <div class="code-editor" ref={editorDiv}></div>
+      <div class="button-row">
         {props.showExpr ? (
           <>
             <span>Start</span>
-            <input id="expr" value="" />
+            <input
+              style="width: 160px"
+              value={runExpr}
+              onChange={runExprChanged}
+            />
           </>
         ) : null}
         {props.showShots ? (
           <>
             <span>Shots</span>
             <input
-              id="shot"
+              style="width: 88px;"
               type="number"
-              value={props.defaultShots || 100}
+              value={shotCount || 100}
               max="1000"
               min="1"
-              ref={shotsRef}
+              onChange={shotCountChanged}
             />
           </>
         ) : null}
         <button
-          id="run"
           class="main-button"
           onClick={onRun}
-          disabled={errors.length > 0}
+          disabled={hasCheckErrors || props.compilerState === "busy"}
         >
           Run
         </button>
+        <button
+          class="main-button"
+          onClick={props.onRestartCompiler}
+          disabled={props.compilerState === "idle"}
+        >
+          Cancel
+        </button>
       </div>
-      {errors.length ? (
-        <div class="error-list">
-          {errors.map((err) => (
-            <div class="error-row">
-              <span>{err.location}</span>: {err.msg}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <div class="error-list">
+        {errors.map((err) => (
+          <div class="error-row">
+            <span>{err.location}: </span>
+            <span>{err.msg[0]}</span>
+            {err.msg.length > 1 ? (
+              <div class="error-help">{err.msg[1]}</div>
+            ) : null}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -2,13 +2,29 @@
 // Licensed under the MIT License.
 
 import { useEffect, useRef } from "preact/hooks";
-import { ICompilerWorker, Kata, QscEventTarget } from "qsharp";
+import { CompilerState, ICompilerWorker, Kata, QscEventTarget } from "qsharp";
 import { Editor } from "./editor.js";
 import { Results } from "./results.js";
 
-export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
+export function Kata(props: {
+  kata: Kata;
+  compiler: ICompilerWorker;
+  compilerState: CompilerState;
+  onRestartCompiler: () => void;
+}) {
   const kataContent = useRef<HTMLDivElement>(null);
   const itemContent = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Need to keep around QscEventTargets around on re-render unless the Kata changes.
+  const lastKata = useRef<Kata>();
+  const handlerMap = useRef<QscEventTarget[]>();
+  if (lastKata.current !== props.kata) {
+    lastKata.current = props.kata;
+
+    // This gives an extra EventTarget we don't need for 'reading' types, but that's fine.
+    handlerMap.current = props.kata.items.map(() => new QscEventTarget(true));
+  }
+  const itemEvtHandlers = handlerMap.current || [];
 
   useEffect(() => {
     // MathJax rendering inside of React components seems to mess them up a bit,
@@ -41,7 +57,6 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
           );
         }
 
-        const evtTarget = new QscEventTarget(true);
         return (
           <div>
             <div ref={(elem) => (itemContent.current[idx] = elem)}>
@@ -51,8 +66,10 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
               defaultShots={1}
               showExpr={false}
               showShots={false}
-              evtTarget={evtTarget}
+              evtTarget={itemEvtHandlers[idx]}
               compiler={props.compiler}
+              compilerState={props.compilerState}
+              onRestartCompiler={props.onRestartCompiler}
               code={
                 item.type === "exercise"
                   ? item.placeholderImplementation
@@ -65,7 +82,7 @@ export function Kata(props: { kata: Kata; compiler: ICompilerWorker }) {
             ></Editor>
             <Results
               key={item.id + "-results"}
-              evtTarget={evtTarget}
+              evtTarget={itemEvtHandlers[idx]}
               showPanel={false}
               kataMode={true}
             ></Results>

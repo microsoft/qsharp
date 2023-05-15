@@ -2,21 +2,6 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Core {
-
-    /// # Summary
-    /// Returns the number of elements in an array.
-    ///
-    /// # Input
-    /// ## a
-    /// Input array.
-    ///
-    /// # Output
-    /// The total count of elements in an array.
-    ///
-    function Length<'T>(a : 'T[]) : Int {
-        a::Length
-    }
-
     /// # Summary
     /// Returns the defined start value of the given range.
     ///
@@ -97,9 +82,4 @@ namespace Microsoft.Quantum.Core {
         let start = r::Start + ((r::End - r::Start) / r::Step) * r::Step;
         start..-r::Step..r::Start
     }
-
-    function AsString<'T>(v : 'T) : String {
-        body intrinsic;
-    }
-
 }

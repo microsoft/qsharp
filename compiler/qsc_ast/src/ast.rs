@@ -9,7 +9,6 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use std::{
-    collections::HashSet,
     fmt::{self, Display, Formatter, Write},
     rc::Rc,
 };
@@ -429,26 +428,6 @@ pub struct FunctorExpr {
     pub kind: FunctorExprKind,
 }
 
-impl FunctorExpr {
-    /// Evaluates the functor expression.
-    #[must_use]
-    pub fn to_set(&self) -> HashSet<Functor> {
-        match &self.kind {
-            FunctorExprKind::BinOp(op, lhs, rhs) => {
-                let mut functors = lhs.to_set();
-                let rhs_functors = rhs.to_set();
-                match op {
-                    SetOp::Union => functors.extend(rhs_functors),
-                    SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
-                }
-                functors
-            }
-            &FunctorExprKind::Lit(functor) => [functor].into(),
-            FunctorExprKind::Paren(inner) => inner.to_set(),
-        }
-    }
-}
-
 impl Display for FunctorExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Functor Expr {} {}: {}", self.id, self.span, self.kind)
@@ -695,6 +674,8 @@ pub enum ExprKind {
     If(Box<Expr>, Block, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
+    /// An interpolated string.
+    Interpolate(Vec<StringComponent>),
     /// A lambda: `a -> b` for a function and `a => b` for an operation.
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
@@ -741,6 +722,7 @@ impl Display for ExprKind {
             ExprKind::Hole => write!(indent, "Hole")?,
             ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
+            ExprKind::Interpolate(components) => display_interpolate(indent, components)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
@@ -890,6 +872,22 @@ fn display_index(mut indent: Indented<Formatter>, array: &Expr, index: &Expr) ->
     Ok(())
 }
 
+fn display_interpolate(
+    mut indent: Indented<Formatter>,
+    components: &[StringComponent],
+) -> fmt::Result {
+    write!(indent, "Interpolate:")?;
+    indent = set_indentation(indent, 1);
+    for component in components {
+        match component {
+            StringComponent::Expr(expr) => write!(indent, "\nExpr: {expr}")?,
+            StringComponent::Lit(str) => write!(indent, "\nLit: {str:?}")?,
+        }
+    }
+
+    Ok(())
+}
+
 fn display_lambda(
     mut indent: Indented<Formatter>,
     kind: CallableKind,
@@ -984,6 +982,15 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// An interpolated string component.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StringComponent {
+    /// An expression.
+    Expr(Expr),
+    /// A string literal.
+    Lit(Rc<str>),
 }
 
 /// A pattern.
@@ -1227,7 +1234,7 @@ impl Display for Lit {
             Lit::Int(val) => write!(f, "Int({val})")?,
             Lit::Pauli(val) => write!(f, "Pauli({val:?})")?,
             Lit::Result(val) => write!(f, "Result({val:?})")?,
-            Lit::String(val) => write!(f, "String(\"{val}\")")?,
+            Lit::String(val) => write!(f, "String({val:?})")?,
         }
         Ok(())
     }

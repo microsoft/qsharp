@@ -1,23 +1,38 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use crate::{
     resolve::{self, Resolutions},
     typeck::{convert, Tys},
 };
+use miette::Diagnostic;
 use qsc_ast::ast;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
 };
-use std::{clone::Clone, vec};
+use std::{clone::Clone, collections::HashSet, rc::Rc, vec};
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub(super) enum Error {
+    #[error("unknown attribute {0}")]
+    #[diagnostic(help("supported attributes are: EntryPoint"))]
+    UnknownAttr(String, #[label] Span),
+    #[error("invalid attribute arguments: expected {0}")]
+    InvalidAttrArgs(&'static str, #[label] Span),
+}
 
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
+    errors: Vec<Error>,
 }
 
 impl Lowerer {
@@ -27,6 +42,7 @@ impl Lowerer {
             nodes: IndexMap::new(),
             parent: None,
             items: Vec::new(),
+            errors: Vec::new(),
         }
     }
 
@@ -38,6 +54,10 @@ impl Lowerer {
         self.items.drain(..)
     }
 
+    pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
+        self.errors.drain(..)
+    }
+
     pub(super) fn with<'a>(&'a mut self, resolutions: &'a Resolutions, tys: &'a Tys) -> With {
         With {
             lowerer: self,
@@ -46,8 +66,8 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn into_assigner(self) -> Assigner {
-        self.assigner
+    pub(super) fn into_assigner(self) -> (Assigner, Vec<Error>) {
+        (self.assigner, self.errors)
     }
 }
 
@@ -88,7 +108,7 @@ impl With<'_> {
             span: namespace.span,
             parent: None,
             attrs: Vec::new(),
-            visibility: None,
+            visibility: hir::Visibility::Public,
             kind: hir::ItemKind::Namespace(name, items),
         });
 
@@ -96,8 +116,17 @@ impl With<'_> {
     }
 
     fn lower_item(&mut self, item: &ast::Item) -> Option<LocalItemId> {
-        let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
-        let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
+        let attrs = item
+            .attrs
+            .iter()
+            .filter_map(|a| self.lower_attr(a))
+            .collect();
+
+        let visibility = item
+            .visibility
+            .as_ref()
+            .map_or(hir::Visibility::Public, lower_visibility);
+
         let (name_id, kind) = match &item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Callable(decl) => (
@@ -125,23 +154,23 @@ impl With<'_> {
         Some(id)
     }
 
-    fn lower_attr(&mut self, attr: &ast::Attr) -> hir::Attr {
-        hir::Attr {
-            id: self.lower_id(attr.id),
-            span: attr.span,
-            name: self.lower_ident(&attr.name),
-            arg: self.lower_expr(&attr.arg),
-        }
-    }
-
-    fn lower_visibility(&mut self, visibility: &ast::Visibility) -> hir::Visibility {
-        hir::Visibility {
-            id: self.lower_id(visibility.id),
-            span: visibility.span,
-            kind: match visibility.kind {
-                ast::VisibilityKind::Public => hir::VisibilityKind::Public,
-                ast::VisibilityKind::Internal => hir::VisibilityKind::Internal,
-            },
+    fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
+        if attr.name.name.as_ref() == "EntryPoint" {
+            match &attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::EntryPoint),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()", attr.arg.span));
+                    None
+                }
+            }
+        } else {
+            self.lowerer.errors.push(Error::UnknownAttr(
+                attr.name.name.to_string(),
+                attr.name.span,
+            ));
+            None
         }
     }
 
@@ -154,7 +183,7 @@ impl With<'_> {
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(&decl.input),
             output: convert::ty_from_ast(self.resolutions, &decl.output).0,
-            functors: decl.functors.as_ref().map(|f| self.lower_functor_expr(f)),
+            functors: callable_functors(decl),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
                     hir::CallableBody::Block(self.lower_block(block))
@@ -207,29 +236,6 @@ impl With<'_> {
                 span: def.span,
                 kind: hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect()),
             },
-        }
-    }
-
-    fn lower_functor_expr(&mut self, expr: &ast::FunctorExpr) -> hir::FunctorExpr {
-        match &expr.kind {
-            ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExpr {
-                id: self.lower_id(expr.id),
-                span: expr.span,
-                kind: hir::FunctorExprKind::BinOp(
-                    match op {
-                        ast::SetOp::Union => hir::SetOp::Union,
-                        ast::SetOp::Intersect => hir::SetOp::Intersect,
-                    },
-                    Box::new(self.lower_functor_expr(lhs)),
-                    Box::new(self.lower_functor_expr(rhs)),
-                ),
-            },
-            &ast::FunctorExprKind::Lit(functor) => hir::FunctorExpr {
-                id: self.lower_id(expr.id),
-                span: expr.span,
-                kind: hir::FunctorExprKind::Lit(lower_functor(functor)),
-            },
-            ast::FunctorExprKind::Paren(inner) => self.lower_functor_expr(inner),
         }
     }
 
@@ -348,7 +354,7 @@ impl With<'_> {
                 self.lower_pat(input),
                 Box::new(self.lower_expr(body)),
             ),
-            ast::ExprKind::Lit(lit) => hir::ExprKind::Lit(lower_lit(lit)),
+            ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
@@ -362,6 +368,12 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
+            ast::ExprKind::Interpolate(components) => hir::ExprKind::String(
+                components
+                    .iter()
+                    .map(|c| self.lower_string_component(c))
+                    .collect(),
+            ),
             ast::ExprKind::TernOp(op, lhs, middle, rhs) => hir::ExprKind::TernOp(
                 lower_ternop(*op),
                 Box::new(self.lower_expr(lhs)),
@@ -384,6 +396,13 @@ impl With<'_> {
             span: expr.span,
             ty,
             kind,
+        }
+    }
+
+    fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {
+        match component {
+            ast::StringComponent::Expr(expr) => hir::StringComponent::Expr(self.lower_expr(expr)),
+            ast::StringComponent::Lit(str) => hir::StringComponent::Lit(Rc::clone(str)),
         }
     }
 
@@ -464,6 +483,13 @@ impl With<'_> {
     }
 }
 
+fn lower_visibility(visibility: &ast::Visibility) -> hir::Visibility {
+    match visibility.kind {
+        ast::VisibilityKind::Public => hir::Visibility::Public,
+        ast::VisibilityKind::Internal => hir::Visibility::Internal,
+    }
+}
+
 fn lower_callable_kind(kind: ast::CallableKind) -> hir::CallableKind {
     match kind {
         ast::CallableKind::Function => hir::CallableKind::Function,
@@ -513,19 +539,25 @@ fn lower_ternop(op: ast::TernOp) -> hir::TernOp {
     }
 }
 
-fn lower_lit(lit: &ast::Lit) -> hir::Lit {
+fn lower_lit(lit: &ast::Lit) -> hir::ExprKind {
     match lit {
-        ast::Lit::BigInt(i) => hir::Lit::BigInt(i.clone()),
-        &ast::Lit::Bool(b) => hir::Lit::Bool(b),
-        &ast::Lit::Double(d) => hir::Lit::Double(d),
-        &ast::Lit::Int(i) => hir::Lit::Int(i),
-        ast::Lit::Pauli(ast::Pauli::I) => hir::Lit::Pauli(hir::Pauli::I),
-        ast::Lit::Pauli(ast::Pauli::X) => hir::Lit::Pauli(hir::Pauli::X),
-        ast::Lit::Pauli(ast::Pauli::Y) => hir::Lit::Pauli(hir::Pauli::Y),
-        ast::Lit::Pauli(ast::Pauli::Z) => hir::Lit::Pauli(hir::Pauli::Z),
-        ast::Lit::Result(ast::Result::One) => hir::Lit::Result(hir::Result::One),
-        ast::Lit::Result(ast::Result::Zero) => hir::Lit::Result(hir::Result::Zero),
-        ast::Lit::String(s) => hir::Lit::String(s.clone()),
+        ast::Lit::BigInt(value) => hir::ExprKind::Lit(hir::Lit::BigInt(value.clone())),
+        &ast::Lit::Bool(value) => hir::ExprKind::Lit(hir::Lit::Bool(value)),
+        &ast::Lit::Double(value) => hir::ExprKind::Lit(hir::Lit::Double(value)),
+        &ast::Lit::Int(value) => hir::ExprKind::Lit(hir::Lit::Int(value)),
+        ast::Lit::Pauli(ast::Pauli::I) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::I)),
+        ast::Lit::Pauli(ast::Pauli::X) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::X)),
+        ast::Lit::Pauli(ast::Pauli::Y) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::Y)),
+        ast::Lit::Pauli(ast::Pauli::Z) => hir::ExprKind::Lit(hir::Lit::Pauli(hir::Pauli::Z)),
+        ast::Lit::Result(ast::Result::One) => {
+            hir::ExprKind::Lit(hir::Lit::Result(hir::Result::One))
+        }
+        ast::Lit::Result(ast::Result::Zero) => {
+            hir::ExprKind::Lit(hir::Lit::Result(hir::Result::Zero))
+        }
+        ast::Lit::String(value) => {
+            hir::ExprKind::String(vec![hir::StringComponent::Lit(Rc::clone(value))])
+        }
     }
 }
 
@@ -534,4 +566,24 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
         ast::Functor::Adj => hir::Functor::Adj,
         ast::Functor::Ctl => hir::Functor::Ctl,
     }
+}
+
+fn callable_functors(callable: &ast::CallableDecl) -> HashSet<hir::Functor> {
+    let mut functors = callable
+        .functors
+        .as_ref()
+        .map_or(HashSet::new(), convert::eval_functor_expr);
+
+    if let ast::CallableBody::Specs(specs) = &callable.body {
+        for spec in specs {
+            match spec.spec {
+                ast::Spec::Body => {}
+                ast::Spec::Adj => functors.extend([hir::Functor::Adj]),
+                ast::Spec::Ctl => functors.extend([hir::Functor::Ctl]),
+                ast::Spec::CtlAdj => functors.extend([hir::Functor::Adj, hir::Functor::Ctl]),
+            }
+        }
+    }
+
+    functors
 }
