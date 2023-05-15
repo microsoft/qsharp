@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Package, Pat, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt,
-    StmtKind, StringComponent, TyDef, TyDefKind, Visibility,
+    Block, CallableBody, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat,
+    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TyDef,
+    TyDefKind,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -16,12 +16,6 @@ pub trait Visitor<'a>: Sized {
         walk_item(self, item);
     }
 
-    fn visit_attr(&mut self, attr: &'a Attr) {
-        walk_attr(self, attr);
-    }
-
-    fn visit_visibility(&mut self, _: &'a Visibility) {}
-
     fn visit_ty_def(&mut self, def: &'a TyDef) {
         walk_ty_def(self, def);
     }
@@ -32,10 +26,6 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
         walk_spec_decl(self, decl);
-    }
-
-    fn visit_functor_expr(&mut self, expr: &'a FunctorExpr) {
-        walk_functor_expr(self, expr);
     }
 
     fn visit_block(&mut self, block: &'a Block) {
@@ -67,8 +57,6 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 }
 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
-    item.attrs.iter().for_each(|a| vis.visit_attr(a));
-    item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) => vis.visit_ident(name),
@@ -77,11 +65,6 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
             vis.visit_ty_def(def);
         }
     }
-}
-
-pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
-    vis.visit_ident(&attr.name);
-    vis.visit_expr(&attr.arg);
 }
 
 pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
@@ -95,7 +78,6 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
     vis.visit_ident(&decl.name);
     decl.ty_params.iter().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&decl.input);
-    decl.functors.iter().for_each(|f| vis.visit_functor_expr(f));
     match &decl.body {
         CallableBody::Block(block) => vis.visit_block(block),
         CallableBody::Specs(specs) => specs.iter().for_each(|s| vis.visit_spec_decl(s)),
@@ -109,16 +91,6 @@ pub fn walk_spec_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a SpecDecl) {
             vis.visit_pat(pat);
             vis.visit_block(block);
         }
-    }
-}
-
-pub fn walk_functor_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a FunctorExpr) {
-    match &expr.kind {
-        FunctorExprKind::BinOp(_, lhs, rhs) => {
-            vis.visit_functor_expr(lhs);
-            vis.visit_functor_expr(rhs);
-        }
-        FunctorExprKind::Lit(_) => {}
     }
 }
 

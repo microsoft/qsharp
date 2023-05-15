@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::hir::{self, Item, ItemId, ItemKind, Package, PackageId, VisibilityKind};
+use crate::hir::{self, Item, ItemId, ItemKind, Package, PackageId, Visibility};
 use qsc_data_structures::index_map;
 use std::{collections::HashMap, rc::Rc};
 
 pub struct Global {
     pub namespace: Rc<str>,
     pub name: Rc<str>,
-    pub visibility: VisibilityKind,
+    pub visibility: Visibility,
     pub kind: Kind,
 }
 
@@ -84,7 +84,6 @@ impl PackageIter<'_> {
             .expect("parent should exist");
 
         let ItemKind::Namespace(namespace, _) = &parent.kind else { return None; };
-        let visibility = item.visibility.map_or(VisibilityKind::Public, |v| v.kind);
         let id = ItemId {
             package: self.id,
             item: item.id,
@@ -94,14 +93,14 @@ impl PackageIter<'_> {
             ItemKind::Callable(decl) => Some(Global {
                 namespace: Rc::clone(&namespace.name),
                 name: Rc::clone(&decl.name.name),
-                visibility,
+                visibility: item.visibility,
                 kind: Kind::Term(Term { id, ty: decl.ty() }),
             }),
             ItemKind::Ty(name, def) => {
                 self.next = Some(Global {
                     namespace: Rc::clone(&namespace.name),
                     name: Rc::clone(&name.name),
-                    visibility,
+                    visibility: item.visibility,
                     kind: Kind::Term(Term {
                         id,
                         ty: def.cons_ty(id),
@@ -111,7 +110,7 @@ impl PackageIter<'_> {
                 Some(Global {
                     namespace: Rc::clone(&namespace.name),
                     name: Rc::clone(&name.name),
-                    visibility,
+                    visibility: item.visibility,
                     kind: Kind::Ty(Ty { id }),
                 })
             }

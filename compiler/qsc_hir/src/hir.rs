@@ -218,7 +218,7 @@ pub struct Item {
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
-    pub visibility: Option<Visibility>,
+    pub visibility: Visibility,
     /// The item kind.
     pub kind: ItemKind,
 }
@@ -226,16 +226,17 @@ pub struct Item {
 impl Display for Item {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Item {} {}:", self.id, self.span)?;
+        write!(
+            indent,
+            "Item {} {} ({:?}):",
+            self.id, self.span, self.visibility
+        )?;
         indent = set_indentation(indent, 1);
         if let Some(parent) = self.parent {
             write!(indent, "\nParent: {parent}")?;
         }
         for attr in &self.attrs {
-            write!(indent, "\n{attr}")?;
-        }
-        if let Some(visibility) = &self.visibility {
-            write!(indent, "\n{visibility}")?;
+            write!(indent, "\n{attr:?}")?;
         }
         write!(indent, "\n{}", self.kind)?;
         Ok(())
@@ -272,46 +273,6 @@ impl Display for ItemKind {
             }
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
         }
-    }
-}
-
-/// A visibility modifier.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Visibility {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The visibility kind.
-    pub kind: VisibilityKind,
-}
-
-impl Display for Visibility {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Visibility {} {} ({:?})", self.id, self.span, self.kind)
-    }
-}
-
-/// An attribute.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Attr {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The name of the attribute.
-    pub name: Ident,
-    /// The argument to the attribute.
-    pub arg: Expr,
-}
-
-impl Display for Attr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Attr {} {} ({}):", self.id, self.span, self.name)?;
-        indent = set_indentation(indent, 1);
-        write!(indent, "\n{}", self.arg)?;
-        Ok(())
     }
 }
 
@@ -411,7 +372,7 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: Option<FunctorExpr>,
+    pub functors: HashSet<Functor>,
     /// The body of the callable.
     pub body: CallableBody,
 }
@@ -424,27 +385,8 @@ impl CallableDecl {
             self.kind,
             Box::new(self.input.ty.clone()),
             Box::new(self.output.clone()),
-            self.functors(),
+            self.functors.clone(),
         )
-    }
-
-    fn functors(&self) -> HashSet<Functor> {
-        let mut functors = self.functors.as_ref().map_or(HashSet::new(), |f| {
-            f.to_set().into_iter().map(Into::into).collect()
-        });
-
-        if let CallableBody::Specs(specs) = &self.body {
-            for spec in specs {
-                match spec.spec {
-                    Spec::Body => {}
-                    Spec::Adj => functors.extend([Functor::Adj]),
-                    Spec::Ctl => functors.extend([Functor::Ctl]),
-                    Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
-                }
-            }
-        }
-
-        functors
     }
 }
 
@@ -468,9 +410,7 @@ impl Display for CallableDecl {
         }
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
-        if let Some(f) = &self.functors {
-            write!(indent, "\nfunctors: {f}")?;
-        }
+        write!(indent, "\nfunctors: {}", functors_as_str(&self.functors))?;
         write!(indent, "\nbody: {}", self.body)?;
         Ok(())
     }
@@ -547,60 +487,6 @@ impl Display for SpecBody {
             }
         }
         Ok(())
-    }
-}
-
-/// An expression that describes a set of functors.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct FunctorExpr {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The functor expression kind.
-    pub kind: FunctorExprKind,
-}
-
-impl FunctorExpr {
-    /// Evaluates the functor expression.
-    #[must_use]
-    pub fn to_set(&self) -> HashSet<Functor> {
-        match &self.kind {
-            FunctorExprKind::BinOp(op, lhs, rhs) => {
-                let mut functors = lhs.to_set();
-                let rhs_functors = rhs.to_set();
-                match op {
-                    SetOp::Union => functors.extend(rhs_functors),
-                    SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
-                }
-                functors
-            }
-            &FunctorExprKind::Lit(functor) => [functor].into(),
-        }
-    }
-}
-
-impl Display for FunctorExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Functor Expr {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A functor expression kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum FunctorExprKind {
-    /// A binary operation.
-    BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
-    /// A literal for a specific functor.
-    Lit(Functor),
-}
-
-impl Display for FunctorExprKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            FunctorExprKind::BinOp(op, l, r) => write!(f, "BinOp {op:?}: ({l}) ({r})"),
-            FunctorExprKind::Lit(func) => write!(f, "{func:?}"),
-        }
     }
 }
 
@@ -1210,6 +1096,13 @@ impl Display for Ident {
     }
 }
 
+/// An attribute.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Attr {
+    /// Indicates that a callable is an entry point to a program.
+    EntryPoint,
+}
+
 /// A type.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Ty {
@@ -1246,16 +1139,12 @@ impl Display for Ty {
                     CallableKind::Function => "->",
                     CallableKind::Operation => "=>",
                 };
-                let is = match (
-                    functors.contains(&Functor::Adj),
-                    functors.contains(&Functor::Ctl),
-                ) {
-                    (true, true) => " is Adj + Ctl",
-                    (true, false) => " is Adj",
-                    (false, true) => " is Ctl",
-                    (false, false) => "",
-                };
-                write!(f, "({input} {arrow} {output}{is})")
+                write!(f, "({input} {arrow} {output}")?;
+                if !functors.is_empty() {
+                    f.write_str(" is ")?;
+                    f.write_str(functors_as_str(functors))?;
+                }
+                f.write_char(')')
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
@@ -1371,9 +1260,9 @@ impl FromStr for PrimField {
     }
 }
 
-/// A declaration visibility kind.
+/// The visibility of a declaration.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum VisibilityKind {
+pub enum Visibility {
     /// Visible everywhere.
     Public,
     /// Visible within a package.
@@ -1589,11 +1478,14 @@ pub enum TernOp {
     Update,
 }
 
-/// A set operator.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum SetOp {
-    /// The set union.
-    Union,
-    /// The set intersection.
-    Intersect,
+fn functors_as_str(functors: &HashSet<Functor>) -> &str {
+    match (
+        functors.contains(&Functor::Adj),
+        functors.contains(&Functor::Ctl),
+    ) {
+        (true, true) => "Adj + Ctl",
+        (true, false) => "Adj",
+        (false, true) => "Ctl",
+        (false, false) => "",
+    }
 }

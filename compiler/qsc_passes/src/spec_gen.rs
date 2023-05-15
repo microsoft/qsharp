@@ -17,12 +17,12 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, CallableBody, CallableDecl, Functor, FunctorExprKind, Ident, NodeId, Pat, PatKind,
-        PrimTy, Res, SetOp, Spec, SpecBody, SpecDecl, SpecGen, Ty,
+        Block, CallableBody, CallableDecl, Functor, Ident, NodeId, Pat, PatKind, PrimTy, Res, Spec,
+        SpecBody, SpecDecl, SpecGen, Ty,
     },
     mut_visit::MutVisitor,
 };
-use std::{collections::HashSet, option::Option};
+use std::option::Option;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -71,95 +71,74 @@ struct SpecPlacePass;
 
 impl MutVisitor for SpecPlacePass {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
-        if let Some(functors) = &decl.functors {
-            let mut func_set = HashSet::new();
-            collect_functors(&functors.kind, &mut func_set);
-            let is_adj = func_set.contains(&Functor::Adj);
-            let is_ctl = func_set.contains(&Functor::Ctl);
-            let is_ctladj = is_adj && is_ctl;
+        if decl.functors.is_empty() {
+            return;
+        }
 
-            let mut spec_decl = match &decl.body {
-                CallableBody::Block(body) => vec![SpecDecl {
-                    id: NodeId::default(),
-                    span: body.span,
-                    spec: Spec::Body,
-                    body: SpecBody::Impl(
-                        Pat {
-                            id: NodeId::default(),
-                            span: body.span,
-                            ty: decl.input.ty.clone(),
-                            kind: PatKind::Elided,
-                        },
-                        body.clone(),
-                    ),
-                }],
-                CallableBody::Specs(spec_decl) => spec_decl.clone(),
+        let is_adj = decl.functors.contains(&Functor::Adj);
+        let is_ctl = decl.functors.contains(&Functor::Ctl);
+        let is_ctladj = is_adj && is_ctl;
+
+        let mut spec_decl = match &decl.body {
+            CallableBody::Block(body) => vec![SpecDecl {
+                id: NodeId::default(),
+                span: body.span,
+                spec: Spec::Body,
+                body: SpecBody::Impl(
+                    Pat {
+                        id: NodeId::default(),
+                        span: body.span,
+                        ty: decl.input.ty.clone(),
+                        kind: PatKind::Elided,
+                    },
+                    body.clone(),
+                ),
+            }],
+            CallableBody::Specs(spec_decl) => spec_decl.clone(),
+        };
+
+        if is_adj && spec_decl.iter().all(|s| s.spec != Spec::Adj) {
+            spec_decl.push(SpecDecl {
+                id: NodeId::default(),
+                span: decl.span,
+                spec: Spec::Adj,
+                body: SpecBody::Gen(SpecGen::Invert),
+            });
+        }
+
+        if is_ctl && spec_decl.iter().all(|s| s.spec != Spec::Ctl) {
+            spec_decl.push(SpecDecl {
+                id: NodeId::default(),
+                span: decl.span,
+                spec: Spec::Ctl,
+                body: SpecBody::Gen(SpecGen::Distribute),
+            });
+        }
+
+        let has_explicit_adj = spec_decl
+            .iter()
+            .any(|s| s.spec == Spec::Adj && matches!(s.body, SpecBody::Impl(..)));
+        let has_explicit_ctl = spec_decl
+            .iter()
+            .any(|s| s.spec == Spec::Ctl && matches!(s.body, SpecBody::Impl(..)));
+
+        if is_ctladj && spec_decl.iter().all(|s| s.spec != Spec::CtlAdj) {
+            let gen = if is_self_adjoint(&spec_decl) {
+                SpecGen::Slf
+            } else if has_explicit_ctl && !has_explicit_adj {
+                SpecGen::Invert
+            } else {
+                SpecGen::Distribute
             };
-
-            if is_adj && spec_decl.iter().all(|s| s.spec != Spec::Adj) {
-                spec_decl.push(SpecDecl {
-                    id: NodeId::default(),
-                    span: decl.span,
-                    spec: Spec::Adj,
-                    body: SpecBody::Gen(SpecGen::Invert),
-                });
-            }
-
-            if is_ctl && spec_decl.iter().all(|s| s.spec != Spec::Ctl) {
-                spec_decl.push(SpecDecl {
-                    id: NodeId::default(),
-                    span: decl.span,
-                    spec: Spec::Ctl,
-                    body: SpecBody::Gen(SpecGen::Distribute),
-                });
-            }
-
-            let has_explicit_adj = spec_decl
-                .iter()
-                .any(|s| s.spec == Spec::Adj && matches!(s.body, SpecBody::Impl(..)));
-            let has_explicit_ctl = spec_decl
-                .iter()
-                .any(|s| s.spec == Spec::Ctl && matches!(s.body, SpecBody::Impl(..)));
-
-            if is_ctladj && spec_decl.iter().all(|s| s.spec != Spec::CtlAdj) {
-                let gen = if is_self_adjoint(&spec_decl) {
-                    SpecGen::Slf
-                } else if has_explicit_ctl && !has_explicit_adj {
-                    SpecGen::Invert
-                } else {
-                    SpecGen::Distribute
-                };
-                spec_decl.push(SpecDecl {
-                    id: NodeId::default(),
-                    span: decl.span,
-                    spec: Spec::CtlAdj,
-                    body: SpecBody::Gen(gen),
-                });
-            }
-
-            decl.body = CallableBody::Specs(spec_decl);
+            spec_decl.push(SpecDecl {
+                id: NodeId::default(),
+                span: decl.span,
+                spec: Spec::CtlAdj,
+                body: SpecBody::Gen(gen),
+            });
         }
-    }
-}
 
-fn collect_functors(func_kind: &FunctorExprKind, set: &mut HashSet<Functor>) {
-    match func_kind {
-        FunctorExprKind::BinOp(op, lhs, rhs) => match op {
-            SetOp::Union => {
-                collect_functors(&lhs.kind, set);
-                collect_functors(&rhs.kind, set);
-            }
-            SetOp::Intersect => {
-                let mut lhs_set = HashSet::new();
-                let mut rhs_set = HashSet::new();
-                collect_functors(&lhs.kind, &mut lhs_set);
-                collect_functors(&rhs.kind, &mut rhs_set);
-                set.extend(lhs_set.intersection(&rhs_set));
-            }
-        },
-        FunctorExprKind::Lit(func) => {
-            set.insert(*func);
-        }
+        decl.body = CallableBody::Specs(spec_decl);
     }
 }
 

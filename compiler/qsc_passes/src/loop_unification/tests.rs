@@ -36,14 +36,15 @@ fn convert_for_array() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-133]:
+                Item 0 [0-133] (Public):
                     Namespace (Ident 15 [10-14] "test"): Item 1
-                Item 1 [21-131]:
+                Item 1 [21-131] (Public):
                     Parent: 0
                     Callable 0 [21-131] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
+                        functors: 
                         body: Block: Block 4 [56-131] [Type Unit]:
                             Stmt 5 [66-125]: Expr: Expr _id_ [66-125] [Type Unit]: Expr Block: Block _id_ [66-125] [Type Unit]:
                                 Stmt _id_ [75-78]: Local (Immutable):
@@ -91,14 +92,15 @@ fn convert_for_array_deconstruct() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-148]:
+                Item 0 [0-148] (Public):
                     Namespace (Ident 18 [10-14] "test"): Item 1
-                Item 1 [21-146]:
+                Item 1 [21-146] (Public):
                     Parent: 0
                     Callable 0 [21-146] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-57] [Type ((Int, Double))[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
+                        functors: 
                         body: Block: Block 4 [66-146] [Type Unit]:
                             Stmt 5 [76-140]: Expr: Expr _id_ [76-140] [Type Unit]: Expr Block: Block _id_ [76-140] [Type Unit]:
                                 Stmt _id_ [90-93]: Local (Immutable):
@@ -148,14 +150,15 @@ fn convert_for_slice() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-143]:
+                Item 0 [0-143] (Public):
                     Namespace (Ident 21 [10-14] "test"): Item 1
-                Item 1 [21-141]:
+                Item 1 [21-141] (Public):
                     Parent: 0
                     Callable 0 [21-141] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
+                        functors: 
                         body: Block: Block 4 [56-141] [Type Unit]:
                             Stmt 5 [66-135]: Expr: Expr _id_ [66-135] [Type Unit]: Expr Block: Block _id_ [66-135] [Type Unit]:
                                 Stmt _id_ [75-88]: Local (Immutable):
@@ -209,14 +212,15 @@ fn convert_for_range() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-123]:
+                Item 0 [0-123] (Public):
                     Namespace (Ident 16 [10-14] "test"): Item 1
-                Item 1 [21-121]:
+                Item 1 [21-121] (Public):
                     Parent: 0
                     Callable 0 [21-121] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-121] [Type Unit]:
                             Stmt 4 [55-115]: Expr: Expr _id_ [55-115] [Type Unit]: Expr Block: Block _id_ [55-115] [Type Unit]:
                                 Stmt _id_ [64-68]: Local (Immutable):
@@ -284,14 +288,15 @@ fn convert_for_reverse_range() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-127]:
+                Item 0 [0-127] (Public):
                     Namespace (Ident 18 [10-14] "test"): Item 1
-                Item 1 [21-125]:
+                Item 1 [21-125] (Public):
                     Parent: 0
                     Callable 0 [21-125] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-125] [Type Unit]:
                             Stmt 4 [55-119]: Expr: Expr _id_ [55-119] [Type Unit]: Expr Block: Block _id_ [55-119] [Type Unit]:
                                 Stmt _id_ [64-72]: Local (Immutable):
@@ -360,14 +365,15 @@ fn convert_repeat() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-128]:
+                Item 0 [0-128] (Public):
                     Namespace (Ident 12 [10-14] "test"): Item 1
-                Item 1 [21-126]:
+                Item 1 [21-126] (Public):
                     Parent: 0
                     Callable 0 [21-126] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-126] [Type Unit]:
                             Stmt 4 [55-120]: Semi: Expr _id_ [55-119] [Type Unit]: Expr Block: Block _id_ [55-119] [Type Unit]:
                                 Stmt _id_ [115-119]: Local (Mutable):
@@ -404,14 +410,15 @@ fn convert_repeat_fixup() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-182]:
+                Item 0 [0-182] (Public):
                     Namespace (Ident 17 [10-14] "test"): Item 1
-                Item 1 [21-180]:
+                Item 1 [21-180] (Public):
                     Parent: 0
                     Callable 0 [21-180] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-180] [Type Unit]:
                             Stmt 4 [55-174]: Expr: Expr _id_ [55-174] [Type Unit]: Expr Block: Block _id_ [55-174] [Type Unit]:
                                 Stmt _id_ [115-119]: Local (Mutable):
@@ -465,14 +472,15 @@ fn convert_repeat_nested() {
         "#},
         &expect![[r#"
             Package:
-                Item 0 [0-403]:
+                Item 0 [0-403] (Public):
                     Namespace (Ident 42 [10-14] "test"): Item 1
-                Item 1 [21-401]:
+                Item 1 [21-401] (Public):
                     Parent: 0
                     Callable 0 [21-401] (Operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
+                        functors: 
                         body: Block: Block 3 [45-401] [Type Unit]:
                             Stmt 4 [55-68]: Local (Immutable):
                                 Pat 5 [59-60] [Type Bool]: Bind: Ident 6 [59-60] "a"
