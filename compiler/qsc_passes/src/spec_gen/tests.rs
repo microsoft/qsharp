@@ -15,7 +15,7 @@ fn check(file: &str, expect: &Expect) {
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    let errors = generate_specs(&mut unit);
+    let errors = generate_specs(store.core(), &mut unit);
     if errors.is_empty() {
         expect.assert_eq(&unit.package.to_string());
     } else {
@@ -1020,9 +1020,9 @@ fn generate_adj_invert_with_array_loop() {
                                             Pat _id_ [0-0] [Type Int]: Bind: Ident 31 [0-0] "generated_index"
                                             Expr _id_ [0-0] [Type Range]: Range:
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Sub):
-                                                    Expr _id_ [0-0] [Type Int]: Field:
+                                                    Expr _id_ [0-0] [Type Int]: Call:
+                                                        Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
                                                         Expr _id_ [0-0] [Type (Int)[]]: Var: Local 30
-                                                        Length
                                                     Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(0)
@@ -1134,9 +1134,9 @@ fn generate_adj_invert_with_nested_loops() {
                                             Pat _id_ [0-0] [Type Int]: Bind: Ident 54 [0-0] "generated_index"
                                             Expr _id_ [0-0] [Type Range]: Range:
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Sub):
-                                                    Expr _id_ [0-0] [Type Int]: Field:
+                                                    Expr _id_ [0-0] [Type Int]: Call:
+                                                        Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
                                                         Expr _id_ [0-0] [Type (Int)[]]: Var: Local 53
-                                                        Length
                                                     Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(0)
@@ -1164,9 +1164,9 @@ fn generate_adj_invert_with_nested_loops() {
                                                         Pat _id_ [0-0] [Type Int]: Bind: Ident 52 [0-0] "generated_index"
                                                         Expr _id_ [0-0] [Type Range]: Range:
                                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
-                                                                Expr _id_ [0-0] [Type Int]: Field:
+                                                                Expr _id_ [0-0] [Type Int]: Call:
+                                                                    Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
                                                                     Expr _id_ [0-0] [Type (Bool)[]]: Var: Local 51
-                                                                    Length
                                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(0)

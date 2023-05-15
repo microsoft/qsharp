@@ -8,6 +8,7 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
+    global::Table,
     hir::{
         BinOp, Block, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PrimField, PrimTy, Stmt,
         StmtKind, Ty, UnOp,
@@ -15,13 +16,17 @@ use qsc_hir::{
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::{common::IdentTemplate, Error};
+use crate::{
+    common::{create_gen_core_ref, IdentTemplate},
+    Error,
+};
 
 #[cfg(test)]
 mod tests;
 
-pub fn loop_unification(unit: &mut CompileUnit) -> Vec<Error> {
+pub fn loop_unification(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = LoopUni {
+        core,
         assigner: &mut unit.assigner,
     };
     pass.visit_package(&mut unit.package);
@@ -29,6 +34,7 @@ pub fn loop_unification(unit: &mut CompileUnit) -> Vec<Error> {
 }
 
 struct LoopUni<'a> {
+    core: &'a Table,
     assigner: &'a mut Assigner,
 }
 
@@ -126,10 +132,17 @@ impl LoopUni<'_> {
         let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
         let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable);
 
+        let len_callee =
+            create_gen_core_ref(self.core, "Microsoft.Quantum.Core", "Length", array_id.span);
         let len_id = self.gen_ident("len_id", Ty::Prim(PrimTy::Int), iterable_span);
         let len_capture = len_id.gen_id_init(
             Mutability::Immutable,
-            array_id.gen_field_access(PrimField::Length),
+            Expr {
+                id: NodeId::default(),
+                span: array_id.span,
+                ty: array_id.ty.clone(),
+                kind: ExprKind::Call(Box::new(len_callee), Box::new(array_id.gen_local_ref())),
+            },
         );
 
         let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
