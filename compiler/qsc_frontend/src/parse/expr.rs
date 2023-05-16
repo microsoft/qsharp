@@ -122,11 +122,11 @@ fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Expr> {
                 ExprKind::BinOp(kind, Box::new(lhs), Box::new(rhs))
             }
             OpKind::Ternary(kind, delim, assoc) => {
-                let middle = expr(s)?;
+                let mid = expr(s)?;
                 token(s, delim)?;
                 let precedence = next_precedence(op.precedence, assoc);
                 let rhs = expr_op(s, OpContext::Precedence(precedence))?;
-                ExprKind::TernOp(kind, Box::new(lhs), Box::new(middle), Box::new(rhs))
+                ExprKind::TernOp(kind, Box::new(lhs), Box::new(mid), Box::new(rhs))
             }
             OpKind::Rich(f) => f(s, lhs)?,
         };

@@ -3,7 +3,7 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferId, PrimField, PrimTy, Res, Ty};
+use qsc_hir::hir::{Functor, InferId, ItemId, PrimField, PrimTy, Res, Ty, Udt};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -101,7 +101,7 @@ impl Class {
         }
     }
 
-    fn check(self, span: Span) -> Result<Vec<Constraint>, ClassError> {
+    fn check(self, udts: &HashMap<ItemId, Udt>, span: Span) -> Result<Vec<Constraint>, ClassError> {
         match self {
             Class::Add(ty) => check_add(&ty)
                 .then_some(Vec::new())
@@ -118,7 +118,7 @@ impl Class {
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
             Class::HasField { record, name, item } => {
-                check_has_field(record, name, item, span).map(|c| vec![c])
+                check_has_field(udts, record, name, item, span).map(|c| vec![c])
             }
             Class::HasIndex {
                 container,
@@ -136,9 +136,7 @@ impl Class {
                 .ok_or(ClassError(Class::Num(ty), span)),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => {
-                // TODO: If the wrapper type is a user-defined type, look up its underlying type.
-                // https://github.com/microsoft/qsharp/issues/148
-                Err(ClassError(Class::Unwrap { wrapper, base }, span))
+                check_unwrap(udts, wrapper, base, span).map(|c| vec![c])
             }
         }
     }
@@ -241,12 +239,12 @@ impl Inferrer {
     }
 
     /// Solves for all type variables given the accumulated constraints.
-    pub(super) fn solve(mut self) -> (Substitutions, Vec<Error>) {
+    pub(super) fn solve(mut self, udts: &HashMap<ItemId, Udt>) -> (Substitutions, Vec<Error>) {
         // TODO: Variables that don't have a substitution should cause errors for ambiguous types.
         // However, if an unsolved variable is the result of a divergent expression, it may be OK to
         // leave it or substitute it with a concrete uninhabited type.
         // https://github.com/microsoft/qsharp/issues/152
-        let mut solver = Solver::new();
+        let mut solver = Solver::new(udts);
         while let Some(constraint) = self.constraints.pop_front() {
             self.constraints.extend(solver.constrain(constraint));
         }
@@ -254,15 +252,17 @@ impl Inferrer {
     }
 }
 
-struct Solver {
+struct Solver<'a> {
+    udts: &'a HashMap<ItemId, Udt>,
     substs: Substitutions,
     pending: HashMap<InferId, Vec<Class>>,
     errors: Vec<Error>,
 }
 
-impl Solver {
-    fn new() -> Self {
+impl<'a> Solver<'a> {
+    fn new(udts: &'a HashMap<ItemId, Udt>) -> Self {
         Self {
+            udts,
             substs: Substitutions::new(),
             pending: HashMap::new(),
             errors: Vec::new(),
@@ -294,7 +294,10 @@ impl Solver {
         if unknown_dependency {
             Vec::new()
         } else {
-            match class.map(|ty| substituted(&self.substs, ty)).check(span) {
+            match class
+                .map(|ty| substituted(&self.substs, ty))
+                .check(self.udts, span)
+            {
                 Ok(constraints) => constraints,
                 Err(ClassError(class, span)) => {
                     self.errors
@@ -510,6 +513,38 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> 
     }
 }
 
+fn check_has_field(
+    udts: &HashMap<ItemId, Udt>,
+    record: Ty,
+    name: String,
+    item: Ty,
+    span: Span,
+) -> Result<Constraint, ClassError> {
+    match (name.parse(), &record) {
+        (Ok(PrimField::Start), Ty::Prim(PrimTy::Range | PrimTy::RangeFrom))
+        | (
+            Ok(PrimField::Step),
+            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+        )
+        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo)) => Ok(Constraint::Eq {
+            expected: item,
+            actual: Ty::Prim(PrimTy::Int),
+            span,
+        }),
+        (Err(()), Ty::Udt(Res::Item(id))) => {
+            match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
+                Some(ty) => Ok(Constraint::Eq {
+                    expected: item,
+                    actual: ty.clone(),
+                    span,
+                }),
+                None => Err(ClassError(Class::HasField { record, name, item }, span)),
+            }
+        }
+        _ => Err(ClassError(Class::HasField { record, name, item }, span)),
+    }
+}
+
 fn check_has_index(
     container: Ty,
     index: Ty,
@@ -577,25 +612,21 @@ fn check_show(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
     }
 }
 
-fn check_has_field(
-    record: Ty,
-    name: String,
-    item: Ty,
+fn check_unwrap(
+    udts: &HashMap<ItemId, Udt>,
+    wrapper: Ty,
+    base: Ty,
     span: Span,
 ) -> Result<Constraint, ClassError> {
-    // TODO: If the record type is a user-defined type, look up its fields.
-    // https://github.com/microsoft/qsharp/issues/148
-    match (name.parse(), &record) {
-        (Ok(PrimField::Start), Ty::Prim(PrimTy::Range | PrimTy::RangeFrom))
-        | (
-            Ok(PrimField::Step),
-            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
-        )
-        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo)) => Ok(Constraint::Eq {
-            expected: Ty::Prim(PrimTy::Int),
-            actual: item,
-            span,
-        }),
-        _ => Err(ClassError(Class::HasField { record, name, item }, span)),
+    if let Ty::Udt(Res::Item(id)) = wrapper {
+        if let Some(udt) = udts.get(&id) {
+            return Ok(Constraint::Eq {
+                expected: base,
+                actual: udt.base.clone(),
+                span,
+            });
+        }
     }
+
+    Err(ClassError(Class::Unwrap { wrapper, base }, span))
 }

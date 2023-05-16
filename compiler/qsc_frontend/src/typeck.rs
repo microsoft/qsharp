@@ -12,13 +12,16 @@ use self::infer::Class;
 use miette::Diagnostic;
 use qsc_ast::ast;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::Ty;
-use std::fmt::Debug;
+use qsc_hir::hir::{ItemId, Ty, Udt};
+use std::{collections::HashMap, fmt::Debug};
 use thiserror::Error;
 
 pub(super) use check::{Checker, GlobalTable};
 
-pub type Tys = IndexMap<ast::NodeId, Ty>;
+pub(super) struct Table {
+    pub(super) udts: HashMap<ItemId, Udt>,
+    pub(super) terms: IndexMap<ast::NodeId, Ty>,
+}
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]

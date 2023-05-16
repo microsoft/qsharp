@@ -9,7 +9,7 @@ use crate::{
     lower::{self, Lowerer},
     parse,
     resolve::{self, Resolutions, Resolver},
-    typeck::{self, Checker, Tys},
+    typeck::{self, Checker},
     validate::{self, validate},
 };
 use miette::{
@@ -400,7 +400,7 @@ fn typeck_all(
     dependencies: &[PackageId],
     package: &ast::Package,
     resolutions: &Resolutions,
-) -> (Tys, Vec<typeck::Error>) {
+) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
