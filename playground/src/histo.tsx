@@ -215,7 +215,8 @@ export function Histogram(props: {
       const oldChartWidth = chartAreaWidth * scale.zoom;
       const mousePointOnChart = 0 - scale.offset + mousePoint.x;
       const percentRightOnChart = mousePointOnChart / oldChartWidth;
-      const chartWidthGrowth = newZoom * chartAreaWidth - scale.zoom * chartAreaWidth;
+      const chartWidthGrowth =
+        newZoom * chartAreaWidth - scale.zoom * chartAreaWidth;
       const shiftLeftAdjust = percentRightOnChart * chartWidthGrowth;
       newScrollOffset = scale.offset - shiftLeftAdjust;
     }
