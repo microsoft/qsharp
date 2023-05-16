@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Block, CallableDecl, Expr, Ident, NodeId, Pat, QubitInit, SpecDecl, Stmt, TyDef},
+    hir::{Block, CallableDecl, Expr, Ident, NodeId, Pat, QubitInit, SpecDecl, Stmt},
     mut_visit::{self, MutVisitor},
 };
 
@@ -39,11 +39,6 @@ impl Default for Assigner {
 }
 
 impl MutVisitor for Assigner {
-    fn visit_ty_def(&mut self, def: &mut TyDef) {
-        self.assign(&mut def.id);
-        mut_visit::walk_ty_def(self, def);
-    }
-
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
         self.assign(&mut decl.id);
         mut_visit::walk_callable_decl(self, decl);

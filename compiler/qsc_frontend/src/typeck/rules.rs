@@ -4,15 +4,15 @@
 use super::{
     convert,
     infer::{self, Class, Inferrer},
-    Error, Tys,
+    Error,
 };
-use crate::resolve::{Res, Resolutions};
+use crate::resolve::{self, Res, Resolutions};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
-use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, ItemId, PrimTy, Ty};
+use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_hir::hir::{self, ItemId, PrimTy, Ty, Udt};
 use std::collections::{HashMap, HashSet};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -24,25 +24,28 @@ struct Partial {
 
 struct Context<'a> {
     resolutions: &'a Resolutions,
+    udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Ty>,
+    terms: &'a mut IndexMap<NodeId, Ty>,
     return_ty: Option<&'a Ty>,
-    tys: &'a mut Tys,
-    nodes: Vec<NodeId>,
+    new: Vec<NodeId>,
     inferrer: Inferrer,
 }
 
 impl<'a> Context<'a> {
     fn new(
         resolutions: &'a Resolutions,
+        udts: &'a HashMap<ItemId, Udt>,
         globals: &'a HashMap<ItemId, Ty>,
-        tys: &'a mut Tys,
+        terms: &'a mut IndexMap<NodeId, Ty>,
     ) -> Self {
         Self {
             resolutions,
+            udts,
             globals,
+            terms,
             return_ty: None,
-            tys,
-            nodes: Vec::new(),
+            new: Vec::new(),
             inferrer: Inferrer::new(),
         }
     }
@@ -180,8 +183,8 @@ impl<'a> Context<'a> {
                 let binop = self.infer_binop(expr.span, *op, lhs, rhs);
                 self.diverge_if(binop.diverges, converge(Ty::UNIT))
             }
-            ExprKind::AssignUpdate(container, index, item) => {
-                let update = self.infer_update(expr.span, container, index, item);
+            ExprKind::AssignUpdate(container, index, replace) => {
+                let update = self.infer_update(expr.span, container, index, replace);
                 self.diverge_if(update.diverges, converge(Ty::UNIT))
             }
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
@@ -320,7 +323,7 @@ impl<'a> Context<'a> {
                     converge(ty)
                 }
                 Some(&Res::Local(node)) => converge(
-                    self.tys
+                    self.terms
                         .get(node)
                         .expect("local variable should have inferred type")
                         .clone(),
@@ -384,8 +387,8 @@ impl<'a> Context<'a> {
                     },
                 )
             }
-            ExprKind::TernOp(TernOp::Update, container, index, item) => {
-                self.infer_update(expr.span, container, index, item)
+            ExprKind::TernOp(TernOp::Update, container, index, replace) => {
+                self.infer_update(expr.span, container, index, replace)
             }
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
@@ -520,17 +523,29 @@ impl<'a> Context<'a> {
 
     fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Partial {
         let container = self.infer_expr(container);
-        let index = self.infer_expr(index);
         let item = self.infer_expr(item);
-        self.inferrer.class(
-            span,
-            Class::HasIndex {
-                container: container.ty.clone(),
-                index: index.ty,
-                item: item.ty,
-            },
-        );
-        self.diverge_if(index.diverges || item.diverges, container)
+        if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+            self.inferrer.class(
+                span,
+                Class::HasField {
+                    record: container.ty.clone(),
+                    name: field.to_string(),
+                    item: item.ty.clone(),
+                },
+            );
+            self.diverge_if(item.diverges, container)
+        } else {
+            let index = self.infer_expr(index);
+            self.inferrer.class(
+                span,
+                Class::HasIndex {
+                    container: container.ty.clone(),
+                    index: index.ty,
+                    item: item.ty,
+                },
+            );
+            self.diverge_if(index.diverges || item.diverges, container)
+        }
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
@@ -603,14 +618,14 @@ impl<'a> Context<'a> {
     }
 
     fn record(&mut self, id: NodeId, ty: Ty) {
-        self.nodes.push(id);
-        self.tys.insert(id, ty);
+        self.new.push(id);
+        self.terms.insert(id, ty);
     }
 
     fn solve(self) -> Vec<Error> {
-        let (substs, errors) = self.inferrer.solve();
-        for id in self.nodes {
-            let ty = self.tys.get_mut(id).expect("node should have type");
+        let (substs, errors) = self.inferrer.solve(self.udts);
+        for id in self.new {
+            let ty = self.terms.get_mut(id).expect("node should have type");
             infer::substitute(&substs, ty);
         }
         errors
@@ -628,33 +643,36 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     resolutions: &Resolutions,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, terms);
     context.infer_spec(spec);
     context.solve()
 }
 
 pub(super) fn expr(
     resolutions: &Resolutions,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, terms);
     context.infer_expr(expr);
     context.solve()
 }
 
 pub(super) fn stmt(
     resolutions: &Resolutions,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(resolutions, udts, globals, terms);
     context.infer_stmt(stmt);
     context.solve()
 }

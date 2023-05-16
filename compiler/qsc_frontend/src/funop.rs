@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::typeck::Tys;
+use crate::typeck;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
@@ -41,7 +41,7 @@ pub(super) enum Error {
 }
 
 /// Checks that restrictions for functions and operations are followed.
-pub(super) fn check(tys: &Tys, package: &Package) -> Vec<Error> {
+pub(super) fn check(tys: &typeck::Table, package: &Package) -> Vec<Error> {
     let mut checker = Checker {
         tys,
         in_func: false,
@@ -53,7 +53,7 @@ pub(super) fn check(tys: &Tys, package: &Package) -> Vec<Error> {
 }
 
 struct Checker<'a> {
-    tys: &'a Tys,
+    tys: &'a typeck::Table,
     in_func: bool,
     in_op: bool,
     errors: Vec<Error>,
@@ -96,7 +96,7 @@ impl Visitor<'_> for Checker<'_> {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Call(callee, _) if self.in_func => {
-                let ty = self.tys.get(callee.id);
+                let ty = self.tys.terms.get(callee.id);
                 if matches!(ty, Some(hir::Ty::Arrow(hir::CallableKind::Operation, ..))) {
                     self.errors.push(Error::OpCallInFunc(expr.span));
                 }

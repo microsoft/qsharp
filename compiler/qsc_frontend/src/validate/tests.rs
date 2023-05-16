@@ -61,36 +61,3 @@ fn test_partial() {
         "#]],
     );
 }
-
-#[test]
-fn test_newtype_syntax_not_supported() {
-    check(
-        indoc! {"
-            namespace input {
-                newtype Bar = Baz : Int;
-                operation Foo(a : Bar) : Unit {
-                    let x = a!;
-                    let y = a::Baz;
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                NotCurrentlySupported(
-                    "newtype",
-                    Span {
-                        lo: 22,
-                        hi: 46,
-                    },
-                ),
-                NotCurrentlySupported(
-                    "unwrap operator",
-                    Span {
-                        lo: 99,
-                        hi: 101,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}

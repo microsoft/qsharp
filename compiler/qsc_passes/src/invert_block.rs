@@ -8,8 +8,8 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimField,
-        PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Field, Ident, Lit, Mutability, NodeId, Pat, PatKind,
+        PrimField, PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
@@ -323,7 +323,7 @@ fn make_range_field(range_id: NodeId, field: PrimField) -> Expr {
                 ty: Ty::Prim(PrimTy::Range),
                 kind: ExprKind::Var(Res::Local(range_id)),
             }),
-            field,
+            Field::Prim(field),
         ),
     }
 }

@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
+use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env, Global};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::hir::{CallableDecl, ItemKind};
+use qsc_hir::hir::ItemKind;
 use qsc_passes::run_default_passes;
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
@@ -26,7 +26,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut out = Vec::new();
     match eval_expr(
         entry,
-        &|id| get_callable(&store, id),
+        &|id| get_global(&store, id),
         id,
         &mut Env::default(),
         &mut GenericReceiver::new(&mut out),
@@ -36,15 +36,14 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     }
 }
 
-pub(super) fn get_callable(store: &PackageStore, id: GlobalId) -> Option<&CallableDecl> {
-    store.get(id.package).and_then(|unit| {
-        let item = unit.package.items.get(id.item)?;
-        if let ItemKind::Callable(callable) = &item.kind {
-            Some(callable)
-        } else {
-            None
-        }
-    })
+pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {
+    store
+        .get(id.package)
+        .and_then(|unit| match &unit.package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
 }
 
 #[test]
@@ -1802,32 +1801,32 @@ fn while_false_shortcut_expr() {
 }
 
 #[test]
-fn ternop_cond_expr() {
+fn cond_expr() {
     check_expr("", "true ? 1 | 0", &expect!["1"]);
 }
 
 #[test]
-fn ternop_cond_false_expr() {
+fn cond_false_expr() {
     check_expr("", "false ? 1 | 0", &expect!["0"]);
 }
 
 #[test]
-fn ternop_cond_shortcircuit_expr() {
+fn cond_shortcircuit_expr() {
     check_expr("", r#"true ? 1 | fail "Shouldn't fail""#, &expect!["1"]);
 }
 
 #[test]
-fn ternop_cond_false_shortcircuit_expr() {
+fn cond_false_shortcircuit_expr() {
     check_expr("", r#"false ? fail "Shouldn't fail" | 0"#, &expect!["0"]);
 }
 
 #[test]
-fn ternop_update_expr() {
+fn update_expr() {
     check_expr("", "[1, 2, 3] w/ 2 <- 4", &expect!["[1, 2, 4]"]);
 }
 
 #[test]
-fn ternop_update_invalid_index_range_expr() {
+fn update_invalid_index_range_expr() {
     check_expr(
         "",
         "[1, 2, 3] w/ 7 <- 4",
@@ -1849,7 +1848,7 @@ fn ternop_update_invalid_index_range_expr() {
 }
 
 #[test]
-fn ternop_update_invalid_index_negative_expr() {
+fn update_invalid_index_negative_expr() {
     check_expr(
         "",
         "[1, 2, 3] w/ -1 <- 4",
@@ -1868,6 +1867,106 @@ fn ternop_update_invalid_index_negative_expr() {
             )
         "#]],
     );
+}
+
+#[test]
+fn update_array_index_var() {
+    check_expr(
+        "",
+        indoc! {"{
+            let xs = [2];
+            let i = 0;
+            xs w/ i <- 3
+        }"},
+        &expect!["[3]"],
+    );
+}
+
+#[test]
+fn update_array_index_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            let xs = [1, 2];
+            let i = 0;
+            xs w/ i + 1 <- 3
+        }"},
+        &expect!["[1, 3]"],
+    );
+}
+
+#[test]
+fn update_udt_known_field_name() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Pair(1, 2);
+            p w/ First <- 3
+        }"},
+        &expect!["(3, 2)"],
+    );
+}
+
+#[test]
+fn update_udt_nested_field() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Triple = (First : Int, (Second : Int, Third : Int));
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Triple(1, (2, 3));
+            p w/ Third <- 4
+        }"},
+        &expect!["(1, (2, 4))"],
+    );
+}
+
+#[test]
+fn update_range_start() {
+    check_expr("", "1..2..3 w/ Start <- 10", &expect!["10..2..3"]);
+}
+
+#[test]
+fn update_range_from_start() {
+    check_expr("", "1..2... w/ Start <- 10", &expect!["10..2..."]);
+}
+
+#[test]
+fn update_range_step() {
+    check_expr("", "1..2..3 w/ Step <- 10", &expect!["1..10..3"]);
+}
+
+#[test]
+fn update_range_from_step() {
+    check_expr("", "1..2... w/ Step <- 10", &expect!["1..10..."]);
+}
+
+#[test]
+fn update_range_to_step() {
+    check_expr("", "...2..3 w/ Step <- 10", &expect!["...10..3"]);
+}
+
+#[test]
+fn update_range_full_step() {
+    check_expr("", "...2... w/ Step <- 10", &expect!["...10..."]);
+}
+
+#[test]
+fn update_range_end() {
+    check_expr("", "1..2..3 w/ End <- 10", &expect!["1..2..10"]);
+}
+
+#[test]
+fn update_range_to_end() {
+    check_expr("", "...2..3 w/ End <- 10", &expect!["...2..10"]);
 }
 
 #[test]
@@ -2631,5 +2730,56 @@ fn nested_interpolated_string_with_exprs() {
             $"foo {x + $"bar {y}"} baz"
         }"#},
         &expect!["foo hello!bar 1.5 baz"],
+    );
+}
+
+#[test]
+fn udt_unwrap() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Foo = (Int, Bool);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let foo = Foo(1, true);
+            foo!
+        }"},
+        &expect!["(1, true)"],
+    );
+}
+
+#[test]
+fn udt_fields() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Point = (X : Int, Y : Int);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Point(1, 2);
+            (p::X, p::Y)
+        }"},
+        &expect!["(1, 2)"],
+    );
+}
+
+#[test]
+fn udt_field_nested() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Point = (X : Int, (Y : Int, Z : Int));
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Point(1, (2, 3));
+            (p::Y, p::Z)
+        }"},
+        &expect!["(2, 3)"],
     );
 }
