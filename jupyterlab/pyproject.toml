@@ -50,11 +50,11 @@ ensured-targets = [
 ]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
-build_cmd = "build:prod"
+build_cmd = "build"
 npm = ["npm"]
 
 [tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
-build_cmd = "install:extension"
+build_cmd = "build:dev"
 npm = ["npm"]
 source_dir = "src"
 build_dir = "qsharp_jupyterlab/labextension"

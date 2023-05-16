@@ -16,7 +16,7 @@
     "name": "Microsoft"
   },
   "files": [
-    "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}"
+    "lib"
   ],
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -25,14 +25,16 @@
     "url": "https://github.com/microsoft/qsharp.git"
   },
   "scripts": {
-    "build": "npx -p typescript --no-install tsc && npm run build:labextension:dev",
-    "build:prod": "rimraf lib tsconfig.tsbuildinfo && npm run build:lib && jupyter labextension build .",
+    "build": "npm run build:lib && npm run build:labextension:prod",
+    "build:dev": "npm run build:lib && npm run build:labextension:dev",
+    "build:lib": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build:labextension:dev": "jupyter labextension build --development True .",
-    "build:lib": "npx -p typescript --no-install tsc --sourceMap",
-    "install:extension": "npm run build",
-    "watch": "run-p watch:src watch:labextension",
-    "watch:src": "npx -p typescript --no-install tsc -w",
-    "watch:labextension": "jupyter labextension watch ."
+    "build:labextension:prod": "jupyter labextension build ."
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "^4.0.0",
+    "@types/codemirror": "^5.60.7",
+    "typescript": "^5.0.2"
   },
   "dependencies": {
     "@codemirror/language": "6.6.0",
@@ -40,15 +42,6 @@
     "@jupyterlab/application": "^4.0.0",
     "@jupyterlab/codemirror": "^4.0.0",
     "@jupyterlab/notebook": "^4.0.0"
-  },
-  "devDependencies": {
-    "@jupyterlab/builder": "^4.0.0",
-    "@types/codemirror": "^5.60.7",
-    "rimraf": "^3.0.2",
-    "typescript": "^5.0.2"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "jupyterlab": {
     "extension": true,
