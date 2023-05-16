@@ -1,0 +1,2 @@
+pytest
+jupyterlab==4.0.0

@@ -28,7 +28,7 @@ parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
-    "--jupyter", action="store_true", help="Build the JupyterLab extension"
+    "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
 )
 
 parser.add_argument(
@@ -61,7 +61,7 @@ build_all = (
     and not args.npm
     and not args.play
     and not args.vscode
-    and not args.jupyter
+    and not args.jupyterlab
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
@@ -69,9 +69,9 @@ build_wasm = build_all or args.wasm
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
-build_jupyter = build_all or args.jupyter
+build_jupyterlab = build_all or args.jupyterlab
 
-npm_install_needed = build_npm or build_play or build_vscode or build_jupyter
+npm_install_needed = build_npm or build_play or build_vscode or build_jupyterlab
 npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
@@ -85,7 +85,7 @@ play_src = os.path.join(root_dir, "playground")
 pip_src = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
-jupyter_src = os.path.join(root_dir, "jupyterlab")
+jupyterlab_src = os.path.join(root_dir, "jupyterlab")
 
 if npm_install_needed:
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
@@ -124,7 +124,6 @@ if build_cli:
 
 if build_pip:
     print("Building the pip package")
-
     # Check if in a virtual environment
     if (
         os.environ.get("VIRTUAL_ENV") is None
@@ -161,8 +160,7 @@ if build_pip:
 
     if run_tests:
         print("Running tests for the pip package")
-        pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
+
         pip_install_args = [
             python_bin,
             "-m",
@@ -171,6 +169,8 @@ if build_pip:
             "-r",
             "test_requirements.txt",
         ]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
+        pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
         subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]
         subprocess.run(pytest_args, check=True, text=True, cwd=pip_src)
@@ -231,8 +231,9 @@ if build_vscode:
     vscode_args = [npm_cmd, "run", "build"]
     subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
 
-if build_jupyter:
+if build_jupyterlab:
     print("Building the JupyterLab extension")
+
     # Check if in a virtual environment
     if (
         os.environ.get("VIRTUAL_ENV") is None
@@ -241,7 +242,7 @@ if build_jupyter:
     ):
         print("Not in a virtual python environment")
 
-        venv_dir = os.path.join(jupyter_src, ".venv")
+        venv_dir = os.path.join(jupyterlab_src, ".venv")
         # Create virtual environment under repo root
         if not os.path.exists(venv_dir):
             print(f"Creating a virtual environment under {venv_dir}")
@@ -256,58 +257,30 @@ if build_jupyter:
         # Already in a virtual environment, use current Python
         python_bin = sys.executable
 
-    # TODO: have a requirements.txt or some other way to do all this
-
-    # RELEASE BUILD:
-    pip_install_args = [python_bin, "-m", "pip", "install", "build"]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
-
-    pip_install_args = [python_bin, "-m", "build"]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
+    pip_build_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "wheel",
+        "--wheel-dir",
+        wheels_dir,
+        jupyterlab_src,
+    ]
+    subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
 
     if run_tests:
         print("Running tests for the JupyterLab extension")
 
-        # TODO: Make the below into a pytest
-
-        pip_install_args = [python_bin, "-m", "pip", "install", "jupyterlab==4.0.0"]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
-
+        pip_install_args = [
+            python_bin,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            "test_requirements.txt",
+        ]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
         pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyter_src)
-
-        # Run once just so the output shows up in the build log
-        subprocess.run(
-            [python_bin, "-m", "jupyter", "labextension", "list"],
-            check=True,
-            text=True,
-            cwd=jupyter_src,
-        )
-
-        # Run again, now capturing the output
-        result = subprocess.run(
-            [python_bin, "-m", "jupyter", "labextension", "list"],
-            capture_output=True,
-            check=True,
-            text=True,
-            cwd=jupyter_src,
-        )
-
-        if not re.search(r"qsharp_jupyterlab.*ok", result.stderr, re.IGNORECASE):
-            raise Exception(
-                "qsharp_jupyterlab extension is not properly installed (see output for details)"
-            )
-
-        # TODO: (also try it with --no-browser-test)
-        # python -m jupyterlab.browser_check
-
-    # ARTIFACTS:
-    # dist/qsharp_jupyterlab*
-
-    # ISOLATED TEST:
-    # pip install "jupyterlab~=3.1" qsharp_jupyterlab*.whl
-    # jupyter labextension list
-    # jupyter labextension list 2>&1 | grep -ie "qsharp_jupyterlab.*OK"
-    # python -m jupyterlab.browser_check --no-chrome-test
-
-    # TODO: copy wheel to output directory
+        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
+        pytest_args = [python_bin, "-m", "pytest"]
+        subprocess.run(pytest_args, check=True, text=True, cwd=jupyterlab_src)

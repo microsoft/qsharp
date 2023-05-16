@@ -5,6 +5,7 @@ __pycache__/
 .github/
 .vscode/
 compiler/
+jupyterlab/.pytest_cache/
 jupyterlab/lib/
 jupyterlab/qsharp_jupyterlab/labextension/
 library/
