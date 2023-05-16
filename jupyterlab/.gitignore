@@ -40,5 +40,5 @@ pip-delete-this-directory.txt
 
 tsconfig.tsbuildinfo
 qsharp_jupyterlab/labextension
-# Version file is handled by hatchling
 qsharp_jupyterlab/_version.py
+.yarn

@@ -51,20 +51,13 @@ ensured-targets = [
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build"
-npm = ["npm"]
+npm = ["jlpm"]
 
 [tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
 build_cmd = "build:dev"
-npm = ["npm"]
+npm = ["jlpm"]
 source_dir = "src"
 build_dir = "qsharp_jupyterlab/labextension"
-
-[tool.jupyter-releaser.options]
-version_cmd = "hatch version"
-
-[tool.jupyter-releaser.hooks]
-before-build-npm = ["python -m pip install jupyterlab==4.0.0", "npm", "npm build:prod"]
-before-build-python = ["npm clean:all"]
 
 [tool.check-wheel-contents]
 ignore = ["W002"]
