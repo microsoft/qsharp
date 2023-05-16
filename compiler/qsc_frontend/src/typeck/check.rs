@@ -82,13 +82,7 @@ impl Checker {
     }
 
     pub(crate) fn check_package(&mut self, resolutions: &Resolutions, package: &ast::Package) {
-        ItemCollector {
-            resolutions,
-            udts: &mut self.tys.udts,
-            terms: &mut self.globals,
-            errors: &mut self.errors,
-        }
-        .visit_package(package);
+        ItemCollector::new(self, resolutions).visit_package(package);
         ItemChecker::new(self, resolutions).visit_package(package);
 
         if let Some(entry) = &package.entry {
@@ -107,13 +101,7 @@ impl Checker {
         resolutions: &Resolutions,
         namespace: &ast::Namespace,
     ) {
-        ItemCollector {
-            resolutions,
-            udts: &mut self.tys.udts,
-            terms: &mut self.globals,
-            errors: &mut self.errors,
-        }
-        .visit_namespace(namespace);
+        ItemCollector::new(self, resolutions).visit_namespace(namespace);
         ItemChecker::new(self, resolutions).visit_namespace(namespace);
     }
 
@@ -179,13 +167,7 @@ impl Checker {
     }
 
     pub(crate) fn check_stmt_fragment(&mut self, resolutions: &Resolutions, stmt: &ast::Stmt) {
-        ItemCollector {
-            resolutions,
-            udts: &mut self.tys.udts,
-            terms: &mut self.globals,
-            errors: &mut self.errors,
-        }
-        .visit_stmt(stmt);
+        ItemCollector::new(self, resolutions).visit_stmt(stmt);
         ItemChecker::new(self, resolutions).visit_stmt(stmt);
 
         // TODO: Normally, all statements in a specialization are type checked in the same inference
@@ -205,10 +187,17 @@ impl Checker {
 }
 
 struct ItemCollector<'a> {
+    checker: &'a mut Checker,
     resolutions: &'a Resolutions,
-    udts: &'a mut HashMap<ItemId, Udt>,
-    terms: &'a mut HashMap<ItemId, Ty>,
-    errors: &'a mut Vec<Error>,
+}
+
+impl<'a> ItemCollector<'a> {
+    fn new(checker: &'a mut Checker, resolutions: &'a Resolutions) -> Self {
+        Self {
+            checker,
+            resolutions,
+        }
+    }
 }
 
 impl Visitor<'_> for ItemCollector<'_> {
@@ -221,10 +210,12 @@ impl Visitor<'_> for ItemCollector<'_> {
 
                 let (ty, errors) = convert::ast_callable_ty(self.resolutions, decl);
                 for MissingTyError(span) in errors {
-                    self.errors.push(Error(ErrorKind::MissingItemTy(span)));
+                    self.checker
+                        .errors
+                        .push(Error(ErrorKind::MissingItemTy(span)));
                 }
 
-                self.terms.insert(item, ty);
+                self.checker.globals.insert(item, ty);
             }
             ast::ItemKind::Ty(name, def) => {
                 let Some(&Res::Item(item)) = self.resolutions.get(name.id) else {
@@ -233,7 +224,7 @@ impl Visitor<'_> for ItemCollector<'_> {
 
                 let (base, base_errors) = convert::ast_ty_def_base(self.resolutions, def);
                 let (cons, cons_errors) = convert::ast_ty_def_cons(self.resolutions, item, def);
-                self.errors.extend(
+                self.checker.errors.extend(
                     base_errors
                         .into_iter()
                         .chain(cons_errors)
@@ -241,8 +232,8 @@ impl Visitor<'_> for ItemCollector<'_> {
                 );
 
                 let fields = convert::ast_ty_def_fields(def);
-                self.udts.insert(item, Udt { base, fields });
-                self.terms.insert(item, cons);
+                self.checker.tys.udts.insert(item, Udt { base, fields });
+                self.checker.globals.insert(item, cons);
             }
             _ => {}
         }
