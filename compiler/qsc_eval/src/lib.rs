@@ -23,9 +23,9 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Functor, Lit, Mutability,
-    NodeId, PackageId, Pat, PatKind, PrimField, QubitInit, QubitInitKind, Res, Spec, SpecBody,
-    SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Field, Functor, Lit,
+    Mutability, NodeId, PackageId, Pat, PatKind, PrimField, QubitInit, QubitInitKind, Res, Spec,
+    SpecBody, SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -209,12 +209,17 @@ impl Range {
     }
 }
 
-pub trait GlobalLookup<'a> {
-    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl>;
+pub enum Global<'a> {
+    Callable(&'a CallableDecl),
+    Udt,
 }
 
-impl<'a, F: Fn(GlobalId) -> Option<&'a CallableDecl>> GlobalLookup<'a> for F {
-    fn callable(&self, id: GlobalId) -> Option<&'a CallableDecl> {
+pub trait GlobalLookup<'a> {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>>;
+}
+
+impl<'a, F: Fn(GlobalId) -> Option<Global<'a>>> GlobalLookup<'a> for F {
+    fn get(&self, id: GlobalId) -> Option<Global<'a>> {
         self(id)
     }
 }
@@ -341,9 +346,13 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let update = self.eval_binop(*op, lhs, rhs)?;
                 self.update_binding(lhs, update)
             }
-            ExprKind::AssignUpdate(lhs, mid, rhs) => {
-                let update = self.eval_ternop_update(lhs, mid, rhs)?;
-                self.update_binding(lhs, update)
+            ExprKind::AssignField(record, field, replace) => {
+                let update = self.eval_update_field(record, field, replace)?;
+                self.update_binding(record, update)
+            }
+            ExprKind::AssignIndex(array, index, replace) => {
+                let update = self.eval_update_index(array, index, replace)?;
+                self.update_binding(array, update)
             }
             ExprKind::BinOp(op, lhs, rhs) => self.eval_binop(*op, lhs, rhs),
             ExprKind::Block(block) => self.eval_block(block),
@@ -373,7 +382,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 let msg = self.eval_expr(msg)?.try_into_string().with_span(msg.span)?;
                 Break(Reason::Error(Error::UserFail(msg.to_string(), expr.span)))
             }
-            ExprKind::Field(record, field) => self.eval_field(expr.span, record, *field),
+            ExprKind::Field(record, field) => self.eval_field(record, field),
             ExprKind::For(pat, expr, block) => self.eval_for_loop(pat, expr, block),
             ExprKind::If(cond, then, els) => {
                 if self.eval_expr(cond)?.try_into().with_span(cond.span)? {
@@ -405,8 +414,8 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             ExprKind::Return(expr) => Break(Reason::Return(self.eval_expr(expr)?)),
             ExprKind::String(components) => self.eval_string(components),
             ExprKind::TernOp(ternop, lhs, mid, rhs) => match *ternop {
-                TernOp::Cond => self.eval_ternop_cond(lhs, mid, rhs),
-                TernOp::Update => self.eval_ternop_update(lhs, mid, rhs),
+                TernOp::Cond => self.eval_cond(lhs, mid, rhs),
+                TernOp::UpdateIndex => self.eval_update_index(lhs, mid, rhs),
             },
             ExprKind::Tuple(tup) => {
                 let mut val_tup = vec![];
@@ -415,7 +424,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                 }
                 Continue(Value::Tuple(val_tup.into()))
             }
-            ExprKind::UnOp(op, rhs) => self.eval_unop(expr, *op, rhs),
+            ExprKind::UnOp(op, rhs) => self.eval_unop(*op, rhs),
+            ExprKind::UpdateField(record, field, replace) => {
+                self.eval_update_field(record, field, replace)
+            }
             &ExprKind::Var(res) => match self.resolve_binding(res, expr.span) {
                 Ok(val) => Continue(val),
                 Err(e) => Break(Reason::Error(e)),
@@ -620,12 +632,10 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_call(&mut self, call_expr: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
-        let call_val = self.eval_expr(call_expr)?;
-        let call_span = call_expr.span;
+    fn eval_call(&mut self, callee: &Expr, args: &Expr) -> ControlFlow<Reason, Value> {
+        let callee_val = self.eval_expr(callee)?;
         let args_val = self.eval_expr(args)?;
-
-        let (call, functor, args_val) = match call_val {
+        let (callee_id, functor, args_val) = match callee_val {
             Value::Closure(fixed_args, global, functor) => {
                 let args = fixed_args
                     .iter()
@@ -638,38 +648,38 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
             _ => {
                 return Break(Reason::Error(Error::Type(
                     "Callable",
-                    call_val.type_name(),
-                    call_span,
+                    callee_val.type_name(),
+                    callee.span,
                 )))
             }
         };
 
-        let decl = match self.globals.callable(call) {
-            Some(decl) => Continue(decl),
-            None => Break(Reason::Error(Error::Unbound(call_expr.span))),
+        let decl = match self.globals.get(callee_id) {
+            Some(Global::Callable(decl)) => Continue(decl),
+            Some(Global::Udt) => return Continue(args_val),
+            None => Break(Reason::Error(Error::Unbound(callee.span))),
         }?;
-        let spec = spec_from_functor_app(functor);
 
         self.push_frame(Frame {
-            id: call,
-            span: Some(call_span),
+            id: callee_id,
+            span: Some(callee.span),
             caller: self.package,
             functor,
         });
 
         let mut new_self = Self {
             globals: self.globals,
-            package: call.package,
+            package: callee_id.package,
             env: Env::default(),
             out: self.out.take(),
             call_stack: CallStack::default(),
         };
         let call_res = new_self.eval_call_spec(
             decl,
-            spec,
+            spec_from_functor_app(functor),
             args_val,
             args.span,
-            call_span,
+            callee.span,
             functor.controlled,
         );
         self.out = new_self.out.take();
@@ -790,7 +800,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_unop(&mut self, expr: &Expr, op: UnOp, rhs: &Expr) -> ControlFlow<Reason, Value> {
+    fn eval_unop(&mut self, op: UnOp, rhs: &Expr) -> ControlFlow<Reason, Value> {
         let val = self.eval_expr(rhs)?;
         match op {
             UnOp::Neg => match val {
@@ -841,7 +851,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
                     rhs.span,
                 ))),
             },
-            UnOp::Unwrap => Break(Reason::Error(Error::Unimplemented("unwrap", expr.span))),
+            UnOp::Unwrap => Continue(val),
         }
     }
 
@@ -882,12 +892,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         ))
     }
 
-    fn eval_ternop_cond(
-        &mut self,
-        lhs: &Expr,
-        mid: &Expr,
-        rhs: &Expr,
-    ) -> ControlFlow<Reason, Value> {
+    fn eval_cond(&mut self, lhs: &Expr, mid: &Expr, rhs: &Expr) -> ControlFlow<Reason, Value> {
         if self.eval_expr(lhs)?.try_into().with_span(lhs.span)? {
             self.eval_expr(mid)
         } else {
@@ -895,7 +900,7 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_ternop_update(
+    fn eval_update_index(
         &mut self,
         lhs: &Expr,
         mid: &Expr,
@@ -917,27 +922,52 @@ impl<'a, G: GlobalLookup<'a>> Evaluator<'a, G> {
         }
     }
 
-    fn eval_field(
-        &mut self,
-        span: Span,
-        record: &Expr,
-        field: PrimField,
-    ) -> ControlFlow<Reason, Value> {
-        let record_span = record.span;
-        let record = self.eval_expr(record)?;
-        // For now we only support built-in fields for Arrays and Ranges.
-        match (record, field) {
-            (Value::Array(arr), PrimField::Length) => {
-                let len: i64 = match arr.len().try_into() {
-                    Ok(len) => Continue(len),
-                    Err(_) => Break(Reason::Error(Error::ArrayTooLarge(record_span))),
-                }?;
-                Continue(Value::Int(len))
+    fn eval_field(&mut self, record: &Expr, field: &Field) -> ControlFlow<Reason, Value> {
+        match (self.eval_expr(record)?, field) {
+            (Value::Range(Some(start), _, _), Field::Prim(PrimField::Start)) => {
+                Continue(Value::Int(start))
             }
-            (Value::Range(Some(start), _, _), PrimField::Start) => Continue(Value::Int(start)),
-            (Value::Range(_, step, _), PrimField::Step) => Continue(Value::Int(step)),
-            (Value::Range(_, _, Some(end)), PrimField::End) => Continue(Value::Int(end)),
-            _ => Break(Reason::Error(Error::Unimplemented("field access", span))),
+            (Value::Range(_, step, _), Field::Prim(PrimField::Step)) => Continue(Value::Int(step)),
+            (Value::Range(_, _, Some(end)), Field::Prim(PrimField::End)) => {
+                Continue(Value::Int(end))
+            }
+            (record, Field::Path(path)) => Continue(
+                follow_field_path(record, &path.indices).expect("field path should be valid"),
+            ),
+            _ => panic!("invalid field access"),
+        }
+    }
+
+    fn eval_update_field(
+        &mut self,
+        record: &Expr,
+        field: &Field,
+        value: &Expr,
+    ) -> ControlFlow<Reason, Value> {
+        let record = self.eval_expr(record)?;
+        let value_span = value.span;
+        let value = self.eval_expr(value)?;
+        match (record, field) {
+            (Value::Range(_, step, end), Field::Prim(PrimField::Start)) => Continue(Value::Range(
+                Some(value.try_into().with_span(value_span)?),
+                step,
+                end,
+            )),
+            (Value::Range(start, _, end), Field::Prim(PrimField::Step)) => Continue(Value::Range(
+                start,
+                value.try_into().with_span(value_span)?,
+                end,
+            )),
+            (Value::Range(start, step, _), Field::Prim(PrimField::End)) => Continue(Value::Range(
+                start,
+                step,
+                Some(value.try_into().with_span(value_span)?),
+            )),
+            (record, Field::Path(path)) => Continue(
+                update_field_path(&record, &path.indices, &value)
+                    .expect("field path should be valid"),
+            ),
+            _ => panic!("invalid field access"),
         }
     }
 
@@ -1617,5 +1647,32 @@ fn eval_binop_xorb(
             lhs_val.type_name(),
             lhs_span,
         ))),
+    }
+}
+
+fn follow_field_path(mut value: Value, path: &[usize]) -> Option<Value> {
+    for &index in path {
+        let Value::Tuple(items) = value else { return None; };
+        value = items[index].clone();
+    }
+    Some(value)
+}
+
+fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<Value> {
+    match (record, path) {
+        (_, []) => Some(replace.clone()),
+        (Value::Tuple(items), &[next_index, ..]) if next_index < items.len() => {
+            let update = |(index, item)| {
+                if index == next_index {
+                    update_field_path(item, &path[1..], replace)
+                } else {
+                    Some(item.clone())
+                }
+            };
+
+            let items: Option<_> = items.iter().enumerate().map(update).collect();
+            Some(Value::Tuple(items?))
+        }
+        _ => None,
     }
 }

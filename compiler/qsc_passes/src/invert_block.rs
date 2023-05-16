@@ -6,21 +6,27 @@ use std::collections::HashSet;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
+    global::Table,
     hir::{
-        BinOp, Block, Expr, ExprKind, Ident, Lit, Mutability, NodeId, Pat, PatKind, PrimField,
-        PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Field, Ident, Lit, Mutability, NodeId, Pat, PatKind,
+        PrimField, PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::logic_sep::{find_quantum_stmts, Error};
+use crate::{
+    common::create_gen_core_ref,
+    logic_sep::{find_quantum_stmts, Error},
+};
 
 pub(crate) fn adj_invert_block(
+    core: &Table,
     assigner: &mut Assigner,
     block: &mut Block,
 ) -> Result<(), Vec<Error>> {
     let quantum_stmts = find_quantum_stmts(block)?;
     let mut pass = BlockInverter {
+        core,
         assigner,
         quantum_stmts,
         should_reverse_loop: false,
@@ -30,6 +36,7 @@ pub(crate) fn adj_invert_block(
 }
 
 struct BlockInverter<'a> {
+    core: &'a Table,
     assigner: &'a mut Assigner,
     quantum_stmts: HashSet<NodeId>,
     should_reverse_loop: bool,
@@ -190,7 +197,9 @@ impl<'a> BlockInverter<'a> {
                 ty: Ty::UNIT,
                 kind: ExprKind::For(
                     index_pat,
-                    Box::new(make_array_index_range_reverse(new_arr_id, arr_ty)),
+                    Box::new(make_array_index_range_reverse(
+                        self.core, new_arr_id, arr_ty,
+                    )),
                     block,
                 ),
             }),
@@ -314,24 +323,29 @@ fn make_range_field(range_id: NodeId, field: PrimField) -> Expr {
                 ty: Ty::Prim(PrimTy::Range),
                 kind: ExprKind::Var(Res::Local(range_id)),
             }),
-            field,
+            Field::Prim(field),
         ),
     }
 }
 
-fn make_array_index_range_reverse(arr_id: NodeId, arr_ty: &Ty) -> Expr {
+fn make_array_index_range_reverse(core: &Table, arr_id: NodeId, arr_ty: &Ty) -> Expr {
     let len = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),
         ty: Ty::Prim(PrimTy::Int),
-        kind: ExprKind::Field(
+        kind: ExprKind::Call(
+            Box::new(create_gen_core_ref(
+                core,
+                "Microsoft.Quantum.Core",
+                "Length",
+                Span::default(),
+            )),
             Box::new(Expr {
                 id: NodeId::default(),
                 span: Span::default(),
                 ty: Ty::Array(Box::new(arr_ty.clone())),
                 kind: ExprKind::Var(Res::Local(arr_id)),
             }),
-            PrimField::Length,
         ),
     });
     let start = Box::new(Expr {

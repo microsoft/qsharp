@@ -1,24 +1,39 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use crate::{
     closure,
     resolve::{self, Resolutions},
-    typeck::{convert, Tys},
+    typeck::{self, convert},
 };
+use miette::Diagnostic;
 use qsc_ast::ast;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
 };
-use std::{clone::Clone, rc::Rc, vec};
+use std::{clone::Clone, collections::HashSet, rc::Rc, vec};
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub(super) enum Error {
+    #[error("unknown attribute {0}")]
+    #[diagnostic(help("supported attributes are: EntryPoint"))]
+    UnknownAttr(String, #[label] Span),
+    #[error("invalid attribute arguments: expected {0}")]
+    InvalidAttrArgs(&'static str, #[label] Span),
+}
 
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
+    errors: Vec<Error>,
 }
 
 impl Lowerer {
@@ -28,6 +43,7 @@ impl Lowerer {
             nodes: IndexMap::new(),
             parent: None,
             items: Vec::new(),
+            errors: Vec::new(),
         }
     }
 
@@ -39,10 +55,14 @@ impl Lowerer {
         self.items.drain(..)
     }
 
+    pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
+        self.errors.drain(..)
+    }
+
     pub(super) fn with<'a>(
         &'a mut self,
         (next_item_id, resolutions): (&'a mut LocalItemId, &'a Resolutions),
-        tys: &'a Tys,
+        tys: &'a typeck::Table,
     ) -> With {
         With {
             lowerer: self,
@@ -52,8 +72,8 @@ impl Lowerer {
         }
     }
 
-    pub(super) fn into_assigner(self) -> Assigner {
-        self.assigner
+    pub(super) fn into_assigner(self) -> (Assigner, Vec<Error>) {
+        (self.assigner, self.errors)
     }
 }
 
@@ -61,7 +81,7 @@ pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
     next_item_id: &'a mut LocalItemId,
     resolutions: &'a Resolutions,
-    tys: &'a Tys,
+    tys: &'a typeck::Table,
 }
 
 impl With<'_> {
@@ -95,7 +115,7 @@ impl With<'_> {
             span: namespace.span,
             parent: None,
             attrs: Vec::new(),
-            visibility: None,
+            visibility: hir::Visibility::Public,
             kind: hir::ItemKind::Namespace(name, items),
         });
 
@@ -103,22 +123,43 @@ impl With<'_> {
     }
 
     fn lower_item(&mut self, item: &ast::Item) -> Option<LocalItemId> {
-        let attrs = item.attrs.iter().map(|a| self.lower_attr(a)).collect();
-        let visibility = item.visibility.as_ref().map(|v| self.lower_visibility(v));
-        let (name_id, kind) = match &item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
-            ast::ItemKind::Callable(decl) => (
-                decl.name.id,
-                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
-            ),
-            ast::ItemKind::Ty(name, def) => (
-                name.id,
-                hir::ItemKind::Ty(self.lower_ident(name), self.lower_ty_def(def)),
-            ),
+        let resolve_id = |id| match self.resolutions.get(id) {
+            Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
+            _ => panic!("item should have item ID"),
         };
 
-        let Some(&resolve::Res::Item(hir::ItemId { item: id, .. })) = self.resolutions.get(name_id)
-            else { panic!("item should have item ID"); };
+        let attrs = item
+            .attrs
+            .iter()
+            .filter_map(|a| self.lower_attr(a))
+            .collect();
+
+        let visibility = item
+            .visibility
+            .as_ref()
+            .map_or(hir::Visibility::Public, lower_visibility);
+
+        let (id, kind) = match &item.kind {
+            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            ast::ItemKind::Callable(decl) => (
+                resolve_id(decl.name.id),
+                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
+            ),
+            ast::ItemKind::Ty(name, _) => {
+                let id = resolve_id(name.id);
+                let item_id = hir::ItemId {
+                    package: None,
+                    item: id,
+                };
+                let udt = self
+                    .tys
+                    .udts
+                    .get(&item_id)
+                    .expect("type item should have lowered UDT");
+
+                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+            }
+        };
 
         self.lowerer.items.push(hir::Item {
             id,
@@ -132,23 +173,23 @@ impl With<'_> {
         Some(id)
     }
 
-    fn lower_attr(&mut self, attr: &ast::Attr) -> hir::Attr {
-        hir::Attr {
-            id: self.lower_id(attr.id),
-            span: attr.span,
-            name: self.lower_ident(&attr.name),
-            arg: self.lower_expr(&attr.arg),
-        }
-    }
-
-    fn lower_visibility(&mut self, visibility: &ast::Visibility) -> hir::Visibility {
-        hir::Visibility {
-            id: self.lower_id(visibility.id),
-            span: visibility.span,
-            kind: match visibility.kind {
-                ast::VisibilityKind::Public => hir::VisibilityKind::Public,
-                ast::VisibilityKind::Internal => hir::VisibilityKind::Internal,
-            },
+    fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
+        if attr.name.name.as_ref() == "EntryPoint" {
+            match &attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::EntryPoint),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()", attr.arg.span));
+                    None
+                }
+            }
+        } else {
+            self.lowerer.errors.push(Error::UnknownAttr(
+                attr.name.name.to_string(),
+                attr.name.span,
+            ));
+            None
         }
     }
 
@@ -161,7 +202,7 @@ impl With<'_> {
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(&decl.input),
             output: convert::ty_from_ast(self.resolutions, &decl.output).0,
-            functors: decl.functors.as_ref().map(|f| self.lower_functor_expr(f)),
+            functors: callable_functors(decl),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
                     hir::CallableBody::Block(self.lower_block(block))
@@ -198,53 +239,15 @@ impl With<'_> {
         }
     }
 
-    fn lower_ty_def(&mut self, def: &ast::TyDef) -> hir::TyDef {
-        match &def.kind {
-            ast::TyDefKind::Field(name, ty) => hir::TyDef {
-                id: self.lower_id(def.id),
-                span: def.span,
-                kind: hir::TyDefKind::Field(
-                    name.as_ref().map(|n| self.lower_ident(n)),
-                    convert::ty_from_ast(self.resolutions, ty).0,
-                ),
-            },
-            ast::TyDefKind::Paren(inner) => self.lower_ty_def(inner),
-            ast::TyDefKind::Tuple(defs) => hir::TyDef {
-                id: self.lower_id(def.id),
-                span: def.span,
-                kind: hir::TyDefKind::Tuple(defs.iter().map(|d| self.lower_ty_def(d)).collect()),
-            },
-        }
-    }
-
-    fn lower_functor_expr(&mut self, expr: &ast::FunctorExpr) -> hir::FunctorExpr {
-        match &expr.kind {
-            ast::FunctorExprKind::BinOp(op, lhs, rhs) => hir::FunctorExpr {
-                id: self.lower_id(expr.id),
-                span: expr.span,
-                kind: hir::FunctorExprKind::BinOp(
-                    match op {
-                        ast::SetOp::Union => hir::SetOp::Union,
-                        ast::SetOp::Intersect => hir::SetOp::Intersect,
-                    },
-                    Box::new(self.lower_functor_expr(lhs)),
-                    Box::new(self.lower_functor_expr(rhs)),
-                ),
-            },
-            &ast::FunctorExprKind::Lit(functor) => hir::FunctorExpr {
-                id: self.lower_id(expr.id),
-                span: expr.span,
-                kind: hir::FunctorExprKind::Lit(lower_functor(functor)),
-            },
-            ast::FunctorExprKind::Paren(inner) => self.lower_functor_expr(inner),
-        }
-    }
-
     fn lower_block(&mut self, block: &ast::Block) -> hir::Block {
         hir::Block {
             id: self.lower_id(block.id),
             span: block.span,
-            ty: self.tys.get(block.id).map_or(hir::Ty::Err, Clone::clone),
+            ty: self
+                .tys
+                .terms
+                .get(block.id)
+                .map_or(hir::Ty::Err, Clone::clone),
             stmts: block
                 .stmts
                 .iter()
@@ -291,8 +294,14 @@ impl With<'_> {
         if let ast::ExprKind::Paren(inner) = &expr.kind {
             return self.lower_expr(inner);
         }
+
         let id = self.lower_id(expr.id);
-        let ty = self.tys.get(expr.id).map_or(hir::Ty::Err, Clone::clone);
+        let ty = self
+            .tys
+            .terms
+            .get(expr.id)
+            .map_or(hir::Ty::Err, Clone::clone);
+
         let kind = match &expr.kind {
             ast::ExprKind::Array(items) => {
                 hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
@@ -310,11 +319,20 @@ impl With<'_> {
                 Box::new(self.lower_expr(lhs)),
                 Box::new(self.lower_expr(rhs)),
             ),
-            ast::ExprKind::AssignUpdate(container, index, value) => hir::ExprKind::AssignUpdate(
-                Box::new(self.lower_expr(container)),
-                Box::new(self.lower_expr(index)),
-                Box::new(self.lower_expr(value)),
-            ),
+            ast::ExprKind::AssignUpdate(container, index, replace) => {
+                if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+                    let container = self.lower_expr(container);
+                    let field = self.lower_field(&container.ty, field);
+                    let replace = self.lower_expr(replace);
+                    hir::ExprKind::AssignField(Box::new(container), field, Box::new(replace))
+                } else {
+                    hir::ExprKind::AssignIndex(
+                        Box::new(self.lower_expr(container)),
+                        Box::new(self.lower_expr(index)),
+                        Box::new(self.lower_expr(replace)),
+                    )
+                }
+            }
             ast::ExprKind::BinOp(op, lhs, rhs) => hir::ExprKind::BinOp(
                 lower_binop(*op),
                 Box::new(self.lower_expr(lhs)),
@@ -332,7 +350,7 @@ impl With<'_> {
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
             ast::ExprKind::Field(container, name) => {
                 let container = self.lower_expr(container);
-                let field = name.name.parse().unwrap_or_default();
+                let field = self.lower_field(&container.ty, &name.name);
                 hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
@@ -373,12 +391,29 @@ impl With<'_> {
                     .map(|c| self.lower_string_component(c))
                     .collect(),
             ),
-            ast::ExprKind::TernOp(op, lhs, middle, rhs) => hir::ExprKind::TernOp(
-                lower_ternop(*op),
-                Box::new(self.lower_expr(lhs)),
-                Box::new(self.lower_expr(middle)),
-                Box::new(self.lower_expr(rhs)),
-            ),
+            ast::ExprKind::TernOp(ast::TernOp::Cond, cond, if_true, if_false) => {
+                hir::ExprKind::TernOp(
+                    hir::TernOp::Cond,
+                    Box::new(self.lower_expr(cond)),
+                    Box::new(self.lower_expr(if_true)),
+                    Box::new(self.lower_expr(if_false)),
+                )
+            }
+            ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
+                if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+                    let record = self.lower_expr(container);
+                    let field = self.lower_field(&record.ty, field);
+                    let replace = self.lower_expr(replace);
+                    hir::ExprKind::UpdateField(Box::new(record), field, Box::new(replace))
+                } else {
+                    hir::ExprKind::TernOp(
+                        hir::TernOp::UpdateIndex,
+                        Box::new(self.lower_expr(container)),
+                        Box::new(self.lower_expr(index)),
+                        Box::new(self.lower_expr(replace)),
+                    )
+                }
+            }
             ast::ExprKind::Tuple(items) => {
                 hir::ExprKind::Tuple(items.iter().map(|i| self.lower_expr(i)).collect())
             }
@@ -417,7 +452,7 @@ impl With<'_> {
             span,
             parent: self.lowerer.parent,
             attrs: Vec::new(),
-            visibility: None,
+            visibility: hir::Visibility::Internal,
             kind: hir::ItemKind::Callable(callable),
         });
 
@@ -428,6 +463,20 @@ impl With<'_> {
                 item: id,
             },
         )
+    }
+
+    fn lower_field(&mut self, record_ty: &hir::Ty, name: &str) -> hir::Field {
+        if let hir::Ty::Udt(hir::Res::Item(id)) = record_ty {
+            self.tys
+                .udts
+                .get(id)
+                .and_then(|udt| udt.field_path(name))
+                .map_or(hir::Field::Err, |f| hir::Field::Path(f.clone()))
+        } else if let Ok(prim) = name.parse() {
+            hir::Field::Prim(prim)
+        } else {
+            hir::Field::Err
+        }
     }
 
     fn lower_string_component(&mut self, component: &ast::StringComponent) -> hir::StringComponent {
@@ -441,11 +490,13 @@ impl With<'_> {
         if let ast::PatKind::Paren(inner) = &pat.kind {
             return self.lower_pat(inner);
         }
+
         let id = self.lower_id(pat.id);
-        let ty = self.tys.get(pat.id).map_or_else(
+        let ty = self.tys.terms.get(pat.id).map_or_else(
             || convert::ast_pat_ty(self.resolutions, pat).0,
             Clone::clone,
         );
+
         let kind = match &pat.kind {
             ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
@@ -468,8 +519,14 @@ impl With<'_> {
         if let ast::QubitInitKind::Paren(inner) = &init.kind {
             return self.lower_qubit_init(inner);
         }
+
         let id = self.lower_id(init.id);
-        let ty = self.tys.get(init.id).map_or(hir::Ty::Err, Clone::clone);
+        let ty = self
+            .tys
+            .terms
+            .get(init.id)
+            .map_or(hir::Ty::Err, Clone::clone);
+
         let kind = match &init.kind {
             ast::QubitInitKind::Array(length) => {
                 hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))
@@ -511,6 +568,13 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
+    }
+}
+
+fn lower_visibility(visibility: &ast::Visibility) -> hir::Visibility {
+    match visibility.kind {
+        ast::VisibilityKind::Public => hir::Visibility::Public,
+        ast::VisibilityKind::Internal => hir::Visibility::Internal,
     }
 }
 
@@ -556,13 +620,6 @@ fn lower_binop(op: ast::BinOp) -> hir::BinOp {
     }
 }
 
-fn lower_ternop(op: ast::TernOp) -> hir::TernOp {
-    match op {
-        ast::TernOp::Cond => hir::TernOp::Cond,
-        ast::TernOp::Update => hir::TernOp::Update,
-    }
-}
-
 fn lower_lit(lit: &ast::Lit) -> hir::ExprKind {
     match lit {
         ast::Lit::BigInt(value) => hir::ExprKind::Lit(hir::Lit::BigInt(value.clone())),
@@ -590,4 +647,24 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
         ast::Functor::Adj => hir::Functor::Adj,
         ast::Functor::Ctl => hir::Functor::Ctl,
     }
+}
+
+fn callable_functors(callable: &ast::CallableDecl) -> HashSet<hir::Functor> {
+    let mut functors = callable
+        .functors
+        .as_ref()
+        .map_or(HashSet::new(), convert::eval_functor_expr);
+
+    if let ast::CallableBody::Specs(specs) = &callable.body {
+        for spec in specs {
+            match spec.spec {
+                ast::Spec::Body => {}
+                ast::Spec::Adj => functors.extend([hir::Functor::Adj]),
+                ast::Spec::Ctl => functors.extend([hir::Functor::Ctl]),
+                ast::Spec::CtlAdj => functors.extend([hir::Functor::Adj, hir::Functor::Ctl]),
+            }
+        }
+    }
+
+    functors
 }

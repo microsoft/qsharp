@@ -107,7 +107,7 @@ pub(super) fn lift(
         ty_params: Vec::new(),
         input,
         output: body.ty.clone(),
-        functors: None,
+        functors: HashSet::new(),
         body: CallableBody::Block(Block {
             id: assigner.next_id(),
             span: body.span,

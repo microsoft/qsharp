@@ -1337,3 +1337,161 @@ fn local_open_shadows_parent_open() {
         "#]],
     );
 }
+
+#[test]
+fn update_array_index_var() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {
+                    let local11 = [2];
+                    let local16 = 0;
+                    let local20 = local11 w/ local16 <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_array_index_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i + 1 <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {
+                    let local11 = [2];
+                    let local16 = 0;
+                    let local20 = local11 w/ local16 + 1 <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_known_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {
+                    let local24 = item1(1, 2);
+                    let local34 = local24 w/ First <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_known_field_name_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First + 1 <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {
+                    let local24 = item1(1, 2);
+                    let local34 = local24 w/ First + 1 <- 3;
+                }
+            }
+
+            // NotFound("First", Span { lo: 138, hi: 143 })
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_unknown_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {
+                    let local24 = item1(1, 2);
+                    let local34 = local24 w/ Third <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_unknown_field_name_known_global() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Third() : () {}
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {}
+
+                function item3() : () {
+                    let local30 = item1(1, 2);
+                    let local40 = local30 w/ Third <- 3;
+                }
+            }
+        "#]],
+    );
+}

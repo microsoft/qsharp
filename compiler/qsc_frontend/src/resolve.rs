@@ -348,6 +348,13 @@ impl AstVisitor<'_> for Resolver {
                 });
             }
             ast::ExprKind::Path(path) => self.resolve(NameKind::Term, path),
+            ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
+                self.visit_expr(container);
+                if !is_field_update(&self.globals, &self.scopes, index) {
+                    self.visit_expr(index);
+                }
+                self.visit_expr(replace);
+            }
             _ => ast_visit::walk_expr(self, expr),
         }
     }
@@ -406,7 +413,7 @@ impl GlobalTable {
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
         for global in global::iter_package(Some(id), package)
-            .filter(|global| global.visibility == hir::VisibilityKind::Public)
+            .filter(|global| global.visibility == hir::Visibility::Public)
         {
             match global.kind {
                 global::Kind::Ty(ty) => {
@@ -425,6 +432,37 @@ impl GlobalTable {
                 }
             }
         }
+    }
+}
+
+/// Tries to extract a field name from an expression in cases where it is syntactically ambiguous
+/// whether the expression is a field name or a variable name. This applies to the index operand in
+/// a ternary update operator.
+pub(super) fn extract_field_name<'a>(
+    resolutions: &Resolutions,
+    expr: &'a ast::Expr,
+) -> Option<&'a Rc<str>> {
+    // Follow the same reasoning as `is_field_update`.
+    match &expr.kind {
+        ast::ExprKind::Path(path)
+            if path.namespace.is_none()
+                && !matches!(resolutions.get(path.id), Some(Res::Local(_))) =>
+        {
+            Some(&path.name.name)
+        }
+        _ => None,
+    }
+}
+
+fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -> bool {
+    // Disambiguate the update operator by looking at the index expression. If it's an
+    // unqualified path that doesn't resolve to a local, assume that it's meant to be a field name.
+    match &index.kind {
+        ast::ExprKind::Path(path) if path.namespace.is_none() => !matches!(
+            resolve(NameKind::Term, globals, scopes, path),
+            Ok(Res::Local(_))
+        ),
+        _ => false,
     }
 }
 

@@ -5,6 +5,7 @@
 
 mod closure;
 pub mod compile;
+mod funop;
 pub mod incremental;
 mod lex;
 mod lower;

@@ -3,20 +3,6 @@
 
 namespace Microsoft.Quantum.Core {
     /// # Summary
-    /// Returns the number of elements in an array.
-    ///
-    /// # Input
-    /// ## a
-    /// Input array.
-    ///
-    /// # Output
-    /// The total count of elements in an array.
-    ///
-    function Length<'T>(a : 'T[]) : Int {
-        a::Length
-    }
-
-    /// # Summary
     /// Returns the defined start value of the given range.
     ///
     /// # Input

@@ -4,8 +4,8 @@
 use crate::resolve::{self, Resolutions};
 use qsc_ast::ast;
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, Functor, ItemId, Ty};
-use std::collections::HashSet;
+use qsc_hir::hir::{self, FieldPath, Functor, ItemId, Ty, UdtField};
+use std::{collections::HashSet, rc::Rc};
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
@@ -19,9 +19,7 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
             let (input, mut errors) = ty_from_ast(resolutions, input);
             let (output, output_errors) = ty_from_ast(resolutions, output);
             errors.extend(output_errors);
-            let functors = functors.as_ref().map_or(HashSet::new(), |f| {
-                f.to_set().into_iter().map(functor_from_ast).collect()
-            });
+            let functors = functors.as_ref().map_or(HashSet::new(), eval_functor_expr);
             let ty = Ty::Arrow(
                 callable_kind_from_ast(*kind),
                 Box::new(input),
@@ -55,12 +53,12 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
     }
 }
 
-pub(super) fn ast_ty_def_cons_ty(
+pub(super) fn ast_ty_def_cons(
     resolutions: &Resolutions,
     id: ItemId,
     def: &ast::TyDef,
 ) -> (Ty, Vec<MissingTyError>) {
-    let (input, errors) = ast_ty_def_ty(resolutions, def);
+    let (input, errors) = ast_ty_def_base(resolutions, def);
     let ty = Ty::Arrow(
         hir::CallableKind::Function,
         Box::new(input),
@@ -70,23 +68,46 @@ pub(super) fn ast_ty_def_cons_ty(
     (ty, errors)
 }
 
-pub(super) fn ast_ty_def_ty(
+pub(super) fn ast_ty_def_base(
     resolutions: &Resolutions,
     def: &ast::TyDef,
 ) -> (Ty, Vec<MissingTyError>) {
     match &def.kind {
         ast::TyDefKind::Field(_, ty) => ty_from_ast(resolutions, ty),
-        ast::TyDefKind::Paren(inner) => ast_ty_def_ty(resolutions, inner),
+        ast::TyDefKind::Paren(inner) => ast_ty_def_base(resolutions, inner),
         ast::TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ast_ty_def_ty(resolutions, item);
+                let (item_ty, item_errors) = ast_ty_def_base(resolutions, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
 
             (Ty::Tuple(tys), errors)
+        }
+    }
+}
+
+pub(super) fn ast_ty_def_fields(def: &ast::TyDef) -> Vec<UdtField> {
+    match &def.kind {
+        ast::TyDefKind::Field(Some(name), _) => {
+            vec![UdtField {
+                name: Rc::clone(&name.name),
+                path: FieldPath::default(),
+            }]
+        }
+        ast::TyDefKind::Field(None, _) => Vec::new(),
+        ast::TyDefKind::Paren(inner) => ast_ty_def_fields(inner),
+        ast::TyDefKind::Tuple(items) => {
+            let mut fields = Vec::new();
+            for (index, item) in items.iter().enumerate() {
+                for mut field in ast_ty_def_fields(item) {
+                    field.path.indices.insert(0, index);
+                    fields.push(field);
+                }
+            }
+            fields
         }
     }
 }
@@ -127,9 +148,10 @@ pub(crate) fn ast_pat_ty(resolutions: &Resolutions, pat: &ast::Pat) -> (Ty, Vec<
 }
 
 pub(super) fn ast_callable_functors(decl: &ast::CallableDecl) -> HashSet<Functor> {
-    let mut functors = decl.functors.as_ref().map_or(HashSet::new(), |f| {
-        f.to_set().into_iter().map(functor_from_ast).collect()
-    });
+    let mut functors = decl
+        .functors
+        .as_ref()
+        .map_or(HashSet::new(), eval_functor_expr);
 
     if let ast::CallableBody::Specs(specs) = &decl.body {
         for spec in specs {
@@ -145,16 +167,26 @@ pub(super) fn ast_callable_functors(decl: &ast::CallableDecl) -> HashSet<Functor
     functors
 }
 
-pub(super) fn functor_from_ast(functor: ast::Functor) -> hir::Functor {
-    match functor {
-        ast::Functor::Adj => hir::Functor::Adj,
-        ast::Functor::Ctl => hir::Functor::Ctl,
-    }
-}
-
 pub(super) fn callable_kind_from_ast(kind: ast::CallableKind) -> hir::CallableKind {
     match kind {
         ast::CallableKind::Function => hir::CallableKind::Function,
         ast::CallableKind::Operation => hir::CallableKind::Operation,
+    }
+}
+
+pub(crate) fn eval_functor_expr(expr: &ast::FunctorExpr) -> HashSet<Functor> {
+    match &expr.kind {
+        ast::FunctorExprKind::BinOp(op, lhs, rhs) => {
+            let mut functors = eval_functor_expr(lhs);
+            let rhs_functors = eval_functor_expr(rhs);
+            match op {
+                ast::SetOp::Union => functors.extend(rhs_functors),
+                ast::SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
+            }
+            functors
+        }
+        ast::FunctorExprKind::Lit(ast::Functor::Adj) => [hir::Functor::Adj].into(),
+        ast::FunctorExprKind::Lit(ast::Functor::Ctl) => [hir::Functor::Ctl].into(),
+        ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
 }

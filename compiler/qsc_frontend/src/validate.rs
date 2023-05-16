@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Attr, Expr, ExprKind, Item, ItemKind, Package, UnOp},
+    ast::{Expr, ExprKind, Package},
     visit::{self, Visitor},
 };
 use qsc_data_structures::span::Span;
@@ -14,13 +14,8 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
-    #[error("invalid attribute arguments, expected {0}")]
-    InvalidAttrArgs(&'static str, #[label] Span),
     #[error("{0} are not currently supported")]
     NotCurrentlySupported(&'static str, #[label] Span),
-    #[error("unrecognized attribute {0}")]
-    #[diagnostic(help("supported attributes are: `EntryPoint`"))]
-    UnrecognizedAttr(String, #[label] Span),
 }
 
 pub(super) fn validate(package: &Package) -> Vec<Error> {
@@ -33,43 +28,12 @@ struct Validator {
     errors: Vec<Error>,
 }
 
-impl Validator {
-    fn validate_attrs(&mut self, attrs: &[Attr]) {
-        for attr in attrs {
-            match attr.name.name.as_ref() {
-                "EntryPoint" => match &attr.arg.kind {
-                    ExprKind::Tuple(args) if args.is_empty() => {}
-                    _ => self
-                        .errors
-                        .push(Error::InvalidAttrArgs("()", attr.arg.span)),
-                },
-                _ => self.errors.push(Error::UnrecognizedAttr(
-                    attr.name.name.to_string(),
-                    attr.span,
-                )),
-            }
-        }
-    }
-}
-
 impl Visitor<'_> for Validator {
-    fn visit_item(&mut self, item: &Item) {
-        self.validate_attrs(&item.attrs);
-        if matches!(&item.kind, ItemKind::Ty(..)) {
-            self.errors
-                .push(Error::NotCurrentlySupported("newtype", item.span));
-        }
-        visit::walk_item(self, item);
-    }
-
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
-            ExprKind::UnOp(UnOp::Unwrap, _) => self
-                .errors
-                .push(Error::NotCurrentlySupported("unwrap operator", expr.span)),
             _ => {}
         };
 
