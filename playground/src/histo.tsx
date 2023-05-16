@@ -145,7 +145,6 @@ export function Histogram(props: {
 
   function menuClicked(category: string, idx: number) {
     if (!gMenu.current) return;
-    gMenu.current.style.display === "inline";
     const newMenuSelection = { ...menuSelection };
     newMenuSelection[category] = idx;
     setMenuSelection(newMenuSelection);
@@ -212,10 +211,11 @@ export function Histogram(props: {
       newZoom = Math.min(Math.max(1, newZoom), 50);
 
       // On zooming in, need to shift left to maintain mouse point, and vice-verca.
-      const oldChartWidth = 165 * scale.zoom;
+      const chartAreaWidth = 165;
+      const oldChartWidth = chartAreaWidth * scale.zoom;
       const mousePointOnChart = 0 - scale.offset + mousePoint.x;
       const percentRightOnChart = mousePointOnChart / oldChartWidth;
-      const chartWidthGrowth = newZoom * 165 - scale.zoom * 165;
+      const chartWidthGrowth = newZoom * chartAreaWidth - scale.zoom * chartAreaWidth;
       const shiftLeftAdjust = percentRightOnChart * chartWidthGrowth;
       newScrollOffset = scale.offset - shiftLeftAdjust;
     }
