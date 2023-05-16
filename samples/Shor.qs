@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.Samples.Shor {
             // Get a random integer in the interval [1,number-1]
             let generator = DrawRandomInt(1, number - 1);
 
-            // Check if the random integer indeed co-prime using
+            // Check if the random integer is indeed co-prime using
             // Microsoft.Quantum.Math.IsCoprimeI.
             // If true use Quantum algorithm for Period finding.
             if GreatestCommonDivisorI(generator, number) == 1 {
@@ -209,10 +209,6 @@ namespace Microsoft.Quantum.Samples.Shor {
             GreatestCommonDivisorI(generator, modulus) == 1,
             "`generator` and `modulus` must be co-prime");
 
-        // The variable that stores the divisor of the
-        // generator period found so far.
-        mutable result = 1;
-
         // Number of bits in the modulus with respect to which
         // we are estimating the period.
         let bitsize = BitSizeI(modulus);
@@ -221,29 +217,25 @@ namespace Microsoft.Quantum.Samples.Shor {
         // finding an approximation k/2^(bits precision) to a fraction
         // s/r, where s is some integer. Note that if s and r have
         // common divisors we will end up recovering a divisor of r
-        // and not r itself. However, if we recover enough divisors of r
-        // we recover r itself pretty soon.
+        // and not r itself.
 
         // Number of bits of precision with which we need to estimate
-        // s/r to recover period r. using continued fractions algorithm.
+        // s/r to recover period r, using continued fractions algorithm.
         let bitsPrecision = 2 * bitsize + 1;
 
-        // A variable that stores our current estimate for the frequency
-        // of the form s/r.
-        mutable frequencyEstimate = 0;
-
-        set frequencyEstimate = EstimateFrequency(
+        // Current estimate for the frequency of the form s/r.
+        let frequencyEstimate = EstimateFrequency(
             generator, modulus, bitsize
         );
 
         if frequencyEstimate != 0 {
-            set result = PeriodFromFrequency(
-                modulus, frequencyEstimate, bitsPrecision, result);
+            return PeriodFromFrequency(
+                modulus, frequencyEstimate, bitsPrecision, 1);
         }
         else {
             Message("The estimated frequency was 0, trying again.");
+            return 1;
         }
-        return result;
     }
 
     /// # Summary
@@ -281,7 +273,7 @@ namespace Microsoft.Quantum.Samples.Shor {
         // Initialize eigenstateRegister to 1, which is a superposition
         // of the eigenstates we are estimating the phases of.
         // We are interpreting the register as encoding an unsigned
-        // integer in little endian encoding.
+        // integer in little-endian format.
         ApplyXorInPlace(1, eigenstateRegister);
 
         // Use phase estimation with a semiclassical Fourier transform
@@ -324,7 +316,7 @@ namespace Microsoft.Quantum.Samples.Shor {
     /// ## power
     /// Power of `generator` by which `target` is multiplied.
     /// ## target
-    /// Register interpreted as LittleEndian which is multiplied by
+    /// Register interpreted as little-endian which is multiplied by
     /// given power of the generator. The multiplication is performed
     /// modulo `modulus`.
     internal operation ApplyOrderFindingOracle(
@@ -371,7 +363,7 @@ namespace Microsoft.Quantum.Samples.Shor {
     ///
     /// # Description
     /// Given the classical constants `c` and `modulus`, and an input
-    /// quantum register (as LittleEndian) |𝑦⟩, this operation
+    /// quantum register |𝑦⟩ in little-endian format, this operation
     /// computes `(c*x) % modulus` into |𝑦⟩.
     ///
     /// # Input
@@ -411,7 +403,7 @@ namespace Microsoft.Quantum.Samples.Shor {
     ///
     /// # Description
     /// Given the classical constants `c` and `modulus`, and an input
-    /// quantum register (as LittleEndian) |𝑦⟩, this operation
+    /// quantum register |𝑦⟩ in little-endian format, this operation
     /// computes `(x+c) % modulus` into |𝑦⟩.
     ///
     /// # Input
@@ -555,13 +547,70 @@ namespace Microsoft.Quantum.Samples.Shor {
     }
 
     /// # Summary
-    /// Applies X to the target if both controls are 1 (CCNOT).
-    internal operation ApplyAnd(
+    /// Inverts a given target qubit if and only if both control qubits
+    /// are in the 1 state, using measurement to perform the adjoint
+    /// operation.
+    ///
+    /// # Description
+    /// Inverts `target` if and only if both controls are 1, but assumes
+    /// that `target` is in state 0. The operation has T-count 4,
+    /// T-depth 2 and requires no helper qubit, and may therefore be
+    /// preferable to a CCNOT operation, if `target` is known to be 0.
+    /// The adjoint of this operation is measurement based and requires
+    /// no T gates.
+    /// Although the Toffoli gate (CCNOT) will perform faster in
+    /// in simulations, this version has lower T gate requirements.
+    ///
+    /// # Input
+    /// ## control1
+    /// First control qubit
+    /// ## control2
+    /// Second control qubit
+    /// ## target
+    /// Target auxiliary qubit; must be in state 0
+    ///
+    /// # References
+    /// - Cody Jones: "Novel constructions for the fault-tolerant
+    ///   Toffoli gate",
+    ///   Phys. Rev. A 87, 022328, 2013
+    ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
+    ///   doi:10.1103/PhysRevA.87.022328
+    /// - Craig Gidney: "Halving the cost of quantum addition",
+    ///   Quantum 2, page 74, 2018
+    ///   [arXiv:1709.06648](https://arxiv.org/abs/1709.06648)
+    ///   doi:10.1103/PhysRevA.85.044302
+    /// - Mathias Soeken: "Quantum Oracle Circuits and the Christmas
+    ///   Tree Pattern", [Blog article from December 19, 2019](https://msoeken.github.io/blog_qac.html)
+    ///   (note: explains the multiple controlled construction)
+    operation ApplyAnd(
         control1: Qubit,
         control2: Qubit,
-        target: Qubit): Unit is Adj+Ctl {
+        target : Qubit): Unit is Adj {
 
-        CCNOT(control1, control2, target);
+        body (...) {
+            H(target);
+            T(target);
+            CNOT(control1, target);
+            CNOT(control2, target);
+            within {
+                CNOT(target, control1);
+                CNOT(target, control2);
+            }
+            apply {
+                Adjoint T(control1);
+                Adjoint T(control2);
+                T(target);
+            }
+            H(target);
+            S(target);
+        }
+        adjoint (...) {
+            H(target);
+            if (M(target) == One) {
+                X(target);
+                CZ(control1, control2);
+            }
+        }
     }
 
     /// # Summary
@@ -569,7 +618,7 @@ namespace Microsoft.Quantum.Samples.Shor {
     internal operation ApplyOr(
         control1: Qubit,
         control2: Qubit,
-        target: Qubit): Unit is Adj+Ctl {
+        target: Qubit): Unit is Adj {
 
         within {
             ApplyToEachA(X, [control1, control2]);
