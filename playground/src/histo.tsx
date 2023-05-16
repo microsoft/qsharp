@@ -211,7 +211,7 @@ export function Histogram(props: {
       newZoom = scale.zoom + e.deltaY * 0.05;
       newZoom = Math.min(Math.max(1, newZoom), 50);
 
-      // On zooming in, need to shift left to maintain mouse point, and vice-verca.
+      // On zooming in, need to shift left to maintain mouse point, and vice versa.
       const oldChartWidth = 165 * scale.zoom;
       const mousePointOnChart = 0 - scale.offset + mousePoint.x;
       const percentRightOnChart = mousePointOnChart / oldChartWidth;
