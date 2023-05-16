@@ -164,8 +164,10 @@ export function Histogram(props: {
 
   // Each menu item has a width of 32px and a height of 10px
   // Menu items are 38px apart on the x-axis, and 11px on the y-axis.
-  const menuBoxWidth = menuItems.length * 38 - 2;
-  const menuBoxHeight = maxMenuOptions * 11 + 3;
+  const menuItemWidth = 38;
+  const menuItemHeight = 11;
+  const menuBoxWidth = menuItems.length * menuItemWidth - 2;
+  const menuBoxHeight = maxMenuOptions * menuItemHeight + 3;
 
   const barAreaWidth = 163;
   const barAreaHeight = 72;
@@ -211,12 +213,11 @@ export function Histogram(props: {
       newZoom = Math.min(Math.max(1, newZoom), 50);
 
       // On zooming in, need to shift left to maintain mouse point, and vice verca.
-      const chartAreaWidth = 165;
-      const oldChartWidth = chartAreaWidth * scale.zoom;
+      const oldChartWidth = barAreaWidth * scale.zoom;
       const mousePointOnChart = 0 - scale.offset + mousePoint.x;
       const percentRightOnChart = mousePointOnChart / oldChartWidth;
       const chartWidthGrowth =
-        newZoom * chartAreaWidth - scale.zoom * chartAreaWidth;
+        newZoom * barAreaWidth - scale.zoom * barAreaWidth;
       const shiftLeftAdjust = percentRightOnChart * chartWidthGrowth;
       newScrollOffset = scale.offset - shiftLeftAdjust;
     }
@@ -292,14 +293,13 @@ export function Histogram(props: {
       </g>
 
       <text class="histo-label" x="2" y="97">
-        {" "}
-        {histogramLabel}{" "}
+        {histogramLabel}
       </text>
       <text class="hover-text" x="85" y="6">
-        {" "}
-        {hoverLabel}{" "}
+        {hoverLabel}
       </text>
 
+      {/* The settings icon */}
       <g transform="scale(0.3 0.3)" onClick={toggleMenu}>
         <rect width="24" height="24" fill="white"></rect>
         <path
@@ -339,6 +339,8 @@ export function Histogram(props: {
           stroke-width="1.5"
         />
       </g>
+
+      {/* The info icon */}
       <g transform="translate(158, 0) scale(0.3 0.3)" onClick={toggleInfo}>
         <rect width="24" height="24" fill="white"></rect>
         <circle
@@ -357,6 +359,7 @@ export function Histogram(props: {
         />
       </g>
 
+      {/* The menu box */}
       <g
         id="menu"
         ref={gMenu}
@@ -382,13 +385,17 @@ export function Histogram(props: {
               return (
                 <>
                   <rect
-                    x={2 + col * 38}
-                    y={2 + row * 11}
+                    x={2 + col * menuItemWidth}
+                    y={2 + row * menuItemHeight}
                     rx="1"
                     class={classList}
                     onClick={() => menuClicked(item.category, row)}
                   ></rect>
-                  <text x={5 + col * 38} y={9 + row * 11} class="menu-text">
+                  <text
+                    x={5 + col * menuItemWidth}
+                    y={9 + row * menuItemHeight}
+                    class="menu-text"
+                  >
                     {option}
                   </text>
                 </>
@@ -402,15 +409,17 @@ export function Histogram(props: {
             return idx >= menuItems.length - 1 ? null : (
               <line
                 class="menu-separator"
-                x1={37 + idx * 38}
+                x1={37 + idx * menuItemWidth}
                 y1="2"
-                x2={37 + idx * 38}
-                y2={maxMenuOptions * 11 + 1}
+                x2={37 + idx * menuItemWidth}
+                y2={maxMenuOptions * menuItemHeight + 1}
               ></line>
             );
           })
         }
       </g>
+
+      {/* The info box */}
       <g ref={gInfo} style="display: none;">
         <rect
           width="155"
