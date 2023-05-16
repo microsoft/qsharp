@@ -13,15 +13,6 @@ and are not called out specifically here.
 
 ## Unsupported Features
 
-### User Defined Types, Field Accessors, and the Unwrap Operator
-
-```qsharp
-newtype Complex = (Real: Double, Imaginary: Double);
-let compl = Complex(1.0, 0.0);
-let real = compl::Real;
-let (real, imag) = compl!;
-```
-
 ### Partial Application
 
 ```qsharp
@@ -61,3 +52,4 @@ supported by the evaluator, matching the callables present in the standard libra
 - Adjoint generator (`adjoint invert` and `controlled adjoint invert`)
 - Conjugate expressions (within-apply)
 - String interpolation
+- User-defined types

@@ -3,8 +3,7 @@
 
 use crate::hir::{
     Block, CallableBody, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat,
-    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TyDef,
-    TyDefKind,
+    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 use qsc_data_structures::span::Span;
 
@@ -15,10 +14,6 @@ pub trait MutVisitor: Sized {
 
     fn visit_item(&mut self, item: &mut Item) {
         walk_item(self, item);
-    }
-
-    fn visit_ty_def(&mut self, def: &mut TyDef) {
-        walk_ty_def(self, def);
     }
 
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
@@ -66,20 +61,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_ident(name),
-        ItemKind::Ty(ident, def) => {
-            vis.visit_ident(ident);
-            vis.visit_ty_def(def);
-        }
-    }
-}
-
-pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
-    vis.visit_span(&mut def.span);
-
-    match &mut def.kind {
-        TyDefKind::Field(name, _) => name.iter_mut().for_each(|n| vis.visit_ident(n)),
-        TyDefKind::Tuple(defs) => defs.iter_mut().for_each(|d| vis.visit_ty_def(d)),
+        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }
 
@@ -145,10 +127,14 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(lhs);
             vis.visit_expr(rhs);
         }
-        ExprKind::AssignUpdate(record, index, value) => {
+        ExprKind::AssignField(record, _, replace) | ExprKind::UpdateField(record, _, replace) => {
             vis.visit_expr(record);
+            vis.visit_expr(replace);
+        }
+        ExprKind::AssignIndex(array, index, replace) => {
+            vis.visit_expr(array);
             vis.visit_expr(index);
-            vis.visit_expr(value);
+            vis.visit_expr(replace);
         }
         ExprKind::Block(block) => vis.visit_block(block),
         ExprKind::Call(callee, arg) => {
