@@ -35,13 +35,6 @@ build of each project, including running tests and checks such as linting. Run w
 To run the "playground" locally, `cd` into the `playground` directory, and run `npm start`.
 This will launch a local web server and output the URL to visit to the console.
 
-### Python
-
-If the build script does not detect a current Python virtual environment, it will automatically create
-one under `pip/.venv` to run the tests for the `pip` package. When developing locally,
-you can use this virtual environment to run the tests by running `source pip/.venv/bin/activate`
-(Linux/MacOS) or `pip/.venv/Scripts/activate.bat` (Windows).
-
 ## Feedback
 
 If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp/issues/new/choose)!
