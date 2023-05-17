@@ -9,6 +9,7 @@
   --nav-hover-background: #b3bede;
   --nav-current-background: #b5c5f2;
   --border-color: #768f9c;
+  --menu-box-fill: #e9f2fc;
   --error-background-color: #ffe3e3;
   --bar-selected-outline: #587ddd;
 }
@@ -230,7 +231,7 @@ body {
 }
 
 .histogram {
-  width: 100%;
+  width: 500px;
   height: 300px;
   border: 1px solid var(--border-color);
   background-color: white;
@@ -258,18 +259,63 @@ body {
 .bar-label {
   font-size: 3pt;
   fill: var(--main-color);
-  text-anchor: middle;
+  text-anchor: end;
+  pointer-events: none;
 }
 
 .histo-label {
   font-size: 3.5pt;
-  fill: var(--main-color);
+  fill: gray;
 }
 
 .hover-text {
   font-size: 3.5pt;
   fill: gray;
   text-anchor: middle;
+}
+
+.menu-box {
+  fill: var(--menu-box-fill);
+  stroke: black;
+  stroke-width: 0.1;
+}
+
+.menu-item {
+  width: 32px;
+  height: 10px;
+  fill: var(--main-background);
+  stroke: gray;
+  stroke-width: 0.2;
+}
+
+.menu-item:hover {
+  stroke-width: 0.6;
+}
+
+.menu-selected {
+  stroke: #0800ff;
+  fill: var(--nav-background);
+}
+
+.menu-text {
+  font-size: 4.5px;
+  pointer-events: none;
+}
+
+.menu-separator {
+  stroke: gray;
+  stroke-width: 0.25;
+}
+
+.help-info {
+  fill: var(--menu-box-fill);
+  stroke: gray;
+  stroke-width: 0.5;
+}
+
+.help-info-text {
+  font-size: 4.5px;
+  pointer-events: none;
 }
 
 .err-span {
