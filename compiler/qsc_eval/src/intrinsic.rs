@@ -7,7 +7,7 @@ mod tests;
 use crate::{
     output::Receiver,
     val::{Qubit, Value},
-    Error, Reason, WithSpan,
+    Error,
 };
 use num_bigint::BigInt;
 use qir_backend::{
@@ -24,7 +24,6 @@ use qir_backend::{
 };
 use qsc_data_structures::span::Span;
 use rand::Rng;
-use std::ops::ControlFlow::{self, Break, Continue};
 
 #[allow(clippy::too_many_lines)]
 pub(crate) fn invoke_intrinsic(
@@ -33,206 +32,232 @@ pub(crate) fn invoke_intrinsic(
     args: Value,
     args_span: Span,
     out: &mut dyn Receiver,
-) -> ControlFlow<Reason, Value> {
+) -> Result<Value, Error> {
     if name.starts_with("__quantum__qis__") {
         invoke_quantum_intrinsic(name, name_span, args, args_span)
     } else {
         match name {
-            "Length" => match args.try_into_array().with_span(args_span)?.len().try_into() {
-                Ok(len) => ControlFlow::Continue(Value::Int(len)),
-                Err(_) => ControlFlow::Break(Reason::Error(Error::ArrayTooLarge(args_span))),
+            "Length" => match args.unwrap_array().len().try_into() {
+                Ok(len) => Ok(Value::Int(len)),
+                Err(_) => Err(Error::ArrayTooLarge(args_span)),
             },
 
             #[allow(clippy::cast_precision_loss)]
             "IntAsDouble" => {
-                let val: i64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val as f64))
+                let val = args.unwrap_int();
+                Ok(Value::Double(val as f64))
             }
 
             "IntAsBigInt" => {
-                let val: i64 = args.try_into().with_span(args_span)?;
-                Continue(Value::BigInt(BigInt::from(val)))
+                let val = args.unwrap_int();
+                Ok(Value::BigInt(BigInt::from(val)))
             }
 
             "DumpMachine" => {
                 let (state, qubit_count) = capture_quantum_state();
                 match out.state(state, qubit_count) {
-                    Ok(_) => Continue(Value::unit()),
-                    Err(_) => Break(Reason::Error(Error::Output(name_span))),
+                    Ok(_) => Ok(Value::unit()),
+                    Err(_) => Err(Error::Output(name_span)),
                 }
             }
 
-            "Message" => match out.message(&args.try_into_string().with_span(args_span)?) {
-                Ok(_) => Continue(Value::unit()),
-                Err(_) => Break(Reason::Error(Error::Output(name_span))),
+            "Message" => match out.message(&args.unwrap_string()) {
+                Ok(_) => Ok(Value::unit()),
+                Err(_) => Err(Error::Output(name_span)),
             },
 
-            "CheckZero" => Continue(Value::Bool(qubit_is_zero(
-                args.try_into().with_span(args_span)?,
-            ))),
+            "CheckZero" => Ok(Value::Bool(qubit_is_zero(args.unwrap_qubit().0))),
 
             "ArcCos" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.acos()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.acos()))
             }
 
             "ArcSin" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.asin()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.asin()))
             }
 
             "ArcTan" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.atan()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.atan()))
             }
 
-            "ArcTan2" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
-                [x, y] => {
-                    let x: f64 = x.clone().try_into().with_span(args_span)?;
-                    let y = y.clone().try_into().with_span(args_span)?;
-                    Continue(Value::Double(x.atan2(y)))
-                }
-                args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span))),
-            },
+            "ArcTan2" => {
+                let [x, y] = &*args.unwrap_tuple() else {
+                    panic!("args should be tuple of arity 2");
+                };
+                let x = x.clone().unwrap_double();
+                let y = y.clone().unwrap_double();
+                Ok(Value::Double(x.atan2(y)))
+            }
 
             "Cos" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.cos()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.cos()))
             }
 
             "Cosh" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.cosh()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.cosh()))
             }
 
             "Sin" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.sin()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.sin()))
             }
 
             "Sinh" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.sinh()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.sinh()))
             }
 
             "Tan" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.tan()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.tan()))
             }
 
             "Tanh" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.tanh()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.tanh()))
             }
 
             "Sqrt" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.sqrt()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.sqrt()))
             }
 
             "Log" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
-                Continue(Value::Double(val.ln()))
+                let val = args.unwrap_double();
+                Ok(Value::Double(val.ln()))
             }
 
-            "DrawRandomInt" => match args.try_into_tuple().with_span(args_span)?.as_ref() {
-                [lo, hi] => invoke_draw_random_int(lo.clone(), hi.clone(), args_span),
-                args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span))),
-            },
+            "DrawRandomInt" => {
+                let [lo, hi] = &*args.unwrap_tuple() else {
+                    panic!("args should be a tuple of arity 2");
+                };
+                invoke_draw_random_int(lo.clone(), hi.clone(), args_span)
+            }
 
             "Truncate" => {
-                let val: f64 = args.try_into().with_span(args_span)?;
+                let val = args.unwrap_double();
                 #[allow(clippy::cast_possible_truncation)]
-                Continue(Value::Int(val as i64))
+                Ok(Value::Int(val as i64))
             }
 
             "__quantum__rt__qubit_allocate" => {
                 let qubit = Qubit(__quantum__rt__qubit_allocate());
-                Continue(Value::Qubit(qubit))
+                Ok(Value::Qubit(qubit))
             }
 
             "__quantum__rt__qubit_release" => {
-                __quantum__rt__qubit_release(args.try_into().with_span(args_span)?);
-                Continue(Value::unit())
+                let qubit = args.unwrap_qubit().0;
+                if !qubit_is_zero(qubit) {
+                    return Err(Error::ReleasedQubitNotZero(qubit as usize));
+                }
+                __quantum__rt__qubit_release(qubit);
+                Ok(Value::unit())
             }
 
-            _ => Break(Reason::Error(Error::UnknownIntrinsic(name_span))),
+            _ => Err(Error::UnknownIntrinsic(name_span)),
         }
     }
 }
 
-fn invoke_draw_random_int(lo: Value, hi: Value, args_span: Span) -> ControlFlow<Reason, Value> {
-    let lo: i64 = lo.try_into().with_span(args_span)?;
-    let hi: i64 = hi.try_into().with_span(args_span)?;
+fn invoke_draw_random_int(lo: Value, hi: Value, args_span: Span) -> Result<Value, Error> {
+    let lo = lo.unwrap_int();
+    let hi = hi.unwrap_int();
     if lo > hi {
-        Break(Reason::Error(Error::EmptyRange(args_span)))
+        Err(Error::EmptyRange(args_span))
     } else {
-        Continue(Value::Int(rand::thread_rng().gen_range(lo..=hi)))
+        Ok(Value::Int(rand::thread_rng().gen_range(lo..=hi)))
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn invoke_quantum_intrinsic(
     name: &str,
     name_span: Span,
     args: Value,
     args_span: Span,
-) -> ControlFlow<Reason, Value> {
+) -> Result<Value, Error> {
     macro_rules! match_intrinsic {
-        ($chosen_op:ident, $chosen_op_span:ident, $(($(1, $op1:ident),* $(2, $op2:ident),* $(3, $op3:ident),*)),* ) => {
+        ($chosen_op:ident, $chosen_op_span:ident, $(($("Qubit", $op1:ident),* $("Qubit, Qubit", $op2:ident),* $("Qubit, Qubit, Qubit", $op3:ident),* $("Double, Qubit", $op21:ident),* $("Double, Qubit, Qubit", $op31:ident),*)),* ) => {
             match $chosen_op {
                 $($(stringify!($op1) => {
-                    $op1(args.try_into().with_span(args_span)?);
-                    Continue(Value::unit())
+                    $op1(args.unwrap_qubit().0);
+                    Ok(Value::unit())
                 })*
                 $(stringify!($op2) => {
-                    match args.try_into_tuple().with_span(args_span)?.as_ref() {
-                        [x, y] =>  {
-                            if x == y {
-                                return Break(Reason::Error(Error::QubitUniqueness(args_span)));
-                            }
-                            $op2(
-                                x.clone().try_into().with_span(args_span)?,
-                                y.clone().try_into().with_span(args_span)?,
-                            );
-                            Continue(Value::unit())
-                        }
-                        args => Break(Reason::Error(Error::TupleArity(2, args.len(), args_span)))
+                    let [x, y] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 2");
+                    };
+                    if x == y {
+                        return Err(Error::QubitUniqueness(args_span));
                     }
+                    $op2(
+                        x.clone().unwrap_qubit().0,
+                        y.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
+                })*
+                $(stringify!($op21) => {
+                    let [x, y] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 2");
+                    };
+                    $op21(
+                        x.clone().unwrap_double(),
+                        y.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
                 })*
                 $(stringify!($op3) => {
-                    match args.try_into_tuple().with_span(args_span)?.as_ref() {
-                        [x, y, z] => {
-                            if x == y || y == z || x == z {
-                                return Break(Reason::Error(Error::QubitUniqueness(args_span)));
-                            }
-                            $op3(
-                                x.clone().try_into().with_span(args_span)?,
-                                y.clone().try_into().with_span(args_span)?,
-                                z.clone().try_into().with_span(args_span)?,
-                            );
-                            Continue(Value::unit())
-                        }
-                        args => Break(Reason::Error(Error::TupleArity(3, args.len(), args_span)))
+                    let [x, y, z] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 3");
+                    };
+                    if x == y || y == z || x == z {
+                        return Err(Error::QubitUniqueness(args_span));
                     }
-                })*)*
+                    $op3(
+                        x.clone().unwrap_qubit().0,
+                        y.clone().unwrap_qubit().0,
+                        z.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
+                })*
+                $(stringify!($op31) => {
+                    let [x, y, z] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 3");
+                    };
+                    if y == z {
+                        return Err(Error::QubitUniqueness(args_span));
+                    }
+                    $op31(
+                        x.clone().unwrap_double(),
+                        y.clone().unwrap_qubit().0,
+                        z.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
+                })*
+            )*
 
                 "__quantum__qis__m__body" => {
-                    let res = __quantum__qis__m__body(args.try_into().with_span(args_span)?);
-                    Continue(Value::Result(__quantum__rt__result_equal(
+                    let res = __quantum__qis__m__body(args.unwrap_qubit().0);
+                    Ok(Value::Result(__quantum__rt__result_equal(
                         res,
                         __quantum__rt__result_get_one(),
                     )))
                 }
 
                 "__quantum__qis__mresetz__body" => {
-                    let res = __quantum__qis__mresetz__body(args.try_into().with_span(args_span)?);
-                    Continue(Value::Result(__quantum__rt__result_equal(
+                    let res = __quantum__qis__mresetz__body(args.unwrap_qubit().0);
+                    Ok(Value::Result(__quantum__rt__result_equal(
                         res,
                         __quantum__rt__result_get_one(),
                     )))
                 }
 
-                _ => Break(Reason::Error(Error::UnknownIntrinsic($chosen_op_span))),
+                _ => Err(Error::UnknownIntrinsic($chosen_op_span)),
             }
         };
     }
@@ -240,25 +265,25 @@ fn invoke_quantum_intrinsic(
     match_intrinsic!(
         name,
         name_span,
-        (3, __quantum__qis__ccx__body),
-        (2, __quantum__qis__cx__body),
-        (2, __quantum__qis__cy__body),
-        (2, __quantum__qis__cz__body),
-        (2, __quantum__qis__rx__body),
-        (3, __quantum__qis__rxx__body),
-        (2, __quantum__qis__ry__body),
-        (3, __quantum__qis__ryy__body),
-        (2, __quantum__qis__rz__body),
-        (3, __quantum__qis__rzz__body),
-        (1, __quantum__qis__h__body),
-        (1, __quantum__qis__s__body),
-        (1, __quantum__qis__s__adj),
-        (1, __quantum__qis__t__body),
-        (1, __quantum__qis__t__adj),
-        (1, __quantum__qis__x__body),
-        (1, __quantum__qis__y__body),
-        (1, __quantum__qis__z__body),
-        (2, __quantum__qis__swap__body),
-        (1, __quantum__qis__reset__body)
+        ("Qubit, Qubit, Qubit", __quantum__qis__ccx__body),
+        ("Qubit, Qubit", __quantum__qis__cx__body),
+        ("Qubit, Qubit", __quantum__qis__cy__body),
+        ("Qubit, Qubit", __quantum__qis__cz__body),
+        ("Double, Qubit", __quantum__qis__rx__body),
+        ("Double, Qubit, Qubit", __quantum__qis__rxx__body),
+        ("Double, Qubit", __quantum__qis__ry__body),
+        ("Double, Qubit, Qubit", __quantum__qis__ryy__body),
+        ("Double, Qubit", __quantum__qis__rz__body),
+        ("Double, Qubit, Qubit", __quantum__qis__rzz__body),
+        ("Qubit", __quantum__qis__h__body),
+        ("Qubit", __quantum__qis__s__body),
+        ("Qubit", __quantum__qis__s__adj),
+        ("Qubit", __quantum__qis__t__body),
+        ("Qubit", __quantum__qis__t__adj),
+        ("Qubit", __quantum__qis__x__body),
+        ("Qubit", __quantum__qis__y__body),
+        ("Qubit", __quantum__qis__z__body),
+        ("Qubit, Qubit", __quantum__qis__swap__body),
+        ("Qubit", __quantum__qis__reset__body)
     )
 }
