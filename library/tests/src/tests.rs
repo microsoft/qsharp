@@ -468,6 +468,27 @@ fn check_fst_snd() {
 }
 
 #[test]
+fn check_bitsize_i() {
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
+        &Value::Int(63),
+    );
+}
+
+//
+// Arrays namespace
+//
+
+#[test]
+fn check_head() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
+}
+
+#[test]
 fn check_index_range() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Start",
@@ -484,14 +505,18 @@ fn check_index_range() {
 }
 
 #[test]
-fn check_bitsize_i() {
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+fn check_most() {
     run_stdlib_test(
-        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
-        &Value::Int(63),
+        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
+        &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+    );
+}
+
+#[test]
+fn check_rest() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",
+        &Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
     );
 }
 
@@ -504,29 +529,8 @@ fn check_reversed() {
 }
 
 #[test]
-fn check_head() {
-    run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
-}
-
-#[test]
-fn check_rest() {
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",
-        &Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
-    );
-}
-
-#[test]
 fn check_tail() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Tail([5,6,7,8])", &Value::Int(8));
-}
-
-#[test]
-fn check_most() {
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
-        &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
-    );
 }
 
 #[test]
