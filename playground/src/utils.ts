@@ -70,7 +70,9 @@ export async function compressedBase64ToCode(base64: string) {
   writer.close();
 
   // Read the decompressed stream and turn into a byte string
-  const decompressedBuff = await new Response(decompressor.readable).arrayBuffer();
+  const decompressedBuff = await new Response(
+    decompressor.readable
+  ).arrayBuffer();
 
   // Decode the utf-8 bytes into a JavaScript string
   const decoder = new TextDecoder();

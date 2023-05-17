@@ -177,14 +177,16 @@ export function Editor(props: {
     // Copy link to clipboard and update url without reloading the page
     navigator.clipboard.writeText(newUrl);
     window.history.pushState({}, "", newUrl);
-    
-    const popup = document.getElementById('popup') as HTMLDivElement;
+
+    const popup = document.getElementById("popup") as HTMLDivElement;
     popup.style.display = "block";
     popup.innerText = "Link was copied to the clipboard";
     popup.style.left = `${ev.clientX - 120}px`;
     popup.style.top = `${ev.clientY - 40}px`;
 
-    setTimeout(() => {popup.style.display = "none"}, 2000);
+    setTimeout(() => {
+      popup.style.display = "none";
+    }, 2000);
   }
 
   function shotCountChanged(e: Event) {
