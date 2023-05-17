@@ -5,7 +5,6 @@ use core::panic;
 use std::{mem::take, rc::Rc};
 
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     global::Table,
@@ -16,26 +15,14 @@ use qsc_hir::{
     mut_visit::{walk_expr, MutVisitor},
 };
 
-use crate::{
-    common::{create_gen_core_ref, IdentTemplate},
-    Error,
-};
+use crate::common::{create_gen_core_ref, IdentTemplate};
 
 #[cfg(test)]
 mod tests;
 
-pub fn loop_unification(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
-    let mut pass = LoopUni {
-        core,
-        assigner: &mut unit.assigner,
-    };
-    pass.visit_package(&mut unit.package);
-    vec![]
-}
-
-struct LoopUni<'a> {
-    core: &'a Table,
-    assigner: &'a mut Assigner,
+pub(crate) struct LoopUni<'a> {
+    pub(crate) core: &'a Table,
+    pub(crate) assigner: &'a mut Assigner,
 }
 
 impl LoopUni<'_> {

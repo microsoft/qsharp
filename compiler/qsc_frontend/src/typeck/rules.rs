@@ -489,13 +489,13 @@ impl<'a> Context<'a> {
                 self.inferrer.class(lhs_span, Class::Num(lhs.ty));
                 converge(Ty::Prim(PrimTy::Bool))
             }
-            BinOp::AndB
-            | BinOp::Div
-            | BinOp::Mod
-            | BinOp::Mul
-            | BinOp::OrB
-            | BinOp::Sub
-            | BinOp::XorB => {
+            BinOp::AndB | BinOp::OrB | BinOp::XorB => {
+                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer
+                    .class(lhs_span, Class::Integral(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Div | BinOp::Mod | BinOp::Mul | BinOp::Sub => {
                 self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Num(lhs.ty.clone()));
                 lhs
