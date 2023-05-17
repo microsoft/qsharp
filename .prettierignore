@@ -3,6 +3,7 @@ __pycache__/
 .ado/
 .cargo/
 .github/
+.vscode/
 compiler/
 library/
 npm/dist/
@@ -14,4 +15,5 @@ pip/src/**/*.html
 playground/public/libs/
 samples/
 target/
+vscode/out/
 wasm/

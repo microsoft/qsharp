@@ -12,22 +12,22 @@ use qsc_passes::run_default_passes;
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
-    tests::get_callable,
+    tests::get_global,
     val::Value,
     Env, Error,
 };
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
-    let mut store = PackageStore::new();
-    let mut std = compile::std();
+    let mut store = PackageStore::new(compile::core());
+    let mut std = compile::std(&store);
     assert!(std.errors.is_empty());
-    assert!(run_default_passes(&mut std).is_empty());
+    assert!(run_default_passes(store.core(), &mut std).is_empty());
 
     let std_id = store.insert(std);
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, [std_id], sources);
+    let mut unit = compile(&store, &[std_id], sources);
     assert!(unit.errors.is_empty());
-    assert!(run_default_passes(&mut unit).is_empty());
+    assert!(run_default_passes(store.core(), &mut unit).is_empty());
 
     let id = store.insert(unit);
     let entry = store
@@ -37,7 +37,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
 
     eval_expr(
         entry,
-        &|id| get_callable(&store, id),
+        &|id| get_global(&store, id),
         id,
         &mut Env::default(),
         out,
@@ -148,22 +148,6 @@ fn message() {
 }
 
 #[test]
-fn to_string() {
-    check_intrinsic_result("", "AsString(One)", &expect![["One"]]);
-}
-
-#[test]
-fn to_string_message() {
-    check_intrinsic_output(
-        "",
-        r#"Message(AsString(PauliX))"#,
-        &expect![[r#"
-            PauliX
-        "#]],
-    );
-}
-
-#[test]
 fn check_zero() {
     check_intrinsic_result(
         "",
@@ -185,6 +169,11 @@ fn check_zero_false() {
         }"},
         &expect!["false"],
     );
+}
+
+#[test]
+fn length() {
+    check_intrinsic_value("", "Length([1, 2, 3])", &Value::Int(3));
 }
 
 #[test]
@@ -893,6 +882,104 @@ fn qubit_release_non_zero_failure() {
                 Span {
                     lo: 14,
                     hi: 21,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_two_qubit_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            CNOT(q , q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 31889,
+                    hi: 31906,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_two_qubit_rotation_error() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            Rxx(0.1, q, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 44792,
+                    hi: 44815,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_first_second() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(q , q, a);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 30845,
+                    hi: 30873,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_first_third() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(q , a, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 30845,
+                    hi: 30873,
+                },
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_not_unique_three_qubit_error_second_third() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use q = Qubit();
+            use a = Qubit();
+            CCNOT(a , q, q);
+        }"},
+        &expect![[r#"
+            QubitUniqueness(
+                Span {
+                    lo: 30845,
+                    hi: 30873,
                 },
             )
         "#]],

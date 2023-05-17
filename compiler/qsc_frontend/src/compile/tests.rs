@@ -7,9 +7,10 @@ use indoc::indoc;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
+    global,
     hir::{
-        CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy, Res,
-        StmtKind, Ty,
+        Block, CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy,
+        Res, Stmt, StmtKind, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -54,7 +55,7 @@ fn one_file_no_entry() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = unit.package.entry.as_ref();
@@ -78,7 +79,7 @@ fn one_file_error() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -116,7 +117,7 @@ fn two_files_dependency() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -150,7 +151,7 @@ fn two_files_mutual_dependency() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -182,7 +183,7 @@ fn two_files_error() {
         None,
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -207,7 +208,7 @@ fn entry_call_operation() {
         Some("Foo.A()".into()),
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
@@ -237,7 +238,7 @@ fn entry_error() {
         Some("Foo.B()".into()),
     );
 
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(super::core()), &[], sources);
     assert_eq!(
         ("<entry>", Span { lo: 0, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
@@ -274,7 +275,7 @@ fn replace_node() {
         None,
     );
 
-    let mut unit = compile(&PackageStore::new(), [], sources);
+    let mut unit = compile(&PackageStore::new(super::core()), &[], sources);
     Replacer.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
 
@@ -292,8 +293,87 @@ fn replace_node() {
 }
 
 #[test]
+fn insert_core_call() {
+    struct Inserter<'a> {
+        core: &'a global::Table,
+    }
+
+    impl MutVisitor for Inserter<'_> {
+        fn visit_block(&mut self, block: &mut Block) {
+            let allocate = self
+                .core
+                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
+                .expect("qubit allocation should be in core");
+
+            let callee = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: allocate.ty.clone(),
+                kind: ExprKind::Var(Res::Item(allocate.id)),
+            };
+
+            let arg = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::UNIT,
+                kind: ExprKind::Tuple(Vec::new()),
+            };
+
+            let call = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                ty: Ty::Prim(PrimTy::Qubit),
+                kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
+            };
+
+            block.stmts.push(Stmt {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: StmtKind::Semi(call),
+            });
+        }
+    }
+
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace A {
+                    operation Foo() : () {}
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let store = PackageStore::new(super::core());
+    let mut unit = compile(&store, &[], sources);
+    let mut inserter = Inserter { core: store.core() };
+    inserter.visit_package(&mut unit.package);
+    unit.assigner.visit_package(&mut unit.package);
+
+    expect![[r#"
+        Package:
+            Item 0 [0-43] (Public):
+                Namespace (Ident 4 [10-11] "A"): Item 1
+            Item 1 [18-41] (Public):
+                Parent: 0
+                Callable 0 [18-41] (Operation):
+                    name: Ident 1 [28-31] "Foo"
+                    input: Pat 2 [31-33] [Type Unit]: Unit
+                    output: Unit
+                    functors: 
+                    body: Block: Block 3 [39-41] [Type Unit]:
+                        Stmt 5 [0-0]: Semi: Expr 6 [0-0] [Type Qubit]: Call:
+                            Expr 7 [0-0] [Type (Unit => Qubit)]: Var: Item 3 (Package 0)
+                            Expr 8 [0-0] [Type Unit]: Unit"#]]
+    .assert_eq(&unit.package.to_string());
+}
+
+#[test]
 fn package_dependency() {
-    let mut store = PackageStore::new();
+    let mut store = PackageStore::new(super::core());
 
     let sources1 = SourceMap::new(
         [(
@@ -309,7 +389,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, [], sources1));
+    let package1 = store.insert(compile(&store, &[], sources1));
 
     let sources2 = SourceMap::new(
         [(
@@ -325,7 +405,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit2 = compile(&store, [package1], sources2);
+    let unit2 = compile(&store, &[package1], sources2);
 
     let foo_id = LocalItemId::from(1);
     let ItemKind::Callable(callable) = &unit2
@@ -349,7 +429,7 @@ fn package_dependency() {
 
 #[test]
 fn package_dependency_internal() {
-    let mut store = PackageStore::new();
+    let mut store = PackageStore::new(super::core());
 
     let sources1 = SourceMap::new(
         [(
@@ -365,7 +445,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let package1 = store.insert(compile(&store, [], sources1));
+    let package1 = store.insert(compile(&store, &[], sources1));
 
     let sources2 = SourceMap::new(
         [(
@@ -381,7 +461,7 @@ fn package_dependency_internal() {
         )],
         None,
     );
-    let unit2 = compile(&store, [package1], sources2);
+    let unit2 = compile(&store, &[package1], sources2);
 
     let ItemKind::Callable(callable) = &unit2
         .package
@@ -398,8 +478,8 @@ fn package_dependency_internal() {
 
 #[test]
 fn std_dependency() {
-    let mut store = PackageStore::new();
-    let std = store.insert(super::std());
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -418,6 +498,6 @@ fn std_dependency() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, [std], sources);
+    let unit = compile(&store, &[std], sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }

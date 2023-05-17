@@ -2,9 +2,11 @@
 // Licensed under the MIT License.
 
 use criterion::{criterion_group, criterion_main, Criterion};
+use qsc::{compile, PackageStore};
 
 pub fn library(c: &mut Criterion) {
-    c.bench_function("Standard library", |b| b.iter(qsc::compile::std));
+    let store = PackageStore::new(compile::core());
+    c.bench_function("Standard library", |b| b.iter(|| compile::std(&store)));
 }
 
 criterion_group!(benches, library);

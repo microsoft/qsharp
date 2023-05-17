@@ -80,10 +80,13 @@ impl From<usize> for NodeId {
 }
 
 /// A unique identifier for a package within a package store.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageId(usize);
 
 impl PackageId {
+    /// The package ID of the core library.
+    pub const CORE: Self = Self(0);
+
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
@@ -215,7 +218,7 @@ pub struct Item {
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
-    pub visibility: Option<Visibility>,
+    pub visibility: Visibility,
     /// The item kind.
     pub kind: ItemKind,
 }
@@ -223,16 +226,17 @@ pub struct Item {
 impl Display for Item {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Item {} {}:", self.id, self.span)?;
+        write!(
+            indent,
+            "Item {} {} ({:?}):",
+            self.id, self.span, self.visibility
+        )?;
         indent = set_indentation(indent, 1);
         if let Some(parent) = self.parent {
             write!(indent, "\nParent: {parent}")?;
         }
         for attr in &self.attrs {
-            write!(indent, "\n{attr}")?;
-        }
-        if let Some(visibility) = &self.visibility {
-            write!(indent, "\n{visibility}")?;
+            write!(indent, "\n{attr:?}")?;
         }
         write!(indent, "\n{}", self.kind)?;
         Ok(())
@@ -247,7 +251,7 @@ pub enum ItemKind {
     /// A `namespace` declaration.
     Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
-    Ty(Ident, TyDef),
+    Ty(Ident, Udt),
 }
 
 impl Display for ItemKind {
@@ -267,109 +271,8 @@ impl Display for ItemKind {
                     write!(f, " <empty>")
                 }
             }
-            ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}"),
+            ItemKind::Ty(name, udt) => write!(f, "Type ({name}): {udt}"),
         }
-    }
-}
-
-/// A visibility modifier.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Visibility {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The visibility kind.
-    pub kind: VisibilityKind,
-}
-
-impl Display for Visibility {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Visibility {} {} ({:?})", self.id, self.span, self.kind)
-    }
-}
-
-/// An attribute.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Attr {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The name of the attribute.
-    pub name: Ident,
-    /// The argument to the attribute.
-    pub arg: Expr,
-}
-
-impl Display for Attr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Attr {} {} ({}):", self.id, self.span, self.name)?;
-        indent = set_indentation(indent, 1);
-        write!(indent, "\n{}", self.arg)?;
-        Ok(())
-    }
-}
-
-/// A type definition.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TyDef {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The type definition kind.
-    pub kind: TyDefKind,
-}
-
-impl Display for TyDef {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "TyDef {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A type definition kind.
-#[derive(Clone, Debug, PartialEq)]
-pub enum TyDefKind {
-    /// A field definition with an optional name but required type.
-    Field(Option<Ident>, Ty),
-    /// A parenthesized type definition.
-    Paren(Box<TyDef>),
-    /// A tuple.
-    Tuple(Vec<TyDef>),
-}
-
-impl Display for TyDefKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        match &self {
-            TyDefKind::Field(name, t) => {
-                write!(indent, "Field:")?;
-                indent = set_indentation(indent, 1);
-                if let Some(n) = name {
-                    write!(indent, "\n{n}")?;
-                }
-                write!(indent, "\n{t}")?;
-            }
-            TyDefKind::Paren(t) => {
-                write!(indent, "Paren:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{t}")?;
-            }
-            TyDefKind::Tuple(ts) => {
-                if ts.is_empty() {
-                    write!(indent, "Unit")?;
-                } else {
-                    write!(indent, "Tuple:")?;
-                    indent = set_indentation(indent, 1);
-                    for t in ts {
-                        write!(indent, "\n{t}")?;
-                    }
-                }
-            }
-        }
-        Ok(())
     }
 }
 
@@ -391,9 +294,22 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: Option<FunctorExpr>,
+    pub functors: HashSet<Functor>,
     /// The body of the callable.
     pub body: CallableBody,
+}
+
+impl CallableDecl {
+    /// The type of the callable.
+    #[must_use]
+    pub fn ty(&self) -> Ty {
+        Ty::Arrow(
+            self.kind,
+            Box::new(self.input.ty.clone()),
+            Box::new(self.output.clone()),
+            self.functors.clone(),
+        )
+    }
 }
 
 impl Display for CallableDecl {
@@ -416,9 +332,7 @@ impl Display for CallableDecl {
         }
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
-        if let Some(f) = &self.functors {
-            write!(indent, "\nfunctors: {f}")?;
-        }
+        write!(indent, "\nfunctors: {}", functors_as_str(&self.functors))?;
         write!(indent, "\nbody: {}", self.body)?;
         Ok(())
     }
@@ -495,64 +409,6 @@ impl Display for SpecBody {
             }
         }
         Ok(())
-    }
-}
-
-/// An expression that describes a set of functors.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct FunctorExpr {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The functor expression kind.
-    pub kind: FunctorExprKind,
-}
-
-impl FunctorExpr {
-    /// Evaluates the functor expression.
-    #[must_use]
-    pub fn to_set(&self) -> HashSet<Functor> {
-        match &self.kind {
-            FunctorExprKind::BinOp(op, lhs, rhs) => {
-                let mut functors = lhs.to_set();
-                let rhs_functors = rhs.to_set();
-                match op {
-                    SetOp::Union => functors.extend(rhs_functors),
-                    SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
-                }
-                functors
-            }
-            &FunctorExprKind::Lit(functor) => [functor].into(),
-            FunctorExprKind::Paren(inner) => inner.to_set(),
-        }
-    }
-}
-
-impl Display for FunctorExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Functor Expr {} {}: {}", self.id, self.span, self.kind)
-    }
-}
-
-/// A functor expression kind.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum FunctorExprKind {
-    /// A binary operation.
-    BinOp(SetOp, Box<FunctorExpr>, Box<FunctorExpr>),
-    /// A literal for a specific functor.
-    Lit(Functor),
-    /// A parenthesized group.
-    Paren(Box<FunctorExpr>),
-}
-
-impl Display for FunctorExprKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            FunctorExprKind::BinOp(op, l, r) => write!(f, "BinOp {op:?}: ({l}) ({r})"),
-            FunctorExprKind::Lit(func) => write!(f, "{func:?}"),
-            FunctorExprKind::Paren(func) => write!(f, "Paren: {func}"),
-        }
     }
 }
 
@@ -649,7 +505,7 @@ impl Display for StmtKind {
 }
 
 /// An expression.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Expr {
     /// The node ID.
     pub id: NodeId,
@@ -682,8 +538,10 @@ pub enum ExprKind {
     Assign(Box<Expr>, Box<Expr>),
     /// An assignment with a compound operator. For example: `set a += b`.
     AssignOp(BinOp, Box<Expr>, Box<Expr>),
-    /// An assignment with a compound update operator: `set a w/= b <- c`.
-    AssignUpdate(Box<Expr>, Box<Expr>, Box<Expr>),
+    /// An assignment with a compound field update operator: `set a w/= B <- c`.
+    AssignField(Box<Expr>, Field, Box<Expr>),
+    /// An assignment with a compound index update operator: `set a w/= b <- c`.
+    AssignIndex(Box<Expr>, Box<Expr>, Box<Expr>),
     /// A binary operator.
     BinOp(BinOp, Box<Expr>, Box<Expr>),
     /// A block: `{ ... }`.
@@ -692,13 +550,10 @@ pub enum ExprKind {
     Call(Box<Expr>, Box<Expr>),
     /// A conjugation: `within { ... } apply { ... }`.
     Conjugate(Block, Block),
-    /// An expression with invalid syntax that can't be parsed.
-    #[default]
-    Err,
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
-    Field(Box<Expr>, PrimField),
+    Field(Box<Expr>, Field),
     /// A for loop: `for a in b { ... }`.
     For(Pat, Box<Expr>, Block),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
@@ -715,24 +570,29 @@ pub enum ExprKind {
     Lambda(CallableKind, Pat, Box<Expr>),
     /// A literal.
     Lit(Lit),
-    /// Parentheses: `(a)`.
-    Paren(Box<Expr>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
     Repeat(Block, Box<Expr>, Option<Block>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A string.
+    String(Vec<StringComponent>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Expr>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
+    /// A record field update.
+    UpdateField(Box<Expr>, Field, Box<Expr>),
     /// A variable.
     Var(Res),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
+    /// An invalid expression.
+    #[default]
+    Err,
 }
 
 impl Display for ExprKind {
@@ -743,8 +603,11 @@ impl Display for ExprKind {
             ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, val, size)?,
             ExprKind::Assign(lhs, rhs) => display_assign(indent, lhs, rhs)?,
             ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, lhs, rhs)?,
-            ExprKind::AssignUpdate(container, item, val) => {
-                display_assign_update(indent, container, item, val)?;
+            ExprKind::AssignField(record, field, replace) => {
+                display_assign_field(indent, record, field, replace)?;
+            }
+            ExprKind::AssignIndex(container, item, replace) => {
+                display_assign_index(indent, container, item, replace)?;
             }
             ExprKind::BinOp(op, lhs, rhs) => display_bin_op(indent, *op, lhs, rhs)?,
             ExprKind::Block(block) => write!(indent, "Expr Block: {block}")?,
@@ -752,22 +615,25 @@ impl Display for ExprKind {
             ExprKind::Conjugate(within, apply) => display_conjugate(indent, within, apply)?,
             ExprKind::Err => write!(indent, "Err")?,
             ExprKind::Fail(e) => write!(indent, "Fail: {e}")?,
-            ExprKind::Field(expr, field) => display_field(indent, expr, *field)?,
+            ExprKind::Field(expr, field) => display_field(indent, expr, field)?,
             ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
             ExprKind::Hole => write!(indent, "Hole")?,
             ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::String(components) => display_string(indent, components)?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
+            ExprKind::UpdateField(record, field, replace) => {
+                display_update_field(indent, record, field, replace)?;
+            }
             ExprKind::Var(res) => write!(indent, "Var: {res}")?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
@@ -813,17 +679,31 @@ fn display_assign_op(
     Ok(())
 }
 
-fn display_assign_update(
+fn display_assign_field(
     mut indent: Indented<Formatter>,
-    container: &Expr,
-    item: &Expr,
-    val: &Expr,
+    record: &Expr,
+    field: &Field,
+    replace: &Expr,
 ) -> fmt::Result {
-    write!(indent, "AssignUpdate:")?;
+    write!(indent, "AssignField:")?;
     indent = set_indentation(indent, 1);
-    write!(indent, "\n{container}")?;
-    write!(indent, "\n{item}")?;
-    write!(indent, "\n{val}")?;
+    write!(indent, "\n{record}")?;
+    write!(indent, "\n{field}")?;
+    write!(indent, "\n{replace}")?;
+    Ok(())
+}
+
+fn display_assign_index(
+    mut indent: Indented<Formatter>,
+    array: &Expr,
+    index: &Expr,
+    replace: &Expr,
+) -> fmt::Result {
+    write!(indent, "AssignIndex:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{array}")?;
+    write!(indent, "\n{index}")?;
+    write!(indent, "\n{replace}")?;
     Ok(())
 }
 
@@ -860,7 +740,7 @@ fn display_conjugate(
     Ok(())
 }
 
-fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: PrimField) -> fmt::Result {
+fn display_field(mut indent: Indented<Formatter>, expr: &Expr, field: &Field) -> fmt::Result {
     write!(indent, "Field:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
@@ -959,6 +839,19 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_string(mut indent: Indented<Formatter>, components: &[StringComponent]) -> fmt::Result {
+    write!(indent, "String:")?;
+    indent = set_indentation(indent, 1);
+    for component in components {
+        match component {
+            StringComponent::Expr(expr) => write!(indent, "\nExpr: {expr}")?,
+            StringComponent::Lit(str) => write!(indent, "\nLit: {str:?}")?,
+        }
+    }
+
+    Ok(())
+}
+
 fn display_tern_op(
     mut indent: Indented<Formatter>,
     op: TernOp,
@@ -994,12 +887,35 @@ fn display_un_op(mut indent: Indented<Formatter>, op: UnOp, expr: &Expr) -> fmt:
     Ok(())
 }
 
+fn display_update_field(
+    mut indent: Indented<Formatter>,
+    record: &Expr,
+    field: &Field,
+    replace: &Expr,
+) -> fmt::Result {
+    write!(indent, "UpdateField:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{record}")?;
+    write!(indent, "\n{field}")?;
+    write!(indent, "\n{replace}")?;
+    Ok(())
+}
+
 fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) -> fmt::Result {
     write!(indent, "While:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+/// A string component.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StringComponent {
+    /// An expression.
+    Expr(Expr),
+    /// A string literal.
+    Lit(Rc<str>),
 }
 
 /// A pattern.
@@ -1034,8 +950,6 @@ pub enum PatKind {
     Discard,
     /// An elided pattern, `...`, used by specializations.
     Elided,
-    /// Parentheses: `(a)`.
-    Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }
@@ -1049,11 +963,6 @@ impl Display for PatKind {
             }
             PatKind::Discard => write!(indent, "Discard")?,
             PatKind::Elided => write!(indent, "Elided")?,
-            PatKind::Paren(p) => {
-                write!(indent, "Paren:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{p}")?;
-            }
             PatKind::Tuple(ps) => {
                 if ps.is_empty() {
                     write!(indent, "Unit")?;
@@ -1098,8 +1007,6 @@ impl Display for QubitInit {
 pub enum QubitInitKind {
     /// An array of qubits: `Qubit[a]`.
     Array(Box<Expr>),
-    /// A parenthesized initializer: `(a)`.
-    Paren(Box<QubitInit>),
     /// A single qubit: `Qubit()`.
     Single,
     /// A tuple: `(a, b, c)`.
@@ -1114,11 +1021,6 @@ impl Display for QubitInitKind {
                 write!(indent, "Array:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{e}")?;
-            }
-            QubitInitKind::Paren(qi) => {
-                write!(indent, "Parens:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{qi}")?;
             }
             QubitInitKind::Single => write!(indent, "Single")?,
             QubitInitKind::Tuple(qis) => {
@@ -1154,14 +1056,22 @@ impl Display for Ident {
     }
 }
 
+/// An attribute.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Attr {
+    /// Indicates that a callable is an entry point to a program.
+    EntryPoint,
+}
+
 /// A type.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
     Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
     /// An invalid type caused by an error.
+    #[default]
     Err,
     /// A placeholder type variable used during type inference.
     Infer(InferId),
@@ -1189,35 +1099,35 @@ impl Display for Ty {
                     CallableKind::Function => "->",
                     CallableKind::Operation => "=>",
                 };
-                let is = match (
-                    functors.contains(&Functor::Adj),
-                    functors.contains(&Functor::Ctl),
-                ) {
-                    (true, true) => " is Adj + Ctl",
-                    (true, false) => " is Adj",
-                    (false, true) => " is Ctl",
-                    (false, false) => "",
-                };
-                write!(f, "({input} {arrow} {output}{is})")
+                write!(f, "({input} {arrow} {output}")?;
+                if !functors.is_empty() {
+                    f.write_str(" is ")?;
+                    f.write_str(functors_as_str(functors))?;
+                }
+                f.write_char(')')
             }
             Ty::Err => f.write_str("?"),
             Ty::Infer(infer) => Display::fmt(infer, f),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
-                f.write_str("(")?;
-                if let Some((first, rest)) = items.split_first() {
-                    Display::fmt(first, f)?;
-                    if rest.is_empty() {
-                        f.write_str(",")?;
-                    } else {
-                        for item in rest {
-                            f.write_str(", ")?;
-                            Display::fmt(item, f)?;
+                if items.is_empty() {
+                    f.write_str("Unit")
+                } else {
+                    f.write_str("(")?;
+                    if let Some((first, rest)) = items.split_first() {
+                        Display::fmt(first, f)?;
+                        if rest.is_empty() {
+                            f.write_str(",")?;
+                        } else {
+                            for item in rest {
+                                f.write_str(", ")?;
+                                Display::fmt(item, f)?;
+                            }
                         }
                     }
+                    f.write_str(")")
                 }
-                f.write_str(")")
             }
             Ty::Udt(res) => write!(f, "UDT<{res}>"),
         }
@@ -1283,20 +1193,128 @@ impl From<InferId> for usize {
     }
 }
 
+/// A user-defined type.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Udt {
+    /// The basis type used as the definition of the user-defined type.
+    pub base: Ty,
+    /// The named fields of the user-defined type.
+    pub fields: Vec<UdtField>,
+}
+
+impl Udt {
+    /// The type of the constructor for this type definition.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The ID of the constructed type.
+    #[must_use]
+    pub fn cons_ty(&self, id: ItemId) -> Ty {
+        Ty::Arrow(
+            CallableKind::Function,
+            Box::new(self.base.clone()),
+            Box::new(Ty::Udt(Res::Item(id))),
+            HashSet::new(),
+        )
+    }
+
+    /// The path to the field with the given name. Returns [None] if this user-defined type does not
+    /// have a field with the given name.
+    #[must_use]
+    pub fn field_path(&self, name: &str) -> Option<&FieldPath> {
+        for field in &self.fields {
+            if field.name.as_ref() == name {
+                return Some(&field.path);
+            }
+        }
+
+        None
+    }
+
+    /// The type of the field at the given path. Returns [None] if the path is not valid for this
+    /// user-defined type.
+    #[must_use]
+    pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
+        let mut ty = &self.base;
+        for &index in &path.indices {
+            let Ty::Tuple(items) = ty else { return None; };
+            ty = &items[index];
+        }
+        Some(ty)
+    }
+
+    /// The type of the field with the given name. Returns [None] if this user-defined type does not
+    /// have a field with the given name.
+    #[must_use]
+    pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
+        let path = self.field_path(name)?;
+        self.field_ty(path)
+    }
+}
+
+impl Display for Udt {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        indent.write_str("Udt:")?;
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nbase: {}", self.base)?;
+        indent.write_str("\nfields:")?;
+
+        indent = set_indentation(indent, 2);
+        for field in &self.fields {
+            write!(indent, "\n{}: {:?}", field.name, field.path.indices)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// A named field in a user-defined type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UdtField {
+    /// The field name.
+    pub name: Rc<str>,
+    /// The field path.
+    pub path: FieldPath,
+}
+
+/// A field for a type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Field {
+    /// A field path.
+    Path(FieldPath),
+    /// A primitive field for a built-in type.
+    Prim(PrimField),
+    /// An invalid field.
+    Err,
+}
+
+impl Display for Field {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Field::Path(path) => write!(f, "Path({:?})", path.indices),
+            Field::Prim(prim) => write!(f, "Prim({prim:?}"),
+            Field::Err => f.write_str("Err"),
+        }
+    }
+}
+
+/// A path to a field in a tuple or user-defined type.
+#[derive(Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct FieldPath {
+    /// The tuple item indices to follow in order from top to bottom.
+    pub indices: Vec<usize>,
+}
+
 /// A primitive field for a built-in type.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum PrimField {
-    /// The length of an array.
-    Length,
     /// The start of a range.
     Start,
     /// The step of a range.
     Step,
     /// The end of a range.
     End,
-    /// An invalid field.
-    #[default]
-    Err,
 }
 
 impl FromStr for PrimField {
@@ -1304,7 +1322,6 @@ impl FromStr for PrimField {
 
     fn from_str(s: &str) -> result::Result<Self, <Self as FromStr>::Err> {
         match s {
-            "Length" => Ok(Self::Length),
             "Start" => Ok(Self::Start),
             "Step" => Ok(Self::Step),
             "End" => Ok(Self::End),
@@ -1313,9 +1330,9 @@ impl FromStr for PrimField {
     }
 }
 
-/// A declaration visibility kind.
+/// The visibility of a declaration.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum VisibilityKind {
+pub enum Visibility {
     /// Visible everywhere.
     Public,
     /// Visible within a package.
@@ -1365,8 +1382,6 @@ pub enum Lit {
     Pauli(Pauli),
     /// A measurement result literal.
     Result(Result),
-    /// A string literal.
-    String(Rc<str>),
 }
 
 impl Display for Lit {
@@ -1378,7 +1393,6 @@ impl Display for Lit {
             Lit::Int(val) => write!(f, "Int({val})")?,
             Lit::Pauli(val) => write!(f, "Pauli({val:?})")?,
             Lit::Result(val) => write!(f, "Result({val:?})")?,
-            Lit::String(val) => write!(f, "String(\"{val}\")")?,
         }
         Ok(())
     }
@@ -1530,15 +1544,18 @@ pub enum BinOp {
 pub enum TernOp {
     /// Conditional: `a ? b | c`.
     Cond,
-    /// Aggregate update: `a w/ b <- c`.
-    Update,
+    /// Update array index: `a w/ b <- c`.
+    UpdateIndex,
 }
 
-/// A set operator.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum SetOp {
-    /// The set union.
-    Union,
-    /// The set intersection.
-    Intersect,
+fn functors_as_str(functors: &HashSet<Functor>) -> &str {
+    match (
+        functors.contains(&Functor::Adj),
+        functors.contains(&Functor::Ctl),
+    ) {
+        (true, true) => "Adj + Ctl",
+        (true, false) => "Adj",
+        (false, true) => "Ctl",
+        (false, false) => "",
+    }
 }

@@ -6,6 +6,7 @@ use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
+    compile,
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
@@ -237,15 +238,15 @@ where
 fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
     thread_local! {
         static STORE_STD: (PackageStore, PackageId) = {
-            let mut store = PackageStore::new();
-            let std = store.insert(qsc::compile::std());
+            let mut store = PackageStore::new(compile::core());
+            let std = store.insert(compile::std(&store));
             (store, std)
         };
     }
 
     STORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (_, errors) = qsc::compile::compile(store, [*std], sources);
+        let (_, errors) = compile::compile(store, &[*std], sources);
         errors.into_iter().map(|error| (&error).into()).collect()
     })
 }

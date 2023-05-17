@@ -1,22 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::too_many_lines)]
-
+use crate::compile::{self, compile, PackageStore, SourceMap};
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore, SourceMap};
-
-use crate::semantics::validate_semantics;
 
 fn check(file: &str, expect: &Expect) {
-    let store = PackageStore::new();
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let unit = compile(&store, [], sources);
-    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
 
-    let errors = validate_semantics(&unit);
-    expect.assert_debug_eq(&errors);
+    let funop_errors: Vec<_> = unit
+        .errors
+        .into_iter()
+        .filter_map(try_into_funop_error)
+        .collect();
+
+    expect.assert_debug_eq(&funop_errors);
+}
+
+fn try_into_funop_error(error: compile::Error) -> Option<super::Error> {
+    if let compile::ErrorKind::FunOp(error) = error.0 {
+        Some(error)
+    } else {
+        None
+    }
 }
 
 #[test]

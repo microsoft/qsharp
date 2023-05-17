@@ -3,13 +3,13 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_frontend::compile::{compile, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 
 use crate::entry_point::extract_entry;
 
 fn check(file: &str, expr: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let unit = compile(&PackageStore::new(), [], sources);
+    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     match extract_entry(&unit.package) {
@@ -28,10 +28,10 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr _id_ [0-0] [Type Int]: Expr Block: Block 6 [62-72] [Type Int]:
-                Stmt 7 [64-70]: Expr: Expr 8 [64-70] [Type Int]: BinOp (Add):
-                    Expr 9 [64-66] [Type Int]: Lit: Int(41)
-                    Expr 10 [69-70] [Type Int]: Lit: Int(1)"#]],
+            Expr _id_ [0-0] [Type Int]: Expr Block: Block 3 [62-72] [Type Int]:
+                Stmt 4 [64-70]: Expr: Expr 5 [64-70] [Type Int]: BinOp (Add):
+                    Expr 6 [64-66] [Type Int]: Lit: Int(41)
+                    Expr 7 [69-70] [Type Int]: Lit: Int(1)"#]],
     );
 }
 

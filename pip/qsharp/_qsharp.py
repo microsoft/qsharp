@@ -4,37 +4,24 @@
 from ._native import Interpreter
 
 # Create a Q# interpreter singleton.
-interpreter = Interpreter()
+_interpreter = Interpreter()
 
 
-def interpret(expr):
+def interpret(input):
     """
-    Interprets a line of Q# source code.
+    Interprets Q# source code.
 
-    :param expr: The Q# source code to interpret.
-    :returns: The value returned by the last statement in the line.
-    :raises: CompilationException, RuntimeException
+    Output is printed to console.
+
+    :param input: The Q# source code to interpret.
+    :returns value: The value returned by the last statement in the input.
+    :raises QSharpError: If there is an error interpreting the input.
     """
-    (value, outputs) = _interpret_with_outputs(expr)
 
-    for output in outputs:
+    def callback(output):
         print(output)
 
-    return value
-
-
-def _interpret_with_outputs(expr):
-    (value, outputs, err) = interpreter.interpret(expr)
-
-    # TODO(minestarks): The interpreter will be updated to return a single
-    # compilation/runtime error, so this will be unnecessary.
-    for error in err:
-        if error.error_type == "CompilationError":
-            raise CompilationException(err)
-        else:
-            raise RuntimeException(err)
-
-    return (value, outputs)
+    return _interpreter.interpret(input, callback)
 
 
 def interpret_file(path) -> None:
@@ -43,20 +30,7 @@ def interpret_file(path) -> None:
 
     :param path: The path to the Q# source file.
     :returns: The value returned by the last statement in the line.
-    :raises: CompilationException, RuntimeException, OSError
+    :raises: QSharpError
     """
     f = open(path, mode="r", encoding="utf-8")
     return interpret(f.read())
-
-
-class QSharpException(Exception):
-    def __init__(self, diagnostics):
-        self.diagnostics = diagnostics
-
-
-class CompilationException(QSharpException):
-    pass
-
-
-class RuntimeException(QSharpException):
-    pass

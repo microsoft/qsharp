@@ -4,7 +4,13 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint"],
   root: true,
-  ignorePatterns: ["target/", "playground/public/", "npm/dist/", "npm/lib/"],
+  ignorePatterns: [
+    "target/",
+    "playground/public/",
+    "npm/dist/",
+    "npm/lib/",
+    "vscode/out/",
+  ],
   env: {
     browser: true,
     node: true,

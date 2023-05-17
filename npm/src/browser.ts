@@ -61,6 +61,7 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 export type { ICompilerWorker };
 export { log };
 export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
+export { type CompilerState } from "./compiler.js";
 export {
   getAllKatas,
   getKata,
