@@ -182,7 +182,7 @@ fn invoke_quantum_intrinsic(
     args_span: Span,
 ) -> Result<Value, Error> {
     macro_rules! match_intrinsic {
-        ($chosen_op:ident, $chosen_op_span:ident, $(($(1, $op1:ident),* $(2, $op2:ident),* $(3, $op3:ident),* $(2.1, $op21:ident),* $(3.1, $op31:ident),*)),* ) => {
+        ($chosen_op:ident, $chosen_op_span:ident, $(($("Qubit", $op1:ident),* $("Qubit, Qubit", $op2:ident),* $("Qubit, Qubit, Qubit", $op3:ident),* $("Double, Qubit", $op21:ident),* $("Double, Qubit, Qubit", $op31:ident),*)),* ) => {
             match $chosen_op {
                 $($(stringify!($op1) => {
                     $op1(args.unwrap_qubit().0);
@@ -265,25 +265,25 @@ fn invoke_quantum_intrinsic(
     match_intrinsic!(
         name,
         name_span,
-        (3, __quantum__qis__ccx__body),
-        (2, __quantum__qis__cx__body),
-        (2, __quantum__qis__cy__body),
-        (2, __quantum__qis__cz__body),
-        (2.1, __quantum__qis__rx__body),
-        (3.1, __quantum__qis__rxx__body),
-        (2.1, __quantum__qis__ry__body),
-        (3.1, __quantum__qis__ryy__body),
-        (2.1, __quantum__qis__rz__body),
-        (3.1, __quantum__qis__rzz__body),
-        (1, __quantum__qis__h__body),
-        (1, __quantum__qis__s__body),
-        (1, __quantum__qis__s__adj),
-        (1, __quantum__qis__t__body),
-        (1, __quantum__qis__t__adj),
-        (1, __quantum__qis__x__body),
-        (1, __quantum__qis__y__body),
-        (1, __quantum__qis__z__body),
-        (2, __quantum__qis__swap__body),
-        (1, __quantum__qis__reset__body)
+        ("Qubit, Qubit, Qubit", __quantum__qis__ccx__body),
+        ("Qubit, Qubit", __quantum__qis__cx__body),
+        ("Qubit, Qubit", __quantum__qis__cy__body),
+        ("Qubit, Qubit", __quantum__qis__cz__body),
+        ("Double, Qubit", __quantum__qis__rx__body),
+        ("Double, Qubit, Qubit", __quantum__qis__rxx__body),
+        ("Double, Qubit", __quantum__qis__ry__body),
+        ("Double, Qubit, Qubit", __quantum__qis__ryy__body),
+        ("Double, Qubit", __quantum__qis__rz__body),
+        ("Double, Qubit, Qubit", __quantum__qis__rzz__body),
+        ("Qubit", __quantum__qis__h__body),
+        ("Qubit", __quantum__qis__s__body),
+        ("Qubit", __quantum__qis__s__adj),
+        ("Qubit", __quantum__qis__t__body),
+        ("Qubit", __quantum__qis__t__adj),
+        ("Qubit", __quantum__qis__x__body),
+        ("Qubit", __quantum__qis__y__body),
+        ("Qubit", __quantum__qis__z__body),
+        ("Qubit, Qubit", __quantum__qis__swap__body),
+        ("Qubit", __quantum__qis__reset__body)
     )
 }

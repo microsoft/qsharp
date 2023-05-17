@@ -1443,7 +1443,7 @@ fn eval_binop_sub(lhs_val: Value, rhs_val: Value) -> Value {
             let rhs = rhs_val.unwrap_int();
             Value::Int(val - rhs)
         }
-        _ => panic!("value is not addable"),
+        _ => panic!("value is not subtractable"),
     }
 }
 
