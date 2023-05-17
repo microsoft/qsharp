@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+use std::ffi::c_void;
+
 use crate::{
     output::Receiver,
     val::{Qubit, Value},
@@ -178,112 +180,105 @@ fn invoke_draw_random_int(lo: Value, hi: Value, args_span: Span) -> Result<Value
 fn invoke_quantum_intrinsic(
     name: &str,
     name_span: Span,
-    args: Value,
-    args_span: Span,
+    arg: Value,
+    arg_span: Span,
 ) -> Result<Value, Error> {
-    macro_rules! match_intrinsic {
-        ($chosen_op:ident, $chosen_op_span:ident, $(($("Qubit", $op1:ident),* $("Qubit, Qubit", $op2:ident),* $("Qubit, Qubit, Qubit", $op3:ident),* $("Double, Qubit", $op21:ident),* $("Double, Qubit, Qubit", $op31:ident),*)),* ) => {
-            match $chosen_op {
-                $($(stringify!($op1) => {
-                    $op1(args.unwrap_qubit().0);
-                    Ok(Value::unit())
-                })*
-                $(stringify!($op2) => {
-                    let [x, y] = &*args.unwrap_tuple() else {
-                        panic!("args should be tuple of arity 2");
-                    };
-                    if x == y {
-                        return Err(Error::QubitUniqueness(args_span));
-                    }
-                    $op2(
-                        x.clone().unwrap_qubit().0,
-                        y.clone().unwrap_qubit().0,
-                    );
-                    Ok(Value::unit())
-                })*
-                $(stringify!($op21) => {
-                    let [x, y] = &*args.unwrap_tuple() else {
-                        panic!("args should be tuple of arity 2");
-                    };
-                    $op21(
-                        x.clone().unwrap_double(),
-                        y.clone().unwrap_qubit().0,
-                    );
-                    Ok(Value::unit())
-                })*
-                $(stringify!($op3) => {
-                    let [x, y, z] = &*args.unwrap_tuple() else {
-                        panic!("args should be tuple of arity 3");
-                    };
-                    if x == y || y == z || x == z {
-                        return Err(Error::QubitUniqueness(args_span));
-                    }
-                    $op3(
-                        x.clone().unwrap_qubit().0,
-                        y.clone().unwrap_qubit().0,
-                        z.clone().unwrap_qubit().0,
-                    );
-                    Ok(Value::unit())
-                })*
-                $(stringify!($op31) => {
-                    let [x, y, z] = &*args.unwrap_tuple() else {
-                        panic!("args should be tuple of arity 3");
-                    };
-                    if y == z {
-                        return Err(Error::QubitUniqueness(args_span));
-                    }
-                    $op31(
-                        x.clone().unwrap_double(),
-                        y.clone().unwrap_qubit().0,
-                        z.clone().unwrap_qubit().0,
-                    );
-                    Ok(Value::unit())
-                })*
-            )*
-
-                "__quantum__qis__m__body" => {
-                    let res = __quantum__qis__m__body(args.unwrap_qubit().0);
-                    Ok(Value::Result(__quantum__rt__result_equal(
-                        res,
-                        __quantum__rt__result_get_one(),
-                    )))
-                }
-
-                "__quantum__qis__mresetz__body" => {
-                    let res = __quantum__qis__mresetz__body(args.unwrap_qubit().0);
-                    Ok(Value::Result(__quantum__rt__result_equal(
-                        res,
-                        __quantum__rt__result_get_one(),
-                    )))
-                }
-
-                _ => Err(Error::UnknownIntrinsic($chosen_op_span)),
-            }
-        };
+    match name {
+        "__quantum__qis__ccx__body" => three_qubits(__quantum__qis__ccx__body, arg, arg_span),
+        "__quantum__qis__cx__body" => two_qubits(__quantum__qis__cx__body, arg, arg_span),
+        "__quantum__qis__cy__body" => two_qubits(__quantum__qis__cy__body, arg, arg_span),
+        "__quantum__qis__cz__body" => two_qubits(__quantum__qis__cz__body, arg, arg_span),
+        "__quantum__qis__rx__body" => Ok(angle_qubit(__quantum__qis__rx__body, arg)),
+        "__quantum__qis__rxx__body" => angle_two_qubits(__quantum__qis__rxx__body, arg, arg_span),
+        "__quantum__qis__ry__body" => Ok(angle_qubit(__quantum__qis__ry__body, arg)),
+        "__quantum__qis__ryy__body" => angle_two_qubits(__quantum__qis__ryy__body, arg, arg_span),
+        "__quantum__qis__rz__body" => Ok(angle_qubit(__quantum__qis__rz__body, arg)),
+        "__quantum__qis__rzz__body" => angle_two_qubits(__quantum__qis__rzz__body, arg, arg_span),
+        "__quantum__qis__h__body" => Ok(single_qubit(__quantum__qis__h__body, arg)),
+        "__quantum__qis__s__body" => Ok(single_qubit(__quantum__qis__s__body, arg)),
+        "__quantum__qis__s__adj" => Ok(single_qubit(__quantum__qis__s__adj, arg)),
+        "__quantum__qis__t__body" => Ok(single_qubit(__quantum__qis__t__body, arg)),
+        "__quantum__qis__t__adj" => Ok(single_qubit(__quantum__qis__t__adj, arg)),
+        "__quantum__qis__x__body" => Ok(single_qubit(__quantum__qis__x__body, arg)),
+        "__quantum__qis__y__body" => Ok(single_qubit(__quantum__qis__y__body, arg)),
+        "__quantum__qis__z__body" => Ok(single_qubit(__quantum__qis__z__body, arg)),
+        "__quantum__qis__swap__body" => two_qubits(__quantum__qis__swap__body, arg, arg_span),
+        "__quantum__qis__reset__body" => Ok(single_qubit(__quantum__qis__reset__body, arg)),
+        "__quantum__qis__m__body" => {
+            let res = __quantum__qis__m__body(arg.unwrap_qubit().0);
+            Ok(Value::Result(__quantum__rt__result_equal(
+                res,
+                __quantum__rt__result_get_one(),
+            )))
+        }
+        "__quantum__qis__mresetz__body" => {
+            let res = __quantum__qis__mresetz__body(arg.unwrap_qubit().0);
+            Ok(Value::Result(__quantum__rt__result_equal(
+                res,
+                __quantum__rt__result_get_one(),
+            )))
+        }
+        _ => Err(Error::UnknownIntrinsic(name_span)),
     }
+}
 
-    match_intrinsic!(
-        name,
-        name_span,
-        ("Qubit, Qubit, Qubit", __quantum__qis__ccx__body),
-        ("Qubit, Qubit", __quantum__qis__cx__body),
-        ("Qubit, Qubit", __quantum__qis__cy__body),
-        ("Qubit, Qubit", __quantum__qis__cz__body),
-        ("Double, Qubit", __quantum__qis__rx__body),
-        ("Double, Qubit, Qubit", __quantum__qis__rxx__body),
-        ("Double, Qubit", __quantum__qis__ry__body),
-        ("Double, Qubit, Qubit", __quantum__qis__ryy__body),
-        ("Double, Qubit", __quantum__qis__rz__body),
-        ("Double, Qubit, Qubit", __quantum__qis__rzz__body),
-        ("Qubit", __quantum__qis__h__body),
-        ("Qubit", __quantum__qis__s__body),
-        ("Qubit", __quantum__qis__s__adj),
-        ("Qubit", __quantum__qis__t__body),
-        ("Qubit", __quantum__qis__t__adj),
-        ("Qubit", __quantum__qis__x__body),
-        ("Qubit", __quantum__qis__y__body),
-        ("Qubit", __quantum__qis__z__body),
-        ("Qubit, Qubit", __quantum__qis__swap__body),
-        ("Qubit", __quantum__qis__reset__body)
-    )
+fn single_qubit(f: extern "C" fn(*mut c_void), arg: Value) -> Value {
+    f(arg.unwrap_qubit().0);
+    Value::unit()
+}
+
+fn two_qubits(
+    f: extern "C" fn(*mut c_void, *mut c_void),
+    arg: Value,
+    arg_span: Span,
+) -> Result<Value, Error> {
+    let [x, y] = &*arg.unwrap_tuple() else { panic!("arg should be tuple of arity 2"); };
+    if x == y {
+        Err(Error::QubitUniqueness(arg_span))
+    } else {
+        f(x.clone().unwrap_qubit().0, y.clone().unwrap_qubit().0);
+        Ok(Value::unit())
+    }
+}
+
+fn angle_qubit(f: extern "C" fn(f64, *mut c_void), arg: Value) -> Value {
+    let [x, y] = &*arg.unwrap_tuple() else { panic!("arg should be tuple of arity 2"); };
+    f(x.clone().unwrap_double(), y.clone().unwrap_qubit().0);
+    Value::unit()
+}
+
+fn three_qubits(
+    f: extern "C" fn(*mut c_void, *mut c_void, *mut c_void),
+    arg: Value,
+    arg_span: Span,
+) -> Result<Value, Error> {
+    let [x, y, z] = &*arg.unwrap_tuple() else { panic!("arg should be tuple of arity 3"); };
+    if x == y || y == z || x == z {
+        Err(Error::QubitUniqueness(arg_span))
+    } else {
+        f(
+            x.clone().unwrap_qubit().0,
+            y.clone().unwrap_qubit().0,
+            z.clone().unwrap_qubit().0,
+        );
+        Ok(Value::unit())
+    }
+}
+
+fn angle_two_qubits(
+    f: extern "C" fn(f64, *mut c_void, *mut c_void),
+    arg: Value,
+    arg_span: Span,
+) -> Result<Value, Error> {
+    let [x, y, z] = &*arg.unwrap_tuple() else { panic!("args should be tuple of arity 3"); };
+    if y == z {
+        Err(Error::QubitUniqueness(arg_span))
+    } else {
+        f(
+            x.clone().unwrap_double(),
+            y.clone().unwrap_qubit().0,
+            z.clone().unwrap_qubit().0,
+        );
+        Ok(Value::unit())
+    }
 }
