@@ -11,7 +11,7 @@ import {
   VSDiagnostic,
   log,
 } from "qsharp";
-import { codeToBase64 } from "./utils.js";
+import { codeToCompressedBase64 } from "./utils.js";
 
 type ErrCollection = {
   checkDiags: VSDiagnostic[];
@@ -165,11 +165,11 @@ export function Editor(props: {
     setRunExpr("");
   }
 
-  function onGetLink() {
+  async function onGetLink(ev: MouseEvent) {
     const code = editor.current?.getModel()?.getValue();
     if (!code) return;
 
-    const encodedCode = codeToBase64(code);
+    const encodedCode = await codeToCompressedBase64(code);
     const escapedCode = encodeURIComponent(encodedCode);
 
     // Get current URL without query parameters to use as the base URL
@@ -177,7 +177,14 @@ export function Editor(props: {
     // Copy link to clipboard and update url without reloading the page
     navigator.clipboard.writeText(newUrl);
     window.history.pushState({}, "", newUrl);
-    // TODO: Alert user somehow link is on the clipboard
+    
+    const popup = document.getElementById('popup') as HTMLDivElement;
+    popup.style.display = "block";
+    popup.innerText = "Link was copied to the clipboard";
+    popup.style.left = `${ev.clientX - 120}px`;
+    popup.style.top = `${ev.clientY - 40}px`;
+
+    setTimeout(() => {popup.style.display = "none"}, 2000);
   }
 
   function shotCountChanged(e: Event) {

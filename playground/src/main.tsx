@@ -19,7 +19,7 @@ import { Editor } from "./editor.js";
 import { Results } from "./results.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
-import { base64ToCode } from "./utils.js";
+import { compressedBase64ToCode } from "./utils.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const basePath = (window as any).qscBasePath || "";
@@ -128,6 +128,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           onRestartCompiler={onRestartCompiler}
         ></Katas>
       )}
+      <div id="popup"></div>
     </>
   );
 }
@@ -143,7 +144,7 @@ async function loaded() {
   const paramCode = new URLSearchParams(window.location.search).get("code");
   if (paramCode) {
     const base64code = decodeURIComponent(paramCode);
-    linkedCode = base64ToCode(base64code);
+    linkedCode = await compressedBase64ToCode(base64code);
   }
 
   render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
