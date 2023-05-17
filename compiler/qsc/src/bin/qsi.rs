@@ -89,8 +89,7 @@ fn main() -> miette::Result<ExitCode> {
                 return Ok(ExitCode::FAILURE);
             }
         };
-        print_exec_result(context.eval(&mut TerminalReceiver));
-        return Ok(ExitCode::SUCCESS);
+        return Ok(print_exec_result(context.eval(&mut TerminalReceiver)));
     }
 
     let mut interpreter = match Interpreter::new(!cli.nostdlib, SourceMap::new(sources, None)) {
@@ -179,9 +178,12 @@ fn print_interpret_result(line: &str, result: Result<Value, Vec<LineError>>) {
     }
 }
 
-fn print_exec_result(result: Result<Value, Vec<stateless::Error>>) {
+fn print_exec_result(result: Result<Value, Vec<stateless::Error>>) -> ExitCode {
     match result {
-        Ok(value) => println!("{value}"),
+        Ok(value) => {
+            println!("{value}");
+            ExitCode::SUCCESS
+        }
         Err(errors) => {
             for error in errors {
                 if let Some(stack_trace) = error.stack_trace() {
@@ -190,6 +192,7 @@ fn print_exec_result(result: Result<Value, Vec<stateless::Error>>) {
                 let report = Report::new(error);
                 eprintln!("{report:?}");
             }
+            ExitCode::FAILURE
         }
     }
 }
