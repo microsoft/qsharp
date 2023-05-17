@@ -1,9 +1,10 @@
 /target
-/.vscode
 node_modules/
 __pycache__/
 .DS_Store
-
+.vscode/*
+!.vscode/*.shared.json
+!.vscode/extensions.json
 /fuzz/target
 /fuzz/corpus
 /fuzz/artifacts
