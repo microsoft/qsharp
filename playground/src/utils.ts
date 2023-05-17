@@ -31,13 +31,13 @@ declare class DecompressionStream implements GenericTransformStream {
 // is too large by default). This does require a relatively "modern" browser however.
 export async function codeToCompressedBase64(code: string) {
   // Get the string as UTF8 bytes.
-  const myencoder = new TextEncoder(); // TODO: Could we just compress the string directly?
+  const myencoder = new TextEncoder();
   const byteBuff = myencoder.encode(code);
 
   // Compress the stream of bytes
   const compressor = new CompressionStream("gzip");
   const writer = compressor.writable.getWriter();
-  writer.write(byteBuff); // TODO: Could this pause until the other end is read from?
+  writer.write(byteBuff);
   writer.close();
 
   // Read the compressed stream and turn into a byte string
