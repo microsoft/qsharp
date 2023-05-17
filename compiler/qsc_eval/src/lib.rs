@@ -49,9 +49,6 @@ pub enum Error {
     #[error("empty range")]
     EmptyRange(#[label("the range cannot be empty")] Span),
 
-    #[error("{0} type does not support equality comparison")]
-    Equality(&'static str, #[label("does not support comparison")] Span),
-
     #[error("value cannot be used as an index: {0}")]
     IndexVal(i64, #[label("invalid index")] Span),
 
@@ -64,17 +61,11 @@ pub enum Error {
     #[error("reassigning immutable variable")]
     Mutability(#[label("variable declared as immutable")] Span),
 
-    #[error("iterable ranges cannot be open-ended")]
-    OpenEnded(#[label("open-ended range used as iterator")] Span),
-
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
 
     #[error("negative integers cannot be used here: {0}")]
     Negative(i64, #[label("invalid negative integer")] Span),
-
-    #[error("type {0} is not iterable")]
-    NotIterable(&'static str, #[label("not iterable")] Span),
 
     #[error("output failure")]
     Output(#[label("failed to generate output")] Span),
@@ -88,23 +79,12 @@ pub enum Error {
     #[error("Qubit{0} released while not in |0⟩ state")]
     ReleasedQubitNotZero(usize),
 
-    #[error("mismatched tuples")]
-    TupleArity(
-        usize,
-        usize,
-        #[label("expected {0}-tuple, found {1}-tuple")] Span,
-    ),
-
     #[error("invalid left-hand side of assignment")]
     #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
     Unassignable(#[label("not assignable")] Span),
 
     #[error("symbol is not bound")]
     Unbound(#[label] Span),
-
-    #[error("{0} support is not implemented")]
-    #[diagnostic(help("this language feature is not yet supported"))]
-    Unimplemented(&'static str, #[label("cannot evaluate this")] Span),
 
     #[error("unknown intrinsic")]
     UnknownIntrinsic(#[label("callable has no implementation")] Span),
@@ -655,7 +635,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Action::ArrayRepeat(span) => self.eval_arr_repeat(span)?,
             Action::Assign(lhs) => self.eval_assign(lhs)?,
             Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
-            Action::Bind(pat, mutability) => self.eval_bind(pat, mutability)?,
+            Action::Bind(pat, mutability) => self.eval_bind(pat, mutability),
             Action::Call(callee_span, args_span) => self.eval_call(callee_span, args_span)?,
             Action::Consume => {
                 self.pop_val();
@@ -705,9 +685,9 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         update_binding(self.env, lhs, rhs)
     }
 
-    fn eval_bind(&mut self, pat: &'a Pat, mutability: Mutability) -> Result<(), Error> {
+    fn eval_bind(&mut self, pat: &'a Pat, mutability: Mutability) {
         let val = self.pop_val();
-        bind_value(self.env, pat, val, mutability)
+        bind_value(self.env, pat, val, mutability);
     }
 
     fn eval_binop(&mut self, op: BinOp, span: Span, rhs: Option<&'a Expr>) -> Result<(), Error> {
@@ -792,7 +772,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
 
         match (&decl.body, spec) {
             (CallableBody::Block(body_block), Spec::Body) => {
-                bind_value(self.env, &decl.input, args_val, Mutability::Immutable)?;
+                bind_value(self.env, &decl.input, args_val, Mutability::Immutable);
                 self.push_block(body_block);
                 Ok(())
             }
@@ -811,9 +791,8 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                             &decl.input,
                             pat,
                             args_val,
-                            args_span,
                             functor.controlled,
-                        )?;
+                        );
                         self.push_block(body_block);
                         Ok(())
                     }
@@ -1012,7 +991,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
     }
 }
 
-fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) -> Result<(), Error> {
+fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) {
     match &pat.kind {
         PatKind::Bind(variable) => {
             let scope = env.0.last_mut().expect("binding should have a scope");
@@ -1023,19 +1002,13 @@ fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) -> R
                 }),
                 Entry::Occupied(_) => panic!("duplicate binding"),
             };
-            Ok(())
         }
-        PatKind::Discard => Ok(()),
+        PatKind::Discard => {}
         PatKind::Elided => panic!("elision used in binding"),
         PatKind::Tuple(tup) => {
             let val_tup = val.unwrap_tuple();
-            if val_tup.len() == tup.len() {
-                for (pat, val) in tup.iter().zip(val_tup.iter()) {
-                    bind_value(env, pat, val.clone(), mutability)?;
-                }
-                Ok(())
-            } else {
-                Err(Error::TupleArity(tup.len(), val_tup.len(), pat.span))
+            for (pat, val) in tup.iter().zip(val_tup.iter()) {
+                bind_value(env, pat, val.clone(), mutability);
             }
         }
     }
@@ -1072,12 +1045,8 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
             None => return Err(Error::Unbound(lhs.span)),
         },
         (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
-            if var_tup.len() == tup.len() {
-                for (expr, val) in var_tup.iter().zip(tup.iter()) {
-                    update_binding(env, expr, val.clone())?;
-                }
-            } else {
-                return Err(Error::TupleArity(var_tup.len(), tup.len(), lhs.span));
+            for (expr, val) in var_tup.iter().zip(tup.iter()) {
+                update_binding(env, expr, val.clone())?;
             }
         }
         _ => return Err(Error::Unassignable(lhs.span)),
@@ -1090,9 +1059,8 @@ fn bind_args_for_spec(
     decl_pat: &Pat,
     spec_pat: &Pat,
     args_val: Value,
-    args_span: Span,
     ctl_count: u8,
-) -> Result<(), Error> {
+) {
     match &spec_pat.kind {
         PatKind::Bind(_) | PatKind::Discard => {
             panic!("spec pattern should be elided or elided tuple, found bind/discard")
@@ -1108,15 +1076,11 @@ fn bind_args_for_spec(
             let mut tup = args_val;
             let mut ctls = vec![];
             for _ in 0..ctl_count {
-                let tup_nesting = tup.unwrap_tuple();
-                if tup_nesting.len() != 2 {
-                    return Err(Error::TupleArity(2, tup_nesting.len(), args_span));
-                }
-
-                let c = tup_nesting[0].clone();
-                let rest = tup_nesting[1].clone();
-                ctls.extend_from_slice(&c.unwrap_array());
-                tup = rest;
+                let [c, rest] = &*tup.unwrap_tuple() else {
+                    panic!("tuple should be arity 2");
+                };
+                ctls.extend_from_slice(&c.clone().unwrap_array());
+                tup = rest.clone();
             }
 
             bind_value(
@@ -1124,8 +1088,8 @@ fn bind_args_for_spec(
                 &pats[0],
                 Value::Array(ctls.into()),
                 Mutability::Immutable,
-            )?;
-            bind_value(env, decl_pat, tup, Mutability::Immutable)
+            );
+            bind_value(env, decl_pat, tup, Mutability::Immutable);
         }
     }
 }

@@ -84,15 +84,12 @@ pub(crate) fn invoke_intrinsic(
             }
 
             "ArcTan2" => {
-                let tup = args.unwrap_tuple();
-                match &*tup {
-                    [x, y] => {
-                        let x = x.clone().unwrap_double();
-                        let y = y.clone().unwrap_double();
-                        Ok(Value::Double(x.atan2(y)))
-                    }
-                    _ => Err(Error::TupleArity(2, tup.len(), args_span)),
-                }
+                let [x, y] = &*args.unwrap_tuple() else {
+                    panic!("args should be tuple of arity 2");
+                };
+                let x = x.clone().unwrap_double();
+                let y = y.clone().unwrap_double();
+                Ok(Value::Double(x.atan2(y)))
             }
 
             "Cos" => {
@@ -136,11 +133,10 @@ pub(crate) fn invoke_intrinsic(
             }
 
             "DrawRandomInt" => {
-                let tup = args.unwrap_tuple();
-                match &*tup {
-                    [lo, hi] => invoke_draw_random_int(lo.clone(), hi.clone(), args_span),
-                    _ => Err(Error::TupleArity(2, tup.len(), args_span)),
-                }
+                let [lo, hi] = &*args.unwrap_tuple() else {
+                    panic!("args should be a tuple of arity 2");
+                };
+                invoke_draw_random_int(lo.clone(), hi.clone(), args_span)
             }
 
             "Truncate" => {
@@ -193,67 +189,55 @@ fn invoke_quantum_intrinsic(
                     Ok(Value::unit())
                 })*
                 $(stringify!($op2) => {
-                    let tup = args.unwrap_tuple();
-                    match &*tup {
-                        [x, y] =>  {
-                            if x == y {
-                                return Err(Error::QubitUniqueness(args_span));
-                            }
-                            $op2(
-                                x.clone().unwrap_qubit().0,
-                                y.clone().unwrap_qubit().0,
-                            );
-                            Ok(Value::unit())
-                        }
-                        _ => Err(Error::TupleArity(2, tup.len(), args_span))
+                    let [x, y] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 2");
+                    };
+                    if x == y {
+                        return Err(Error::QubitUniqueness(args_span));
                     }
+                    $op2(
+                        x.clone().unwrap_qubit().0,
+                        y.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
                 })*
                 $(stringify!($op21) => {
-                    let tup = args.unwrap_tuple();
-                    match &*tup {
-                        [x, y] =>  {
-                            $op21(
-                                x.clone().unwrap_double(),
-                                y.clone().unwrap_qubit().0,
-                            );
-                            Ok(Value::unit())
-                        }
-                        _ => Err(Error::TupleArity(2, tup.len(), args_span))
-                    }
+                    let [x, y] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 2");
+                    };
+                    $op21(
+                        x.clone().unwrap_double(),
+                        y.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
                 })*
                 $(stringify!($op3) => {
-                    let tup = args.unwrap_tuple();
-                    match &*tup {
-                        [x, y, z] => {
-                            if x == y || y == z || x == z {
-                                return Err(Error::QubitUniqueness(args_span));
-                            }
-                            $op3(
-                                x.clone().unwrap_qubit().0,
-                                y.clone().unwrap_qubit().0,
-                                z.clone().unwrap_qubit().0,
-                            );
-                            Ok(Value::unit())
-                        }
-                        _ => Err(Error::TupleArity(3, tup.len(), args_span))
+                    let [x, y, z] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 3");
+                    };
+                    if x == y || y == z || x == z {
+                        return Err(Error::QubitUniqueness(args_span));
                     }
+                    $op3(
+                        x.clone().unwrap_qubit().0,
+                        y.clone().unwrap_qubit().0,
+                        z.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
                 })*
                 $(stringify!($op31) => {
-                    let tup = args.unwrap_tuple();
-                    match &*tup {
-                        [x, y, z] => {
-                            if y == z {
-                                return Err(Error::QubitUniqueness(args_span));
-                            }
-                            $op31(
-                                x.clone().unwrap_double(),
-                                y.clone().unwrap_qubit().0,
-                                z.clone().unwrap_qubit().0,
-                            );
-                            Ok(Value::unit())
-                        }
-                        _ => Err(Error::TupleArity(3, tup.len(), args_span))
+                    let [x, y, z] = &*args.unwrap_tuple() else {
+                        panic!("args should be tuple of arity 3");
+                    };
+                    if y == z {
+                        return Err(Error::QubitUniqueness(args_span));
                     }
+                    $op31(
+                        x.clone().unwrap_double(),
+                        y.clone().unwrap_qubit().0,
+                        z.clone().unwrap_qubit().0,
+                    );
+                    Ok(Value::unit())
                 })*
             )*
 
