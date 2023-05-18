@@ -6,10 +6,12 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::hir::ItemKind;
-use qsc_passes::run_default_passes;
+use qsc_passes::{run_core_passes, run_default_passes};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
-    let mut store = PackageStore::new(compile::core());
+    let mut core = compile::core();
+    run_core_passes(&mut core);
+    let mut store = PackageStore::new(core);
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
@@ -67,6 +69,11 @@ fn block_expr() {
         }"},
         &expect!["1"],
     );
+}
+
+#[test]
+fn block_empty_is_unit_expr() {
+    check_expr("", "{}", &expect!["()"]);
 }
 
 #[test]
@@ -307,15 +314,39 @@ fn block_qubit_use_array_invalid_count_expr() {
         }"},
         &expect![[r#"
             (
-                Count(
-                    -3,
+                UserFail(
+                    "Cannot allocate qubit array with a negative length",
                     Span {
-                        lo: 20,
-                        hi: 22,
+                        lo: 758,
+                        hi: 815,
                     },
                 ),
                 CallStack {
-                    frames: [],
+                    frames: [
+                        Frame {
+                            span: Some(
+                                Span {
+                                    lo: 10,
+                                    hi: 11,
+                                },
+                            ),
+                            id: GlobalId {
+                                package: PackageId(
+                                    0,
+                                ),
+                                item: LocalItemId(
+                                    5,
+                                ),
+                            },
+                            caller: PackageId(
+                                1,
+                            ),
+                            functor: FunctorApp {
+                                adjoint: false,
+                                controlled: 0,
+                            },
+                        },
+                    ],
                 },
             )
         "#]],
@@ -404,29 +435,6 @@ fn binop_andb_bigint() {
 #[test]
 fn binop_andb_int() {
     check_expr("", "28 &&& 54", &expect!["20"]);
-}
-
-#[test]
-fn binop_andb_invalid() {
-    check_expr(
-        "",
-        "2.8 &&& 5.4",
-        &expect![[r#"
-            (
-                Type(
-                    "BigInt or Int",
-                    "Double",
-                    Span {
-                        lo: 0,
-                        hi: 3,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]
@@ -1051,29 +1059,6 @@ fn binop_orb_int() {
 }
 
 #[test]
-fn binop_orb_invalid() {
-    check_expr(
-        "",
-        "2.8 ||| 5.4",
-        &expect![[r#"
-            (
-                Type(
-                    "BigInt or Int",
-                    "Double",
-                    Span {
-                        lo: 0,
-                        hi: 3,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn binop_orl() {
     check_expr("", "true or true", &expect!["true"]);
 }
@@ -1161,29 +1146,6 @@ fn binop_xorb_bigint() {
 #[test]
 fn binop_xorb_int() {
     check_expr("", "28 ^^^ 54", &expect!["42"]);
-}
-
-#[test]
-fn binop_xorb_invalid() {
-    check_expr(
-        "",
-        "2.8 ^^^ 5.4",
-        &expect![[r#"
-            (
-                Type(
-                    "BigInt or Int",
-                    "Double",
-                    Span {
-                        lo: 0,
-                        hi: 3,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]

@@ -123,86 +123,6 @@ impl Display for Value {
     }
 }
 
-pub struct ConversionError {
-    pub expected: &'static str,
-    pub actual: &'static str,
-}
-
-impl TryFrom<Value> for i64 {
-    type Error = ConversionError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::Int(v) = value {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "Int",
-                actual: value.type_name(),
-            })
-        }
-    }
-}
-
-impl TryFrom<Value> for BigInt {
-    type Error = ConversionError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::BigInt(v) = value {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "BigInt",
-                actual: value.type_name(),
-            })
-        }
-    }
-}
-
-impl TryFrom<Value> for bool {
-    type Error = ConversionError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::Bool(v) = value {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "Bool",
-                actual: value.type_name(),
-            })
-        }
-    }
-}
-
-impl TryFrom<Value> for *mut c_void {
-    type Error = ConversionError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::Qubit(q) = value {
-            Ok(q.0)
-        } else {
-            Err(ConversionError {
-                expected: "Qubit",
-                actual: value.type_name(),
-            })
-        }
-    }
-}
-
-impl TryFrom<Value> for f64 {
-    type Error = ConversionError;
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        if let Value::Double(v) = value {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "Double",
-                actual: value.type_name(),
-            })
-        }
-    }
-}
-
 impl Value {
     #[must_use]
     pub fn unit() -> Self {
@@ -210,42 +130,135 @@ impl Value {
     }
 
     /// Convert the [Value] into an array of [Value]
-    /// # Errors
-    /// This will return an error if the [Value] is not a [`Value::Array`].
-    pub fn try_into_array(self) -> Result<Rc<[Self]>, ConversionError> {
-        if let Value::Array(v) = self {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "Array",
-                actual: self.type_name(),
-            })
-        }
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Array`].
+    #[must_use]
+    pub fn unwrap_array(self) -> Rc<[Self]> {
+        let Value::Array(v) = self else {
+            panic!("value should be Array, got {}", self.type_name());
+        };
+        v
     }
 
-    pub(super) fn try_into_string(self) -> Result<Rc<str>, ConversionError> {
-        if let Value::String(s) = self {
-            Ok(s)
-        } else {
-            Err(ConversionError {
-                expected: "String",
-                actual: self.type_name(),
-            })
-        }
+    /// Convert the [Value] into a `BigInt`
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::BigInt`].
+    #[must_use]
+    pub fn unwrap_big_int(self) -> BigInt {
+        let Value::BigInt(v) = self else {
+            panic!("value should be BigInt, got {}", self.type_name());
+        };
+        v
     }
 
-    /// Convert the [Value] into an tuple of [Value]
-    /// # Errors
-    /// This will return an error if the [Value] is not a [`Value::Tuple`].
-    pub fn try_into_tuple(self) -> Result<Rc<[Self]>, ConversionError> {
-        if let Value::Tuple(v) = self {
-            Ok(v)
-        } else {
-            Err(ConversionError {
-                expected: "Tuple",
-                actual: self.type_name(),
-            })
-        }
+    /// Convert the [Value] into a bool
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Bool`].
+    #[must_use]
+    pub fn unwrap_bool(self) -> bool {
+        let Value::Bool(v) = self else {
+            panic!("value should be Bool, got {}", self.type_name());
+        };
+        v
+    }
+
+    /// Convert the [Value] into a double
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Double`].
+    #[must_use]
+    pub fn unwrap_double(self) -> f64 {
+        let Value::Double(v) = self else {
+            panic!("value should be Double, got {}", self.type_name());
+        };
+        v
+    }
+
+    /// Convert the [Value] into a global tuple
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Global`].
+    #[must_use]
+    pub fn unwrap_global(self) -> (GlobalId, FunctorApp) {
+        let Value::Global(id, functor) = self else {
+            panic!("value should be Global, got {}", self.type_name());
+        };
+        (id, functor)
+    }
+
+    /// Convert the [Value] into an integer
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Int`].
+    #[must_use]
+    pub fn unwrap_int(self) -> i64 {
+        let Value::Int(v) = self else {
+            panic!("value should be Int, got {}", self.type_name());
+        };
+        v
+    }
+
+    /// Convert the [Value] into a Pauli
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Pauli`].
+    #[must_use]
+    pub fn unwrap_pauli(self) -> Pauli {
+        let Value::Pauli(v) = self else {
+            panic!("value should be Pauli, got {}", self.type_name());
+        };
+        v
+    }
+
+    /// Convert the [Value] into a qubit
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Qubit`].
+    #[must_use]
+    pub fn unwrap_qubit(self) -> Qubit {
+        let Value::Qubit(v) = self else {
+            panic!("value should be Qubit, got {}", self.type_name());
+        };
+        v
+    }
+
+    /// Convert the [Value] into a range tuple
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Range`].
+    #[must_use]
+    pub fn unwrap_range(self) -> (Option<i64>, i64, Option<i64>) {
+        let Value::Range(start, step, end) = self else {
+            panic!("value should be Range, got {}", self.type_name());
+        };
+        (start, step, end)
+    }
+
+    /// Convert the [Value] into a measurement result
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Result`].
+    #[must_use]
+    pub fn unwrap_result(self) -> bool {
+        let Value::Result(v) = self else {
+            panic!("value should be Result, got {}", self.type_name());
+        };
+        v
+    }
+
+    /// Convert the [Value] into a string
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::String`].
+    #[must_use]
+    pub fn unwrap_string(self) -> Rc<str> {
+        let Value::String(v) = self else {
+            panic!("value should be String, got {}", self.type_name());
+        };
+        v
+    }
+
+    /// Convert the [Value] into an array of [Value]
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Tuple`].
+    #[must_use]
+    pub fn unwrap_tuple(self) -> Rc<[Self]> {
+        let Value::Tuple(v) = self else {
+            panic!("value should be Tuple, got {}", self.type_name());
+        };
+        v
     }
 
     #[must_use]

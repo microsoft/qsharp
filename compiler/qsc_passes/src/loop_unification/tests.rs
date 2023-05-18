@@ -6,20 +6,21 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_hir::mut_visit::MutVisitor;
 
-use crate::loop_unification::loop_unification;
+use crate::loop_unification::LoopUni;
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let errors = loop_unification(store.core(), &mut unit);
-    if errors.is_empty() {
-        expect.assert_eq(&unit.package.to_string());
-    } else {
-        expect.assert_debug_eq(&errors);
+    LoopUni {
+        core: store.core(),
+        assigner: &mut unit.assigner,
     }
+    .visit_package(&mut unit.package);
+    expect.assert_eq(&unit.package.to_string());
 }
 
 #[test]

@@ -7,7 +7,10 @@ use clap::Parser;
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::interpret::stateful::{Interpreter, LineError};
+use qsc::interpret::{
+    stateful::{Interpreter, LineError},
+    stateless,
+};
 use qsc_eval::{
     output::{self, Receiver},
     val::Value,
@@ -73,6 +76,22 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
+    if cli.exec {
+        let context = match stateless::Context::new(
+            !cli.nostdlib,
+            SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
+        ) {
+            Ok(context) => context,
+            Err(errors) => {
+                for error in errors {
+                    eprintln!("{:?}", Report::new(error));
+                }
+                return Ok(ExitCode::FAILURE);
+            }
+        };
+        return Ok(print_exec_result(context.eval(&mut TerminalReceiver)));
+    }
+
     let mut interpreter = match Interpreter::new(!cli.nostdlib, SourceMap::new(sources, None)) {
         Ok(interpreter) => interpreter,
         Err(errors) => {
@@ -84,15 +103,13 @@ fn main() -> miette::Result<ExitCode> {
     };
 
     if let Some(entry) = cli.entry {
-        print_result(
+        print_interpret_result(
             &entry,
             interpreter.interpret_line(&mut TerminalReceiver, &entry),
         );
     }
 
-    if !cli.exec {
-        repl(&mut interpreter, &mut TerminalReceiver).into_diagnostic()?;
-    }
+    repl(&mut interpreter, &mut TerminalReceiver).into_diagnostic()?;
 
     Ok(ExitCode::SUCCESS)
 }
@@ -116,7 +133,7 @@ fn repl(interpreter: &mut Interpreter, receiver: &mut dyn Receiver) -> io::Resul
         }
 
         if !line.trim().is_empty() {
-            print_result(&line, interpreter.interpret_line(receiver, &line));
+            print_interpret_result(&line, interpreter.interpret_line(receiver, &line));
         }
 
         print_prompt(false);
@@ -145,7 +162,7 @@ fn print_prompt(continuation: bool) {
     io::stdout().flush().expect("standard out should flush");
 }
 
-fn print_result(line: &str, result: Result<Value, Vec<LineError>>) {
+fn print_interpret_result(line: &str, result: Result<Value, Vec<LineError>>) {
     match result {
         Ok(value) => println!("{value}"),
         Err(errors) => {
@@ -157,6 +174,25 @@ fn print_result(line: &str, result: Result<Value, Vec<LineError>>) {
                 let report = Report::new(error).with_source_code(Arc::clone(&source));
                 eprintln!("{report:?}");
             }
+        }
+    }
+}
+
+fn print_exec_result(result: Result<Value, Vec<stateless::Error>>) -> ExitCode {
+    match result {
+        Ok(value) => {
+            println!("{value}");
+            ExitCode::SUCCESS
+        }
+        Err(errors) => {
+            for error in errors {
+                if let Some(stack_trace) = error.stack_trace() {
+                    eprintln!("{stack_trace}");
+                }
+                let report = Report::new(error);
+                eprintln!("{report:?}");
+            }
+            ExitCode::FAILURE
         }
     }
 }
