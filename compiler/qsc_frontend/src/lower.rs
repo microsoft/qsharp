@@ -25,11 +25,14 @@ pub(super) enum Error {
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
     InvalidAttrArgs(&'static str, #[label] Span),
+    #[error("lambda closes over mutable variable")]
+    MutableClosure(#[label] Span),
 }
 
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
+    mutabilities: IndexMap<hir::NodeId, hir::Mutability>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
     errors: Vec<Error>,
@@ -40,6 +43,7 @@ impl Lowerer {
         Self {
             assigner: Assigner::new(),
             nodes: IndexMap::new(),
+            mutabilities: IndexMap::new(),
             parent: None,
             items: Vec::new(),
             errors: Vec::new(),
@@ -197,7 +201,7 @@ impl With<'_> {
             kind: lower_callable_kind(decl.kind),
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
-            input: self.lower_pat(&decl.input),
+            input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
             output: convert::ty_from_ast(&self.resolutions.names, &decl.output).0,
             functors: callable_functors(decl),
             body: match &decl.body {
@@ -229,9 +233,10 @@ impl With<'_> {
                     ast::SpecGen::Invert => hir::SpecGen::Invert,
                     ast::SpecGen::Slf => hir::SpecGen::Slf,
                 }),
-                ast::SpecBody::Impl(input, block) => {
-                    hir::SpecBody::Impl(self.lower_pat(input), self.lower_block(block))
-                }
+                ast::SpecBody::Impl(input, block) => hir::SpecBody::Impl(
+                    self.lower_pat(ast::Mutability::Immutable, input),
+                    self.lower_block(block),
+                ),
             },
         }
     }
@@ -260,11 +265,8 @@ impl With<'_> {
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
             ast::StmtKind::Item(item) => hir::StmtKind::Item(self.lower_item(item)?),
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
-                match mutability {
-                    ast::Mutability::Immutable => hir::Mutability::Immutable,
-                    ast::Mutability::Mutable => hir::Mutability::Mutable,
-                },
-                self.lower_pat(lhs),
+                lower_mutability(*mutability),
+                self.lower_pat(*mutability, lhs),
                 self.lower_expr(rhs),
             ),
             ast::StmtKind::Qubit(source, lhs, rhs, block) => hir::StmtKind::Qubit(
@@ -272,7 +274,7 @@ impl With<'_> {
                     ast::QubitSource::Fresh => hir::QubitSource::Fresh,
                     ast::QubitSource::Dirty => hir::QubitSource::Dirty,
                 },
-                self.lower_pat(lhs),
+                self.lower_pat(ast::Mutability::Immutable, lhs),
                 self.lower_qubit_init(rhs),
                 block.as_ref().map(|b| self.lower_block(b)),
             ),
@@ -351,7 +353,7 @@ impl With<'_> {
                 hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
-                self.lower_pat(pat),
+                self.lower_pat(ast::Mutability::Immutable, pat),
                 Box::new(self.lower_expr(iter)),
                 self.lower_block(block),
             ),
@@ -438,10 +440,14 @@ impl With<'_> {
         span: Span,
     ) -> hir::ExprKind {
         let kind = lower_callable_kind(kind);
-        let input = self.lower_pat(input);
+        let input = self.lower_pat(ast::Mutability::Immutable, input);
         let body = self.lower_expr(body);
 
         let (args, callable) = closure::lift(&mut self.lowerer.assigner, kind, input, body, span);
+        if args.iter().any(|&arg| self.is_mutable(arg)) {
+            self.lowerer.errors.push(Error::MutableClosure(span));
+        }
+
         let id = self.resolutions.next_id;
         self.resolutions.next_id = id.successor();
         self.lowerer.items.push(hir::Item {
@@ -483,9 +489,9 @@ impl With<'_> {
         }
     }
 
-    fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
+    fn lower_pat(&mut self, mutability: ast::Mutability, pat: &ast::Pat) -> hir::Pat {
         if let ast::PatKind::Paren(inner) = &pat.kind {
-            return self.lower_pat(inner);
+            return self.lower_pat(mutability, inner);
         }
 
         let id = self.lower_id(pat.id);
@@ -495,13 +501,22 @@ impl With<'_> {
         );
 
         let kind = match &pat.kind {
-            ast::PatKind::Bind(name, _) => hir::PatKind::Bind(self.lower_ident(name)),
+            ast::PatKind::Bind(name, _) => {
+                let name = self.lower_ident(name);
+                self.lowerer
+                    .mutabilities
+                    .insert(name.id, lower_mutability(mutability));
+                hir::PatKind::Bind(name)
+            }
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
             ast::PatKind::Elided => hir::PatKind::Elided,
             ast::PatKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            ast::PatKind::Tuple(items) => {
-                hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
-            }
+            ast::PatKind::Tuple(items) => hir::PatKind::Tuple(
+                items
+                    .iter()
+                    .map(|i| self.lower_pat(mutability, i))
+                    .collect(),
+            ),
         };
 
         hir::Pat {
@@ -566,6 +581,14 @@ impl With<'_> {
             new_id
         })
     }
+
+    fn is_mutable(&mut self, id: hir::NodeId) -> bool {
+        self.lowerer
+            .mutabilities
+            .get(id)
+            .expect("node ID should have a mutability")
+            == &hir::Mutability::Mutable
+    }
 }
 
 fn lower_visibility(visibility: &ast::Visibility) -> hir::Visibility {
@@ -579,6 +602,13 @@ fn lower_callable_kind(kind: ast::CallableKind) -> hir::CallableKind {
     match kind {
         ast::CallableKind::Function => hir::CallableKind::Function,
         ast::CallableKind::Operation => hir::CallableKind::Operation,
+    }
+}
+
+fn lower_mutability(mutability: ast::Mutability) -> hir::Mutability {
+    match mutability {
+        ast::Mutability::Immutable => hir::Mutability::Immutable,
+        ast::Mutability::Mutable => hir::Mutability::Mutable,
     }
 }
 

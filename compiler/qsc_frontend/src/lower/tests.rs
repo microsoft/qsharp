@@ -92,3 +92,27 @@ fn test_unknown_attr() {
         "#]],
     );
 }
+
+#[test]
+fn mutable_closure() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    mutable x = 1;
+                    let f = y -> x + y;
+                }
+            }
+        "},
+        &expect![[r#"
+            [
+                MutableClosure(
+                    Span {
+                        lo: 79,
+                        hi: 89,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

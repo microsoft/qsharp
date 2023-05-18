@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast,
+    ast::{self, NodeId},
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -28,7 +28,7 @@ const PRELUDE: &[&str] = &[
 ];
 
 pub(super) struct Table {
-    pub(super) names: IndexMap<ast::NodeId, Res>,
+    pub(super) names: IndexMap<NodeId, Res>,
     pub(super) next_id: LocalItemId,
 }
 
@@ -39,7 +39,7 @@ pub(super) enum Res {
     /// A global item.
     Item(ItemId),
     /// A local variable.
-    Local(ast::NodeId),
+    Local(NodeId),
     /// A primitive type.
     PrimTy(PrimTy),
     /// The unit type.
@@ -70,7 +70,7 @@ struct Scope {
     opens: HashMap<Rc<str>, Vec<Open>>,
     tys: HashMap<Rc<str>, ItemId>,
     terms: HashMap<Rc<str>, ItemId>,
-    vars: HashMap<Rc<str>, ast::NodeId>,
+    vars: HashMap<Rc<str>, NodeId>,
 }
 
 impl Scope {
@@ -444,7 +444,7 @@ impl GlobalTable {
 /// whether the expression is a field name or a variable name. This applies to the index operand in
 /// a ternary update operator.
 pub(super) fn extract_field_name<'a>(
-    names: &IndexMap<ast::NodeId, Res>,
+    names: &IndexMap<NodeId, Res>,
     expr: &'a ast::Expr,
 ) -> Option<&'a Rc<str>> {
     // Follow the same reasoning as `is_field_update`.
@@ -471,7 +471,7 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
 }
 
 fn bind_global_item(
-    names: &mut IndexMap<ast::NodeId, Res>,
+    names: &mut IndexMap<NodeId, Res>,
     scope: &mut GlobalScope,
     namespace: &Rc<str>,
     next_id: impl FnOnce() -> ItemId,
