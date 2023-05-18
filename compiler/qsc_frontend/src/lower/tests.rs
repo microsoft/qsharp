@@ -243,6 +243,57 @@ fn lambda_function_closure() {
 }
 
 #[test]
+fn lambda_function_closure_repeated_var() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    let x = 5;
+                    let f = y -> x + x + y;
+                    f(2)
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-112] (Public):
+                    Namespace (Ident 30 [10-11] "A"): Item 1
+                Item 1 [18-110] (Public):
+                    Parent: 0
+                    Callable 0 [18-110] (Function):
+                        name: Ident 1 [27-30] "Foo"
+                        input: Pat 2 [30-32] [Type Unit]: Unit
+                        output: Int
+                        functors: 
+                        body: Block: Block 3 [39-110] [Type Int]:
+                            Stmt 4 [49-59]: Local (Immutable):
+                                Pat 5 [53-54] [Type Int]: Bind: Ident 6 [53-54] "x"
+                                Expr 7 [57-58] [Type Int]: Lit: Int(5)
+                            Stmt 8 [68-91]: Local (Immutable):
+                                Pat 9 [72-73] [Type (Int -> Int)]: Bind: Ident 10 [72-73] "f"
+                                Expr 11 [76-90] [Type (Int -> Int)]: Closure([6], Item 2)
+                            Stmt 26 [100-104]: Expr: Expr 27 [100-104] [Type Int]: Call:
+                                Expr 28 [100-101] [Type (Int -> Int)]: Var: Local 10
+                                Expr 29 [102-103] [Type Int]: Lit: Int(2)
+                Item 2 [76-90] (Internal):
+                    Parent: 0
+                    Callable 22 [76-90] (Function):
+                        name: Ident 23 [76-90] "lambda"
+                        input: Pat 20 [76-90] [Type (Int, Int)]: Tuple:
+                            Pat 21 [76-90] [Type Int]: Bind: Ident 19 [76-90] "closed"
+                            Pat 12 [76-77] [Type Int]: Bind: Ident 13 [76-77] "y"
+                        output: Int
+                        functors: 
+                        body: Block: Block 24 [81-90] [Type Int]:
+                            Stmt 25 [81-90]: Expr: Expr 14 [81-90] [Type Int]: BinOp (Add):
+                                Expr 15 [81-86] [Type Int]: BinOp (Add):
+                                    Expr 16 [81-82] [Type Int]: Var: Local 19
+                                    Expr 17 [85-86] [Type Int]: Var: Local 19
+                                Expr 18 [89-90] [Type Int]: Var: Local 13"#]],
+    );
+}
+
+#[test]
 fn lambda_function_closure_passed() {
     check_hir(
         indoc! {"
