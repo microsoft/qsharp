@@ -19,15 +19,14 @@ use std::{
 
 struct VarFinder {
     bindings: HashSet<NodeId>,
-    uses: Vec<NodeId>,
+    uses: HashSet<NodeId>,
 }
 
 impl VarFinder {
-    fn free_vars(mut self) -> Vec<NodeId> {
-        self.uses.retain(|id| !self.bindings.contains(id));
-        self.uses.sort_unstable();
-        self.uses.dedup();
-        self.uses
+    fn free_vars(&self) -> Vec<NodeId> {
+        let mut vars: Vec<_> = self.uses.difference(&self.bindings).copied().collect();
+        vars.sort_unstable();
+        vars
     }
 }
 
@@ -35,7 +34,9 @@ impl Visitor<'_> for VarFinder {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Closure(args, _) => self.uses.extend(args.iter().copied()),
-            &ExprKind::Var(Res::Local(id)) => self.uses.push(id),
+            &ExprKind::Var(Res::Local(id)) => {
+                self.uses.insert(id);
+            }
             _ => visit::walk_expr(self, expr),
         }
     }
@@ -81,7 +82,7 @@ pub(super) fn lift(
 ) -> (Vec<NodeId>, CallableDecl) {
     let mut finder = VarFinder {
         bindings: HashSet::new(),
-        uses: Vec::new(),
+        uses: HashSet::new(),
     };
     finder.visit_pat(&input);
     finder.visit_expr(&body);
