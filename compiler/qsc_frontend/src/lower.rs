@@ -5,8 +5,7 @@
 mod tests;
 
 use crate::{
-    closure,
-    resolve::{self, Resolutions},
+    closure, resolve,
     typeck::{self, convert},
 };
 use miette::Diagnostic;
@@ -61,12 +60,11 @@ impl Lowerer {
 
     pub(super) fn with<'a>(
         &'a mut self,
-        (next_item_id, resolutions): (&'a mut LocalItemId, &'a Resolutions),
+        resolutions: &'a mut resolve::Table,
         tys: &'a typeck::Table,
     ) -> With {
         With {
             lowerer: self,
-            next_item_id,
             resolutions,
             tys,
         }
@@ -79,8 +77,7 @@ impl Lowerer {
 
 pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
-    next_item_id: &'a mut LocalItemId,
-    resolutions: &'a Resolutions,
+    resolutions: &'a mut resolve::Table,
     tys: &'a typeck::Table,
 }
 
@@ -98,7 +95,7 @@ impl With<'_> {
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
         let Some(&resolve::Res::Item(hir::ItemId {
             item: id, ..
-        })) = self.resolutions.get(namespace.name.id) else {
+        })) = self.resolutions.names.get(namespace.name.id) else {
             panic!("namespace should have item ID");
         };
 
@@ -123,11 +120,6 @@ impl With<'_> {
     }
 
     fn lower_item(&mut self, item: &ast::Item) -> Option<LocalItemId> {
-        let resolve_id = |id| match self.resolutions.get(id) {
-            Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
-            _ => panic!("item should have item ID"),
-        };
-
         let attrs = item
             .attrs
             .iter()
@@ -138,6 +130,11 @@ impl With<'_> {
             .visibility
             .as_ref()
             .map_or(hir::Visibility::Public, lower_visibility);
+
+        let resolve_id = |id| match self.resolutions.names.get(id) {
+            Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
+            _ => panic!("item should have item ID"),
+        };
 
         let (id, kind) = match &item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
@@ -201,7 +198,7 @@ impl With<'_> {
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(&decl.input),
-            output: convert::ty_from_ast(self.resolutions, &decl.output).0,
+            output: convert::ty_from_ast(&self.resolutions.names, &decl.output).0,
             functors: callable_functors(decl),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
@@ -320,7 +317,7 @@ impl With<'_> {
                 Box::new(self.lower_expr(rhs)),
             ),
             ast::ExprKind::AssignUpdate(container, index, replace) => {
-                if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+                if let Some(field) = resolve::extract_field_name(&self.resolutions.names, index) {
                     let container = self.lower_expr(container);
                     let field = self.lower_field(&container.ty, field);
                     let replace = self.lower_expr(replace);
@@ -400,7 +397,7 @@ impl With<'_> {
                 )
             }
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
-                if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+                if let Some(field) = resolve::extract_field_name(&self.resolutions.names, index) {
                     let record = self.lower_expr(container);
                     let field = self.lower_field(&record.ty, field);
                     let replace = self.lower_expr(replace);
@@ -445,8 +442,8 @@ impl With<'_> {
         let body = self.lower_expr(body);
 
         let (args, callable) = closure::lift(&mut self.lowerer.assigner, kind, input, body, span);
-        let id = *self.next_item_id;
-        *self.next_item_id = id.successor();
+        let id = self.resolutions.next_id;
+        self.resolutions.next_id = id.successor();
         self.lowerer.items.push(hir::Item {
             id,
             span,
@@ -493,7 +490,7 @@ impl With<'_> {
 
         let id = self.lower_id(pat.id);
         let ty = self.tys.terms.get(pat.id).map_or_else(
-            || convert::ast_pat_ty(self.resolutions, pat).0,
+            || convert::ast_pat_ty(&self.resolutions.names, pat).0,
             Clone::clone,
         );
 
@@ -547,7 +544,7 @@ impl With<'_> {
     }
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
-        match self.resolutions.get(path.id) {
+        match self.resolutions.names.get(path.id) {
             Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) | None => hir::Res::Err,

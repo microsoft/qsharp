@@ -103,12 +103,12 @@ impl Compiler {
         self.assigner.visit_namespace(&mut namespace);
         self.resolver.visit_namespace(&namespace);
         self.checker
-            .check_namespace(self.resolver.resolutions().1, &namespace);
+            .check_namespace(&self.resolver.resolutions().names, &namespace);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
             self.lowerer
-                .with(self.resolver.resolutions(), self.checker.tys())
+                .with(self.resolver.resolutions_mut(), self.checker.tys())
                 .lower_namespace(&namespace);
             Ok(())
         } else {
@@ -120,12 +120,12 @@ impl Compiler {
         self.assigner.visit_stmt(&mut stmt);
         self.resolver.visit_stmt(&stmt);
         self.checker
-            .check_stmt_fragment(self.resolver.resolutions().1, &stmt);
+            .check_stmt_fragment(&self.resolver.resolutions().names, &stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
             self.lowerer
-                .with(self.resolver.resolutions(), self.checker.tys())
+                .with(self.resolver.resolutions_mut(), self.checker.tys())
                 .lower_stmt(&stmt)
                 .map(Fragment::Stmt)
         } else {

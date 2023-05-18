@@ -8,7 +8,7 @@ use crate::{
     funop,
     lower::{self, Lowerer},
     parse,
-    resolve::{self, Resolutions, Resolver},
+    resolve::{self, Resolver},
     typeck::{self, Checker},
     validate::{self, validate},
 };
@@ -23,7 +23,7 @@ use qsc_data_structures::{
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     global,
-    hir::{self, LocalItemId, PackageId},
+    hir::{self, PackageId},
 };
 use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
@@ -214,15 +214,12 @@ pub fn compile(
     let mut assigner = AstAssigner::new();
     assigner.visit_package(&mut package);
 
-    let (mut next_item_id, resolutions, resolve_errors) =
-        resolve_all(store, dependencies, &package);
+    let (mut resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
     let validate_errors = validate(&package);
     let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
-    let package = lowerer
-        .with((&mut next_item_id, &resolutions), &tys)
-        .lower_package(&package);
+    let package = lowerer.with(&mut resolutions, &tys).lower_package(&package);
     let (assigner, lower_errors) = lowerer.into_assigner();
 
     let errors = parse_errors
@@ -379,7 +376,7 @@ fn resolve_all(
     store: &PackageStore,
     dependencies: &[PackageId],
     package: &ast::Package,
-) -> (LocalItemId, Resolutions, Vec<resolve::Error>) {
+) -> (resolve::Table, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -402,7 +399,7 @@ fn typeck_all(
     store: &PackageStore,
     dependencies: &[PackageId],
     package: &ast::Package,
-    resolutions: &Resolutions,
+    resolutions: &resolve::Table,
 ) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
@@ -417,7 +414,7 @@ fn typeck_all(
     }
 
     let mut checker = Checker::new(globals);
-    checker.check_package(resolutions, package);
+    checker.check_package(&resolutions.names, package);
     checker.into_tys()
 }
 

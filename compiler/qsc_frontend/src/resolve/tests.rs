@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{GlobalTable, Res, Resolutions};
+use super::{GlobalTable, Res};
 use crate::{parse, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -11,18 +11,18 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::fmt::Write;
 
 struct Renamer<'a> {
-    resolutions: &'a Resolutions,
+    names: &'a IndexMap<NodeId, Res>,
     changes: Vec<(Span, Res)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(resolutions: &'a Resolutions) -> Self {
+    fn new(names: &'a IndexMap<NodeId, Res>) -> Self {
         Self {
-            resolutions,
+            names,
             changes: Vec::new(),
         }
     }
@@ -45,7 +45,7 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.resolutions.get(path.id) {
+        if let Some(&id) = self.names.get(path.id) {
             self.changes.push((path.span, id));
         } else {
             visit::walk_path(self, path);
@@ -53,7 +53,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.resolutions.get(ident.id) {
+        if let Some(&id) = self.names.get(ident.id) {
             self.changes.push((ident.span, id));
         }
     }
@@ -77,8 +77,8 @@ fn resolve_names(input: &str) -> String {
     globals.add_local_package(&package);
     let mut resolver = Resolver::new(globals);
     resolver.visit_package(&package);
-    let (_, resolutions, errors) = resolver.into_resolutions();
-    let mut renamer = Renamer::new(&resolutions);
+    let (resolutions, errors) = resolver.into_resolutions();
+    let mut renamer = Renamer::new(&resolutions.names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
     renamer.rename(&mut output);

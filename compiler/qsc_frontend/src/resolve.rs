@@ -27,7 +27,10 @@ const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Intrinsic",
 ];
 
-pub(super) type Resolutions = IndexMap<ast::NodeId, Res>;
+pub(super) struct Table {
+    pub(super) names: IndexMap<ast::NodeId, Res>,
+    pub(super) next_id: LocalItemId,
+}
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
@@ -124,10 +127,9 @@ struct Open {
 }
 
 pub(super) struct Resolver {
-    resolutions: Resolutions,
+    resolutions: Table,
     globals: GlobalScope,
     scopes: Vec<Scope>,
-    next_item_id: LocalItemId,
     errors: Vec<Error>,
 }
 
@@ -137,7 +139,6 @@ impl Resolver {
             resolutions: globals.resolutions,
             globals: globals.scope,
             scopes: Vec::new(),
-            next_item_id: globals.next_item_id,
             errors: Vec::new(),
         }
     }
@@ -147,26 +148,29 @@ impl Resolver {
             resolutions: globals.resolutions,
             globals: globals.scope,
             scopes: vec![Scope::new(ScopeKind::Block)],
-            next_item_id: globals.next_item_id,
             errors: Vec::new(),
         }
     }
 
-    pub(super) fn resolutions(&mut self) -> (&mut LocalItemId, &Resolutions) {
-        (&mut self.next_item_id, &self.resolutions)
+    pub(super) fn resolutions(&self) -> &Table {
+        &self.resolutions
+    }
+
+    pub(super) fn resolutions_mut(&mut self) -> &mut Table {
+        &mut self.resolutions
     }
 
     pub(super) fn drain_errors(&mut self) -> vec::Drain<Error> {
         self.errors.drain(..)
     }
 
-    pub(super) fn into_resolutions(self) -> (LocalItemId, Resolutions, Vec<Error>) {
-        (self.next_item_id, self.resolutions, self.errors)
+    pub(super) fn into_resolutions(self) -> (Table, Vec<Error>) {
+        (self.resolutions, self.errors)
     }
 
     fn resolve(&mut self, kind: NameKind, path: &ast::Path) {
         match resolve(kind, &self.globals, &self.scopes, path) {
-            Ok(id) => self.resolutions.insert(path.id, id),
+            Ok(id) => self.resolutions.names.insert(path.id, id),
             Err(err) => self.errors.push(err),
         }
     }
@@ -190,7 +194,7 @@ impl Resolver {
         match &pat.kind {
             ast::PatKind::Bind(name, _) => {
                 let scope = self.scopes.last_mut().expect("binding should have scope");
-                self.resolutions.insert(name.id, Res::Local(name.id));
+                self.resolutions.names.insert(name.id, Res::Local(name.id));
                 scope.vars.insert(Rc::clone(&name.name), name.id);
             }
             ast::PatKind::Discard(_) | ast::PatKind::Elided => {}
@@ -211,18 +215,18 @@ impl Resolver {
     fn bind_local_item_if_new(&mut self, item: &ast::Item) {
         match &item.kind {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias.as_ref()),
-            ast::ItemKind::Callable(decl) if !self.resolutions.contains_key(decl.name.id) => {
-                let item_id = next_item_id(&mut self.next_item_id);
-                self.resolutions.insert(decl.name.id, Res::Item(item_id));
+            ast::ItemKind::Callable(decl) if !self.resolutions.names.contains_key(decl.name.id) => {
+                let id = next_item_id(&mut self.resolutions.next_id);
+                self.resolutions.names.insert(decl.name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
-                scope.terms.insert(Rc::clone(&decl.name.name), item_id);
+                scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
-            ast::ItemKind::Ty(name, _) if !self.resolutions.contains_key(name.id) => {
-                let item_id = next_item_id(&mut self.next_item_id);
-                self.resolutions.insert(name.id, Res::Item(item_id));
+            ast::ItemKind::Ty(name, _) if !self.resolutions.names.contains_key(name.id) => {
+                let id = next_item_id(&mut self.resolutions.next_id);
+                self.resolutions.names.insert(name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
-                scope.tys.insert(Rc::clone(&name.name), item_id);
-                scope.terms.insert(Rc::clone(&name.name), item_id);
+                scope.tys.insert(Rc::clone(&name.name), id);
+                scope.terms.insert(Rc::clone(&name.name), id);
             }
             ast::ItemKind::Callable(..) | ast::ItemKind::Ty(..) | ast::ItemKind::Err => {}
         }
@@ -231,18 +235,18 @@ impl Resolver {
 
 impl AstVisitor<'_> for Resolver {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        if !self.resolutions.contains_key(namespace.name.id) {
-            self.resolutions.insert(
+        if !self.resolutions.names.contains_key(namespace.name.id) {
+            self.resolutions.names.insert(
                 namespace.name.id,
-                Res::Item(next_item_id(&mut self.next_item_id)),
+                Res::Item(next_item_id(&mut self.resolutions.next_id)),
             );
 
             for item in &namespace.items {
                 bind_global_item(
-                    &mut self.resolutions,
+                    &mut self.resolutions.names,
                     &mut self.globals,
                     &namespace.name.name,
-                    || next_item_id(&mut self.next_item_id),
+                    || next_item_id(&mut self.resolutions.next_id),
                     item,
                 );
             }
@@ -361,9 +365,8 @@ impl AstVisitor<'_> for Resolver {
 }
 
 pub(super) struct GlobalTable {
-    resolutions: Resolutions,
+    resolutions: Table,
     scope: GlobalScope,
-    next_item_id: LocalItemId,
 }
 
 impl GlobalTable {
@@ -386,25 +389,27 @@ impl GlobalTable {
 
         let terms = HashMap::new();
         Self {
-            resolutions: Resolutions::new(),
+            resolutions: Table {
+                names: IndexMap::new(),
+                next_id: LocalItemId::default(),
+            },
             scope: GlobalScope { tys, terms },
-            next_item_id: LocalItemId::default(),
         }
     }
 
     pub(super) fn add_local_package(&mut self, package: &ast::Package) {
         for namespace in &package.namespaces {
-            self.resolutions.insert(
+            self.resolutions.names.insert(
                 namespace.name.id,
-                Res::Item(next_item_id(&mut self.next_item_id)),
+                Res::Item(next_item_id(&mut self.resolutions.next_id)),
             );
 
             for item in &namespace.items {
                 bind_global_item(
-                    &mut self.resolutions,
+                    &mut self.resolutions.names,
                     &mut self.scope,
                     &namespace.name.name,
-                    || next_item_id(&mut self.next_item_id),
+                    || next_item_id(&mut self.resolutions.next_id),
                     item,
                 );
             }
@@ -439,14 +444,13 @@ impl GlobalTable {
 /// whether the expression is a field name or a variable name. This applies to the index operand in
 /// a ternary update operator.
 pub(super) fn extract_field_name<'a>(
-    resolutions: &Resolutions,
+    names: &IndexMap<ast::NodeId, Res>,
     expr: &'a ast::Expr,
 ) -> Option<&'a Rc<str>> {
     // Follow the same reasoning as `is_field_update`.
     match &expr.kind {
         ast::ExprKind::Path(path)
-            if path.namespace.is_none()
-                && !matches!(resolutions.get(path.id), Some(Res::Local(_))) =>
+            if path.namespace.is_none() && !matches!(names.get(path.id), Some(Res::Local(_))) =>
         {
             Some(&path.name.name)
         }
@@ -467,7 +471,7 @@ fn is_field_update(globals: &GlobalScope, scopes: &[Scope], index: &ast::Expr) -
 }
 
 fn bind_global_item(
-    resolutions: &mut Resolutions,
+    names: &mut IndexMap<ast::NodeId, Res>,
     scope: &mut GlobalScope,
     namespace: &Rc<str>,
     next_id: impl FnOnce() -> ItemId,
@@ -476,7 +480,7 @@ fn bind_global_item(
     match &item.kind {
         ast::ItemKind::Callable(decl) => {
             let res = Res::Item(next_id());
-            resolutions.insert(decl.name.id, res);
+            names.insert(decl.name.id, res);
             scope
                 .terms
                 .entry(Rc::clone(namespace))
@@ -485,7 +489,7 @@ fn bind_global_item(
         }
         ast::ItemKind::Ty(name, _) => {
             let res = Res::Item(next_id());
-            resolutions.insert(name.id, res);
+            names.insert(name.id, res);
             scope
                 .tys
                 .entry(Rc::clone(namespace))
