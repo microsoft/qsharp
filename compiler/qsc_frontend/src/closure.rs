@@ -84,18 +84,17 @@ pub(super) fn lift(
     .visit_expr(&mut body);
 
     let free_vars = finder.free.keys().copied().collect();
-    let input = close(
-        finder.free.into_iter().map(|(id, ty)| {
-            let &new_id = substitutions
-                .get(&id)
-                .expect("free variable should have substitution");
-            (new_id, ty)
-        }),
-        input,
-        span,
-    );
+    let substituted_free_vars = finder.free.into_iter().map(|(id, ty)| {
+        let &new_id = substitutions
+            .get(&id)
+            .expect("free variable should have substitution");
+        (new_id, ty)
+    });
 
-    let mut callable = CallableDecl {
+    let mut input = close(substituted_free_vars, input, span);
+    assigner.visit_pat(&mut input);
+
+    let callable = CallableDecl {
         id: assigner.next_id(),
         span,
         kind,
@@ -120,7 +119,6 @@ pub(super) fn lift(
         }),
     };
 
-    assigner.visit_callable_decl(&mut callable);
     (free_vars, callable)
 }
 
