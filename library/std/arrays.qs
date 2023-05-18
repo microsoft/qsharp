@@ -64,6 +64,39 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Returns whether a 2-dimensional array has a rectangular shape
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `array`.
+    ///
+    /// # Input
+    /// ## array
+    /// A 2-dimensional array of elements
+    ///
+    /// # Example
+    /// ```qsharp
+    /// RectangularArrayFact([[1, 2], [3, 4]], "Array is not rectangular");       // true
+    /// RectangularArrayFact([[1, 2, 3], [4, 5, 6]], "Array is not rectangular"); // true
+    /// RectangularArrayFact([[1, 2], [3, 4, 5]], "Array is not rectangular");    // false
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.IsSquareArray
+    function IsRectangularArray<'T>(array : 'T[][]) : Bool {
+        if (Length(array) > 0) {
+            let numColumns = Length(Head(array));
+            for i in IndexRange(Rest(array)) {
+                if Length(array[i+1]) != numColumns {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    /// # Summary
     /// Creates an array that is equal to an input array except that the last array
     /// element is dropped.
     ///

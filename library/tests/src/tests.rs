@@ -554,16 +554,6 @@ fn check_chunks() {
 }
 
 #[test]
-fn check_empty() {
-    run_stdlib_test("Microsoft.Quantum.Arrays.Empty([])", &Value::Bool(true));
-    run_stdlib_test("Microsoft.Quantum.Arrays.Empty([1])", &Value::Bool(false));
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Empty([1, 2, 3, 4, 5])",
-        &Value::Bool(false),
-    );
-}
-
-#[test]
 fn check_head() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
 }
@@ -581,6 +571,40 @@ fn check_index_range() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::End",
         &Value::Int(3),
+    );
+}
+
+#[test]
+fn check_is_empty() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.IsEmpty([])", &Value::Bool(true));
+    run_stdlib_test("Microsoft.Quantum.Arrays.IsEmpty([1])", &Value::Bool(false));
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsEmpty([1, 2, 3, 4, 5])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
+fn check_is_rectangular_array() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1, 2], [3, 4]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1, 2, 3], [4, 5, 6]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1, 2], [3, 4, 5]])",
+        &Value::Bool(false),
     );
 }
 
