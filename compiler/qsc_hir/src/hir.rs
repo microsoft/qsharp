@@ -728,17 +728,16 @@ fn display_call(mut indent: Indented<Formatter>, callable: &Expr, arg: &Expr) ->
     Ok(())
 }
 
-fn display_closure(
-    mut indent: Indented<Formatter>,
-    args: &[NodeId],
-    callable: ItemId,
-) -> fmt::Result {
-    write!(indent, "Closure ({callable}):")?;
-    indent = set_indentation(indent, 1);
-    for arg in args {
-        write!(indent, "\n{arg}")?;
+fn display_closure(mut f: Indented<Formatter>, args: &[NodeId], callable: ItemId) -> fmt::Result {
+    f.write_str("Closure([")?;
+    let mut args = args.iter();
+    if let Some(arg) = args.next() {
+        write!(f, "{arg}")?;
     }
-    Ok(())
+    for arg in args {
+        write!(f, ", {arg}")?;
+    }
+    write!(f, "], {callable})")
 }
 
 fn display_conjugate(
