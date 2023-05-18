@@ -19,9 +19,9 @@ use output::Receiver;
 use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Field, Functor, ItemId, Lit,
-    Mutability, NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody, SpecDecl, SpecGen,
-    Stmt, StmtKind, StringComponent, TernOp, UnOp,
+    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Field, Functor, Lit,
+    LocalItemId, Mutability, NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody,
+    SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -1110,7 +1110,7 @@ fn resolve_closure(
     env: &Env,
     span: Span,
     args: &[NodeId],
-    callable: ItemId,
+    callable: LocalItemId,
 ) -> Result<Value, Error> {
     let args: Option<_> = args
         .iter()
@@ -1118,8 +1118,8 @@ fn resolve_closure(
         .collect();
     let args: Vec<_> = args.ok_or(Error::Unbound(span))?;
     let callable = GlobalId {
-        package: callable.package.unwrap_or(package),
-        item: callable.item,
+        package,
+        item: callable,
     };
     Ok(Value::Closure(args.into(), callable, FunctorApp::default()))
 }

@@ -549,7 +549,7 @@ pub enum ExprKind {
     /// A call: `a(b)`.
     Call(Box<Expr>, Box<Expr>),
     /// A closure that fixes the vector of local variables as arguments to the callable item.
-    Closure(Vec<NodeId>, ItemId),
+    Closure(Vec<NodeId>, LocalItemId),
     /// A conjugation: `within { ... } apply { ... }`.
     Conjugate(Block, Block),
     /// A failure: `fail "message"`.
@@ -728,7 +728,11 @@ fn display_call(mut indent: Indented<Formatter>, callable: &Expr, arg: &Expr) ->
     Ok(())
 }
 
-fn display_closure(mut f: Indented<Formatter>, args: &[NodeId], callable: ItemId) -> fmt::Result {
+fn display_closure(
+    mut f: Indented<Formatter>,
+    args: &[NodeId],
+    callable: LocalItemId,
+) -> fmt::Result {
     f.write_str("Closure([")?;
     let mut args = args.iter();
     if let Some(arg) = args.next() {

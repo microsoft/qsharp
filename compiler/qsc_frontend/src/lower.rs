@@ -471,13 +471,7 @@ impl With<'_> {
             kind: hir::ItemKind::Callable(callable),
         });
 
-        hir::ExprKind::Closure(
-            args,
-            hir::ItemId {
-                package: None,
-                item: id,
-            },
-        )
+        hir::ExprKind::Closure(args, id)
     }
 
     fn lower_field(&mut self, record_ty: &hir::Ty, name: &str) -> hir::Field {
