@@ -2786,15 +2786,15 @@ fn lambda_function_closure() {
     check_expr(
         indoc! {"
             namespace A {
-                function Foo() : Int {
+                function Foo() : (Int, Int) {
                     let x = 5;
-                    let f = y -> x + y;
+                    let f = y -> (x, y);
                     f(2)
                 }
             }
         "},
         "A.Foo()",
-        &expect!["7"],
+        &expect!["(5, 2)"],
     );
 }
 
@@ -2803,15 +2803,15 @@ fn lambda_function_closure_passed() {
     check_expr(
         indoc! {"
             namespace A {
-                function Foo(f : Int -> Int) : Int { f(2) }
-                function Bar() : Int {
+                function Foo(f : Int -> (Int, Int)) : (Int, Int) { f(2) }
+                function Bar() : (Int, Int) {
                     let x = 5;
-                    Foo(y -> x + y)
+                    Foo(y -> (x, y))
                 }
             }
         "},
         "A.Bar()",
-        &expect!["7"],
+        &expect!["(5, 2)"],
     );
 }
 
@@ -2820,18 +2820,21 @@ fn lambda_function_nested_closure() {
     check_expr(
         indoc! {"
             namespace A {
-                function Foo(f : Int -> Int -> Int) : Int { f(2)(3) }
-                function Bar() : Int {
+                function Foo(f : Int -> Int -> (Int, Int, Int, Int)) : (Int, Int, Int, Int) {
+                    f(2)(3)
+                }
+
+                function Bar() : (Int, Int, Int, Int) {
                     let a = 5;
                     Foo(b -> {
                         let c = 1;
-                        d -> a + b + c + d
+                        d -> (a, b, c, d)
                     })
                 }
             }
         "},
         "A.Bar()",
-        &expect!["11"],
+        &expect!["(5, 2, 1, 3)"],
     );
 }
 
@@ -2841,11 +2844,13 @@ fn lambda_operation_empty_closure() {
         indoc! {"
             namespace A {
                 open Microsoft.Quantum.Measurement;
+
                 operation Foo(op : Qubit => ()) : Result {
                     use q = Qubit();
                     op(q);
                     MResetZ(q)
                 }
+
                 operation Bar() : Result { Foo(q => X(q)) }
             }
         "},
