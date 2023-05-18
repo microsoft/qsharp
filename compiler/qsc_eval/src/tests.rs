@@ -12,14 +12,19 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut core = compile::core();
     run_core_passes(&mut core);
     let mut store = PackageStore::new(core);
-    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[], sources);
-    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
+    let mut std = compile::std(&store);
+    assert!(std.errors.is_empty());
+    assert!(run_default_passes(store.core(), &mut std).is_empty());
+    let std_id = store.insert(std);
+
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let mut unit = compile(&store, &[std_id], sources);
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(store.core(), &mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
-
     let id = store.insert(unit);
+
     let entry = store
         .get(id)
         .and_then(|unit| unit.package.entry.as_ref())
@@ -339,7 +344,7 @@ fn block_qubit_use_array_invalid_count_expr() {
                                 ),
                             },
                             caller: PackageId(
-                                1,
+                                2,
                             ),
                             functor: FunctorApp {
                                 adjoint: false,
@@ -2042,7 +2047,7 @@ fn unop_adjoint_functor_expr() {
             }
         "},
         "Adjoint Test.Foo",
-        &expect!["Adjoint <item 1 in package 1>"],
+        &expect!["Adjoint <item 1 in package 2>"],
     );
 }
 
@@ -2057,7 +2062,7 @@ fn unop_controlled_functor_expr() {
             }
         "},
         "Controlled Test.Foo",
-        &expect!["Controlled <item 1 in package 1>"],
+        &expect!["Controlled <item 1 in package 2>"],
     );
 }
 
@@ -2072,7 +2077,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "},
         "Adjoint (Adjoint Test.Foo)",
-        &expect!["<item 1 in package 1>"],
+        &expect!["<item 1 in package 2>"],
     );
 }
 
@@ -2087,7 +2092,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "},
         "Controlled Adjoint Test.Foo",
-        &expect!["Controlled Adjoint <item 1 in package 1>"],
+        &expect!["Controlled Adjoint <item 1 in package 2>"],
     );
 }
 
@@ -2102,7 +2107,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "},
         "Adjoint Controlled Test.Foo",
-        &expect!["Controlled Adjoint <item 1 in package 1>"],
+        &expect!["Controlled Adjoint <item 1 in package 2>"],
     );
 }
 
@@ -2117,7 +2122,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "},
         "Controlled (Controlled Test.Foo)",
-        &expect!["Controlled Controlled <item 1 in package 1>"],
+        &expect!["Controlled Controlled <item 1 in package 2>"],
     );
 }
 
@@ -2348,14 +2353,14 @@ fn call_adjoint_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    1,
+                                    2,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                1,
+                                2,
                             ),
                             functor: FunctorApp {
                                 adjoint: true,
@@ -2411,14 +2416,14 @@ fn call_adjoint_adjoint_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    1,
+                                    2,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                1,
+                                2,
                             ),
                             functor: FunctorApp {
                                 adjoint: false,
@@ -2469,14 +2474,14 @@ fn call_adjoint_self_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    1,
+                                    2,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                1,
+                                2,
                             ),
                             functor: FunctorApp {
                                 adjoint: true,
@@ -2747,7 +2752,7 @@ fn udt_field_nested() {
 }
 
 #[test]
-fn lambda_no_free_vars() {
+fn lambda_function_empty_closure() {
     check_expr(
         indoc! {r#"
             namespace A {
@@ -2763,7 +2768,21 @@ fn lambda_no_free_vars() {
 }
 
 #[test]
-fn lambda_closure() {
+fn lambda_function_empty_closure_passed() {
+    check_expr(
+        indoc! {r#"
+            namespace A {
+                function Foo(f : Int -> Int) : Int { f(2) }
+                function Bar() : Int { Foo(x -> x + 1) }
+            }
+        "#},
+        "A.Bar()",
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn lambda_function_closure() {
     check_expr(
         indoc! {r#"
             namespace A {
@@ -2776,5 +2795,80 @@ fn lambda_closure() {
         "#},
         "A.Foo()",
         &expect!["7"],
+    );
+}
+
+#[test]
+fn lambda_function_closure_passed() {
+    check_expr(
+        indoc! {r#"
+            namespace A {
+                function Foo(f : Int -> Int) : Int { f(2) }
+                function Bar() : Int {
+                    let x = 5;
+                    Foo(y -> x + y)
+                }
+            }
+        "#},
+        "A.Bar()",
+        &expect!["7"],
+    );
+}
+
+#[test]
+fn lambda_function_nested_closure() {
+    check_expr(
+        indoc! {r#"
+            namespace A {
+                function Foo(f : Int -> Int -> Int) : Int { f(2)(3) }
+                function Bar() : Int {
+                    let a = 5;
+                    Foo(b -> {
+                        let c = 1;
+                        d -> a + b + c + d
+                    })
+                }
+            }
+        "#},
+        "A.Bar()",
+        &expect!["11"],
+    );
+}
+
+#[test]
+fn lambda_operation_empty_closure() {
+    check_expr(
+        indoc! {r#"
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+                operation Foo(op : Qubit => ()) : Result {
+                    use q = Qubit();
+                    op(q);
+                    MResetZ(q)
+                }
+                operation Bar() : Result { Foo(q => X(q)) }
+            }
+        "#},
+        "A.Bar()",
+        &expect!["One"],
+    );
+}
+
+#[test]
+fn lambda_operation_closure() {
+    check_expr(
+        indoc! {r#"
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+                operation Foo(op : () => Result) : Result { op() }
+                operation Bar() : Result {
+                    use q = Qubit();
+                    X(q);
+                    Foo(() => MResetZ(q))
+                }
+            }
+        "#},
+        "A.Bar()",
+        &expect!["One"],
     );
 }
