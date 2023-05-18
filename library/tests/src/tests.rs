@@ -554,6 +554,34 @@ fn check_chunks() {
 }
 
 #[test]
+fn check_diagnonal() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([])",
+        &Value::Array(vec![].into()),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1]])",
+        &Value::Array(vec![Value::Int(1)].into()),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1, 2, 3], [4, 5, 6], [7, 8, 9]])",
+        &Value::Array(vec![Value::Int(1), Value::Int(5), Value::Int(9)].into()),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1, 2, 3], [4, 5, 6]])",
+        &Value::Array(vec![Value::Int(1), Value::Int(5)].into()),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1, 2], [3, 4], [5, 6]])",
+        &Value::Array(vec![Value::Int(1), Value::Int(4)].into()),
+    );
+}
+
+#[test]
 fn check_head() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
 }
