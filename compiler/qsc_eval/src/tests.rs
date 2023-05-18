@@ -2754,14 +2754,14 @@ fn udt_field_nested() {
 #[test]
 fn lambda_function_empty_closure() {
     check_expr(
-        indoc! {r#"
+        indoc! {"
             namespace A {
                 function Foo() : Int {
                     let f = x -> x + 1;
                     f(1)
                 }
             }
-        "#},
+        "},
         "A.Foo()",
         &expect!["2"],
     );
@@ -2770,12 +2770,12 @@ fn lambda_function_empty_closure() {
 #[test]
 fn lambda_function_empty_closure_passed() {
     check_expr(
-        indoc! {r#"
+        indoc! {"
             namespace A {
                 function Foo(f : Int -> Int) : Int { f(2) }
                 function Bar() : Int { Foo(x -> x + 1) }
             }
-        "#},
+        "},
         "A.Bar()",
         &expect!["3"],
     );
@@ -2784,7 +2784,7 @@ fn lambda_function_empty_closure_passed() {
 #[test]
 fn lambda_function_closure() {
     check_expr(
-        indoc! {r#"
+        indoc! {"
             namespace A {
                 function Foo() : Int {
                     let x = 5;
@@ -2792,7 +2792,7 @@ fn lambda_function_closure() {
                     f(2)
                 }
             }
-        "#},
+        "},
         "A.Foo()",
         &expect!["7"],
     );
@@ -2801,7 +2801,7 @@ fn lambda_function_closure() {
 #[test]
 fn lambda_function_closure_passed() {
     check_expr(
-        indoc! {r#"
+        indoc! {"
             namespace A {
                 function Foo(f : Int -> Int) : Int { f(2) }
                 function Bar() : Int {
@@ -2809,7 +2809,7 @@ fn lambda_function_closure_passed() {
                     Foo(y -> x + y)
                 }
             }
-        "#},
+        "},
         "A.Bar()",
         &expect!["7"],
     );
@@ -2818,7 +2818,7 @@ fn lambda_function_closure_passed() {
 #[test]
 fn lambda_function_nested_closure() {
     check_expr(
-        indoc! {r#"
+        indoc! {"
             namespace A {
                 function Foo(f : Int -> Int -> Int) : Int { f(2)(3) }
                 function Bar() : Int {
@@ -2829,7 +2829,7 @@ fn lambda_function_nested_closure() {
                     })
                 }
             }
-        "#},
+        "},
         "A.Bar()",
         &expect!["11"],
     );
@@ -2838,7 +2838,7 @@ fn lambda_function_nested_closure() {
 #[test]
 fn lambda_operation_empty_closure() {
     check_expr(
-        indoc! {r#"
+        indoc! {"
             namespace A {
                 open Microsoft.Quantum.Measurement;
                 operation Foo(op : Qubit => ()) : Result {
@@ -2848,7 +2848,7 @@ fn lambda_operation_empty_closure() {
                 }
                 operation Bar() : Result { Foo(q => X(q)) }
             }
-        "#},
+        "},
         "A.Bar()",
         &expect!["One"],
     );
@@ -2857,7 +2857,7 @@ fn lambda_operation_empty_closure() {
 #[test]
 fn lambda_operation_closure() {
     check_expr(
-        indoc! {r#"
+        indoc! {"
             namespace A {
                 open Microsoft.Quantum.Measurement;
                 operation Foo(op : () => Result) : Result { op() }
@@ -2867,7 +2867,7 @@ fn lambda_operation_closure() {
                     Foo(() => MResetZ(q))
                 }
             }
-        "#},
+        "},
         "A.Bar()",
         &expect!["One"],
     );
