@@ -688,6 +688,10 @@ fn check_interleaved() {
             .into(),
         ),
     );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Interleaved([true, true], [false])",
+        &Value::Array(vec![Value::Bool(true), Value::Bool(false), Value::Bool(true)].into()),
+    );
 }
 
 #[test]
