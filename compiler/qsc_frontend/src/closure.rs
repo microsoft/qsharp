@@ -17,39 +17,32 @@ use std::{
     iter,
 };
 
-struct VarFinder<'a> {
-    locals: &'a IndexMap<NodeId, Local>,
-    free: HashMap<NodeId, Ty>,
-    bound: HashSet<NodeId>,
+struct VarFinder {
+    bindings: HashSet<NodeId>,
+    uses: Vec<NodeId>,
 }
 
-impl Visitor<'_> for VarFinder<'_> {
+impl VarFinder {
+    fn free_vars(mut self) -> Vec<NodeId> {
+        self.uses.retain(|id| !self.bindings.contains(id));
+        self.uses.sort_unstable();
+        self.uses.dedup();
+        self.uses
+    }
+}
+
+impl Visitor<'_> for VarFinder {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
-            ExprKind::Closure(args, _) => {
-                for &arg in args {
-                    if !self.bound.contains(&arg) {
-                        let local = self
-                            .locals
-                            .get(arg)
-                            .expect("fixed argument should be a local");
-                        self.free.insert(arg, local.ty.clone());
-                    }
-                }
-            }
-            &ExprKind::Var(Res::Local(id)) => {
-                if !self.bound.contains(&id) {
-                    self.free.insert(id, expr.ty.clone());
-                }
-            }
+            ExprKind::Closure(args, _) => self.uses.extend(args.iter().copied()),
+            &ExprKind::Var(Res::Local(id)) => self.uses.push(id),
             _ => visit::walk_expr(self, expr),
         }
     }
 
     fn visit_pat(&mut self, pat: &Pat) {
         if let PatKind::Bind(name) = &pat.kind {
-            self.free.remove(&name.id);
-            self.bound.insert(name.id);
+            self.bindings.insert(name.id);
         } else {
             visit::walk_pat(self, pat);
         }
@@ -87,17 +80,16 @@ pub(super) fn lift(
     span: Span,
 ) -> (Vec<NodeId>, CallableDecl) {
     let mut finder = VarFinder {
-        locals,
-        free: HashMap::new(),
-        bound: HashSet::new(),
+        bindings: HashSet::new(),
+        uses: Vec::new(),
     };
     finder.visit_pat(&input);
     finder.visit_expr(&body);
 
-    let substitutions: HashMap<_, _> = finder
-        .free
+    let free_vars = finder.free_vars();
+    let substitutions: HashMap<_, _> = free_vars
         .iter()
-        .map(|(&var, _)| (var, assigner.next_id()))
+        .map(|&id| (id, assigner.next_id()))
         .collect();
 
     VarReplacer {
@@ -105,15 +97,19 @@ pub(super) fn lift(
     }
     .visit_expr(&mut body);
 
-    let free_vars = finder.free.keys().copied().collect();
-    let substituted_free_vars = finder.free.into_iter().map(|(id, ty)| {
+    let substituted_vars = free_vars.iter().map(|&id| {
         let &new_id = substitutions
             .get(&id)
             .expect("free variable should have substitution");
+        let ty = locals
+            .get(id)
+            .expect("free variable should be a local")
+            .ty
+            .clone();
         (new_id, ty)
     });
 
-    let mut input = close(substituted_free_vars, input, span);
+    let mut input = close(substituted_vars, input, span);
     assigner.visit_pat(&mut input);
 
     let callable = CallableDecl {
@@ -144,8 +140,8 @@ pub(super) fn lift(
     (free_vars, callable)
 }
 
-fn close(free_vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {
-    let bindings: Vec<_> = free_vars
+fn close(vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {
+    let bindings: Vec<_> = vars
         .into_iter()
         .map(|(id, ty)| Pat {
             id: NodeId::default(),

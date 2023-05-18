@@ -360,9 +360,9 @@ fn lambda_function_nested_closure() {
                             Stmt 52 [177-190]: Expr: Expr 35 [177-190] [Type Int]: BinOp (Add):
                                 Expr 36 [177-186] [Type Int]: BinOp (Add):
                                     Expr 37 [177-182] [Type Int]: BinOp (Add):
-                                        Expr 38 [177-178] [Type Int]: Var: Local 43
-                                        Expr 39 [181-182] [Type Int]: Var: Local 44
-                                    Expr 40 [185-186] [Type Int]: Var: Local 42
+                                        Expr 38 [177-178] [Type Int]: Var: Local 42
+                                        Expr 39 [181-182] [Type Int]: Var: Local 43
+                                    Expr 40 [185-186] [Type Int]: Var: Local 44
                                 Expr 41 [189-190] [Type Int]: Var: Local 34
                 Item 4 [130-200] (Internal):
                     Parent: 0
@@ -378,7 +378,7 @@ fn lambda_function_nested_closure() {
                                 Stmt 27 [149-159]: Local (Immutable):
                                     Pat 28 [153-154] [Type Int]: Bind: Ident 29 [153-154] "c"
                                     Expr 30 [157-158] [Type Int]: Lit: Int(1)
-                                Stmt 31 [172-190]: Expr: Expr 32 [172-190] [Type (Int -> Int)]: Closure([29, 53, 24], Item 3)"#]],
+                                Stmt 31 [172-190]: Expr: Expr 32 [172-190] [Type (Int -> Int)]: Closure([53, 24, 29], Item 3)"#]],
     );
 }
 
