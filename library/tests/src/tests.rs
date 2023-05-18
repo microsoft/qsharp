@@ -621,6 +621,37 @@ fn check_elements_at() {
 }
 
 #[test]
+fn check_excluding() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([], [])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([], [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+                Value::Int(13),
+                Value::Int(14),
+                Value::Int(15),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([1, 3, 4], [10, 11, 12, 13, 14, 15])",
+        &Value::Array(vec![Value::Int(10), Value::Int(12), Value::Int(15)].into()),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([3, 1, 4, 1], [10, 11, 12, 13, 14, 15])",
+        &Value::Array(vec![Value::Int(10), Value::Int(12), Value::Int(15)].into()),
+    );
+}
+
+#[test]
 fn check_head() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
 }
