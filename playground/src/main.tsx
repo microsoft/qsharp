@@ -143,8 +143,12 @@ async function loaded() {
   let linkedCode: string | undefined;
   const paramCode = new URLSearchParams(window.location.search).get("code");
   if (paramCode) {
-    const base64code = decodeURIComponent(paramCode);
-    linkedCode = await compressedBase64ToCode(base64code);
+    try {
+      const base64code = decodeURIComponent(paramCode);
+      linkedCode = await compressedBase64ToCode(base64code);
+    } catch {
+      linkedCode = "// Unable to decode the code in the URL\n";
+    }
   }
 
   render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
