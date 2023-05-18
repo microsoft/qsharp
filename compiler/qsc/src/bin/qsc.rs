@@ -3,13 +3,13 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-use clap::{ArgGroup, Parser, ValueEnum};
+use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_frontend::compile::{PackageStore, SourceContents, SourceMap, SourceName};
 use qsc_hir::hir::Package;
 use std::{
-    fs,
+    concat, fs,
     io::{self, Read},
     path::{Path, PathBuf},
     process::ExitCode,
@@ -17,8 +17,8 @@ use std::{
 };
 
 #[derive(Debug, Parser)]
-#[command(version, arg_required_else_help(true))]
-#[clap(group(ArgGroup::new("input").args(["entry", "sources"]).required(true).multiple(true)))]
+#[command(version = concat!(crate_version!(), " (", env!("QSC_GIT_HASH"), ")"), arg_required_else_help(true))]
+#[clap(group(ArgGroup::new("input").args(["entry", "sources", "version"]).required(true).multiple(true)))]
 struct Cli {
     /// Disable automatic inclusion of the standard library.
     #[arg(long)]

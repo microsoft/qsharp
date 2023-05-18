@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-use clap::Parser;
+use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -26,7 +26,8 @@ use std::{
 use std::{path::Path, sync::Arc};
 
 #[derive(Debug, Parser)]
-#[command(author, version, about, next_line_help = true)]
+#[command(version = concat!(crate_version!(), " (", env!("QSC_GIT_HASH"), ")"), arg_required_else_help(true))]
+#[command(author, about, next_line_help = true)]
 struct Cli {
     /// Use the given file on startup as initial session input.
     #[arg(long = "use")]

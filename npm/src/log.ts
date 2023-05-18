@@ -20,6 +20,7 @@ declare global {
   // See https://docs.rs/log/latest/log/
   var qscLogLevel: number; // eslint-disable-line no-var
   var qscLog: typeof log; // eslint-disable-line no-var
+  var qscGitHash: string; // eslint-disable-line no-var
 }
 
 type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
@@ -58,6 +59,14 @@ export const log = {
   trace(...args: any) {
     // console.trace in JavaScript just writes a stack trace at info level, so use 'debug'
     if (qscLogLevel >= 5) console.debug(...args);
+  },
+  setGitHash(hash: string) {
+    if (typeof globalThis.qscGitHash === "undefined") {
+      globalThis.qscGitHash = hash;
+    }
+  },
+  getGitHash(): string {
+    return globalThis.qscGitHash;
   },
   /* eslint-enable @typescript-eslint/no-explicit-any */
   never(val: never) {

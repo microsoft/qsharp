@@ -10,7 +10,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-clap = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive", "cargo"] }
 miette = { workspace = true, features = ["fancy"] }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
