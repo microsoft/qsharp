@@ -673,6 +673,24 @@ fn check_index_range() {
 }
 
 #[test]
+fn check_interleaved() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Interleaved([1, 2, 3], [-1, -2, -3])",
+        &Value::Array(
+            vec![
+                Value::Int(1),
+                Value::Int(-1),
+                Value::Int(2),
+                Value::Int(-2),
+                Value::Int(3),
+                Value::Int(-3),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_is_empty() {
     run_stdlib_test("Microsoft.Quantum.Arrays.IsEmpty([])", &Value::Bool(true));
     run_stdlib_test("Microsoft.Quantum.Arrays.IsEmpty([1])", &Value::Bool(false));

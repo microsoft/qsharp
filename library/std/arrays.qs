@@ -29,6 +29,7 @@ namespace Microsoft.Quantum.Arrays {
             set output += [remaining[...nElementsToTake - 1]];
             set remaining = remaining[nElementsToTake...];
         }
+
         output
     }
 
@@ -58,13 +59,14 @@ namespace Microsoft.Quantum.Arrays {
     /// - Microsoft.Quantum.Arrays.Transposed
     function Diagonal<'T>(matrix : 'T[][]) : 'T[] {
         Fact(IsRectangularArray(matrix), "Matrix is not a rectangular array");
-        let numRows = Length(matrix);
-        let numColumns = numRows == 0 ? 0 | Length(Head(matrix));
-        let rangeLimit = MinI(numRows, numColumns) - 1;
+        let rows = Length(matrix);
+        let columns = rows == 0 ? 0 | Length(Head(matrix));
+        let rangeLimit = MinI(rows, columns) - 1;
         mutable diagonal = [];
-        for idx in 0..rangeLimit {
-            set diagonal += [matrix[idx][idx]];
+        for index in 0..rangeLimit {
+            set diagonal += [matrix[index][index]];
         }
+
         diagonal
     }
 
@@ -104,7 +106,7 @@ namespace Microsoft.Quantum.Arrays {
     /// - Microsoft.Quantum.Arrays.ElementsAt
     function ElementAt<'T>(index : Int, array : 'T[]) : 'T {
         Fact(index >= 0 and index < Length(array), "Index is out of bound");
-        return array[index];
+        array[index]
     }
 
     /// # Summary
@@ -137,7 +139,7 @@ namespace Microsoft.Quantum.Arrays {
     /// - Microsoft.Quantum.Arrays.ElementAt
     /// - Microsoft.Quantum.Arrays.LookupFunction
     function ElementsAt<'T>(range : Range, array : 'T[]) : 'T[] {
-        return array[range];
+        array[range]
     }
 
     /// # Summary
@@ -169,17 +171,17 @@ namespace Microsoft.Quantum.Arrays {
     /// ```
     function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[] {
         let nElements = Length(array);
-        mutable idxToKeep = [true, size=nElements];
-        for idxToRemove in remove {
-            if idxToRemove >= nElements {
+        mutable toKeep = [true, size = nElements];
+        for indexToRemove in remove {
+            if indexToRemove >= nElements {
                 fail "Index is out of bound";
             }
-            set idxToKeep w/= idxToRemove <- false;
+            set toKeep w/= indexToRemove <- false;
         }
 
         // N.B. This would be better using the `Count` function once it is implemented.
         mutable outputCount = 0;
-        for keep in idxToKeep {
+        for keep in toKeep {
             if keep {
                 set outputCount += 1;
             }
@@ -190,12 +192,12 @@ namespace Microsoft.Quantum.Arrays {
             return [];
         }
 
-        mutable output = [array[0], size=outputCount];
-        mutable outputIdx = 0;
-        for idx in 0..nElements-1 {
-            if idxToKeep[idx] {
-                set output w/= outputIdx <- array[idx];
-                set outputIdx += 1;
+        mutable output = [array[0], size = outputCount];
+        mutable outputIndex = 0;
+        for index in 0..nElements-1 {
+            if toKeep[index] {
+                set output w/= outputIndex <- array[index];
+                set outputIndex += 1;
             }
         }
 
@@ -221,6 +223,86 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given an array, returns a range over the indices of that array, suitable
+    /// for use in a for loop.
+    ///
+    /// # Type Parameters
+    /// ## 'TElement
+    /// The type of elements of the array.
+    ///
+    /// # Input
+    /// ## array
+    /// An array for which a range of indices should be returned.
+    ///
+    /// # Output
+    /// A range over all indices of the array.
+    ///
+    /// # Example
+    /// The following `for` loops are equivalent:
+    /// ```qsharp
+    /// for idx in IndexRange(array) { ... }
+    /// for idx in 0 .. Length(array) - 1 { ... }
+    /// ```
+    function IndexRange<'TElement>(array : 'TElement[]) : Range {
+       0 .. Length(array) - 1
+    }
+
+    /// # Summary
+    /// Interleaves two arrays of (almost) same size.
+    ///
+    /// # Description
+    /// This function returns the interleaving of two arrays, starting
+    /// with the first element from the first array, then the first
+    /// element from the second array, and so on.
+    ///
+    /// The first array must either be
+    /// of the same length as the second one, or can have one more element.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `first` and `second`.
+    ///
+    /// # Input
+    /// ## first
+    /// The first array to be interleaved.
+    ///
+    /// ## second
+    /// The second array to be interleaved.
+    ///
+    /// # Output
+    /// Interleaved array
+    ///
+    /// # Example
+    /// ```qsharp
+    /// // same as interleaved = [1, -1, 2, -2, 3, -3]
+    /// let interleaved = Interleaved([1, 2, 3], [-1, -2, -3])
+    /// ```
+    function Interleaved<'T>(first : 'T[], second : 'T[]) : 'T[] {
+        let firstLength = Length(first);
+        let secondLength = Length(second);
+        Fact(
+            firstLength >= secondLength and firstLength - secondLength <= 1,
+            "Array `first` must either be of same size as `second` or have one more element");
+
+        if firstLength == 0 {
+            return [];
+        }
+
+        let interleavedLength = firstLength + secondLength;
+        mutable interleaved = [first[0], size = interleavedLength];
+        for index in 0..(interleavedLength - 1) {
+            let originalIndex = index / 2;
+            let value =
+                if index % 2 == 0 {first[originalIndex]}
+                else {second[originalIndex]};
+
+            set interleaved w/= index <- value;
+        }
+
+        interleaved
+    }
+
+    /// # Summary
     /// Returns true if and only if an array is empty.
     ///
     /// # Input
@@ -230,7 +312,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// `true` if and only if the array is empty (has length 0).
     function IsEmpty<'T>(array : 'T[]) : Bool {
-        return Length(array) == 0;
+        Length(array) == 0
     }
 
     /// # Summary
@@ -255,9 +337,9 @@ namespace Microsoft.Quantum.Arrays {
     /// - Microsoft.Quantum.Arrays.IsSquareArray
     function IsRectangularArray<'T>(array : 'T[][]) : Bool {
         if (Length(array) > 0) {
-            let numColumns = Length(Head(array));
-            for i in IndexRange(Rest(array)) {
-                if Length(array[i+1]) != numColumns {
+            let columns = Length(Head(array));
+            for idx in IndexRange(Rest(array)) {
+                if Length(array[idx+1]) != columns {
                     return false;
                 }
             }
@@ -282,31 +364,6 @@ namespace Microsoft.Quantum.Arrays {
     /// An array containing the elements `array[0..Length(array) - 2]`.
     function Most<'T> (array : 'T[]) : 'T[] {
         array[... Length(array) - 2]
-    }
-
-    /// # Summary
-    /// Given an array, returns a range over the indices of that array, suitable
-    /// for use in a for loop.
-    ///
-    /// # Type Parameters
-    /// ## 'TElement
-    /// The type of elements of the array.
-    ///
-    /// # Input
-    /// ## array
-    /// An array for which a range of indices should be returned.
-    ///
-    /// # Output
-    /// A range over all indices of the array.
-    ///
-    /// # Example
-    /// The following `for` loops are equivalent:
-    /// ```qsharp
-    /// for idx in IndexRange(array) { ... }
-    /// for idx in 0 .. Length(array) - 1 { ... }
-    /// ```
-    function IndexRange<'TElement>(array : 'TElement[]) : Range {
-       0 .. Length(array) - 1
     }
 
     /// # Summary
