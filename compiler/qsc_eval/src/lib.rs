@@ -20,8 +20,8 @@ use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Field, Functor, ItemId, Lit,
-    Mutability, NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody, SpecGen, Stmt,
-    StmtKind, StringComponent, TernOp, UnOp,
+    Mutability, NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody, SpecDecl, SpecGen,
+    Stmt, StmtKind, StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -755,69 +755,48 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         Ok(())
     }
 
-    fn eval_call(&mut self, callee_span: Span, args_span: Span) -> Result<(), Error> {
-        let args_val = self.pop_val();
-        let call_val = self.pop_val();
-        let (call, functor, fixed_args) = value_to_call_id(call_val);
-        let args_val = if let Some(fixed_args) = fixed_args {
-            Value::Tuple(
-                fixed_args
-                    .iter()
-                    .cloned()
-                    .chain(iter::once(args_val))
-                    .collect(),
-            )
-        } else {
-            args_val
+    fn eval_call(&mut self, callee_span: Span, arg_span: Span) -> Result<(), Error> {
+        let arg = self.pop_val();
+        let (callee_id, functor, fixed_args) = match self.pop_val() {
+            Value::Closure(fixed_args, id, functor) => (id, functor, Some(fixed_args)),
+            Value::Global(id, functor) => (id, functor, None),
+            _ => panic!("value is not callable"),
         };
 
-        let decl = match self.globals.get(call) {
-            Some(Global::Callable(decl)) => Ok(decl),
+        let arg = if let Some(fixed_args) = fixed_args {
+            Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
+        } else {
+            arg
+        };
+
+        let callee = match self.globals.get(callee_id) {
+            Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
-                self.push_val(args_val);
+                self.push_val(arg);
                 return Ok(());
             }
-            None => Err(Error::Unbound(callee_span)),
-        }?;
+            None => return Err(Error::Unbound(callee_span)),
+        };
 
         let spec = spec_from_functor_app(functor);
-        self.push_frame(Some(callee_span), call, functor);
+        self.push_frame(Some(callee_span), callee_id, functor);
         self.push_scope();
-
-        match (&decl.body, spec) {
-            (CallableBody::Block(body_block), Spec::Body) => {
-                bind_value(self.env, &decl.input, args_val, Mutability::Immutable);
-                self.push_block(body_block);
+        match (&callee.body, spec) {
+            (CallableBody::Block(block), Spec::Body) => {
+                bind_value(self.env, &callee.input, arg, Mutability::Immutable);
+                self.push_block(block);
                 Ok(())
             }
-            (CallableBody::Specs(spec_decls), spec) => {
-                let spec_decl = spec_decls
-                    .iter()
-                    .find(|spec_decl| spec_decl.spec == spec)
-                    .map_or_else(
-                        || Err(Error::MissingSpec(spec, callee_span)),
-                        |spec_decl| Ok(&spec_decl.body),
-                    )?;
-                match spec_decl {
-                    SpecBody::Impl(pat, body_block) => {
-                        bind_args_for_spec(
-                            self.env,
-                            &decl.input,
-                            pat,
-                            args_val,
-                            functor.controlled,
-                        );
+            (CallableBody::Specs(specs), spec) => {
+                match &find_spec(callee_span, specs, spec)?.body {
+                    SpecBody::Impl(input, body_block) => {
+                        bind_args_for_spec(self.env, &callee.input, input, arg, functor.controlled);
                         self.push_block(body_block);
                         Ok(())
                     }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
-                        let val = intrinsic::call(
-                            &decl.name.name,
-                            callee_span,
-                            args_val,
-                            args_span,
-                            self.out,
-                        )?;
+                        let name = &callee.name.name;
+                        let val = intrinsic::call(name, callee_span, arg, arg_span, self.out)?;
                         self.push_val(val);
                         Ok(())
                     }
@@ -1119,12 +1098,11 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
     }
 }
 
-fn value_to_call_id(val: Value) -> (GlobalId, FunctorApp, Option<Rc<[Value]>>) {
-    match val {
-        Value::Closure(fixed_args, global, functor) => (global, functor, Some(fixed_args)),
-        Value::Global(global, functor) => (global, functor, None),
-        _ => panic!("value is not callable"),
-    }
+fn find_spec(span: Span, specs: &[SpecDecl], spec: Spec) -> Result<&SpecDecl, Error> {
+    specs
+        .iter()
+        .find(|s| s.spec == spec)
+        .ok_or(Error::MissingSpec(spec, span))
 }
 
 fn resolve_closure(
@@ -1134,25 +1112,16 @@ fn resolve_closure(
     args: &[NodeId],
     callable: ItemId,
 ) -> Result<Value, Error> {
-    let mut arg_values = Vec::new();
-    for &arg in args {
-        if let Some(var) = env.get(arg) {
-            arg_values.push(var.value.clone());
-        } else {
-            return Err(Error::Unbound(span));
-        }
-    }
-
+    let args: Option<_> = args
+        .iter()
+        .map(|&arg| Some(env.get(arg)?.value.clone()))
+        .collect();
+    let args: Vec<_> = args.ok_or(Error::Unbound(span))?;
     let callable = GlobalId {
         package: callable.package.unwrap_or(package),
         item: callable.item,
     };
-
-    Ok(Value::Closure(
-        arg_values.into(),
-        callable,
-        FunctorApp::default(),
-    ))
+    Ok(Value::Closure(args.into(), callable, FunctorApp::default()))
 }
 
 fn lit_to_val(lit: &Lit) -> Value {
