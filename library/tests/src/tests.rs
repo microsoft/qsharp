@@ -499,17 +499,14 @@ fn check_chunks() {
             .into(),
         ),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Chunks(2, [])",
         &Value::Array(vec![].into()),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Chunks(2, [10])",
         &Value::Array(vec![Value::Array(vec![Value::Int(10)].into())].into()),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Chunks(2, [10, 11, 12, 13, 14, 15])",
         &Value::Array(
@@ -521,7 +518,6 @@ fn check_chunks() {
             .into(),
         ),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Chunks(3, [10, 11, 12, 13, 14, 15])",
         &Value::Array(
@@ -532,7 +528,6 @@ fn check_chunks() {
             .into(),
         ),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Chunks(4, [10, 11, 12, 13, 14, 15])",
         &Value::Array(
@@ -559,25 +554,69 @@ fn check_diagnonal() {
         "Microsoft.Quantum.Arrays.Diagonal([])",
         &Value::Array(vec![].into()),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Diagonal([[1]])",
         &Value::Array(vec![Value::Int(1)].into()),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Diagonal([[1, 2, 3], [4, 5, 6], [7, 8, 9]])",
         &Value::Array(vec![Value::Int(1), Value::Int(5), Value::Int(9)].into()),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Diagonal([[1, 2, 3], [4, 5, 6]])",
         &Value::Array(vec![Value::Int(1), Value::Int(5)].into()),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Diagonal([[1, 2], [3, 4], [5, 6]])",
         &Value::Array(vec![Value::Int(1), Value::Int(4)].into()),
+    );
+}
+
+#[test]
+fn check_element_at() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.ElementAt(0, [0])", &Value::Int(0));
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ElementAt(1, [0, 2, 4])",
+        &Value::Int(2),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ElementAt(5, [2, 3, 5, 7, 11, 13, 17, 19, 23, 29])",
+        &Value::Int(13),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ElementAt(9, [0, 1, 1, 2, 3, 5, 8, 13, 21, 34])",
+        &Value::Int(34),
+    );
+}
+
+#[test]
+fn check_elements_at() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ElementsAt(0..0, [0])",
+        &Value::Array(vec![Value::Int(0)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ElementsAt(0..1, [0, 2, 4])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ElementsAt(1..2..9, [2, 3, 5, 7, 11, 13, 17, 19, 23, 29])",
+        &Value::Array(
+            vec![
+                Value::Int(3),
+                Value::Int(7),
+                Value::Int(13),
+                Value::Int(19),
+                Value::Int(29),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ElementsAt(0..3..9, [0, 1, 1, 2, 3, 5, 8, 13, 21, 34])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(8), Value::Int(34)].into()),
     );
 }
 
@@ -741,6 +780,7 @@ fn check_apply_cnot_chain_3() {
         ),
     );
 }
+
 //
 // Mesurement namespace
 //
