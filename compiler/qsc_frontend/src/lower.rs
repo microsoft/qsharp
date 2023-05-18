@@ -29,10 +29,15 @@ pub(super) enum Error {
     MutableClosure(#[label] Span),
 }
 
+pub(super) struct Local {
+    pub(super) mutability: hir::Mutability,
+    pub(super) ty: hir::Ty,
+}
+
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
-    mutabilities: IndexMap<hir::NodeId, hir::Mutability>,
+    locals: IndexMap<hir::NodeId, Local>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
     errors: Vec<Error>,
@@ -43,7 +48,7 @@ impl Lowerer {
         Self {
             assigner: Assigner::new(),
             nodes: IndexMap::new(),
-            mutabilities: IndexMap::new(),
+            locals: IndexMap::new(),
             parent: None,
             items: Vec::new(),
             errors: Vec::new(),
@@ -442,8 +447,15 @@ impl With<'_> {
         let kind = lower_callable_kind(kind);
         let input = self.lower_pat(ast::Mutability::Immutable, input);
         let body = self.lower_expr(body);
+        let (args, callable) = closure::lift(
+            &mut self.lowerer.assigner,
+            &self.lowerer.locals,
+            kind,
+            input,
+            body,
+            span,
+        );
 
-        let (args, callable) = closure::lift(&mut self.lowerer.assigner, kind, input, body, span);
         if args.iter().any(|&arg| self.is_mutable(arg)) {
             self.lowerer.errors.push(Error::MutableClosure(span));
         }
@@ -503,9 +515,13 @@ impl With<'_> {
         let kind = match &pat.kind {
             ast::PatKind::Bind(name, _) => {
                 let name = self.lower_ident(name);
-                self.lowerer
-                    .mutabilities
-                    .insert(name.id, lower_mutability(mutability));
+                self.lowerer.locals.insert(
+                    name.id,
+                    Local {
+                        mutability: lower_mutability(mutability),
+                        ty: ty.clone(),
+                    },
+                );
                 hir::PatKind::Bind(name)
             }
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
@@ -584,10 +600,11 @@ impl With<'_> {
 
     fn is_mutable(&mut self, id: hir::NodeId) -> bool {
         self.lowerer
-            .mutabilities
+            .locals
             .get(id)
-            .expect("node ID should have a mutability")
-            == &hir::Mutability::Mutable
+            .expect("node ID should be a local")
+            .mutability
+            == hir::Mutability::Mutable
     }
 }
 

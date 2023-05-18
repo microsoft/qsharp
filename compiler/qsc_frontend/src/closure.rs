@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_data_structures::span::Span;
+use crate::lower::Local;
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{
@@ -16,19 +17,32 @@ use std::{
     iter,
 };
 
-struct VarFinder {
+struct VarFinder<'a> {
+    locals: &'a IndexMap<NodeId, Local>,
     free: HashMap<NodeId, Ty>,
     bound: HashSet<NodeId>,
 }
 
-impl Visitor<'_> for VarFinder {
+impl Visitor<'_> for VarFinder<'_> {
     fn visit_expr(&mut self, expr: &Expr) {
-        if let ExprKind::Var(Res::Local(id)) = expr.kind {
-            if !self.bound.contains(&id) {
-                self.free.insert(id, expr.ty.clone());
+        match &expr.kind {
+            ExprKind::Closure(args, _) => {
+                for &arg in args {
+                    if !self.bound.contains(&arg) {
+                        let local = self
+                            .locals
+                            .get(arg)
+                            .expect("fixed argument should be a local");
+                        self.free.insert(arg, local.ty.clone());
+                    }
+                }
             }
-        } else {
-            visit::walk_expr(self, expr);
+            &ExprKind::Var(Res::Local(id)) => {
+                if !self.bound.contains(&id) {
+                    self.free.insert(id, expr.ty.clone());
+                }
+            }
+            _ => visit::walk_expr(self, expr),
         }
     }
 
@@ -46,26 +60,34 @@ struct VarReplacer<'a> {
     substitutions: &'a HashMap<NodeId, NodeId>,
 }
 
+impl VarReplacer<'_> {
+    fn replace(&self, id: &mut NodeId) {
+        if let Some(&new_id) = self.substitutions.get(id) {
+            *id = new_id;
+        }
+    }
+}
+
 impl MutVisitor for VarReplacer<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
-        if let ExprKind::Var(Res::Local(id)) = &mut expr.kind {
-            if let Some(&new_id) = self.substitutions.get(id) {
-                *id = new_id;
-            }
-        } else {
-            mut_visit::walk_expr(self, expr);
+        match &mut expr.kind {
+            ExprKind::Closure(args, _) => args.iter_mut().for_each(|arg| self.replace(arg)),
+            ExprKind::Var(Res::Local(id)) => self.replace(id),
+            _ => mut_visit::walk_expr(self, expr),
         }
     }
 }
 
 pub(super) fn lift(
     assigner: &mut Assigner,
+    locals: &IndexMap<NodeId, Local>,
     kind: CallableKind,
     input: Pat,
     mut body: Expr,
     span: Span,
 ) -> (Vec<NodeId>, CallableDecl) {
     let mut finder = VarFinder {
+        locals,
         free: HashMap::new(),
         bound: HashSet::new(),
     };

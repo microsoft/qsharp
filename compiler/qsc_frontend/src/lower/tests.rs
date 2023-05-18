@@ -317,7 +317,7 @@ fn lambda_function_nested_closure() {
         &expect![[r#"
             Package:
                 Item 0 [0-209] (Public):
-                    Namespace (Ident 58 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 60 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-71] (Public):
                     Parent: 0
                     Callable 0 [18-71] (Function):
@@ -344,7 +344,7 @@ fn lambda_function_nested_closure() {
                                 Expr 18 [115-116] [Type Int]: Lit: Int(5)
                             Stmt 19 [126-201]: Expr: Expr 20 [126-201] [Type Int]: Call:
                                 Expr 21 [126-129] [Type ((Int -> (Int -> Int)) -> Int)]: Var: Item 1
-                                Expr 22 [130-200] [Type (Int -> (Int -> Int))]: Closure([], Item 4)
+                                Expr 22 [130-200] [Type (Int -> (Int -> Int))]: Closure([17], Item 4)
                 Item 3 [172-190] (Internal):
                     Parent: 0
                     Callable 49 [172-190] (Function):
@@ -360,24 +360,25 @@ fn lambda_function_nested_closure() {
                             Stmt 52 [177-190]: Expr: Expr 35 [177-190] [Type Int]: BinOp (Add):
                                 Expr 36 [177-186] [Type Int]: BinOp (Add):
                                     Expr 37 [177-182] [Type Int]: BinOp (Add):
-                                        Expr 38 [177-178] [Type Int]: Var: Local 44
-                                        Expr 39 [181-182] [Type Int]: Var: Local 42
-                                    Expr 40 [185-186] [Type Int]: Var: Local 43
+                                        Expr 38 [177-178] [Type Int]: Var: Local 43
+                                        Expr 39 [181-182] [Type Int]: Var: Local 44
+                                    Expr 40 [185-186] [Type Int]: Var: Local 42
                                 Expr 41 [189-190] [Type Int]: Var: Local 34
                 Item 4 [130-200] (Internal):
                     Parent: 0
-                    Callable 54 [130-200] (Function):
-                        name: Ident 55 [130-200] "lambda"
-                        input: Pat 53 [130-200] [Type (Int,)]: Tuple:
+                    Callable 56 [130-200] (Function):
+                        name: Ident 57 [130-200] "lambda"
+                        input: Pat 54 [130-200] [Type (Int, Int)]: Tuple:
+                            Pat 55 [130-200] [Type Int]: Bind: Ident 53 [130-200] "closed"
                             Pat 23 [130-131] [Type Int]: Bind: Ident 24 [130-131] "b"
                         output: (Int -> Int)
                         functors: 
-                        body: Block: Block 56 [135-200] [Type (Int -> Int)]:
-                            Stmt 57 [135-200]: Expr: Expr 25 [135-200] [Type (Int -> Int)]: Expr Block: Block 26 [135-200] [Type (Int -> Int)]:
+                        body: Block: Block 58 [135-200] [Type (Int -> Int)]:
+                            Stmt 59 [135-200]: Expr: Expr 25 [135-200] [Type (Int -> Int)]: Expr Block: Block 26 [135-200] [Type (Int -> Int)]:
                                 Stmt 27 [149-159]: Local (Immutable):
                                     Pat 28 [153-154] [Type Int]: Bind: Ident 29 [153-154] "c"
                                     Expr 30 [157-158] [Type Int]: Lit: Int(1)
-                                Stmt 31 [172-190]: Expr: Expr 32 [172-190] [Type (Int -> Int)]: Closure([24, 29, 17], Item 3)"#]],
+                                Stmt 31 [172-190]: Expr: Expr 32 [172-190] [Type (Int -> Int)]: Closure([29, 53, 24], Item 3)"#]],
     );
 }
 
