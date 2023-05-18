@@ -84,7 +84,7 @@ pub(super) fn lift(
     .visit_expr(&mut body);
 
     let free_vars = finder.free.keys().copied().collect();
-    let input = close_params(
+    let input = close(
         finder.free.into_iter().map(|(id, ty)| {
             let &new_id = substitutions
                 .get(&id)
@@ -95,7 +95,7 @@ pub(super) fn lift(
         span,
     );
 
-    let callable = CallableDecl {
+    let mut callable = CallableDecl {
         id: assigner.next_id(),
         span,
         kind,
@@ -120,11 +120,12 @@ pub(super) fn lift(
         }),
     };
 
+    assigner.visit_callable_decl(&mut callable);
     (free_vars, callable)
 }
 
-fn close_params(vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {
-    let bindings: Vec<_> = vars
+fn close(free_vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {
+    let bindings: Vec<_> = free_vars
         .into_iter()
         .map(|(id, ty)| Pat {
             id: NodeId::default(),
@@ -133,24 +134,21 @@ fn close_params(vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: 
             kind: PatKind::Bind(Ident {
                 id,
                 span,
-                name: "var".into(),
+                name: "closed".into(),
             }),
         })
         .collect();
 
-    let ty = Ty::Tuple(
-        bindings
-            .iter()
-            .map(|p| p.ty.clone())
-            .chain(iter::once(input.ty.clone()))
-            .collect(),
-    );
+    let tys = bindings
+        .iter()
+        .map(|p| p.ty.clone())
+        .chain(iter::once(input.ty.clone()))
+        .collect();
 
-    let kind = PatKind::Tuple(bindings.into_iter().chain(iter::once(input)).collect());
     Pat {
         id: NodeId::default(),
         span,
-        ty,
-        kind,
+        ty: Ty::Tuple(tys),
+        kind: PatKind::Tuple(bindings.into_iter().chain(iter::once(input)).collect()),
     }
 }
