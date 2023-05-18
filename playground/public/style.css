@@ -28,6 +28,7 @@ html {
 }
 
 body {
+  position: relative;
   min-height: 100vh;
   font-family: system-ui, "Segoe UI", "SegoeUI", Roboto, Helvetica, Arial,
     sans-serif;
@@ -40,6 +41,16 @@ body {
   grid-template-rows: auto 1fr;
   grid-template-columns: minmax(180px, auto) 8fr 8fr;
   column-gap: 16px;
+}
+
+#popup {
+  position: absolute;
+  display: none;
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 2px;
+  padding: 8px 16px;
+  font-size: 16px;
 }
 
 .header {

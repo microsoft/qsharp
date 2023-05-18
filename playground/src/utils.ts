@@ -14,32 +14,68 @@
 // is ASCII this is usually a one-to-one mapping), and then base64 encodes/decodes the utf-8
 // bytes. In testing this results in an encoding about half the size of other methods.
 
-export function codeToBase64(code: string): string {
-  // Convert to utf=8
-  const myencoder = new TextEncoder();
-  const buff = myencoder.encode(code);
+// These classes aren't declared in the TypeScript DOM library yet
+declare class CompressionStream implements GenericTransformStream {
+  constructor(format: string);
+  readable: ReadableStream<Uint8Array>;
+  writable: WritableStream<Uint8Array>;
+}
 
-  // Create a string of the utf-8 code units (so each will be <= 0xFF)
+declare class DecompressionStream implements GenericTransformStream {
+  constructor(format: string);
+  readable: ReadableStream<Uint8Array>;
+  writable: WritableStream<Uint8Array>;
+}
+
+// Without compression, we quickly end up with URLs which are too big (e.g. Shor's algorithm
+// is too large by default). This does require a relatively "modern" browser however.
+export async function codeToCompressedBase64(code: string) {
+  // Get the string as UTF8 bytes.
+  const myencoder = new TextEncoder();
+  const byteBuff = myencoder.encode(code);
+
+  // Compress the stream of bytes
+  const compressor = new CompressionStream("gzip");
+  const writer = compressor.writable.getWriter();
+  writer.write(byteBuff);
+  writer.close();
+
+  // Read the compressed stream and turn into a byte string
+  const compressedBuff = await new Response(compressor.readable).arrayBuffer();
+  const compressedBytes = new Uint8Array(compressedBuff);
+
+  // Turn the bytes into a string of bytes (needed for window.btoa to work)
   let binStr = "";
-  for (const unit of buff) {
-    binStr += String.fromCharCode(unit);
+  for (const byte of compressedBytes) {
+    binStr += String.fromCharCode(byte);
   }
 
-  // Convert that to base64
+  // Get the base64 representation for the string of bytes
   const base64String = window.btoa(binStr);
   return base64String;
 }
 
-export function base64ToCode(b64: string): string {
-  // Get the binary string of utf-8 code units
-  const binStr = window.atob(b64);
+export async function compressedBase64ToCode(base64: string) {
+  // Turn the base64 string into a string of bytes
+  const binStr = window.atob(base64);
 
-  // Create the Uint8Array from it
+  // Turn it into a byte array
   const byteArray = new Uint8Array(binStr.length);
   for (let i = 0; i < binStr.length; ++i) byteArray[i] = binStr.charCodeAt(i);
 
+  // Decompress the bytes
+  const decompressor = new DecompressionStream("gzip");
+  const writer = decompressor.writable.getWriter();
+  writer.write(byteArray);
+  writer.close();
+
+  // Read the decompressed stream and turn into a byte string
+  const decompressedBuff = await new Response(
+    decompressor.readable
+  ).arrayBuffer();
+
   // Decode the utf-8 bytes into a JavaScript string
   const decoder = new TextDecoder();
-  const code = decoder.decode(byteArray);
+  const code = decoder.decode(decompressedBuff);
   return code;
 }
