@@ -26,7 +26,6 @@ use qsc_data_structures::span::Span;
 use rand::Rng;
 use std::{array, ffi::c_void};
 
-#[allow(clippy::too_many_lines)]
 pub(crate) fn call(
     name: &str,
     name_span: Span,
