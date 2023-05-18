@@ -407,8 +407,8 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             ExprKind::Block(block) => self.push_block(block),
             ExprKind::Call(callee_expr, args_expr) => self.cont_call(callee_expr, args_expr),
             ExprKind::Closure(args, callable) => {
-                let val = resolve_closure(self.package, self.env, expr.span, args, *callable)?;
-                self.push_val(val);
+                let closure = resolve_closure(self.package, self.env, expr.span, args, *callable)?;
+                self.push_val(closure);
             }
             ExprKind::Conjugate(..) => panic!("conjugate should be eliminated by passes"),
             ExprKind::Err => panic!("error expr should not be present"),
@@ -432,11 +432,11 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.cont_update_field(record, field, replace);
             }
             ExprKind::Var(res) => {
-                let val = resolve_binding(self.env, self.package, *res, expr.span)?;
-                self.push_val(val);
+                self.push_val(resolve_binding(self.env, self.package, *res, expr.span)?);
             }
             ExprKind::While(cond_expr, block) => self.cont_while(cond_expr, block),
         }
+
         Ok(())
     }
 
@@ -1009,12 +1009,7 @@ fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) {
     }
 }
 
-fn resolve_binding(
-    env: &mut Env,
-    package: PackageId,
-    res: Res,
-    span: Span,
-) -> Result<Value, Error> {
+fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Result<Value, Error> {
     Ok(match res {
         Res::Err => panic!("resolution error"),
         Res::Item(item) => Value::Global(
