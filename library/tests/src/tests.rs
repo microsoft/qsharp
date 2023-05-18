@@ -484,6 +484,86 @@ fn check_bitsize_i() {
 //
 
 #[test]
+fn check_chunks() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(1, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(10)].into()),
+                Value::Array(vec![Value::Int(11)].into()),
+                Value::Array(vec![Value::Int(12)].into()),
+                Value::Array(vec![Value::Int(13)].into()),
+                Value::Array(vec![Value::Int(14)].into()),
+                Value::Array(vec![Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(2, [])",
+        &Value::Array(vec![].into()),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(2, [10])",
+        &Value::Array(vec![Value::Array(vec![Value::Int(10)].into())].into()),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(2, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(10), Value::Int(11)].into()),
+                Value::Array(vec![Value::Int(12), Value::Int(13)].into()),
+                Value::Array(vec![Value::Int(14), Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(3, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(10), Value::Int(11), Value::Int(12)].into()),
+                Value::Array(vec![Value::Int(13), Value::Int(14), Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(4, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(
+                    vec![
+                        Value::Int(10),
+                        Value::Int(11),
+                        Value::Int(12),
+                        Value::Int(13),
+                    ]
+                    .into(),
+                ),
+                Value::Array(vec![Value::Int(14), Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_empty() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.Empty([])", &Value::Bool(true));
+    run_stdlib_test("Microsoft.Quantum.Arrays.Empty([1])", &Value::Bool(false));
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Empty([1, 2, 3, 4, 5])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
 fn check_head() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
 }
