@@ -480,6 +480,27 @@ fn check_bitsize_i() {
 }
 
 //
+// Core namespace
+//
+
+#[test]
+fn check_repeated() {
+    run_stdlib_test("Repeated(Zero, 0)", &Value::Array(vec![].into()));
+    run_stdlib_test(
+        "Repeated(One, 1)",
+        &Value::Array(vec![Value::Result(true)].into()),
+    );
+    run_stdlib_test(
+        "Repeated(1, 2)",
+        &Value::Array(vec![Value::Int(1), Value::Int(1)].into()),
+    );
+    run_stdlib_test(
+        "Repeated(true, 3)",
+        &Value::Array(vec![Value::Bool(true), Value::Bool(true), Value::Bool(true)].into()),
+    );
+}
+
+//
 // Arrays namespace
 //
 
@@ -644,7 +665,6 @@ fn check_excluding() {
         "Microsoft.Quantum.Arrays.Excluding([1, 3, 4], [10, 11, 12, 13, 14, 15])",
         &Value::Array(vec![Value::Int(10), Value::Int(12), Value::Int(15)].into()),
     );
-
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Excluding([3, 1, 4, 1], [10, 11, 12, 13, 14, 15])",
         &Value::Array(vec![Value::Int(10), Value::Int(12), Value::Int(15)].into()),
