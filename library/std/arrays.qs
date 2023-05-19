@@ -549,7 +549,7 @@ namespace Microsoft.Quantum.Arrays {
     /// let naturals = SequenceI(1, _); // function to create sequence from 1 to `to`
     /// ```
     function SequenceI (from : Int, to : Int) : Int[] {
-        Fact(to >= from, $"`to` must be larger than `from`");
+        Fact(to >= from, $"`to` must be larger than `from`.");
         mutable array = [];
         let arrayLength = (to - from) + 1;
         let initialInteger = 0 + from;
@@ -557,6 +557,51 @@ namespace Microsoft.Quantum.Arrays {
             set array += [initialInteger + index];
         }
         array
+    }
+
+    /// # Summary
+    /// Takes an array and a list of locations and
+    /// produces a new array formed from the elements of the original
+    /// array that match the given locations.
+    ///
+    /// # Remarks
+    /// If `indices` contains repeated elements, the corresponding elements 
+    /// of `array` will likewise be repeated.
+    /// If all elements of `indices` are unique, this function will return 
+    /// a subset of `array` if `Length(indices) < Length(array)`, or
+    /// a permutation of `array` if `indices` and `array` are of the same length.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## locations
+    /// A list of locations in the input array that is used to define the subarray.
+    /// ## array
+    /// An array from which a subarray will be generated.
+    ///
+    /// # Output
+    /// An array `out` of elements whose indices correspond to the subarray,
+    /// such that `out[index] == array[indices[index]]`.
+    /// 
+    /// # Example
+    /// 
+    /// ```qsharp
+    /// let array = [1, 2, 3, 4];
+    /// let permutation = Subarray([3, 0, 2, 1], array); // [4, 1, 3, 2]
+    /// let duplicates = Subarray([1, 2, 2], array);     // [2, 3, 3]
+    /// ```
+    function Subarray<'T> (locations : Int[], array : 'T[]) : 'T[] {
+        let arrayLength = Length(array);
+        mutable subarray = [];
+        for location in locations {
+            if location >= arrayLength {
+                fail "Location out of bounds.";
+            }
+            set subarray += [array[location]];
+        }
+        subarray
     }
 
     /// # Summary

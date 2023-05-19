@@ -861,6 +861,31 @@ fn check_reversed() {
 }
 
 #[test]
+fn check_subarray() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Subarray([3, 0, 2, 1], [1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(4), Value::Int(1), Value::Int(3), Value::Int(2)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Subarray([1, 2, 2], [1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(2), Value::Int(3), Value::Int(3)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Subarray([0, 0, 0, 0, 0], [false])",
+        &Value::Array(
+            vec![
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_tail() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Tail([5,6,7,8])", &Value::Int(8));
 }
