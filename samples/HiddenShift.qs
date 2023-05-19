@@ -143,36 +143,34 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
     // applying the diagonal operation, and then undoing the bit flips
     // to the |x〉 register. We use this principle to define shifted
     // versions of the IP operation.
-    // This is the version where s = 170 (in binary representation)
-    internal operation ShiftedInnerProductBentFunction_170(
-        qs : Qubit[]) : Unit {
+    internal operation ShiftedInnerProductBentFunction(
+        shift: Int,
+        qs: Qubit[]) : Unit {
 
         Fact(Length(qs) % 2 == 0, "Length of qs must be even.");
         let u = Length(qs) / 2;
 
         within {
             // the following loop flips the bits in shift
-            ApplyXorInPlace(170, qs);
+            ApplyXorInPlace(shift, qs);
         } apply {
             // now we compute the IP function into the phase
             InnerProductBentFunction(qs);
         }
     }
 
+    // This is the version where s = 170 (in binary representation)
+    // TODO: Remove this when lambdas are supported.
+    internal operation ShiftedInnerProductBentFunction_170(
+        qs : Qubit[]) : Unit {
+        ShiftedInnerProductBentFunction(170, qs);
+    }
+
     // This is the version where s = 3510 (in binary representation)
+    // TODO: Remove this when lambdas are supported.
     internal operation ShiftedInnerProductBentFunction_3510(
         qs : Qubit[]) : Unit {
-
-        Fact(Length(qs) % 2 == 0, "Length of qs must be even.");
-        let u = Length(qs)/2;
-
-        within {
-            // the following loop flips the bits in shift
-            ApplyXorInPlace(3510, qs);
-        } apply {
-            // now we compute the IP function into the phase
-            InnerProductBentFunction(qs);
-        }
+        ShiftedInnerProductBentFunction(3510, qs);
     }
 
     // Run the Hidden Shift algorithm on a given number of qubits,
