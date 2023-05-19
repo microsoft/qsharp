@@ -14,5 +14,6 @@ export default [
     {title: "Deutsch-Jozsa", file: "DeutschJozsa.qs", shots: 1},
     {title: "Bernstein–Vazirani", file: "BernsteinVazirani.qs", shots: 1},
     {title: "Grover's search", file: "Grover.qs", shots: 100},
+    {title: "Hidden shift", file: "HiddenShift.qs", shots: 1},
     {title: "Shor", file: "Shor.qs", shots: 1},
 ];
