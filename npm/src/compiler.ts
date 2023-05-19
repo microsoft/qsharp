@@ -61,7 +61,7 @@ export class Compiler implements ICompiler {
   constructor(wasm: Wasm) {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
-    globalThis.qscGitHash = this.wasm.qsc_git_hash();
+    globalThis.qscGitHash = this.wasm.git_hash();
   }
 
   async checkCode(code: string): Promise<VSDiagnostic[]> {

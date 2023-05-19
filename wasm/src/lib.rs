@@ -36,7 +36,7 @@ pub struct CompletionList {
 }
 
 #[wasm_bindgen]
-pub fn qsc_git_hash() -> JsValue {
+pub fn git_hash() -> JsValue {
     JsValue::from_str(qsc::GIT_HASH)
 }
 
