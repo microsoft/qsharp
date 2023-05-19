@@ -13,6 +13,4 @@ fn main() {
             String::from_utf8(o.stdout).expect("output should be parsable string")
         });
     println!("cargo:rustc-env=QSC_GIT_HASH={git_hash}");
-    println!("cargo:rustc-rerun-if-changed=../../.git/HEAD");
-    println!("cargo:rustc-rerun-if-changed=../../.git/refs/heads/");
 }
