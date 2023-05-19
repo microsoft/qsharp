@@ -219,14 +219,9 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
 
     // TODO: Remove this when library function is implemented.
     operation ForEach<'T, 'U> (action : ('T => 'U), array : 'T[]) : 'U[] {
-        let length = Length(array);
-        if length == 0 {
-            return [];
-        }
-        let first = action(array[0]);
-        mutable retval = [first, size = length];
-        for idx in 1..length - 1 {
-            set retval w/= idx <- action(array[idx]);
+        mutable retval = [];
+        for idx in 0..Length(array) - 1 {
+            set retval += [action(array[idx])];
         }
         return retval;
     }
