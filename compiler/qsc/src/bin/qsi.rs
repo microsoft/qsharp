@@ -26,7 +26,7 @@ use std::{
 use std::{path::Path, sync::Arc};
 
 #[derive(Debug, Parser)]
-#[command(version = concat!(crate_version!(), " (", env!("QSC_GIT_HASH"), ")"), arg_required_else_help(true))]
+#[command(version = concat!(crate_version!(), " (", env!("QSC_GIT_HASH"), ")"))]
 #[command(author, about, next_line_help = true)]
 struct Cli {
     /// Use the given file on startup as initial session input.
