@@ -86,13 +86,19 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
     // Bernstein–Vazirani algorithm matches the pattern we used
     // to define 𝑓.
 
-    // As is idiomatic in Q#, we define an operation that we will
-    // typically/ only call by partially applying it from within
-    // a matching function. To indicate that we are using this idiom,
-    // we name the operation with an initial underscore to mark it as
-    // private, and provide documentation comments for the function
-    // itself.
-    internal operation ParityOperationImpl(
+    /// # Summary
+    /// Given a bitstring 𝑟⃗ = (r₀, …, rₙ₋₁), returns applies
+    /// a unitary 𝑈 that acts on 𝑛 + 1 qubits as
+    ///
+    ///       𝑈 |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉,
+    /// where 𝑓(𝑥) = Σᵢ 𝑥ᵢ 𝑟ᵢ mod 2.
+    ///
+    /// # Input
+    /// ## pattern
+    /// The bitstring 𝑟⃗ used to define the function 𝑓.
+    /// ## queryRegister
+    /// Arguments to 𝑓.
+    internal operation ParityOperation(
         pattern: Int,
         queryRegister: Qubit[],
         target : Qubit) : Unit {
@@ -104,33 +110,22 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
         }
     }
 
-
-    /// # Summary
-    /// Given a bitstring 𝑟⃗ = (r₀, …, rₙ₋₁), returns an operation
-    /// implementing
-    /// a unitary 𝑈 that acts on 𝑛 + 1 qubits as
-    ///
-    ///       𝑈 |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉,
-    /// where 𝑓(𝑥) = Σᵢ 𝑥ᵢ 𝑟ᵢ mod 2.
-    ///
-    /// # Input
-    /// ## pattern
-    /// The bitstring 𝑟⃗ used to define the function 𝑓.
-    ///
-    /// # Output
-    /// An operation implementing 𝑈.
-    operation ParityOperation238(
+    // This is the version where shift = 238 (in binary representation)
+    // TODO: Remove this when lambdas are supported.
+    operation ParityOperation_238(
         queryRegister: Qubit[],
         target: Qubit): Unit {
 
-        return ParityOperationImpl(238, queryRegister, target);
+        return ParityOperation(238, queryRegister, target);
     }
 
-    operation ParityOperation3435(
+    // This is the version where shift = 3425 (in binary representation)
+    // TODO: Remove this when lambdas are supported.
+    operation ParityOperation_3435(
         queryRegister: Qubit[],
         target: Qubit): Unit {
 
-        return ParityOperationImpl(3435, queryRegister, target);
+        return ParityOperation(3435, queryRegister, target);
     }
 
     // For convenience, we provide an operation
@@ -171,7 +166,7 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
 
         let measuredParity = RunBernsteinVazirani(
             nQubits,
-            ParityOperation238);
+            ParityOperation_238);
         if (measuredParity != 238) {
             fail $"Measured parity {measuredParity}, but expected 238.";
         }
@@ -179,7 +174,7 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
 
         let measuredParity = RunBernsteinVazirani(
             nQubits,
-            ParityOperation3435);
+            ParityOperation_3435);
         if (measuredParity != 3435) {
             fail $"Measured parity {measuredParity}, but expected 3435.";
         }
