@@ -749,6 +749,30 @@ fn check_is_rectangular_array() {
 }
 
 #[test]
+fn check_is_square_array() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1, 2], [3, 4]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1, 2, 3], [4, 5, 6]])",
+        &Value::Bool(false),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1, 2], [3, 4], [5, 6]])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
 fn check_most() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Most([5,6,7,8])",

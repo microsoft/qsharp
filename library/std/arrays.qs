@@ -326,20 +326,59 @@ namespace Microsoft.Quantum.Arrays {
     /// ## array
     /// A 2-dimensional array of elements
     ///
+    /// # Output
+    /// `true` if the array is rectangular, `false` otherwise.
+    ///
     /// # Example
     /// ```qsharp
-    /// RectangularArrayFact([[1, 2], [3, 4]], "Array is not rectangular");       // true
-    /// RectangularArrayFact([[1, 2, 3], [4, 5, 6]], "Array is not rectangular"); // true
-    /// RectangularArrayFact([[1, 2], [3, 4, 5]], "Array is not rectangular");    // false
+    /// IsRectangularArray([[1, 2], [3, 4]]);       // true
+    /// IsRectangularArray([[1, 2, 3], [4, 5, 6]]); // true
+    /// IsRectangularArray([[1, 2], [3, 4, 5]]);    // false
     /// ```
     ///
     /// # See Also
     /// - Microsoft.Quantum.Arrays.IsSquareArray
     function IsRectangularArray<'T>(array : 'T[][]) : Bool {
         if (Length(array) > 0) {
-            let columns = Length(Head(array));
-            for idx in IndexRange(Rest(array)) {
-                if Length(array[idx+1]) != columns {
+            let columnCount = Length(Head(array));
+            for index in IndexRange(Rest(array)) {
+                if Length(array[index+1]) != columnCount {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    /// # Summary
+    /// Returns whether a 2-dimensional array has a square shape
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `array`.
+    ///
+    /// # Input
+    /// ## array
+    /// A 2-dimensional array of elements
+    ///
+    /// # Example
+    /// ```qsharp
+    /// IsSquareArray([[1, 2], [3, 4]]);         // true
+    /// IsSquareArray([[1, 2, 3], [4, 5, 6]]);   // false
+    /// IsSquareArray([[1, 2], [3, 4], [5, 6]]); // false
+    /// ```
+    ///
+    /// # Output
+    /// `true` if the array is square, `false` otherwise.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.IsRectangularArray
+    function IsSquareArray<'T>(array : 'T[][]) : Bool {
+        if (Length(array) > 0) {
+            let columnCount = Length(array);
+            for column in array {
+                if Length(column) != columnCount {
                     return false;
                 }
             }
@@ -515,7 +554,7 @@ namespace Microsoft.Quantum.Arrays {
         let arrayLength = (to - from) + 1;
         let initialInteger = 0 + from;
         for index in 0..arrayLength {
-            set array += [intialInteger + index];
+            set array += [initialInteger + index];
         }
         array
     }
