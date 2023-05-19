@@ -9,25 +9,25 @@ namespace Microsoft.Quantum.Arrays {
     /// Splits an array into multiple parts of equal length.
     ///
     /// # Input
-    /// ## nElements
+    /// ## chunkSize
     /// The length of each chunk. Must be positive.
-    /// ## arr
-    /// The array to be split.
+    /// ## array
+    /// The array to be split in chunks
     ///
     /// # Output
     /// A array containing each chunk of the original array.
     ///
     /// # Remarks
     /// Note that the last element of the output may be shorter
-    /// than `nElements` if `Length(arr)` is not divisible by `nElements`.
-    function Chunks<'T>(nElements : Int, arr : 'T[]) : 'T[][] {
-        Fact(nElements > 0, "nElements must be positive");
+    /// than `chunkSize` if `Length(arr)` is not divisible by `chunkSize`.
+    function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][] {
+        Fact(chunkSize > 0, "chunkSize must be positive");
         mutable output = [];
-        mutable remaining = arr;
+        mutable remaining = array;
         while (not IsEmpty(remaining)) {
-            let nElementsToTake = MinI(Length(remaining), nElements);
-            set output += [remaining[...nElementsToTake - 1]];
-            set remaining = remaining[nElementsToTake...];
+            let chunkSizeToTake = MinI(Length(remaining), chunkSize);
+            set output += [remaining[...chunkSizeToTake - 1]];
+            set remaining = remaining[chunkSizeToTake...];
         }
 
         output
@@ -375,18 +375,18 @@ namespace Microsoft.Quantum.Arrays {
     /// The type of the array elements.
     ///
     /// # Input
-    /// ## nElementsTotal
-    /// The length of the padded array. If this is positive, `inputArray`
-    /// is padded at the head. If this is negative, `inputArray` is padded
+    /// ## paddedLength
+    /// The length of the padded array. If this is positive, `array`
+    /// is padded at the head. If this is negative, `array` is padded
     /// at the tail.
     /// ## defaultElement
     /// Default value to use for padding elements.
-    /// ## inputArray
-    /// Array whose values are at the head of the output array.
+    /// ## array
+    /// Array to be padded.
     ///
     /// # Output
-    /// An array `output` that is the `inputArray` padded at the head
-    /// with `defaultElement`s until `output` has length `nElementsTotal`
+    /// An array `output` that is the `array` padded at the head or the tail
+    /// with `defaultElement`s until `output` has length `paddedLength`
     ///
     /// # Example
     /// ```qsharp
@@ -396,15 +396,15 @@ namespace Microsoft.Quantum.Arrays {
     /// // The following line returns [2, 2, 10, 12, 15].
     /// let output = Padded(5, 2, array);
     /// ```
-    function Padded<'T> (nElementsTotal : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[] {
+    function Padded<'T> (paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[] {
         let nElementsInitial = Length(inputArray);
-        let nAbsElementsTotal = AbsI(nElementsTotal);
+        let nAbsElementsTotal = AbsI(paddedLength);
         if nAbsElementsTotal <= nElementsInitial {
             fail "Specified output array length must be longer than `inputArray` length.";
         }
         let nElementsPad = nAbsElementsTotal - nElementsInitial;
         let padArray = Repeated(defaultElement, nElementsPad);
-        if (nElementsTotal >= 0) {
+        if (paddedLength >= 0) {
             padArray + inputArray // Padded at head.
         } else {
             inputArray + padArray // Padded at tail.
