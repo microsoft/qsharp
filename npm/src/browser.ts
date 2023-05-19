@@ -5,7 +5,7 @@
 // the "./main.js" module is the entry point.
 
 import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
-import { log } from "./log.js";
+import { LogLevel, log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler.js";
 import { ResponseMsgType, createWorkerProxy } from "./worker-common.js";
 
@@ -59,7 +59,7 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 }
 
 export type { ICompilerWorker };
-export { log };
+export { log, type LogLevel };
 export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
 export { type CompilerState } from "./compiler.js";
 export {

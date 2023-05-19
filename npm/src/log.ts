@@ -22,7 +22,7 @@ declare global {
   var qscLog: typeof log; // eslint-disable-line no-var
 }
 
-type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
+export type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
 
 export const log = {
   setLogLevel(level: LogLevel | number) {

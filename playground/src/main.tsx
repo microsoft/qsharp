@@ -11,6 +11,7 @@ import {
   Kata,
   VSDiagnostic,
   log,
+  LogLevel,
   samples,
 } from "qsharp";
 
@@ -20,6 +21,10 @@ import { Results } from "./results.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
 import { compressedBase64ToCode } from "./utils.js";
+
+// Configure any logging as early as possible
+const logLevelUri = new URLSearchParams(window.location.search).get("logLevel");
+if (logLevelUri) log.setLogLevel(logLevelUri as LogLevel);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const basePath = (window as any).qscBasePath || "";
