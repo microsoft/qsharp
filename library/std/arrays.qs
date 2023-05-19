@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.Arrays {
     /// Note that the last element of the output may be shorter
     /// than `chunkSize` if `Length(arr)` is not divisible by `chunkSize`.
     function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][] {
-        Fact(chunkSize > 0, "chunkSize must be positive");
+        Fact(chunkSize > 0, "`chunkSize` must be positive");
         mutable output = [];
         mutable remaining = array;
         while (not IsEmpty(remaining)) {
@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # See Also
     /// - Microsoft.Quantum.Arrays.Transposed
     function Diagonal<'T>(matrix : 'T[][]) : 'T[] {
-        Fact(IsRectangularArray(matrix), "Matrix is not a rectangular array");
+        Fact(IsRectangularArray(matrix), "`matrix` is not a rectangular array");
         let rows = Length(matrix);
         let columns = rows == 0 ? 0 | Length(Head(matrix));
         let rangeLimit = MinI(rows, columns) - 1;
@@ -105,7 +105,7 @@ namespace Microsoft.Quantum.Arrays {
     /// - Microsoft.Quantum.Arrays.LookupFunction
     /// - Microsoft.Quantum.Arrays.ElementsAt
     function ElementAt<'T>(index : Int, array : 'T[]) : 'T {
-        Fact(index >= 0 and index < Length(array), "Index is out of bound");
+        Fact(index >= 0 and index < Length(array), "`index` is out of bound");
         array[index]
     }
 
@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.Arrays {
         mutable toKeep = [true, size = nElements];
         for indexToRemove in remove {
             if indexToRemove >= nElements {
-                fail "Index is out of bound";
+                fail "Index to remove is out of bound";
             }
             set toKeep w/= indexToRemove <- false;
         }
@@ -218,7 +218,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The first element of the array.
     function Head<'A> (array : 'A[]) : 'A {
-        Fact(Length(array) > 0, "Array must be of the length at least 1");
+        Fact(not IsEmpty(array), "`array` must not be empty");
         array[0]
     }
 
@@ -431,10 +431,10 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Example
     /// ```qsharp
-    /// // The following returns [[1, 5], [3], [7]];
-    /// let split = Partitioned([2,1], [1,5,3,7]);
-    /// // The following returns [[1, 5], [3, 7], []];
-    /// let split = Partitioned([2,2], [1,5,3,7]);
+    /// // The following returns [[2, 3], [5], [7]];
+    /// let split = Partitioned([2, 1], [2, 3, 5, 7]);
+    /// // The following returns [[2, 3], [5, 7], []];
+    /// let split = Partitioned([2, 2], [2, 3, 5, 7]);
     /// ```
     function Partitioned<'T>(partitionSizes: Int[], array: 'T[]) : 'T[][] {
         mutable output = Repeated([], Length(partitionSizes) + 1);
@@ -488,6 +488,39 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Get an array of integers in a given interval.
+    ///
+    /// # Input
+    /// ## from
+    /// An inclusive start index of the interval.
+    /// ## to
+    /// An inclusive end index of the interval that is not smaller than `from`.
+    ///
+    /// # Output
+    /// An array containing the sequence of numbers `from`, `from + 1`, ...,
+    /// `to`.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let arr1 = SequenceI(0, 3); // [0, 1, 2, 3]
+    /// let arr2 = SequenceI(23, 29); // [23, 24, 25, 26, 27, 28, 29]
+    /// let arr3 = SequenceI(-5, -2); // [-5, -4, -3, -2]
+    ///
+    /// let numbers = SequenceI(0, _); // function to create sequence from 0 to `to`
+    /// let naturals = SequenceI(1, _); // function to create sequence from 1 to `to`
+    /// ```
+    function SequenceI (from : Int, to : Int) : Int[] {
+        Fact(to >= from, $"`to` must be larger than `from`");
+        mutable array = [];
+        let arrayLength = (to - from) + 1;
+        let initialInteger = 0 + from;
+        for index in 0..arrayLength {
+            set array += [intialInteger + index];
+        }
+        array
+    }
+
+    /// # Summary
     /// Returns the last element of the array.
     ///
     /// # Type Parameters
@@ -501,7 +534,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The last element of the array.
     function Tail<'A> (array : 'A[]) : 'A {
-        Fact(Length(array) > 0, "Array must be of the length at least 1");
+        Fact(not IsEmpty(array), "`array` must not be empty");
         array[Length(array) - 1]
     }
 }

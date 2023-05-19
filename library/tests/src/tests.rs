@@ -789,7 +789,7 @@ fn check_padded() {
 #[test]
 fn check_partitioned() {
     run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Partitioned([2, 1], [2,3,5,7])",
+        "Microsoft.Quantum.Arrays.Partitioned([2, 1], [2, 3, 5, 7])",
         &Value::Array(
             vec![
                 Value::Array(vec![Value::Int(2), Value::Int(3)].into()),
@@ -800,7 +800,7 @@ fn check_partitioned() {
         ),
     );
     run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Partitioned([2, 2], [2,3,5,7])",
+        "Microsoft.Quantum.Arrays.Partitioned([2, 2], [2, 3, 5, 7])",
         &Value::Array(
             vec![
                 Value::Array(vec![Value::Int(2), Value::Int(3)].into()),
@@ -809,6 +809,14 @@ fn check_partitioned() {
             ]
             .into(),
         ),
+    );
+}
+
+#[test]
+fn check_sequence_i() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.SequenceI(0, 3)",
+        &Value::Array(vec![Value::Int(0), Value::Int(1), Value::Int(2), Value::Int(3)].into()),
     );
 }
 
