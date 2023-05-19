@@ -12,5 +12,3 @@ pub use qsc_frontend::compile::{PackageStore, SourceMap};
 pub mod hir {
     pub use qsc_hir::{hir::*, *};
 }
-
-pub const GIT_HASH: &str = env!("QSC_GIT_HASH");

@@ -17,7 +17,7 @@ use std::{
 };
 
 #[derive(Debug, Parser)]
-#[command(version = concat!(crate_version!(), " (", env!("QSC_GIT_HASH"), ")"), arg_required_else_help(true))]
+#[command(version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"), arg_required_else_help(true))]
 #[clap(group(ArgGroup::new("input").args(["entry", "sources"]).required(true).multiple(true)))]
 struct Cli {
     /// Disable automatic inclusion of the standard library.

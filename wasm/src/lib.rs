@@ -37,7 +37,7 @@ pub struct CompletionList {
 
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
-    JsValue::from_str(qsc::GIT_HASH)
+    JsValue::from_str(env!("QSHARP_GIT_HASH"))
 }
 
 // There is no easy way to serialize the result with serde_wasm_bindgen and get
