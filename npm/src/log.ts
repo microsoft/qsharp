@@ -20,6 +20,7 @@ declare global {
   // See https://docs.rs/log/latest/log/
   var qscLogLevel: number; // eslint-disable-line no-var
   var qscLog: typeof log; // eslint-disable-line no-var
+  var qscGitHash: string; // eslint-disable-line no-var
 }
 
 export type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
