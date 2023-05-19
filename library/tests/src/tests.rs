@@ -757,6 +757,62 @@ fn check_most() {
 }
 
 #[test]
+fn check_padded() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Padded(-5, 2, [10, 11, 12])",
+        &Value::Array(
+            vec![
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+                Value::Int(2),
+                Value::Int(2),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Padded(5, 2, [10, 11, 12])",
+        &Value::Array(
+            vec![
+                Value::Int(2),
+                Value::Int(2),
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_partitioned() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Partitioned([2, 1], [2,3,5,7])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(5)].into()),
+                Value::Array(vec![Value::Int(7)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Partitioned([2, 2], [2,3,5,7])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(5), Value::Int(7)].into()),
+                Value::Array(vec![].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_rest() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",

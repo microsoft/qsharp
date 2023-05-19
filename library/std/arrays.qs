@@ -367,6 +367,91 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Returns an array padded at with specified values up to a
+    /// specified length.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of the array elements.
+    ///
+    /// # Input
+    /// ## nElementsTotal
+    /// The length of the padded array. If this is positive, `inputArray`
+    /// is padded at the head. If this is negative, `inputArray` is padded
+    /// at the tail.
+    /// ## defaultElement
+    /// Default value to use for padding elements.
+    /// ## inputArray
+    /// Array whose values are at the head of the output array.
+    ///
+    /// # Output
+    /// An array `output` that is the `inputArray` padded at the head
+    /// with `defaultElement`s until `output` has length `nElementsTotal`
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let array = [10, 11, 12];
+    /// // The following line returns [10, 12, 15, 2, 2].
+    /// let output = Padded(-5, 2, array);
+    /// // The following line returns [2, 2, 10, 12, 15].
+    /// let output = Padded(5, 2, array);
+    /// ```
+    function Padded<'T> (nElementsTotal : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[] {
+        let nElementsInitial = Length(inputArray);
+        let nAbsElementsTotal = AbsI(nElementsTotal);
+        if nAbsElementsTotal <= nElementsInitial {
+            fail "Specified output array length must be longer than `inputArray` length.";
+        }
+        let nElementsPad = nAbsElementsTotal - nElementsInitial;
+        let padArray = Repeated(defaultElement, nElementsPad);
+        if (nElementsTotal >= 0) {
+            padArray + inputArray // Padded at head.
+        } else {
+            inputArray + padArray // Padded at tail.
+        }
+    }
+
+    /// # Summary
+    /// Splits an array into multiple parts.
+    ///
+    /// # Input
+    /// ## partitionSizes
+    /// Number of elements in each splitted part of array.
+    /// ## array
+    /// Input array to be split.
+    ///
+    /// # Output
+    /// Multiple arrays where the first array is the first `partitionSizes[0]` of `array`
+    /// and the second array are the next `partitionSizes[1]` of `array` etc. The last array
+    /// will contain all remaining elements. If the array is split exactly, the
+    /// last array will be the empty array, indicating there are no remaining elements.
+    /// In other words, `Tail(Partitioned(...))` will always return the remaining
+    /// elements, while `Most(Partitioned(...))` will always return the complete
+    /// partitions of the array.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// // The following returns [[1, 5], [3], [7]];
+    /// let split = Partitioned([2,1], [1,5,3,7]);
+    /// // The following returns [[1, 5], [3, 7], []];
+    /// let split = Partitioned([2,2], [1,5,3,7]);
+    /// ```
+    function Partitioned<'T>(partitionSizes: Int[], array: 'T[]) : 'T[][] {
+        mutable output = Repeated([], Length(partitionSizes) + 1);
+        mutable partitionStartIndex = 0;
+        for index in IndexRange(partitionSizes) {
+            let partitionEndIndex = partitionStartIndex + partitionSizes[index] - 1;
+            if partitionEndIndex >= Length(array) {
+                fail "Partitioned argument out of bounds.";
+            }
+            set output w/= index <- array[partitionStartIndex..partitionEndIndex - 1];
+            set partitionStartIndex = partitionEndIndex + 1;
+        }
+        set output w/= Length(partitionSizes) <- array[partitionStartIndex..Length(array) - 1];
+        output
+    }
+
+    /// # Summary
     /// Creates an array that is equal to an input array except that the first array
     /// element is dropped.
     ///
