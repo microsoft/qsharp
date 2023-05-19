@@ -234,7 +234,7 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
         mutable number = 0;
         for i in 0 .. nBits - 1 {
             if (results[i] == One) {
-                set number += 2 ^ i;
+                set number += 1 <<< i;
             }
         }
 
