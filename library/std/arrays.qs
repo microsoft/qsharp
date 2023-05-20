@@ -605,6 +605,50 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Returns the transpose of a matrix represented as an array
+    /// of arrays.
+    ///
+    /// # Description
+    /// Input as an $r \times c$ matrix with $r$ rows and $c$ columns.  The matrix
+    /// is row-based, i.e., `matrix[i][j]` accesses the element at row $i$ and column $j$.
+    ///
+    /// This function returns the $c \times r$ matrix that is the transpose of the
+    /// input matrix.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `matrix`.
+    ///
+    /// # Input
+    /// ## matrix
+    /// Row-based $r \times c$ matrix
+    ///
+    /// # Output
+    /// Transposed $c \times r$ matrix
+    ///
+    /// # Example
+    /// ```qsharp
+    /// // same as [[1, 4], [2, 5], [3, 6]]
+    /// let transposed = Transposed([[1, 2, 3], [4, 5, 6]]);
+    /// ```
+    function Transposed<'T>(matrix : 'T[][]) : 'T[][] {
+        let rowCount = Length(matrix);
+        Fact(rowCount > 0, "Matrix must have at least 1 row");
+        let columnCount = Length(Head(matrix));
+        Fact(columnCount > 0, "Matrix must have at least 1 column");
+        Fact(IsRectangularArray(matrix), "Matrix is not a rectangular array");
+        mutable transposed = [];
+        for columnIndex in 0..columnCount-1 {
+            mutable newRow = [];
+            for rowIndex in 0..rowCount-1 {
+                set newRow += [matrix[rowIndex][columnIndex]];
+            }
+            set transposed += [newRow];
+        }
+        transposed
+    }
+
+    /// # Summary
     /// Returns the last element of the array.
     ///
     /// # Type Parameters

@@ -891,6 +891,31 @@ fn check_tail() {
 }
 
 #[test]
+fn check_transposed() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Transposed([[1, 2, 3], [4, 5, 6]])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1), Value::Int(4)].into()),
+                Value::Array(vec![Value::Int(2), Value::Int(5)].into()),
+                Value::Array(vec![Value::Int(3), Value::Int(6)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Transposed([[1, 4], [2, 5], [3, 6]])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(4), Value::Int(5), Value::Int(6)].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_apply_xor_in_place() {
     run_stdlib_test(
         {
