@@ -923,9 +923,41 @@ fn check_unzipped() {
     );
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Unzipped([(5, true), (4, false), (3, true), (2, true), (1, false)])",
-        &Value::Tuple(vec![
-            Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
-            Value::Array(vec![Value::Bool(true), Value::Bool(false), Value::Bool(true), Value::Bool(true), Value::Bool(false)].into())].into()),
+        &Value::Tuple(
+            vec![
+                Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
+                Value::Array(
+                    vec![
+                        Value::Bool(true),
+                        Value::Bool(false),
+                        Value::Bool(true),
+                        Value::Bool(true),
+                        Value::Bool(false)
+                    ]
+                    .into()
+                ),
+            ]
+            .into()
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Unzipped([(true, 5), (false, 4), (true, 3), (true, 2), (false, 1)])",
+        &Value::Tuple(
+            vec![
+                Value::Array(
+                    vec![
+                        Value::Bool(true),
+                        Value::Bool(false),
+                        Value::Bool(true),
+                        Value::Bool(true),
+                        Value::Bool(false)
+                    ]
+                    .into()
+                ),
+                Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
+            ]
+            .into()
+        ),
     );
 }
 
@@ -968,6 +1000,70 @@ fn check_windows() {
                 ]
                 .into(),
             )]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_zipped() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([], [])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1], [])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([], [false])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1, 2, 3, 4, 5], [false, true, true, false, true])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(4), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(5), Value::Bool(true)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([false, true, true, false, true], [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Bool(false), Value::Int(1)].into()),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(2)].into()),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(3)].into()),
+                Value::Tuple(vec![Value::Bool(false), Value::Int(4)].into()),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(5)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1, 2, 3], [false, true, true, false, true])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1, 2, 3, 4, 5], [false, true, true])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+            ]
             .into(),
         ),
     );
