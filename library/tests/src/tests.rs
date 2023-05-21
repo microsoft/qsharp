@@ -916,6 +916,20 @@ fn check_transposed() {
 }
 
 #[test]
+fn check_unzipped() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Unzipped([])",
+        &Value::Tuple(vec![Value::Array(vec![].into()), Value::Array(vec![].into())].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Unzipped([(5, true), (4, false), (3, true), (2, true), (1, false)])",
+        &Value::Tuple(vec![
+            Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
+            Value::Array(vec![Value::Bool(true), Value::Bool(false), Value::Bool(true), Value::Bool(true), Value::Bool(false)].into())].into()),
+    );
+}
+
+#[test]
 fn check_apply_xor_in_place() {
     run_stdlib_test(
         {

@@ -665,4 +665,41 @@ namespace Microsoft.Quantum.Arrays {
         Fact(not IsEmpty(array), "`array` must not be empty");
         array[Length(array) - 1]
     }
+
+    /// # Summary
+    /// Given an array of 2-tuples, returns a tuple of two arrays, each containing
+    /// the elements of the tuples of the input array.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of the first element in each tuple
+    /// ## 'U
+    /// The type of the second element in each tuple
+    ///
+    /// # Input
+    /// ## array
+    /// An array containing 2-tuples
+    ///
+    /// # Output
+    /// Two arrays, the first one containing all first elements of the input
+    /// tuples, the second one containing all second elements of the input tuples.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// // split is same as ([5, 4, 3, 2, 1], [true, false, true, true, false])
+    /// let split = Unzipped([(5, true), (4, false), (3, true), (2, true), (1, false)]);
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Zipped
+    function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[]) {
+        mutable first = [];
+        mutable second = [];
+        for index in 0..Length(array)-1  {
+            let (left, right) = array[index];
+            set first += [left];
+            set second += [right];
+        }
+        return (first, second);
+    }
 }
