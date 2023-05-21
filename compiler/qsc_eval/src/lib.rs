@@ -13,7 +13,6 @@ pub mod val;
 
 use crate::val::{FunctorApp, Value};
 use debug::{CallStack, Frame};
-use intrinsic::invoke_intrinsic;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
@@ -797,7 +796,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                         Ok(())
                     }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
-                        let val = invoke_intrinsic(
+                        let val = intrinsic::call(
                             &decl.name.name,
                             callee_span,
                             args_val,

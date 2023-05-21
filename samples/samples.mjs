@@ -13,5 +13,6 @@ export default [
     {title: "Random numbers", file: "qrng.qs", shots: 1000},
     {title: "Deutsch-Jozsa", file: "DeutschJozsa.qs", shots: 1},
     {title: "Grover's search", file: "Grover.qs", shots: 100},
+    {title: "Hidden shift", file: "HiddenShift.qs", shots: 1},
     {title: "Shor", file: "Shor.qs", shots: 1},
 ];
