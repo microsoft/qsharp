@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Remarks
     /// Note that the last element of the output may be shorter
-    /// than `chunkSize` if `Length(arr)` is not divisible by `chunkSize`.
+    /// than `chunkSize` if `Length(array)` is not divisible by `chunkSize`.
     function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][] {
         Fact(chunkSize > 0, "`chunkSize` must be positive");
         mutable output = [];
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.Arrays {
         let columns = rows == 0 ? 0 | Length(Head(matrix));
         let rangeLimit = MinI(rows, columns) - 1;
         mutable diagonal = [];
-        for index in 0..rangeLimit {
+        for index in 0 .. rangeLimit {
             set diagonal += [matrix[index][index]];
         }
 
@@ -194,7 +194,7 @@ namespace Microsoft.Quantum.Arrays {
 
         mutable output = [array[0], size = outputCount];
         mutable outputIndex = 0;
-        for index in 0..nElements-1 {
+        for index in 0 .. nElements - 1 {
             if toKeep[index] {
                 set output w/= outputIndex <- array[index];
                 set outputIndex += 1;
@@ -290,7 +290,7 @@ namespace Microsoft.Quantum.Arrays {
 
         let interleavedLength = firstLength + secondLength;
         mutable interleaved = [first[0], size = interleavedLength];
-        for index in 0..(interleavedLength - 1) {
+        for index in 0 .. interleavedLength - 1 {
             let originalIndex = index / 2;
             let value =
                 if index % 2 == 0 {first[originalIndex]}
@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.Arrays {
         mutable array = [];
         let arrayLength = (to - from) + 1;
         let initialInteger = 0 + from;
-        for index in 0..arrayLength {
+        for index in 0 .. arrayLength {
             set array += [initialInteger + index];
         }
         array
@@ -565,11 +565,8 @@ namespace Microsoft.Quantum.Arrays {
     /// array that match the given locations.
     ///
     /// # Remarks
-    /// If `indices` contains repeated elements, the corresponding elements 
+    /// If `locations` contains repeated elements, the corresponding elements 
     /// of `array` will likewise be repeated.
-    /// If all elements of `indices` are unique, this function will return 
-    /// a subset of `array` if `Length(indices) < Length(array)`, or
-    /// a permutation of `array` if `indices` and `array` are of the same length.
     ///
     /// # Type Parameters
     /// ## 'T
@@ -582,8 +579,8 @@ namespace Microsoft.Quantum.Arrays {
     /// An array from which a subarray will be generated.
     ///
     /// # Output
-    /// An array `out` of elements whose indices correspond to the subarray,
-    /// such that `out[index] == array[indices[index]]`.
+    /// An array `out` of elements whose locations correspond to the subarray,
+    /// such that `out[index] == array[locations[index]]`.
     /// 
     /// # Example
     /// 
@@ -638,9 +635,9 @@ namespace Microsoft.Quantum.Arrays {
         Fact(columnCount > 0, "Matrix must have at least 1 column");
         Fact(IsRectangularArray(matrix), "Matrix is not a rectangular array");
         mutable transposed = [];
-        for columnIndex in 0..columnCount-1 {
+        for columnIndex in 0 .. columnCount - 1 {
             mutable newRow = [];
-            for rowIndex in 0..rowCount-1 {
+            for rowIndex in 0 .. rowCount - 1 {
                 set newRow += [matrix[rowIndex][columnIndex]];
             }
             set transposed += [newRow];
@@ -695,11 +692,52 @@ namespace Microsoft.Quantum.Arrays {
     function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[]) {
         mutable first = [];
         mutable second = [];
-        for index in 0..Length(array)-1  {
+        for index in 0 .. Length(array) - 1  {
             let (left, right) = array[index];
             set first += [left];
             set second += [right];
         }
         return (first, second);
+    }
+
+    /// # Summary
+    /// Returns all consecutive subarrays of length `size`.
+    ///
+    /// # Description
+    /// This function returns all `n - size + 1` subarrays of
+    /// length `size` in order, where `n` is the length of `array`.
+    /// The first subarrays are `array[0..size - 1], array[1..size], array[2..size + 1]`
+    /// until the last subarray `array[n - size..n - 1]`.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## size
+    /// Length of the subarrays.
+    ///
+    /// ## array
+    /// An array of elements.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// // same as [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+    /// let windows = Windows(3, [1, 2, 3, 4, 5]);
+    /// ```
+    ///
+    /// # Remarks
+    /// The size of the window must be a positive integer no greater than the size of the array
+    function Windows<'T>(size : Int, array : 'T[]) : 'T[][] {
+        let arrayLength = Length(array);
+        Fact(
+            size > 0 or size <= arrayLength,
+            "The size of the window must be a positive integer no greater than the size of the array");
+
+        mutable windows = [];
+        for index in 0 .. arrayLength - size {
+            set windows += [array[index .. index + size - 1]];
+        }
+        windows
     }
 }

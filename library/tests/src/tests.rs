@@ -930,6 +930,50 @@ fn check_unzipped() {
 }
 
 #[test]
+fn check_windows() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Windows(1, [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1)].into()),
+                Value::Array(vec![Value::Int(2)].into()),
+                Value::Array(vec![Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(4)].into()),
+                Value::Array(vec![Value::Int(5)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Windows(3, [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(2), Value::Int(3), Value::Int(4)].into()),
+                Value::Array(vec![Value::Int(3), Value::Int(4), Value::Int(5)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Windows(5, [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![Value::Array(
+                vec![
+                    Value::Int(1),
+                    Value::Int(2),
+                    Value::Int(3),
+                    Value::Int(4),
+                    Value::Int(5),
+                ]
+                .into(),
+            )]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_apply_xor_in_place() {
     run_stdlib_test(
         {
