@@ -56,7 +56,7 @@ function makeResultObj(): ShotResult {
 
 export class QscEventTarget extends EventTarget implements IQscEventTarget {
   private results: ShotResult[] = [];
-  private hir: string = "Default HIR";
+  private hir = "Default HIR";
   private shotActive = false;
   private animationFrameId = 0;
   private supportsUiRefresh = false;
