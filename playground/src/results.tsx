@@ -6,7 +6,6 @@ import { StateUpdater, useEffect, useState } from "preact/hooks";
 
 import { Histogram } from "./histo.js";
 import { StateTable } from "./state.js";
-import { Attributes, Component, ComponentChild, ComponentChildren, Ref } from "preact";
 
 function resultToLabel(result: string | VSDiagnostic): string {
   if (typeof result !== "string") return "ERROR";
@@ -259,13 +258,13 @@ function HirTab(props: {
   activeTab: string;
 }) {
   const evtTarget = props.evtTarget;
-  let hir = evtTarget.getHir();
+  const hir = evtTarget.getHir();
 
   return (
     props.activeTab === "hir-tab" ?
-      <div style="white-space: pre-wrap;">
+      <pre class="hir-output">
         {hir}
-      </div>
+      </pre>
       : null
   );
 }
@@ -288,7 +287,7 @@ function TabNavItem(props: {
   );
 }
 
-export function Tabs(props: {
+export function OutputTabs(props: {
   evtTarget: QscEventTarget;
   showPanel: boolean;
   onShotError?: (err?: VSDiagnostic) => void;

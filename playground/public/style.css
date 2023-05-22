@@ -134,7 +134,7 @@ body {
   margin-bottom: -1px;
 }
 
-.error-row > span {
+.error-row>span {
   font-weight: 200;
 }
 
@@ -147,7 +147,8 @@ body {
   display: flex;
   height: 32px;
 }
-.results-labels > div {
+
+.results-labels>div {
   margin-right: 40px;
   text-align: left;
   vertical-align: middle;
@@ -214,12 +215,12 @@ body {
   margin-top: 8px;
 }
 
-.button-row > * {
+.button-row>* {
   margin-left: 10px;
   font-size: 1rem;
 }
 
-.icon-row > * {
+.icon-row>* {
   margin-left: 4px;
   font-size: 1.4rem;
   cursor: pointer;
@@ -338,6 +339,10 @@ body {
   font-weight: 300;
   font-size: 1.1rem;
   margin-bottom: 16px;
+}
+
+.hir-output {
+  white-space: pre-wrap;
 }
 
 .kata-override {

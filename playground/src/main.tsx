@@ -17,7 +17,7 @@ import {
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
-import { Tabs } from "./results.js";
+import { OutputTabs } from "./results.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
 import { compressedBase64ToCode } from "./utils.js";
@@ -118,11 +118,11 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showExpr={true}
             shotError={shotError}
           ></Editor>
-          <Tabs
+          <OutputTabs
             evtTarget={evtTarget}
             showPanel={true}
             onShotError={onShotError}
-          ></Tabs>
+          ></OutputTabs>
         </>
       ) : (
         <Katas

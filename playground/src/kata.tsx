@@ -4,7 +4,7 @@
 import { useEffect, useRef } from "preact/hooks";
 import { CompilerState, ICompilerWorker, Kata, QscEventTarget } from "qsharp";
 import { Editor } from "./editor.js";
-import { Tabs } from "./results.js";
+import { OutputTabs } from "./results.js";
 
 export function Kata(props: {
   kata: Kata;
@@ -80,12 +80,12 @@ export function Kata(props: {
               }
               key={item.id}
             ></Editor>
-            <Tabs
+            <OutputTabs
               key={item.id + "-results"}
               evtTarget={itemEvtHandlers[idx]}
               showPanel={false}
               kataMode={true}
-            ></Tabs>
+            ></OutputTabs>
           </div>
         );
       })}
