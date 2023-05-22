@@ -100,6 +100,132 @@ fn test_unknown_attr() {
 }
 
 #[test]
+fn lift_local_function() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                function Foo(x : Int) : Int {
+                    function Bar(y : Int) : Int { y + 1 }
+                    Bar(x + 2)
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-120] (Public):
+                    Namespace (Ident 21 [10-11] "A"): Item 1
+                Item 1 [18-118] (Public):
+                    Parent: 0
+                    Callable 0 [18-118] (Function):
+                        name: Ident 1 [27-30] "Foo"
+                        input: Pat 2 [31-38] [Type Int]: Bind: Ident 3 [31-32] "x"
+                        output: Int
+                        functors: 
+                        body: Block: Block 4 [46-118] [Type Int]:
+                            Stmt 5 [56-93]: Item: 2
+                            Stmt 15 [102-112]: Expr: Expr 16 [102-112] [Type Int]: Call:
+                                Expr 17 [102-105] [Type (Int -> Int)]: Var: Item 2
+                                Expr 18 [106-111] [Type Int]: BinOp (Add):
+                                    Expr 19 [106-107] [Type Int]: Var: Local 3
+                                    Expr 20 [110-111] [Type Int]: Lit: Int(2)
+                Item 2 [56-93] (Internal):
+                    Parent: 0
+                    Callable 6 [56-93] (Function):
+                        name: Ident 7 [65-68] "Bar"
+                        input: Pat 8 [69-76] [Type Int]: Bind: Ident 9 [69-70] "y"
+                        output: Int
+                        functors: 
+                        body: Block: Block 10 [84-93] [Type Int]:
+                            Stmt 11 [86-91]: Expr: Expr 12 [86-91] [Type Int]: BinOp (Add):
+                                Expr 13 [86-87] [Type Int]: Var: Local 9
+                                Expr 14 [90-91] [Type Int]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn lift_local_operation() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                operation Foo() : Result {
+                    operation Bar(q : Qubit) : Result { Zero }
+                    use q = Qubit();
+                    Bar(q)
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-143] (Public):
+                    Namespace (Ident 20 [10-11] "A"): Item 1
+                Item 1 [18-141] (Public):
+                    Parent: 0
+                    Callable 0 [18-141] (Operation):
+                        name: Ident 1 [28-31] "Foo"
+                        input: Pat 2 [31-33] [Type Unit]: Unit
+                        output: Result
+                        functors: 
+                        body: Block: Block 3 [43-141] [Type Result]:
+                            Stmt 4 [53-95]: Item: 2
+                            Stmt 12 [104-120]: Qubit (Fresh)
+                                Pat 13 [108-109] [Type Qubit]: Bind: Ident 14 [108-109] "q"
+                                QubitInit 15 [112-119] [Type Qubit]: Single
+                            Stmt 16 [129-135]: Expr: Expr 17 [129-135] [Type Result]: Call:
+                                Expr 18 [129-132] [Type (Qubit => Result)]: Var: Item 2
+                                Expr 19 [133-134] [Type Qubit]: Var: Local 14
+                Item 2 [53-95] (Internal):
+                    Parent: 0
+                    Callable 5 [53-95] (Operation):
+                        name: Ident 6 [63-66] "Bar"
+                        input: Pat 7 [67-76] [Type Qubit]: Bind: Ident 8 [67-68] "q"
+                        output: Result
+                        functors: 
+                        body: Block: Block 9 [87-95] [Type Result]:
+                            Stmt 10 [89-93]: Expr: Expr 11 [89-93] [Type Result]: Lit: Result(Zero)"#]],
+    );
+}
+
+#[test]
+fn lift_local_newtype() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    newtype Bar = Int;
+                    let x = Bar(5);
+                    x!
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-110] (Public):
+                    Namespace (Ident 15 [10-11] "A"): Item 1
+                Item 1 [18-108] (Public):
+                    Parent: 0
+                    Callable 0 [18-108] (Function):
+                        name: Ident 1 [27-30] "Foo"
+                        input: Pat 2 [30-32] [Type Unit]: Unit
+                        output: Int
+                        functors: 
+                        body: Block: Block 3 [39-108] [Type Int]:
+                            Stmt 4 [49-67]: Item: 2
+                            Stmt 6 [76-91]: Local (Immutable):
+                                Pat 7 [80-81] [Type UDT<Item 2>]: Bind: Ident 8 [80-81] "x"
+                                Expr 9 [84-90] [Type UDT<Item 2>]: Call:
+                                    Expr 10 [84-87] [Type (Int -> UDT<Item 2>)]: Var: Item 2
+                                    Expr 11 [88-89] [Type Int]: Lit: Int(5)
+                            Stmt 12 [100-102]: Expr: Expr 13 [100-102] [Type Int]: UnOp (Unwrap):
+                                Expr 14 [100-101] [Type UDT<Item 2>]: Var: Local 8
+                Item 2 [49-67] (Internal):
+                    Parent: 0
+                    Type (Ident 5 [57-60] "Bar"): Udt:
+                        base: Int
+                        fields:"#]],
+    );
+}
+
+#[test]
 fn lambda_function_empty_closure() {
     check_hir(
         indoc! {"

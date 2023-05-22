@@ -34,6 +34,12 @@ pub(super) struct Local {
     pub(super) ty: hir::Ty,
 }
 
+#[derive(Clone, Copy)]
+enum ItemScope {
+    Global,
+    Local,
+}
+
 pub(super) struct Lowerer {
     assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
@@ -112,7 +118,7 @@ impl With<'_> {
         let items = namespace
             .items
             .iter()
-            .filter_map(|i| self.lower_item(i))
+            .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
         let name = self.lower_ident(&namespace.name);
@@ -128,17 +134,20 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
-    fn lower_item(&mut self, item: &ast::Item) -> Option<LocalItemId> {
+    fn lower_item(&mut self, scope: ItemScope, item: &ast::Item) -> Option<LocalItemId> {
         let attrs = item
             .attrs
             .iter()
             .filter_map(|a| self.lower_attr(a))
             .collect();
 
-        let visibility = item
-            .visibility
-            .as_ref()
-            .map_or(hir::Visibility::Public, lower_visibility);
+        let visibility = match scope {
+            ItemScope::Global => item
+                .visibility
+                .as_ref()
+                .map_or(hir::Visibility::Public, lower_visibility),
+            ItemScope::Local => hir::Visibility::Internal,
+        };
 
         let resolve_id = |id| match self.resolutions.names.get(id) {
             Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
@@ -268,7 +277,9 @@ impl With<'_> {
         let kind = match &stmt.kind {
             ast::StmtKind::Empty => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
-            ast::StmtKind::Item(item) => hir::StmtKind::Item(self.lower_item(item)?),
+            ast::StmtKind::Item(item) => {
+                hir::StmtKind::Item(self.lower_item(ItemScope::Local, item)?)
+            }
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
                 self.lower_pat(*mutability, lhs),
