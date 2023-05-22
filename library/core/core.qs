@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.Core {
         }
 
         mutable output = [];
-        for _ in 0..length-1 {
+        for _ in 1 .. length {
             set output += [value];
         }
 
