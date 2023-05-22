@@ -156,20 +156,23 @@ impl With<'_> {
 
         let (id, kind) = match &item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
-            ast::ItemKind::Callable(decl) => (
-                resolve_id(decl.name.id),
-                hir::ItemKind::Callable(self.lower_callable_decl(decl)),
-            ),
+            ast::ItemKind::Callable(callable) => {
+                let id = resolve_id(callable.name.id);
+                let grandparent = self.lowerer.parent;
+                self.lowerer.parent = Some(id);
+                let callable = self.lower_callable_decl(callable);
+                self.lowerer.parent = grandparent;
+                (id, hir::ItemKind::Callable(callable))
+            }
             ast::ItemKind::Ty(name, _) => {
                 let id = resolve_id(name.id);
-                let item_id = hir::ItemId {
-                    package: None,
-                    item: id,
-                };
                 let udt = self
                     .tys
                     .udts
-                    .get(&item_id)
+                    .get(&hir::ItemId {
+                        package: None,
+                        item: id,
+                    })
                     .expect("type item should have lowered UDT");
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))

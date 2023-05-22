@@ -129,7 +129,7 @@ fn lift_local_function() {
                                     Expr 19 [106-107] [Type Int]: Var: Local 3
                                     Expr 20 [110-111] [Type Int]: Lit: Int(2)
                 Item 2 [56-93] (Internal):
-                    Parent: 0
+                    Parent: 1
                     Callable 6 [56-93] (Function):
                         name: Ident 7 [65-68] "Bar"
                         input: Pat 8 [69-76] [Type Int]: Bind: Ident 9 [69-70] "y"
@@ -174,7 +174,7 @@ fn lift_local_operation() {
                                 Expr 18 [129-132] [Type (Qubit => Result)]: Var: Item 2
                                 Expr 19 [133-134] [Type Qubit]: Var: Local 14
                 Item 2 [53-95] (Internal):
-                    Parent: 0
+                    Parent: 1
                     Callable 5 [53-95] (Operation):
                         name: Ident 6 [63-66] "Bar"
                         input: Pat 7 [67-76] [Type Qubit]: Bind: Ident 8 [67-68] "q"
@@ -218,7 +218,7 @@ fn lift_local_newtype() {
                             Stmt 12 [100-102]: Expr: Expr 13 [100-102] [Type Int]: UnOp (Unwrap):
                                 Expr 14 [100-101] [Type UDT<Item 2>]: Var: Local 8
                 Item 2 [49-67] (Internal):
-                    Parent: 0
+                    Parent: 1
                     Type (Ident 5 [57-60] "Bar"): Udt:
                         base: Int
                         fields:"#]],
@@ -255,7 +255,7 @@ fn lambda_function_empty_closure() {
                                 Expr 20 [77-78] [Type (Int -> Int)]: Var: Local 6
                                 Expr 21 [79-80] [Type Int]: Lit: Int(1)
                 Item 2 [57-67] (Internal):
-                    Parent: 0
+                    Parent: 1
                     Callable 14 [57-67] (Function):
                         name: Ident 15 [57-67] "lambda"
                         input: Pat 13 [57-67] [Type (Int,)]: Tuple:
@@ -305,7 +305,7 @@ fn lambda_function_empty_closure_passed() {
                                 Expr 15 [89-92] [Type ((Int -> Int) -> Int)]: Var: Item 1
                                 Expr 16 [93-103] [Type (Int -> Int)]: Closure([], 3)
                 Item 3 [93-103] (Internal):
-                    Parent: 0
+                    Parent: 2
                     Callable 23 [93-103] (Function):
                         name: Ident 24 [93-103] "lambda"
                         input: Pat 22 [93-103] [Type (Int,)]: Tuple:
@@ -353,7 +353,7 @@ fn lambda_function_closure() {
                                 Expr 26 [96-97] [Type (Int -> Int)]: Var: Local 10
                                 Expr 27 [98-99] [Type Int]: Lit: Int(2)
                 Item 2 [76-86] (Internal):
-                    Parent: 0
+                    Parent: 1
                     Callable 20 [76-86] (Function):
                         name: Ident 21 [76-86] "lambda"
                         input: Pat 18 [76-86] [Type (Int, Int)]: Tuple:
@@ -402,7 +402,7 @@ fn lambda_function_closure_repeated_var() {
                                 Expr 28 [100-101] [Type (Int -> Int)]: Var: Local 10
                                 Expr 29 [102-103] [Type Int]: Lit: Int(2)
                 Item 2 [76-90] (Internal):
-                    Parent: 0
+                    Parent: 1
                     Callable 22 [76-90] (Function):
                         name: Ident 23 [76-90] "lambda"
                         input: Pat 20 [76-90] [Type (Int, Int)]: Tuple:
@@ -461,7 +461,7 @@ fn lambda_function_closure_passed() {
                                 Expr 19 [116-119] [Type ((Int -> Int) -> Int)]: Var: Item 1
                                 Expr 20 [120-130] [Type (Int -> Int)]: Closure([15], 3)
                 Item 3 [120-130] (Internal):
-                    Parent: 0
+                    Parent: 2
                     Callable 29 [120-130] (Function):
                         name: Ident 30 [120-130] "lambda"
                         input: Pat 27 [120-130] [Type (Int, Int)]: Tuple:
@@ -523,7 +523,7 @@ fn lambda_function_nested_closure() {
                                 Expr 21 [126-129] [Type ((Int -> (Int -> Int)) -> Int)]: Var: Item 1
                                 Expr 22 [130-200] [Type (Int -> (Int -> Int))]: Closure([17], 4)
                 Item 3 [172-190] (Internal):
-                    Parent: 0
+                    Parent: 2
                     Callable 49 [172-190] (Function):
                         name: Ident 50 [172-190] "lambda"
                         input: Pat 45 [172-190] [Type (Int, Int, Int, Int)]: Tuple:
@@ -542,7 +542,7 @@ fn lambda_function_nested_closure() {
                                     Expr 40 [185-186] [Type Int]: Var: Local 44
                                 Expr 41 [189-190] [Type Int]: Var: Local 34
                 Item 4 [130-200] (Internal):
-                    Parent: 0
+                    Parent: 2
                     Callable 56 [130-200] (Function):
                         name: Ident 57 [130-200] "lambda"
                         input: Pat 54 [130-200] [Type (Int, Int)]: Tuple:
@@ -601,7 +601,7 @@ fn lambda_operation_empty_closure() {
                                 Expr 19 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
                                 Expr 20 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                 Item 3 [137-144] (Internal):
-                    Parent: 0
+                    Parent: 2
                     Callable 25 [137-144] (Operation):
                         name: Ident 26 [137-144] "lambda"
                         input: Pat 24 [137-144] [Type (Qubit,)]: Tuple:
@@ -665,7 +665,7 @@ fn lambda_operation_closure() {
                                 Expr 24 [195-198] [Type ((Unit => Result) => Result)]: Var: Item 2
                                 Expr 25 [199-215] [Type (Unit => Result)]: Closure([20], 4)
                 Item 4 [199-215] (Internal):
-                    Parent: 0
+                    Parent: 3
                     Callable 33 [199-215] (Operation):
                         name: Ident 34 [199-215] "lambda"
                         input: Pat 31 [199-215] [Type (Qubit, Unit)]: Tuple:
