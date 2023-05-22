@@ -8,7 +8,7 @@ use crate::{
     funop,
     lower::{self, Lowerer},
     parse,
-    resolve::{self, Resolver},
+    resolve::{self, Names, Resolver},
     typeck::{self, Checker},
     validate::{self, validate},
 };
@@ -211,21 +211,24 @@ pub fn compile(
     sources: SourceMap,
 ) -> CompileUnit {
     let (mut package, parse_errors) = parse_all(&sources);
-    let mut assigner = AstAssigner::new();
-    assigner.visit_package(&mut package);
+    let mut ast_assigner = AstAssigner::new();
+    ast_assigner.visit_package(&mut package);
 
-    let (mut resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
-    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
+    let mut hir_assigner = HirAssigner::new();
+    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
+    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
     let validate_errors = validate(&package);
     let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
-    let package = lowerer.with(&mut resolutions, &tys).lower_package(&package);
-    let (assigner, lower_errors) = lowerer.into_assigner();
+    let package = lowerer
+        .with(&mut hir_assigner, &names, &tys)
+        .lower_package(&package);
+    let lower_errors = lowerer.drain_errors();
 
     let errors = parse_errors
         .into_iter()
         .map(Into::into)
-        .chain(resolve_errors.into_iter().map(Into::into))
+        .chain(name_errors.into_iter().map(Into::into))
         .chain(ty_errors.into_iter().map(Into::into))
         .chain(funop_errors.into_iter().map(Into::into))
         .chain(validate_errors.into_iter().map(Into::into))
@@ -235,7 +238,7 @@ pub fn compile(
 
     CompileUnit {
         package,
-        assigner,
+        assigner: hir_assigner,
         sources,
         errors,
     }
@@ -375,8 +378,9 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
 fn resolve_all(
     store: &PackageStore,
     dependencies: &[PackageId],
+    assigner: &mut HirAssigner,
     package: &ast::Package,
-) -> (resolve::Table, Vec<resolve::Error>) {
+) -> (Names, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -389,17 +393,17 @@ fn resolve_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    globals.add_local_package(package);
+    globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals);
-    resolver.visit_package(package);
-    resolver.into_resolutions()
+    resolver.with(assigner).visit_package(package);
+    resolver.into_names()
 }
 
 fn typeck_all(
     store: &PackageStore,
     dependencies: &[PackageId],
     package: &ast::Package,
-    resolutions: &resolve::Table,
+    names: &Names,
 ) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
@@ -414,7 +418,7 @@ fn typeck_all(
     }
 
     let mut checker = Checker::new(globals);
-    checker.check_package(resolutions.names(), package);
+    checker.check_package(names, package);
     checker.into_tys()
 }
 

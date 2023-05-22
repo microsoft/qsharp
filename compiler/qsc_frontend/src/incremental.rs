@@ -9,8 +9,11 @@ use crate::{
     typeck::{self, Checker},
 };
 use miette::Diagnostic;
-use qsc_ast::{assigner::Assigner, ast, mut_visit::MutVisitor, visit::Visitor};
-use qsc_hir::hir::{self, PackageId};
+use qsc_ast::{assigner::Assigner as AstAssigner, ast, mut_visit::MutVisitor, visit::Visitor};
+use qsc_hir::{
+    assigner::Assigner as HirAssigner,
+    hir::{self, PackageId},
+};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -38,7 +41,8 @@ pub enum Fragment {
 }
 
 pub struct Compiler {
-    assigner: Assigner,
+    ast_assigner: AstAssigner,
+    hir_assigner: HirAssigner,
     resolver: Resolver,
     checker: Checker,
     lowerer: Lowerer,
@@ -57,7 +61,8 @@ impl Compiler {
         }
 
         Self {
-            assigner: Assigner::new(),
+            ast_assigner: AstAssigner::new(),
+            hir_assigner: HirAssigner::new(),
             resolver: Resolver::with_persistent_local_scope(resolve_globals),
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
@@ -65,7 +70,7 @@ impl Compiler {
     }
 
     pub fn assigner_mut(&mut self) -> &mut qsc_hir::assigner::Assigner {
-        self.lowerer.assigner_mut()
+        &mut self.hir_assigner
     }
 
     pub fn compile_fragments(&mut self, input: &str) -> Vec<Fragment> {
@@ -100,15 +105,21 @@ impl Compiler {
     }
 
     fn compile_namespace(&mut self, mut namespace: ast::Namespace) -> Result<(), Vec<Error>> {
-        self.assigner.visit_namespace(&mut namespace);
-        self.resolver.visit_namespace(&namespace);
+        self.ast_assigner.visit_namespace(&mut namespace);
+        self.resolver
+            .with(&mut self.hir_assigner)
+            .visit_namespace(&namespace);
         self.checker
-            .check_namespace(self.resolver.resolutions().names(), &namespace);
+            .check_namespace(self.resolver.names(), &namespace);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
             self.lowerer
-                .with(self.resolver.resolutions_mut(), self.checker.tys())
+                .with(
+                    &mut self.hir_assigner,
+                    self.resolver.names(),
+                    self.checker.tys(),
+                )
                 .lower_namespace(&namespace);
             Ok(())
         } else {
@@ -117,15 +128,19 @@ impl Compiler {
     }
 
     fn compile_stmt(&mut self, mut stmt: ast::Stmt) -> Option<Fragment> {
-        self.assigner.visit_stmt(&mut stmt);
-        self.resolver.visit_stmt(&stmt);
+        self.ast_assigner.visit_stmt(&mut stmt);
+        self.resolver.with(&mut self.hir_assigner).visit_stmt(&stmt);
         self.checker
-            .check_stmt_fragment(self.resolver.resolutions().names(), &stmt);
+            .check_stmt_fragment(self.resolver.names(), &stmt);
 
         let errors = self.drain_errors();
         if errors.is_empty() {
             self.lowerer
-                .with(self.resolver.resolutions_mut(), self.checker.tys())
+                .with(
+                    &mut self.hir_assigner,
+                    self.resolver.names(),
+                    self.checker.tys(),
+                )
                 .lower_stmt(&stmt)
                 .map(Fragment::Stmt)
         } else {

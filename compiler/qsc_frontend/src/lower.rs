@@ -5,7 +5,8 @@
 mod tests;
 
 use crate::{
-    closure, resolve,
+    closure,
+    resolve::{self, Names},
     typeck::{self, convert},
 };
 use miette::Diagnostic;
@@ -41,7 +42,6 @@ enum ItemScope {
 }
 
 pub(super) struct Lowerer {
-    assigner: Assigner,
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
     locals: IndexMap<hir::NodeId, Local>,
     parent: Option<LocalItemId>,
@@ -52,17 +52,12 @@ pub(super) struct Lowerer {
 impl Lowerer {
     pub(super) fn new() -> Self {
         Self {
-            assigner: Assigner::new(),
             nodes: IndexMap::new(),
             locals: IndexMap::new(),
             parent: None,
             items: Vec::new(),
             errors: Vec::new(),
         }
-    }
-
-    pub(super) fn assigner_mut(&mut self) -> &mut Assigner {
-        &mut self.assigner
     }
 
     pub(super) fn drain_items(&mut self) -> vec::Drain<hir::Item> {
@@ -75,24 +70,23 @@ impl Lowerer {
 
     pub(super) fn with<'a>(
         &'a mut self,
-        resolutions: &'a mut resolve::Table,
+        assigner: &'a mut Assigner,
+        names: &'a Names,
         tys: &'a typeck::Table,
     ) -> With {
         With {
             lowerer: self,
-            resolutions,
+            assigner,
+            names,
             tys,
         }
-    }
-
-    pub(super) fn into_assigner(self) -> (Assigner, Vec<Error>) {
-        (self.assigner, self.errors)
     }
 }
 
 pub(super) struct With<'a> {
     lowerer: &'a mut Lowerer,
-    resolutions: &'a mut resolve::Table,
+    assigner: &'a mut Assigner,
+    names: &'a Names,
     tys: &'a typeck::Table,
 }
 
@@ -110,7 +104,7 @@ impl With<'_> {
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
         let Some(&resolve::Res::Item(hir::ItemId {
             item: id, ..
-        })) = self.resolutions.names().get(namespace.name.id) else {
+        })) = self.names.get(namespace.name.id) else {
             panic!("namespace should have item ID");
         };
 
@@ -149,7 +143,7 @@ impl With<'_> {
             ItemScope::Local => hir::Visibility::Internal,
         };
 
-        let resolve_id = |id| match self.resolutions.names().get(id) {
+        let resolve_id = |id| match self.names.get(id) {
             Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
             _ => panic!("item should have item ID"),
         };
@@ -219,7 +213,7 @@ impl With<'_> {
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
-            output: convert::ty_from_ast(self.resolutions.names(), &decl.output).0,
+            output: convert::ty_from_ast(self.names, &decl.output).0,
             functors: callable_functors(decl),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
@@ -338,7 +332,7 @@ impl With<'_> {
                 Box::new(self.lower_expr(rhs)),
             ),
             ast::ExprKind::AssignUpdate(container, index, replace) => {
-                if let Some(field) = resolve::extract_field_name(self.resolutions.names(), index) {
+                if let Some(field) = resolve::extract_field_name(self.names, index) {
                     let container = self.lower_expr(container);
                     let field = self.lower_field(&container.ty, field);
                     let replace = self.lower_expr(replace);
@@ -418,7 +412,7 @@ impl With<'_> {
                 )
             }
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
-                if let Some(field) = resolve::extract_field_name(self.resolutions.names(), index) {
+                if let Some(field) = resolve::extract_field_name(self.names, index) {
                     let record = self.lower_expr(container);
                     let field = self.lower_field(&record.ty, field);
                     let replace = self.lower_expr(replace);
@@ -461,20 +455,14 @@ impl With<'_> {
         let kind = lower_callable_kind(kind);
         let input = self.lower_pat(ast::Mutability::Immutable, input);
         let body = self.lower_expr(body);
-        let (args, callable) = closure::lift(
-            &mut self.lowerer.assigner,
-            &self.lowerer.locals,
-            kind,
-            input,
-            body,
-            span,
-        );
+        let (args, callable) =
+            closure::lift(self.assigner, &self.lowerer.locals, kind, input, body, span);
 
         if args.iter().any(|&arg| self.is_mutable(arg)) {
             self.lowerer.errors.push(Error::MutableClosure(span));
         }
 
-        let id = self.resolutions.next_item();
+        let id = self.assigner.next_item();
         self.lowerer.items.push(hir::Item {
             id,
             span,
@@ -514,10 +502,11 @@ impl With<'_> {
         }
 
         let id = self.lower_id(pat.id);
-        let ty = self.tys.terms.get(pat.id).map_or_else(
-            || convert::ast_pat_ty(self.resolutions.names(), pat).0,
-            Clone::clone,
-        );
+        let ty = self
+            .tys
+            .terms
+            .get(pat.id)
+            .map_or_else(|| convert::ast_pat_ty(self.names, pat).0, Clone::clone);
 
         let kind = match &pat.kind {
             ast::PatKind::Bind(name, _) => {
@@ -582,7 +571,7 @@ impl With<'_> {
     }
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
-        match self.resolutions.names().get(path.id) {
+        match self.names.get(path.id) {
             Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) | None => hir::Res::Err,
@@ -599,7 +588,7 @@ impl With<'_> {
 
     fn lower_id(&mut self, id: ast::NodeId) -> hir::NodeId {
         self.lowerer.nodes.get(id).copied().unwrap_or_else(|| {
-            let new_id = self.lowerer.assigner.next_id();
+            let new_id = self.assigner.next_node();
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })

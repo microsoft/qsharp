@@ -6,11 +6,11 @@ use super::{
     Error, ErrorKind, Table,
 };
 use crate::{
-    resolve::Res,
+    resolve::{Names, Res},
     typeck::convert::{self, MissingTyError},
 };
 use qsc_ast::{
-    ast::{self, NodeId},
+    ast::{self},
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
@@ -81,7 +81,7 @@ impl Checker {
         self.errors.drain(..)
     }
 
-    pub(crate) fn check_package(&mut self, names: &IndexMap<NodeId, Res>, package: &ast::Package) {
+    pub(crate) fn check_package(&mut self, names: &Names, package: &ast::Package) {
         ItemCollector::new(self, names).visit_package(package);
         ItemChecker::new(self, names).visit_package(package);
 
@@ -96,16 +96,12 @@ impl Checker {
         }
     }
 
-    pub(crate) fn check_namespace(
-        &mut self,
-        names: &IndexMap<NodeId, Res>,
-        namespace: &ast::Namespace,
-    ) {
+    pub(crate) fn check_namespace(&mut self, names: &Names, namespace: &ast::Namespace) {
         ItemCollector::new(self, names).visit_namespace(namespace);
         ItemChecker::new(self, names).visit_namespace(namespace);
     }
 
-    fn check_callable_decl(&mut self, names: &IndexMap<NodeId, Res>, decl: &ast::CallableDecl) {
+    fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
         self.tys
             .terms
             .insert(decl.name.id, convert::ast_callable_ty(names, decl).0);
@@ -142,11 +138,7 @@ impl Checker {
         }
     }
 
-    fn check_callable_signature(
-        &mut self,
-        names: &IndexMap<NodeId, Res>,
-        decl: &ast::CallableDecl,
-    ) {
+    fn check_callable_signature(&mut self, names: &Names, decl: &ast::CallableDecl) {
         if !convert::ast_callable_functors(decl).is_empty() {
             let output = convert::ty_from_ast(names, &decl.output).0;
             match &output {
@@ -160,7 +152,7 @@ impl Checker {
         }
     }
 
-    fn check_spec(&mut self, names: &IndexMap<NodeId, Res>, spec: SpecImpl) {
+    fn check_spec(&mut self, names: &Names, spec: SpecImpl) {
         self.errors.append(&mut rules::spec(
             names,
             &self.tys.udts,
@@ -170,7 +162,7 @@ impl Checker {
         ));
     }
 
-    pub(crate) fn check_stmt_fragment(&mut self, names: &IndexMap<NodeId, Res>, stmt: &ast::Stmt) {
+    pub(crate) fn check_stmt_fragment(&mut self, names: &Names, stmt: &ast::Stmt) {
         ItemCollector::new(self, names).visit_stmt(stmt);
         ItemChecker::new(self, names).visit_stmt(stmt);
 
@@ -192,11 +184,11 @@ impl Checker {
 
 struct ItemCollector<'a> {
     checker: &'a mut Checker,
-    names: &'a IndexMap<NodeId, Res>,
+    names: &'a Names,
 }
 
 impl<'a> ItemCollector<'a> {
-    fn new(checker: &'a mut Checker, names: &'a IndexMap<NodeId, Res>) -> Self {
+    fn new(checker: &'a mut Checker, names: &'a Names) -> Self {
         Self { checker, names }
     }
 }
@@ -245,11 +237,11 @@ impl Visitor<'_> for ItemCollector<'_> {
 
 struct ItemChecker<'a> {
     checker: &'a mut Checker,
-    names: &'a IndexMap<NodeId, Res>,
+    names: &'a Names,
 }
 
 impl<'a> ItemChecker<'a> {
-    fn new(checker: &'a mut Checker, names: &'a IndexMap<NodeId, Res>) -> Self {
+    fn new(checker: &'a mut Checker, names: &'a Names) -> Self {
         Self { checker, names }
     }
 }

@@ -6,7 +6,7 @@ use super::{
     infer::{self, Class, Inferrer},
     Error,
 };
-use crate::resolve::{self, Res};
+use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
@@ -23,7 +23,7 @@ struct Partial {
 }
 
 struct Context<'a> {
-    names: &'a IndexMap<NodeId, Res>,
+    names: &'a Names,
     udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Ty>,
     terms: &'a mut IndexMap<NodeId, Ty>,
@@ -34,7 +34,7 @@ struct Context<'a> {
 
 impl<'a> Context<'a> {
     fn new(
-        names: &'a IndexMap<NodeId, Res>,
+        names: &'a Names,
         udts: &'a HashMap<ItemId, Udt>,
         globals: &'a HashMap<ItemId, Ty>,
         terms: &'a mut IndexMap<NodeId, Ty>,
@@ -642,7 +642,7 @@ pub(super) struct SpecImpl<'a> {
 }
 
 pub(super) fn spec(
-    names: &IndexMap<NodeId, Res>,
+    names: &Names,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     terms: &mut IndexMap<NodeId, Ty>,
@@ -654,7 +654,7 @@ pub(super) fn spec(
 }
 
 pub(super) fn expr(
-    names: &IndexMap<NodeId, Res>,
+    names: &Names,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     terms: &mut IndexMap<NodeId, Ty>,
@@ -666,7 +666,7 @@ pub(super) fn expr(
 }
 
 pub(super) fn stmt(
-    names: &IndexMap<NodeId, Res>,
+    names: &Names,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     terms: &mut IndexMap<NodeId, Ty>,

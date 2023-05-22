@@ -90,7 +90,7 @@ pub(super) fn lift(
     let free_vars = finder.free_vars();
     let substitutions: HashMap<_, _> = free_vars
         .iter()
-        .map(|&id| (id, assigner.next_id()))
+        .map(|&id| (id, assigner.next_node()))
         .collect();
 
     VarReplacer {
@@ -114,11 +114,11 @@ pub(super) fn lift(
     assigner.visit_pat(&mut input);
 
     let callable = CallableDecl {
-        id: assigner.next_id(),
+        id: assigner.next_node(),
         span,
         kind,
         name: Ident {
-            id: assigner.next_id(),
+            id: assigner.next_node(),
             span,
             name: "lambda".into(),
         },
@@ -127,11 +127,11 @@ pub(super) fn lift(
         output: body.ty.clone(),
         functors: HashSet::new(),
         body: CallableBody::Block(Block {
-            id: assigner.next_id(),
+            id: assigner.next_node(),
             span: body.span,
             ty: body.ty.clone(),
             stmts: vec![Stmt {
-                id: assigner.next_id(),
+                id: assigner.next_node(),
                 span: body.span,
                 kind: StmtKind::Expr(body),
             }],
