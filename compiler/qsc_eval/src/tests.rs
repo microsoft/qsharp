@@ -1,23 +1,30 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env};
+use crate::{eval_expr, output::GenericReceiver, val::GlobalId, Env, Global};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::hir::{CallableDecl, ItemKind};
-use qsc_passes::run_default_passes;
+use qsc_hir::hir::ItemKind;
+use qsc_passes::{run_core_passes, run_default_passes};
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
-    let mut store = PackageStore::new(compile::core());
+    let mut core = compile::core();
+    run_core_passes(&mut core);
+    let mut store = PackageStore::new(core);
+
+    let mut std = compile::std(&store);
+    assert!(std.errors.is_empty());
+    assert!(run_default_passes(store.core(), &mut std).is_empty());
+    let std_id = store.insert(std);
+
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[], sources);
+    let mut unit = compile(&store, &[std_id], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-
-    let pass_errors = run_default_passes(&mut unit);
+    let pass_errors = run_default_passes(store.core(), &mut unit);
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
-
     let id = store.insert(unit);
+
     let entry = store
         .get(id)
         .and_then(|unit| unit.package.entry.as_ref())
@@ -26,7 +33,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let mut out = Vec::new();
     match eval_expr(
         entry,
-        &|id| get_callable(&store, id),
+        &|id| get_global(&store, id),
         id,
         &mut Env::default(),
         &mut GenericReceiver::new(&mut out),
@@ -36,15 +43,14 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     }
 }
 
-pub(super) fn get_callable(store: &PackageStore, id: GlobalId) -> Option<&CallableDecl> {
-    store.get(id.package).and_then(|unit| {
-        let item = unit.package.items.get(id.item)?;
-        if let ItemKind::Callable(callable) = &item.kind {
-            Some(callable)
-        } else {
-            None
-        }
-    })
+pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {
+    store
+        .get(id.package)
+        .and_then(|unit| match &unit.package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
 }
 
 #[test]
@@ -68,6 +74,11 @@ fn block_expr() {
         }"},
         &expect!["1"],
     );
+}
+
+#[test]
+fn block_empty_is_unit_expr() {
+    check_expr("", "{}", &expect!["()"]);
 }
 
 #[test]
@@ -308,15 +319,39 @@ fn block_qubit_use_array_invalid_count_expr() {
         }"},
         &expect![[r#"
             (
-                Count(
-                    -3,
+                UserFail(
+                    "Cannot allocate qubit array with a negative length",
                     Span {
-                        lo: 20,
-                        hi: 22,
+                        lo: 758,
+                        hi: 815,
                     },
                 ),
                 CallStack {
-                    frames: [],
+                    frames: [
+                        Frame {
+                            span: Some(
+                                Span {
+                                    lo: 10,
+                                    hi: 11,
+                                },
+                            ),
+                            id: GlobalId {
+                                package: PackageId(
+                                    0,
+                                ),
+                                item: LocalItemId(
+                                    5,
+                                ),
+                            },
+                            caller: PackageId(
+                                2,
+                            ),
+                            functor: FunctorApp {
+                                adjoint: false,
+                                controlled: 0,
+                            },
+                        },
+                    ],
                 },
             )
         "#]],
@@ -405,29 +440,6 @@ fn binop_andb_bigint() {
 #[test]
 fn binop_andb_int() {
     check_expr("", "28 &&& 54", &expect!["20"]);
-}
-
-#[test]
-fn binop_andb_invalid() {
-    check_expr(
-        "",
-        "2.8 &&& 5.4",
-        &expect![[r#"
-            (
-                Type(
-                    "BigInt or Int",
-                    "Double",
-                    Span {
-                        lo: 0,
-                        hi: 3,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]
@@ -1052,29 +1064,6 @@ fn binop_orb_int() {
 }
 
 #[test]
-fn binop_orb_invalid() {
-    check_expr(
-        "",
-        "2.8 ||| 5.4",
-        &expect![[r#"
-            (
-                Type(
-                    "BigInt or Int",
-                    "Double",
-                    Span {
-                        lo: 0,
-                        hi: 3,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn binop_orl() {
     check_expr("", "true or true", &expect!["true"]);
 }
@@ -1162,29 +1151,6 @@ fn binop_xorb_bigint() {
 #[test]
 fn binop_xorb_int() {
     check_expr("", "28 ^^^ 54", &expect!["42"]);
-}
-
-#[test]
-fn binop_xorb_invalid() {
-    check_expr(
-        "",
-        "2.8 ^^^ 5.4",
-        &expect![[r#"
-            (
-                Type(
-                    "BigInt or Int",
-                    "Double",
-                    Span {
-                        lo: 0,
-                        hi: 3,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
 }
 
 #[test]
@@ -1293,11 +1259,6 @@ fn fail_shortcut_expr() {
             )
         "#]],
     );
-}
-
-#[test]
-fn field_array_len_expr() {
-    check_expr("", "[1, 2, 3]::Length", &expect!["3"]);
 }
 
 #[test]
@@ -1807,32 +1768,32 @@ fn while_false_shortcut_expr() {
 }
 
 #[test]
-fn ternop_cond_expr() {
+fn cond_expr() {
     check_expr("", "true ? 1 | 0", &expect!["1"]);
 }
 
 #[test]
-fn ternop_cond_false_expr() {
+fn cond_false_expr() {
     check_expr("", "false ? 1 | 0", &expect!["0"]);
 }
 
 #[test]
-fn ternop_cond_shortcircuit_expr() {
+fn cond_shortcircuit_expr() {
     check_expr("", r#"true ? 1 | fail "Shouldn't fail""#, &expect!["1"]);
 }
 
 #[test]
-fn ternop_cond_false_shortcircuit_expr() {
+fn cond_false_shortcircuit_expr() {
     check_expr("", r#"false ? fail "Shouldn't fail" | 0"#, &expect!["0"]);
 }
 
 #[test]
-fn ternop_update_expr() {
+fn update_expr() {
     check_expr("", "[1, 2, 3] w/ 2 <- 4", &expect!["[1, 2, 4]"]);
 }
 
 #[test]
-fn ternop_update_invalid_index_range_expr() {
+fn update_invalid_index_range_expr() {
     check_expr(
         "",
         "[1, 2, 3] w/ 7 <- 4",
@@ -1854,7 +1815,7 @@ fn ternop_update_invalid_index_range_expr() {
 }
 
 #[test]
-fn ternop_update_invalid_index_negative_expr() {
+fn update_invalid_index_negative_expr() {
     check_expr(
         "",
         "[1, 2, 3] w/ -1 <- 4",
@@ -1873,6 +1834,106 @@ fn ternop_update_invalid_index_negative_expr() {
             )
         "#]],
     );
+}
+
+#[test]
+fn update_array_index_var() {
+    check_expr(
+        "",
+        indoc! {"{
+            let xs = [2];
+            let i = 0;
+            xs w/ i <- 3
+        }"},
+        &expect!["[3]"],
+    );
+}
+
+#[test]
+fn update_array_index_expr() {
+    check_expr(
+        "",
+        indoc! {"{
+            let xs = [1, 2];
+            let i = 0;
+            xs w/ i + 1 <- 3
+        }"},
+        &expect!["[1, 3]"],
+    );
+}
+
+#[test]
+fn update_udt_known_field_name() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Pair(1, 2);
+            p w/ First <- 3
+        }"},
+        &expect!["(3, 2)"],
+    );
+}
+
+#[test]
+fn update_udt_nested_field() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Triple = (First : Int, (Second : Int, Third : Int));
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Triple(1, (2, 3));
+            p w/ Third <- 4
+        }"},
+        &expect!["(1, (2, 4))"],
+    );
+}
+
+#[test]
+fn update_range_start() {
+    check_expr("", "1..2..3 w/ Start <- 10", &expect!["10..2..3"]);
+}
+
+#[test]
+fn update_range_from_start() {
+    check_expr("", "1..2... w/ Start <- 10", &expect!["10..2..."]);
+}
+
+#[test]
+fn update_range_step() {
+    check_expr("", "1..2..3 w/ Step <- 10", &expect!["1..10..3"]);
+}
+
+#[test]
+fn update_range_from_step() {
+    check_expr("", "1..2... w/ Step <- 10", &expect!["1..10..."]);
+}
+
+#[test]
+fn update_range_to_step() {
+    check_expr("", "...2..3 w/ Step <- 10", &expect!["...10..3"]);
+}
+
+#[test]
+fn update_range_full_step() {
+    check_expr("", "...2... w/ Step <- 10", &expect!["...10..."]);
+}
+
+#[test]
+fn update_range_end() {
+    check_expr("", "1..2..3 w/ End <- 10", &expect!["1..2..10"]);
+}
+
+#[test]
+fn update_range_to_end() {
+    check_expr("", "...2..3 w/ End <- 10", &expect!["...2..10"]);
 }
 
 #[test]
@@ -1986,7 +2047,7 @@ fn unop_adjoint_functor_expr() {
             }
         "},
         "Adjoint Test.Foo",
-        &expect!["Adjoint <item 1 in package 1>"],
+        &expect!["Adjoint <item 1 in package 2>"],
     );
 }
 
@@ -2001,7 +2062,7 @@ fn unop_controlled_functor_expr() {
             }
         "},
         "Controlled Test.Foo",
-        &expect!["Controlled <item 1 in package 1>"],
+        &expect!["Controlled <item 1 in package 2>"],
     );
 }
 
@@ -2016,7 +2077,7 @@ fn unop_adjoint_adjoint_functor_expr() {
             }
         "},
         "Adjoint (Adjoint Test.Foo)",
-        &expect!["<item 1 in package 1>"],
+        &expect!["<item 1 in package 2>"],
     );
 }
 
@@ -2031,7 +2092,7 @@ fn unop_controlled_adjoint_functor_expr() {
             }
         "},
         "Controlled Adjoint Test.Foo",
-        &expect!["Controlled Adjoint <item 1 in package 1>"],
+        &expect!["Controlled Adjoint <item 1 in package 2>"],
     );
 }
 
@@ -2046,7 +2107,7 @@ fn unop_adjoint_controlled_functor_expr() {
             }
         "},
         "Adjoint Controlled Test.Foo",
-        &expect!["Controlled Adjoint <item 1 in package 1>"],
+        &expect!["Controlled Adjoint <item 1 in package 2>"],
     );
 }
 
@@ -2061,7 +2122,7 @@ fn unop_controlled_controlled_functor_expr() {
             }
         "},
         "Controlled (Controlled Test.Foo)",
-        &expect!["Controlled Controlled <item 1 in package 1>"],
+        &expect!["Controlled Controlled <item 1 in package 2>"],
     );
 }
 
@@ -2292,14 +2353,14 @@ fn call_adjoint_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    1,
+                                    2,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                1,
+                                2,
                             ),
                             functor: FunctorApp {
                                 adjoint: true,
@@ -2355,14 +2416,14 @@ fn call_adjoint_adjoint_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    1,
+                                    2,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                1,
+                                2,
                             ),
                             functor: FunctorApp {
                                 adjoint: false,
@@ -2413,14 +2474,14 @@ fn call_adjoint_self_expr() {
                             ),
                             id: GlobalId {
                                 package: PackageId(
-                                    1,
+                                    2,
                                 ),
                                 item: LocalItemId(
                                     1,
                                 ),
                             },
                             caller: PackageId(
-                                1,
+                                2,
                             ),
                             functor: FunctorApp {
                                 adjoint: true,
@@ -2443,7 +2504,7 @@ fn check_ctls_count_expr() {
                     body (...) {}
                     adjoint self;
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2469,7 +2530,7 @@ fn check_ctls_count_nested_expr() {
                     body (...) {}
                     adjoint self;
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2495,7 +2556,7 @@ fn check_generated_ctl_expr() {
                 operation A() : Unit is Ctl {
                     body ... {}
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2519,12 +2580,12 @@ fn check_generated_ctladj_distrib_expr() {
                     body ... { fail "Shouldn't get here"; }
                     adjoint self;
                     controlled (ctls, ...) {
-                        if ctls::Length != 3 {
+                        if Length(ctls) != 3 {
                             fail "Incorrect ctls count!";
                         }
                     }
                     controlled adjoint (ctls, ...) {
-                        if ctls::Length != 2 {
+                        if Length(ctls) != 2 {
                             fail "Incorrect ctls count!";
                         }
                     }
@@ -2636,5 +2697,183 @@ fn nested_interpolated_string_with_exprs() {
             $"foo {x + $"bar {y}"} baz"
         }"#},
         &expect!["foo hello!bar 1.5 baz"],
+    );
+}
+
+#[test]
+fn udt_unwrap() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Foo = (Int, Bool);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let foo = Foo(1, true);
+            foo!
+        }"},
+        &expect!["(1, true)"],
+    );
+}
+
+#[test]
+fn udt_fields() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Point = (X : Int, Y : Int);
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Point(1, 2);
+            (p::X, p::Y)
+        }"},
+        &expect!["(1, 2)"],
+    );
+}
+
+#[test]
+fn udt_field_nested() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                newtype Point = (X : Int, (Y : Int, Z : Int));
+            }
+        "},
+        indoc! {"{
+            open A;
+            let p = Point(1, (2, 3));
+            (p::Y, p::Z)
+        }"},
+        &expect!["(2, 3)"],
+    );
+}
+
+#[test]
+fn lambda_function_empty_closure() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                function Foo() : Int {
+                    let f = x -> x + 1;
+                    f(1)
+                }
+            }
+        "},
+        "A.Foo()",
+        &expect!["2"],
+    );
+}
+
+#[test]
+fn lambda_function_empty_closure_passed() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                function Foo(f : Int -> Int) : Int { f(2) }
+                function Bar() : Int { Foo(x -> x + 1) }
+            }
+        "},
+        "A.Bar()",
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn lambda_function_closure() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                function Foo() : (Int, Int) {
+                    let x = 5;
+                    let f = y -> (x, y);
+                    f(2)
+                }
+            }
+        "},
+        "A.Foo()",
+        &expect!["(5, 2)"],
+    );
+}
+
+#[test]
+fn lambda_function_closure_passed() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                function Foo(f : Int -> (Int, Int)) : (Int, Int) { f(2) }
+                function Bar() : (Int, Int) {
+                    let x = 5;
+                    Foo(y -> (x, y))
+                }
+            }
+        "},
+        "A.Bar()",
+        &expect!["(5, 2)"],
+    );
+}
+
+#[test]
+fn lambda_function_nested_closure() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                function Foo(f : Int -> Int -> (Int, Int, Int, Int)) : (Int, Int, Int, Int) {
+                    f(2)(3)
+                }
+
+                function Bar() : (Int, Int, Int, Int) {
+                    let a = 5;
+                    Foo(b -> {
+                        let c = 1;
+                        d -> (a, b, c, d)
+                    })
+                }
+            }
+        "},
+        "A.Bar()",
+        &expect!["(5, 2, 1, 3)"],
+    );
+}
+
+#[test]
+fn lambda_operation_empty_closure() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+
+                operation Foo(op : Qubit => ()) : Result {
+                    use q = Qubit();
+                    op(q);
+                    MResetZ(q)
+                }
+
+                operation Bar() : Result { Foo(q => X(q)) }
+            }
+        "},
+        "A.Bar()",
+        &expect!["One"],
+    );
+}
+
+#[test]
+fn lambda_operation_closure() {
+    check_expr(
+        indoc! {"
+            namespace A {
+                open Microsoft.Quantum.Measurement;
+                operation Foo(op : () => Result) : Result { op() }
+                operation Bar() : Result {
+                    use q = Qubit();
+                    X(q);
+                    Foo(() => MResetZ(q))
+                }
+            }
+        "},
+        "A.Bar()",
+        &expect!["One"],
     );
 }

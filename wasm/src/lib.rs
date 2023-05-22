@@ -35,6 +35,11 @@ pub struct CompletionList {
     pub items: Vec<CompletionItem>,
 }
 
+#[wasm_bindgen]
+pub fn git_hash() -> JsValue {
+    JsValue::from_str(env!("QSHARP_GIT_HASH"))
+}
+
 // There is no easy way to serialize the result with serde_wasm_bindgen and get
 // good TypeScript typing. Here we manually specify the type that the follow
 // method will return. At the call-site in the TypeScript, the response should be

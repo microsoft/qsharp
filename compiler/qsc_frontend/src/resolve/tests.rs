@@ -1,28 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{GlobalTable, Res, Resolutions};
+use super::{GlobalTable, Names, Res};
 use crate::{parse, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
-    assigner::Assigner,
+    assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
 use qsc_data_structures::span::Span;
+use qsc_hir::assigner::Assigner as HirAssigner;
 use std::fmt::Write;
 
 struct Renamer<'a> {
-    resolutions: &'a Resolutions,
+    names: &'a Names,
     changes: Vec<(Span, Res)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(resolutions: &'a Resolutions) -> Self {
+    fn new(names: &'a Names) -> Self {
         Self {
-            resolutions,
+            names,
             changes: Vec::new(),
         }
     }
@@ -45,7 +46,7 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.resolutions.get(path.id) {
+        if let Some(&id) = self.names.get(path.id) {
             self.changes.push((path.span, id));
         } else {
             visit::walk_path(self, path);
@@ -53,7 +54,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.resolutions.get(ident.id) {
+        if let Some(&id) = self.names.get(ident.id) {
             self.changes.push((ident.span, id));
         }
     }
@@ -71,14 +72,15 @@ fn resolve_names(input: &str) -> String {
         namespaces,
         entry: None,
     };
-    let mut assigner = Assigner::new();
-    assigner.visit_package(&mut package);
+    let mut ast_assigner = AstAssigner::new();
+    ast_assigner.visit_package(&mut package);
+    let mut hir_assigner = HirAssigner::new();
     let mut globals = GlobalTable::new();
-    globals.add_local_package(&package);
+    globals.add_local_package(&mut hir_assigner, &package);
     let mut resolver = Resolver::new(globals);
-    resolver.visit_package(&package);
-    let (resolutions, errors) = resolver.into_resolutions();
-    let mut renamer = Renamer::new(&resolutions);
+    resolver.with(&mut hir_assigner).visit_package(&package);
+    let (names, errors) = resolver.into_names();
+    let mut renamer = Renamer::new(&names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
     renamer.rename(&mut output);
@@ -86,7 +88,6 @@ fn resolve_names(input: &str) -> String {
     if !errors.is_empty() {
         output += "\n";
     }
-
     for error in &errors {
         writeln!(output, "// {error:?}").expect("error should write to output string");
     }
@@ -1334,6 +1335,164 @@ fn local_open_shadows_parent_open() {
 
             namespace item2 { function item3() : () {} }
             namespace item4 { function item5() : () {} }
+        "#]],
+    );
+}
+
+#[test]
+fn update_array_index_var() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {
+                    let local11 = [2];
+                    let local16 = 0;
+                    let local20 = local11 w/ local16 <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_array_index_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i + 1 <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : () {
+                    let local11 = [2];
+                    let local16 = 0;
+                    let local20 = local11 w/ local16 + 1 <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_known_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {
+                    let local24 = item1(1, 2);
+                    let local34 = local24 w/ First <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_known_field_name_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First + 1 <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {
+                    let local24 = item1(1, 2);
+                    let local34 = local24 w/ First + 1 <- 3;
+                }
+            }
+
+            // NotFound("First", Span { lo: 138, hi: 143 })
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_unknown_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {
+                    let local24 = item1(1, 2);
+                    let local34 = local24 w/ Third <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn update_udt_unknown_field_name_known_global() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Third() : () {}
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First : Int, Second : Int);
+
+                function item2() : () {}
+
+                function item3() : () {
+                    let local30 = item1(1, 2);
+                    let local40 = local30 w/ Third <- 3;
+                }
+            }
         "#]],
     );
 }

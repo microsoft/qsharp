@@ -42,6 +42,20 @@ one under `pip/.venv` to run the tests for the `pip` package. When developing lo
 you can use this virtual environment to run the tests by running `source pip/.venv/bin/activate`
 (Linux/MacOS) or `pip/.venv/Scripts/activate.bat` (Windows).
 
+## Code editing
+
+The easiest way to develop in this repo is to use VS Code. When you open the project root, by
+default VS Code will recommend you install the extensions listed in `.vscode/extensions.json`.
+These extensions provide language services for editing, as well as linters and formatters to
+ensure the code meets the requirements (which are checked by the `build.py` script and CI).
+
+Some settings are recommended (but not enforced) to make development easier. These are in the
+`.vscode/*.shared.json` files. If the [Workspace Config+](https://marketplace.visualstudio.com/items?itemName=swellaby.workspace-config-plus)
+extension is installed, this will automatically apply these settings, as well as overrides from
+your own corresponding `.vscode/*.local.json` settings. If you don't install this extension, you can
+use these as a reference for editing your own `.vscode/*.json` settings files. (See the extension
+home page for more details).
+
 ## Feedback
 
 If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp/issues/new/choose)!

@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Samples.Qrng {
     /// Produces a non-negative integer
     /// from a string of bits in little endian format.
     function ResultArrayAsInt(input : Result[]) : Int {
-        let nBits = input::Length;
+        let nBits = Length(input);
         // We are constructing a 64-bit integer,
         // and we won't use the highest (sign) bit.
         Fact(nBits < 64, "Input length must be less than 64.");

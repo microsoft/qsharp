@@ -11,6 +11,7 @@ import {
   Kata,
   VSDiagnostic,
   log,
+  LogLevel,
   samples,
 } from "qsharp";
 
@@ -19,7 +20,11 @@ import { Editor } from "./editor.js";
 import { Tabs } from "./results.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
-import { base64ToCode } from "./utils.js";
+import { compressedBase64ToCode } from "./utils.js";
+
+// Configure any logging as early as possible
+const logLevelUri = new URLSearchParams(window.location.search).get("logLevel");
+if (logLevelUri) log.setLogLevel(logLevelUri as LogLevel);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const basePath = (window as any).qscBasePath || "";
@@ -128,6 +133,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           onRestartCompiler={onRestartCompiler}
         ></Katas>
       )}
+      <div id="popup"></div>
     </>
   );
 }
@@ -142,8 +148,12 @@ async function loaded() {
   let linkedCode: string | undefined;
   const paramCode = new URLSearchParams(window.location.search).get("code");
   if (paramCode) {
-    const base64code = decodeURIComponent(paramCode);
-    linkedCode = base64ToCode(base64code);
+    try {
+      const base64code = decodeURIComponent(paramCode);
+      linkedCode = await compressedBase64ToCode(base64code);
+    } catch {
+      linkedCode = "// Unable to decode the code in the URL\n";
+    }
   }
 
   render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);

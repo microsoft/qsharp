@@ -1,27 +1,28 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::resolve::{self, Resolutions};
-use qsc_ast::ast;
+use crate::resolve::{self, Names};
+use qsc_ast::ast::{
+    self, CallableBody, CallableDecl, CallableKind, FunctorExpr, FunctorExprKind, Pat, PatKind,
+    SetOp, Spec, TyDef, TyDefKind, TyKind,
+};
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, Functor, ItemId, Ty};
-use std::collections::HashSet;
+use qsc_hir::hir::{self, FieldPath, Functor, ItemId, Ty, UdtField};
+use std::{collections::HashSet, rc::Rc};
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
-pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
+pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
     match &ty.kind {
-        ast::TyKind::Array(item) => {
-            let (item, errors) = ty_from_ast(resolutions, item);
+        TyKind::Array(item) => {
+            let (item, errors) = ty_from_ast(names, item);
             (Ty::Array(Box::new(item)), errors)
         }
-        ast::TyKind::Arrow(kind, input, output, functors) => {
-            let (input, mut errors) = ty_from_ast(resolutions, input);
-            let (output, output_errors) = ty_from_ast(resolutions, output);
+        TyKind::Arrow(kind, input, output, functors) => {
+            let (input, mut errors) = ty_from_ast(names, input);
+            let (output, output_errors) = ty_from_ast(names, output);
             errors.extend(output_errors);
-            let functors = functors.as_ref().map_or(HashSet::new(), |f| {
-                f.to_set().into_iter().map(functor_from_ast).collect()
-            });
+            let functors = functors.as_ref().map_or(HashSet::new(), eval_functor_expr);
             let ty = Ty::Arrow(
                 callable_kind_from_ast(*kind),
                 Box::new(input),
@@ -30,10 +31,10 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
             );
             (ty, errors)
         }
-        ast::TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
-        ast::TyKind::Paren(inner) => ty_from_ast(resolutions, inner),
-        ast::TyKind::Path(path) => {
-            let ty = match resolutions.get(path.id) {
+        TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
+        TyKind::Paren(inner) => ty_from_ast(names, inner),
+        TyKind::Path(path) => {
+            let ty = match names.get(path.id) {
                 Some(&resolve::Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&resolve::Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(resolve::Res::UnitTy) => Ty::Tuple(Vec::new()),
@@ -41,12 +42,12 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
             };
             (ty, Vec::new())
         }
-        ast::TyKind::Param(name) => (Ty::Param(name.name.to_string()), Vec::new()),
-        ast::TyKind::Tuple(items) => {
+        TyKind::Param(name) => (Ty::Param(name.name.to_string()), Vec::new()),
+        TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ty_from_ast(resolutions, item);
+                let (item_ty, item_errors) = ty_from_ast(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
@@ -55,12 +56,8 @@ pub(crate) fn ty_from_ast(resolutions: &Resolutions, ty: &ast::Ty) -> (Ty, Vec<M
     }
 }
 
-pub(super) fn ast_ty_def_cons_ty(
-    resolutions: &Resolutions,
-    id: ItemId,
-    def: &ast::TyDef,
-) -> (Ty, Vec<MissingTyError>) {
-    let (input, errors) = ast_ty_def_ty(resolutions, def);
+pub(super) fn ast_ty_def_cons(names: &Names, id: ItemId, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
+    let (input, errors) = ast_ty_def_base(names, def);
     let ty = Ty::Arrow(
         hir::CallableKind::Function,
         Box::new(input),
@@ -70,18 +67,15 @@ pub(super) fn ast_ty_def_cons_ty(
     (ty, errors)
 }
 
-pub(super) fn ast_ty_def_ty(
-    resolutions: &Resolutions,
-    def: &ast::TyDef,
-) -> (Ty, Vec<MissingTyError>) {
+pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
     match &def.kind {
-        ast::TyDefKind::Field(_, ty) => ty_from_ast(resolutions, ty),
-        ast::TyDefKind::Paren(inner) => ast_ty_def_ty(resolutions, inner),
-        ast::TyDefKind::Tuple(items) => {
+        TyDefKind::Field(_, ty) => ty_from_ast(names, ty),
+        TyDefKind::Paren(inner) => ast_ty_def_base(names, inner),
+        TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ast_ty_def_ty(resolutions, item);
+                let (item_ty, item_errors) = ast_ty_def_base(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
@@ -91,33 +85,51 @@ pub(super) fn ast_ty_def_ty(
     }
 }
 
-pub(super) fn ast_callable_ty(
-    resolutions: &Resolutions,
-    decl: &ast::CallableDecl,
-) -> (Ty, Vec<MissingTyError>) {
+pub(super) fn ast_ty_def_fields(def: &TyDef) -> Vec<UdtField> {
+    match &def.kind {
+        TyDefKind::Field(Some(name), _) => {
+            vec![UdtField {
+                name: Rc::clone(&name.name),
+                path: FieldPath::default(),
+            }]
+        }
+        TyDefKind::Field(None, _) => Vec::new(),
+        TyDefKind::Paren(inner) => ast_ty_def_fields(inner),
+        TyDefKind::Tuple(items) => {
+            let mut fields = Vec::new();
+            for (index, item) in items.iter().enumerate() {
+                for mut field in ast_ty_def_fields(item) {
+                    field.path.indices.insert(0, index);
+                    fields.push(field);
+                }
+            }
+            fields
+        }
+    }
+}
+
+pub(super) fn ast_callable_ty(names: &Names, decl: &CallableDecl) -> (Ty, Vec<MissingTyError>) {
     let kind = callable_kind_from_ast(decl.kind);
-    let (input, mut errors) = ast_pat_ty(resolutions, &decl.input);
-    let (output, output_errors) = ty_from_ast(resolutions, &decl.output);
+    let (input, mut errors) = ast_pat_ty(names, &decl.input);
+    let (output, output_errors) = ty_from_ast(names, &decl.output);
     errors.extend(output_errors);
     let functors = ast_callable_functors(decl);
     let ty = Ty::Arrow(kind, Box::new(input), Box::new(output), functors);
     (ty, errors)
 }
 
-pub(crate) fn ast_pat_ty(resolutions: &Resolutions, pat: &ast::Pat) -> (Ty, Vec<MissingTyError>) {
+pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) {
     match &pat.kind {
-        ast::PatKind::Bind(_, None) | ast::PatKind::Discard(None) | ast::PatKind::Elided => {
+        PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => {
             (Ty::Err, vec![MissingTyError(pat.span)])
         }
-        ast::PatKind::Bind(_, Some(ty)) | ast::PatKind::Discard(Some(ty)) => {
-            ty_from_ast(resolutions, ty)
-        }
-        ast::PatKind::Paren(inner) => ast_pat_ty(resolutions, inner),
-        ast::PatKind::Tuple(items) => {
+        PatKind::Bind(_, Some(ty)) | PatKind::Discard(Some(ty)) => ty_from_ast(names, ty),
+        PatKind::Paren(inner) => ast_pat_ty(names, inner),
+        PatKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
             for item in items {
-                let (item_ty, item_errors) = ast_pat_ty(resolutions, item);
+                let (item_ty, item_errors) = ast_pat_ty(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
             }
@@ -126,18 +138,19 @@ pub(crate) fn ast_pat_ty(resolutions: &Resolutions, pat: &ast::Pat) -> (Ty, Vec<
     }
 }
 
-pub(super) fn ast_callable_functors(decl: &ast::CallableDecl) -> HashSet<Functor> {
-    let mut functors = decl.functors.as_ref().map_or(HashSet::new(), |f| {
-        f.to_set().into_iter().map(functor_from_ast).collect()
-    });
+pub(super) fn ast_callable_functors(decl: &CallableDecl) -> HashSet<Functor> {
+    let mut functors = decl
+        .functors
+        .as_ref()
+        .map_or(HashSet::new(), eval_functor_expr);
 
-    if let ast::CallableBody::Specs(specs) = &decl.body {
+    if let CallableBody::Specs(specs) = &decl.body {
         for spec in specs {
             match spec.spec {
-                ast::Spec::Body => {}
-                ast::Spec::Adj => functors.extend([Functor::Adj]),
-                ast::Spec::Ctl => functors.extend([Functor::Ctl]),
-                ast::Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
+                Spec::Body => {}
+                Spec::Adj => functors.extend([Functor::Adj]),
+                Spec::Ctl => functors.extend([Functor::Ctl]),
+                Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
             }
         }
     }
@@ -145,16 +158,26 @@ pub(super) fn ast_callable_functors(decl: &ast::CallableDecl) -> HashSet<Functor
     functors
 }
 
-pub(super) fn functor_from_ast(functor: ast::Functor) -> hir::Functor {
-    match functor {
-        ast::Functor::Adj => hir::Functor::Adj,
-        ast::Functor::Ctl => hir::Functor::Ctl,
+pub(super) fn callable_kind_from_ast(kind: CallableKind) -> hir::CallableKind {
+    match kind {
+        CallableKind::Function => hir::CallableKind::Function,
+        CallableKind::Operation => hir::CallableKind::Operation,
     }
 }
 
-pub(super) fn callable_kind_from_ast(kind: ast::CallableKind) -> hir::CallableKind {
-    match kind {
-        ast::CallableKind::Function => hir::CallableKind::Function,
-        ast::CallableKind::Operation => hir::CallableKind::Operation,
+pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> HashSet<Functor> {
+    match &expr.kind {
+        FunctorExprKind::BinOp(op, lhs, rhs) => {
+            let mut functors = eval_functor_expr(lhs);
+            let rhs_functors = eval_functor_expr(rhs);
+            match op {
+                SetOp::Union => functors.extend(rhs_functors),
+                SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
+            }
+            functors
+        }
+        FunctorExprKind::Lit(ast::Functor::Adj) => [Functor::Adj].into(),
+        FunctorExprKind::Lit(ast::Functor::Ctl) => [Functor::Ctl].into(),
+        FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
 }

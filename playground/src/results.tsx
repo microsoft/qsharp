@@ -8,22 +8,9 @@ import { Histogram } from "./histo.js";
 import { StateTable } from "./state.js";
 import { Attributes, Component, ComponentChild, ComponentChildren, Ref } from "preact";
 
-const reKetResult = /^\[(?:(Zero|One), *)*(Zero|One)\]$/;
-function resultToKet(result: string | VSDiagnostic): string {
+function resultToLabel(result: string | VSDiagnostic): string {
   if (typeof result !== "string") return "ERROR";
-
-  if (reKetResult.test(result)) {
-    // The result is a simple array of Zero and One
-    // The below will return an array of "Zero" or "One" in the order found
-    const matches = result.match(/(One|Zero)/g);
-    matches?.reverse();
-    let ket = "|";
-    matches?.forEach((digit) => (ket += digit == "One" ? "1" : "0"));
-    ket += "⟩";
-    return ket;
-  } else {
-    return result;
-  }
+  return result;
 }
 
 type ResultsState = {
@@ -125,7 +112,7 @@ function ResultsTab(props: {
         buckets = new Map();
         for (let i = 0; i < resultCount; ++i) {
           const key = results[i].result;
-          const strKey = resultToKet(key);
+          const strKey = resultToLabel(key);
           const newValue = (buckets.get(strKey) || 0) + 1;
           buckets.set(strKey, newValue);
         }
@@ -171,7 +158,7 @@ function ResultsTab(props: {
     : resultState.currIndex;
   const resultLabel =
     typeof resultState.currResult?.result === "string"
-      ? resultToKet(resultState.currResult?.result || "")
+      ? resultToLabel(resultState.currResult?.result || "")
       : `ERROR: ${resultState.currResult?.result.message.replace(
         /\\n/g,
         "\n"
@@ -189,7 +176,7 @@ function ResultsTab(props: {
       let found = 0;
       for (let i = 0; i < results.length; ++i) {
         // The buckets to filter on have been converted to kets where possible
-        if (resultToKet(results[i].result) !== filter) continue;
+        if (resultToLabel(results[i].result) !== filter) continue;
         if (found === idx) {
           currIndex = i;
           currResult = results[i];

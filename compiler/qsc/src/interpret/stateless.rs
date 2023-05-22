@@ -11,10 +11,10 @@ use qsc_eval::{
     eval_expr,
     output::Receiver,
     val::{GlobalId, Value},
-    Env,
+    Env, Global,
 };
 use qsc_frontend::compile::{PackageStore, Source, SourceMap};
-use qsc_hir::hir::{CallableDecl, Expr, ItemKind, PackageId};
+use qsc_hir::hir::{Expr, ItemKind, PackageId};
 use qsc_passes::entry_point::extract_entry;
 use thiserror::Error;
 
@@ -90,7 +90,7 @@ impl Context {
 
         eval_expr(
             &get_entry_expr(&self.store, self.package)?,
-            &|id| get_callable(&self.store, id),
+            &|id| get_global(&self.store, id),
             self.package,
             &mut Env::with_empty_scope(),
             receiver,
@@ -121,7 +121,7 @@ fn render_call_stack(
     call_stack: &CallStack,
     error: &dyn std::error::Error,
 ) -> String {
-    format_call_stack(store, &|id| get_callable(store, id), call_stack, error)
+    format_call_stack(store, &|id| get_global(store, id), call_stack, error)
 }
 
 fn get_entry_expr(store: &PackageStore, package: PackageId) -> Result<Expr, Vec<Error>> {
@@ -137,13 +137,12 @@ fn get_entry_expr(store: &PackageStore, package: PackageId) -> Result<Expr, Vec<
     }
 }
 
-pub(super) fn get_callable(store: &PackageStore, id: GlobalId) -> Option<&CallableDecl> {
-    store.get(id.package).and_then(|unit| {
-        let item = unit.package.items.get(id.item)?;
-        if let ItemKind::Callable(callable) = &item.kind {
-            Some(callable)
-        } else {
-            None
-        }
-    })
+pub(super) fn get_global(store: &PackageStore, id: GlobalId) -> Option<Global> {
+    store
+        .get(id.package)
+        .and_then(|unit| match &unit.package.items.get(id.item)?.kind {
+            ItemKind::Callable(callable) => Some(Global::Callable(callable)),
+            ItemKind::Namespace(..) => None,
+            ItemKind::Ty(..) => Some(Global::Udt),
+        })
 }

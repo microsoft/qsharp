@@ -1,6 +1,9 @@
 * @billti @idavis @minestarks @samarsha @swernli
 
+/.github/ISSUE_TEMPLATE/fuzz_bug_report.md @billti @kuzminrobin @swernli
+/.github/workflows/fuzz.yml @billti @kuzminrobin @swernli
 /compiler @idavis @samarsha @swernli
+/fuzz  @billti @kuzminrobin @swernli
 /katas @billti @cesarzc @swernli
 /library @cesarzc @DmitryVasilevsky @swernli
 /npm @billti @cesarzc @minestarks
