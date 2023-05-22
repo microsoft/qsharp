@@ -161,10 +161,6 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(array);
             vis.visit_expr(index);
         }
-        ExprKind::Lambda(_, pat, expr) => {
-            vis.visit_pat(pat);
-            vis.visit_expr(expr);
-        }
         ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
             vis.visit_expr(expr);
         }
@@ -196,7 +192,11 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_) => {}
+        ExprKind::Closure(..)
+        | ExprKind::Err
+        | ExprKind::Hole
+        | ExprKind::Lit(_)
+        | ExprKind::Var(_) => {}
     }
 }
 

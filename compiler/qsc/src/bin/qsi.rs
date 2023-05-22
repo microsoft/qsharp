@@ -3,7 +3,7 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
-use clap::Parser;
+use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -26,7 +26,8 @@ use std::{
 use std::{path::Path, sync::Arc};
 
 #[derive(Debug, Parser)]
-#[command(author, version, about, next_line_help = true)]
+#[command(name = "qsi", version = concat!(crate_version!(), " (", env!("QSHARP_GIT_HASH"), ")"))]
+#[command(author, about, next_line_help = true)]
 struct Cli {
     /// Use the given file on startup as initial session input.
     #[arg(long = "use")]

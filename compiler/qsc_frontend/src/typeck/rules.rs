@@ -6,7 +6,7 @@ use super::{
     infer::{self, Class, Inferrer},
     Error,
 };
-use crate::resolve::{self, Res, Resolutions};
+use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
@@ -23,7 +23,7 @@ struct Partial {
 }
 
 struct Context<'a> {
-    resolutions: &'a Resolutions,
+    names: &'a Names,
     udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Ty>,
     terms: &'a mut IndexMap<NodeId, Ty>,
@@ -34,13 +34,13 @@ struct Context<'a> {
 
 impl<'a> Context<'a> {
     fn new(
-        resolutions: &'a Resolutions,
+        names: &'a Names,
         udts: &'a HashMap<ItemId, Udt>,
         globals: &'a HashMap<ItemId, Ty>,
         terms: &'a mut IndexMap<NodeId, Ty>,
     ) -> Self {
         Self {
-            resolutions,
+            names,
             udts,
             globals,
             terms,
@@ -86,7 +86,7 @@ impl<'a> Context<'a> {
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(path) => match self.resolutions.get(path.id) {
+            TyKind::Path(path) => match self.names.get(path.id) {
                 Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
@@ -311,7 +311,7 @@ impl<'a> Context<'a> {
             ExprKind::Lit(Lit::Result(_)) => converge(Ty::Prim(PrimTy::Result)),
             ExprKind::Lit(Lit::String(_)) => converge(Ty::Prim(PrimTy::String)),
             ExprKind::Paren(expr) => self.infer_expr(expr),
-            ExprKind::Path(path) => match self.resolutions.get(path.id) {
+            ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
                 Some(Res::Item(item)) => {
                     let mut ty = self
@@ -524,7 +524,7 @@ impl<'a> Context<'a> {
     fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Partial {
         let container = self.infer_expr(container);
         let item = self.infer_expr(item);
-        if let Some(field) = resolve::extract_field_name(self.resolutions, index) {
+        if let Some(field) = resolve::extract_field_name(self.names, index) {
             self.inferrer.class(
                 span,
                 Class::HasField {
@@ -642,37 +642,37 @@ pub(super) struct SpecImpl<'a> {
 }
 
 pub(super) fn spec(
-    resolutions: &Resolutions,
+    names: &Names,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     terms: &mut IndexMap<NodeId, Ty>,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, udts, globals, terms);
+    let mut context = Context::new(names, udts, globals, terms);
     context.infer_spec(spec);
     context.solve()
 }
 
 pub(super) fn expr(
-    resolutions: &Resolutions,
+    names: &Names,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     terms: &mut IndexMap<NodeId, Ty>,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, udts, globals, terms);
+    let mut context = Context::new(names, udts, globals, terms);
     context.infer_expr(expr);
     context.solve()
 }
 
 pub(super) fn stmt(
-    resolutions: &Resolutions,
+    names: &Names,
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
     terms: &mut IndexMap<NodeId, Ty>,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, udts, globals, terms);
+    let mut context = Context::new(names, udts, globals, terms);
     context.infer_stmt(stmt);
     context.solve()
 }
