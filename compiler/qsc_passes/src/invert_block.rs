@@ -120,7 +120,7 @@ impl<'a> BlockInverter<'a> {
         mut block: Block,
     ) {
         // Create a new binding for the array expr.
-        let new_arr_id = self.assigner.next_id();
+        let new_arr_id = self.assigner.next_node();
         wrapper.stmts.push(Stmt {
             id: NodeId::default(),
             span: Span::default(),
@@ -141,7 +141,7 @@ impl<'a> BlockInverter<'a> {
         });
 
         // Create a pattern for binding the index iterator.
-        let index_id = self.assigner.next_id();
+        let index_id = self.assigner.next_node();
         let index_pat = Pat {
             id: NodeId::default(),
             span: Span::default(),
@@ -214,7 +214,7 @@ impl<'a> BlockInverter<'a> {
         block: &mut Block,
     ) {
         // Create a new binding for the range expr.
-        let new_range_id = self.assigner.next_id();
+        let new_range_id = self.assigner.next_node();
         wrapper.stmts.push(Stmt {
             id: NodeId::default(),
             span: Span::default(),

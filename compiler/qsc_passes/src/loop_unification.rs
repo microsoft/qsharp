@@ -278,7 +278,7 @@ impl LoopUni<'_> {
     }
 
     fn gen_ident(&mut self, label: &str, ty: Ty, span: Span) -> IdentTemplate {
-        let id = self.assigner.next_id();
+        let id = self.assigner.next_node();
         IdentTemplate {
             id,
             span,

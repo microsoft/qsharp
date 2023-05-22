@@ -19,13 +19,6 @@ and are not called out specifically here.
 let f = R(PauliY, angle, _);
 ```
 
-### Lambdas
-
-```qsharp
-let funcLambda = x -> x + 1;
-let opLambda = q => H(q);
-```
-
 ## Supported Features
 
 - Literals for `Int`, `BigInt`, `Double`, `Bool`, `Pauli`, `Result`, and `String`
@@ -53,3 +46,4 @@ supported by the evaluator, matching the callables present in the standard libra
 - Conjugate expressions (within-apply)
 - String interpolation
 - User-defined types
+- Lambdas

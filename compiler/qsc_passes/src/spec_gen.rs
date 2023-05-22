@@ -180,7 +180,7 @@ struct SpecImplPass<'a> {
 
 impl<'a> SpecImplPass<'a> {
     fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
-        let ctls_id = self.assigner.next_id();
+        let ctls_id = self.assigner.next_node();
 
         // Clone the reference block and use the pass to update the calls inside.
         let mut ctl_block = block.clone();

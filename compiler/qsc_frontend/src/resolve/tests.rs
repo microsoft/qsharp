@@ -1,28 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{GlobalTable, Res, Resolutions};
+use super::{GlobalTable, Names, Res};
 use crate::{parse, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
-    assigner::Assigner,
+    assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
 use qsc_data_structures::span::Span;
+use qsc_hir::assigner::Assigner as HirAssigner;
 use std::fmt::Write;
 
 struct Renamer<'a> {
-    resolutions: &'a Resolutions,
+    names: &'a Names,
     changes: Vec<(Span, Res)>,
 }
 
 impl<'a> Renamer<'a> {
-    fn new(resolutions: &'a Resolutions) -> Self {
+    fn new(names: &'a Names) -> Self {
         Self {
-            resolutions,
+            names,
             changes: Vec::new(),
         }
     }
@@ -45,7 +46,7 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        if let Some(&id) = self.resolutions.get(path.id) {
+        if let Some(&id) = self.names.get(path.id) {
             self.changes.push((path.span, id));
         } else {
             visit::walk_path(self, path);
@@ -53,7 +54,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_ident(&mut self, ident: &Ident) {
-        if let Some(&id) = self.resolutions.get(ident.id) {
+        if let Some(&id) = self.names.get(ident.id) {
             self.changes.push((ident.span, id));
         }
     }
@@ -71,14 +72,15 @@ fn resolve_names(input: &str) -> String {
         namespaces,
         entry: None,
     };
-    let mut assigner = Assigner::new();
-    assigner.visit_package(&mut package);
+    let mut ast_assigner = AstAssigner::new();
+    ast_assigner.visit_package(&mut package);
+    let mut hir_assigner = HirAssigner::new();
     let mut globals = GlobalTable::new();
-    globals.add_local_package(&package);
+    globals.add_local_package(&mut hir_assigner, &package);
     let mut resolver = Resolver::new(globals);
-    resolver.visit_package(&package);
-    let (resolutions, errors) = resolver.into_resolutions();
-    let mut renamer = Renamer::new(&resolutions);
+    resolver.with(&mut hir_assigner).visit_package(&package);
+    let (names, errors) = resolver.into_names();
+    let mut renamer = Renamer::new(&names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
     renamer.rename(&mut output);
@@ -86,7 +88,6 @@ fn resolve_names(input: &str) -> String {
     if !errors.is_empty() {
         output += "\n";
     }
-
     for error in &errors {
         writeln!(output, "// {error:?}").expect("error should write to output string");
     }

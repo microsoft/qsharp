@@ -21,22 +21,6 @@ fn validate(ns: &Namespace) -> Vec<Error> {
 }
 
 #[test]
-fn test_lambda() {
-    check("namespace input { operation Foo() : Int { let lambda = (x, y) -> x + y; return lambda(1, 2); } }",
-    &expect![[r#"
-        [
-            NotCurrentlySupported(
-                "lambdas",
-                Span {
-                    lo: 55,
-                    hi: 70,
-                },
-            ),
-        ]
-    "#]],);
-}
-
-#[test]
 fn test_partial() {
     check(
         indoc! {"

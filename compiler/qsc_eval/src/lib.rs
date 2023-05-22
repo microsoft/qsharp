@@ -20,13 +20,14 @@ use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Field, Functor, Lit,
-    Mutability, NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody, SpecGen, Stmt,
-    StmtKind, StringComponent, TernOp, UnOp,
+    LocalItemId, Mutability, NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody,
+    SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
     convert::AsRef,
     fmt::Write,
+    iter,
     ops::Neg,
     ptr::null_mut,
     rc::Rc,
@@ -405,6 +406,10 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             ExprKind::BinOp(op, lhs, rhs) => self.cont_binop(*op, rhs, lhs),
             ExprKind::Block(block) => self.push_block(block),
             ExprKind::Call(callee_expr, args_expr) => self.cont_call(callee_expr, args_expr),
+            ExprKind::Closure(args, callable) => {
+                let closure = resolve_closure(self.package, self.env, expr.span, args, *callable)?;
+                self.push_val(closure);
+            }
             ExprKind::Conjugate(..) => panic!("conjugate should be eliminated by passes"),
             ExprKind::Err => panic!("error expr should not be present"),
             ExprKind::Fail(fail_expr) => self.cont_fail(expr.span, fail_expr),
@@ -415,7 +420,6 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.cont_if(cond_expr, then_block, else_expr.as_ref().map(AsRef::as_ref));
             }
             ExprKind::Index(arr, index) => self.cont_index(arr, index),
-            ExprKind::Lambda(..) => panic!("lambda expr should be disallowed by passes"),
             ExprKind::Lit(lit) => self.push_val(lit_to_val(lit)),
             ExprKind::Range(start, step, end) => self.cont_range(start, step, end),
             ExprKind::Repeat(..) => panic!("repeat-loop should be eliminated by passes"),
@@ -428,11 +432,11 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.cont_update_field(record, field, replace);
             }
             ExprKind::Var(res) => {
-                let val = resolve_binding(self.env, self.package, *res, expr.span)?;
-                self.push_val(val);
+                self.push_val(resolve_binding(self.env, self.package, *res, expr.span)?);
             }
             ExprKind::While(cond_expr, block) => self.cont_while(cond_expr, block),
         }
+
         Ok(())
     }
 
@@ -751,58 +755,48 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         Ok(())
     }
 
-    fn eval_call(&mut self, callee_span: Span, args_span: Span) -> Result<(), Error> {
-        let args_val = self.pop_val();
-        let call_val = self.pop_val();
-        let (call, functor) = value_to_call_id(&call_val);
-        let decl = match self.globals.get(call) {
-            Some(Global::Callable(decl)) => Ok(decl),
+    fn eval_call(&mut self, callee_span: Span, arg_span: Span) -> Result<(), Error> {
+        let arg = self.pop_val();
+        let (callee_id, functor, fixed_args) = match self.pop_val() {
+            Value::Closure(fixed_args, id, functor) => (id, functor, Some(fixed_args)),
+            Value::Global(id, functor) => (id, functor, None),
+            _ => panic!("value is not callable"),
+        };
+
+        let arg = if let Some(fixed_args) = fixed_args {
+            Value::Tuple(fixed_args.iter().cloned().chain(iter::once(arg)).collect())
+        } else {
+            arg
+        };
+
+        let callee = match self.globals.get(callee_id) {
+            Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
-                self.push_val(args_val);
+                self.push_val(arg);
                 return Ok(());
             }
-            None => Err(Error::Unbound(callee_span)),
-        }?;
+            None => return Err(Error::Unbound(callee_span)),
+        };
+
         let spec = spec_from_functor_app(functor);
-
-        self.push_frame(Some(callee_span), call, functor);
-
+        self.push_frame(Some(callee_span), callee_id, functor);
         self.push_scope();
-
-        match (&decl.body, spec) {
-            (CallableBody::Block(body_block), Spec::Body) => {
-                bind_value(self.env, &decl.input, args_val, Mutability::Immutable);
-                self.push_block(body_block);
+        match (&callee.body, spec) {
+            (CallableBody::Block(block), Spec::Body) => {
+                bind_value(self.env, &callee.input, arg, Mutability::Immutable);
+                self.push_block(block);
                 Ok(())
             }
-            (CallableBody::Specs(spec_decls), spec) => {
-                let spec_decl = spec_decls
-                    .iter()
-                    .find(|spec_decl| spec_decl.spec == spec)
-                    .map_or_else(
-                        || Err(Error::MissingSpec(spec, callee_span)),
-                        |spec_decl| Ok(&spec_decl.body),
-                    )?;
-                match spec_decl {
-                    SpecBody::Impl(pat, body_block) => {
-                        bind_args_for_spec(
-                            self.env,
-                            &decl.input,
-                            pat,
-                            args_val,
-                            functor.controlled,
-                        );
+            (CallableBody::Specs(specs), spec) => {
+                match &find_spec(callee_span, specs, spec)?.body {
+                    SpecBody::Impl(input, body_block) => {
+                        bind_args_for_spec(self.env, &callee.input, input, arg, functor.controlled);
                         self.push_block(body_block);
                         Ok(())
                     }
                     SpecBody::Gen(SpecGen::Intrinsic) => {
-                        let val = intrinsic::call(
-                            &decl.name.name,
-                            callee_span,
-                            args_val,
-                            args_span,
-                            self.out,
-                        )?;
+                        let name = &callee.name.name;
+                        let val = intrinsic::call(name, callee_span, arg, arg_span, self.out)?;
                         self.push_val(val);
                         Ok(())
                     }
@@ -929,7 +923,9 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         let val = self.pop_val();
         match op {
             UnOp::Functor(functor) => match val {
-                Value::Closure => panic!("closure should be disallowed by passes"),
+                Value::Closure(args, id, app) => {
+                    self.push_val(Value::Closure(args, id, update_functor_app(functor, app)));
+                }
                 Value::Global(id, app) => {
                     self.push_val(Value::Global(id, update_functor_app(functor, app)));
                 }
@@ -1013,12 +1009,7 @@ fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) {
     }
 }
 
-fn resolve_binding(
-    env: &mut Env,
-    package: PackageId,
-    res: Res,
-    span: Span,
-) -> Result<Value, Error> {
+fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Result<Value, Error> {
     Ok(match res {
         Res::Err => panic!("resolution error"),
         Res::Item(item) => Value::Global(
@@ -1102,12 +1093,30 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
     }
 }
 
-fn value_to_call_id(val: &Value) -> (GlobalId, FunctorApp) {
-    match val {
-        Value::Closure => panic!("closure not supported"),
-        Value::Global(global, functor) => (*global, *functor),
-        _ => panic!("value is not call id"),
-    }
+fn find_spec(span: Span, specs: &[SpecDecl], spec: Spec) -> Result<&SpecDecl, Error> {
+    specs
+        .iter()
+        .find(|s| s.spec == spec)
+        .ok_or(Error::MissingSpec(spec, span))
+}
+
+fn resolve_closure(
+    package: PackageId,
+    env: &Env,
+    span: Span,
+    args: &[NodeId],
+    callable: LocalItemId,
+) -> Result<Value, Error> {
+    let args: Option<_> = args
+        .iter()
+        .map(|&arg| Some(env.get(arg)?.value.clone()))
+        .collect();
+    let args: Vec<_> = args.ok_or(Error::Unbound(span))?;
+    let callable = GlobalId {
+        package,
+        item: callable,
+    };
+    Ok(Value::Closure(args.into(), callable, FunctorApp::default()))
 }
 
 fn lit_to_val(lit: &Lit) -> Value {
