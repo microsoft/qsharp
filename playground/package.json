@@ -8,6 +8,7 @@
   "scripts": {
     "build": "npm run tsc:check && node build.js",
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
+    "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch",
     "start": "node build.js --serve"
   }
 }
