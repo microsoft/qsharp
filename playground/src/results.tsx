@@ -95,8 +95,8 @@ function ResultsTab(props: {
       const newResult = !replaceResult
         ? currentResult
         : !updatedResult
-          ? undefined
-          : {
+        ? undefined
+        : {
             success: updatedResult.success,
             result: updatedResult.result,
             events: [...updatedResult.events],
@@ -159,9 +159,9 @@ function ResultsTab(props: {
     typeof resultState.currResult?.result === "string"
       ? resultToLabel(resultState.currResult?.result || "")
       : `ERROR: ${resultState.currResult?.result.message.replace(
-        /\\n/g,
-        "\n"
-      )}`;
+          /\\n/g,
+          "\n"
+        )}`;
 
   function moveToIndex(idx: number, filter: string) {
     const results = evtTarget.getResults();
@@ -211,62 +211,53 @@ function ResultsTab(props: {
     if (currIndex < countForFilter - 1) moveToIndex(currIndex + 1, filterValue);
   }
 
-  return (
-    props.activeTab === "results-tab" ?
-      <div>
-        {!resultState.shotCount ? null : (
-          <>
-            {resultState.buckets.size > 1 ? (
-              <Histogram
-                data={resultState.buckets}
-                filter={filterValue}
-                onFilter={(val: string) => moveToIndex(0, val)}
-              ></Histogram>
-            ) : null}
-            {props.kataMode ? null : (
-              <>
-                <div class="output-header">
-                  <div>
-                    Shot {currIndex + 1} of {countForFilter}
-                  </div>
-                  <div class="prev-next">
-                    <span onClick={onPrev}>Prev</span> |{" "}
-                    <span onClick={onNext}>Next</span>
-                  </div>
+  return props.activeTab === "results-tab" ? (
+    <div>
+      {!resultState.shotCount ? null : (
+        <>
+          {resultState.buckets.size > 1 ? (
+            <Histogram
+              data={resultState.buckets}
+              filter={filterValue}
+              onFilter={(val: string) => moveToIndex(0, val)}
+            ></Histogram>
+          ) : null}
+          {props.kataMode ? null : (
+            <>
+              <div class="output-header">
+                <div>
+                  Shot {currIndex + 1} of {countForFilter}
                 </div>
-                <div class="result-label">Result: {resultLabel}</div>
-              </>
-            )}
-            <div name="test">
-              {resultState.currResult?.events.map((evt) => {
-                return evt.type === "Message" ? (
-                  <div class="message-output">&gt; {evt.message}</div>
-                ) : (
-                  <StateTable dump={evt.state}></StateTable>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
-      : null
-  );
+                <div class="prev-next">
+                  <span onClick={onPrev}>Prev</span> |{" "}
+                  <span onClick={onNext}>Next</span>
+                </div>
+              </div>
+              <div class="result-label">Result: {resultLabel}</div>
+            </>
+          )}
+          <div name="test">
+            {resultState.currResult?.events.map((evt) => {
+              return evt.type === "Message" ? (
+                <div class="message-output">&gt; {evt.message}</div>
+              ) : (
+                <StateTable dump={evt.state}></StateTable>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  ) : null;
 }
 
-function HirTab(props: {
-  evtTarget: QscEventTarget;
-  activeTab: string;
-}) {
+function HirTab(props: { evtTarget: QscEventTarget; activeTab: string }) {
   const evtTarget = props.evtTarget;
   const hir = evtTarget.getHir();
 
-  return (
-    props.activeTab === "hir-tab" ?
-      <pre class="hir-output">
-        {hir}
-      </pre>
-      : null
-  );
+  return props.activeTab === "hir-tab" ? (
+    <pre class="hir-output">{hir}</pre>
+  ) : null;
 }
 
 function TabNavItem(props: {
@@ -275,13 +266,16 @@ function TabNavItem(props: {
   activeTab: string;
   setActiveTab: StateUpdater<string>;
 }) {
-
   const handleClick = () => {
     props.setActiveTab(props.id);
   };
 
   return (
-    <div id={props.id} onClick={handleClick} class={props.activeTab === props.id ? "results-active-tab" : ""}>
+    <div
+      id={props.id}
+      onClick={handleClick}
+      class={props.activeTab === props.id ? "results-active-tab" : ""}
+    >
       {props.title}
     </div>
   );
@@ -299,9 +293,24 @@ export function OutputTabs(props: {
     <div class="results-column">
       {props.showPanel ? (
         <div class="results-labels">
-          <TabNavItem id="results-tab" title="RESULTS" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <TabNavItem id="hir-tab" title="HIR" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <TabNavItem id="logs-tab" title="LOGS" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <TabNavItem
+            id="results-tab"
+            title="RESULTS"
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+          <TabNavItem
+            id="hir-tab"
+            title="HIR"
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+          <TabNavItem
+            id="logs-tab"
+            title="LOGS"
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
         </div>
       ) : null}
       <ResultsTab {...props} activeTab={activeTab} />
