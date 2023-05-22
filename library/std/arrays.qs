@@ -483,10 +483,10 @@ namespace Microsoft.Quantum.Arrays {
             if partitionEndIndex >= Length(array) {
                 fail "Partitioned argument out of bounds.";
             }
-            set output w/= index <- array[partitionStartIndex..partitionEndIndex - 1];
+            set output w/= index <- array[partitionStartIndex .. partitionEndIndex];
             set partitionStartIndex = partitionEndIndex + 1;
         }
-        set output w/= Length(partitionSizes) <- array[partitionStartIndex..Length(array) - 1];
+        set output w/= Length(partitionSizes) <- array[partitionStartIndex .. Length(array) - 1];
         output
     }
 
@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.Arrays {
         mutable array = [];
         let arrayLength = (to - from) + 1;
         let initialInteger = 0 + from;
-        for index in 0 .. arrayLength {
+        for index in 0 .. arrayLength - 1 {
             set array += [initialInteger + index];
         }
         array
