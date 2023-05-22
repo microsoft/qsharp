@@ -28,8 +28,18 @@ const PRELUDE: &[&str] = &[
 ];
 
 pub(super) struct Table {
-    pub(super) names: IndexMap<NodeId, Res>,
-    pub(super) next_id: LocalItemId,
+    names: IndexMap<NodeId, Res>,
+    next_item: LocalItemId,
+}
+
+impl Table {
+    pub(super) fn names(&self) -> &IndexMap<NodeId, Res> {
+        &self.names
+    }
+
+    pub(super) fn next_item(&mut self) -> LocalItemId {
+        next_item(&mut self.next_item)
+    }
 }
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
@@ -216,13 +226,13 @@ impl Resolver {
         match &item.kind {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias.as_ref()),
             ast::ItemKind::Callable(decl) if !self.resolutions.names.contains_key(decl.name.id) => {
-                let id = next_item_id(&mut self.resolutions.next_id);
+                let id = intrapackage(self.resolutions.next_item());
                 self.resolutions.names.insert(decl.name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
             ast::ItemKind::Ty(name, _) if !self.resolutions.names.contains_key(name.id) => {
-                let id = next_item_id(&mut self.resolutions.next_id);
+                let id = intrapackage(self.resolutions.next_item());
                 self.resolutions.names.insert(name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), id);
@@ -236,17 +246,17 @@ impl Resolver {
 impl AstVisitor<'_> for Resolver {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
         if !self.resolutions.names.contains_key(namespace.name.id) {
-            self.resolutions.names.insert(
-                namespace.name.id,
-                Res::Item(next_item_id(&mut self.resolutions.next_id)),
-            );
+            let id = self.resolutions.next_item();
+            self.resolutions
+                .names
+                .insert(namespace.name.id, Res::Item(intrapackage(id)));
 
             for item in &namespace.items {
                 bind_global_item(
                     &mut self.resolutions.names,
                     &mut self.globals,
                     &namespace.name.name,
-                    || next_item_id(&mut self.resolutions.next_id),
+                    || intrapackage(next_item(&mut self.resolutions.next_item)),
                     item,
                 );
             }
@@ -391,7 +401,7 @@ impl GlobalTable {
         Self {
             resolutions: Table {
                 names: IndexMap::new(),
-                next_id: LocalItemId::default(),
+                next_item: LocalItemId::default(),
             },
             scope: GlobalScope { tys, terms },
         }
@@ -399,17 +409,17 @@ impl GlobalTable {
 
     pub(super) fn add_local_package(&mut self, package: &ast::Package) {
         for namespace in &package.namespaces {
-            self.resolutions.names.insert(
-                namespace.name.id,
-                Res::Item(next_item_id(&mut self.resolutions.next_id)),
-            );
+            let id = self.resolutions.next_item();
+            self.resolutions
+                .names
+                .insert(namespace.name.id, Res::Item(intrapackage(id)));
 
             for item in &namespace.items {
                 bind_global_item(
                     &mut self.resolutions.names,
                     &mut self.scope,
                     &namespace.name.name,
-                    || next_item_id(&mut self.resolutions.next_id),
+                    || intrapackage(next_item(&mut self.resolutions.next_item)),
                     item,
                 );
             }
@@ -503,15 +513,6 @@ fn bind_global_item(
         }
         ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
     }
-}
-
-fn next_item_id(local_id: &mut LocalItemId) -> ItemId {
-    let item_id = ItemId {
-        package: None,
-        item: *local_id,
-    };
-    *local_id = local_id.successor();
-    item_id
 }
 
 fn resolve(
@@ -634,6 +635,19 @@ fn resolve_explicit_opens<'a>(
         }
     }
     candidates
+}
+
+fn next_item(id: &mut LocalItemId) -> LocalItemId {
+    let next = *id;
+    *id = next.successor();
+    next
+}
+
+fn intrapackage(item: LocalItemId) -> ItemId {
+    ItemId {
+        package: None,
+        item,
+    }
 }
 
 fn single<T>(xs: impl IntoIterator<Item = T>) -> Option<T> {

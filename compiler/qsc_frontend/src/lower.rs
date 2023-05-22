@@ -110,7 +110,7 @@ impl With<'_> {
     pub(super) fn lower_namespace(&mut self, namespace: &ast::Namespace) {
         let Some(&resolve::Res::Item(hir::ItemId {
             item: id, ..
-        })) = self.resolutions.names.get(namespace.name.id) else {
+        })) = self.resolutions.names().get(namespace.name.id) else {
             panic!("namespace should have item ID");
         };
 
@@ -149,7 +149,7 @@ impl With<'_> {
             ItemScope::Local => hir::Visibility::Internal,
         };
 
-        let resolve_id = |id| match self.resolutions.names.get(id) {
+        let resolve_id = |id| match self.resolutions.names().get(id) {
             Some(&resolve::Res::Item(hir::ItemId { item, .. })) => item,
             _ => panic!("item should have item ID"),
         };
@@ -219,7 +219,7 @@ impl With<'_> {
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
-            output: convert::ty_from_ast(&self.resolutions.names, &decl.output).0,
+            output: convert::ty_from_ast(self.resolutions.names(), &decl.output).0,
             functors: callable_functors(decl),
             body: match &decl.body {
                 ast::CallableBody::Block(block) => {
@@ -338,7 +338,7 @@ impl With<'_> {
                 Box::new(self.lower_expr(rhs)),
             ),
             ast::ExprKind::AssignUpdate(container, index, replace) => {
-                if let Some(field) = resolve::extract_field_name(&self.resolutions.names, index) {
+                if let Some(field) = resolve::extract_field_name(self.resolutions.names(), index) {
                     let container = self.lower_expr(container);
                     let field = self.lower_field(&container.ty, field);
                     let replace = self.lower_expr(replace);
@@ -418,7 +418,7 @@ impl With<'_> {
                 )
             }
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace) => {
-                if let Some(field) = resolve::extract_field_name(&self.resolutions.names, index) {
+                if let Some(field) = resolve::extract_field_name(self.resolutions.names(), index) {
                     let record = self.lower_expr(container);
                     let field = self.lower_field(&record.ty, field);
                     let replace = self.lower_expr(replace);
@@ -474,8 +474,7 @@ impl With<'_> {
             self.lowerer.errors.push(Error::MutableClosure(span));
         }
 
-        let id = self.resolutions.next_id;
-        self.resolutions.next_id = id.successor();
+        let id = self.resolutions.next_item();
         self.lowerer.items.push(hir::Item {
             id,
             span,
@@ -516,7 +515,7 @@ impl With<'_> {
 
         let id = self.lower_id(pat.id);
         let ty = self.tys.terms.get(pat.id).map_or_else(
-            || convert::ast_pat_ty(&self.resolutions.names, pat).0,
+            || convert::ast_pat_ty(self.resolutions.names(), pat).0,
             Clone::clone,
         );
 
@@ -583,7 +582,7 @@ impl With<'_> {
     }
 
     fn lower_path(&mut self, path: &ast::Path) -> hir::Res {
-        match self.resolutions.names.get(path.id) {
+        match self.resolutions.names().get(path.id) {
             Some(&resolve::Res::Item(item)) => hir::Res::Item(item),
             Some(&resolve::Res::Local(node)) => hir::Res::Local(self.lower_id(node)),
             Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy) | None => hir::Res::Err,

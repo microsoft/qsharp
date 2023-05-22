@@ -414,7 +414,7 @@ fn typeck_all(
     }
 
     let mut checker = Checker::new(globals);
-    checker.check_package(&resolutions.names, package);
+    checker.check_package(resolutions.names(), package);
     checker.into_tys()
 }
 
