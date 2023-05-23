@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.Arrays {
         let firstLength = Length(first);
         let secondLength = Length(second);
         Fact(
-            firstLength >= secondLength and firstLength - secondLength <= 1,
+            firstLength == secondLength or firstLength == secondLength + 1,
             "Array `first` must either be of same size as `second` or have one more element");
 
         if firstLength == 0 {
