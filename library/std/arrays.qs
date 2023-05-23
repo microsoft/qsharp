@@ -525,10 +525,8 @@ namespace Microsoft.Quantum.Arrays {
     function SequenceI (from : Int, to : Int) : Int[] {
         Fact(to >= from, $"`to` must be larger than `from`.");
         mutable array = [];
-        let arrayLength = (to - from) + 1;
-        let initialInteger = 0 + from;
-        for index in 0 .. arrayLength - 1 {
-            set array += [initialInteger + index];
+        for index in from .. to {
+            set array += [index];
         }
         array
     }
