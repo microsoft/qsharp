@@ -315,8 +315,8 @@ namespace Microsoft.Quantum.Arrays {
     function IsRectangularArray<'T>(array : 'T[][]) : Bool {
         if (Length(array) > 0) {
             let columnCount = Length(Head(array));
-            for index in IndexRange(Rest(array)) {
-                if Length(array[index+1]) != columnCount {
+            for index in 1 .. Length(array) - 1 {
+                if Length(array[index]) != columnCount {
                     return false;
                 }
             }
