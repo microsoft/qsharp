@@ -171,36 +171,16 @@ namespace Microsoft.Quantum.Arrays {
     /// ```
     function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[] {
         let nElements = Length(array);
-        mutable toKeep = [true, size = nElements];
+        mutable toKeep = Repeated(true, nElements);
         for indexToRemove in remove {
-            if indexToRemove >= nElements {
-                fail "Index to remove is out of bound";
-            }
             set toKeep w/= indexToRemove <- false;
         }
-
-        // N.B. This would be better using the `Count` function once it is implemented.
-        mutable outputCount = 0;
-        for keep in toKeep {
-            if keep {
-                set outputCount += 1;
+        mutable output = [];
+        for i in 0 .. nElements - 1 {
+            if toKeep[i] {
+                set output += [array[i]];
             }
         }
-
-        if (outputCount == 0)
-        {
-            return [];
-        }
-
-        mutable output = [array[0], size = outputCount];
-        mutable outputIndex = 0;
-        for index in 0 .. nElements - 1 {
-            if toKeep[index] {
-                set output w/= outputIndex <- array[index];
-                set outputIndex += 1;
-            }
-        }
-
         output
     }
 
