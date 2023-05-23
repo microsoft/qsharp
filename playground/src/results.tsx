@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { QscEventTarget, ShotResult, VSDiagnostic } from "qsharp";
-import { StateUpdater, useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import { Histogram } from "./histo.js";
 import { StateTable } from "./state.js";
@@ -52,7 +52,7 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
   return true;
 }
 
-function ResultsTab(props: {
+export function ResultsTab(props: {
   evtTarget: QscEventTarget;
   onShotError?: (err?: VSDiagnostic) => void;
   kataMode?: boolean;
@@ -95,8 +95,8 @@ function ResultsTab(props: {
       const newResult = !replaceResult
         ? currentResult
         : !updatedResult
-        ? undefined
-        : {
+          ? undefined
+          : {
             success: updatedResult.success,
             result: updatedResult.result,
             events: [...updatedResult.events],
@@ -159,9 +159,9 @@ function ResultsTab(props: {
     typeof resultState.currResult?.result === "string"
       ? resultToLabel(resultState.currResult?.result || "")
       : `ERROR: ${resultState.currResult?.result.message.replace(
-          /\\n/g,
-          "\n"
-        )}`;
+        /\\n/g,
+        "\n"
+      )}`;
 
   function moveToIndex(idx: number, filter: string) {
     const results = evtTarget.getResults();
@@ -236,7 +236,7 @@ function ResultsTab(props: {
               <div class="result-label">Result: {resultLabel}</div>
             </>
           )}
-          <div name="test">
+          <div>
             {resultState.currResult?.events.map((evt) => {
               return evt.type === "Message" ? (
                 <div class="message-output">&gt; {evt.message}</div>
@@ -249,72 +249,4 @@ function ResultsTab(props: {
       )}
     </div>
   ) : null;
-}
-
-function HirTab(props: { evtTarget: QscEventTarget; activeTab: string }) {
-  const evtTarget = props.evtTarget;
-  const hir = evtTarget.getHir();
-
-  return props.activeTab === "hir-tab" ? (
-    <pre class="hir-output">{hir}</pre>
-  ) : null;
-}
-
-function TabNavItem(props: {
-  id: string;
-  title: string;
-  activeTab: string;
-  setActiveTab: StateUpdater<string>;
-}) {
-  const handleClick = () => {
-    props.setActiveTab(props.id);
-  };
-
-  return (
-    <div
-      id={props.id}
-      onClick={handleClick}
-      class={props.activeTab === props.id ? "results-active-tab" : ""}
-    >
-      {props.title}
-    </div>
-  );
-}
-
-export function OutputTabs(props: {
-  evtTarget: QscEventTarget;
-  showPanel: boolean;
-  onShotError?: (err?: VSDiagnostic) => void;
-  kataMode?: boolean;
-}) {
-  const [activeTab, setActiveTab] = useState("results-tab");
-
-  return (
-    <div class="results-column">
-      {props.showPanel ? (
-        <div class="results-labels">
-          <TabNavItem
-            id="results-tab"
-            title="RESULTS"
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-          <TabNavItem
-            id="hir-tab"
-            title="HIR"
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-          <TabNavItem
-            id="logs-tab"
-            title="LOGS"
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-        </div>
-      ) : null}
-      <ResultsTab {...props} activeTab={activeTab} />
-      <HirTab {...props} activeTab={activeTab} />
-    </div>
-  );
 }

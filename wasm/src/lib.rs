@@ -339,7 +339,6 @@ where
         .hir()
         .replace('\\', r#"\\"#)
         .replace('\"', r#"\""#)
-        .replace('\'', r#"\'"#)
         .replace('\t', r#"\t"#)
         .replace('\n', r#"\n"#)
         .replace('\r', r#"\r"#);
@@ -462,7 +461,7 @@ mod test {
             },
             2,
         );
-        assert_eq!(count.get(), 2);
+        assert_eq!(count.get(), 3);
     }
 
     #[test]
@@ -545,9 +544,11 @@ mod test {
             code,
             expr,
             |msg| {
-                assert!(msg.contains(r#""type": "Result", "success": false"#));
-                assert!(msg.contains(r#""message": "entry point not found"#));
-                assert!(msg.contains(r#""start_pos": 0"#));
+                if msg.contains(r#""type": "Result""#) {
+                    assert!(msg.contains(r#""success": false"#));
+                    assert!(msg.contains(r#""message": "entry point not found"#));
+                    assert!(msg.contains(r#""start_pos": 0"#));
+                }
             },
             1,
         );

@@ -17,7 +17,7 @@ import {
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
-import { OutputTabs } from "./results.js";
+import { OutputTabs } from "./tabs.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
 import { compressedBase64ToCode } from "./utils.js";
