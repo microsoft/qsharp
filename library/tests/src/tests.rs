@@ -1125,6 +1125,41 @@ fn check_measure_each_z() {
 }
 
 #[test]
+fn check_mreset_each_z() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[3];
+            X(register[0]);
+            X(register[2]);
+            let resultsA = Microsoft.Quantum.Measurement.MResetEachZ(register);
+            let resultsB = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            (resultsA, resultsB)
+        }"#},
+        &Value::Tuple(
+            vec![
+                Value::Array(
+                    vec![
+                        Value::Result(true),
+                        Value::Result(false),
+                        Value::Result(true),
+                    ]
+                    .into(),
+                ),
+                Value::Array(
+                    vec![
+                        Value::Result(false),
+                        Value::Result(false),
+                        Value::Result(false),
+                    ]
+                    .into(),
+                ),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_mreset_x() {
     run_stdlib_test(
         indoc! {r#"{
