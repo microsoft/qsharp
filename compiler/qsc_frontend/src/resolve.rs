@@ -46,6 +46,9 @@ pub(super) enum Res {
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
+    #[error("namespace `{0}` not found")]
+    NamespaceNotFound(String, #[label] Span),
+
     #[error("`{0}` not found in this scope")]
     NotFound(String, #[label] Span),
 
@@ -192,10 +195,15 @@ impl Resolver {
     fn bind_open(&mut self, name: &ast::Ident, alias: &Option<Box<ast::Ident>>) {
         let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
         let scope = self.scopes.last_mut().expect("open item should have scope");
-        scope.opens.entry(alias).or_default().push(Open {
-            namespace: Rc::clone(&name.name),
-            span: name.span,
-        });
+        if self.globals.terms.contains_key(&name.name) {
+            scope.opens.entry(alias).or_default().push(Open {
+                namespace: Rc::clone(&name.name),
+                span: name.span,
+            });
+        } else {
+            self.errors
+                .push(Error::NamespaceNotFound(name.to_string(), name.span));
+        }
     }
 
     fn bind_local_item_if_new(&mut self, assigner: &mut Assigner, item: &ast::Item) {

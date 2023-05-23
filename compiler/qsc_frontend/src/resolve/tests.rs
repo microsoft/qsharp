@@ -1496,3 +1496,55 @@ fn update_udt_unknown_field_name_known_global() {
         "#]],
     );
 }
+
+#[test]
+fn unknown_namespace() {
+    check(
+        indoc! {"
+            namespace A {
+                open Microsoft.Quantum.Fake;
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                open Microsoft.Quantum.Fake;
+            }
+
+            // NamespaceNotFound("Ident 4 [23-45] \"Microsoft.Quantum.Fake\"", Span { lo: 23, hi: 45 })
+        "#]],
+    );
+}
+
+#[test]
+fn cyclic_namespace_dependency_supported() {
+    check(
+        indoc! {"
+            namespace A {
+                open B;
+                operation Foo() : Unit {
+                    Bar();
+                }
+            }
+            namespace B {
+                open A;
+                operation Bar() : Unit {
+                    Foo();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                open B;
+                operation item1() : Unit {
+                    item3();
+                }
+            }
+            namespace item2 {
+                open A;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
