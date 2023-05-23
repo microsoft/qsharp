@@ -322,8 +322,8 @@ fn block_qubit_use_array_invalid_count_expr() {
                 UserFail(
                     "Cannot allocate qubit array with a negative length",
                     Span {
-                        lo: 758,
-                        hi: 815,
+                        lo: 1566,
+                        hi: 1623,
                     },
                 ),
                 CallStack {
@@ -340,7 +340,7 @@ fn block_qubit_use_array_invalid_count_expr() {
                                     0,
                                 ),
                                 item: LocalItemId(
-                                    5,
+                                    6,
                                 ),
                             },
                             caller: PackageId(
