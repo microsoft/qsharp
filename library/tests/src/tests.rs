@@ -594,54 +594,6 @@ fn check_diagnonal() {
 }
 
 #[test]
-fn check_element_at() {
-    run_stdlib_test("Microsoft.Quantum.Arrays.ElementAt(0, [0])", &Value::Int(0));
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.ElementAt(1, [0, 2, 4])",
-        &Value::Int(2),
-    );
-
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.ElementAt(5, [2, 3, 5, 7, 11, 13, 17, 19, 23, 29])",
-        &Value::Int(13),
-    );
-
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.ElementAt(9, [0, 1, 1, 2, 3, 5, 8, 13, 21, 34])",
-        &Value::Int(34),
-    );
-}
-
-#[test]
-fn check_elements_at() {
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.ElementsAt(0..0, [0])",
-        &Value::Array(vec![Value::Int(0)].into()),
-    );
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.ElementsAt(0..1, [0, 2, 4])",
-        &Value::Array(vec![Value::Int(0), Value::Int(2)].into()),
-    );
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.ElementsAt(1..2..9, [2, 3, 5, 7, 11, 13, 17, 19, 23, 29])",
-        &Value::Array(
-            vec![
-                Value::Int(3),
-                Value::Int(7),
-                Value::Int(13),
-                Value::Int(19),
-                Value::Int(29),
-            ]
-            .into(),
-        ),
-    );
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.ElementsAt(0..3..9, [0, 1, 1, 2, 3, 5, 8, 13, 21, 34])",
-        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(8), Value::Int(34)].into()),
-    );
-}
-
-#[test]
 fn check_excluding() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Excluding([], [])",

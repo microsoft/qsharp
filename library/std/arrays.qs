@@ -71,45 +71,6 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
-    /// Returns the at the given index of an array.
-    ///
-    /// # Type Parameters
-    /// ## 'T
-    /// The type of each element of `array`.
-    ///
-    /// # Input
-    /// ## index
-    /// Index of element.
-    /// ## array
-    /// The array being indexed.
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Arrays.ElementsAt
-    function ElementAt<'T>(index : Int, array : 'T[]) : 'T {
-        array[index]
-    }
-
-    /// # Summary
-    /// Returns the array's elements at a given range
-    /// of indices.
-    ///
-    /// # Type Parameters
-    /// ## 'T
-    /// The type of each element of `array`.
-    ///
-    /// # Input
-    /// ## range
-    /// Range of array indexes.
-    /// ## array
-    /// The array being indexed.
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Arrays.ElementAt
-    function ElementsAt<'T>(range : Range, array : 'T[]) : 'T[] {
-        array[range]
-    }
-
-    /// # Summary
     /// Returns an array containing the elements of another array,
     /// excluding elements at a given list of indices.
     ///
