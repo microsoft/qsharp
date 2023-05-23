@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.Arrays {
     /// ## chunkSize
     /// The length of each chunk. Must be positive.
     /// ## array
-    /// The array to be split in chunks
+    /// The array to be split in chunks.
     ///
     /// # Output
     /// A array containing each chunk of the original array.
@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## matrix
-    /// 2-dimensional matrix in row-wise order
+    /// 2-dimensional matrix in row-wise order.
     ///
     /// # Example
     /// ```qsharp
@@ -79,33 +79,13 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## index
-    /// Index of element
+    /// Index of element.
     /// ## array
     /// The array being indexed.
     ///
-    /// # Remark
-    /// This function is more general than `LookupFunction`, since
-    /// it can also be used for partial application on a fixed index.
-    /// Note that the type parameter must explicitly be provided in
-    /// this case as it cannot be deduced automatically.
-    ///
-    /// # Example
-    /// Get the third number in four famous integer sequences. (note
-    /// that the 0 index corresponds to the _first_ value of the sequence.)
-    /// ```qsharp
-    /// let lucas = [2, 1, 3, 4, 7, 11, 18, 29, 47, 76];
-    /// let prime = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
-    /// let fibonacci = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
-    /// let catalan = [1, 1, 2, 5, 14, 42, 132, 429, 1430, 4862];
-    /// let famous2 = Mapped(ElementAt<Int>(2, _), [lucas, prime, fibonacci, catalan]);
-    /// // same as: famous2 = [3, 5, 1, 2]
-    /// ```
-    ///
     /// # See Also
-    /// - Microsoft.Quantum.Arrays.LookupFunction
     /// - Microsoft.Quantum.Arrays.ElementsAt
     function ElementAt<'T>(index : Int, array : 'T[]) : 'T {
-        Fact(index >= 0 and index < Length(array), "`index` is out of bound");
         array[index]
     }
 
@@ -119,25 +99,12 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## range
-    /// Range of array indexes
+    /// Range of array indexes.
     /// ## array
-    /// Array
-    ///
-    /// # Example
-    /// Get the odd indexes in famous integer sequences. (note
-    /// that the 0 index corresponds to the _first_ value of the sequence.)
-    /// ```qsharp
-    /// let lucas = [2, 1, 3, 4, 7, 11, 18, 29, 47, 76];
-    /// let prime = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
-    /// let fibonacci = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
-    /// let catalan = [1, 1, 2, 5, 14, 42, 132, 429, 1430, 4862];
-    /// let famousOdd = Mapped(ElementsAt<Int>(0..2..9, _), [lucas, prime, fibonacci, catalan]);
-    /// // same as: famousOdd = [[2, 3, 7, 18, 47], [2, 5, 11, 17, 23], [0, 1, 3, 8, 21], [1, 2, 14, 132, 1430]]
-    /// ```
+    /// The array being indexed.
     ///
     /// # See Also
     /// - Microsoft.Quantum.Arrays.ElementAt
-    /// - Microsoft.Quantum.Arrays.LookupFunction
     function ElementsAt<'T>(range : Range, array : 'T[]) : 'T[] {
         array[range]
     }
@@ -152,7 +119,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## remove
-    /// An array of indices denoting which elements should be excluded
+    /// An array of indices denoting which elements should be excluded.
     /// from the output.
     /// ## array
     /// Array of which the values in the output array are taken.
@@ -170,15 +137,15 @@ namespace Microsoft.Quantum.Arrays {
     /// let subarray = Excluding([1, 3, 4], array);
     /// ```
     function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[] {
-        let nElements = Length(array);
-        mutable toKeep = Repeated(true, nElements);
+        let arrayLength = Length(array);
+        mutable toKeep = Repeated(true, arrayLength);
         for indexToRemove in remove {
             set toKeep w/= indexToRemove <- false;
         }
         mutable output = [];
-        for i in 0 .. nElements - 1 {
-            if toKeep[i] {
-                set output += [array[i]];
+        for index in 0 .. arrayLength - 1 {
+            if toKeep[index] {
+                set output += [array[index]];
             }
         }
         output
@@ -198,7 +165,6 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The first element of the array.
     function Head<'A> (array : 'A[]) : 'A {
-        Fact(not IsEmpty(array), "`array` must not be empty");
         array[0]
     }
 
@@ -298,7 +264,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## array
-    /// A 2-dimensional array of elements
+    /// A 2-dimensional array of elements.
     ///
     /// # Output
     /// `true` if the array is rectangular, `false` otherwise.
@@ -334,7 +300,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## array
-    /// A 2-dimensional array of elements
+    /// A 2-dimensional array of elements.
     ///
     /// # Example
     /// ```qsharp
@@ -586,10 +552,10 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## matrix
-    /// Row-based $r \times c$ matrix
+    /// Row-based $r \times c$ matrix.
     ///
     /// # Output
-    /// Transposed $c \times r$ matrix
+    /// Transposed $c \times r$ matrix.
     ///
     /// # Example
     /// ```qsharp
@@ -627,7 +593,6 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// The last element of the array.
     function Tail<'A> (array : 'A[]) : 'A {
-        Fact(not IsEmpty(array), "`array` must not be empty");
         array[Length(array) - 1]
     }
 
@@ -637,13 +602,13 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Type Parameters
     /// ## 'T
-    /// The type of the first element in each tuple
+    /// The type of the first element in each tuple.
     /// ## 'U
-    /// The type of the second element in each tuple
+    /// The type of the second element in each tuple.
     ///
     /// # Input
     /// ## array
-    /// An array containing 2-tuples
+    /// An array containing 2-tuples.
     ///
     /// # Output
     /// Two arrays, the first one containing all first elements of the input

@@ -897,8 +897,8 @@ fn qubit_not_unique_two_qubit_error() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 55683,
-                    hi: 55700,
+                    lo: 53007,
+                    hi: 53024,
                 },
             )
         "#]],
@@ -916,8 +916,8 @@ fn qubit_not_unique_two_qubit_rotation_error() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 68586,
-                    hi: 68609,
+                    lo: 65910,
+                    hi: 65933,
                 },
             )
         "#]],
@@ -936,8 +936,8 @@ fn qubit_not_unique_three_qubit_error_first_second() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 54639,
-                    hi: 54667,
+                    lo: 51963,
+                    hi: 51991,
                 },
             )
         "#]],
@@ -956,8 +956,8 @@ fn qubit_not_unique_three_qubit_error_first_third() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 54639,
-                    hi: 54667,
+                    lo: 51963,
+                    hi: 51991,
                 },
             )
         "#]],
@@ -976,8 +976,8 @@ fn qubit_not_unique_three_qubit_error_second_third() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 54639,
-                    hi: 54667,
+                    lo: 51963,
+                    hi: 51991,
                 },
             )
         "#]],
