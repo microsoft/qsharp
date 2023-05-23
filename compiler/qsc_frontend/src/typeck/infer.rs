@@ -314,10 +314,6 @@ impl<'a> Solver<'a> {
         let mut constraints = Vec::new();
 
         let mut bind = |var, ty| {
-            if contains_infer_ty(var, &ty) {
-                return Err(UnifyError(Ty::Infer(var), ty));
-            }
-
             self.substs.insert(var, ty);
             if let Some(classes) = self.pending.remove(&var) {
                 constraints.extend(
@@ -326,8 +322,6 @@ impl<'a> Solver<'a> {
                         .map(|class| Constraint::Class(class, span)),
                 );
             }
-
-            Ok(())
         };
 
         match unify(&expected, &actual, &mut bind) {
@@ -373,11 +367,7 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
     ty
 }
 
-fn unify(
-    ty1: &Ty,
-    ty2: &Ty,
-    bind: &mut impl FnMut(InferId, Ty) -> Result<(), UnifyError>,
-) -> Result<(), UnifyError> {
+fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
         (Ty::Err, _)
         | (_, Ty::Err)
@@ -395,8 +385,10 @@ fn unify(
             Ok(())
         }
         (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Ok(()),
-        (&Ty::Infer(infer), _) => bind(infer, ty2.clone()),
-        (_, &Ty::Infer(infer)) => bind(infer, ty1.clone()),
+        (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
+            bind(infer, ty.clone());
+            Ok(())
+        }
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
         (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(()),
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
