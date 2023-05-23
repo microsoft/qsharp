@@ -264,21 +264,15 @@ namespace Microsoft.Quantum.Arrays {
             firstLength == secondLength or firstLength == secondLength + 1,
             "Array `first` must either be of same size as `second` or have one more element");
 
-        if firstLength == 0 {
-            return [];
-        }
-
         let interleavedLength = firstLength + secondLength;
-        mutable interleaved = [first[0], size = interleavedLength];
-        for index in 0 .. interleavedLength - 1 {
+        mutable interleaved = [];
+        for index in 0..interleavedLength - 1 {
             let originalIndex = index / 2;
             let value =
                 if index % 2 == 0 {first[originalIndex]}
                 else {second[originalIndex]};
-
-            set interleaved w/= index <- value;
+            set interleaved += [value];
         }
-
         interleaved
     }
 
