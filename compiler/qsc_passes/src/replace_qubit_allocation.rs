@@ -182,7 +182,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn gen_ident(&mut self, ty: Ty, span: Span) -> IdentTemplate {
-        let id = self.assigner.next_id();
+        let id = self.assigner.next_node();
         IdentTemplate {
             id,
             span,

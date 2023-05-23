@@ -2,32 +2,40 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Block, CallableDecl, Expr, Ident, NodeId, Pat, QubitInit, SpecDecl, Stmt},
+    hir::{Block, CallableDecl, Expr, Ident, LocalItemId, NodeId, Pat, QubitInit, SpecDecl, Stmt},
     mut_visit::{self, MutVisitor},
 };
 
 #[derive(Debug)]
 pub struct Assigner {
-    next_id: NodeId,
+    next_node: NodeId,
+    next_item: LocalItemId,
 }
 
 impl Assigner {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            next_id: NodeId::FIRST,
+            next_node: NodeId::FIRST,
+            next_item: LocalItemId::default(),
         }
     }
 
-    pub fn next_id(&mut self) -> NodeId {
-        let id = self.next_id;
-        self.next_id = self.next_id.successor();
+    pub fn next_node(&mut self) -> NodeId {
+        let id = self.next_node;
+        self.next_node = id.successor();
+        id
+    }
+
+    pub fn next_item(&mut self) -> LocalItemId {
+        let id = self.next_item;
+        self.next_item = id.successor();
         id
     }
 
     fn assign(&mut self, id: &mut NodeId) {
         if id.is_default() {
-            *id = self.next_id();
+            *id = self.next_node();
         }
     }
 }

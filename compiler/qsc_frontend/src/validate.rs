@@ -31,9 +31,6 @@ struct Validator {
 impl Visitor<'_> for Validator {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
-            ExprKind::Lambda(..) => self
-                .errors
-                .push(Error::NotCurrentlySupported("lambdas", expr.span)),
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),

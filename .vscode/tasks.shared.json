@@ -1,0 +1,82 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Full build",
+			"type": "shell",
+			"command": "${command:python.interpreterPath}",
+			"args": ["build.py"],
+			"group": "build",
+			"options": {"cwd": "${workspaceFolder}"},
+		},
+		{
+			"label": "watch - npm",
+			"type": "npm",
+			"script": "tsc:watch",
+			"path": "npm",
+			"group": "build",
+			"problemMatcher": {
+				"base": "$tsc-watch",
+				"fileLocation":[
+					"relative",
+					"${workspaceFolder}/npm"
+				]
+			},
+			"isBackground": true
+		},
+		{
+			"label": "watch - playground",
+			"type": "npm",
+			"script": "tsc:watch",
+			"path": "playground",
+			"group": "build",
+			"problemMatcher": {
+				"base": "$tsc-watch",
+				"fileLocation":[
+					"relative",
+					"${workspaceFolder}/playground"
+				]
+			},
+			"isBackground": true
+		},
+		{
+			"label": "start - playground",
+			"type": "npm",
+			"script": "start",
+			"path": "playground",
+			"problemMatcher": {
+				"owner": "esbuild",
+				"fileLocation":[
+					"relative",
+					"${workspaceFolder}/playground"
+				],
+				"pattern":[
+					{
+						"regexp": "^.*\\[ERROR\\] (.+)$",
+						"message": 1
+					},
+					{
+						"regexp": "^$"
+					},
+					{
+						"regexp": "^ +(.*):([0-9]+):([0-9]+):$",
+						"file": 1,
+						"line": 2,
+						"column": 3
+					}
+				],
+				"background": {
+					"activeOnStart": false,
+					"beginsPattern": "^esbuild build started$",
+					"endsPattern": "^esbuild build complete$"
+				}
+			},
+			"isBackground": true
+		},
+		{
+			"label": "Watch & serve - npm & playground",
+			"dependsOn":["watch - npm", "watch - playground", "start - playground"],
+			"dependsOrder": "parallel"
+		}
+	]
+}

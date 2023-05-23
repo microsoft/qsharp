@@ -172,16 +172,16 @@ fn block_as_stmt(block: Block) -> Stmt {
 }
 
 fn block_as_binding(block: Block, ty: Ty, assigner: &mut Assigner) -> (NodeId, Stmt) {
-    let bind_id = assigner.next_id();
+    let bind_id = assigner.next_node();
     (
         bind_id,
         Stmt {
-            id: assigner.next_id(),
+            id: assigner.next_node(),
             span: Span::default(),
             kind: StmtKind::Local(
                 Mutability::Immutable,
                 Pat {
-                    id: assigner.next_id(),
+                    id: assigner.next_node(),
                     span: Span::default(),
                     ty: ty.clone(),
                     kind: PatKind::Bind(Ident {
