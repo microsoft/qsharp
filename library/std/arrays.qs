@@ -570,12 +570,8 @@ namespace Microsoft.Quantum.Arrays {
     /// let duplicates = Subarray([1, 2, 2], array);     // [2, 3, 3]
     /// ```
     function Subarray<'T> (locations : Int[], array : 'T[]) : 'T[] {
-        let arrayLength = Length(array);
         mutable subarray = [];
         for location in locations {
-            if location >= arrayLength {
-                fail "Location out of bounds.";
-            }
             set subarray += [array[location]];
         }
         subarray
