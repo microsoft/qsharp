@@ -89,7 +89,7 @@ pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     item.attrs.iter().for_each(|a| vis.visit_attr(a));
     item.visibility.iter().for_each(|v| vis.visit_visibility(v));
-    match &item.kind {
+    match &*item.kind {
         ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Open(ns, alias) => {
@@ -109,7 +109,7 @@ pub fn walk_attr<'a>(vis: &mut impl Visitor<'a>, attr: &'a Attr) {
 }
 
 pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
-    match &def.kind {
+    match &*def.kind {
         TyDefKind::Field(name, ty) => {
             name.iter().for_each(|n| vis.visit_ident(n));
             vis.visit_ty(ty);
@@ -125,7 +125,7 @@ pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl
     vis.visit_pat(&decl.input);
     vis.visit_ty(&decl.output);
     decl.functors.iter().for_each(|f| vis.visit_functor_expr(f));
-    match &decl.body {
+    match &*decl.body {
         CallableBody::Block(block) => vis.visit_block(block),
         CallableBody::Specs(specs) => specs.iter().for_each(|s| vis.visit_spec_decl(s)),
     }
@@ -142,7 +142,7 @@ pub fn walk_spec_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a SpecDecl) {
 }
 
 pub fn walk_functor_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a FunctorExpr) {
-    match &expr.kind {
+    match &*expr.kind {
         FunctorExprKind::BinOp(_, lhs, rhs) => {
             vis.visit_functor_expr(lhs);
             vis.visit_functor_expr(rhs);
@@ -153,7 +153,7 @@ pub fn walk_functor_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a FunctorExpr) 
 }
 
 pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
-    match &ty.kind {
+    match &*ty.kind {
         TyKind::Array(item) => vis.visit_ty(item),
         TyKind::Arrow(_, lhs, rhs, functors) => {
             vis.visit_ty(lhs);
@@ -173,7 +173,7 @@ pub fn walk_block<'a>(vis: &mut impl Visitor<'a>, block: &'a Block) {
 }
 
 pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
-    match &stmt.kind {
+    match &*stmt.kind {
         StmtKind::Empty => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Item(item) => vis.visit_item(item),
@@ -190,7 +190,7 @@ pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
 }
 
 pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
-    match &expr.kind {
+    match &*expr.kind {
         ExprKind::Array(exprs) => exprs.iter().for_each(|e| vis.visit_expr(e)),
         ExprKind::ArrayRepeat(item, size) => {
             vis.visit_expr(item);
@@ -236,9 +236,9 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(index);
         }
         ExprKind::Interpolate(components) => {
-            for component in components {
+            for component in components.as_ref() {
                 match component {
-                    StringComponent::Expr(expr) => vis.visit_expr(expr),
+                    StringComponent::Expr(expr) => vis.visit_expr(expr.as_ref()),
                     StringComponent::Lit(_) => {}
                 }
             }
@@ -276,7 +276,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
 }
 
 pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
-    match &pat.kind {
+    match &*pat.kind {
         PatKind::Bind(name, ty) => {
             vis.visit_ident(name);
             ty.iter().for_each(|t| vis.visit_ty(t));
@@ -289,7 +289,7 @@ pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
 }
 
 pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
-    match &init.kind {
+    match &*init.kind {
         QubitInitKind::Array(len) => vis.visit_expr(len),
         QubitInitKind::Paren(init) => vis.visit_qubit_init(init),
         QubitInitKind::Single => {}

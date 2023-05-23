@@ -48,7 +48,8 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut actual = String::new();
     for (id, span, ty) in tys.tys {
         let source = unit.sources.find_offset(span.lo);
-        let code = &source.contents[span.lo - source.offset..span.hi - source.offset];
+        let code = &source.contents
+            [((span.lo - source.offset) as usize)..((span.hi - source.offset) as usize)];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
             .expect("writing type to string should succeed");
     }

@@ -22,20 +22,26 @@ fn error_span(error: &Error) -> Span {
         .expect("error should have at least one label");
 
     let span = label.inner();
+    let offset = span
+        .offset()
+        .try_into()
+        .expect("span offset should fit into u32");
+    let len: u32 = span.len().try_into().expect("span len should fit into u32");
     Span {
-        lo: span.offset(),
-        hi: span.offset() + span.len(),
+        lo: offset,
+        hi: offset + len,
     }
 }
 
 fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a str, Span) {
     let span = error_span(error);
     let source = sources.find_offset(span.lo);
+    let offset: u32 = source.offset;
     (
         &source.name,
         Span {
-            lo: span.lo - source.offset,
-            hi: span.hi - source.offset,
+            lo: span.lo - offset,
+            hi: span.hi - offset,
         },
     )
 }
@@ -143,7 +149,7 @@ fn two_files_mutual_dependency() {
                         function B() : Unit {
                             A();
                         }
-                    }    
+                    }
                 "}
                 .into(),
             ),

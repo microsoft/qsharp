@@ -10,7 +10,7 @@ pub(super) struct Scanner<'a> {
     tokens: Lexer<'a>,
     errors: Vec<Error>,
     peek: Token,
-    offset: usize,
+    offset: u32,
 }
 
 impl<'a> Scanner<'a> {
@@ -21,7 +21,12 @@ impl<'a> Scanner<'a> {
             input,
             tokens,
             errors: errors.into_iter().map(Error::Lex).collect(),
-            peek: peek.unwrap_or_else(|| eof(input.len())),
+            peek: peek.unwrap_or_else(|| {
+                eof(input
+                    .len()
+                    .try_into()
+                    .expect("input length should fit into u32"))
+            }),
             offset: 0,
         }
     }
@@ -39,11 +44,17 @@ impl<'a> Scanner<'a> {
             self.offset = self.peek.span.hi;
             let (peek, errors) = next_ok(&mut self.tokens);
             self.errors.extend(errors.into_iter().map(Error::Lex));
-            self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
+            self.peek = peek.unwrap_or_else(|| {
+                eof(self
+                    .input
+                    .len()
+                    .try_into()
+                    .expect("input length should fit into u32"))
+            });
         }
     }
 
-    pub(super) fn span(&self, from: usize) -> Span {
+    pub(super) fn span(&self, from: u32) -> Span {
         Span {
             lo: from,
             hi: self.offset,
@@ -55,7 +66,7 @@ impl<'a> Scanner<'a> {
     }
 }
 
-fn eof(offset: usize) -> Token {
+fn eof(offset: u32) -> Token {
     Token {
         kind: TokenKind::Eof,
         span: Span {
