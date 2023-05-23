@@ -385,12 +385,8 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
             Ok(())
         }
         (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Ok(()),
-        (&Ty::Infer(infer), _) => {
-            bind(infer, ty2.clone());
-            Ok(())
-        }
-        (_, &Ty::Infer(infer)) => {
-            bind(infer, ty1.clone());
+        (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
+            bind(infer, ty.clone());
             Ok(())
         }
         (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(()),
@@ -413,6 +409,18 @@ fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferId> {
             Some(ty) => unknown_ty(substs, ty),
         },
         _ => None,
+    }
+}
+
+fn contains_infer_ty(id: InferId, ty: &Ty) -> bool {
+    match ty {
+        Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => false,
+        Ty::Array(item) => contains_infer_ty(id, item),
+        Ty::Arrow(_, input, output, _) => {
+            contains_infer_ty(id, input) || contains_infer_ty(id, output)
+        }
+        Ty::Infer(other_id) => id == *other_id,
+        Ty::Tuple(items) => items.iter().any(|ty| contains_infer_ty(id, ty)),
     }
 }
 
