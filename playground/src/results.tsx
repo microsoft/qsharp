@@ -95,8 +95,8 @@ export function ResultsTab(props: {
       const newResult = !replaceResult
         ? currentResult
         : !updatedResult
-          ? undefined
-          : {
+        ? undefined
+        : {
             success: updatedResult.success,
             result: updatedResult.result,
             events: [...updatedResult.events],
@@ -159,9 +159,9 @@ export function ResultsTab(props: {
     typeof resultState.currResult?.result === "string"
       ? resultToLabel(resultState.currResult?.result || "")
       : `ERROR: ${resultState.currResult?.result.message.replace(
-        /\\n/g,
-        "\n"
-      )}`;
+          /\\n/g,
+          "\n"
+        )}`;
 
   function moveToIndex(idx: number, filter: string) {
     const results = evtTarget.getResults();
