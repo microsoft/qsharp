@@ -1,72 +1,63 @@
-# Q# extension for Jupyterlab
+# Q# extension for JupyterLab
 
-## Requirements
+## Prerequisites
 
-- JupyterLab >= 4.0
+You will need to install `jupyterlab` to build and develop the extension.
 
-## Install
-
-To install the extension, execute:
-
-```bash
-pip install qsharp_jupyterlab
+```
+pip install jupyterlab==4.0.0
 ```
 
-## Uninstall
+## A note about `yarn`
 
-To remove the extension, execute:
+The `jlpm` command used below is an alias for `yarn` which comes bundled with Jupyter.
+
+This folder is not part of the `npm` workspace that is defined at the root of this repo.
+This is intentional, since Jupyter extension tooling depends on `jlpm`, which expects a
+`yarn`-style workspace and a `yarn.lock` file.
+
+## Building
+
+
+To build and install the extension in development mode, from the `jupyterlab` directory run:
+
 
 ```bash
-pip uninstall qsharp_jupyterlab
-```
-
-## Contributing
-
-### Development install
-
-Note: You will need NodeJS to build the extension package.
-
-```bash
-# Clone the repo to your local environment
-# Change directory to the qsharp_jupyterlab directory
-# Install package in development mode
-pip install -e "."
-# Link your development version of the extension with JupyterLab
+pip install -e .
+# The below command creates a symlink from JupyterLab's
+# extensions directory to the current source directory.
 jupyter labextension develop . --overwrite
-# Rebuild extension Typescript source after making changes
+```
+
+To start JupyterLab and use the extension, run:
+
+```
+jupyter lab
+```
+
+To rebuild after making source changes, run:
+
+```
 jlpm build
 ```
 
-### Development uninstall
+Then refresh the browser.
 
-```bash
+## Uninstalling
+
+Remove the `pip` package by running:
+
+```
 pip uninstall qsharp_jupyterlab
 ```
 
-In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
-command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlink named `qsharp_jupyterlab` within that folder.
+You will also need to remove the symlink created by `jupyter labextension develop`
+command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions` folder is located. Then you can remove the symlink named `qsharp_jupyterlab` within that folder.
 
-### Testing the extension
+## Testing
 
-#### Frontend tests
+Run `pytest` from the `jupyterlab` folder to run the extension tests.
 
-This extension is using [Jest](https://jestjs.io/) for JavaScript code testing.
+## Releasing
 
-To execute them, execute:
-
-```sh
-jlpm
-jlpm test
-```
-
-#### Integration tests
-
-This extension uses [Playwright](https://playwright.dev/docs/intro/) for the integration tests (aka user level tests).
-More precisely, the JupyterLab helper [Galata](https://github.com/jupyterlab/jupyterlab/tree/master/galata) is used to handle testing the extension in JupyterLab.
-
-More information are provided within the [ui-tests](./ui-tests/README.md) README.
-
-### Packaging the extension
-
-See [RELEASE](RELEASE.md)
+The extension can be published to `PyPI` and `npm` manually or using the [Jupyter Releaser](https://github.com/jupyter-server/jupyter_releaser).
