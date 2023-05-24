@@ -18,10 +18,9 @@ namespace Microsoft.Quantum.Measurement {
     /// This operation does not reset the measured qubits to the |0⟩ state, 
     /// leaving them in the state that corresponds to the measurement results.
     operation MeasureEachZ (register : Qubit[]) : Result[] {
-        let len = Length(register);
-        mutable results = Repeated(Zero, len);
-        for index in 0 .. len - 1 {
-            set results w/= index <- M(register[index]);
+        mutable results = [];
+        for qubit in register {
+            set results += [M(qubit)];
         }
         results
     }
@@ -35,10 +34,9 @@ namespace Microsoft.Quantum.Measurement {
     /// # Output
     /// An array of measurement results.
     operation MResetEachZ (register : Qubit[]) : Result[] {
-        let len = Length(register);
-        mutable results = Repeated(Zero, len);
-        for index in 0 .. len - 1 {
-            set results w/= index <- MResetZ(register[index]);
+        mutable results = [];
+        for qubit in register {
+            set results += [MResetZ(qubit)];
         }
         results
     }
