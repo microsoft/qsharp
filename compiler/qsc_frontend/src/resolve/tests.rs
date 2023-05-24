@@ -1510,7 +1510,7 @@ fn unknown_namespace() {
                 open Microsoft.Quantum.Fake;
             }
 
-            // NamespaceNotFound("Microsoft.Quantum.Fake", Span { lo: 23, hi: 45 })
+            // NotFound("Microsoft.Quantum.Fake", Span { lo: 23, hi: 45 })
         "#]],
     );
 }

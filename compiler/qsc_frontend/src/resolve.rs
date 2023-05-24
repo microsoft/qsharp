@@ -46,10 +46,7 @@ pub(super) enum Res {
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
-    #[error("namespace `{0}` not found")]
-    NamespaceNotFound(String, #[label] Span),
-
-    #[error("`{0}` not found in this scope")]
+    #[error("`{0}` not found")]
     NotFound(String, #[label] Span),
 
     #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
@@ -204,7 +201,7 @@ impl Resolver {
             });
         } else {
             self.errors
-                .push(Error::NamespaceNotFound(name.name.to_string(), name.span));
+                .push(Error::NotFound(name.name.to_string(), name.span));
         }
     }
 
