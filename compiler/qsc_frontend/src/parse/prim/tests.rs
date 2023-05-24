@@ -57,7 +57,11 @@ fn ident_keyword() {
         let actual = ident(&mut scanner);
         let span = Span {
             lo: 0,
-            hi: keyword.as_str().len(),
+            hi: keyword
+                .as_str()
+                .len()
+                .try_into()
+                .expect("keyword length should fit into u32"),
         };
 
         let expected = match keyword {
