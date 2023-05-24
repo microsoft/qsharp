@@ -137,12 +137,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Example
     /// ```qsharp
-    /// function Plus(a : Double, b : Double) {
-    ///     return a + b;
-    /// }
-    /// function Sum(xs : Double[]) {
-    ///     return Fold(Plus, 0.0, xs);
-    /// }
+    /// let sum = Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5]); // `sum` is 15.
     /// ```
     function Fold<'State, 'T> (folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State {
         mutable current = state;
