@@ -108,7 +108,7 @@ impl Checker {
         self.check_callable_signature(names, decl);
 
         let output = convert::ty_from_ast(names, &decl.output).0;
-        match &decl.body {
+        match &*decl.body {
             ast::CallableBody::Block(block) => self.check_spec(
                 names,
                 SpecImpl {
@@ -120,7 +120,7 @@ impl Checker {
                 },
             ),
             ast::CallableBody::Specs(specs) => {
-                for spec in specs {
+                for spec in specs.iter() {
                     if let ast::SpecBody::Impl(input, block) = &spec.body {
                         self.check_spec(
                             names,
@@ -195,7 +195,7 @@ impl<'a> ItemCollector<'a> {
 
 impl Visitor<'_> for ItemCollector<'_> {
     fn visit_item(&mut self, item: &ast::Item) {
-        match &item.kind {
+        match &*item.kind {
             ast::ItemKind::Callable(decl) => {
                 let Some(&Res::Item(item)) = self.names.get(decl.name.id) else {
                     panic!("callable should have item ID");

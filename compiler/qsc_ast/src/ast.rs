@@ -29,7 +29,7 @@ fn set_indentation<'a, 'b>(
 
 /// The unique identifier for an AST node.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NodeId(usize);
+pub struct NodeId(u32);
 
 impl NodeId {
     /// The ID of the first node.
@@ -50,7 +50,7 @@ impl NodeId {
 
 impl Default for NodeId {
     fn default() -> Self {
-        Self(usize::MAX)
+        Self(u32::MAX)
     }
 }
 
@@ -66,13 +66,7 @@ impl Display for NodeId {
 
 impl From<NodeId> for usize {
     fn from(value: NodeId) -> Self {
-        value.0
-    }
-}
-
-impl From<usize> for NodeId {
-    fn from(value: usize) -> Self {
-        NodeId(value)
+        value.0 as usize
     }
 }
 
@@ -82,9 +76,9 @@ pub struct Package {
     /// The node ID.
     pub id: NodeId,
     /// The namespaces in the package.
-    pub namespaces: Vec<Namespace>,
+    pub namespaces: Box<[Namespace]>,
     /// The entry expression for an executable package.
-    pub entry: Option<Expr>,
+    pub entry: Option<Box<Expr>>,
 }
 
 impl Display for Package {
@@ -95,7 +89,7 @@ impl Display for Package {
         if let Some(e) = &self.entry {
             write!(indent, "\nentry expression: {e}")?;
         }
-        for ns in &self.namespaces {
+        for ns in self.namespaces.iter() {
             write!(indent, "\n{ns}")?;
         }
         Ok(())
@@ -110,9 +104,9 @@ pub struct Namespace {
     /// The span.
     pub span: Span,
     /// The namespace name.
-    pub name: Ident,
+    pub name: Box<Ident>,
     /// The items in the namespace.
-    pub items: Vec<Item>,
+    pub items: Box<[Item]>,
 }
 
 impl Display for Namespace {
@@ -124,7 +118,7 @@ impl Display for Namespace {
             self.id, self.span, self.name
         )?;
         indent = set_indentation(indent, 1);
-        for i in &self.items {
+        for i in self.items.iter() {
             write!(indent, "\n{i}")?;
         }
         Ok(())
@@ -139,11 +133,11 @@ pub struct Item {
     /// The span.
     pub span: Span,
     /// The attributes.
-    pub attrs: Vec<Attr>,
+    pub attrs: Box<[Attr]>,
     /// The visibility.
     pub visibility: Option<Visibility>,
     /// The item kind.
-    pub kind: ItemKind,
+    pub kind: Box<ItemKind>,
 }
 
 impl Display for Item {
@@ -151,7 +145,7 @@ impl Display for Item {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
         indent = set_indentation(indent, 1);
-        for attr in &self.attrs {
+        for attr in self.attrs.iter() {
             write!(indent, "\n{attr}")?;
         }
         if let Some(visibility) = &self.visibility {
@@ -166,14 +160,14 @@ impl Display for Item {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum ItemKind {
     /// A `function` or `operation` declaration.
-    Callable(CallableDecl),
+    Callable(Box<CallableDecl>),
     /// Default item when nothing has been parsed.
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
-    Open(Ident, Option<Ident>),
+    Open(Box<Ident>, Option<Box<Ident>>),
     /// A `newtype` declaration.
-    Ty(Ident, TyDef),
+    Ty(Box<Ident>, Box<TyDef>),
 }
 
 impl Display for ItemKind {
@@ -216,9 +210,9 @@ pub struct Attr {
     /// The span.
     pub span: Span,
     /// The name of the attribute.
-    pub name: Ident,
+    pub name: Box<Ident>,
     /// The argument to the attribute.
-    pub arg: Expr,
+    pub arg: Box<Expr>,
 }
 
 impl Display for Attr {
@@ -239,7 +233,7 @@ pub struct TyDef {
     /// The span.
     pub span: Span,
     /// The type definition kind.
-    pub kind: TyDefKind,
+    pub kind: Box<TyDefKind>,
 }
 
 impl Display for TyDef {
@@ -252,11 +246,11 @@ impl Display for TyDef {
 #[derive(Clone, Debug, PartialEq)]
 pub enum TyDefKind {
     /// A field definition with an optional name but required type.
-    Field(Option<Ident>, Ty),
+    Field(Option<Box<Ident>>, Box<Ty>),
     /// A parenthesized type definition.
     Paren(Box<TyDef>),
     /// A tuple.
-    Tuple(Vec<TyDef>),
+    Tuple(Box<[TyDef]>),
 }
 
 impl Display for TyDefKind {
@@ -282,7 +276,7 @@ impl Display for TyDefKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for t in ts {
+                    for t in ts.iter() {
                         write!(indent, "\n{t}")?;
                     }
                 }
@@ -302,17 +296,17 @@ pub struct CallableDecl {
     /// The callable kind.
     pub kind: CallableKind,
     /// The name of the callable.
-    pub name: Ident,
+    pub name: Box<Ident>,
     /// The type parameters to the callable.
-    pub ty_params: Vec<Ident>,
+    pub ty_params: Box<[Ident]>,
     /// The input to the callable.
-    pub input: Pat,
+    pub input: Box<Pat>,
     /// The return type of the callable.
-    pub output: Ty,
+    pub output: Box<Ty>,
     /// The functors supported by the callable.
-    pub functors: Option<FunctorExpr>,
+    pub functors: Option<Box<FunctorExpr>>,
     /// The body of the callable.
-    pub body: CallableBody,
+    pub body: Box<CallableBody>,
 }
 
 impl Display for CallableDecl {
@@ -328,7 +322,7 @@ impl Display for CallableDecl {
         if !self.ty_params.is_empty() {
             write!(indent, "\ntype params:")?;
             indent = set_indentation(indent, 2);
-            for t in &self.ty_params {
+            for t in self.ty_params.iter() {
                 write!(indent, "\n{t}")?;
             }
             indent = set_indentation(indent, 1);
@@ -336,7 +330,7 @@ impl Display for CallableDecl {
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
         if let Some(f) = &self.functors {
-            write!(indent, "\nfunctors: {f}")?;
+            write!(indent, "\nfunctors: {}", f.as_ref())?;
         }
         write!(indent, "\nbody: {}", self.body)?;
         Ok(())
@@ -347,9 +341,9 @@ impl Display for CallableDecl {
 #[derive(Clone, Debug, PartialEq)]
 pub enum CallableBody {
     /// A block for the callable's body specialization.
-    Block(Block),
+    Block(Box<Block>),
     /// One or more explicit specializations.
-    Specs(Vec<SpecDecl>),
+    Specs(Box<[SpecDecl]>),
 }
 
 impl Display for CallableBody {
@@ -360,7 +354,7 @@ impl Display for CallableBody {
                 let mut indent = set_indentation(indented(f), 0);
                 write!(indent, "Specializations:")?;
                 indent = set_indentation(indent, 1);
-                for spec in specs {
+                for spec in specs.iter() {
                     write!(indent, "\n{spec}")?;
                 }
             }
@@ -398,7 +392,7 @@ pub enum SpecBody {
     /// The strategy to use to automatically generate the specialization.
     Gen(SpecGen),
     /// A manual implementation of the specialization.
-    Impl(Pat, Block),
+    Impl(Box<Pat>, Box<Block>),
 }
 
 impl Display for SpecBody {
@@ -425,7 +419,7 @@ pub struct FunctorExpr {
     /// The span.
     pub span: Span,
     /// The functor expression kind.
-    pub kind: FunctorExprKind,
+    pub kind: Box<FunctorExprKind>,
 }
 
 impl Display for FunctorExpr {
@@ -463,7 +457,7 @@ pub struct Ty {
     /// The span.
     pub span: Span,
     /// The type kind.
-    pub kind: TyKind,
+    pub kind: Box<TyKind>,
 }
 
 impl Display for Ty {
@@ -478,17 +472,17 @@ pub enum TyKind {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<FunctorExpr>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, Option<Box<FunctorExpr>>),
     /// An unspecified type, `_`, which may be inferred.
     Hole,
     /// A type wrapped in parentheses.
     Paren(Box<Ty>),
     /// A named type.
-    Path(Path),
+    Path(Box<Path>),
     /// A type parameter.
-    Param(Ident),
+    Param(Box<Ident>),
     /// A tuple type.
-    Tuple(Vec<Ty>),
+    Tuple(Box<[Ty]>),
 }
 
 impl Display for TyKind {
@@ -517,7 +511,7 @@ impl Display for TyKind {
                     indent = indent.with_format(Format::Uniform {
                         indentation: "    ",
                     });
-                    for t in ts {
+                    for t in ts.iter() {
                         write!(indent, "\n{t}")?;
                     }
                 }
@@ -535,7 +529,7 @@ pub struct Block {
     /// The span.
     pub span: Span,
     /// The statements in the block.
-    pub stmts: Vec<Stmt>,
+    pub stmts: Box<[Stmt]>,
 }
 
 impl Display for Block {
@@ -546,7 +540,7 @@ impl Display for Block {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Block {} {}:", self.id, self.span)?;
             indent = set_indentation(indent, 1);
-            for s in &self.stmts {
+            for s in self.stmts.iter() {
                 write!(indent, "\n{s}")?;
             }
         }
@@ -562,7 +556,7 @@ pub struct Stmt {
     /// The span.
     pub span: Span,
     /// The statement kind.
-    pub kind: StmtKind,
+    pub kind: Box<StmtKind>,
 }
 
 impl Display for Stmt {
@@ -578,15 +572,15 @@ pub enum StmtKind {
     #[default]
     Empty,
     /// An expression without a trailing semicolon.
-    Expr(Expr),
+    Expr(Box<Expr>),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
-    Local(Mutability, Pat, Expr),
+    Local(Mutability, Box<Pat>, Box<Expr>),
     /// An item.
-    Item(Item),
+    Item(Box<Item>),
     /// A use or borrow qubit allocation: `use a = b;` or `borrow a = b;`.
-    Qubit(QubitSource, Pat, QubitInit, Option<Block>),
+    Qubit(QubitSource, Box<Pat>, Box<QubitInit>, Option<Box<Block>>),
     /// An expression with a trailing semicolon.
-    Semi(Expr),
+    Semi(Box<Expr>),
 }
 
 impl Display for StmtKind {
@@ -625,7 +619,7 @@ pub struct Expr {
     /// The span.
     pub span: Span,
     /// The expression kind.
-    pub kind: ExprKind,
+    pub kind: Box<ExprKind>,
 }
 
 impl Display for Expr {
@@ -638,7 +632,7 @@ impl Display for Expr {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum ExprKind {
     /// An array: `[a, b, c]`.
-    Array(Vec<Expr>),
+    Array(Box<[Expr]>),
     /// An array constructed by repeating a value: `[a, size = b]`.
     ArrayRepeat(Box<Expr>, Box<Expr>),
     /// An assignment: `set a = b`.
@@ -650,20 +644,20 @@ pub enum ExprKind {
     /// A binary operator.
     BinOp(BinOp, Box<Expr>, Box<Expr>),
     /// A block: `{ ... }`.
-    Block(Block),
+    Block(Box<Block>),
     /// A call: `a(b)`.
     Call(Box<Expr>, Box<Expr>),
     /// A conjugation: `within { ... } apply { ... }`.
-    Conjugate(Block, Block),
+    Conjugate(Box<Block>, Box<Block>),
     /// An expression with invalid syntax that can't be parsed.
     #[default]
     Err,
     /// A failure: `fail "message"`.
     Fail(Box<Expr>),
     /// A field accessor: `a::F`.
-    Field(Box<Expr>, Ident),
+    Field(Box<Expr>, Box<Ident>),
     /// A for loop: `for a in b { ... }`.
-    For(Pat, Box<Expr>, Block),
+    For(Box<Pat>, Box<Expr>, Box<Block>),
     /// An unspecified expression, _, which may indicate partial application or a typed hole.
     Hole,
     /// An if expression with an optional else block: `if a { ... } else { ... }`.
@@ -671,33 +665,33 @@ pub enum ExprKind {
     /// Note that, as a special case, `elif ...` is effectively parsed as `else if ...`, without a
     /// block wrapping the `if`. This distinguishes `elif ...` from `else { if ... }`, which does
     /// have a block.
-    If(Box<Expr>, Block, Option<Box<Expr>>),
+    If(Box<Expr>, Box<Block>, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
     /// An interpolated string.
-    Interpolate(Vec<StringComponent>),
+    Interpolate(Box<[StringComponent]>),
     /// A lambda: `a -> b` for a function and `a => b` for an operation.
-    Lambda(CallableKind, Pat, Box<Expr>),
+    Lambda(CallableKind, Box<Pat>, Box<Expr>),
     /// A literal.
-    Lit(Lit),
+    Lit(Box<Lit>),
     /// Parentheses: `(a)`.
     Paren(Box<Expr>),
     /// A path: `a` or `a.b`.
-    Path(Path),
+    Path(Box<Path>),
     /// A range: `start..step..end`, `start..end`, `start...`, `...end`, or `...`.
     Range(Option<Box<Expr>>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// A repeat-until loop with an optional fixup: `repeat { ... } until a fixup { ... }`.
-    Repeat(Block, Box<Expr>, Option<Block>),
+    Repeat(Box<Block>, Box<Expr>, Option<Box<Block>>),
     /// A return: `return a`.
     Return(Box<Expr>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
-    Tuple(Vec<Expr>),
+    Tuple(Box<[Expr]>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
     /// A while loop: `while a { ... }`.
-    While(Box<Expr>, Block),
+    While(Box<Expr>, Box<Block>),
 }
 
 impl Display for ExprKind {
@@ -741,7 +735,7 @@ impl Display for ExprKind {
     }
 }
 
-fn display_array(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Result {
+fn display_array(mut indent: Indented<Formatter>, exprs: &[Expr]) -> fmt::Result {
     write!(indent, "Array:")?;
     indent = set_indentation(indent, 1);
     for e in exprs {
@@ -928,7 +922,7 @@ fn display_repeat(
     mut indent: Indented<Formatter>,
     repeat: &Block,
     until: &Expr,
-    fixup: &Option<Block>,
+    fixup: &Option<Box<Block>>,
 ) -> fmt::Result {
     write!(indent, "Repeat:")?;
     indent = set_indentation(indent, 1);
@@ -956,7 +950,7 @@ fn display_tern_op(
     Ok(())
 }
 
-fn display_tuple(mut indent: Indented<Formatter>, exprs: &Vec<Expr>) -> fmt::Result {
+fn display_tuple(mut indent: Indented<Formatter>, exprs: &[Expr]) -> fmt::Result {
     if exprs.is_empty() {
         write!(indent, "Unit")?;
     } else {
@@ -988,7 +982,7 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
 #[derive(Clone, Debug, PartialEq)]
 pub enum StringComponent {
     /// An expression.
-    Expr(Expr),
+    Expr(Box<Expr>),
     /// A string literal.
     Lit(Rc<str>),
 }
@@ -1001,7 +995,7 @@ pub struct Pat {
     /// The span.
     pub span: Span,
     /// The pattern kind.
-    pub kind: PatKind,
+    pub kind: Box<PatKind>,
 }
 
 impl Display for Pat {
@@ -1014,15 +1008,15 @@ impl Display for Pat {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum PatKind {
     /// A binding with an optional type annotation.
-    Bind(Ident, Option<Ty>),
+    Bind(Box<Ident>, Option<Box<Ty>>),
     /// A discarded binding, `_`, with an optional type annotation.
-    Discard(Option<Ty>),
+    Discard(Option<Box<Ty>>),
     /// An elided pattern, `...`, used by specializations.
     Elided,
     /// Parentheses: `(a)`.
     Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
-    Tuple(Vec<Pat>),
+    Tuple(Box<[Pat]>),
 }
 
 impl Display for PatKind {
@@ -1057,7 +1051,7 @@ impl Display for PatKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for p in ps {
+                    for p in ps.iter() {
                         write!(indent, "\n{p}")?;
                     }
                 }
@@ -1075,7 +1069,7 @@ pub struct QubitInit {
     /// The span.
     pub span: Span,
     /// The qubit initializer kind.
-    pub kind: QubitInitKind,
+    pub kind: Box<QubitInitKind>,
 }
 
 impl Display for QubitInit {
@@ -1094,7 +1088,7 @@ pub enum QubitInitKind {
     /// A single qubit: `Qubit()`.
     Single,
     /// A tuple: `(a, b, c)`.
-    Tuple(Vec<QubitInit>),
+    Tuple(Box<[QubitInit]>),
 }
 
 impl Display for QubitInitKind {
@@ -1118,7 +1112,7 @@ impl Display for QubitInitKind {
                 } else {
                     write!(indent, "Tuple:")?;
                     indent = set_indentation(indent, 1);
-                    for qi in qis {
+                    for qi in qis.iter() {
                         write!(indent, "\n{qi}")?;
                     }
                 }
@@ -1136,9 +1130,9 @@ pub struct Path {
     /// The span.
     pub span: Span,
     /// The namespace.
-    pub namespace: Option<Ident>,
+    pub namespace: Option<Box<Ident>>,
     /// The declaration name.
-    pub name: Ident,
+    pub name: Box<Ident>,
 }
 
 impl Display for Path {
@@ -1210,7 +1204,7 @@ pub enum QubitSource {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Lit {
     /// A big integer literal.
-    BigInt(BigInt),
+    BigInt(Box<BigInt>),
     /// A boolean literal.
     Bool(bool),
     /// A floating-point literal.

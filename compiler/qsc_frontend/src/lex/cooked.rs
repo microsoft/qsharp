@@ -49,7 +49,7 @@ pub(crate) enum Error {
 }
 
 impl Error {
-    pub(crate) fn with_offset(self, offset: usize) -> Self {
+    pub(crate) fn with_offset(self, offset: u32) -> Self {
         match self {
             Self::Incomplete(expected, token, actual, span) => {
                 Self::Incomplete(expected, token, actual, span + offset)
@@ -255,6 +255,7 @@ pub(crate) enum StringToken {
 
 pub(crate) struct Lexer<'a> {
     input: &'a str,
+    len: u32,
 
     // This uses a `Peekable` iterator over the raw lexer, which allows for one token lookahead.
     tokens: Peekable<raw::Lexer<'a>>,
@@ -264,14 +265,16 @@ impl<'a> Lexer<'a> {
     pub(crate) fn new(input: &'a str) -> Self {
         Self {
             input,
+            len: input
+                .len()
+                .try_into()
+                .expect("input length should fit into u32"),
             tokens: raw::Lexer::new(input).peekable(),
         }
     }
 
-    fn offset(&mut self) -> usize {
-        self.tokens
-            .peek()
-            .map_or_else(|| self.input.len(), |t| t.offset)
+    fn offset(&mut self) -> u32 {
+        self.tokens.peek().map_or_else(|| self.len, |t| t.offset)
     }
 
     fn next_if_eq(&mut self, single: Single) -> bool {
@@ -285,11 +288,11 @@ impl<'a> Lexer<'a> {
             Ok(())
         } else if let Some(&raw::Token { kind, offset }) = self.tokens.peek() {
             let mut tokens = self.tokens.clone();
-            let hi = tokens.nth(1).map_or_else(|| self.input.len(), |t| t.offset);
+            let hi = tokens.nth(1).map_or_else(|| self.len, |t| t.offset);
             let span = Span { lo: offset, hi };
             Err(Error::Incomplete(single, complete, kind, span))
         } else {
-            let lo = self.input.len();
+            let lo = self.len;
             let span = Span { lo, hi: lo };
             Err(Error::IncompleteEof(single, complete, span))
         }
@@ -299,7 +302,7 @@ impl<'a> Lexer<'a> {
         let kind = match token.kind {
             raw::TokenKind::Comment | raw::TokenKind::Whitespace => Ok(None),
             raw::TokenKind::Ident => {
-                let ident = &self.input[token.offset..self.offset()];
+                let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
@@ -318,7 +321,7 @@ impl<'a> Lexer<'a> {
                 hi: token.offset,
             })),
             raw::TokenKind::Unknown => {
-                let c = self.input[token.offset..]
+                let c = self.input[(token.offset as usize)..]
                     .chars()
                     .next()
                     .expect("token offset should be the start of a character");

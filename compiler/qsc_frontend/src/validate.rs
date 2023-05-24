@@ -30,7 +30,7 @@ struct Validator {
 
 impl Visitor<'_> for Validator {
     fn visit_expr(&mut self, expr: &Expr) {
-        match &expr.kind {
+        match &*expr.kind {
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
@@ -42,7 +42,7 @@ impl Visitor<'_> for Validator {
 }
 
 fn has_hole(expr: &Expr) -> bool {
-    match &expr.kind {
+    match &*expr.kind {
         ExprKind::Hole => true,
         ExprKind::Paren(sub_expr) => has_hole(sub_expr),
         ExprKind::Tuple(sub_exprs) => sub_exprs.iter().any(has_hole),

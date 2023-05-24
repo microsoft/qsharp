@@ -13,7 +13,7 @@ use std::rc::Rc;
 pub(crate) struct MissingTyError(pub(super) Span);
 
 pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyError>) {
-    match &ty.kind {
+    match &*ty.kind {
         TyKind::Array(item) => {
             let (item, errors) = ty_from_ast(names, item);
             (Ty::Array(Box::new(item)), errors)
@@ -24,7 +24,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             errors.extend(output_errors);
             let functors = functors
                 .as_ref()
-                .map_or(FunctorSet::Empty, eval_functor_expr);
+                .map_or(FunctorSet::Empty, |f| eval_functor_expr(f.as_ref()));
             let ty = Ty::Arrow(
                 callable_kind_from_ast(*kind),
                 Box::new(input),
@@ -48,7 +48,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items {
+            for item in items.iter() {
                 let (item_ty, item_errors) = ty_from_ast(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -70,13 +70,13 @@ pub(super) fn ast_ty_def_cons(names: &Names, id: ItemId, def: &TyDef) -> (Ty, Ve
 }
 
 pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
-    match &def.kind {
+    match &*def.kind {
         TyDefKind::Field(_, ty) => ty_from_ast(names, ty),
         TyDefKind::Paren(inner) => ast_ty_def_base(names, inner),
         TyDefKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items {
+            for item in items.iter() {
                 let (item_ty, item_errors) = ast_ty_def_base(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -88,7 +88,7 @@ pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyE
 }
 
 pub(super) fn ast_ty_def_fields(def: &TyDef) -> Vec<UdtField> {
-    match &def.kind {
+    match &*def.kind {
         TyDefKind::Field(Some(name), _) => {
             vec![UdtField {
                 name: Rc::clone(&name.name),
@@ -121,7 +121,7 @@ pub(super) fn ast_callable_ty(names: &Names, decl: &CallableDecl) -> (Ty, Vec<Mi
 }
 
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) {
-    match &pat.kind {
+    match &*pat.kind {
         PatKind::Bind(_, None) | PatKind::Discard(None) | PatKind::Elided => {
             (Ty::Err, vec![MissingTyError(pat.span)])
         }
@@ -130,7 +130,7 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) 
         PatKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
-            for item in items {
+            for item in items.iter() {
                 let (item_ty, item_errors) = ast_pat_ty(names, item);
                 tys.push(item_ty);
                 errors.extend(item_errors);
@@ -144,10 +144,10 @@ pub(crate) fn ast_callable_functors(decl: &CallableDecl) -> FunctorSet {
     let mut functors = decl
         .functors
         .as_ref()
-        .map_or(FunctorSet::Empty, eval_functor_expr);
+        .map_or(FunctorSet::Empty, |f| eval_functor_expr(f.as_ref()));
 
-    if let CallableBody::Specs(specs) = &decl.body {
-        for spec in specs {
+    if let CallableBody::Specs(specs) = decl.body.as_ref() {
+        for spec in specs.iter() {
             let spec_functors = match spec.spec {
                 Spec::Body => FunctorSet::Empty,
                 Spec::Adj => FunctorSet::Adj,
@@ -171,7 +171,7 @@ pub(super) fn callable_kind_from_ast(kind: CallableKind) -> hir::CallableKind {
 }
 
 pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSet {
-    match &expr.kind {
+    match expr.kind.as_ref() {
         FunctorExprKind::BinOp(op, lhs, rhs) => {
             let lhs_functors = eval_functor_expr(lhs);
             let rhs_functors = eval_functor_expr(rhs);

@@ -65,7 +65,7 @@ impl Visitor<'_> for Checker<'_> {
         self.in_op = decl.kind == CallableKind::Operation;
 
         if self.in_func {
-            match &decl.body {
+            match &*decl.body {
                 CallableBody::Specs(specs) => {
                     if specs.iter().any(|spec| spec.spec != Spec::Body) {
                         self.errors.push(Error::SpecInFunc(decl.span));
@@ -85,7 +85,7 @@ impl Visitor<'_> for Checker<'_> {
     }
 
     fn visit_stmt(&mut self, stmt: &Stmt) {
-        if let StmtKind::Qubit(..) = &stmt.kind {
+        if let StmtKind::Qubit(..) = &*stmt.kind {
             if self.in_func {
                 self.errors.push(Error::QubitAllocInFunc(stmt.span));
             }
@@ -94,7 +94,7 @@ impl Visitor<'_> for Checker<'_> {
     }
 
     fn visit_expr(&mut self, expr: &Expr) {
-        match &expr.kind {
+        match &*expr.kind {
             ExprKind::Call(callee, _) if self.in_func => {
                 let ty = self.tys.terms.get(callee.id);
                 if matches!(ty, Some(hir::Ty::Arrow(hir::CallableKind::Operation, ..))) {

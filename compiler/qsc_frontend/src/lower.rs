@@ -92,7 +92,7 @@ pub(super) struct With<'a> {
 
 impl With<'_> {
     pub(super) fn lower_package(&mut self, package: &ast::Package) -> hir::Package {
-        for namespace in &package.namespaces {
+        for namespace in package.namespaces.iter() {
             self.lower_namespace(namespace);
         }
 
@@ -148,7 +148,7 @@ impl With<'_> {
             _ => panic!("item should have item ID"),
         };
 
-        let (id, kind) = match &item.kind {
+        let (id, kind) = match &*item.kind {
             ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
@@ -187,7 +187,7 @@ impl With<'_> {
 
     fn lower_attr(&mut self, attr: &ast::Attr) -> Option<hir::Attr> {
         if attr.name.name.as_ref() == "EntryPoint" {
-            match &attr.arg.kind {
+            match &*attr.arg.kind {
                 ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::EntryPoint),
                 _ => {
                     self.lowerer
@@ -215,7 +215,7 @@ impl With<'_> {
             input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
             output: convert::ty_from_ast(self.names, &decl.output).0,
             functors: convert::ast_callable_functors(decl),
-            body: match &decl.body {
+            body: match decl.body.as_ref() {
                 ast::CallableBody::Block(block) => {
                     hir::CallableBody::Block(self.lower_block(block))
                 }
@@ -271,7 +271,7 @@ impl With<'_> {
 
     pub(super) fn lower_stmt(&mut self, stmt: &ast::Stmt) -> Option<hir::Stmt> {
         let id = self.lower_id(stmt.id);
-        let kind = match &stmt.kind {
+        let kind = match &*stmt.kind {
             ast::StmtKind::Empty => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
             ast::StmtKind::Item(item) => {
@@ -303,7 +303,7 @@ impl With<'_> {
 
     #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &ast::Expr) -> hir::Expr {
-        if let ast::ExprKind::Paren(inner) = &expr.kind {
+        if let ast::ExprKind::Paren(inner) = &*expr.kind {
             return self.lower_expr(inner);
         }
 
@@ -314,7 +314,7 @@ impl With<'_> {
             .get(expr.id)
             .map_or(hir::Ty::Err, Clone::clone);
 
-        let kind = match &expr.kind {
+        let kind = match &*expr.kind {
             ast::ExprKind::Array(items) => {
                 hir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
             }
@@ -510,7 +510,7 @@ impl With<'_> {
     }
 
     fn lower_pat(&mut self, mutability: ast::Mutability, pat: &ast::Pat) -> hir::Pat {
-        if let ast::PatKind::Paren(inner) = &pat.kind {
+        if let ast::PatKind::Paren(inner) = &*pat.kind {
             return self.lower_pat(mutability, inner);
         }
 
@@ -521,7 +521,7 @@ impl With<'_> {
             .get(pat.id)
             .map_or_else(|| convert::ast_pat_ty(self.names, pat).0, Clone::clone);
 
-        let kind = match &pat.kind {
+        let kind = match &*pat.kind {
             ast::PatKind::Bind(name, _) => {
                 let name = self.lower_ident(name);
                 self.lowerer.locals.insert(
@@ -553,7 +553,7 @@ impl With<'_> {
     }
 
     fn lower_qubit_init(&mut self, init: &ast::QubitInit) -> hir::QubitInit {
-        if let ast::QubitInitKind::Paren(inner) = &init.kind {
+        if let ast::QubitInitKind::Paren(inner) = &*init.kind {
             return self.lower_qubit_init(inner);
         }
 
@@ -564,7 +564,7 @@ impl With<'_> {
             .get(init.id)
             .map_or(hir::Ty::Err, Clone::clone);
 
-        let kind = match &init.kind {
+        let kind = match &*init.kind {
             ast::QubitInitKind::Array(length) => {
                 hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))
             }
@@ -675,7 +675,7 @@ fn lower_binop(op: ast::BinOp) -> hir::BinOp {
 
 fn lower_lit(lit: &ast::Lit) -> hir::ExprKind {
     match lit {
-        ast::Lit::BigInt(value) => hir::ExprKind::Lit(hir::Lit::BigInt(value.clone())),
+        ast::Lit::BigInt(value) => hir::ExprKind::Lit(hir::Lit::BigInt(value.as_ref().clone())),
         &ast::Lit::Bool(value) => hir::ExprKind::Lit(hir::Lit::Bool(value)),
         &ast::Lit::Double(value) => hir::ExprKind::Lit(hir::Lit::Double(value)),
         &ast::Lit::Int(value) => hir::ExprKind::Lit(hir::Lit::Int(value)),
