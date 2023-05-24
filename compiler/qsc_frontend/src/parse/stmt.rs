@@ -26,7 +26,7 @@ pub(super) fn block(s: &mut Scanner) -> Result<Block> {
     Ok(Block {
         id: NodeId::default(),
         span: s.span(lo),
-        stmts,
+        stmts: stmts.into_boxed_slice(),
     })
 }
 
@@ -35,7 +35,7 @@ pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     let kind = if token(s, TokenKind::Semi).is_ok() {
         Ok(StmtKind::Empty)
     } else if let Some(item) = opt(s, top::item)? {
-        Ok(StmtKind::Item(item))
+        Ok(StmtKind::Item(Box::new(item)))
     } else if let Some(var) = opt(s, var_binding)? {
         Ok(var)
     } else if let Some(qubit) = opt(s, qubit_binding)? {
@@ -43,16 +43,16 @@ pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     } else {
         let e = expr_stmt(s)?;
         if token(s, TokenKind::Semi).is_ok() {
-            Ok(StmtKind::Semi(e))
+            Ok(StmtKind::Semi(Box::new(e)))
         } else {
-            Ok(StmtKind::Expr(e))
+            Ok(StmtKind::Expr(Box::new(e)))
         }
     }?;
 
     Ok(Stmt {
         id: NodeId::default(),
         span: s.span(lo),
-        kind,
+        kind: Box::new(kind),
     })
 }
 
@@ -70,7 +70,7 @@ fn var_binding(s: &mut Scanner) -> Result<StmtKind> {
     token(s, TokenKind::Eq)?;
     let rhs = expr(s)?;
     token(s, TokenKind::Semi)?;
-    Ok(StmtKind::Local(mutability, lhs, rhs))
+    Ok(StmtKind::Local(mutability, Box::new(lhs), Box::new(rhs)))
 }
 
 fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
@@ -90,7 +90,12 @@ fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
         token(s, TokenKind::Semi)?;
     }
 
-    Ok(StmtKind::Qubit(source, lhs, rhs, scope))
+    Ok(StmtKind::Qubit(
+        source,
+        Box::new(lhs),
+        Box::new(rhs),
+        scope.map(Box::new),
+    ))
 }
 
 fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
@@ -125,14 +130,14 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
     Ok(QubitInit {
         id: NodeId::default(),
         span: s.span(lo),
-        kind,
+        kind: Box::new(kind),
     })
 }
 
 fn check_semis(stmts: &[Stmt]) -> Result<()> {
     let leading_stmts = stmts.split_last().map_or([].as_slice(), |s| s.1);
     for stmt in leading_stmts {
-        if matches!(&stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {
+        if matches!(&*stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {
             let span = Span {
                 lo: stmt.span.hi,
                 hi: stmt.span.hi,

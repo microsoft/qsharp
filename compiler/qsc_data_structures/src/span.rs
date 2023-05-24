@@ -4,22 +4,22 @@
 use miette::SourceSpan;
 use std::{
     fmt::{self, Display, Formatter},
-    ops::{Add, Bound, Index, RangeBounds},
+    ops::{Add, Index},
 };
 
 /// A region between two offsets in an array. Spans are the half-open interval `[lo, hi)`.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Span {
     /// The smallest offset contained in the span.
-    pub lo: usize,
+    pub lo: u32,
     /// The next offset after the largest offset contained in the span.
-    pub hi: usize,
+    pub hi: u32,
 }
 
-impl Add<usize> for Span {
+impl Add<u32> for Span {
     type Output = Self;
 
-    fn add(self, rhs: usize) -> Self::Output {
+    fn add(self, rhs: u32) -> Self::Output {
         Self {
             lo: self.lo + rhs,
             hi: self.hi + rhs,
@@ -38,7 +38,7 @@ impl Index<Span> for str {
     type Output = str;
 
     fn index(&self, index: Span) -> &Self::Output {
-        &self[index.lo..index.hi]
+        &self[(index.lo as usize)..(index.hi as usize)]
     }
 }
 
@@ -46,7 +46,7 @@ impl Index<&Span> for str {
     type Output = str;
 
     fn index(&self, index: &Span) -> &Self::Output {
-        &self[index.lo..index.hi]
+        &self[(index.lo as usize)..(index.hi as usize)]
     }
 }
 
@@ -54,22 +54,12 @@ impl Index<Span> for String {
     type Output = str;
 
     fn index(&self, index: Span) -> &Self::Output {
-        &self[index.lo..index.hi]
-    }
-}
-
-impl RangeBounds<usize> for &Span {
-    fn start_bound(&self) -> Bound<&usize> {
-        Bound::Included(&self.lo)
-    }
-
-    fn end_bound(&self) -> Bound<&usize> {
-        Bound::Excluded(&self.hi)
+        &self[(index.lo as usize)..(index.hi as usize)]
     }
 }
 
 impl From<Span> for SourceSpan {
     fn from(value: Span) -> Self {
-        Self::from(value.lo..value.hi)
+        Self::from((value.lo as usize)..(value.hi as usize))
     }
 }

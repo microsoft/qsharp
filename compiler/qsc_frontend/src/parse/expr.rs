@@ -96,7 +96,7 @@ fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Expr> {
         Expr {
             id: NodeId::default(),
             span: s.span(lo),
-            kind: ExprKind::UnOp(op.kind, Box::new(rhs)),
+            kind: Box::new(ExprKind::UnOp(op.kind, Box::new(rhs))),
         }
     } else {
         expr_base(s)?
@@ -134,7 +134,7 @@ fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Expr> {
         lhs = Expr {
             id: NodeId::default(),
             span: s.span(lo),
-            kind,
+            kind: Box::new(kind),
         };
     }
 
@@ -158,40 +158,47 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
         keyword(s, Keyword::In)?;
         let iter = expr(s)?;
         let body = stmt::block(s)?;
-        Ok(ExprKind::For(vars, Box::new(iter), body))
+        Ok(ExprKind::For(
+            Box::new(vars),
+            Box::new(iter),
+            Box::new(body),
+        ))
     } else if keyword(s, Keyword::If).is_ok() {
         expr_if(s)
     } else if let Some(components) = opt(s, expr_interpolate)? {
-        Ok(ExprKind::Interpolate(components))
+        Ok(ExprKind::Interpolate(components.into_boxed_slice()))
     } else if keyword(s, Keyword::Repeat).is_ok() {
         let body = stmt::block(s)?;
         keyword(s, Keyword::Until)?;
         let cond = expr(s)?;
         let fixup = if keyword(s, Keyword::Fixup).is_ok() {
-            Some(stmt::block(s)?)
+            Some(Box::new(stmt::block(s)?))
         } else {
             None
         };
-        Ok(ExprKind::Repeat(body, Box::new(cond), fixup))
+        Ok(ExprKind::Repeat(Box::new(body), Box::new(cond), fixup))
     } else if keyword(s, Keyword::Return).is_ok() {
         Ok(ExprKind::Return(Box::new(expr(s)?)))
     } else if keyword(s, Keyword::Set).is_ok() {
         expr_set(s)
     } else if keyword(s, Keyword::While).is_ok() {
-        Ok(ExprKind::While(Box::new(expr(s)?), stmt::block(s)?))
+        Ok(ExprKind::While(
+            Box::new(expr(s)?),
+            Box::new(stmt::block(s)?),
+        ))
     } else if keyword(s, Keyword::Within).is_ok() {
         let outer = stmt::block(s)?;
         keyword(s, Keyword::Apply)?;
         let inner = stmt::block(s)?;
-        Ok(ExprKind::Conjugate(outer, inner))
+        Ok(ExprKind::Conjugate(Box::new(outer), Box::new(inner)))
     } else if let Some(a) = opt(s, expr_array)? {
         Ok(a)
     } else if let Some(b) = opt(s, stmt::block)? {
-        Ok(ExprKind::Block(b))
+        Ok(ExprKind::Block(Box::new(b)))
     } else if let Some(l) = lit(s)? {
-        Ok(ExprKind::Lit(l))
+        Ok(ExprKind::Lit(Box::new(l)))
     } else if let Some(p) = opt(s, path)? {
-        Ok(ExprKind::Path(p))
+        Ok(ExprKind::Path(Box::new(p)))
     } else {
         Err(Error::Rule("expression", s.peek().kind, s.peek().span))
     }?;
@@ -199,7 +206,7 @@ fn expr_base(s: &mut Scanner) -> Result<Expr> {
     Ok(Expr {
         id: NodeId::default(),
         span: s.span(lo),
-        kind,
+        kind: Box::new(kind),
     })
 }
 
@@ -211,7 +218,7 @@ fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
     let otherwise = if keyword(s, Keyword::Elif).is_ok() {
         Some(expr_if(s)?)
     } else if keyword(s, Keyword::Else).is_ok() {
-        Some(ExprKind::Block(stmt::block(s)?))
+        Some(ExprKind::Block(Box::new(stmt::block(s)?)))
     } else {
         None
     }
@@ -219,11 +226,11 @@ fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
         Box::new(Expr {
             id: NodeId::default(),
             span: s.span(lo),
-            kind,
+            kind: Box::new(kind),
         })
     });
 
-    Ok(ExprKind::If(Box::new(cond), body, otherwise))
+    Ok(ExprKind::If(Box::new(cond), Box::new(body), otherwise))
 }
 
 fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
@@ -266,11 +273,11 @@ fn expr_array(s: &mut Scanner) -> Result<ExprKind> {
 
 fn expr_array_core(s: &mut Scanner) -> Result<ExprKind> {
     let Some(first) = opt(s, expr)? else {
-        return Ok(ExprKind::Array(Vec::new()));
+        return Ok(ExprKind::Array(Vec::new().into_boxed_slice()));
     };
 
     if token(s, TokenKind::Comma).is_err() {
-        return Ok(ExprKind::Array(vec![first]));
+        return Ok(ExprKind::Array(vec![first].into_boxed_slice()));
     }
 
     let second = expr(s)?;
@@ -283,7 +290,7 @@ fn expr_array_core(s: &mut Scanner) -> Result<ExprKind> {
     if token(s, TokenKind::Comma).is_ok() {
         items.append(&mut seq(s, expr)?.0);
     }
-    Ok(ExprKind::Array(items))
+    Ok(ExprKind::Array(items.into_boxed_slice()))
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
@@ -319,7 +326,7 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
 
     s.advance();
     while end == InterpolatedEnding::LBrace {
-        components.push(StringComponent::Expr(expr(s)?));
+        components.push(StringComponent::Expr(Box::new(expr(s)?)));
 
         let token = s.peek();
         let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
@@ -363,7 +370,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             let lexeme = &lexeme[offset..lexeme.len() - 1]; // Slice off prefix and suffix.
             let value = BigInt::from_str_radix(lexeme, radix.into())
                 .map_err(|_| Error::Lit("big-integer", token.span))?;
-            Ok(Some(Lit::BigInt(value)))
+            Ok(Some(Lit::BigInt(Box::new(value))))
         }
         TokenKind::Float => {
             let lexeme = lexeme.replace('_', "");
@@ -587,11 +594,11 @@ fn closed_bin_op(op: ClosedBinOp) -> BinOp {
 fn lambda_op(s: &mut Scanner, input: Expr, kind: CallableKind) -> Result<ExprKind> {
     let input = expr_as_pat(input)?;
     let output = expr_op(s, OpContext::Precedence(LAMBDA_PRECEDENCE))?;
-    Ok(ExprKind::Lambda(kind, input, Box::new(output)))
+    Ok(ExprKind::Lambda(kind, Box::new(input), Box::new(output)))
 }
 
 fn field_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
-    Ok(ExprKind::Field(Box::new(lhs), ident(s)?))
+    Ok(ExprKind::Field(Box::new(lhs), Box::new(ident(s)?)))
 }
 
 fn index_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
@@ -607,7 +614,7 @@ fn call_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
     let rhs = Expr {
         id: NodeId::default(),
         span: s.span(lo),
-        kind: final_sep.reify(args, |a| ExprKind::Paren(Box::new(a)), ExprKind::Tuple),
+        kind: Box::new(final_sep.reify(args, |a| ExprKind::Paren(Box::new(a)), ExprKind::Tuple)),
     };
     Ok(ExprKind::Call(Box::new(lhs), Box::new(rhs)))
 }
@@ -640,17 +647,21 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
 }
 
 fn expr_as_pat(expr: Expr) -> Result<Pat> {
-    let kind = match expr.kind {
+    let kind = Box::new(match *expr.kind {
         ExprKind::Path(path) if path.namespace.is_none() => Ok(PatKind::Bind(path.name, None)),
         ExprKind::Hole => Ok(PatKind::Discard(None)),
         ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
         ExprKind::Paren(expr) => Ok(PatKind::Paren(Box::new(expr_as_pat(*expr)?))),
         ExprKind::Tuple(exprs) => {
-            let pats = exprs.into_iter().map(expr_as_pat).collect::<Result<_>>()?;
+            let pats = exprs
+                .into_vec()
+                .into_iter()
+                .map(expr_as_pat)
+                .collect::<Result<_>>()?;
             Ok(PatKind::Tuple(pats))
         }
         _ => Err(Error::Convert("pattern", "expression", expr.span)),
-    }?;
+    }?);
 
     Ok(Pat {
         id: NodeId::default(),

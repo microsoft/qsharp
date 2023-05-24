@@ -39,7 +39,7 @@ impl<'a> Renamer<'a> {
                 Res::PrimTy(prim) => format!("{prim:?}"),
                 Res::UnitTy => "Unit".to_string(),
             };
-            input.replace_range(span, &name);
+            input.replace_range((span.lo as usize)..(span.hi as usize), &name);
         }
     }
 }
@@ -69,7 +69,7 @@ fn resolve_names(input: &str) -> String {
     assert!(errors.is_empty(), "syntax errors: {errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
-        namespaces,
+        namespaces: namespaces.into_boxed_slice(),
         entry: None,
     };
     let mut ast_assigner = AstAssigner::new();
@@ -366,7 +366,7 @@ fn ambiguous_prelude() {
         namespace Microsoft.Quantum.Core {
             function A() : Unit {}
         }
-        
+
         namespace Foo {
             function B() : Unit {
                 A();
@@ -379,7 +379,7 @@ fn ambiguous_prelude() {
 fn local_var() {
     check(
         indoc! {"
-            namespace Foo { 
+            namespace Foo {
                 function A() : Int {
                     let x = 0;
                     x
@@ -387,7 +387,7 @@ fn local_var() {
             }
         "},
         &expect![[r#"
-            namespace item0 { 
+            namespace item0 {
                 function item1() : Int {
                     let local13 = 0;
                     local13
