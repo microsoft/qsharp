@@ -27,7 +27,7 @@ def test_dump_output() -> None:
     def callback(output):
         nonlocal called
         called = True
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000i"
 
     called = False
     value = e.interpret(
@@ -41,44 +41,6 @@ def test_dump_output() -> None:
         callback,
     )
     assert called
-
-
-def test_dump_neg_zero() -> None:
-    e = Interpreter()
-
-    def callback(output):
-        nonlocal called
-        nonlocal out
-        called = True
-        out = output
-
-    called = False
-    out = ""
-    value = e.interpret(
-        """
-    operation AllBasisVectorsWithPhases_TwoQubits() : Unit {
-        use q1 = Qubit();
-        use q2 = Qubit();
-        H(q1);
-        Z(q1);
-        H(q2);
-        S(q2);
-        Microsoft.Quantum.Diagnostics.DumpMachine();
-        ResetAll([q1,q2]);
-    }
-    AllBasisVectorsWithPhases_TwoQubits();
-    """,
-        callback,
-    )
-    assert called
-    assert (
-        out.__repr__()
-        == """STATE:
-|00⟩: 0.5000+0.0000𝑖
-|01⟩: −0.5000+0.0000𝑖
-|10⟩: 0.0000+0.5000𝑖
-|11⟩: 0.0000−0.5000𝑖"""
-    )
 
 
 def test_error() -> None:

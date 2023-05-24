@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use num_bigint::BigUint;
 use num_complex::{Complex, Complex64, ComplexFloat};
 
