@@ -38,8 +38,7 @@ fn check_apply_to_each_a() {
             use register = Qubit[3];
             Microsoft.Quantum.Canon.ApplyToEach(X, register);
             Adjoint Microsoft.Quantum.Canon.ApplyToEachA(X, register);
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             results
         }"#},
         &Value::Array(
@@ -60,8 +59,7 @@ fn check_apply_to_each_c_applied() {
             use control = Qubit();
             use register = Qubit[3];
             Controlled Microsoft.Quantum.Canon.ApplyToEachC([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -84,8 +82,7 @@ fn check_apply_to_each_c_not_applied() {
             use register = Qubit[3];
             X(control);
             Controlled Microsoft.Quantum.Canon.ApplyToEachC([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -108,8 +105,7 @@ fn check_apply_to_each_ca_applied() {
             use register = Qubit[3];
             Microsoft.Quantum.Canon.ApplyToEach(X, register);
             Controlled Adjoint Microsoft.Quantum.Canon.ApplyToEachCA([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -133,8 +129,7 @@ fn check_apply_to_each_ca_not_applied() {
             X(control);
             Microsoft.Quantum.Canon.ApplyToEach(X, register);
             Controlled Adjoint Microsoft.Quantum.Canon.ApplyToEachCA([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -468,6 +463,167 @@ fn check_fst_snd() {
 }
 
 #[test]
+fn check_bitsize_i() {
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
+    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+    run_stdlib_test(
+        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
+        &Value::Int(63),
+    );
+}
+
+//
+// Core namespace
+//
+
+#[test]
+fn check_repeated() {
+    run_stdlib_test("Repeated(Zero, 0)", &Value::Array(vec![].into()));
+    run_stdlib_test(
+        "Repeated(One, 1)",
+        &Value::Array(vec![Value::Result(true)].into()),
+    );
+    run_stdlib_test(
+        "Repeated(1, 2)",
+        &Value::Array(vec![Value::Int(1), Value::Int(1)].into()),
+    );
+    run_stdlib_test(
+        "Repeated(true, 3)",
+        &Value::Array(vec![Value::Bool(true), Value::Bool(true), Value::Bool(true)].into()),
+    );
+}
+
+//
+// Arrays namespace
+//
+
+#[test]
+fn check_chunks() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(1, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(10)].into()),
+                Value::Array(vec![Value::Int(11)].into()),
+                Value::Array(vec![Value::Int(12)].into()),
+                Value::Array(vec![Value::Int(13)].into()),
+                Value::Array(vec![Value::Int(14)].into()),
+                Value::Array(vec![Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(2, [])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(2, [10])",
+        &Value::Array(vec![Value::Array(vec![Value::Int(10)].into())].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(2, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(10), Value::Int(11)].into()),
+                Value::Array(vec![Value::Int(12), Value::Int(13)].into()),
+                Value::Array(vec![Value::Int(14), Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(3, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(10), Value::Int(11), Value::Int(12)].into()),
+                Value::Array(vec![Value::Int(13), Value::Int(14), Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Chunks(4, [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Array(
+                    vec![
+                        Value::Int(10),
+                        Value::Int(11),
+                        Value::Int(12),
+                        Value::Int(13),
+                    ]
+                    .into(),
+                ),
+                Value::Array(vec![Value::Int(14), Value::Int(15)].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_diagnonal() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1]])",
+        &Value::Array(vec![Value::Int(1)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1, 2, 3], [4, 5, 6], [7, 8, 9]])",
+        &Value::Array(vec![Value::Int(1), Value::Int(5), Value::Int(9)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1, 2, 3], [4, 5, 6]])",
+        &Value::Array(vec![Value::Int(1), Value::Int(5)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Diagonal([[1, 2], [3, 4], [5, 6]])",
+        &Value::Array(vec![Value::Int(1), Value::Int(4)].into()),
+    );
+}
+
+#[test]
+fn check_excluding() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([], [])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([], [10, 11, 12, 13, 14, 15])",
+        &Value::Array(
+            vec![
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+                Value::Int(13),
+                Value::Int(14),
+                Value::Int(15),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([1, 3, 4], [10, 11, 12, 13, 14, 15])",
+        &Value::Array(vec![Value::Int(10), Value::Int(12), Value::Int(15)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Excluding([3, 1, 4, 1], [10, 11, 12, 13, 14, 15])",
+        &Value::Array(vec![Value::Int(10), Value::Int(12), Value::Int(15)].into()),
+    );
+}
+
+#[test]
+fn check_head() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
+}
+
+#[test]
 fn check_index_range() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Start",
@@ -484,14 +640,162 @@ fn check_index_range() {
 }
 
 #[test]
-fn check_bitsize_i() {
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(0)", &Value::Int(0));
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(1)", &Value::Int(1));
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(2)", &Value::Int(2));
-    run_stdlib_test("Microsoft.Quantum.Math.BitSizeI(3)", &Value::Int(2));
+fn check_interleaved() {
     run_stdlib_test(
-        "Microsoft.Quantum.Math.BitSizeI(0x7FFFFFFFFFFFFFFF)",
-        &Value::Int(63),
+        "Microsoft.Quantum.Arrays.Interleaved([1, 2, 3], [-1, -2, -3])",
+        &Value::Array(
+            vec![
+                Value::Int(1),
+                Value::Int(-1),
+                Value::Int(2),
+                Value::Int(-2),
+                Value::Int(3),
+                Value::Int(-3),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Interleaved([true, true], [false])",
+        &Value::Array(vec![Value::Bool(true), Value::Bool(false), Value::Bool(true)].into()),
+    );
+}
+
+#[test]
+fn check_is_empty() {
+    run_stdlib_test("Microsoft.Quantum.Arrays.IsEmpty([])", &Value::Bool(true));
+    run_stdlib_test("Microsoft.Quantum.Arrays.IsEmpty([1])", &Value::Bool(false));
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsEmpty([1, 2, 3, 4, 5])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
+fn check_is_rectangular_array() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1, 2], [3, 4]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1, 2, 3], [4, 5, 6]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsRectangularArray([[1, 2], [3, 4, 5]])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
+fn check_is_square_array() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1, 2], [3, 4]])",
+        &Value::Bool(true),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1, 2, 3], [4, 5, 6]])",
+        &Value::Bool(false),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.IsSquareArray([[1, 2], [3, 4], [5, 6]])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
+fn check_most() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
+        &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+    );
+}
+
+#[test]
+fn check_padded() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Padded(-5, 2, [10, 11, 12])",
+        &Value::Array(
+            vec![
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+                Value::Int(2),
+                Value::Int(2),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Padded(5, 2, [10, 11, 12])",
+        &Value::Array(
+            vec![
+                Value::Int(2),
+                Value::Int(2),
+                Value::Int(10),
+                Value::Int(11),
+                Value::Int(12),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_partitioned() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Partitioned([2, 1], [2, 3, 5, 7])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(5)].into()),
+                Value::Array(vec![Value::Int(7)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Partitioned([2, 2], [2, 3, 5, 7])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(5), Value::Int(7)].into()),
+                Value::Array(vec![].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_sequence_i() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.SequenceI(0, 3)",
+        &Value::Array(vec![Value::Int(0), Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+    );
+}
+
+#[test]
+fn check_rest() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",
+        &Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
     );
 }
 
@@ -504,15 +808,27 @@ fn check_reversed() {
 }
 
 #[test]
-fn check_head() {
-    run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
-}
-
-#[test]
-fn check_rest() {
+fn check_subarray() {
     run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",
-        &Value::Array(vec![Value::Int(6), Value::Int(7), Value::Int(8)].into()),
+        "Microsoft.Quantum.Arrays.Subarray([3, 0, 2, 1], [1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(4), Value::Int(1), Value::Int(3), Value::Int(2)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Subarray([1, 2, 2], [1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(2), Value::Int(3), Value::Int(3)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Subarray([0, 0, 0, 0, 0], [false])",
+        &Value::Array(
+            vec![
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+            ]
+            .into(),
+        ),
     );
 }
 
@@ -522,10 +838,181 @@ fn check_tail() {
 }
 
 #[test]
-fn check_most() {
+fn check_transposed() {
     run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
-        &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
+        "Microsoft.Quantum.Arrays.Transposed([[1, 2, 3], [4, 5, 6]])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1), Value::Int(4)].into()),
+                Value::Array(vec![Value::Int(2), Value::Int(5)].into()),
+                Value::Array(vec![Value::Int(3), Value::Int(6)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Transposed([[1, 4], [2, 5], [3, 6]])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(4), Value::Int(5), Value::Int(6)].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_unzipped() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Unzipped([])",
+        &Value::Tuple(vec![Value::Array(vec![].into()), Value::Array(vec![].into())].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Unzipped([(5, true), (4, false), (3, true), (2, true), (1, false)])",
+        &Value::Tuple(
+            vec![
+                Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
+                Value::Array(
+                    vec![
+                        Value::Bool(true),
+                        Value::Bool(false),
+                        Value::Bool(true),
+                        Value::Bool(true),
+                        Value::Bool(false)
+                    ]
+                    .into()
+                ),
+            ]
+            .into()
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Unzipped([(true, 5), (false, 4), (true, 3), (true, 2), (false, 1)])",
+        &Value::Tuple(
+            vec![
+                Value::Array(
+                    vec![
+                        Value::Bool(true),
+                        Value::Bool(false),
+                        Value::Bool(true),
+                        Value::Bool(true),
+                        Value::Bool(false)
+                    ]
+                    .into()
+                ),
+                Value::Array(vec![Value::Int(5), Value::Int(4), Value::Int(3), Value::Int(2), Value::Int(1)].into()),
+            ]
+            .into()
+        ),
+    );
+}
+
+#[test]
+fn check_windows() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Windows(1, [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1)].into()),
+                Value::Array(vec![Value::Int(2)].into()),
+                Value::Array(vec![Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(4)].into()),
+                Value::Array(vec![Value::Int(5)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Windows(3, [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![
+                Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+                Value::Array(vec![Value::Int(2), Value::Int(3), Value::Int(4)].into()),
+                Value::Array(vec![Value::Int(3), Value::Int(4), Value::Int(5)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Windows(5, [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![Value::Array(
+                vec![
+                    Value::Int(1),
+                    Value::Int(2),
+                    Value::Int(3),
+                    Value::Int(4),
+                    Value::Int(5),
+                ]
+                .into(),
+            )]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_zipped() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([], [])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1], [])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([], [false])",
+        &Value::Array(vec![].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1, 2, 3, 4, 5], [false, true, true, false, true])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(4), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(5), Value::Bool(true)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([false, true, true, false, true], [1, 2, 3, 4, 5])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Bool(false), Value::Int(1)].into()),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(2)].into()),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(3)].into()),
+                Value::Tuple(vec![Value::Bool(false), Value::Int(4)].into()),
+                Value::Tuple(vec![Value::Bool(true), Value::Int(5)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1, 2, 3], [false, true, true, false, true])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+            ]
+            .into(),
+        ),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Zipped([1, 2, 3, 4, 5], [false, true, true])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Int(1), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(3), Value::Bool(true)].into()),
+            ]
+            .into(),
+        ),
     );
 }
 
@@ -605,6 +1092,7 @@ fn check_apply_cnot_chain_3() {
         ),
     );
 }
+
 //
 // Mesurement namespace
 //
@@ -625,6 +1113,41 @@ fn check_measure_each_z() {
                 Value::Result(true),
                 Value::Result(false),
                 Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_mreset_each_z() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[3];
+            X(register[0]);
+            X(register[2]);
+            let resultsA = Microsoft.Quantum.Measurement.MResetEachZ(register);
+            let resultsB = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            (resultsA, resultsB)
+        }"#},
+        &Value::Tuple(
+            vec![
+                Value::Array(
+                    vec![
+                        Value::Result(true),
+                        Value::Result(false),
+                        Value::Result(true),
+                    ]
+                    .into(),
+                ),
+                Value::Array(
+                    vec![
+                        Value::Result(false),
+                        Value::Result(false),
+                        Value::Result(false),
+                    ]
+                    .into(),
+                ),
             ]
             .into(),
         ),
