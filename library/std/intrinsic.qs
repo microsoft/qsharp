@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.Intrinsic {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Core;
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open QIR.Intrinsic;
 
@@ -68,6 +69,74 @@ namespace Microsoft.Quantum.Intrinsic {
             Controlled X(ctls + [control], target);
         }
         adjoint self;
+    }
+
+    /// # Summary
+    /// Applies the exponential of a multi-qubit Pauli operator.
+    ///
+    /// # Description
+    /// \begin{align}
+    ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
+    /// \end{align}
+    /// where $P_i$ is the $i$th element of `paulis`, and where
+    /// $N = $`Length(paulis)`.
+    ///
+    /// # Input
+    /// ## paulis
+    /// Array of single-qubit Pauli values indicating the tensor product
+    /// factors on each qubit.
+    /// ## theta
+    /// Angle about the given multi-qubit Pauli operator by which the
+    /// target register is to be rotated.
+    /// ## qubits
+    /// Register to apply the given rotation to.
+    operation Exp (paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
+        body ... {
+            Fact(Length(paulis) == Length(qubits),
+                "Arrays 'pauli' and 'qubits' must have the same length");
+            let (newPaulis, newQubits) = RemovePauliI(paulis, qubits);
+            let angle = -2.0 * theta;
+            let len = Length(newPaulis);
+
+            if len == 0 {
+                ApplyGlobalPhase(theta);
+            }
+            elif len == 1 {
+                R(newPaulis[0], angle, qubits[0]);
+            }
+            elif len == 2 {
+                within {
+                    MapPauli(qubits[1], paulis[0], paulis[1]);
+                }
+                apply {
+                    if (paulis[0] == PauliX) {
+                        Rxx(angle , qubits[0], qubits[1]);
+                    } elif (paulis[0] == PauliY) {
+                        Ryy(angle, qubits[0], qubits[1]);
+                    } elif (paulis[0] == PauliZ) {
+                        Rzz(angle, qubits[0], qubits[1]);
+                    }
+                }
+            }
+            else { // len > 2
+                within {
+                    for i in 0 .. Length(paulis) - 1 {
+                        MapPauli(qubits[i], PauliZ, paulis[i]);
+                    }
+                }
+                apply {
+                    within {
+                        SpreadZ(qubits[1], qubits[2 .. Length(qubits) - 1]);
+                    }
+                    apply {
+                        Rzz(angle, qubits[0], qubits[1]);
+                    }
+                }
+            }
+        }
+        adjoint ... {
+            Exp(paulis, -theta, qubits);
+        }
     }
 
     /// # Summary
@@ -409,7 +478,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Description
     /// \begin{align}
     ///     R_x(\theta) \mathrel{:=}
-    ///     e^{-i \theta \sigma_x / 2} = 
+    ///     e^{-i \theta \sigma_x / 2} =
     ///     \begin{bmatrix}
     ///         \cos \frac{\theta}{2} & -i\sin \frac{\theta}{2}  \\\\
     ///         -i\sin \frac{\theta}{2} & \cos \frac{\theta}{2}
@@ -503,7 +572,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Description
     /// \begin{align}
     ///     R_y(\theta) \mathrel{:=}
-    ///     e^{-i \theta \sigma_y / 2} = 
+    ///     e^{-i \theta \sigma_y / 2} =
     ///     \begin{bmatrix}
     ///         \cos \frac{\theta}{2} & -\sin \frac{\theta}{2}  \\\\
     ///         \sin \frac{\theta}{2} & \cos \frac{\theta}{2}
@@ -597,7 +666,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Description
     /// \begin{align}
     ///     R_z(\theta) \mathrel{:=}
-    ///     e^{-i \theta \sigma_z / 2} = 
+    ///     e^{-i \theta \sigma_z / 2} =
     ///     \begin{bmatrix}
     ///         e^{-i \theta / 2} & 0 \\\\
     ///         0 & e^{i \theta / 2}
