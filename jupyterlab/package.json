@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "@jupyterlab/builder": "^4.0.0",
-    "@types/codemirror": "^5.60.7",
     "typescript": "^5.0.2"
   },
   "dependencies": {
