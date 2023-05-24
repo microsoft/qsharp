@@ -1044,6 +1044,23 @@ fn check_apply_xor_in_place() {
 }
 
 #[test]
+fn check_measure_integer() {
+    run_stdlib_test(
+        {
+            "{
+                open Microsoft.Quantum.Arithmetic;
+                use q = Qubit[16];
+                ApplyXorInPlace(45967, q);
+                let result = MeasureInteger(q);
+                ResetAll(q);
+                return result;
+            }"
+        },
+        &Value::Int(45967),
+    );
+}
+
+#[test]
 fn check_apply_cnot_chain_2() {
     run_stdlib_test(
         {
@@ -1090,6 +1107,122 @@ fn check_apply_cnot_chain_3() {
             ]
             .into(),
         ),
+    );
+}
+
+#[test]
+fn check_apply_p() {
+    run_stdlib_test(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use q = Qubit[3];
+            ApplyP(PauliX, q[0]);
+            H(q[1]); ApplyP(PauliY, q[1]);
+            H(q[2]); S(q[2]); ApplyP(PauliZ, q[2]);
+            return [MResetZ(q[0]),MResetX(q[1]),MResetY(q[2])];
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_pauli() {
+    run_stdlib_test(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use q = Qubit[3];
+            H(q[1]);
+            H(q[2]); S(q[2]);
+            ApplyPauli([PauliX, PauliY, PauliZ], q);
+            return [MResetZ(q[0]),MResetX(q[1]),MResetY(q[2])];
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_pauli_from_bit_string() {
+    run_stdlib_test(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use q = Qubit[3];
+            ApplyPauliFromBitString(PauliX, false, [true, false, true], q);
+            return MResetEachZ(q);
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(true),
+                Value::Result(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_bool_array_as_int() {
+    run_stdlib_test(
+        {
+            "{
+            let b = [true, false, true, false];
+            return Microsoft.Quantum.Convert.BoolArrayAsInt(b);
+        }"
+        },
+        &Value::Int(0b0101),
+    );
+}
+
+#[test]
+fn check_int_as_bool_array() {
+    run_stdlib_test(
+        {
+            "{
+            return Microsoft.Quantum.Convert.IntAsBoolArray(5,4);
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Bool(true),
+                Value::Bool(false),
+                Value::Bool(true),
+                Value::Bool(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_result_array_as_int() {
+    run_stdlib_test(
+        {
+            "{
+            let b = [One, Zero, One, Zero];
+            return Microsoft.Quantum.Convert.ResultArrayAsInt(b);
+        }"
+        },
+        &Value::Int(0b0101),
     );
 }
 

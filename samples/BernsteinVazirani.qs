@@ -1,7 +1,7 @@
 namespace Microsoft.Quantum.Samples.BernsteinVazirani {
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Arrays;
-    // open Microsoft.Quantum.Convert; // ResultArrayAsInt
+    open Microsoft.Quantum.Convert; // ResultArrayAsInt
     open Microsoft.Quantum.Diagnostics;
 
     ////////////////////////////////////////////////////////////////////
@@ -110,24 +110,6 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
         }
     }
 
-    // This is the version where shift = 238 (in binary representation)
-    // TODO: Remove this when lambdas are supported.
-    operation ParityOperation_238(
-        queryRegister: Qubit[],
-        target: Qubit): Unit {
-
-        return ParityOperation(238, queryRegister, target);
-    }
-
-    // This is the version where shift = 3425 (in binary representation)
-    // TODO: Remove this when lambdas are supported.
-    operation ParityOperation_3435(
-        queryRegister: Qubit[],
-        target: Qubit): Unit {
-
-        return ParityOperation(3435, queryRegister, target);
-    }
-
     // For convenience, we provide an operation
     // that converts result array into integer.
     operation RunBernsteinVazirani(
@@ -164,22 +146,16 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
         // We call that operation here, ensuring that we always get the
         // same value for 𝑟 that we provided as input.
 
-        let measuredParity = RunBernsteinVazirani(
-            nQubits,
-            ParityOperation_238);
-        if (measuredParity != 238) {
-            fail $"Measured parity {measuredParity}, but expected 238.";
+        for parity in [238, 3435] {
+            let measuredParity = RunBernsteinVazirani(
+                nQubits,
+                (queryRegister, target) => ParityOperation(
+                    parity, queryRegister, target));
+            if (measuredParity != parity) {
+                fail $"Measured parity {measuredParity}, but expected {parity}.";
+            }
+            Message($"Parity {parity} measured successfully!");
         }
-        Message("Parity 238 measured successfully!");
-
-        let measuredParity = RunBernsteinVazirani(
-            nQubits,
-            ParityOperation_3435);
-        if (measuredParity != 3435) {
-            fail $"Measured parity {measuredParity}, but expected 3435.";
-        }
-        Message("Parity 3435 measured successfully!");
-
     }
 
     // TODO: Remove this when library function is implemented.
@@ -190,19 +166,5 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
         }
         return retval;
     }
-
-    // TODO: Remove this when library function is implemented.
-    function ResultArrayAsInt(results : Result[]) : Int {
-        let nBits = Length(results);
-        Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
-
-        mutable number = 0;
-        for i in 0 .. nBits - 1 {
-            if (results[i] == One) {
-                set number += 1 <<< i;
-            }
-        }
-
-        return number;        
-    }    
+  
 }

@@ -1,6 +1,6 @@
 namespace Microsoft.Quantum.Samples.Qrng {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math; // BitSizeI
+    open Microsoft.Quantum.Convert; // ResultArrayAsInt
 
     operation SampleQuantumRandomNumberGenerator() : Result {
         use q = Qubit();   // Allocate a qubit.
@@ -21,24 +21,6 @@ namespace Microsoft.Quantum.Samples.Qrng {
         return sample > max
                ? SampleRandomNumberInRange(max)
                | sample;
-    }
-
-    /// Produces a non-negative integer
-    /// from a string of bits in little endian format.
-    function ResultArrayAsInt(input : Result[]) : Int {
-        let nBits = Length(input);
-        // We are constructing a 64-bit integer,
-        // and we won't use the highest (sign) bit.
-        Fact(nBits < 64, "Input length must be less than 64.");
-        mutable number = 0;
-        for i in 0..nBits-1 {
-            if input[i] == One {
-                // If we assume loop unrolling,
-                // 2^i will be optimized to a constant.
-                set number |||= 2^i;
-            }
-        }
-        return number;
     }
 
     @EntryPoint()
