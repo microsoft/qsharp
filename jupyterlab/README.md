@@ -4,7 +4,7 @@
 
 You will need to install `jupyterlab` to build and develop the extension.
 
-```
+```bash
 pip install jupyterlab==4.0.0
 ```
 
@@ -18,9 +18,7 @@ This is intentional, since Jupyter extension tooling depends on `jlpm`, which ex
 
 ## Building
 
-
 To build and install the extension in development mode, from the `jupyterlab` directory run:
-
 
 ```bash
 pip install -e .
@@ -31,13 +29,13 @@ jupyter labextension develop . --overwrite
 
 To start JupyterLab and use the extension, run:
 
-```
+```bash
 jupyter lab
 ```
 
 To rebuild after making source changes, run:
 
-```
+```bash
 jlpm build
 ```
 
@@ -47,7 +45,7 @@ Then refresh the browser.
 
 Remove the `pip` package by running:
 
-```
+```bash
 pip uninstall qsharp_jupyterlab
 ```
 

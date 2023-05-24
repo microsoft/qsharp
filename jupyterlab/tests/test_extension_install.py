@@ -9,14 +9,6 @@ python_bin = sys.executable
 
 
 def test_extension_is_installed():
-    # Run once just so the output shows up in the build log
-    subprocess.run(
-        [python_bin, "-m", "jupyter", "labextension", "list"],
-        check=True,
-        text=True,
-    )
-
-    # Run again, now capturing the output
     result = subprocess.run(
         [python_bin, "-m", "jupyter", "labextension", "list"],
         capture_output=True,
