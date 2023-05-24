@@ -21,12 +21,7 @@ impl<'a> Scanner<'a> {
             input,
             tokens,
             errors: errors.into_iter().map(Error::Lex).collect(),
-            peek: peek.unwrap_or_else(|| {
-                eof(input
-                    .len()
-                    .try_into()
-                    .expect("input length should fit into u32"))
-            }),
+            peek: peek.unwrap_or_else(|| eof(input.len())),
             offset: 0,
         }
     }
@@ -44,13 +39,7 @@ impl<'a> Scanner<'a> {
             self.offset = self.peek.span.hi;
             let (peek, errors) = next_ok(&mut self.tokens);
             self.errors.extend(errors.into_iter().map(Error::Lex));
-            self.peek = peek.unwrap_or_else(|| {
-                eof(self
-                    .input
-                    .len()
-                    .try_into()
-                    .expect("input length should fit into u32"))
-            });
+            self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
         }
     }
 
@@ -66,7 +55,8 @@ impl<'a> Scanner<'a> {
     }
 }
 
-fn eof(offset: u32) -> Token {
+fn eof(offset: usize) -> Token {
+    let offset = offset.try_into().expect("eof offset should fit into u32");
     Token {
         kind: TokenKind::Eof,
         span: Span {

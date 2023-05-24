@@ -268,10 +268,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn offset(&mut self) -> usize {
-        self.tokens
-            .peek()
-            .map_or_else(|| self.input.len(), |t| t.offset)
+    fn offset(&mut self) -> u32 {
+        self.tokens.peek().map_or_else(
+            || {
+                self.input
+                    .len()
+                    .try_into()
+                    .expect("input length should fit into u32")
+            },
+            |t| t.offset,
+        )
     }
 
     fn next_if_eq(&mut self, single: Single) -> bool {
@@ -285,15 +291,16 @@ impl<'a> Lexer<'a> {
             Ok(())
         } else if let Some(&raw::Token { kind, offset }) = self.tokens.peek() {
             let mut tokens = self.tokens.clone();
-            let hi = tokens
-                .nth(1)
-                .map_or_else(|| self.input.len(), |t| t.offset)
-                .try_into()
-                .expect("token offset should fit into u32");
-            let span = Span {
-                lo: offset.try_into().expect("offset should fit into u32"),
-                hi,
-            };
+            let hi = tokens.nth(1).map_or_else(
+                || {
+                    self.input
+                        .len()
+                        .try_into()
+                        .expect("input length should fit into u32")
+                },
+                |t| t.offset,
+            );
+            let span = Span { lo: offset, hi };
             Err(Error::Incomplete(single, complete, kind, span))
         } else {
             let lo = self
@@ -310,7 +317,7 @@ impl<'a> Lexer<'a> {
         let kind = match token.kind {
             raw::TokenKind::Comment | raw::TokenKind::Whitespace => Ok(None),
             raw::TokenKind::Ident => {
-                let ident = &self.input[token.offset..self.offset()];
+                let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
@@ -325,29 +332,17 @@ impl<'a> Lexer<'a> {
                 raw::StringToken::Normal { terminated: false }
                 | raw::StringToken::Interpolated(_, None),
             ) => Err(Error::UnterminatedString(Span {
-                lo: token
-                    .offset
-                    .try_into()
-                    .expect("token offset should fit into u32"),
-                hi: token
-                    .offset
-                    .try_into()
-                    .expect("token offset should fit into u32"),
+                lo: token.offset,
+                hi: token.offset,
             })),
             raw::TokenKind::Unknown => {
-                let c = self.input[token.offset..]
+                let c = self.input[(token.offset as usize)..]
                     .chars()
                     .next()
                     .expect("token offset should be the start of a character");
                 let span = Span {
-                    lo: token
-                        .offset
-                        .try_into()
-                        .expect("token offset should fit into u32"),
-                    hi: self
-                        .offset()
-                        .try_into()
-                        .expect("lexer offset should fit into u32"),
+                    lo: token.offset,
+                    hi: self.offset(),
                 };
                 Err(Error::Unknown(c, span))
             }
@@ -355,14 +350,8 @@ impl<'a> Lexer<'a> {
 
         Ok(kind.map(|kind| {
             let span = Span {
-                lo: token
-                    .offset
-                    .try_into()
-                    .expect("token offset should fit into u32"),
-                hi: self
-                    .offset()
-                    .try_into()
-                    .expect("lexer offset should fit into u32"),
+                lo: token.offset,
+                hi: self.offset(),
             };
             Token { kind, span }
         }))

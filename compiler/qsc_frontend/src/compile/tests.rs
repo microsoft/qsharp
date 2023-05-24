@@ -36,12 +36,11 @@ fn error_span(error: &Error) -> Span {
 fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a str, Span) {
     let span = error_span(error);
     let source = sources.find_offset(span.lo);
-    let offset: u32 = source.offset;
     (
         &source.name,
         Span {
-            lo: span.lo - offset,
-            hi: span.hi - offset,
+            lo: span.lo - source.offset,
+            hi: span.hi - source.offset,
         },
     )
 }
