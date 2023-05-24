@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Arithmetic {
             }
         }
 
-        return number;
+        number
     }
 
     /// # Summary

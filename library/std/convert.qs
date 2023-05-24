@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.Convert {
             }
         }
 
-        return number;
+        number
     }
 
     /// # Summary
@@ -58,13 +58,13 @@ namespace Microsoft.Quantum.Convert {
         Fact(number >= 0, "Number must be non-negative.");
         mutable runningValue = number;
         mutable result = [];
-        for i in 1..bits {
+        for _ in 1..bits {
             set result += [ (runningValue &&& 1) != 0 ];
             set runningValue >>>= 1;
         }
         Fact(runningValue == 0, $"`number`={number} is too large to fit into {bits} bits.");
 
-        return result;
+        result
     }
 
     /// # Summary
@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.Convert {
             }
         }
 
-        return number;
+        number
     }
 
 
