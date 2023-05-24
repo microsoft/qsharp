@@ -1510,7 +1510,27 @@ fn unknown_namespace() {
                 open Microsoft.Quantum.Fake;
             }
 
-            // NamespaceNotFound("Ident 4 [23-45] \"Microsoft.Quantum.Fake\"", Span { lo: 23, hi: 45 })
+            // NamespaceNotFound("Microsoft.Quantum.Fake", Span { lo: 23, hi: 45 })
+        "#]],
+    );
+}
+
+#[test]
+fn empty_namespace_works() {
+    check(
+        indoc! {"
+            namespace A {
+                open B;
+                function foo(): Unit{}
+            }
+            namespace B {}
+        "},
+        &expect![[r#"
+            namespace item0 {
+                open B;
+                function item1(): Unit{}
+            }
+            namespace item2 {}
         "#]],
     );
 }
