@@ -355,7 +355,7 @@ fn generate_ctl_with_function_calls() {
                         name: Ident 1 [30-33] "Foo"
                         input: Pat 2 [33-35] [Type Unit]: Unit
                         output: Unit
-                        functors: 
+                        functors: ∅
                         body: Block: Block 3 [43-45]: <empty>
                 Item 2 [50-80] (Public):
                     Parent: 0

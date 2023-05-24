@@ -1224,12 +1224,26 @@ impl From<InferTy> for usize {
 }
 
 /// A placeholder characteristic variable used during type inference.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct InferChar(usize);
+
+impl InferChar {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
 
 impl Display for InferChar {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "¿{}", self.0)
+    }
+}
+
+impl From<InferChar> for usize {
+    fn from(value: InferChar) -> Self {
+        value.0
     }
 }
 

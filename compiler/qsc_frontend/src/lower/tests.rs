@@ -249,10 +249,10 @@ fn lambda_function_empty_closure() {
                         functors: ∅
                         body: Block: Block 3 [39-87] [Type Int]:
                             Stmt 4 [49-68]: Local (Immutable):
-                                Pat 5 [53-54] [Type (Int -> Int)]: Bind: Ident 6 [53-54] "f"
-                                Expr 7 [57-67] [Type (Int -> Int)]: Closure([], 2)
+                                Pat 5 [53-54] [Type (Int -> Int is ¿0)]: Bind: Ident 6 [53-54] "f"
+                                Expr 7 [57-67] [Type (Int -> Int is ¿0)]: Closure([], 2)
                             Stmt 18 [77-81]: Expr: Expr 19 [77-81] [Type Int]: Call:
-                                Expr 20 [77-78] [Type (Int -> Int)]: Var: Local 6
+                                Expr 20 [77-78] [Type (Int -> Int is ¿0)]: Var: Local 6
                                 Expr 21 [79-80] [Type Int]: Lit: Int(1)
                 Item 2 [57-67] (Internal):
                     Parent: 1
@@ -347,10 +347,10 @@ fn lambda_function_closure() {
                                 Pat 5 [53-54] [Type Int]: Bind: Ident 6 [53-54] "x"
                                 Expr 7 [57-58] [Type Int]: Lit: Int(5)
                             Stmt 8 [68-87]: Local (Immutable):
-                                Pat 9 [72-73] [Type (Int -> Int)]: Bind: Ident 10 [72-73] "f"
-                                Expr 11 [76-86] [Type (Int -> Int)]: Closure([6], 2)
+                                Pat 9 [72-73] [Type (Int -> Int is ¿0)]: Bind: Ident 10 [72-73] "f"
+                                Expr 11 [76-86] [Type (Int -> Int is ¿0)]: Closure([6], 2)
                             Stmt 24 [96-100]: Expr: Expr 25 [96-100] [Type Int]: Call:
-                                Expr 26 [96-97] [Type (Int -> Int)]: Var: Local 10
+                                Expr 26 [96-97] [Type (Int -> Int is ¿0)]: Var: Local 10
                                 Expr 27 [98-99] [Type Int]: Lit: Int(2)
                 Item 2 [76-86] (Internal):
                     Parent: 1
@@ -396,10 +396,10 @@ fn lambda_function_closure_repeated_var() {
                                 Pat 5 [53-54] [Type Int]: Bind: Ident 6 [53-54] "x"
                                 Expr 7 [57-58] [Type Int]: Lit: Int(5)
                             Stmt 8 [68-91]: Local (Immutable):
-                                Pat 9 [72-73] [Type (Int -> Int)]: Bind: Ident 10 [72-73] "f"
-                                Expr 11 [76-90] [Type (Int -> Int)]: Closure([6], 2)
+                                Pat 9 [72-73] [Type (Int -> Int is ¿0)]: Bind: Ident 10 [72-73] "f"
+                                Expr 11 [76-90] [Type (Int -> Int is ¿0)]: Closure([6], 2)
                             Stmt 26 [100-104]: Expr: Expr 27 [100-104] [Type Int]: Call:
-                                Expr 28 [100-101] [Type (Int -> Int)]: Var: Local 10
+                                Expr 28 [100-101] [Type (Int -> Int is ¿0)]: Var: Local 10
                                 Expr 29 [102-103] [Type Int]: Lit: Int(2)
                 Item 2 [76-90] (Internal):
                     Parent: 1
