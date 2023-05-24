@@ -381,7 +381,12 @@ impl With<'_> {
                 Box::new(self.lower_expr(index)),
             ),
             ast::ExprKind::Lambda(kind, input, body) => {
-                self.lower_lambda(*kind, input, body, expr.span)
+                let functors = if let hir::Ty::Arrow(_, _, _, hir::Char::Set(functors)) = &ty {
+                    functors.clone()
+                } else {
+                    HashSet::new()
+                };
+                self.lower_lambda(*kind, input, body, functors, expr.span)
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
@@ -450,13 +455,21 @@ impl With<'_> {
         kind: ast::CallableKind,
         input: &ast::Pat,
         body: &ast::Expr,
+        functors: HashSet<hir::Functor>,
         span: Span,
     ) -> hir::ExprKind {
         let kind = lower_callable_kind(kind);
         let input = self.lower_pat(ast::Mutability::Immutable, input);
         let body = self.lower_expr(body);
-        let (args, callable) =
-            closure::lift(self.assigner, &self.lowerer.locals, kind, input, body, span);
+        let (args, callable) = closure::lift(
+            self.assigner,
+            &self.lowerer.locals,
+            kind,
+            input,
+            body,
+            functors,
+            span,
+        );
 
         if args.iter().any(|&arg| self.is_mutable(arg)) {
             self.lowerer.errors.push(Error::MutableClosure(span));

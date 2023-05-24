@@ -703,3 +703,59 @@ fn lambda_mutable_closure() {
         "#]],
     );
 }
+
+#[test]
+fn lambda_adj() {
+    check_hir(
+        indoc! {r#"
+            namespace A {
+                operation X(q : Qubit) : () is Adj {}
+                operation Foo(op : Qubit => () is Adj) : () {}
+                operation Bar() : () { Foo(q => X(q)); }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-153] (Public):
+                    Namespace (Ident 28 [10-11] "A"): Item 1, Item 2, Item 3
+                Item 1 [18-55] (Public):
+                    Parent: 0
+                    Callable 0 [18-55] (Operation):
+                        name: Ident 1 [28-29] "X"
+                        input: Pat 2 [30-39] [Type Qubit]: Bind: Ident 3 [30-31] "q"
+                        output: Unit
+                        functors: Adj
+                        body: Block: Block 4 [53-55]: <empty>
+                Item 2 [60-106] (Public):
+                    Parent: 0
+                    Callable 5 [60-106] (Operation):
+                        name: Ident 6 [70-73] "Foo"
+                        input: Pat 7 [74-97] [Type (Qubit => Unit is Adj)]: Bind: Ident 8 [74-76] "op"
+                        output: Unit
+                        functors: ∅
+                        body: Block: Block 9 [104-106]: <empty>
+                Item 3 [111-151] (Public):
+                    Parent: 0
+                    Callable 10 [111-151] (Operation):
+                        name: Ident 11 [121-124] "Bar"
+                        input: Pat 12 [124-126] [Type Unit]: Unit
+                        output: Unit
+                        functors: ∅
+                        body: Block: Block 13 [132-151] [Type Unit]:
+                            Stmt 14 [134-149]: Semi: Expr 15 [134-148] [Type Unit]: Call:
+                                Expr 16 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var: Item 2
+                                Expr 17 [138-147] [Type (Qubit => Unit is Adj)]: Closure([], 4)
+                Item 4 [138-147] (Internal):
+                    Parent: 3
+                    Callable 24 [138-147] (Operation):
+                        name: Ident 25 [138-147] "lambda"
+                        input: Pat 23 [138-147] [Type (Qubit,)]: Tuple:
+                            Pat 18 [138-139] [Type Qubit]: Bind: Ident 19 [138-139] "q"
+                        output: Unit
+                        functors: Adj
+                        body: Block: Block 26 [143-147] [Type Unit]:
+                            Stmt 27 [143-147]: Expr: Expr 20 [143-147] [Type Unit]: Call:
+                                Expr 21 [143-144] [Type (Qubit => Unit is Adj)]: Var: Item 1
+                                Expr 22 [145-146] [Type Qubit]: Var: Local 19"#]],
+    );
+}
