@@ -3,13 +3,13 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, InferId, ItemId, PrimField, PrimTy, Res, Ty, Udt};
+use qsc_hir::hir::{Char, Functor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
-pub(super) type Substitutions = IndexMap<InferId, Ty>;
+pub(super) type Substitutions = IndexMap<InferTy, Ty>;
 
 #[derive(Clone, Debug)]
 pub(super) enum Class {
@@ -106,15 +106,13 @@ impl Class {
             Class::Add(ty) => check_add(&ty)
                 .then_some(Vec::new())
                 .ok_or(ClassError(Class::Add(ty), span)),
-            Class::Adj(ty) => check_adj(&ty)
-                .then_some(Vec::new())
-                .ok_or(ClassError(Class::Adj(ty), span)),
+            Class::Adj(ty) => check_adj(ty, span).map(|c| vec![c]),
             Class::Call {
                 callee,
                 input,
                 output,
             } => check_call(callee, input, output, span),
-            Class::Ctl { op, with_ctls } => check_ctl(op, with_ctls, span).map(|c| vec![c]),
+            Class::Ctl { op, with_ctls } => check_ctl(op, with_ctls, span),
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
             Class::HasField { record, name, item } => {
@@ -171,6 +169,7 @@ enum Constraint {
         actual: Ty,
         span: Span,
     },
+    Char(Functor, Char, Span),
 }
 
 struct ClassError(Class, Span);
@@ -179,14 +178,14 @@ struct UnifyError(Ty, Ty);
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
-    next_fresh: InferId,
+    next_fresh: InferTy,
 }
 
 impl Inferrer {
     pub(super) fn new() -> Self {
         Self {
             constraints: VecDeque::new(),
-            next_fresh: InferId::default(),
+            next_fresh: InferTy::default(),
         }
     }
 
@@ -255,7 +254,7 @@ impl Inferrer {
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     substs: Substitutions,
-    pending: HashMap<InferId, Vec<Class>>,
+    pending: HashMap<InferTy, Vec<Class>>,
     errors: Vec<Error>,
 }
 
@@ -277,6 +276,10 @@ impl<'a> Solver<'a> {
                 actual,
                 span,
             } => self.eq(expected, actual, span),
+            Constraint::Char(functor, characteristic, span) => {
+                self.char(functor, characteristic, span);
+                Vec::new()
+            }
         }
     }
 
@@ -335,6 +338,16 @@ impl<'a> Solver<'a> {
         constraints
     }
 
+    fn char(&mut self, functor: Functor, char: Char, span: Span) {
+        match char {
+            Char::Set(functors) if functors.contains(&functor) => {}
+            Char::Set(_) => self
+                .errors
+                .push(Error(ErrorKind::MissingFunctor(functor, char, span))),
+            Char::Infer(_infer) => todo!(),
+        }
+    }
+
     fn into_substs(self) -> (Substitutions, Vec<Error>) {
         (self.substs, self.errors)
     }
@@ -367,7 +380,7 @@ fn substituted(substs: &Substitutions, mut ty: Ty) -> Ty {
     ty
 }
 
-fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), UnifyError> {
+fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferTy, Ty)) -> Result<(), UnifyError> {
     match (ty1, ty2) {
         (Ty::Err, _)
         | (_, Ty::Err)
@@ -402,7 +415,7 @@ fn unify(ty1: &Ty, ty2: &Ty, bind: &mut impl FnMut(InferId, Ty)) -> Result<(), U
     }
 }
 
-fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferId> {
+fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferTy> {
     match ty {
         &Ty::Infer(infer) => match substs.get(infer) {
             None => Some(infer),
@@ -412,7 +425,7 @@ fn unknown_ty(substs: &Substitutions, ty: &Ty) -> Option<InferId> {
     }
 }
 
-fn contains_infer_ty(id: InferId, ty: &Ty) -> bool {
+fn contains_infer_ty(id: InferTy, ty: &Ty) -> bool {
     match ty {
         Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => false,
         Ty::Array(item) => contains_infer_ty(id, item),
@@ -431,10 +444,10 @@ fn check_add(ty: &Ty) -> bool {
     )
 }
 
-fn check_adj(ty: &Ty) -> bool {
+fn check_adj(ty: Ty, span: Span) -> Result<Constraint, ClassError> {
     match ty {
-        Ty::Arrow(_, _, _, functors) => functors.contains(&Functor::Adj),
-        _ => false,
+        Ty::Arrow(_, _, _, functors) => Ok(Constraint::Char(Functor::Adj, functors, span)),
+        _ => Err(ClassError(Class::Adj(ty), span)),
     }
 }
 
@@ -468,16 +481,19 @@ fn check_call(
     }
 }
 
-fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Constraint, ClassError> {
+fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
     match op {
-        Ty::Arrow(kind, input, output, functors) if functors.contains(&Functor::Ctl) => {
+        Ty::Arrow(kind, input, output, functors) => {
             let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
-            Ok(Constraint::Eq {
-                expected: Ty::Arrow(kind, ctl_input, output, functors),
-                actual: with_ctls,
-                span,
-            })
+            Ok(vec![
+                Constraint::Char(Functor::Ctl, functors.clone(), span),
+                Constraint::Eq {
+                    expected: Ty::Arrow(kind, ctl_input, output, functors),
+                    actual: with_ctls,
+                    span,
+                },
+            ])
         }
         _ => Err(ClassError(Class::Ctl { op, with_ctls }, span)),
     }

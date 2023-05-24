@@ -307,7 +307,7 @@ impl CallableDecl {
             self.kind,
             Box::new(self.input.ty.clone()),
             Box::new(self.output.clone()),
-            self.functors.clone(),
+            Char::Set(self.functors.clone()),
         )
     }
 }
@@ -1072,12 +1072,12 @@ pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, Char),
     /// An invalid type caused by an error.
     #[default]
     Err,
     /// A placeholder type variable used during type inference.
-    Infer(InferId),
+    Infer(InferTy),
     /// A type parameter.
     Param(String),
     /// A primitive type.
@@ -1105,7 +1105,7 @@ impl Display for Ty {
                 write!(f, "({input} {arrow} {output}")?;
                 if !functors.is_empty() {
                     f.write_str(" is ")?;
-                    f.write_str(functors_as_str(functors))?;
+                    Display::fmt(functors, f)?;
                 }
                 f.write_char(')')
             }
@@ -1166,11 +1166,38 @@ pub enum PrimTy {
     String,
 }
 
+/// The characteristic functors of an operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Char {
+    /// A set of functors.
+    Set(HashSet<Functor>),
+    /// A placeholder characteristic variable used during type inference.
+    Infer(InferChar),
+}
+
+impl Char {
+    fn is_empty(&self) -> bool {
+        match self {
+            Char::Set(functors) => functors.is_empty(),
+            Char::Infer(_) => false,
+        }
+    }
+}
+
+impl Display for Char {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Char::Set(functors) => f.write_str(functors_as_str(functors)),
+            Char::Infer(infer) => Display::fmt(infer, f),
+        }
+    }
+}
+
 /// A placeholder type variable used during type inference.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct InferId(usize);
+pub struct InferTy(usize);
 
-impl InferId {
+impl InferTy {
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
@@ -1178,21 +1205,31 @@ impl InferId {
     }
 }
 
-impl Display for InferId {
+impl Display for InferTy {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "?{}", self.0)
     }
 }
 
-impl From<usize> for InferId {
+impl From<usize> for InferTy {
     fn from(value: usize) -> Self {
-        InferId(value)
+        InferTy(value)
     }
 }
 
-impl From<InferId> for usize {
-    fn from(value: InferId) -> Self {
+impl From<InferTy> for usize {
+    fn from(value: InferTy) -> Self {
         value.0
+    }
+}
+
+/// A placeholder characteristic variable used during type inference.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct InferChar(usize);
+
+impl Display for InferChar {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "¿{}", self.0)
     }
 }
 
@@ -1217,7 +1254,7 @@ impl Udt {
             CallableKind::Function,
             Box::new(self.base.clone()),
             Box::new(Ty::Udt(Res::Item(id))),
-            HashSet::new(),
+            Char::Set(HashSet::new()),
         )
     }
 
@@ -1432,6 +1469,15 @@ pub enum Functor {
     Ctl,
 }
 
+impl Display for Functor {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Functor::Adj => f.write_str("Adj"),
+            Functor::Ctl => f.write_str("Ctl"),
+        }
+    }
+}
+
 /// A specialization that may be implemented for an operation.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Spec {
@@ -1559,6 +1605,6 @@ fn functors_as_str(functors: &HashSet<Functor>) -> &str {
         (true, true) => "Adj + Ctl",
         (true, false) => "Adj",
         (false, true) => "Ctl",
-        (false, false) => "",
+        (false, false) => "∅",
     }
 }

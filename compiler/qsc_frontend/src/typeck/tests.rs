@@ -260,7 +260,7 @@ fn length_type_error() {
             #3 8-9 "1" : Int
             #4 11-12 "2" : Int
             #5 14-15 "3" : Int
-            Error(Type(Error(TypeMismatch(Array(Infer(InferId(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
+            Error(Type(Error(TypeMismatch(Array(Infer(InferTy(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 17 }))))
         "##]],
     );
 }
@@ -300,7 +300,7 @@ fn array_index_error() {
             #3 4-5 "2" : Int
             #4 7-8 "3" : Int
             #5 10-15 "false" : Bool
-            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Infer(InferId(0)) }, Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Infer(InferTy(0)) }, Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -422,7 +422,7 @@ fn binop_equal_callable() {
             #9 73-89 "Test.A == Test.B" : Bool
             #10 73-79 "Test.A" : (Unit -> Unit)
             #11 83-89 "Test.B" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 79 }))))
+            Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 73, hi: 79 }))))
         "##]],
     );
 }
@@ -608,7 +608,7 @@ fn let_tuple_arity_error() {
             #10 18-24 "(0, 1)" : (Int, Int)
             #11 19-20 "0" : Int
             #12 22-23 "1" : Int
-            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferId(0)), Infer(InferId(1)), Infer(InferId(2))]), Span { lo: 6, hi: 15 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 6, hi: 15 }))))
         "##]],
     );
 }
@@ -679,7 +679,7 @@ fn qubit_tuple_arity_error() {
             #10 23-24 "3" : Int
             #11 27-34 "Qubit()" : Qubit
             #12 36-43 "Qubit()" : Qubit
-            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferId(0)), Infer(InferId(1))]), Span { lo: 6, hi: 13 }))))
+            Error(Type(Error(TypeMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1))]), Span { lo: 6, hi: 13 }))))
         "##]],
     );
 }
@@ -697,7 +697,7 @@ fn for_loop_not_iterable() {
             #5 13-17 "true" : Bool
             #6 19-22 "One" : Result
             #7 24-26 "{}" : Unit
-            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Infer(InferId(0)) }, Span { lo: 9, hi: 23 }))))
+            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Infer(InferTy(0)) }, Span { lo: 9, hi: 23 }))))
         "##]],
     );
 }
@@ -1458,7 +1458,7 @@ fn array_unknown_field_error() {
             #4 50-73 "{\n        x::Size\n    }" : Int
             #6 60-67 "x::Size" : Int
             #7 60-61 "x" : (Qubit)[]
-            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Infer(InferId(0)) }, Span { lo: 60, hi: 67 }))))
+            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Infer(InferTy(0)) }, Span { lo: 60, hi: 67 }))))
         "##]],
     );
 }
@@ -1498,7 +1498,7 @@ fn range_to_field_start() {
             #1 1-8 "...2..8" : RangeTo
             #2 4-5 "2" : Int
             #3 7-8 "8" : Int
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeTo), name: "Start", item: Infer(InferId(0)) }, Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeTo), name: "Start", item: Infer(InferTy(0)) }, Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -1569,7 +1569,7 @@ fn range_from_field_end() {
             #1 1-8 "0..2..." : RangeFrom
             #2 1-2 "0" : Int
             #3 4-5 "2" : Int
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFrom), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 14 }))))
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFrom), name: "End", item: Infer(InferTy(0)) }, Span { lo: 0, hi: 14 }))))
         "##]],
     );
 }
@@ -1582,7 +1582,7 @@ fn range_full_field_start() {
         &expect![[r##"
             #0 0-10 "...::Start" : ?0
             #1 0-3 "..." : RangeFull
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "Start", item: Infer(InferId(0)) }, Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "Start", item: Infer(InferTy(0)) }, Span { lo: 0, hi: 10 }))))
         "##]],
     );
 }
@@ -1620,7 +1620,7 @@ fn range_full_field_end() {
         &expect![[r##"
             #0 0-8 "...::End" : ?0
             #1 0-3 "..." : RangeFull
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "End", item: Infer(InferId(0)) }, Span { lo: 0, hi: 8 }))))
+            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "End", item: Infer(InferTy(0)) }, Span { lo: 0, hi: 8 }))))
         "##]],
     );
 }
@@ -1679,7 +1679,7 @@ fn interpolate_function() {
             #3 38-40 "{}" : Unit
             #5 43-53 "$\"{A.Foo}\"" : String
             #6 46-51 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 46, hi: 51 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 46, hi: 51 }))))
         "##]],
     );
 }
@@ -1698,7 +1698,7 @@ fn interpolate_operation() {
             #3 39-41 "{}" : Unit
             #5 44-54 "$\"{A.Foo}\"" : String
             #6 47-52 "A.Foo" : (Unit => Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Operation, Tuple([]), Tuple([]), {})), Span { lo: 47, hi: 52 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Operation, Tuple([]), Tuple([]), Set({}))), Span { lo: 47, hi: 52 }))))
         "##]],
     );
 }
@@ -1737,7 +1737,7 @@ fn interpolate_function_array() {
             #10 73-87 "[A.Foo, A.Bar]" : ((Unit -> Unit))[]
             #11 74-79 "A.Foo" : (Unit -> Unit)
             #12 81-86 "A.Bar" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 73, hi: 87 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 73, hi: 87 }))))
         "##]],
     );
 }
@@ -1772,7 +1772,7 @@ fn interpolate_int_function_tuple() {
             #6 46-56 "(1, A.Foo)" : (Int, (Unit -> Unit))
             #7 47-48 "1" : Int
             #8 50-55 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), {})), Span { lo: 46, hi: 56 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 46, hi: 56 }))))
         "##]],
     );
 }
@@ -1923,7 +1923,7 @@ fn newtype_field_invalid() {
             #7 88-89 "y" : ?0
             #9 92-99 "x::Nope" : ?0
             #10 92-93 "x" : UDT<Item 1>
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferId(1)) }, Span { lo: 92, hi: 99 }))))
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferTy(1)) }, Span { lo: 92, hi: 99 }))))
         "##]],
     );
 }
@@ -2135,7 +2135,7 @@ fn infinite() {
             #13 86-89 "[x]" : (?0)[]
             #14 87-88 "x" : ?0
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
-            Error(Type(Error(TypeMismatch(Infer(InferId(0)), Array(Infer(InferId(0))), Span { lo: 86, hi: 89 }))))
+            Error(Type(Error(TypeMismatch(Infer(InferTy(0)), Array(Infer(InferTy(0))), Span { lo: 86, hi: 89 }))))
         "##]],
     );
 }

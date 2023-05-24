@@ -7,7 +7,7 @@ use qsc_ast::ast::{
     SetOp, Spec, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, FieldPath, Functor, ItemId, Ty, UdtField};
+use qsc_hir::hir::{self, Char, FieldPath, Functor, ItemId, Ty, UdtField};
 use std::{collections::HashSet, rc::Rc};
 
 pub(crate) struct MissingTyError(pub(super) Span);
@@ -27,7 +27,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
                 callable_kind_from_ast(*kind),
                 Box::new(input),
                 Box::new(output),
-                functors,
+                Char::Set(functors),
             );
             (ty, errors)
         }
@@ -62,7 +62,7 @@ pub(super) fn ast_ty_def_cons(names: &Names, id: ItemId, def: &TyDef) -> (Ty, Ve
         hir::CallableKind::Function,
         Box::new(input),
         Box::new(Ty::Udt(hir::Res::Item(id))),
-        HashSet::new(),
+        Char::Set(HashSet::new()),
     );
     (ty, errors)
 }
@@ -114,7 +114,7 @@ pub(super) fn ast_callable_ty(names: &Names, decl: &CallableDecl) -> (Ty, Vec<Mi
     let (output, output_errors) = ty_from_ast(names, &decl.output);
     errors.extend(output_errors);
     let functors = ast_callable_functors(decl);
-    let ty = Ty::Arrow(kind, Box::new(input), Box::new(output), functors);
+    let ty = Ty::Arrow(kind, Box::new(input), Box::new(output), Char::Set(functors));
     (ty, errors)
 }
 

@@ -12,7 +12,7 @@ use self::infer::Class;
 use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{ItemId, Ty, Udt};
+use qsc_hir::hir::{Char, Functor, ItemId, Ty, Udt};
 use std::{collections::HashMap, fmt::Debug};
 use thiserror::Error;
 
@@ -34,6 +34,8 @@ enum ErrorKind {
     TypeMismatch(Ty, Ty, #[label] Span),
     #[error("missing class instance {0}")]
     MissingClass(Class, #[label] Span),
+    #[error("missing functor {0} in {1}")]
+    MissingFunctor(Functor, Char, #[label] Span),
     #[error("missing type in item signature")]
     #[diagnostic(help("types cannot be inferred for global declarations"))]
     MissingItemTy(#[label] Span),
