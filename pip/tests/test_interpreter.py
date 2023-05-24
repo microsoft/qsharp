@@ -27,7 +27,7 @@ def test_dump_output() -> None:
     def callback(output):
         nonlocal called
         called = True
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000i"
+        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
 
     called = False
     value = e.interpret(
