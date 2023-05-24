@@ -22,9 +22,14 @@ fn error_span(error: &Error) -> Span {
         .expect("error should have at least one label");
 
     let span = label.inner();
+    let offset = span
+        .offset()
+        .try_into()
+        .expect("span offset should fit into u32");
+    let len: u32 = span.len().try_into().expect("span len should fit into u32");
     Span {
-        lo: span.offset(),
-        hi: span.offset() + span.len(),
+        lo: offset,
+        hi: offset + len,
     }
 }
 
@@ -143,7 +148,7 @@ fn two_files_mutual_dependency() {
                         function B() : Unit {
                             A();
                         }
-                    }    
+                    }
                 "}
                 .into(),
             ),
@@ -366,7 +371,7 @@ fn insert_core_call() {
                     functors: 
                     body: Block: Block 3 [39-41] [Type Unit]:
                         Stmt 5 [0-0]: Semi: Expr 6 [0-0] [Type Qubit]: Call:
-                            Expr 7 [0-0] [Type (Unit => Qubit)]: Var: Item 3 (Package 0)
+                            Expr 7 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                             Expr 8 [0-0] [Type Unit]: Unit"#]]
     .assert_eq(&unit.package.to_string());
 }

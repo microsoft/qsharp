@@ -8,8 +8,8 @@ use crate::{
     funop,
     lower::{self, Lowerer},
     parse,
-    resolve::{self, Resolutions, Resolver},
-    typeck::{self, Checker, Tys},
+    resolve::{self, Names, Resolver},
+    typeck::{self, Checker},
     validate::{self, validate},
 };
 use miette::{
@@ -70,7 +70,7 @@ impl SourceMap {
     }
 
     #[must_use]
-    pub fn find_offset(&self, offset: usize) -> &Source {
+    pub fn find_offset(&self, offset: u32) -> &Source {
         self.sources
             .iter()
             .chain(&self.entry)
@@ -83,7 +83,14 @@ impl SourceMap {
         diagnostic
             .labels()
             .and_then(|mut labels| labels.next())
-            .map(|label| self.find_offset(label.offset()))
+            .map(|label| {
+                self.find_offset(
+                    label
+                        .offset()
+                        .try_into()
+                        .expect("offset should fit into u32"),
+                )
+            })
     }
 }
 
@@ -91,7 +98,7 @@ impl SourceMap {
 pub struct Source {
     pub name: SourceName,
     pub contents: SourceContents,
-    pub offset: usize,
+    pub offset: u32,
 }
 
 impl SourceCode for Source {
@@ -102,7 +109,7 @@ impl SourceCode for Source {
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
         let contents = self.contents.read_span(
-            &with_offset(span, |o| o - self.offset),
+            &with_offset(span, |o| o - (self.offset as usize)),
             context_lines_before,
             context_lines_after,
         )?;
@@ -110,7 +117,7 @@ impl SourceCode for Source {
         Ok(Box::new(MietteSpanContents::new_named(
             self.name.to_string(),
             contents.data(),
-            with_offset(contents.span(), |o| o + self.offset),
+            with_offset(contents.span(), |o| o + (self.offset as usize)),
             contents.line(),
             contents.column(),
             contents.line_count(),
@@ -196,7 +203,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-struct Offsetter(usize);
+struct Offsetter(u32);
 
 impl MutVisitor for Offsetter {
     fn visit_span(&mut self, span: &mut Span) {
@@ -211,21 +218,24 @@ pub fn compile(
     sources: SourceMap,
 ) -> CompileUnit {
     let (mut package, parse_errors) = parse_all(&sources);
-    let mut assigner = AstAssigner::new();
-    assigner.visit_package(&mut package);
+    let mut ast_assigner = AstAssigner::new();
+    ast_assigner.visit_package(&mut package);
 
-    let (resolutions, resolve_errors) = resolve_all(store, dependencies, &package);
-    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &resolutions);
+    let mut hir_assigner = HirAssigner::new();
+    let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
+    let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
     let validate_errors = validate(&package);
     let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
-    let package = lowerer.with(&resolutions, &tys).lower_package(&package);
-    let (assigner, lower_errors) = lowerer.into_assigner();
+    let package = lowerer
+        .with(&mut hir_assigner, &names, &tys)
+        .lower_package(&package);
+    let lower_errors = lowerer.drain_errors();
 
     let errors = parse_errors
         .into_iter()
         .map(Into::into)
-        .chain(resolve_errors.into_iter().map(Into::into))
+        .chain(name_errors.into_iter().map(Into::into))
         .chain(ty_errors.into_iter().map(Into::into))
         .chain(funop_errors.into_iter().map(Into::into))
         .chain(validate_errors.into_iter().map(Into::into))
@@ -235,7 +245,7 @@ pub fn compile(
 
     CompileUnit {
         package,
-        assigner,
+        assigner: hir_assigner,
         sources,
         errors,
     }
@@ -360,12 +370,12 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
             let (mut entry, entry_errors) = parse::expr(&source.contents);
             Offsetter(source.offset).visit_expr(&mut entry);
             append_parse_errors(&mut errors, source.offset, entry_errors);
-            entry
+            Box::new(entry)
         });
 
     let package = ast::Package {
         id: ast::NodeId::default(),
-        namespaces,
+        namespaces: namespaces.into_boxed_slice(),
         entry,
     };
 
@@ -375,8 +385,9 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
 fn resolve_all(
     store: &PackageStore,
     dependencies: &[PackageId],
+    assigner: &mut HirAssigner,
     package: &ast::Package,
-) -> (Resolutions, Vec<resolve::Error>) {
+) -> (Names, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -389,18 +400,18 @@ fn resolve_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    globals.add_local_package(package);
+    globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals);
-    resolver.visit_package(package);
-    resolver.into_resolutions()
+    resolver.with(assigner).visit_package(package);
+    resolver.into_names()
 }
 
 fn typeck_all(
     store: &PackageStore,
     dependencies: &[PackageId],
     package: &ast::Package,
-    resolutions: &Resolutions,
-) -> (Tys, Vec<typeck::Error>) {
+    names: &Names,
+) -> (typeck::Table, Vec<typeck::Error>) {
     let mut globals = typeck::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -414,11 +425,11 @@ fn typeck_all(
     }
 
     let mut checker = Checker::new(globals);
-    checker.check_package(resolutions, package);
+    checker.check_package(names, package);
     checker.into_tys()
 }
 
-fn append_parse_errors(errors: &mut Vec<parse::Error>, offset: usize, other: Vec<parse::Error>) {
+fn append_parse_errors(errors: &mut Vec<parse::Error>, offset: u32, other: Vec<parse::Error>) {
     for error in other {
         errors.push(error.with_offset(offset));
     }
@@ -428,8 +439,10 @@ fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan 
     SourceSpan::new(f(span.offset()).into(), span.len().into())
 }
 
-fn next_offset(sources: &[Source]) -> usize {
-    sources.last().map_or(0, |s| s.offset + s.contents.len())
+fn next_offset(sources: &[Source]) -> u32 {
+    sources.last().map_or(0, |s| {
+        s.offset + u32::try_from(s.contents.len()).expect("contents length should fit into u32")
+    })
 }
 
 fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {

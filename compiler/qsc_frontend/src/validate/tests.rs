@@ -21,22 +21,6 @@ fn validate(ns: &Namespace) -> Vec<Error> {
 }
 
 #[test]
-fn test_lambda() {
-    check("namespace input { operation Foo() : Int { let lambda = (x, y) -> x + y; return lambda(1, 2); } }",
-    &expect![[r#"
-        [
-            NotCurrentlySupported(
-                "lambdas",
-                Span {
-                    lo: 55,
-                    hi: 70,
-                },
-            ),
-        ]
-    "#]],);
-}
-
-#[test]
 fn test_partial() {
     check(
         indoc! {"
@@ -55,39 +39,6 @@ fn test_partial() {
                     Span {
                         lo: 111,
                         hi: 120,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn test_newtype_syntax_not_supported() {
-    check(
-        indoc! {"
-            namespace input {
-                newtype Bar = Baz : Int;
-                operation Foo(a : Bar) : Unit {
-                    let x = a!;
-                    let y = a::Baz;
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                NotCurrentlySupported(
-                    "newtype",
-                    Span {
-                        lo: 22,
-                        hi: 46,
-                    },
-                ),
-                NotCurrentlySupported(
-                    "unwrap operator",
-                    Span {
-                        lo: 99,
-                        hi: 101,
                     },
                 ),
             ]

@@ -6,20 +6,21 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_hir::mut_visit::MutVisitor;
 
-use crate::loop_unification::loop_unification;
+use crate::loop_unification::LoopUni;
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
     let mut unit = compile(&store, &[], sources);
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    let errors = loop_unification(store.core(), &mut unit);
-    if errors.is_empty() {
-        expect.assert_eq(&unit.package.to_string());
-    } else {
-        expect.assert_debug_eq(&errors);
+    LoopUni {
+        core: store.core(),
+        assigner: &mut unit.assigner,
     }
+    .visit_package(&mut unit.package);
+    expect.assert_eq(&unit.package.to_string());
 }
 
 #[test]
@@ -233,17 +234,17 @@ fn convert_for_range() {
                                     Pat _id_ [64-68] [Type Int]: Bind: Ident 18 [64-68] "index_id_18"
                                     Expr _id_ [64-68] [Type Int]: Field:
                                         Expr _id_ [64-68] [Type Range]: Var: Local 17
-                                        Start
+                                        Prim(Start)
                                 Stmt _id_ [64-68]: Local (Immutable):
                                     Pat _id_ [64-68] [Type Int]: Bind: Ident 19 [64-68] "step_id_19"
                                     Expr _id_ [64-68] [Type Int]: Field:
                                         Expr _id_ [64-68] [Type Range]: Var: Local 17
-                                        Step
+                                        Prim(Step)
                                 Stmt _id_ [64-68]: Local (Immutable):
                                     Pat _id_ [64-68] [Type Int]: Bind: Ident 20 [64-68] "end_id_20"
                                     Expr _id_ [64-68] [Type Int]: Field:
                                         Expr _id_ [64-68] [Type Range]: Var: Local 17
-                                        End
+                                        Prim(End)
                                 Stmt _id_ [55-115]: Expr: Expr _id_ [55-115] [Type Unit]: While:
                                     Expr _id_ [64-68] [Type Bool]: BinOp (OrL):
                                         Expr _id_ [64-68] [Type Bool]: BinOp (AndL):
@@ -310,17 +311,17 @@ fn convert_for_reverse_range() {
                                     Pat _id_ [64-72] [Type Int]: Bind: Ident 20 [64-72] "index_id_20"
                                     Expr _id_ [64-72] [Type Int]: Field:
                                         Expr _id_ [64-72] [Type Range]: Var: Local 19
-                                        Start
+                                        Prim(Start)
                                 Stmt _id_ [64-72]: Local (Immutable):
                                     Pat _id_ [64-72] [Type Int]: Bind: Ident 21 [64-72] "step_id_21"
                                     Expr _id_ [64-72] [Type Int]: Field:
                                         Expr _id_ [64-72] [Type Range]: Var: Local 19
-                                        Step
+                                        Prim(Step)
                                 Stmt _id_ [64-72]: Local (Immutable):
                                     Pat _id_ [64-72] [Type Int]: Bind: Ident 22 [64-72] "end_id_22"
                                     Expr _id_ [64-72] [Type Int]: Field:
                                         Expr _id_ [64-72] [Type Range]: Var: Local 19
-                                        End
+                                        Prim(End)
                                 Stmt _id_ [55-119]: Expr: Expr _id_ [55-119] [Type Unit]: While:
                                     Expr _id_ [64-72] [Type Bool]: BinOp (OrL):
                                         Expr _id_ [64-72] [Type Bool]: BinOp (AndL):

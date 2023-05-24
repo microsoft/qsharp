@@ -69,7 +69,21 @@ function buildBundle() {
 
 // Serve the site or build it?
 if (process.argv.includes("--serve")) {
-  let ctx = await context(buildOptions);
+  // Plugin to log start/end of build events (mostly to help VS Code problem matcher)
+  /** @type {import("esbuild").Plugin} */
+  const buildPlugin = {
+    name: "Build Events",
+    setup(build) {
+      build.onStart(() => console.log("esbuild build started"));
+      build.onEnd(() => console.log("esbuild build complete"));
+    },
+  };
+
+  let ctx = await context({
+    ...buildOptions,
+    plugins: [buildPlugin],
+    color: false,
+  });
   const servedir = join(thisDir, "public");
 
   // See https://esbuild.github.io/api/#serve

@@ -7,18 +7,20 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_passes::run_default_passes;
+use qsc_passes::{run_core_passes, run_default_passes};
 
 use crate::{
     eval_expr,
     output::{GenericReceiver, Receiver},
-    tests::get_callable,
+    tests::get_global,
     val::Value,
     Env, Error,
 };
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Value, Error> {
-    let mut store = PackageStore::new(compile::core());
+    let mut core = compile::core();
+    run_core_passes(&mut core);
+    let mut store = PackageStore::new(core);
     let mut std = compile::std(&store);
     assert!(std.errors.is_empty());
     assert!(run_default_passes(store.core(), &mut std).is_empty());
@@ -37,7 +39,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut dyn Receiver) -> Result<Val
 
     eval_expr(
         entry,
-        &|id| get_callable(&store, id),
+        &|id| get_global(&store, id),
         id,
         &mut Env::default(),
         out,
@@ -879,10 +881,6 @@ fn qubit_release_non_zero_failure() {
         &expect![[r#"
             ReleasedQubitNotZero(
                 0,
-                Span {
-                    lo: 14,
-                    hi: 21,
-                },
             )
         "#]],
     );
@@ -899,8 +897,8 @@ fn qubit_not_unique_two_qubit_error() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 31889,
-                    hi: 31906,
+                    lo: 52091,
+                    hi: 52108,
                 },
             )
         "#]],
@@ -918,8 +916,8 @@ fn qubit_not_unique_two_qubit_rotation_error() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 44792,
-                    hi: 44815,
+                    lo: 64994,
+                    hi: 65017,
                 },
             )
         "#]],
@@ -938,8 +936,8 @@ fn qubit_not_unique_three_qubit_error_first_second() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 30845,
-                    hi: 30873,
+                    lo: 51047,
+                    hi: 51075,
                 },
             )
         "#]],
@@ -958,8 +956,8 @@ fn qubit_not_unique_three_qubit_error_first_third() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 30845,
-                    hi: 30873,
+                    lo: 51047,
+                    hi: 51075,
                 },
             )
         "#]],
@@ -978,8 +976,8 @@ fn qubit_not_unique_three_qubit_error_second_third() {
         &expect![[r#"
             QubitUniqueness(
                 Span {
-                    lo: 30845,
-                    hi: 30873,
+                    lo: 51047,
+                    hi: 51075,
                 },
             )
         "#]],

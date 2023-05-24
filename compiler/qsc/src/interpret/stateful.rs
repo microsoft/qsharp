@@ -14,18 +14,18 @@ use qsc_eval::{
     debug::CallStack,
     output::Receiver,
     val::{GlobalId, Value},
-    Env,
+    Env, Global,
 };
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap},
     incremental::{self, Compiler, Fragment},
 };
-use qsc_hir::hir::{CallableDecl, Item, ItemKind, LocalItemId, PackageId, Stmt};
+use qsc_hir::hir::{CallableDecl, ItemKind, LocalItemId, PackageId, Stmt};
 use qsc_passes::run_default_passes_for_fragment;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 use thiserror::Error;
 
-use super::debug::format_call_stack;
+use super::{debug::format_call_stack, stateless};
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
@@ -62,6 +62,7 @@ pub struct Interpreter {
     store: PackageStore,
     package: PackageId,
     compiler: Compiler,
+    udts: HashSet<LocalItemId>,
     callables: IndexMap<LocalItemId, CallableDecl>,
     env: Env,
 }
@@ -94,6 +95,7 @@ impl Interpreter {
             store,
             package,
             compiler,
+            udts: HashSet::new(),
             callables: IndexMap::new(),
             env: Env::with_empty_scope(),
         })
@@ -117,15 +119,13 @@ impl Interpreter {
             );
 
             match fragment {
-                Fragment::Item(Item {
-                    id,
-                    kind: ItemKind::Callable(decl),
-                    ..
-                }) => {
-                    self.callables.insert(id, decl);
-                    result = Value::unit();
-                }
-                Fragment::Item(_) => {}
+                Fragment::Item(item) => match item.kind {
+                    ItemKind::Callable(callable) => self.callables.insert(item.id, callable),
+                    ItemKind::Namespace(..) => {}
+                    ItemKind::Ty(..) => {
+                        self.udts.insert(item.id);
+                    }
+                },
                 Fragment::Stmt(stmt) => match self.eval_stmt(receiver, &stmt) {
                     Ok(value) => result = value,
                     Err((error, call_stack)) => {
@@ -164,7 +164,7 @@ impl Interpreter {
     ) -> Result<Value, (qsc_eval::Error, CallStack)> {
         qsc_eval::eval_stmt(
             stmt,
-            &|id| get_callable(&self.store, &self.callables, self.package, id),
+            &|id| get_global(&self.store, &self.udts, &self.callables, self.package, id),
             self.package,
             &mut self.env,
             receiver,
@@ -174,29 +174,25 @@ impl Interpreter {
     fn render_call_stack(&self, call_stack: &CallStack, error: &dyn std::error::Error) -> String {
         format_call_stack(
             &self.store,
-            &|id| get_callable(&self.store, &self.callables, self.package, id),
+            &|id| get_global(&self.store, &self.udts, &self.callables, self.package, id),
             call_stack,
             error,
         )
     }
 }
 
-fn get_callable<'a>(
+fn get_global<'a>(
     store: &'a PackageStore,
+    udts: &'a HashSet<LocalItemId>,
     callables: &'a IndexMap<LocalItemId, CallableDecl>,
     package: PackageId,
     id: GlobalId,
-) -> Option<&'a CallableDecl> {
+) -> Option<Global<'a>> {
     if id.package == package {
-        callables.get(id.item)
+        udts.contains(&id.item)
+            .then_some(Global::Udt)
+            .or_else(|| callables.get(id.item).map(Global::Callable))
     } else {
-        store.get(id.package).and_then(|unit| {
-            let item = unit.package.items.get(id.item)?;
-            if let ItemKind::Callable(callable) = &item.kind {
-                Some(callable)
-            } else {
-                None
-            }
-        })
+        stateless::get_global(store, id)
     }
 }

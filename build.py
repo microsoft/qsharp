@@ -10,8 +10,12 @@ import sys
 import venv
 import shutil
 import subprocess
+import functools
 
 from prereqs import check_prereqs
+
+# Disable buffered output so that the log statements and subprocess output get interleaved in proper order
+print = functools.partial(print, flush=True)
 
 parser = argparse.ArgumentParser(
     description="Builds all projects in the repo, unless specific projects to build are passed "

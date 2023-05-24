@@ -48,7 +48,8 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut actual = String::new();
     for (id, span, ty) in tys.tys {
         let source = unit.sources.find_offset(span.lo);
-        let code = &source.contents[span.lo - source.offset..span.hi - source.offset];
+        let code = &source.contents
+            [((span.lo - source.offset) as usize)..((span.hi - source.offset) as usize)];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
             .expect("writing type to string should succeed");
     }
@@ -377,6 +378,20 @@ fn binop_add_mismatch() {
 }
 
 #[test]
+fn binop_andb_invalid() {
+    check(
+        "",
+        "2.8 &&& 5.4",
+        &expect![[r##"
+            #0 0-11 "2.8 &&& 5.4" : Double
+            #1 0-3 "2.8" : Double
+            #2 8-11 "5.4" : Double
+            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn binop_andb_mismatch() {
     check(
         "",
@@ -524,6 +539,20 @@ fn binop_neq_tuple_arity_mismatch() {
 }
 
 #[test]
+fn binop_orb_invalid() {
+    check(
+        "",
+        "2.8 ||| 5.4",
+        &expect![[r##"
+            #0 0-11 "2.8 ||| 5.4" : Double
+            #1 0-3 "2.8" : Double
+            #2 8-11 "5.4" : Double
+            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn binop_orb_mismatch() {
     check(
         "",
@@ -533,6 +562,20 @@ fn binop_orb_mismatch() {
             #1 0-2 "28" : Int
             #2 7-10 "54L" : BigInt
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn binop_xorb_invalid() {
+    check(
+        "",
+        "2.8 ^^^ 5.4",
+        &expect![[r##"
+            #0 0-11 "2.8 ^^^ 5.4" : Double
+            #1 0-3 "2.8" : Double
+            #2 8-11 "5.4" : Double
+            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -815,6 +858,202 @@ fn ternop_update_invalid_index() {
             #5 13-18 "false" : Bool
             #6 22-23 "4" : Int
             Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Prim(Int) }, Span { lo: 0, hi: 23 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_array_index_var() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 38-117 "{\n        let xs = [2];\n        let i = 0;\n        let ys = xs w/ i <- 3;\n    }" : Unit
+            #5 52-54 "xs" : (Int)[]
+            #7 57-60 "[2]" : (Int)[]
+            #8 58-59 "2" : Int
+            #10 74-75 "i" : Int
+            #12 78-79 "0" : Int
+            #14 93-95 "ys" : (Int)[]
+            #16 98-110 "xs w/ i <- 3" : (Int)[]
+            #17 98-100 "xs" : (Int)[]
+            #18 104-105 "i" : Int
+            #19 109-110 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_array_index_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let xs = [2];
+                    let i = 0;
+                    let ys = xs w/ i + 1 <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 38-121 "{\n        let xs = [2];\n        let i = 0;\n        let ys = xs w/ i + 1 <- 3;\n    }" : Unit
+            #5 52-54 "xs" : (Int)[]
+            #7 57-60 "[2]" : (Int)[]
+            #8 58-59 "2" : Int
+            #10 74-75 "i" : Int
+            #12 78-79 "0" : Int
+            #14 93-95 "ys" : (Int)[]
+            #16 98-114 "xs w/ i + 1 <- 3" : (Int)[]
+            #17 98-100 "xs" : (Int)[]
+            #18 104-109 "i + 1" : Int
+            #19 104-105 "i" : Int
+            #20 108-109 "1" : Int
+            #21 113-114 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_known_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 79-81 "()" : Unit
+            #4 87-155 "{\n        let p = Pair(1, 2);\n        let q = p w/ First <- 3;\n    }" : Unit
+            #6 101-102 "p" : UDT<Item 1>
+            #8 105-115 "Pair(1, 2)" : UDT<Item 1>
+            #9 105-109 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #10 109-115 "(1, 2)" : (Int, Int)
+            #11 110-111 "1" : Int
+            #12 113-114 "2" : Int
+            #14 129-130 "q" : UDT<Item 1>
+            #16 133-148 "p w/ First <- 3" : UDT<Item 1>
+            #17 133-134 "p" : UDT<Item 1>
+            #18 147-148 "3" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_known_field_name_expr() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ First + 1 <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 79-81 "()" : Unit
+            #4 87-159 "{\n        let p = Pair(1, 2);\n        let q = p w/ First + 1 <- 3;\n    }" : Unit
+            #6 101-102 "p" : UDT<Item 1>
+            #8 105-115 "Pair(1, 2)" : UDT<Item 1>
+            #9 105-109 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #10 109-115 "(1, 2)" : (Int, Int)
+            #11 110-111 "1" : Int
+            #12 113-114 "2" : Int
+            #14 129-130 "q" : UDT<Item 1>
+            #16 133-152 "p w/ First + 1 <- 3" : UDT<Item 1>
+            #17 133-134 "p" : UDT<Item 1>
+            #18 138-147 "First + 1" : ?
+            #19 138-143 "First" : ?
+            #20 146-147 "1" : Int
+            #21 151-152 "3" : Int
+            Error(Resolve(NotFound("First", Span { lo: 138, hi: 143 })))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_unknown_field_name() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 79-81 "()" : Unit
+            #4 87-155 "{\n        let p = Pair(1, 2);\n        let q = p w/ Third <- 3;\n    }" : Unit
+            #6 101-102 "p" : UDT<Item 1>
+            #8 105-115 "Pair(1, 2)" : UDT<Item 1>
+            #9 105-109 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #10 109-115 "(1, 2)" : (Int, Int)
+            #11 110-111 "1" : Int
+            #12 113-114 "2" : Int
+            #14 129-130 "q" : UDT<Item 1>
+            #16 133-148 "p w/ Third <- 3" : UDT<Item 1>
+            #17 133-134 "p" : UDT<Item 1>
+            #18 147-148 "3" : Int
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 129, hi: 130 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn ternop_update_udt_unknown_field_name_known_global() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Pair = (First : Int, Second : Int);
+
+                function Third() : () {}
+
+                function Foo() : () {
+                    let p = Pair(1, 2);
+                    let q = p w/ Third <- 3;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 81-83 "()" : Unit
+            #4 89-91 "{}" : Unit
+            #7 109-111 "()" : Unit
+            #8 117-185 "{\n        let p = Pair(1, 2);\n        let q = p w/ Third <- 3;\n    }" : Unit
+            #10 131-132 "p" : UDT<Item 1>
+            #12 135-145 "Pair(1, 2)" : UDT<Item 1>
+            #13 135-139 "Pair" : ((Int, Int) -> UDT<Item 1>)
+            #14 139-145 "(1, 2)" : (Int, Int)
+            #15 140-141 "1" : Int
+            #16 143-144 "2" : Int
+            #18 159-160 "q" : UDT<Item 1>
+            #20 163-178 "p w/ Third <- 3" : UDT<Item 1>
+            #21 163-164 "p" : UDT<Item 1>
+            #22 177-178 "3" : Int
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 159, hi: 160 }))))
         "##]],
     );
 }
@@ -1550,12 +1789,11 @@ fn newtype_cons() {
         "},
         "",
         &expect![[r##"
-            #4 56-58 "()" : Unit
-            #5 68-81 "{ NewInt(5) }" : UDT<Item 1>
-            #7 70-79 "NewInt(5)" : UDT<Item 1>
-            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
-            #9 77-78 "5" : Int
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
+            #3 56-58 "()" : Unit
+            #4 68-81 "{ NewInt(5) }" : UDT<Item 1>
+            #6 70-79 "NewInt(5)" : UDT<Item 1>
+            #7 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #8 77-78 "5" : Int
         "##]],
     );
 }
@@ -1571,13 +1809,12 @@ fn newtype_cons_wrong_input() {
         "},
         "",
         &expect![[r##"
-            #4 56-58 "()" : Unit
-            #5 68-83 "{ NewInt(5.0) }" : UDT<Item 1>
-            #7 70-81 "NewInt(5.0)" : UDT<Item 1>
-            #8 70-76 "NewInt" : (Int -> UDT<Item 1>)
-            #9 77-80 "5.0" : Double
+            #3 56-58 "()" : Unit
+            #4 68-83 "{ NewInt(5.0) }" : UDT<Item 1>
+            #6 70-81 "NewInt(5.0)" : UDT<Item 1>
+            #7 70-76 "NewInt" : (Int -> UDT<Item 1>)
+            #8 77-80 "5.0" : Double
             Error(Type(Error(TypeMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
         "##]],
     );
 }
@@ -1593,13 +1830,12 @@ fn newtype_does_not_match_base_ty() {
         "},
         "",
         &expect![[r##"
-            #4 56-58 "()" : Unit
-            #5 65-78 "{ NewInt(5) }" : Int
-            #7 67-76 "NewInt(5)" : Int
-            #8 67-73 "NewInt" : (Int -> UDT<Item 1>)
-            #9 74-75 "5" : Int
+            #3 56-58 "()" : Unit
+            #4 65-78 "{ NewInt(5) }" : Int
+            #6 67-76 "NewInt(5)" : Int
+            #7 67-73 "NewInt" : (Int -> UDT<Item 1>)
+            #8 74-75 "5" : Int
             Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Prim(Int), Span { lo: 67, hi: 76 }))))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 39 })))
         "##]],
     );
 }
@@ -1616,14 +1852,79 @@ fn newtype_does_not_match_other_newtype() {
         "},
         "",
         &expect![[r##"
-            #6 84-86 "()" : Unit
-            #7 97-111 "{ NewInt1(5) }" : UDT<Item 2>
-            #9 99-109 "NewInt1(5)" : UDT<Item 2>
-            #10 99-106 "NewInt1" : (Int -> UDT<Item 1>)
-            #11 107-108 "5" : Int
+            #4 84-86 "()" : Unit
+            #5 97-111 "{ NewInt1(5) }" : UDT<Item 2>
+            #7 99-109 "NewInt1(5)" : UDT<Item 2>
+            #8 99-106 "NewInt1" : (Int -> UDT<Item 1>)
+            #9 107-108 "5" : Int
             Error(Type(Error(TypeMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 18, hi: 40 })))
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 45, hi: 67 })))
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_unwrap() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Foo = (Int, Bool);
+                function Bar(x : Foo) : () {
+                    let y = x!;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 62-69 "x : Foo" : UDT<Item 1>
+            #5 76-103 "{\n        let y = x!;\n    }" : Unit
+            #7 90-91 "y" : (Int, Bool)
+            #9 94-96 "x!" : (Int, Bool)
+            #10 94-95 "x" : UDT<Item 1>
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_field() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Foo = Bar : Int;
+                function Baz(x : Foo) : () {
+                    let y = x::Bar;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 60-67 "x : Foo" : UDT<Item 1>
+            #5 74-105 "{\n        let y = x::Bar;\n    }" : Unit
+            #7 88-89 "y" : Int
+            #9 92-98 "x::Bar" : Int
+            #10 92-93 "x" : UDT<Item 1>
+        "##]],
+    );
+}
+
+#[test]
+fn newtype_field_invalid() {
+    check(
+        indoc! {"
+            namespace A {
+                newtype Foo = Bar : Int;
+                function Baz(x : Foo) : () {
+                    let y = x::Nope;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #3 60-67 "x : Foo" : UDT<Item 1>
+            #5 74-106 "{\n        let y = x::Nope;\n    }" : Unit
+            #7 88-89 "y" : ?0
+            #9 92-99 "x::Nope" : ?0
+            #10 92-93 "x" : UDT<Item 1>
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferId(1)) }, Span { lo: 92, hi: 99 }))))
         "##]],
     );
 }
@@ -1784,11 +2085,10 @@ fn local_type() {
         &expect![[r##"
             #2 30-32 "()" : Unit
             #3 38-96 "{\n        newtype Bar = Int;\n        let x = Bar(5);\n    }" : Unit
-            #8 79-80 "x" : UDT<Item 2>
-            #10 83-89 "Bar(5)" : UDT<Item 2>
-            #11 83-86 "Bar" : (Int -> UDT<Item 2>)
-            #12 87-88 "5" : Int
-            Error(Validate(NotCurrentlySupported("newtype", Span { lo: 48, hi: 66 })))
+            #7 79-80 "x" : UDT<Item 2>
+            #9 83-89 "Bar(5)" : UDT<Item 2>
+            #10 83-86 "Bar" : (Int -> UDT<Item 2>)
+            #11 87-88 "5" : Int
         "##]],
     );
 }
@@ -1809,6 +2109,34 @@ fn local_open() {
             #8 47-49 "()" : Unit
             #12 81-83 "()" : Unit
             #13 89-91 "{}" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn infinite() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let x = invalid;
+                    let xs = [x, [x]];
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 38-97 "{\n        let x = invalid;\n        let xs = [x, [x]];\n    }" : Unit
+            #5 52-53 "x" : ?0
+            #7 56-63 "invalid" : ?
+            #9 77-79 "xs" : (?0)[]
+            #11 82-90 "[x, [x]]" : (?0)[]
+            #12 83-84 "x" : ?0
+            #13 86-89 "[x]" : (?0)[]
+            #14 87-88 "x" : ?0
+            Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
+            Error(Type(Error(TypeMismatch(Infer(InferId(0)), Array(Infer(InferId(0))), Span { lo: 86, hi: 89 }))))
         "##]],
     );
 }

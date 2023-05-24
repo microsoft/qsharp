@@ -55,8 +55,8 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
-        name,
-        items,
+        name: Box::new(name),
+        items: items.into_boxed_slice(),
     })
 }
 
@@ -69,7 +69,7 @@ pub(super) fn item(s: &mut Scanner) -> Result<Item> {
     } else if let Some(ty) = opt(s, item_ty)? {
         Ok(ty)
     } else if let Some(callable) = opt(s, callable_decl)? {
-        Ok(ItemKind::Callable(callable))
+        Ok(ItemKind::Callable(Box::new(callable)))
     } else {
         Err(Error::Rule("item", s.peek().kind, s.peek().span))
     }?;
@@ -77,9 +77,9 @@ pub(super) fn item(s: &mut Scanner) -> Result<Item> {
     Ok(Item {
         id: NodeId::default(),
         span: s.span(lo),
-        attrs,
+        attrs: attrs.into_boxed_slice(),
         visibility,
-        kind,
+        kind: Box::new(kind),
     })
 }
 
@@ -91,8 +91,8 @@ fn attr(s: &mut Scanner) -> Result<Attr> {
     Ok(Attr {
         id: NodeId::default(),
         span: s.span(lo),
-        name,
-        arg,
+        name: Box::new(name),
+        arg: Box::new(arg),
     })
 }
 
@@ -110,12 +110,12 @@ fn item_open(s: &mut Scanner) -> Result<ItemKind> {
     keyword(s, Keyword::Open)?;
     let name = dot_ident(s)?;
     let alias = if keyword(s, Keyword::As).is_ok() {
-        Some(dot_ident(s)?)
+        Some(Box::new(dot_ident(s)?))
     } else {
         None
     };
     token(s, TokenKind::Semi)?;
-    Ok(ItemKind::Open(name, alias))
+    Ok(ItemKind::Open(Box::new(name), alias))
 }
 
 fn item_ty(s: &mut Scanner) -> Result<ItemKind> {
@@ -124,7 +124,7 @@ fn item_ty(s: &mut Scanner) -> Result<ItemKind> {
     token(s, TokenKind::Eq)?;
     let def = ty_def(s)?;
     token(s, TokenKind::Semi)?;
-    Ok(ItemKind::Ty(name, def))
+    Ok(ItemKind::Ty(Box::new(name), Box::new(def)))
 }
 
 fn ty_def(s: &mut Scanner) -> Result<TyDef> {
@@ -138,27 +138,30 @@ fn ty_def(s: &mut Scanner) -> Result<TyDef> {
         if token(s, TokenKind::Colon).is_ok() {
             let name = ty_as_ident(field_ty)?;
             let field_ty = ty(s)?;
-            Ok(TyDefKind::Field(Some(name), field_ty))
+            Ok(TyDefKind::Field(Some(Box::new(name)), Box::new(field_ty)))
         } else {
-            Ok(TyDefKind::Field(None, field_ty))
+            Ok(TyDefKind::Field(None, Box::new(field_ty)))
         }
     }?;
 
     Ok(TyDef {
         id: NodeId::default(),
         span: s.span(lo),
-        kind,
+        kind: Box::new(kind),
     })
 }
 
 fn ty_as_ident(ty: Ty) -> Result<Ident> {
-    if let TyKind::Path(Path {
+    let TyKind::Path(path) = *ty.kind else {
+        return Err(Error::Convert("identifier", "type", ty.span));
+    };
+    if let Path {
         namespace: None,
         name,
         ..
-    }) = ty.kind
+    } = *path
     {
-        Ok(name)
+        Ok(*name)
     } else {
         Err(Error::Convert("identifier", "type", ty.span))
     }
@@ -188,7 +191,7 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     token(s, TokenKind::Colon)?;
     let output = ty(s)?;
     let functors = if keyword(s, Keyword::Is).is_ok() {
-        Some(ty::functor_expr(s)?)
+        Some(Box::new(ty::functor_expr(s)?))
     } else {
         None
     };
@@ -198,12 +201,12 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
         id: NodeId::default(),
         span: s.span(lo),
         kind,
-        name,
-        ty_params,
-        input,
-        output,
+        name: Box::new(name),
+        ty_params: ty_params.into_boxed_slice(),
+        input: Box::new(input),
+        output: Box::new(output),
         functors,
-        body,
+        body: Box::new(body),
     })
 }
 
@@ -214,14 +217,14 @@ fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
     if specs.is_empty() {
         let stmts = many(s, stmt)?;
         token(s, TokenKind::Close(Delim::Brace))?;
-        Ok(CallableBody::Block(Block {
+        Ok(CallableBody::Block(Box::new(Block {
             id: NodeId::default(),
             span: s.span(lo),
-            stmts,
-        }))
+            stmts: stmts.into_boxed_slice(),
+        })))
     } else {
         token(s, TokenKind::Close(Delim::Brace))?;
-        Ok(CallableBody::Specs(specs))
+        Ok(CallableBody::Specs(specs.into_boxed_slice()))
     }
 }
 
@@ -245,7 +248,7 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         token(s, TokenKind::Semi)?;
         SpecBody::Gen(gen)
     } else {
-        SpecBody::Impl(pat(s)?, stmt::block(s)?)
+        SpecBody::Impl(Box::new(pat(s)?), Box::new(stmt::block(s)?))
     };
 
     Ok(SpecDecl {

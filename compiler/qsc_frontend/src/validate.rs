@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{Expr, ExprKind, Item, ItemKind, Package, UnOp},
+    ast::{Expr, ExprKind, Package},
     visit::{self, Visitor},
 };
 use qsc_data_structures::span::Span;
@@ -29,25 +29,11 @@ struct Validator {
 }
 
 impl Visitor<'_> for Validator {
-    fn visit_item(&mut self, item: &Item) {
-        if matches!(&item.kind, ItemKind::Ty(..)) {
-            self.errors
-                .push(Error::NotCurrentlySupported("newtype", item.span));
-        }
-        visit::walk_item(self, item);
-    }
-
     fn visit_expr(&mut self, expr: &Expr) {
-        match &expr.kind {
-            ExprKind::Lambda(..) => self
-                .errors
-                .push(Error::NotCurrentlySupported("lambdas", expr.span)),
+        match &*expr.kind {
             ExprKind::Call(_, arg) if has_hole(arg) => self.errors.push(
                 Error::NotCurrentlySupported("partial applications", expr.span),
             ),
-            ExprKind::UnOp(UnOp::Unwrap, _) => self
-                .errors
-                .push(Error::NotCurrentlySupported("unwrap operator", expr.span)),
             _ => {}
         };
 
@@ -56,7 +42,7 @@ impl Visitor<'_> for Validator {
 }
 
 fn has_hole(expr: &Expr) -> bool {
-    match &expr.kind {
+    match &*expr.kind {
         ExprKind::Hole => true,
         ExprKind::Paren(sub_expr) => has_hole(sub_expr),
         ExprKind::Tuple(sub_exprs) => sub_exprs.iter().any(has_hole),

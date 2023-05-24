@@ -21,12 +21,12 @@ impl FinalSep {
         self,
         mut xs: Vec<T>,
         mut as_paren: impl FnMut(T) -> U,
-        mut as_seq: impl FnMut(Vec<T>) -> U,
+        mut as_seq: impl FnMut(Box<[T]>) -> U,
     ) -> U {
         if self == Self::Missing && xs.len() == 1 {
             as_paren(xs.pop().expect("vector should have exactly one item"))
         } else {
-            as_seq(xs)
+            as_seq(xs.into_boxed_slice())
         }
     }
 }
@@ -94,11 +94,11 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
         (Some(first), Some(last)) => {
             let lo = first.span.lo;
             let hi = last.span.hi;
-            Some(Ident {
+            Some(Box::new(Ident {
                 id: NodeId::default(),
                 span: Span { lo, hi },
                 name: join(parts.iter().map(|i| &i.name), ".").into(),
-            })
+            }))
         }
         _ => None,
     };
@@ -107,7 +107,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
         id: NodeId::default(),
         span: s.span(lo),
         namespace,
-        name,
+        name: Box::new(name),
     })
 }
 
@@ -115,7 +115,7 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     let lo = s.peek().span.lo;
     let kind = if keyword(s, Keyword::Underscore).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
-            Some(ty(s)?)
+            Some(Box::new(ty(s)?))
         } else {
             None
         };
@@ -127,9 +127,9 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(final_sep.reify(pats, |p| PatKind::Paren(Box::new(p)), PatKind::Tuple))
     } else {
-        let name = ident(s).map_err(|e| map_rule_name("pattern", e))?;
+        let name = Box::new(ident(s).map_err(|e| map_rule_name("pattern", e))?);
         let ty = if token(s, TokenKind::Colon).is_ok() {
-            Some(ty(s)?)
+            Some(Box::new(ty(s)?))
         } else {
             None
         };
@@ -139,7 +139,7 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     Ok(Pat {
         id: NodeId::default(),
         span: s.span(lo),
-        kind,
+        kind: Box::new(kind),
     })
 }
 

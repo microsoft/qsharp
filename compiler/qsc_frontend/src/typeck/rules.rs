@@ -4,15 +4,15 @@
 use super::{
     convert,
     infer::{self, Class, Inferrer},
-    Error, Tys,
+    Error,
 };
-use crate::resolve::{Res, Resolutions};
+use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
-use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, ItemId, PrimTy, Ty};
+use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_hir::hir::{self, ItemId, PrimTy, Ty, Udt};
 use std::collections::{HashMap, HashSet};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -23,26 +23,29 @@ struct Partial {
 }
 
 struct Context<'a> {
-    resolutions: &'a Resolutions,
+    names: &'a Names,
+    udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Ty>,
+    terms: &'a mut IndexMap<NodeId, Ty>,
     return_ty: Option<&'a Ty>,
-    tys: &'a mut Tys,
-    nodes: Vec<NodeId>,
+    new: Vec<NodeId>,
     inferrer: Inferrer,
 }
 
 impl<'a> Context<'a> {
     fn new(
-        resolutions: &'a Resolutions,
+        names: &'a Names,
+        udts: &'a HashMap<ItemId, Udt>,
         globals: &'a HashMap<ItemId, Ty>,
-        tys: &'a mut Tys,
+        terms: &'a mut IndexMap<NodeId, Ty>,
     ) -> Self {
         Self {
-            resolutions,
+            names,
+            udts,
             globals,
+            terms,
             return_ty: None,
-            tys,
-            nodes: Vec::new(),
+            new: Vec::new(),
             inferrer: Inferrer::new(),
         }
     }
@@ -71,7 +74,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
-        match &ty.kind {
+        match &*ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
             TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
                 convert::callable_kind_from_ast(*kind),
@@ -79,11 +82,11 @@ impl<'a> Context<'a> {
                 Box::new(self.infer_ty(output)),
                 functors
                     .as_ref()
-                    .map_or(HashSet::new(), convert::eval_functor_expr),
+                    .map_or(HashSet::new(), |f| convert::eval_functor_expr(f.as_ref())),
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(path) => match self.resolutions.get(path.id) {
+            TyKind::Path(path) => match self.names.get(path.id) {
                 Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
@@ -99,7 +102,7 @@ impl<'a> Context<'a> {
     fn infer_block(&mut self, block: &Block) -> Partial {
         let mut diverges = false;
         let mut last = None;
-        for stmt in &block.stmts {
+        for stmt in block.stmts.iter() {
             let stmt = self.infer_stmt(stmt);
             diverges = diverges || stmt.diverges;
             last = Some(stmt);
@@ -111,7 +114,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_stmt(&mut self, stmt: &Stmt) -> Partial {
-        let ty = match &stmt.kind {
+        let ty = match &*stmt.kind {
             StmtKind::Empty | StmtKind::Item(_) => converge(Ty::UNIT),
             StmtKind::Expr(expr) => self.infer_expr(expr),
             StmtKind::Local(_, pat, expr) => {
@@ -144,7 +147,7 @@ impl<'a> Context<'a> {
 
     #[allow(clippy::too_many_lines)]
     fn infer_expr(&mut self, expr: &Expr) -> Partial {
-        let ty = match &expr.kind {
+        let ty = match &*expr.kind {
             ExprKind::Array(items) => match items.split_first() {
                 Some((first, rest)) => {
                     let first = self.infer_expr(first);
@@ -180,8 +183,8 @@ impl<'a> Context<'a> {
                 let binop = self.infer_binop(expr.span, *op, lhs, rhs);
                 self.diverge_if(binop.diverges, converge(Ty::UNIT))
             }
-            ExprKind::AssignUpdate(container, index, item) => {
-                let update = self.infer_update(expr.span, container, index, item);
+            ExprKind::AssignUpdate(container, index, replace) => {
+                let update = self.infer_update(expr.span, container, index, replace);
                 self.diverge_if(update.diverges, converge(Ty::UNIT))
             }
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
@@ -274,11 +277,11 @@ impl<'a> Context<'a> {
             }
             ExprKind::Interpolate(components) => {
                 let mut diverges = false;
-                for component in components {
+                for component in components.iter() {
                     match component {
                         StringComponent::Expr(expr) => {
                             let span = expr.span;
-                            let expr = self.infer_expr(expr);
+                            let expr = self.infer_expr(expr.as_ref());
                             self.inferrer.class(span, Class::Show(expr.ty));
                             diverges = diverges || expr.diverges;
                         }
@@ -300,15 +303,17 @@ impl<'a> Context<'a> {
                     HashSet::new(),
                 ))
             }
-            ExprKind::Lit(Lit::BigInt(_)) => converge(Ty::Prim(PrimTy::BigInt)),
-            ExprKind::Lit(Lit::Bool(_)) => converge(Ty::Prim(PrimTy::Bool)),
-            ExprKind::Lit(Lit::Double(_)) => converge(Ty::Prim(PrimTy::Double)),
-            ExprKind::Lit(Lit::Int(_)) => converge(Ty::Prim(PrimTy::Int)),
-            ExprKind::Lit(Lit::Pauli(_)) => converge(Ty::Prim(PrimTy::Pauli)),
-            ExprKind::Lit(Lit::Result(_)) => converge(Ty::Prim(PrimTy::Result)),
-            ExprKind::Lit(Lit::String(_)) => converge(Ty::Prim(PrimTy::String)),
+            ExprKind::Lit(lit) => match lit.as_ref() {
+                Lit::BigInt(_) => converge(Ty::Prim(PrimTy::BigInt)),
+                Lit::Bool(_) => converge(Ty::Prim(PrimTy::Bool)),
+                Lit::Double(_) => converge(Ty::Prim(PrimTy::Double)),
+                Lit::Int(_) => converge(Ty::Prim(PrimTy::Int)),
+                Lit::Pauli(_) => converge(Ty::Prim(PrimTy::Pauli)),
+                Lit::Result(_) => converge(Ty::Prim(PrimTy::Result)),
+                Lit::String(_) => converge(Ty::Prim(PrimTy::String)),
+            },
             ExprKind::Paren(expr) => self.infer_expr(expr),
-            ExprKind::Path(path) => match self.resolutions.get(path.id) {
+            ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
                 Some(Res::Item(item)) => {
                     let mut ty = self
@@ -320,7 +325,7 @@ impl<'a> Context<'a> {
                     converge(ty)
                 }
                 Some(&Res::Local(node)) => converge(
-                    self.tys
+                    self.terms
                         .get(node)
                         .expect("local variable should have inferred type")
                         .clone(),
@@ -384,13 +389,13 @@ impl<'a> Context<'a> {
                     },
                 )
             }
-            ExprKind::TernOp(TernOp::Update, container, index, item) => {
-                self.infer_update(expr.span, container, index, item)
+            ExprKind::TernOp(TernOp::Update, container, index, replace) => {
+                self.infer_update(expr.span, container, index, replace)
             }
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items {
+                for item in items.iter() {
                     let item = self.infer_expr(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -486,13 +491,13 @@ impl<'a> Context<'a> {
                 self.inferrer.class(lhs_span, Class::Num(lhs.ty));
                 converge(Ty::Prim(PrimTy::Bool))
             }
-            BinOp::AndB
-            | BinOp::Div
-            | BinOp::Mod
-            | BinOp::Mul
-            | BinOp::OrB
-            | BinOp::Sub
-            | BinOp::XorB => {
+            BinOp::AndB | BinOp::OrB | BinOp::XorB => {
+                self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
+                self.inferrer
+                    .class(lhs_span, Class::Integral(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Div | BinOp::Mod | BinOp::Mul | BinOp::Sub => {
                 self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Num(lhs.ty.clone()));
                 lhs
@@ -520,21 +525,33 @@ impl<'a> Context<'a> {
 
     fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Partial {
         let container = self.infer_expr(container);
-        let index = self.infer_expr(index);
         let item = self.infer_expr(item);
-        self.inferrer.class(
-            span,
-            Class::HasIndex {
-                container: container.ty.clone(),
-                index: index.ty,
-                item: item.ty,
-            },
-        );
-        self.diverge_if(index.diverges || item.diverges, container)
+        if let Some(field) = resolve::extract_field_name(self.names, index) {
+            self.inferrer.class(
+                span,
+                Class::HasField {
+                    record: container.ty.clone(),
+                    name: field.to_string(),
+                    item: item.ty.clone(),
+                },
+            );
+            self.diverge_if(item.diverges, container)
+        } else {
+            let index = self.infer_expr(index);
+            self.inferrer.class(
+                span,
+                Class::HasIndex {
+                    container: container.ty.clone(),
+                    index: index.ty,
+                    item: item.ty,
+                },
+            );
+            self.diverge_if(index.diverges || item.diverges, container)
+        }
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
-        let ty = match &pat.kind {
+        let ty = match &*pat.kind {
             PatKind::Bind(name, None) => {
                 let ty = self.inferrer.fresh();
                 self.record(name.id, ty.clone());
@@ -558,7 +575,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_qubit_init(&mut self, init: &QubitInit) -> Partial {
-        let ty = match &init.kind {
+        let ty = match &*init.kind {
             QubitInitKind::Array(length) => {
                 let length_span = length.span;
                 let length = self.infer_expr(length);
@@ -574,7 +591,7 @@ impl<'a> Context<'a> {
             QubitInitKind::Tuple(items) => {
                 let mut diverges = false;
                 let mut tys = Vec::new();
-                for item in items {
+                for item in items.iter() {
                     let item = self.infer_qubit_init(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -603,14 +620,14 @@ impl<'a> Context<'a> {
     }
 
     fn record(&mut self, id: NodeId, ty: Ty) {
-        self.nodes.push(id);
-        self.tys.insert(id, ty);
+        self.new.push(id);
+        self.terms.insert(id, ty);
     }
 
     fn solve(self) -> Vec<Error> {
-        let (substs, errors) = self.inferrer.solve();
-        for id in self.nodes {
-            let ty = self.tys.get_mut(id).expect("node should have type");
+        let (substs, errors) = self.inferrer.solve(self.udts);
+        for id in self.new {
+            let ty = self.terms.get_mut(id).expect("node should have type");
             infer::substitute(&substs, ty);
         }
         errors
@@ -627,34 +644,37 @@ pub(super) struct SpecImpl<'a> {
 }
 
 pub(super) fn spec(
-    resolutions: &Resolutions,
+    names: &Names,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(names, udts, globals, terms);
     context.infer_spec(spec);
     context.solve()
 }
 
 pub(super) fn expr(
-    resolutions: &Resolutions,
+    names: &Names,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(names, udts, globals, terms);
     context.infer_expr(expr);
     context.solve()
 }
 
 pub(super) fn stmt(
-    resolutions: &Resolutions,
+    names: &Names,
+    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Ty>,
-    tys: &mut Tys,
+    terms: &mut IndexMap<NodeId, Ty>,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(resolutions, globals, tys);
+    let mut context = Context::new(names, udts, globals, terms);
     context.infer_stmt(stmt);
     context.solve()
 }

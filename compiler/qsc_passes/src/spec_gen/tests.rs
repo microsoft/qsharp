@@ -916,29 +916,29 @@ fn generate_adj_invert_with_range_loop() {
                                                 Expr _id_ [0-0] [Type Int]: BinOp (Add):
                                                     Expr _id_ [0-0] [Type Int]: Field:
                                                         Expr _id_ [0-0] [Type Range]: Var: Local 27
-                                                        Start
+                                                        Prim(Start)
                                                     Expr _id_ [0-0] [Type Int]: BinOp (Mul):
                                                         Expr _id_ [0-0] [Type Int]: BinOp (Div):
                                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                                 Expr _id_ [0-0] [Type Int]: Field:
                                                                     Expr _id_ [0-0] [Type Range]: Var: Local 27
-                                                                    End
+                                                                    Prim(End)
                                                                 Expr _id_ [0-0] [Type Int]: Field:
                                                                     Expr _id_ [0-0] [Type Range]: Var: Local 27
-                                                                    Start
+                                                                    Prim(Start)
                                                             Expr _id_ [0-0] [Type Int]: Field:
                                                                 Expr _id_ [0-0] [Type Range]: Var: Local 27
-                                                                Step
+                                                                Prim(Step)
                                                         Expr _id_ [0-0] [Type Int]: Field:
                                                             Expr _id_ [0-0] [Type Range]: Var: Local 27
-                                                            Step
+                                                            Prim(Step)
                                                 Expr _id_ [0-0] [Type Int]: UnOp (Neg):
                                                     Expr _id_ [0-0] [Type Int]: Field:
                                                         Expr _id_ [0-0] [Type Range]: Var: Local 27
-                                                        Step
+                                                        Prim(Step)
                                                 Expr _id_ [0-0] [Type Int]: Field:
                                                     Expr _id_ [0-0] [Type Range]: Var: Local 27
-                                                    Start
+                                                    Prim(Start)
                                             Block 17 [128-175] [Type Unit]:
                                                 Stmt 22 [160-165]: Semi: Expr 23 [160-164] [Type Unit]: Call:
                                                     Expr _id_ [160-161] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):

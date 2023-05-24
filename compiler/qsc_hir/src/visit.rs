@@ -3,8 +3,7 @@
 
 use crate::hir::{
     Block, CallableBody, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat,
-    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TyDef,
-    TyDefKind,
+    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -14,10 +13,6 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_item(&mut self, item: &'a Item) {
         walk_item(self, item);
-    }
-
-    fn visit_ty_def(&mut self, def: &'a TyDef) {
-        walk_ty_def(self, def);
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
@@ -59,18 +54,7 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_ident(name),
-        ItemKind::Ty(ident, def) => {
-            vis.visit_ident(ident);
-            vis.visit_ty_def(def);
-        }
-    }
-}
-
-pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
-    match &def.kind {
-        TyDefKind::Field(name, _) => name.iter().for_each(|n| vis.visit_ident(n)),
-        TyDefKind::Tuple(defs) => defs.iter().for_each(|d| vis.visit_ty_def(d)),
+        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }
 
@@ -127,10 +111,14 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(lhs);
             vis.visit_expr(rhs);
         }
-        ExprKind::AssignUpdate(record, index, value) => {
+        ExprKind::AssignField(record, _, replace) | ExprKind::UpdateField(record, _, replace) => {
             vis.visit_expr(record);
+            vis.visit_expr(replace);
+        }
+        ExprKind::AssignIndex(array, index, replace) => {
+            vis.visit_expr(array);
             vis.visit_expr(index);
-            vis.visit_expr(value);
+            vis.visit_expr(replace);
         }
         ExprKind::Block(block) => vis.visit_block(block),
         ExprKind::Call(callee, arg) => {
@@ -156,10 +144,6 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         ExprKind::Index(array, index) => {
             vis.visit_expr(array);
             vis.visit_expr(index);
-        }
-        ExprKind::Lambda(_, pat, expr) => {
-            vis.visit_pat(pat);
-            vis.visit_expr(expr);
         }
         ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
             vis.visit_expr(expr);
@@ -192,7 +176,11 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_) => {}
+        ExprKind::Closure(..)
+        | ExprKind::Err
+        | ExprKind::Hole
+        | ExprKind::Lit(_)
+        | ExprKind::Var(_) => {}
     }
 }
 

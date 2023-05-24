@@ -5,7 +5,6 @@
 mod tests;
 
 use qsc_data_structures::span::Span;
-use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     global::Table,
@@ -19,38 +18,36 @@ use std::{mem::take, rc::Rc};
 
 use crate::common::{create_gen_core_ref, IdentTemplate};
 
-pub fn replace_qubit_allocation(unit: &mut CompileUnit, core_table: &Table) {
-    let mut pass = ReplaceQubitAllocation {
-        assigner: &mut unit.assigner,
-        core_table,
-        qubits_curr_callable: Vec::new(),
-        qubits_curr_block: Vec::new(),
-        prefix_qubits: Vec::new(),
-    };
-    pass.visit_package(&mut unit.package);
-}
-
 struct QubitIdent {
     id: IdentTemplate,
     is_array: bool,
 }
 
-struct ReplaceQubitAllocation<'a> {
+pub(crate) struct ReplaceQubitAllocation<'a> {
     assigner: &'a mut Assigner,
-    core_table: &'a Table,
+    core: &'a Table,
     qubits_curr_callable: Vec<Vec<QubitIdent>>,
     qubits_curr_block: Vec<QubitIdent>,
     prefix_qubits: Vec<QubitIdent>,
 }
 
-impl ReplaceQubitAllocation<'_> {
-    fn process_qubit_stmt(
+impl<'a> ReplaceQubitAllocation<'a> {
+    pub(crate) fn new(core: &'a Table, assigner: &'a mut Assigner) -> Self {
+        Self {
+            assigner,
+            core,
+            qubits_curr_callable: Vec::new(),
+            qubits_curr_block: Vec::new(),
+            prefix_qubits: Vec::new(),
+        }
+    }
+
+    fn generate_qubit_alloc_stmts(
         &mut self,
         stmt_span: Span,
         pat: Pat,
         mut init: QubitInit,
-        block: Option<Block>,
-    ) -> Vec<Stmt> {
+    ) -> (Vec<QubitIdent>, Vec<Stmt>) {
         fn is_non_tuple(init: &mut QubitInit) -> (bool, Option<Expr>) {
             match &mut init.kind {
                 QubitInitKind::Array(e) => (true, Some(take(e))),
@@ -108,23 +105,44 @@ impl ReplaceQubitAllocation<'_> {
             });
         }
 
-        if let Some(mut block) = block {
-            self.prefix_qubits = new_ids;
-            block.stmts.splice(0..0, new_stmts);
-            self.visit_block(&mut block);
-            vec![Stmt {
-                id: NodeId::default(),
-                span: stmt_span,
-                kind: StmtKind::Expr(Expr {
-                    id: NodeId::default(),
-                    span: stmt_span,
-                    ty: block.ty.clone(),
-                    kind: ExprKind::Block(block),
-                }),
-            }]
+        (new_ids, new_stmts)
+    }
+
+    fn process_qubit_stmt(
+        &mut self,
+        stmt_span: Span,
+        pat: Pat,
+        init: QubitInit,
+        block: Option<Block>,
+    ) -> Vec<Stmt> {
+        let (new_ids, new_stmts) = self.generate_qubit_alloc_stmts(stmt_span, pat, init);
+        if let Some(block) = block {
+            vec![self.generate_block_stmt(stmt_span, new_ids, block, new_stmts)]
         } else {
             self.qubits_curr_block.extend(new_ids);
             new_stmts
+        }
+    }
+
+    fn generate_block_stmt(
+        &mut self,
+        stmt_span: Span,
+        new_ids: Vec<QubitIdent>,
+        mut block: Block,
+        new_stmts: Vec<Stmt>,
+    ) -> Stmt {
+        self.prefix_qubits = new_ids;
+        block.stmts.splice(0..0, new_stmts);
+        self.visit_block(&mut block);
+        Stmt {
+            id: NodeId::default(),
+            span: stmt_span,
+            kind: StmtKind::Expr(Expr {
+                id: NodeId::default(),
+                span: stmt_span,
+                ty: block.ty.clone(),
+                kind: ExprKind::Block(block),
+            }),
         }
     }
 
@@ -164,7 +182,7 @@ impl ReplaceQubitAllocation<'_> {
     }
 
     fn gen_ident(&mut self, ty: Ty, span: Span) -> IdentTemplate {
-        let id = self.assigner.next_id();
+        let id = self.assigner.next_node();
         IdentTemplate {
             id,
             span,
@@ -214,7 +232,7 @@ impl ReplaceQubitAllocation<'_> {
         create_general_alloc_stmt(
             ident,
             create_gen_core_ref(
-                self.core_table,
+                self.core,
                 "QIR.Runtime",
                 "__quantum__rt__qubit_allocate",
                 ident.span,
@@ -226,12 +244,7 @@ impl ReplaceQubitAllocation<'_> {
     fn create_array_alloc_stmt(&self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
         create_general_alloc_stmt(
             ident,
-            create_gen_core_ref(
-                self.core_table,
-                "QIR.Runtime",
-                "AllocateQubitArray",
-                ident.span,
-            ),
+            create_gen_core_ref(self.core, "QIR.Runtime", "AllocateQubitArray", ident.span),
             Some(array_size),
         )
     }
@@ -239,7 +252,7 @@ impl ReplaceQubitAllocation<'_> {
     fn create_dealloc_stmt(&self, ident: &IdentTemplate) -> Stmt {
         create_general_dealloc_stmt(
             create_gen_core_ref(
-                self.core_table,
+                self.core,
                 "QIR.Runtime",
                 "__quantum__rt__qubit_release",
                 ident.span,
@@ -250,12 +263,7 @@ impl ReplaceQubitAllocation<'_> {
 
     fn create_array_dealloc_stmt(&self, ident: &IdentTemplate) -> Stmt {
         create_general_dealloc_stmt(
-            create_gen_core_ref(
-                self.core_table,
-                "QIR.Runtime",
-                "ReleaseQubitArray",
-                ident.span,
-            ),
+            create_gen_core_ref(self.core, "QIR.Runtime", "ReleaseQubitArray", ident.span),
             ident,
         )
     }
@@ -348,6 +356,64 @@ impl MutVisitor for ReplaceQubitAllocation<'_> {
             _ => walk_expr(self, expr),
         }
     }
+
+    fn visit_stmt(&mut self, stmt: &mut Stmt) {
+        // This function is not called by visit_block above, so the only time it will be used is for
+        // top-level statement fragments. Given that, the qubits allocated will always be live for
+        // the entirety of a global scope, so only qubit allocations need to be generated.
+        match stmt.kind.clone() {
+            StmtKind::Qubit(_, pat, qubit_init, None) => {
+                stmt.kind = create_qubit_global_alloc(self.core, pat, qubit_init);
+            }
+            StmtKind::Qubit(_, pat, qubit_init, Some(block)) => {
+                let (new_ids, new_stmts) =
+                    self.generate_qubit_alloc_stmts(stmt.span, pat, qubit_init);
+                *stmt = self.generate_block_stmt(stmt.span, new_ids, block, new_stmts);
+            }
+            kind => {
+                stmt.kind = kind;
+                walk_stmt(self, stmt);
+            }
+        }
+    }
+}
+
+fn create_qubit_global_alloc(core: &Table, pat: Pat, qubit_init: QubitInit) -> StmtKind {
+    fn qubit_alloc_expr(core: &Table, qubit_init: QubitInit) -> Expr {
+        match qubit_init.kind {
+            QubitInitKind::Array(mut expr) => create_qubit_alloc_call_expr(
+                qubit_init.span,
+                create_gen_core_ref(core, "QIR.Runtime", "AllocateQubitArray", qubit_init.span),
+                Some(take(&mut expr)),
+            ),
+            QubitInitKind::Single => create_qubit_alloc_call_expr(
+                qubit_init.span,
+                create_gen_core_ref(
+                    core,
+                    "QIR.Runtime",
+                    "__quantum__rt__qubit_allocate",
+                    qubit_init.span,
+                ),
+                None,
+            ),
+            QubitInitKind::Tuple(tup) => Expr {
+                id: NodeId::default(),
+                span: qubit_init.span,
+                ty: qubit_init.ty,
+                kind: ExprKind::Tuple(
+                    tup.into_iter()
+                        .map(|init| qubit_alloc_expr(core, init))
+                        .collect(),
+                ),
+            },
+        }
+    }
+
+    StmtKind::Local(
+        Mutability::Immutable,
+        pat,
+        qubit_alloc_expr(core, qubit_init),
+    )
 }
 
 fn create_general_alloc_stmt(
@@ -357,21 +423,25 @@ fn create_general_alloc_stmt(
 ) -> Stmt {
     ident.gen_id_init(
         Mutability::Immutable,
-        Expr {
-            id: NodeId::default(),
-            span: ident.span,
-            ty: Ty::Prim(PrimTy::Qubit),
-            kind: ExprKind::Call(
-                Box::new(call_expr),
-                Box::new(array_size.unwrap_or(Expr {
-                    id: NodeId::default(),
-                    span: ident.span,
-                    ty: Ty::UNIT,
-                    kind: ExprKind::Tuple(vec![]),
-                })),
-            ),
-        },
+        create_qubit_alloc_call_expr(ident.span, call_expr, array_size),
     )
+}
+
+fn create_qubit_alloc_call_expr(span: Span, call_expr: Expr, array_size: Option<Expr>) -> Expr {
+    Expr {
+        id: NodeId::default(),
+        span,
+        ty: Ty::Prim(PrimTy::Qubit),
+        kind: ExprKind::Call(
+            Box::new(call_expr),
+            Box::new(array_size.unwrap_or(Expr {
+                id: NodeId::default(),
+                span,
+                ty: Ty::UNIT,
+                kind: ExprKind::Tuple(vec![]),
+            })),
+        ),
+    }
 }
 
 fn create_general_dealloc_stmt(call_expr: Expr, ident: &IdentTemplate) -> Stmt {

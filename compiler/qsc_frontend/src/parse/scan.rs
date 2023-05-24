@@ -10,7 +10,7 @@ pub(super) struct Scanner<'a> {
     tokens: Lexer<'a>,
     errors: Vec<Error>,
     peek: Token,
-    offset: usize,
+    offset: u32,
 }
 
 impl<'a> Scanner<'a> {
@@ -43,7 +43,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(super) fn span(&self, from: usize) -> Span {
+    pub(super) fn span(&self, from: u32) -> Span {
         Span {
             lo: from,
             hi: self.offset,
@@ -56,6 +56,7 @@ impl<'a> Scanner<'a> {
 }
 
 fn eof(offset: usize) -> Token {
+    let offset = offset.try_into().expect("eof offset should fit into u32");
     Token {
         kind: TokenKind::Eof,
         span: Span {
