@@ -618,6 +618,14 @@ fn check_excluding() {
     );
 }
 
+//#[test]
+//fn check_fold() {
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])",
+//        &Value::Int(15),
+//    );
+//}
+
 #[test]
 fn check_head() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
