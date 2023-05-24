@@ -2139,3 +2139,81 @@ fn infinite() {
         "##]],
     );
 }
+
+#[test]
+fn lambda_adj() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo(op : () => () is Adj) : () {}
+                operation Bar() : () { Foo(() => ()) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 32-52 "op : () => () is Adj" : (Unit => Unit is Adj)
+            #4 59-61 "{}" : Unit
+            #7 79-81 "()" : Unit
+            #8 87-104 "{ Foo(() => ()) }" : Unit
+            #10 89-102 "Foo(() => ())" : Unit
+            #11 89-92 "Foo" : ((Unit => Unit is Adj) => Unit)
+            #12 93-101 "() => ()" : (Unit => Unit is Adj)
+            #15 93-101 "() => ()" : (Unit,)
+            #13 93-95 "()" : Unit
+            #18 99-101 "()" : Unit
+            #14 99-101 "()" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_ctl() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo(op : () => () is Ctl) : () {}
+                operation Bar() : () { Foo(() => ()) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 32-52 "op : () => () is Ctl" : (Unit => Unit is Ctl)
+            #4 59-61 "{}" : Unit
+            #7 79-81 "()" : Unit
+            #8 87-104 "{ Foo(() => ()) }" : Unit
+            #10 89-102 "Foo(() => ())" : Unit
+            #11 89-92 "Foo" : ((Unit => Unit is Ctl) => Unit)
+            #12 93-101 "() => ()" : (Unit => Unit is Ctl)
+            #15 93-101 "() => ()" : (Unit,)
+            #13 93-95 "()" : Unit
+            #18 99-101 "()" : Unit
+            #14 99-101 "()" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_adj_ctl() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo(op : () => () is Adj + Ctl) : () {}
+                operation Bar() : () { Foo(() => ()) }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 32-58 "op : () => () is Adj + Ctl" : (Unit => Unit is Adj + Ctl)
+            #4 65-67 "{}" : Unit
+            #7 85-87 "()" : Unit
+            #8 93-110 "{ Foo(() => ()) }" : Unit
+            #10 95-108 "Foo(() => ())" : Unit
+            #11 95-98 "Foo" : ((Unit => Unit is Adj + Ctl) => Unit)
+            #12 99-107 "() => ()" : (Unit => Unit is Adj + Ctl)
+            #15 99-107 "() => ()" : (Unit,)
+            #13 99-101 "()" : Unit
+            #18 105-107 "()" : Unit
+            #14 105-107 "()" : Unit
+        "##]],
+    );
+}
