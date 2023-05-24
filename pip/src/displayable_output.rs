@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use num_bigint::BigUint;
 use num_complex::{Complex, Complex64, ComplexFloat};
 
@@ -31,7 +34,7 @@ impl DisplayableState {
                     format!(
                         include_str!("state_row_template.html"),
                         Self::fmt_basis_state_label(id, self.1),
-                        Self::fmt_complex_pretty(state),
+                        Self::fmt_complex(state),
                         amplitude,
                         amplitude,
                         Self::phase(state),
@@ -47,24 +50,14 @@ impl DisplayableState {
     }
 
     fn fmt_complex(c: &Complex<f64>) -> String {
-        // Complex::to_string does not format -0i properly so we do it ourselves.
-        format!(
-            "{:.4}{}{:.4}i",
-            c.re,
-            if c.im.is_sign_negative() { "-" } else { "+" },
-            c.im.abs()
-        )
-    }
-
-    fn fmt_complex_pretty(c: &Complex<f64>) -> String {
-        // Complex::to_string does not format -0i properly so we do it ourselves.
+        // Format -0 as 0
         // Also using Unicode Minus Sign instead of ASCII Hyphen-Minus
         // and Unicode Mathematical Italic Small I instead of ASCII i.
         format!(
             "{}{:.4}{}{:.4}𝑖",
-            if c.re.is_sign_negative() { "−" } else { "" },
+            if c.re <= -0.00005 { "−" } else { "" },
             c.re.abs(),
-            if c.im.is_sign_negative() { "−" } else { "+" },
+            if c.im <= -0.00005 { "−" } else { "+" },
             c.im.abs()
         )
     }

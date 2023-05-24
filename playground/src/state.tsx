@@ -8,16 +8,12 @@ function probability(real: number, imag: number) {
 }
 
 function formatComplex(real: number, imag: number) {
-  // toLocaleString() correctly identifies -0 in JavaScript
-  // String interpolation drops minus sign from -0
-  // &#x2212; is the unicode minus sign, &#x1D456; is the mathematical i
-  const realPart = `${real.toLocaleString()[0] === "-" ? "−" : ""}${Math.abs(
-    real
-  ).toFixed(4)}`;
-  const imagPart = `${imag.toLocaleString()[0] === "-" ? "−" : "+"}${Math.abs(
-    imag
-  ).toFixed(4)}𝑖`;
-  return `${realPart}${imagPart}`;
+  // Format -0 as 0
+  // Also using Unicode Minus Sign instead of ASCII Hyphen-Minus
+  // and Unicode Mathematical Italic Small I instead of ASCII i.
+  const r = `${real <= -0.00005 ? "−" : ""}${Math.abs(real).toFixed(4)}`;
+  const i = `${imag <= -0.00005 ? "−" : "+"}${Math.abs(imag).toFixed(4)}𝑖`;
+  return `${r}${i}`;
 }
 
 export function StateTable(props: { dump: Dump }) {
