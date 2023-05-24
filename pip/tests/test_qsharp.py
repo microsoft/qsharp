@@ -29,4 +29,4 @@ def test_stdout_multiple_lines() -> None:
         """
         )
 
-    assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000i\nHello!\n"
+    assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000𝑖\nHello!\n"
