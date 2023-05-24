@@ -1,7 +1,7 @@
 namespace Microsoft.Quantum.Samples.HiddenShift {
     open Microsoft.Quantum.Measurement;
     //open Microsoft.Quantum.Arrays;  // ForEach
-    //open Microsoft.Quantum.Convert; // ResultArrayAsInt
+    open Microsoft.Quantum.Convert; // ResultArrayAsInt
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arithmetic;
 
@@ -159,20 +159,6 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
         }
     }
 
-    // This is the version where s = 170 (in binary representation)
-    // TODO: Remove this when lambdas are supported.
-    internal operation ShiftedInnerProductBentFunction_170(
-        qs : Qubit[]) : Unit {
-        ShiftedInnerProductBentFunction(170, qs);
-    }
-
-    // This is the version where s = 3510 (in binary representation)
-    // TODO: Remove this when lambdas are supported.
-    internal operation ShiftedInnerProductBentFunction_3510(
-        qs : Qubit[]) : Unit {
-        ShiftedInnerProductBentFunction(3510, qs);
-    }
-
     // Run the Hidden Shift algorithm on a given number of qubits,
     // given Ug function and Ufstar = InnerProductBentFunction.
     operation FindHiddenShift (Ug : (Qubit[] => Unit), nQubits : Int) : Int {
@@ -201,20 +187,16 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
     operation Main(): Unit {
         let nQubits = 12;
 
-        let measuredShift = FindHiddenShift(
-            ShiftedInnerProductBentFunction_170, nQubits);
-        if (measuredShift != 170) {
-            fail $"Measured shift {measuredShift}, but expected 170.";
+        for shift in [170, 3510] {
+            let measuredShift = FindHiddenShift(
+                qs => ShiftedInnerProductBentFunction(shift, qs),
+                nQubits);
+            if (measuredShift != shift) {
+                fail $"Measured shift {measuredShift}, but expected {shift}.";
+            }
+            Message($"Measured hidden shift {shift} successfully!");
         }
-        Message("Measured hidden shift 170 successfully!");
         
-
-        let measuredShift = FindHiddenShift(
-            ShiftedInnerProductBentFunction_3510, nQubits);
-        if (measuredShift != 3510) {
-            fail $"Measured shift {measuredShift}, but expected 3510.";
-        }
-        Message("Measured hidden shift 3510 successfully!");
     }
 
     // TODO: Remove this when library function is implemented.
@@ -224,21 +206,6 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
             set retval += [action(array[idx])];
         }
         return retval;
-    }
-
-    // TODO: Remove this when library function is implemented.
-    function ResultArrayAsInt(results : Result[]) : Int {
-        let nBits = Length(results);
-        Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
-
-        mutable number = 0;
-        for i in 0 .. nBits - 1 {
-            if (results[i] == One) {
-                set number += 1 <<< i;
-            }
-        }
-
-        return number;        
     }
 
 }
