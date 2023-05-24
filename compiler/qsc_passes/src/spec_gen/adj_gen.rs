@@ -5,7 +5,7 @@ use crate::logic_sep;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableKind, Char, Expr, ExprKind, Functor, NodeId, Ty, UnOp},
+    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, Ty, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
 use thiserror::Error;
@@ -30,8 +30,8 @@ impl MutVisitor for AdjDistrib {
         match &mut expr.kind {
             ExprKind::Call(op, _) => {
                 match &op.ty {
-                    Ty::Arrow(CallableKind::Operation, _, _, Char::Set(functors))
-                        if functors.contains(&Functor::Adj) =>
+                    Ty::Arrow(CallableKind::Operation, _, _, functors)
+                        if functors.contains(&Functor::Adj) == Some(true) =>
                     {
                         *op = Box::new(Expr {
                             id: NodeId::default(),

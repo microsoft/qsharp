@@ -422,7 +422,7 @@ fn binop_equal_callable() {
             #9 73-89 "Test.A == Test.B" : Bool
             #10 73-79 "Test.A" : (Unit -> Unit)
             #11 83-89 "Test.B" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 73, hi: 79 }))))
+            Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 73, hi: 79 }))))
         "##]],
     );
 }
@@ -1679,7 +1679,7 @@ fn interpolate_function() {
             #3 38-40 "{}" : Unit
             #5 43-53 "$\"{A.Foo}\"" : String
             #6 46-51 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 46, hi: 51 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 46, hi: 51 }))))
         "##]],
     );
 }
@@ -1698,7 +1698,7 @@ fn interpolate_operation() {
             #3 39-41 "{}" : Unit
             #5 44-54 "$\"{A.Foo}\"" : String
             #6 47-52 "A.Foo" : (Unit => Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Operation, Tuple([]), Tuple([]), Set({}))), Span { lo: 47, hi: 52 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Operation, Tuple([]), Tuple([]), Empty)), Span { lo: 47, hi: 52 }))))
         "##]],
     );
 }
@@ -1737,7 +1737,7 @@ fn interpolate_function_array() {
             #10 73-87 "[A.Foo, A.Bar]" : ((Unit -> Unit))[]
             #11 74-79 "A.Foo" : (Unit -> Unit)
             #12 81-86 "A.Bar" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 73, hi: 87 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 73, hi: 87 }))))
         "##]],
     );
 }
@@ -1772,7 +1772,7 @@ fn interpolate_int_function_tuple() {
             #6 46-56 "(1, A.Foo)" : (Int, (Unit -> Unit))
             #7 47-48 "1" : Int
             #8 50-55 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Set({}))), Span { lo: 46, hi: 56 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 46, hi: 56 }))))
         "##]],
     );
 }

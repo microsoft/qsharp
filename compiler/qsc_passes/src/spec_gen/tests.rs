@@ -355,7 +355,7 @@ fn generate_ctl_with_function_calls() {
                         name: Ident 1 [30-33] "Foo"
                         input: Pat 2 [33-35] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [43-45]: <empty>
                 Item 2 [50-80] (Public):
                     Parent: 0
@@ -1439,7 +1439,7 @@ fn lambda_adj_calls_adj() {
                         name: Ident 6 [70-73] "Foo"
                         input: Pat 7 [74-97] [Type (Qubit => Unit is Adj)]: Bind: Ident 8 [74-76] "op"
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 9 [104-106]: <empty>
                 Item 3 [111-151] (Public):
                     Parent: 0
@@ -1447,7 +1447,7 @@ fn lambda_adj_calls_adj() {
                         name: Ident 11 [121-124] "Bar"
                         input: Pat 12 [124-126] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 13 [132-151] [Type Unit]:
                             Stmt 14 [134-149]: Semi: Expr 15 [134-148] [Type Unit]: Call:
                                 Expr 16 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var: Item 2

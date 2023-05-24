@@ -59,7 +59,7 @@ fn conjugate_invert() {
                         name: Ident 6 [73-74] "A"
                         input: Pat 7 [74-76] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 8 [84-216] [Type Unit]:
                             Stmt 9 [94-210]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
                                 Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 11 [101-148] [Type Unit]:
@@ -129,7 +129,7 @@ fn conjugate_invert_with_output() {
                         name: Ident 6 [73-74] "A"
                         input: Pat 7 [74-76] [Type Unit]: Unit
                         output: Int
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 8 [83-252] [Type Int]:
                             Stmt 9 [93-234]: Local (Immutable):
                                 Pat 10 [97-100] [Type Int]: Bind: Ident 11 [97-100] "val"
@@ -208,7 +208,7 @@ fn nested_conjugate_invert() {
                         name: Ident 6 [73-74] "A"
                         input: Pat 7 [74-76] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 8 [84-355] [Type Unit]:
                             Stmt 9 [94-349]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
                                 Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 11 [101-287] [Type Unit]:
@@ -468,7 +468,7 @@ fn conjugate_mutable_correct_use_succeeds() {
                         name: Ident 6 [73-74] "A"
                         input: Pat 7 [74-76] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 8 [84-312] [Type Unit]:
                             Stmt 9 [94-108]: Local (Mutable):
                                 Pat 10 [102-103] [Type Int]: Bind: Ident 11 [102-103] "a"

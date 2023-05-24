@@ -9,7 +9,6 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
-    collections::HashSet,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
     result,
@@ -294,7 +293,7 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: HashSet<Functor>,
+    pub functors: FunctorSet,
     /// The body of the callable.
     pub body: CallableBody,
 }
@@ -307,7 +306,7 @@ impl CallableDecl {
             self.kind,
             Box::new(self.input.ty.clone()),
             Box::new(self.output.clone()),
-            Char::Set(self.functors.clone()),
+            self.functors,
         )
     }
 }
@@ -332,7 +331,7 @@ impl Display for CallableDecl {
         }
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
-        write!(indent, "\nfunctors: {}", functors_as_str(&self.functors))?;
+        write!(indent, "\nfunctors: {}", self.functors)?;
         write!(indent, "\nbody: {}", self.body)?;
         Ok(())
     }
@@ -1072,7 +1071,7 @@ pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, Char),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, FunctorSet),
     /// An invalid type caused by an error.
     #[default]
     Err,
@@ -1103,7 +1102,7 @@ impl Display for Ty {
                     CallableKind::Operation => "=>",
                 };
                 write!(f, "({input} {arrow} {output}")?;
-                if !functors.is_empty() {
+                if functors.is_empty() != Some(true) {
                     f.write_str(" is ")?;
                     Display::fmt(functors, f)?;
                 }
@@ -1167,28 +1166,82 @@ pub enum PrimTy {
 }
 
 /// The characteristic functors of an operation.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Char {
-    /// A set of functors.
-    Set(HashSet<Functor>),
-    /// A placeholder characteristic variable used during type inference.
-    Infer(InferChar),
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FunctorSet {
+    /// The empty set.
+    Empty,
+    /// The singleton adjoint set.
+    Adj,
+    /// The singleton controlled set.
+    Ctl,
+    /// The set of adjoint and controlled.
+    AdjCtl,
+    /// A placeholder functor variable used during type inference.
+    Infer(InferFunctor),
 }
 
-impl Char {
-    fn is_empty(&self) -> bool {
+impl FunctorSet {
+    /// Whether the set is empty, or [None] if unknown.
+    #[must_use]
+    pub fn is_empty(&self) -> Option<bool> {
         match self {
-            Char::Set(functors) => functors.is_empty(),
-            Char::Infer(_) => false,
+            Self::Empty => Some(true),
+            Self::Adj | Self::Ctl | Self::AdjCtl => Some(false),
+            Self::Infer(_) => None,
+        }
+    }
+
+    /// Whether the set contains the functor, or [None] if unknown.
+    #[must_use]
+    pub fn contains(&self, functor: &Functor) -> Option<bool> {
+        match self {
+            Self::Empty => Some(false),
+            Self::Adj => Some(matches!(functor, Functor::Adj)),
+            Self::Ctl => Some(matches!(functor, Functor::Ctl)),
+            Self::AdjCtl => Some(matches!(functor, Functor::Adj | Functor::Ctl)),
+            Self::Infer(_) => None,
+        }
+    }
+
+    /// The intersection of this set and another set, or [None] if either set is unknown.
+    #[must_use]
+    pub fn intersect(&self, other: &FunctorSet) -> Option<FunctorSet> {
+        match (self, other) {
+            (Self::Empty, _)
+            | (_, Self::Empty)
+            | (Self::Adj, Self::Ctl)
+            | (Self::Ctl, Self::Adj) => Some(Self::Empty),
+            (Self::Adj, Self::Adj) => Some(Self::Adj),
+            (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
+            (Self::AdjCtl, &set) | (&set, Self::AdjCtl) => Some(set),
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
+        }
+    }
+
+    /// The union of this set and another set, or [None] if either set is unknown.
+    #[must_use]
+    pub fn union(&self, other: &FunctorSet) -> Option<FunctorSet> {
+        match (self, other) {
+            (Self::Empty, &set) | (&set, Self::Empty) => Some(set),
+            (Self::Adj, Self::Adj) => Some(Self::Adj),
+            (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
+            (Self::AdjCtl, _)
+            | (_, Self::AdjCtl)
+            | (Self::Adj, Self::Ctl)
+            | (Self::Ctl, Self::Adj) => Some(Self::AdjCtl),
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
         }
     }
 }
 
-impl Display for Char {
+impl Display for FunctorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Char::Set(functors) => f.write_str(functors_as_str(functors)),
-            Char::Infer(infer) => Display::fmt(infer, f),
+            Self::Empty => f.write_str("empty set"),
+            Self::Adj => f.write_str("Adj"),
+            Self::Ctl => f.write_str("Ctl"),
+            Self::AdjCtl => f.write_str("Adj + Ctl"),
+            Self::Infer(infer) => Display::fmt(infer, f),
         }
     }
 }
@@ -1223,11 +1276,11 @@ impl From<InferTy> for usize {
     }
 }
 
-/// A placeholder characteristic variable used during type inference.
+/// A placeholder functor variable used during type inference.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct InferChar(usize);
+pub struct InferFunctor(usize);
 
-impl InferChar {
+impl InferFunctor {
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
@@ -1235,14 +1288,14 @@ impl InferChar {
     }
 }
 
-impl Display for InferChar {
+impl Display for InferFunctor {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "¿{}", self.0)
+        write!(f, "f?{}", self.0)
     }
 }
 
-impl From<InferChar> for usize {
-    fn from(value: InferChar) -> Self {
+impl From<InferFunctor> for usize {
+    fn from(value: InferFunctor) -> Self {
         value.0
     }
 }
@@ -1268,7 +1321,7 @@ impl Udt {
             CallableKind::Function,
             Box::new(self.base.clone()),
             Box::new(Ty::Udt(Res::Item(id))),
-            Char::Set(HashSet::new()),
+            FunctorSet::Empty,
         )
     }
 
@@ -1609,16 +1662,4 @@ pub enum TernOp {
     Cond,
     /// Update array index: `a w/ b <- c`.
     UpdateIndex,
-}
-
-fn functors_as_str(functors: &HashSet<Functor>) -> &str {
-    match (
-        functors.contains(&Functor::Adj),
-        functors.contains(&Functor::Ctl),
-    ) {
-        (true, true) => "Adj + Ctl",
-        (true, false) => "Adj",
-        (false, true) => "Ctl",
-        (false, false) => "∅",
-    }
 }

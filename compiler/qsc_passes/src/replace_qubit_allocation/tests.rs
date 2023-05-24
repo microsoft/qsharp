@@ -35,7 +35,7 @@ fn test_single_qubit() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-96] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "q"
@@ -70,7 +70,7 @@ fn test_qubit_array() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-97] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 6 [59-60] "q"
@@ -105,7 +105,7 @@ fn test_qubit_tuple() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-107] [Type Unit]:
                             Stmt _id_ [64-71]: Local (Immutable):
                                 Pat _id_ [64-71] [Type Qubit]: Bind: Ident 15 [64-71] "generated_ident_15"
@@ -153,7 +153,7 @@ fn test_multiple_qubits_tuple() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-113] [Type Unit]:
                             Stmt _id_ [69-76]: Local (Immutable):
                                 Pat _id_ [69-76] [Type Qubit]: Bind: Ident 19 [69-76] "generated_ident_19"
@@ -208,7 +208,7 @@ fn test_multiple_callables() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-112] [Type Unit]:
                             Stmt _id_ [69-76]: Local (Immutable):
                                 Pat _id_ [69-76] [Type Qubit]: Bind: Ident 35 [69-76] "generated_ident_35"
@@ -242,7 +242,7 @@ fn test_multiple_callables() {
                         name: Ident 18 [132-135] "Bar"
                         input: Pat 19 [135-137] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 20 [145-212] [Type Unit]:
                             Stmt _id_ [169-176]: Local (Immutable):
                                 Pat _id_ [169-176] [Type Qubit]: Bind: Ident 37 [169-176] "generated_ident_37"
@@ -296,7 +296,7 @@ fn test_qubit_block() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-198] [Type Unit]:
                             Stmt _id_ [55-173]: Expr: Expr _id_ [55-173] [Type Unit]: Expr Block: Block 13 [87-173] [Type Unit]:
                                 Stmt _id_ [69-76]: Local (Immutable):
@@ -364,7 +364,7 @@ fn test_qubit_nested_block() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-155] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
@@ -424,7 +424,7 @@ fn test_qubit_multiple_nested_blocks() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-351] [Type Unit]:
                             Stmt 4 [55-66]: Local (Immutable):
                                 Pat 5 [59-61] [Type Int]: Bind: Ident 6 [59-61] "x1"
@@ -506,7 +506,7 @@ fn test_early_returns() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-239] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
@@ -589,7 +589,7 @@ fn test_end_exprs() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-170] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type Qubit]: Bind: Ident 6 [59-60] "a"
@@ -643,7 +643,7 @@ fn test_array_expr() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [45-150] [Type Unit]:
                             Stmt _id_ [59-60]: Local (Immutable):
                                 Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 6 [59-60] "a"
@@ -693,7 +693,7 @@ fn test_rtrn_expr() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Int
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [44-147] [Type Int]:
                             Stmt _id_ [58-59]: Local (Immutable):
                                 Pat _id_ [58-59] [Type Qubit]: Bind: Ident 6 [58-59] "a"
@@ -751,7 +751,7 @@ fn test_unrelated_unaffected() {
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Int
-                        functors: ∅
+                        functors: empty set
                         body: Block: Block 3 [44-159] [Type Int]:
                             Stmt 4 [54-95]: Expr: Expr 5 [54-95] [Type Unit]: If:
                                 Expr 6 [57-61] [Type Bool]: Lit: Bool(true)

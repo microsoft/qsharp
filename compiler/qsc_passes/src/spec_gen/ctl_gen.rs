@@ -4,7 +4,7 @@
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableKind, Char, Expr, ExprKind, Functor, NodeId, PrimTy, Res, Ty, UnOp},
+    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, PrimTy, Res, Ty, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
 use thiserror::Error;
@@ -26,8 +26,8 @@ impl MutVisitor for CtlDistrib {
         match &mut expr.kind {
             ExprKind::Call(op, args) => {
                 match &op.ty {
-                    Ty::Arrow(CallableKind::Operation, input, output, Char::Set(functors))
-                        if functors.contains(&Functor::Ctl) =>
+                    Ty::Arrow(CallableKind::Operation, input, output, functors)
+                        if functors.contains(&Functor::Ctl) == Some(true) =>
                     {
                         op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
                         op.ty = Ty::Arrow(
@@ -37,7 +37,7 @@ impl MutVisitor for CtlDistrib {
                                 Ty::clone(input),
                             ])),
                             output.clone(),
-                            Char::Set(functors.clone()),
+                            *functors,
                         );
 
                         args.kind = ExprKind::Tuple(vec![

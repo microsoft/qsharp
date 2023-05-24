@@ -3,7 +3,9 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Char, Functor, InferChar, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt};
+use qsc_hir::hir::{
+    Functor, FunctorSet, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt,
+};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::{self, Debug, Display, Formatter},
@@ -11,7 +13,7 @@ use std::{
 
 pub(super) struct Solution {
     tys: IndexMap<InferTy, Ty>,
-    chars: IndexMap<InferChar, Char>,
+    functors: IndexMap<InferFunctor, FunctorSet>,
 }
 
 #[derive(Clone, Debug)]
@@ -172,7 +174,7 @@ enum Constraint {
         actual: Ty,
         span: Span,
     },
-    Char(Functor, Char, Span),
+    Functor(Functor, FunctorSet, Span),
 }
 
 struct ClassError(Class, Span);
@@ -182,7 +184,7 @@ struct UnifyError(Ty, Ty);
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
     next_ty: InferTy,
-    next_char: InferChar,
+    next_functor: InferFunctor,
 }
 
 impl Inferrer {
@@ -190,7 +192,7 @@ impl Inferrer {
         Self {
             constraints: VecDeque::new(),
             next_ty: InferTy::default(),
-            next_char: InferChar::default(),
+            next_functor: InferFunctor::default(),
         }
     }
 
@@ -215,11 +217,11 @@ impl Inferrer {
         Ty::Infer(fresh)
     }
 
-    /// Returns a unique unconstrained characteristic variable.
-    pub(super) fn fresh_char(&mut self) -> Char {
-        let fresh = self.next_char;
-        self.next_char = fresh.successor();
-        Char::Infer(fresh)
+    /// Returns a unique unconstrained functor variable.
+    pub(super) fn fresh_functor(&mut self) -> FunctorSet {
+        let fresh = self.next_functor;
+        self.next_functor = fresh.successor();
+        FunctorSet::Infer(fresh)
     }
 
     /// Replaces all type parameters with fresh types.
@@ -267,7 +269,7 @@ struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     solution: Solution,
     pending_tys: HashMap<InferTy, Vec<Class>>,
-    pending_chars: HashMap<InferChar, HashSet<Functor>>,
+    pending_functors: HashMap<InferFunctor, HashSet<Functor>>,
     errors: Vec<Error>,
 }
 
@@ -277,10 +279,10 @@ impl<'a> Solver<'a> {
             udts,
             solution: Solution {
                 tys: IndexMap::new(),
-                chars: IndexMap::new(),
+                functors: IndexMap::new(),
             },
             pending_tys: HashMap::new(),
-            pending_chars: HashMap::new(),
+            pending_functors: HashMap::new(),
             errors: Vec::new(),
         }
     }
@@ -293,8 +295,8 @@ impl<'a> Solver<'a> {
                 actual,
                 span,
             } => self.eq(expected, actual, span),
-            Constraint::Char(functor, characteristic, span) => {
-                self.char(functor, characteristic, span);
+            Constraint::Functor(functor, functors, span) => {
+                self.functor(functor, functors, span);
                 Vec::new()
             }
         }
@@ -348,20 +350,20 @@ impl<'a> Solver<'a> {
             constraints
         };
 
-        let mut bind_char = |infer, char: Char| {
-            let constraints = if let Some(functors) = self.pending_chars.remove(&infer) {
-                functors
+        let mut bind_functor = |infer, functors| {
+            let constraints = if let Some(pending) = self.pending_functors.remove(&infer) {
+                pending
                     .into_iter()
-                    .map(|functor| Constraint::Char(functor, char.clone(), span))
+                    .map(|functor| Constraint::Functor(functor, functors, span))
                     .collect()
             } else {
                 Vec::new()
             };
-            self.solution.chars.insert(infer, char);
+            self.solution.functors.insert(infer, functors);
             constraints
         };
 
-        match unify(&mut bind_ty, &mut bind_char, &expected, &actual) {
+        match unify(&mut bind_ty, &mut bind_functor, &expected, &actual) {
             Ok(constraints) => constraints,
             Err(UnifyError(expected, actual)) => {
                 self.errors
@@ -371,15 +373,20 @@ impl<'a> Solver<'a> {
         }
     }
 
-    fn char(&mut self, functor: Functor, char: Char, span: Span) {
-        match char {
-            Char::Set(functors) if functors.contains(&functor) => {}
-            Char::Set(_) => self
-                .errors
-                .push(Error(ErrorKind::MissingFunctor(functor, char, span))),
-            Char::Infer(infer) => {
-                self.pending_chars.entry(infer).or_default().insert(functor);
+    fn functor(&mut self, functor: Functor, functors: FunctorSet, span: Span) {
+        match (functor, functors) {
+            (_, FunctorSet::AdjCtl)
+            | (Functor::Adj, FunctorSet::Adj)
+            | (Functor::Ctl, FunctorSet::Ctl) => {}
+            (_, FunctorSet::Infer(infer)) => {
+                self.pending_functors
+                    .entry(infer)
+                    .or_default()
+                    .insert(functor);
             }
+            _ => self
+                .errors
+                .push(Error(ErrorKind::MissingFunctor(functor, functors, span))),
         }
     }
 
@@ -392,12 +399,12 @@ pub(super) fn substitute(solution: &Solution, ty: &mut Ty) {
     match ty {
         Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
         Ty::Array(item) => substitute(solution, item),
-        Ty::Arrow(_, input, output, char) => {
+        Ty::Arrow(_, input, output, functors) => {
             substitute(solution, input);
             substitute(solution, output);
-            if let &mut Char::Infer(infer) = char {
-                if let Some(new_char) = solution.chars.get(infer) {
-                    *char = new_char.clone();
+            if let &mut FunctorSet::Infer(infer) = functors {
+                if let Some(&new_functors) = solution.functors.get(infer) {
+                    *functors = new_functors;
                 }
             }
         }
@@ -422,7 +429,7 @@ fn substituted(solution: &Solution, mut ty: Ty) -> Ty {
 
 fn unify(
     bind_ty: &mut impl FnMut(InferTy, Ty) -> Vec<Constraint>,
-    bind_char: &mut impl FnMut(InferChar, Char) -> Vec<Constraint>,
+    bind_functor: &mut impl FnMut(InferFunctor, FunctorSet) -> Vec<Constraint>,
     ty1: &Ty,
     ty2: &Ty,
 ) -> Result<Vec<Constraint>, UnifyError> {
@@ -431,17 +438,18 @@ fn unify(
         | (_, Ty::Err)
         | (Ty::Udt(Res::Err), Ty::Udt(_))
         | (Ty::Udt(_), Ty::Udt(Res::Err)) => Ok(Vec::new()),
-        (Ty::Array(item1), Ty::Array(item2)) => unify(bind_ty, bind_char, item1, item2),
-        (Ty::Arrow(kind1, input1, output1, char1), Ty::Arrow(kind2, input2, output2, char2))
-            if kind1 == kind2 =>
-        {
-            let mut constraints = unify(bind_ty, bind_char, input1, input2)?;
-            constraints.append(&mut unify(bind_ty, bind_char, output1, output2)?);
+        (Ty::Array(item1), Ty::Array(item2)) => unify(bind_ty, bind_functor, item1, item2),
+        (
+            Ty::Arrow(kind1, input1, output1, functors1),
+            Ty::Arrow(kind2, input2, output2, functors2),
+        ) if kind1 == kind2 => {
+            let mut constraints = unify(bind_ty, bind_functor, input1, input2)?;
+            constraints.append(&mut unify(bind_ty, bind_functor, output1, output2)?);
 
-            match (char1, char2) {
-                (Char::Infer(infer1), Char::Infer(infer2)) if infer1 == infer2 => {}
-                (&Char::Infer(infer), char) | (char, &Char::Infer(infer)) => {
-                    constraints.append(&mut bind_char(infer, char.clone()));
+            match (functors1, functors2) {
+                (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
+                (&FunctorSet::Infer(infer), &functors) | (&functors, &FunctorSet::Infer(infer)) => {
+                    constraints.append(&mut bind_functor(infer, functors));
                 }
                 _ => {
                     // TODO: We ignore incompatible functors until subtyping is supported, even
@@ -461,7 +469,7 @@ fn unify(
         (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
             let mut constraints = Vec::new();
             for (item1, item2) in items1.iter().zip(items2) {
-                constraints.append(&mut unify(bind_ty, bind_char, item1, item2)?);
+                constraints.append(&mut unify(bind_ty, bind_functor, item1, item2)?);
             }
             Ok(constraints)
         }
@@ -501,7 +509,7 @@ fn check_add(ty: &Ty) -> bool {
 
 fn check_adj(ty: Ty, span: Span) -> Result<Constraint, ClassError> {
     match ty {
-        Ty::Arrow(_, _, _, functors) => Ok(Constraint::Char(Functor::Adj, functors, span)),
+        Ty::Arrow(_, _, _, functors) => Ok(Constraint::Functor(Functor::Adj, functors, span)),
         _ => Err(ClassError(Class::Adj(ty), span)),
     }
 }
@@ -542,7 +550,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Vec<Constraint>, Class
             let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
             Ok(vec![
-                Constraint::Char(Functor::Ctl, functors.clone(), span),
+                Constraint::Functor(Functor::Ctl, functors, span),
                 Constraint::Eq {
                     expected: Ty::Arrow(kind, ctl_input, output, functors),
                     actual: with_ctls,
