@@ -60,7 +60,10 @@ fn basic_ops() {
     for kind in enum_iterator::all() {
         let Some(input) = op_string(kind) else { continue };
         let actual: Vec<_> = Lexer::new(&input).collect();
-        let len = input.len();
+        let len = input
+            .len()
+            .try_into()
+            .expect("input length should fit into u32");
         assert_eq!(
             actual,
             vec![Ok(Token {
