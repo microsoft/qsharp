@@ -52,9 +52,9 @@ impl DisplayableState {
         // and Unicode Mathematical Italic Small I instead of ASCII i.
         format!(
             "{}{:.4}{}{:.4}𝑖",
-            if c.re < 0.0 { "−" } else { "" },
+            if c.re <= -0.00005 { "−" } else { "" },
             c.re.abs(),
-            if c.im < 0.0 { "−" } else { "+" },
+            if c.im <= -0.00005 { "−" } else { "+" },
             c.im.abs()
         )
     }

@@ -11,8 +11,8 @@ function formatComplex(real: number, imag: number) {
   // Format -0 as 0
   // Also using Unicode Minus Sign instead of ASCII Hyphen-Minus
   // and Unicode Mathematical Italic Small I instead of ASCII i.
-  const r = `${Math.sign(real) < 0 ? "−" : ""}${Math.abs(real).toFixed(4)}`;
-  const i = `${Math.sign(imag) < 0 ? "−" : "+"}${Math.abs(imag).toFixed(4)}𝑖`;
+  const r = `${real <= -0.00005 ? "−" : ""}${Math.abs(real).toFixed(4)}`;
+  const i = `${imag <= -0.00005 ? "−" : "+"}${Math.abs(imag).toFixed(4)}𝑖`;
   return `${r}${i}`;
 }
 
