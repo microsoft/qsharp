@@ -10,11 +10,10 @@ function HirTab(props: {
   evtTarget: QscEventTarget;
   activeTab: string;
 }) {
-  // const evtTarget = props.evtTarget;
-  // const hir = evtTarget.getHir();
-
   return props.activeTab === "hir-tab" ? (
-    <pre class="hir-output">{props.hir}</pre>
+    <textarea readonly class="hir-output">
+      {props.hir}
+    </textarea>
   ) : null;
 }
 
