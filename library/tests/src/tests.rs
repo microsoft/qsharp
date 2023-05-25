@@ -596,28 +596,28 @@ fn check_chunks() {
     );
 }
 
-//#[test]
-//fn check_column_at() {
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.ColumnAt(0, [[1, 2, 3], [4, 5, 6], [7, 8, 9]])",
-//        &Value::Array(vec![Value::Int(1), Value::Int(4), Value::Int(7)].into()),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.ColumnAt(2, [[true, true, true], [false, false, false]])",
-//        &Value::Array(vec![Value::Bool(true), Value::Bool(false)].into()),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.ColumnAt(1, [[One, One], [Zero, Zero], [Zero, One]])",
-//        &Value::Array(
-//            vec![
-//                Value::Result(true),
-//                Value::Result(false),
-//                Value::Result(true),
-//            ]
-//            .into(),
-//        ),
-//    );
-//}
+#[test]
+fn check_column_at() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ColumnAt(0, [[1, 2, 3], [4, 5, 6], [7, 8, 9]])",
+        &Value::Array(vec![Value::Int(1), Value::Int(4), Value::Int(7)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ColumnAt(2, [[true, true, true], [false, false, false]])",
+        &Value::Array(vec![Value::Bool(true), Value::Bool(false)].into()),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.ColumnAt(1, [[One, One], [Zero, Zero], [Zero, One]])",
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(false),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
 
 #[test]
 fn check_diagnonal() {
