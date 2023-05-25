@@ -1487,11 +1487,9 @@ fn check_exp_with_cnot() {
                 Adjoint CNOT(control, target);
             }
 
-            if not CheckAllZero([aux, control, target]) {
-                fail "CNOT decomposition with Exp failed."
-            }
+            CheckAllZero([aux, control, target])
         }"#},
-        &Value::unit(),
+        &Value::Bool(true),
     );
 }
 
@@ -1518,10 +1516,8 @@ fn check_exp_with_swap() {
                 Adjoint SWAP(qs[0], qs[1]);
             }
 
-            if not CheckAllZero([aux] + qs) {
-                fail "SWAP decomposition with Exp failed."
-            }
+            CheckAllZero([aux] + qs)
         }"#},
-        &Value::unit(),
+        &Value::Bool(true),
     );
 }
