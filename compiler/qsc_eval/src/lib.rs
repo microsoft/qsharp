@@ -86,8 +86,8 @@ pub enum Error {
     #[error("symbol is not bound")]
     Unbound(#[label] Span),
 
-    #[error("unknown intrinsic")]
-    UnknownIntrinsic(#[label("callable has no implementation")] Span),
+    #[error("unknown intrinsic `{0}`")]
+    UnknownIntrinsic(String, #[label("callable has no implementation")] Span),
 
     #[error("program failed: {0}")]
     UserFail(String, #[label("explicit fail")] Span),
