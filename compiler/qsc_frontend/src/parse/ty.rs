@@ -23,12 +23,12 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
             lhs = Ty {
                 id: NodeId::default(),
                 span: s.span(lo),
-                kind: TyKind::Array(Box::new(lhs)),
+                kind: Box::new(TyKind::Array(Box::new(lhs))),
             }
         } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
             let functors = if keyword(s, Keyword::Is).is_ok() {
-                Some(functor_expr(s)?)
+                Some(Box::new(functor_expr(s)?))
             } else {
                 None
             };
@@ -36,7 +36,12 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
             lhs = Ty {
                 id: NodeId::default(),
                 span: s.span(lo),
-                kind: TyKind::Arrow(kind, Box::new(lhs), Box::new(output), functors),
+                kind: Box::new(TyKind::Arrow(
+                    kind,
+                    Box::new(lhs),
+                    Box::new(output),
+                    functors,
+                )),
             }
         } else {
             break Ok(lhs);
@@ -70,9 +75,9 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     let kind = if keyword(s, Keyword::Underscore).is_ok() {
         Ok(TyKind::Hole)
     } else if let Some(name) = opt(s, param)? {
-        Ok(TyKind::Param(name))
+        Ok(TyKind::Param(Box::new(name)))
     } else if let Some(path) = opt(s, path)? {
-        Ok(TyKind::Path(path))
+        Ok(TyKind::Path(Box::new(path)))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (tys, final_sep) = seq(s, ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;
@@ -84,7 +89,7 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     Ok(Ty {
         id: NodeId::default(),
         span: s.span(lo),
-        kind,
+        kind: Box::new(kind),
     })
 }
 
@@ -112,7 +117,7 @@ fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
     Ok(FunctorExpr {
         id: NodeId::default(),
         span: s.span(lo),
-        kind,
+        kind: Box::new(kind),
     })
 }
 
@@ -130,7 +135,7 @@ fn functor_op(
         lhs = FunctorExpr {
             id: NodeId::default(),
             span: s.span(lo),
-            kind: FunctorExprKind::BinOp(set_op, Box::new(lhs), Box::new(rhs)),
+            kind: Box::new(FunctorExprKind::BinOp(set_op, Box::new(lhs), Box::new(rhs))),
         };
     }
 

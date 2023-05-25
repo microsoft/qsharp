@@ -74,7 +74,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
-        match &ty.kind {
+        match &*ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
             TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
                 convert::callable_kind_from_ast(*kind),
@@ -82,7 +82,7 @@ impl<'a> Context<'a> {
                 Box::new(self.infer_ty(output)),
                 functors
                     .as_ref()
-                    .map_or(HashSet::new(), convert::eval_functor_expr),
+                    .map_or(HashSet::new(), |f| convert::eval_functor_expr(f.as_ref())),
             ),
             TyKind::Hole => self.inferrer.fresh(),
             TyKind::Paren(inner) => self.infer_ty(inner),
@@ -102,7 +102,7 @@ impl<'a> Context<'a> {
     fn infer_block(&mut self, block: &Block) -> Partial {
         let mut diverges = false;
         let mut last = None;
-        for stmt in &block.stmts {
+        for stmt in block.stmts.iter() {
             let stmt = self.infer_stmt(stmt);
             diverges = diverges || stmt.diverges;
             last = Some(stmt);
@@ -114,7 +114,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_stmt(&mut self, stmt: &Stmt) -> Partial {
-        let ty = match &stmt.kind {
+        let ty = match &*stmt.kind {
             StmtKind::Empty | StmtKind::Item(_) => converge(Ty::UNIT),
             StmtKind::Expr(expr) => self.infer_expr(expr),
             StmtKind::Local(_, pat, expr) => {
@@ -147,7 +147,7 @@ impl<'a> Context<'a> {
 
     #[allow(clippy::too_many_lines)]
     fn infer_expr(&mut self, expr: &Expr) -> Partial {
-        let ty = match &expr.kind {
+        let ty = match &*expr.kind {
             ExprKind::Array(items) => match items.split_first() {
                 Some((first, rest)) => {
                     let first = self.infer_expr(first);
@@ -277,11 +277,11 @@ impl<'a> Context<'a> {
             }
             ExprKind::Interpolate(components) => {
                 let mut diverges = false;
-                for component in components {
+                for component in components.iter() {
                     match component {
                         StringComponent::Expr(expr) => {
                             let span = expr.span;
-                            let expr = self.infer_expr(expr);
+                            let expr = self.infer_expr(expr.as_ref());
                             self.inferrer.class(span, Class::Show(expr.ty));
                             diverges = diverges || expr.diverges;
                         }
@@ -303,13 +303,15 @@ impl<'a> Context<'a> {
                     HashSet::new(),
                 ))
             }
-            ExprKind::Lit(Lit::BigInt(_)) => converge(Ty::Prim(PrimTy::BigInt)),
-            ExprKind::Lit(Lit::Bool(_)) => converge(Ty::Prim(PrimTy::Bool)),
-            ExprKind::Lit(Lit::Double(_)) => converge(Ty::Prim(PrimTy::Double)),
-            ExprKind::Lit(Lit::Int(_)) => converge(Ty::Prim(PrimTy::Int)),
-            ExprKind::Lit(Lit::Pauli(_)) => converge(Ty::Prim(PrimTy::Pauli)),
-            ExprKind::Lit(Lit::Result(_)) => converge(Ty::Prim(PrimTy::Result)),
-            ExprKind::Lit(Lit::String(_)) => converge(Ty::Prim(PrimTy::String)),
+            ExprKind::Lit(lit) => match lit.as_ref() {
+                Lit::BigInt(_) => converge(Ty::Prim(PrimTy::BigInt)),
+                Lit::Bool(_) => converge(Ty::Prim(PrimTy::Bool)),
+                Lit::Double(_) => converge(Ty::Prim(PrimTy::Double)),
+                Lit::Int(_) => converge(Ty::Prim(PrimTy::Int)),
+                Lit::Pauli(_) => converge(Ty::Prim(PrimTy::Pauli)),
+                Lit::Result(_) => converge(Ty::Prim(PrimTy::Result)),
+                Lit::String(_) => converge(Ty::Prim(PrimTy::String)),
+            },
             ExprKind::Paren(expr) => self.infer_expr(expr),
             ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
@@ -393,7 +395,7 @@ impl<'a> Context<'a> {
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
-                for item in items {
+                for item in items.iter() {
                     let item = self.infer_expr(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
@@ -549,7 +551,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
-        let ty = match &pat.kind {
+        let ty = match &*pat.kind {
             PatKind::Bind(name, None) => {
                 let ty = self.inferrer.fresh();
                 self.record(name.id, ty.clone());
@@ -573,7 +575,7 @@ impl<'a> Context<'a> {
     }
 
     fn infer_qubit_init(&mut self, init: &QubitInit) -> Partial {
-        let ty = match &init.kind {
+        let ty = match &*init.kind {
             QubitInitKind::Array(length) => {
                 let length_span = length.span;
                 let length = self.infer_expr(length);
@@ -589,7 +591,7 @@ impl<'a> Context<'a> {
             QubitInitKind::Tuple(items) => {
                 let mut diverges = false;
                 let mut tys = Vec::new();
-                for item in items {
+                for item in items.iter() {
                     let item = self.infer_qubit_init(item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);

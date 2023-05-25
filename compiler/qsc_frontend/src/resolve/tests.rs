@@ -39,7 +39,7 @@ impl<'a> Renamer<'a> {
                 Res::PrimTy(prim) => format!("{prim:?}"),
                 Res::UnitTy => "Unit".to_string(),
             };
-            input.replace_range(span, &name);
+            input.replace_range((span.lo as usize)..(span.hi as usize), &name);
         }
     }
 }
@@ -69,7 +69,7 @@ fn resolve_names(input: &str) -> String {
     assert!(errors.is_empty(), "syntax errors: {errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
-        namespaces,
+        namespaces: namespaces.into_boxed_slice(),
         entry: None,
     };
     let mut ast_assigner = AstAssigner::new();
@@ -366,7 +366,7 @@ fn ambiguous_prelude() {
         namespace Microsoft.Quantum.Core {
             function A() : Unit {}
         }
-        
+
         namespace Foo {
             function B() : Unit {
                 A();
@@ -379,7 +379,7 @@ fn ambiguous_prelude() {
 fn local_var() {
     check(
         indoc! {"
-            namespace Foo { 
+            namespace Foo {
                 function A() : Int {
                     let x = 0;
                     x
@@ -387,7 +387,7 @@ fn local_var() {
             }
         "},
         &expect![[r#"
-            namespace item0 { 
+            namespace item0 {
                 function item1() : Int {
                     let local13 = 0;
                     local13
@@ -1491,6 +1491,78 @@ fn update_udt_unknown_field_name_known_global() {
                 function item3() : () {
                     let local30 = item1(1, 2);
                     let local40 = local30 w/ Third <- 3;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn unknown_namespace() {
+    check(
+        indoc! {"
+            namespace A {
+                open Microsoft.Quantum.Fake;
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                open Microsoft.Quantum.Fake;
+            }
+
+            // NotFound("Microsoft.Quantum.Fake", Span { lo: 23, hi: 45 })
+        "#]],
+    );
+}
+
+#[test]
+fn empty_namespace_works() {
+    check(
+        indoc! {"
+            namespace A {
+                open B;
+                function foo(): Unit{}
+            }
+            namespace B {}
+        "},
+        &expect![[r#"
+            namespace item0 {
+                open B;
+                function item1(): Unit{}
+            }
+            namespace item2 {}
+        "#]],
+    );
+}
+
+#[test]
+fn cyclic_namespace_dependency_supported() {
+    check(
+        indoc! {"
+            namespace A {
+                open B;
+                operation Foo() : Unit {
+                    Bar();
+                }
+            }
+            namespace B {
+                open A;
+                operation Bar() : Unit {
+                    Foo();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                open B;
+                operation item1() : Unit {
+                    item3();
+                }
+            }
+            namespace item2 {
+                open A;
+                operation item3() : Unit {
+                    item1();
                 }
             }
         "#]],

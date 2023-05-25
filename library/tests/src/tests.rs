@@ -38,8 +38,7 @@ fn check_apply_to_each_a() {
             use register = Qubit[3];
             Microsoft.Quantum.Canon.ApplyToEach(X, register);
             Adjoint Microsoft.Quantum.Canon.ApplyToEachA(X, register);
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             results
         }"#},
         &Value::Array(
@@ -60,8 +59,7 @@ fn check_apply_to_each_c_applied() {
             use control = Qubit();
             use register = Qubit[3];
             Controlled Microsoft.Quantum.Canon.ApplyToEachC([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -84,8 +82,7 @@ fn check_apply_to_each_c_not_applied() {
             use register = Qubit[3];
             X(control);
             Controlled Microsoft.Quantum.Canon.ApplyToEachC([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -108,8 +105,7 @@ fn check_apply_to_each_ca_applied() {
             use register = Qubit[3];
             Microsoft.Quantum.Canon.ApplyToEach(X, register);
             Controlled Adjoint Microsoft.Quantum.Canon.ApplyToEachCA([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -133,8 +129,7 @@ fn check_apply_to_each_ca_not_applied() {
             X(control);
             Microsoft.Quantum.Canon.ApplyToEach(X, register);
             Controlled Adjoint Microsoft.Quantum.Canon.ApplyToEachCA([control], (X, register));
-            let results = Microsoft.Quantum.Measurement.MeasureEachZ(register);
-            ResetAll(register);
+            let results = Microsoft.Quantum.Measurement.MResetEachZ(register);
             Reset(control);
             results
         }"#},
@@ -1049,6 +1044,23 @@ fn check_apply_xor_in_place() {
 }
 
 #[test]
+fn check_measure_integer() {
+    run_stdlib_test(
+        {
+            "{
+                open Microsoft.Quantum.Arithmetic;
+                use q = Qubit[16];
+                ApplyXorInPlace(45967, q);
+                let result = MeasureInteger(q);
+                ResetAll(q);
+                return result;
+            }"
+        },
+        &Value::Int(45967),
+    );
+}
+
+#[test]
 fn check_apply_cnot_chain_2() {
     run_stdlib_test(
         {
@@ -1098,6 +1110,122 @@ fn check_apply_cnot_chain_3() {
     );
 }
 
+#[test]
+fn check_apply_p() {
+    run_stdlib_test(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use q = Qubit[3];
+            ApplyP(PauliX, q[0]);
+            H(q[1]); ApplyP(PauliY, q[1]);
+            H(q[2]); S(q[2]); ApplyP(PauliZ, q[2]);
+            return [MResetZ(q[0]),MResetX(q[1]),MResetY(q[2])];
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_pauli() {
+    run_stdlib_test(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use q = Qubit[3];
+            H(q[1]);
+            H(q[2]); S(q[2]);
+            ApplyPauli([PauliX, PauliY, PauliZ], q);
+            return [MResetZ(q[0]),MResetX(q[1]),MResetY(q[2])];
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_apply_pauli_from_bit_string() {
+    run_stdlib_test(
+        {
+            "{
+            open Microsoft.Quantum.Measurement;
+            use q = Qubit[3];
+            ApplyPauliFromBitString(PauliX, false, [true, false, true], q);
+            return MResetEachZ(q);
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Result(false),
+                Value::Result(true),
+                Value::Result(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_bool_array_as_int() {
+    run_stdlib_test(
+        {
+            "{
+            let b = [true, false, true, false];
+            return Microsoft.Quantum.Convert.BoolArrayAsInt(b);
+        }"
+        },
+        &Value::Int(0b0101),
+    );
+}
+
+#[test]
+fn check_int_as_bool_array() {
+    run_stdlib_test(
+        {
+            "{
+            return Microsoft.Quantum.Convert.IntAsBoolArray(5,4);
+        }"
+        },
+        &Value::Array(
+            vec![
+                Value::Bool(true),
+                Value::Bool(false),
+                Value::Bool(true),
+                Value::Bool(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_result_array_as_int() {
+    run_stdlib_test(
+        {
+            "{
+            let b = [One, Zero, One, Zero];
+            return Microsoft.Quantum.Convert.ResultArrayAsInt(b);
+        }"
+        },
+        &Value::Int(0b0101),
+    );
+}
+
 //
 // Mesurement namespace
 //
@@ -1118,6 +1246,41 @@ fn check_measure_each_z() {
                 Value::Result(true),
                 Value::Result(false),
                 Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_mreset_each_z() {
+    run_stdlib_test(
+        indoc! {r#"{
+            use register = Qubit[3];
+            X(register[0]);
+            X(register[2]);
+            let resultsA = Microsoft.Quantum.Measurement.MResetEachZ(register);
+            let resultsB = Microsoft.Quantum.Measurement.MeasureEachZ(register);
+            (resultsA, resultsB)
+        }"#},
+        &Value::Tuple(
+            vec![
+                Value::Array(
+                    vec![
+                        Value::Result(true),
+                        Value::Result(false),
+                        Value::Result(true),
+                    ]
+                    .into(),
+                ),
+                Value::Array(
+                    vec![
+                        Value::Result(false),
+                        Value::Result(false),
+                        Value::Result(false),
+                    ]
+                    .into(),
+                ),
             ]
             .into(),
         ),
@@ -1297,5 +1460,64 @@ fn check_add_i_1_2() {
             ]
             .into(),
         ),
+    );
+}
+
+#[test]
+fn check_exp_with_cnot() {
+    // This decomposition only holds if the magnitude of the angle used in Exp is correct and if the
+    // sign convention between Rx, Rz, and Exp is consistent.
+    run_stdlib_test(
+        indoc! {r#"{
+            open Microsoft.Quantum.Diagnostics;
+            open Microsoft.Quantum.Math;
+
+            use (aux, control, target) = (Qubit(), Qubit(), Qubit());
+            within {
+                H(aux);
+                CNOT(aux, control);
+                CNOT(aux, target);
+            }
+            apply {
+                let theta  = PI() / 4.0;
+                Rx(-2.0 * theta, target);
+                Rz(-2.0 * theta, control);
+                Adjoint Exp([PauliZ, PauliX], theta, [control, target]);
+
+                Adjoint CNOT(control, target);
+            }
+
+            CheckAllZero([aux, control, target])
+        }"#},
+        &Value::Bool(true),
+    );
+}
+
+#[test]
+fn check_exp_with_swap() {
+    // This decomposition only holds if the magnitude of the angle used in Exp is correct.
+    run_stdlib_test(
+        indoc! {r#"{
+            open Microsoft.Quantum.Diagnostics;
+            open Microsoft.Quantum.Math;
+
+            use (aux, qs) = (Qubit(), Qubit[2]);
+            within {
+                H(aux);
+                CNOT(aux, qs[0]);
+                CNOT(aux, qs[1]);
+            }
+            apply {
+                let theta  = PI() / 4.0;
+                Exp([PauliX, PauliX], theta, qs);
+                Exp([PauliY, PauliY], theta, qs);
+                Exp([PauliZ, PauliZ], theta, qs);
+
+                Adjoint SWAP(qs[0], qs[1]);
+            }
+
+            CheckAllZero([aux] + qs)
+        }"#},
+        &Value::Bool(true),
     );
 }
