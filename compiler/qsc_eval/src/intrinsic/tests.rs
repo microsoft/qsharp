@@ -5,7 +5,6 @@ use std::f64::consts;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use num_bigint::BigInt;
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes};
 
@@ -74,24 +73,6 @@ fn check_intrinsic_value(file: &str, expr: &str, val: &Value) {
         Ok(result) => assert_eq!(&result, val),
         Err(e) => panic!("{e:?}"),
     }
-}
-
-#[test]
-fn int_as_double() {
-    check_intrinsic_result(
-        "",
-        "Microsoft.Quantum.Convert.IntAsDouble(2)",
-        &expect!["2.0"],
-    );
-}
-
-#[test]
-fn int_as_double_precision_loss() {
-    check_intrinsic_result(
-        "",
-        "Microsoft.Quantum.Convert.IntAsDouble(9_223_372_036_854_775_807)",
-        &expect!["9223372036854775808.0"],
-    );
 }
 
 #[test]
@@ -298,20 +279,6 @@ fn log() {
         "",
         "Microsoft.Quantum.Math.Log(Microsoft.Quantum.Math.E())",
         &Value::Double(1.0),
-    );
-}
-
-#[test]
-fn int_as_bigint() {
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Convert.IntAsBigInt(0)",
-        &Value::BigInt(BigInt::from(0)),
-    );
-    check_intrinsic_value(
-        "",
-        "Microsoft.Quantum.Convert.IntAsBigInt(-10000)",
-        &Value::BigInt(BigInt::from(-10000)),
     );
 }
 

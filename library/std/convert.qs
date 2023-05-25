@@ -96,6 +96,42 @@ namespace Microsoft.Quantum.Convert {
         number
     }
 
+    /// # Summary
+    /// Converts a `Result[]` type to a `Bool[]` type, where `One`
+    /// is mapped to `true` and `Zero` is mapped to `false`.
+    ///
+    /// # Input
+    /// ## input
+    /// `Result[]` to be converted.
+    ///
+    /// # Output
+    /// A `Bool[]` representing the `input`.
+    function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
+        mutable output = [];
+        for r in input {
+            set output += [r == One];
+        }
 
+        output
+    }
+
+    /// # Summary
+    /// Converts a `Bool[]` type to a `Result[]` type, where `true`
+    /// is mapped to `One` and `false` is mapped to `Zero`.
+    ///
+    /// # Input
+    /// ## input
+    /// `Bool[]` to be converted.
+    ///
+    /// # Output
+    /// A `Result[]` representing the `input`.
+    function BoolArrayAsResultArray(input : Bool[]) : Result[] {
+        mutable output = [];
+        for b in input {
+            set output += [if b {One} else {Zero}];
+        }
+
+        output
+    }
 
 }
