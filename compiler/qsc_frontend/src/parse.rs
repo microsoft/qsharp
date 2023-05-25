@@ -48,7 +48,7 @@ pub(super) enum Error {
 }
 
 impl Error {
-    pub(super) fn with_offset(self, offset: usize) -> Self {
+    pub(super) fn with_offset(self, offset: u32) -> Self {
         match self {
             Self::Lex(error) => Self::Lex(error.with_offset(offset)),
             Self::Lit(name, span) => Self::Lit(name, span + offset),

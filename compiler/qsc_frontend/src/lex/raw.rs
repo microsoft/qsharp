@@ -29,7 +29,7 @@ pub(super) struct Token {
     /// The token kind.
     pub(super) kind: TokenKind,
     /// The byte offset of the token starting character.
-    pub(super) offset: usize,
+    pub(super) offset: u32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
@@ -374,7 +374,10 @@ impl Iterator for Lexer<'_> {
                 .or_else(|| single(c).map(TokenKind::Single))
                 .unwrap_or(TokenKind::Unknown)
         };
-        Some(Token { kind, offset })
+        Some(Token {
+            kind,
+            offset: offset.try_into().expect("offset should fit into u32"),
+        })
     }
 }
 

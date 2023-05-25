@@ -27,16 +27,7 @@ namespace Microsoft.Quantum.Samples.SimpleGrover {
         }
 
         // Measure and return the answer.
-        mutable results = [];
-        for q in qubits {
-            let result = M(q);
-            set results = results + [result];
-            if (result == One) {
-                X(q);
-            }
-        }
-
-        return results;
+        return MResetEachZ(qubits);
     }
 
     /// # Summary

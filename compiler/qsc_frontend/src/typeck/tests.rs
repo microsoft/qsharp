@@ -48,7 +48,8 @@ fn check(source: &str, entry_expr: &str, expect: &Expect) {
     let mut actual = String::new();
     for (id, span, ty) in tys.tys {
         let source = unit.sources.find_offset(span.lo);
-        let code = &source.contents[span.lo - source.offset..span.hi - source.offset];
+        let code = &source.contents
+            [((span.lo - source.offset) as usize)..((span.hi - source.offset) as usize)];
         writeln!(actual, "#{id} {}-{} {code:?} : {ty}", span.lo, span.hi)
             .expect("writing type to string should succeed");
     }
@@ -2108,6 +2109,34 @@ fn local_open() {
             #8 47-49 "()" : Unit
             #12 81-83 "()" : Unit
             #13 89-91 "{}" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn infinite() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let x = invalid;
+                    let xs = [x, [x]];
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 38-97 "{\n        let x = invalid;\n        let xs = [x, [x]];\n    }" : Unit
+            #5 52-53 "x" : ?0
+            #7 56-63 "invalid" : ?
+            #9 77-79 "xs" : (?0)[]
+            #11 82-90 "[x, [x]]" : (?0)[]
+            #12 83-84 "x" : ?0
+            #13 86-89 "[x]" : (?0)[]
+            #14 87-88 "x" : ?0
+            Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
+            Error(Type(Error(TypeMismatch(Infer(InferId(0)), Array(Infer(InferId(0))), Span { lo: 86, hi: 89 }))))
         "##]],
     );
 }
