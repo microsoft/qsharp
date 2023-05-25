@@ -522,7 +522,7 @@ fn check_repeated() {
 //#[test]
 //fn check_any() {
 //    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
+//        "Microsoft.Quantum.Arrays.Any(l, [1, 3, 6, 7, 9])",
 //        &Value::Bool(true),
 //    );
 //    run_stdlib_test(
@@ -618,6 +618,18 @@ fn check_column_at() {
         ),
     );
 }
+
+//#[test]
+//fn check_count() {
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.Count(x -> x % 2 != 0, [1, 3, 6, 7, 9])",
+//        &Value::Int(4),
+//    );
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.Count(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
+//        &Value::Int(1),
+//    );
+//}
 
 #[test]
 fn check_diagnonal() {

@@ -29,8 +29,8 @@ namespace Microsoft.Quantum.Arrays {
     /// let allNonZero = All(x -> x != 0, [1, 2, 3, 4, 5]);
     /// ```
     function All<'T> (predicate : ('T -> Bool), array : 'T[]) : Bool {
-        for item in array {
-            if not predicate(item) {
+        for element in array {
+            if not predicate(element) {
                 return false;
             }
         }
@@ -61,8 +61,8 @@ namespace Microsoft.Quantum.Arrays {
     /// let anyEven = Any(x -> x % 2 == 0, [1, 3, 6, 7, 9]);
     /// ```
     function Any<'T> (predicate : ('T -> Bool), array : 'T[]) : Bool {
-        for item in array {
-            if predicate(item) {
+        for element in array {
+            if predicate(element) {
                 return true;
             }
         }
@@ -133,6 +133,40 @@ namespace Microsoft.Quantum.Arrays {
             set columnValues += [row[column]];
         }
         columnValues
+    }
+
+    /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, returns the number of elements
+    /// an array that consists of those elements that satisfy the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to Boolean that is used to filter elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// The number of elements in `array` that satisfy the predicate.
+    ///
+    /// # Example
+    /// ```qsharp
+    ///  let predicate = GreaterThanI(_, 5);
+    ///  let count = Count(predicate, [2, 5, 9, 1, 8]);
+    ///  // count = 2
+    /// ```
+    function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
+        mutable count = 0;
+        for element in array {
+            if predicate(element) {
+                set count += 1;
+            }
+        }
+        count
     }
 
     /// # Summary
