@@ -1337,6 +1337,44 @@ fn adj_ctl_requires_unit_return() {
 }
 
 #[test]
+fn adj_non_adj() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo() : () is Ctl {}
+            }
+        "},
+        "Adjoint A.Foo",
+        &expect![[r##"
+            #2 31-33 "()" : Unit
+            #3 46-48 "{}" : Unit
+            #5 51-64 "Adjoint A.Foo" : (Unit => Unit is Ctl)
+            #6 59-64 "A.Foo" : (Unit => Unit is Ctl)
+            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 59, hi: 64 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn ctl_non_ctl() {
+    check(
+        indoc! {"
+            namespace A {
+                operation Foo() : () is Adj {}
+            }
+        "},
+        "Controlled A.Foo",
+        &expect![[r##"
+            #2 31-33 "()" : Unit
+            #3 46-48 "{}" : Unit
+            #5 51-67 "Controlled A.Foo" : (((Qubit)[], Unit) => Unit is Adj)
+            #6 62-67 "A.Foo" : (Unit => Unit is Adj)
+            Error(Type(Error(MissingFunctor(Ctl, Adj, Span { lo: 62, hi: 67 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn fail_diverges() {
     check(
         "",
@@ -2215,6 +2253,57 @@ fn lambda_adj_ctl() {
             #13 99-101 "()" : Unit
             #18 105-107 "()" : Unit
             #14 105-107 "()" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_functors_let_binding() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : () {
+                    let op : Qubit => Unit is Adj = q => ();
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 38-94 "{\n        let op : Qubit => Unit is Adj = q => ();\n    }" : Unit
+            #5 52-77 "op : Qubit => Unit is Adj" : (Qubit => Unit is Adj)
+            #7 80-87 "q => ()" : (Qubit => Unit is Adj)
+            #11 80-87 "q => ()" : (Qubit,)
+            #8 80-81 "q" : Qubit
+            #14 85-87 "()" : Unit
+            #10 85-87 "()" : Unit
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_adjoint_before_functors_inferred() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Qubit => Unit is Adj {
+                    let op = q => ();
+                    Adjoint op
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 56-108 "{\n        let op = q => ();\n        Adjoint op\n    }" : (Qubit => Unit is Adj)
+            #5 70-72 "op" : (Qubit => Unit is Adj)
+            #7 75-82 "q => ()" : (Qubit => Unit is Adj)
+            #17 92-102 "Adjoint op" : (Qubit => Unit is Adj)
+            #18 100-102 "op" : (Qubit => Unit is Adj)
+            #11 75-82 "q => ()" : (Qubit,)
+            #8 75-76 "q" : Qubit
+            #14 80-82 "()" : Unit
+            #10 80-82 "()" : Unit
         "##]],
     );
 }
