@@ -2307,3 +2307,74 @@ fn lambda_adjoint_before_functors_inferred() {
         "##]],
     );
 }
+
+#[test]
+fn lambda_invalid_adjoint_before_functors_inferred() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Qubit => Unit is Ctl {
+                    let op = q => ();
+                    Adjoint op
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-32 "()" : Unit
+            #3 56-108 "{\n        let op = q => ();\n        Adjoint op\n    }" : (Qubit => Unit is Ctl)
+            #5 70-72 "op" : (Qubit => Unit is Ctl)
+            #7 75-82 "q => ()" : (Qubit => Unit is Ctl)
+            #17 92-102 "Adjoint op" : (Qubit => Unit is Ctl)
+            #18 100-102 "op" : (Qubit => Unit is Ctl)
+            #11 75-82 "q => ()" : (Qubit,)
+            #8 75-76 "q" : Qubit
+            #14 80-82 "()" : Unit
+            #10 80-82 "()" : Unit
+            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 100, hi: 102 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn lambda_first_use_functors_inferred() {
+    check(
+        indoc! {"
+            namespace A {
+                operation TakeAdj(op : Qubit => () is Adj) : () {}
+                operation TakeAdjCtl(op : Qubit => () is Adj + Ctl) : () {}
+                operation Foo() : () {
+                    let op = q => ();
+                    TakeAdj(op);
+                    TakeAdjCtl(op);
+                    let opCtl = Controlled op;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 36-59 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #4 66-68 "{}" : Unit
+            #7 94-123 "op : Qubit => () is Adj + Ctl" : (Qubit => Unit is Adj + Ctl)
+            #9 130-132 "{}" : Unit
+            #12 150-152 "()" : Unit
+            #13 158-271 "{\n        let op = q => ();\n        TakeAdj(op);\n        TakeAdjCtl(op);\n        let opCtl = Controlled op;\n    }" : Unit
+            #15 172-174 "op" : (Qubit => Unit is Adj)
+            #17 177-184 "q => ()" : (Qubit => Unit is Adj)
+            #27 194-205 "TakeAdj(op)" : Unit
+            #28 194-201 "TakeAdj" : ((Qubit => Unit is Adj) => Unit)
+            #29 202-204 "op" : (Qubit => Unit is Adj)
+            #31 215-229 "TakeAdjCtl(op)" : Unit
+            #32 215-225 "TakeAdjCtl" : ((Qubit => Unit is Adj + Ctl) => Unit)
+            #33 226-228 "op" : (Qubit => Unit is Adj)
+            #35 243-248 "opCtl" : (((Qubit)[], Qubit) => Unit is Adj)
+            #37 251-264 "Controlled op" : (((Qubit)[], Qubit) => Unit is Adj)
+            #38 262-264 "op" : (Qubit => Unit is Adj)
+            #21 177-184 "q => ()" : (Qubit,)
+            #18 177-178 "q" : Qubit
+            #24 182-184 "()" : Unit
+            #20 182-184 "()" : Unit
+            Error(Type(Error(MissingFunctor(Ctl, Adj, Span { lo: 262, hi: 264 }))))
+        "##]],
+    );
+}

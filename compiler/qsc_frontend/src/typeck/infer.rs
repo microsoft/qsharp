@@ -317,10 +317,11 @@ impl<'a> Solver<'a> {
         if unknown_dependency {
             Vec::new()
         } else {
-            match class
-                .map(|ty| substituted(&self.solution, ty))
-                .check(self.udts, span)
-            {
+            let class = class.map(|mut ty| {
+                substitute_ty(&self.solution, &mut ty);
+                ty
+            });
+            match class.check(self.udts, span) {
                 Ok(constraints) => constraints,
                 Err(ClassError(class, span)) => {
                     self.errors
@@ -332,12 +333,13 @@ impl<'a> Solver<'a> {
     }
 
     fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
-        substitute(&self.solution, &mut expected);
-        substitute(&self.solution, &mut actual);
+        substitute_ty(&self.solution, &mut expected);
+        substitute_ty(&self.solution, &mut actual);
         self.unify(&expected, &actual, span)
     }
 
-    fn functor(&mut self, functor: Functor, functors: FunctorSet, span: Span) {
+    fn functor(&mut self, functor: Functor, mut functors: FunctorSet, span: Span) {
+        substitute_functor(&self.solution, &mut functors);
         match (functor, functors) {
             (_, FunctorSet::CtlAdj)
             | (Functor::Adj, FunctorSet::Adj)
@@ -449,36 +451,35 @@ impl<'a> Solver<'a> {
     }
 }
 
-pub(super) fn substitute(solution: &Solution, ty: &mut Ty) {
+pub(super) fn substitute_ty(solution: &Solution, ty: &mut Ty) {
     match ty {
         Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
-        Ty::Array(item) => substitute(solution, item),
+        Ty::Array(item) => substitute_ty(solution, item),
         Ty::Arrow(_, input, output, functors) => {
-            substitute(solution, input);
-            substitute(solution, output);
-            if let &mut FunctorSet::Infer(infer) = functors {
-                if let Some(&new_functors) = solution.functors.get(infer) {
-                    *functors = new_functors;
-                }
-            }
+            substitute_ty(solution, input);
+            substitute_ty(solution, output);
+            substitute_functor(solution, functors);
         }
         Ty::Tuple(items) => {
             for item in items {
-                substitute(solution, item);
+                substitute_ty(solution, item);
             }
         }
         &mut Ty::Infer(infer) => {
             if let Some(new_ty) = solution.tys.get(infer) {
                 *ty = new_ty.clone();
-                substitute(solution, ty);
+                substitute_ty(solution, ty);
             }
         }
     }
 }
 
-fn substituted(solution: &Solution, mut ty: Ty) -> Ty {
-    substitute(solution, &mut ty);
-    ty
+fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
+    if let &mut FunctorSet::Infer(infer) = functors {
+        if let Some(&new_functors) = solution.functors.get(infer) {
+            *functors = new_functors;
+        }
+    }
 }
 
 fn unknown_ty(tys: &IndexMap<InferTy, Ty>, ty: &Ty) -> Option<InferTy> {

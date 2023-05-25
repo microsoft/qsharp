@@ -626,7 +626,7 @@ impl<'a> Context<'a> {
         let (substs, errors) = self.inferrer.solve(self.udts);
         for id in self.new {
             let ty = self.terms.get_mut(id).expect("node should have type");
-            infer::substitute(&substs, ty);
+            infer::substitute_ty(&substs, ty);
         }
         errors
     }
