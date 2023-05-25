@@ -883,14 +883,7 @@ fn qubit_not_unique_two_qubit_error() {
             use q = Qubit();
             CNOT(q , q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 53282,
-                    hi: 53299,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -902,14 +895,7 @@ fn qubit_not_unique_two_qubit_rotation_error() {
             use q = Qubit();
             Rxx(0.1, q, q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 66185,
-                    hi: 66208,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -922,14 +908,7 @@ fn qubit_not_unique_three_qubit_error_first_second() {
             use a = Qubit();
             CCNOT(q , q, a);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 52238,
-                    hi: 52266,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -942,14 +921,7 @@ fn qubit_not_unique_three_qubit_error_first_third() {
             use a = Qubit();
             CCNOT(q , a, q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 52238,
-                    hi: 52266,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -962,13 +934,6 @@ fn qubit_not_unique_three_qubit_error_second_third() {
             use a = Qubit();
             CCNOT(a , q, q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 52238,
-                    hi: 52266,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
