@@ -13,7 +13,7 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     global,
-    hir::{self, ItemId, ItemKind, LocalItemId, PackageId, PrimTy},
+    hir::{self, ItemId, LocalItemId, PackageId, PrimTy},
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -441,11 +441,6 @@ impl GlobalTable {
     }
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
-        for (_, item) in package.items.iter() {
-            if let ItemKind::Namespace(ident, _) = &item.kind {
-                self.scope.namespaces.insert(Rc::clone(&ident.name));
-            }
-        }
         for global in global::iter_package(Some(id), package)
             .filter(|global| global.visibility == hir::Visibility::Public)
         {
@@ -463,6 +458,9 @@ impl GlobalTable {
                         .entry(global.namespace)
                         .or_default()
                         .insert(global.name, Res::Item(term.id));
+                }
+                global::Kind::Namespace => {
+                    self.scope.namespaces.insert(global.namespace);
                 }
             }
         }
