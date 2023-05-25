@@ -1203,7 +1203,7 @@ impl FunctorSet {
         }
     }
 
-    /// The intersection of this set and another set, or [None] if either set is unknown.
+    /// The intersection of this set and another set, or [None] if unknown.
     #[must_use]
     pub fn intersect(&self, other: &FunctorSet) -> Option<FunctorSet> {
         match (self, other) {
@@ -1219,7 +1219,7 @@ impl FunctorSet {
         }
     }
 
-    /// The union of this set and another set, or [None] if either set is unknown.
+    /// The union of this set and another set, or [None] if unknown.
     #[must_use]
     pub fn union(&self, other: &FunctorSet) -> Option<FunctorSet> {
         match (self, other) {
