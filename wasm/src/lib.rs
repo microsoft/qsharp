@@ -345,15 +345,6 @@ where
         return Err(e);
     }
     let context = context.expect("context should be valid");
-    let hir = context
-        .hir()
-        .replace('\\', r#"\\"#)
-        .replace('\"', r#"\""#)
-        .replace('\t', r#"\t"#)
-        .replace('\n', r#"\n"#)
-        .replace('\r', r#"\r"#);
-    let msg_string = format!(r#"{{"type": "HIR", "hir": "{hir}"}}"#);
-    (out.event_cb)(&msg_string);
     for _ in 0..shots {
         let result = context.eval(&mut out);
         let mut success = true;
@@ -471,7 +462,7 @@ mod test {
             },
             2,
         );
-        assert_eq!(count.get(), 3);
+        assert_eq!(count.get(), 2);
     }
 
     #[test]
@@ -554,11 +545,9 @@ mod test {
             code,
             expr,
             |msg| {
-                if msg.contains(r#""type": "Result""#) {
-                    assert!(msg.contains(r#""success": false"#));
-                    assert!(msg.contains(r#""message": "entry point not found"#));
-                    assert!(msg.contains(r#""start_pos": 0"#));
-                }
+                assert!(msg.contains(r#""success": false"#));
+                assert!(msg.contains(r#""message": "entry point not found"#));
+                assert!(msg.contains(r#""start_pos": 0"#));
             },
             1,
         );

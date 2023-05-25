@@ -33,12 +33,7 @@ export interface ResultMsg {
   result: Result;
 }
 
-export interface HirMsg {
-  type: "HIR";
-  hir: string;
-}
-
-export type EventMsg = ResultMsg | DumpMsg | MessageMsg | HirMsg;
+export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
 
 export function outputAsResult(msg: string): ResultMsg | null {
   try {
@@ -70,18 +65,6 @@ export function outputAsMessage(msg: string): MessageMsg | null {
   return null;
 }
 
-export function outputAsHir(msg: string): HirMsg | null {
-  try {
-    const obj = JSON.parse(msg);
-    if (obj?.type == "HIR" && typeof obj.hir == "string") {
-      return obj as HirMsg;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
 export function outputAsDump(msg: string): DumpMsg | null {
   try {
     const obj = JSON.parse(msg);
@@ -95,12 +78,7 @@ export function outputAsDump(msg: string): DumpMsg | null {
 }
 
 export function eventStringToMsg(msg: string): EventMsg | null {
-  return (
-    outputAsResult(msg) ||
-    outputAsMessage(msg) ||
-    outputAsDump(msg) ||
-    outputAsHir(msg)
-  );
+  return outputAsResult(msg) || outputAsMessage(msg) || outputAsDump(msg);
 }
 
 export type ShotResult = {

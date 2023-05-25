@@ -3,7 +3,7 @@
 
 import { log } from "./log.js";
 import { ICompletionList } from "../lib/web/qsc_wasm.js";
-import { DumpMsg, HirMsg, MessageMsg, VSDiagnostic } from "./common.js";
+import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
 import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
@@ -145,11 +145,6 @@ export function createWorkerProxy(
         curr.evtTarget?.dispatchEvent(dmpEvent);
         return;
       }
-      case "hir-event": {
-        const msgEvent = makeEvent("HIR", msg.event.hir);
-        curr.evtTarget?.dispatchEvent(msgEvent);
-        return;
-      }
       case "failure-event": {
         const failEvent = makeEvent("Result", {
           success: false,
@@ -263,13 +258,6 @@ export function getWorkerEventHandlers(
     }
   });
 
-  evtTarget.addEventListener("HIR", (ev) => {
-    logAndPost({
-      type: "hir-event",
-      event: { type: "HIR", hir: ev.detail },
-    });
-  });
-
   return evtTarget;
 }
 
@@ -362,7 +350,6 @@ type CompilerEventMsg =
   | { type: "message-event"; event: MessageMsg }
   | { type: "dumpMachine-event"; event: DumpMsg }
   | { type: "success-event"; event: string }
-  | { type: "hir-event"; event: HirMsg }
   | { type: "failure-event"; event: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export type ResponseMsgType = CompilerRespMsg | CompilerEventMsg;

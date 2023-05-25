@@ -46,7 +46,6 @@ enum ErrorKind {
 pub struct Context {
     store: PackageStore,
     package: PackageId,
-    hir: String,
 }
 
 impl Context {
@@ -62,24 +61,14 @@ impl Context {
 
         let (unit, errors) = compile(&store, &dependencies, sources);
         if errors.is_empty() {
-            let hir = unit.package.to_string();
             let package = store.insert(unit);
-            Ok(Self {
-                store,
-                package,
-                hir,
-            })
+            Ok(Self { store, package })
         } else {
             Err(errors
                 .into_iter()
                 .map(|error| Error(WithSource::from_map(&unit.sources, error.into(), None)))
                 .collect())
         }
-    }
-
-    #[must_use]
-    pub fn hir(&self) -> &String {
-        &self.hir
     }
 
     /// # Errors
