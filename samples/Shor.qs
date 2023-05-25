@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.Samples.Shor {
         Message($"Found period={period}");
         return period;
     }
-    
+
     /// # Summary
     /// Finds a multiplicative order of the generator
     /// in the residue ring Z mod `modulus`.
@@ -637,7 +637,7 @@ namespace Microsoft.Quantum.Samples.Shor {
         // let n = 17017; // = 7*11*13*17
         // let n = 255255; // = 3*5*7*11*13*17
         // let n = 16837; // = 113*149
-        // let n = 22499; // = 149*150
+        // let n = 22499; // = 149*151
 
         let (a, b) = FactorSemiprimeInteger(n);
         Message($"Found factorization {n} = {a} * {b} ");
