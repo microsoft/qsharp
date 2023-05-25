@@ -2378,3 +2378,90 @@ fn lambda_first_use_functors_inferred() {
         "##]],
     );
 }
+
+#[test]
+fn partial_ap_one_missing() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Int) : Int { x }
+                function Bar() : () { let f = Foo(_); }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 31-38 "x : Int" : Int
+            #4 46-51 "{ x }" : Int
+            #6 48-49 "x" : Int
+            #9 68-70 "()" : Unit
+            #10 76-95 "{ let f = Foo(_); }" : Unit
+            #12 82-83 "f" : (Int -> Int)
+            #14 86-92 "Foo(_)" : (Int -> Int)
+            #15 86-89 "Foo" : (Int -> Int)
+            #16 90-91 "_" : ?
+            Error(Validate(NotCurrentlySupported("partial applications", Span { lo: 86, hi: 92 })))
+        "##]],
+    );
+}
+
+#[test]
+fn partial_ap_one_present_one_missing() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Int, y : Int) : Int { x + y }
+                function Bar() : () { let f = Foo(2, _); }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-48 "(x : Int, y : Int)" : (Int, Int)
+            #3 31-38 "x : Int" : Int
+            #5 40-47 "y : Int" : Int
+            #7 55-64 "{ x + y }" : Int
+            #9 57-62 "x + y" : Int
+            #10 57-58 "x" : Int
+            #11 61-62 "y" : Int
+            #14 81-83 "()" : Unit
+            #15 89-111 "{ let f = Foo(2, _); }" : Unit
+            #17 95-96 "f" : (Int -> Int)
+            #19 99-108 "Foo(2, _)" : (Int -> Int)
+            #20 99-102 "Foo" : ((Int, Int) -> Int)
+            #21 102-108 "(2, _)" : (Int, ?)
+            #22 103-104 "2" : Int
+            #23 106-107 "_" : ?
+            Error(Validate(NotCurrentlySupported("partial applications", Span { lo: 99, hi: 108 })))
+        "##]],
+    );
+}
+
+#[test]
+fn partial_ap_two_missing() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo(x : Int, y : Int) : Int { x + y }
+                function Bar() : () { let f = Foo(_, _); }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #2 30-48 "(x : Int, y : Int)" : (Int, Int)
+            #3 31-38 "x : Int" : Int
+            #5 40-47 "y : Int" : Int
+            #7 55-64 "{ x + y }" : Int
+            #9 57-62 "x + y" : Int
+            #10 57-58 "x" : Int
+            #11 61-62 "y" : Int
+            #14 81-83 "()" : Unit
+            #15 89-111 "{ let f = Foo(_, _); }" : Unit
+            #17 95-96 "f" : ((Int, Int) -> Int)
+            #19 99-108 "Foo(_, _)" : ((Int, Int) -> Int)
+            #20 99-102 "Foo" : ((Int, Int) -> Int)
+            #21 102-108 "(_, _)" : (?, ?)
+            #22 103-104 "_" : ?
+            #23 106-107 "_" : ?
+            Error(Validate(NotCurrentlySupported("partial applications", Span { lo: 99, hi: 108 })))
+        "##]],
+    );
+}

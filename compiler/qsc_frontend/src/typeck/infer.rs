@@ -625,7 +625,7 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
-    let Ty::Arrow(_kind, callee_input, callee_output, _) = callee else {
+    let Ty::Arrow(kind, callee_input, callee_output, functors) = callee else {
         return (Vec::new(), vec![Error(ErrorKind::MissingClass(
             Class::Call {
                 callee,
@@ -643,8 +643,23 @@ fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constrai
             actual: output,
             span,
         });
-    } else {
-        todo!()
+    } else if ap.missing.len() > 1 {
+        ap.constraints.push(Constraint::Eq {
+            expected: Ty::Arrow(
+                kind,
+                Box::new(Ty::Tuple(ap.missing)),
+                callee_output,
+                functors,
+            ),
+            actual: output,
+            span,
+        });
+    } else if let Some(missing) = ap.missing.pop() {
+        ap.constraints.push(Constraint::Eq {
+            expected: Ty::Arrow(kind, Box::new(missing), callee_output, functors),
+            actual: output,
+            span,
+        });
     }
 
     (ap.constraints, ap.errors)

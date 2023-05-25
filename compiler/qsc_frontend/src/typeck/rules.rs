@@ -424,6 +424,11 @@ impl<'a> Context<'a> {
     fn infer_arg(&mut self, arg: &Expr) -> Partial<ArgTy> {
         match arg.kind.as_ref() {
             ExprKind::Hole => converge(ArgTy::Missing),
+            ExprKind::Paren(inner) => {
+                let inner = self.infer_arg(inner);
+                self.record(arg.id, inner.ty.clone().into_ty());
+                inner
+            }
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
