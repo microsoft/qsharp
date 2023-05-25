@@ -20,17 +20,41 @@ pub(super) struct Solution {
 pub(super) enum Class {
     Add(Ty),
     Adj(Ty),
-    Call { callee: Ty, input: Ty, output: Ty },
-    Ctl { op: Ty, with_ctls: Ty },
+    Call {
+        callee: Ty,
+        input: ArgTy,
+        output: Ty,
+    },
+    Ctl {
+        op: Ty,
+        with_ctls: Ty,
+    },
     Eq(Ty),
-    Exp { base: Ty, power: Ty },
-    HasField { record: Ty, name: String, item: Ty },
-    HasIndex { container: Ty, index: Ty, item: Ty },
+    Exp {
+        base: Ty,
+        power: Ty,
+    },
+    HasField {
+        record: Ty,
+        name: String,
+        item: Ty,
+    },
+    HasIndex {
+        container: Ty,
+        index: Ty,
+        item: Ty,
+    },
     Integral(Ty),
-    Iterable { container: Ty, item: Ty },
+    Iterable {
+        container: Ty,
+        item: Ty,
+    },
     Num(Ty),
     Show(Ty),
-    Unwrap { wrapper: Ty, base: Ty },
+    Unwrap {
+        wrapper: Ty,
+        base: Ty,
+    },
 }
 
 impl Class {
@@ -66,7 +90,7 @@ impl Class {
                 output,
             } => Self::Call {
                 callee: f(callee),
-                input: f(input),
+                input: input.map(&mut f),
                 output: f(output),
             },
             Self::Ctl { op, with_ctls } => Self::Ctl {
@@ -106,12 +130,10 @@ impl Class {
         }
     }
 
-    fn check(self, udts: &HashMap<ItemId, Udt>, span: Span) -> Result<Vec<Constraint>, ClassError> {
+    fn check(self, udts: &HashMap<ItemId, Udt>, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         match self {
-            Class::Add(ty) => check_add(&ty)
-                .then_some(Vec::new())
-                .ok_or(ClassError(Class::Add(ty), span)),
-            Class::Adj(ty) => check_adj(ty, span).map(|c| vec![c]),
+            Class::Add(ty) if check_add(&ty) => (Vec::new(), Vec::new()),
+            Class::Adj(ty) => check_adj(ty, span),
             Class::Call {
                 callee,
                 input,
@@ -119,27 +141,22 @@ impl Class {
             } => check_call(callee, input, output, span),
             Class::Ctl { op, with_ctls } => check_ctl(op, with_ctls, span),
             Class::Eq(ty) => check_eq(ty, span),
-            Class::Exp { base, power } => check_exp(base, power, span).map(|c| vec![c]),
+            Class::Exp { base, power } => check_exp(base, power, span),
             Class::HasField { record, name, item } => {
-                check_has_field(udts, record, name, item, span).map(|c| vec![c])
+                check_has_field(udts, record, name, item, span)
             }
             Class::HasIndex {
                 container,
                 index,
                 item,
-            } => check_has_index(container, index, item, span).map(|c| vec![c]),
-            Class::Integral(ty) => check_integral(&ty)
-                .then_some(Vec::new())
-                .ok_or(ClassError(Class::Integral(ty), span)),
-            Class::Iterable { container, item } => {
-                check_iterable(container, item, span).map(|c| vec![c])
-            }
-            Class::Num(ty) => check_num(&ty)
-                .then_some(Vec::new())
-                .ok_or(ClassError(Class::Num(ty), span)),
+            } => check_has_index(container, index, item, span),
+            Class::Integral(ty) if check_integral(&ty) => (Vec::new(), Vec::new()),
+            Class::Iterable { container, item } => check_iterable(container, item, span),
+            Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),
             Class::Show(ty) => check_show(ty, span),
-            Class::Unwrap { wrapper, base } => {
-                check_unwrap(udts, wrapper, base, span).map(|c| vec![c])
+            Class::Unwrap { wrapper, base } => check_unwrap(udts, wrapper, base, span),
+            Class::Add(_) | Class::Integral(_) | Class::Num(_) => {
+                (Vec::new(), vec![Error(ErrorKind::MissingClass(self, span))])
             }
         }
     }
@@ -167,6 +184,94 @@ impl Display for Class {
     }
 }
 
+#[derive(Clone, Debug)]
+pub(super) enum ArgTy {
+    Missing,
+    Present(Ty),
+    Tuple(Vec<ArgTy>),
+}
+
+impl ArgTy {
+    fn map(self, f: &mut impl FnMut(Ty) -> Ty) -> Self {
+        match self {
+            Self::Missing => Self::Missing,
+            Self::Present(ty) => Self::Present(f(ty)),
+            Self::Tuple(items) => Self::Tuple(items.into_iter().map(|i| i.map(f)).collect()),
+        }
+    }
+
+    fn apply(&self, param: &Ty, span: Span) -> ArgAp {
+        match (self, param) {
+            (Self::Missing, _) => ArgAp {
+                constraints: Vec::new(),
+                errors: Vec::new(),
+                missing: vec![param.clone()],
+            },
+            (Self::Present(arg_ty), param_ty) => ArgAp {
+                constraints: vec![Constraint::Eq {
+                    expected: param_ty.clone(),
+                    actual: arg_ty.clone(),
+                    span,
+                }],
+                errors: Vec::new(),
+                missing: Vec::new(),
+            },
+            (Self::Tuple(args), Ty::Tuple(params)) => {
+                let mut constraints = Vec::new();
+                let mut errors = Vec::new();
+                if args.len() != params.len() {
+                    errors.push(Error(ErrorKind::Mismatch(
+                        Ty::Tuple(params.clone()),
+                        self.clone().into_ty(),
+                        span,
+                    )));
+                }
+
+                let mut missing = Vec::new();
+                for (arg, param) in args.iter().zip(params) {
+                    let mut ap = arg.apply(param, span);
+                    constraints.append(&mut ap.constraints);
+                    errors.append(&mut ap.errors);
+                    if ap.missing.len() > 1 {
+                        missing.push(Ty::Tuple(ap.missing));
+                    } else {
+                        missing.append(&mut ap.missing);
+                    }
+                }
+
+                ArgAp {
+                    constraints,
+                    errors,
+                    missing,
+                }
+            }
+            (Self::Tuple(_), _) => ArgAp {
+                constraints: Vec::new(),
+                errors: vec![Error(ErrorKind::Mismatch(
+                    param.clone(),
+                    self.clone().into_ty(),
+                    span,
+                ))],
+                missing: Vec::new(),
+            },
+        }
+    }
+
+    pub(super) fn into_ty(self) -> Ty {
+        match self {
+            ArgTy::Missing => Ty::Err,
+            ArgTy::Present(ty) => ty,
+            ArgTy::Tuple(items) => Ty::Tuple(items.into_iter().map(Self::into_ty).collect()),
+        }
+    }
+}
+
+struct ArgAp {
+    constraints: Vec<Constraint>,
+    errors: Vec<Error>,
+    missing: Vec<Ty>,
+}
+
 enum Constraint {
     Class(Class, Span),
     Eq {
@@ -176,8 +281,6 @@ enum Constraint {
     },
     Functor(Functor, FunctorSet, Span),
 }
-
-struct ClassError(Class, Span);
 
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
@@ -315,21 +418,18 @@ impl<'a> Solver<'a> {
         }
 
         if unknown_dependency {
-            Vec::new()
-        } else {
-            let class = class.map(|mut ty| {
+            return Vec::new();
+        }
+
+        let (constraints, mut errors) = class
+            .map(|mut ty| {
                 substitute_ty(&self.solution, &mut ty);
                 ty
-            });
-            match class.check(self.udts, span) {
-                Ok(constraints) => constraints,
-                Err(ClassError(class, span)) => {
-                    self.errors
-                        .push(Error(ErrorKind::MissingClass(class, span)));
-                    Vec::new()
-                }
-            }
-        }
+            })
+            .check(self.udts, span);
+
+        self.errors.append(&mut errors);
+        constraints
     }
 
     fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
@@ -511,62 +611,73 @@ fn check_add(ty: &Ty) -> bool {
     )
 }
 
-fn check_adj(ty: Ty, span: Span) -> Result<Constraint, ClassError> {
+fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
-        Ty::Arrow(_, _, _, functors) => Ok(Constraint::Functor(Functor::Adj, functors, span)),
-        _ => Err(ClassError(Class::Adj(ty), span)),
+        Ty::Arrow(_, _, _, functors) => (
+            vec![Constraint::Functor(Functor::Adj, functors, span)],
+            Vec::new(),
+        ),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(Class::Adj(ty), span))],
+        ),
     }
 }
 
-fn check_call(
-    callee: Ty,
-    input: Ty,
-    output: Ty,
-    span: Span,
-) -> Result<Vec<Constraint>, ClassError> {
-    match callee {
-        Ty::Arrow(_, callee_input, callee_output, _) => Ok(vec![
-            Constraint::Eq {
-                expected: *callee_input,
-                actual: input,
-                span,
-            },
-            Constraint::Eq {
-                expected: *callee_output,
-                actual: output,
-                span,
-            },
-        ]),
-        _ => Err(ClassError(
+fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+    let Ty::Arrow(_kind, callee_input, callee_output, _) = callee else {
+        return (Vec::new(), vec![Error(ErrorKind::MissingClass(
             Class::Call {
                 callee,
                 input,
                 output,
             },
             span,
-        )),
+        ))]);
+    };
+
+    let mut ap = input.apply(&callee_input, span);
+    if ap.missing.is_empty() {
+        ap.constraints.push(Constraint::Eq {
+            expected: *callee_output,
+            actual: output,
+            span,
+        });
+    } else {
+        todo!()
     }
+
+    (ap.constraints, ap.errors)
 }
 
-fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
+fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match op {
         Ty::Arrow(kind, input, output, functors) => {
             let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
             let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
-            Ok(vec![
-                Constraint::Functor(Functor::Ctl, functors, span),
-                Constraint::Eq {
-                    expected: Ty::Arrow(kind, ctl_input, output, functors),
-                    actual: with_ctls,
-                    span,
-                },
-            ])
+            (
+                vec![
+                    Constraint::Functor(Functor::Ctl, functors, span),
+                    Constraint::Eq {
+                        expected: Ty::Arrow(kind, ctl_input, output, functors),
+                        actual: with_ctls,
+                        span,
+                    },
+                ],
+                Vec::new(),
+            )
         }
-        _ => Err(ClassError(Class::Ctl { op, with_ctls }, span)),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(
+                Class::Ctl { op, with_ctls },
+                span,
+            ))],
+        ),
     }
 }
 
-fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
+fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Prim(
             PrimTy::BigInt
@@ -578,29 +689,47 @@ fn check_eq(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
             | PrimTy::Result
             | PrimTy::String
             | PrimTy::Pauli,
-        ) => Ok(Vec::new()),
-        Ty::Array(item) => Ok(vec![Constraint::Class(Class::Eq(*item), span)]),
-        Ty::Tuple(items) => Ok(items
-            .into_iter()
-            .map(|item| Constraint::Class(Class::Eq(item), span))
-            .collect()),
-        _ => Err(ClassError(Class::Eq(ty), span)),
+        ) => (Vec::new(), Vec::new()),
+        Ty::Array(item) => (vec![Constraint::Class(Class::Eq(*item), span)], Vec::new()),
+        Ty::Tuple(items) => (
+            items
+                .into_iter()
+                .map(|item| Constraint::Class(Class::Eq(item), span))
+                .collect(),
+            Vec::new(),
+        ),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(Class::Eq(ty), span))],
+        ),
     }
 }
 
-fn check_exp(base: Ty, power: Ty, span: Span) -> Result<Constraint, ClassError> {
+fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match base {
-        Ty::Prim(PrimTy::BigInt) => Ok(Constraint::Eq {
-            expected: Ty::Prim(PrimTy::Int),
-            actual: power,
-            span,
-        }),
-        Ty::Prim(PrimTy::Double | PrimTy::Int) => Ok(Constraint::Eq {
-            expected: base,
-            actual: power,
-            span,
-        }),
-        _ => Err(ClassError(Class::Exp { base, power }, span)),
+        Ty::Prim(PrimTy::BigInt) => (
+            vec![Constraint::Eq {
+                expected: Ty::Prim(PrimTy::Int),
+                actual: power,
+                span,
+            }],
+            Vec::new(),
+        ),
+        Ty::Prim(PrimTy::Double | PrimTy::Int) => (
+            vec![Constraint::Eq {
+                expected: base,
+                actual: power,
+                span,
+            }],
+            Vec::new(),
+        ),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(
+                Class::Exp { base, power },
+                span,
+            ))],
+        ),
     }
 }
 
@@ -610,29 +739,47 @@ fn check_has_field(
     name: String,
     item: Ty,
     span: Span,
-) -> Result<Constraint, ClassError> {
+) -> (Vec<Constraint>, Vec<Error>) {
     match (name.parse(), &record) {
         (Ok(PrimField::Start), Ty::Prim(PrimTy::Range | PrimTy::RangeFrom))
         | (
             Ok(PrimField::Step),
             Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
         )
-        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo)) => Ok(Constraint::Eq {
-            expected: item,
-            actual: Ty::Prim(PrimTy::Int),
-            span,
-        }),
+        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo)) => (
+            vec![Constraint::Eq {
+                expected: item,
+                actual: Ty::Prim(PrimTy::Int),
+                span,
+            }],
+            Vec::new(),
+        ),
         (Err(()), Ty::Udt(Res::Item(id))) => {
             match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
-                Some(ty) => Ok(Constraint::Eq {
-                    expected: item,
-                    actual: ty.clone(),
-                    span,
-                }),
-                None => Err(ClassError(Class::HasField { record, name, item }, span)),
+                Some(ty) => (
+                    vec![Constraint::Eq {
+                        expected: item,
+                        actual: ty.clone(),
+                        span,
+                    }],
+                    Vec::new(),
+                ),
+                None => (
+                    Vec::new(),
+                    vec![Error(ErrorKind::MissingClass(
+                        Class::HasField { record, name, item },
+                        span,
+                    ))],
+                ),
             }
         }
-        _ => Err(ClassError(Class::HasField { record, name, item }, span)),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(
+                Class::HasField { record, name, item },
+                span,
+            ))],
+        ),
     }
 }
 
@@ -641,29 +788,38 @@ fn check_has_index(
     index: Ty,
     item: Ty,
     span: Span,
-) -> Result<Constraint, ClassError> {
+) -> (Vec<Constraint>, Vec<Error>) {
     match (container, index) {
-        (Ty::Array(container_item), Ty::Prim(PrimTy::Int)) => Ok(Constraint::Eq {
-            expected: *container_item,
-            actual: item,
-            span,
-        }),
+        (Ty::Array(container_item), Ty::Prim(PrimTy::Int)) => (
+            vec![Constraint::Eq {
+                expected: *container_item,
+                actual: item,
+                span,
+            }],
+            Vec::new(),
+        ),
         (
             container @ Ty::Array(_),
             Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
-        ) => Ok(Constraint::Eq {
-            expected: container,
-            actual: item,
-            span,
-        }),
-        (container, index) => Err(ClassError(
-            Class::HasIndex {
-                container,
-                index,
-                item,
-            },
-            span,
-        )),
+        ) => (
+            vec![Constraint::Eq {
+                expected: container,
+                actual: item,
+                span,
+            }],
+            Vec::new(),
+        ),
+        (container, index) => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(
+                Class::HasIndex {
+                    container,
+                    index,
+                    item,
+                },
+                span,
+            ))],
+        ),
     }
 }
 
@@ -671,19 +827,31 @@ fn check_integral(ty: &Ty) -> bool {
     matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Int))
 }
 
-fn check_iterable(container: Ty, item: Ty, span: Span) -> Result<Constraint, ClassError> {
+fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match container {
-        Ty::Prim(PrimTy::Range) => Ok(Constraint::Eq {
-            expected: Ty::Prim(PrimTy::Int),
-            actual: item,
-            span,
-        }),
-        Ty::Array(container_item) => Ok(Constraint::Eq {
-            expected: *container_item,
-            actual: item,
-            span,
-        }),
-        _ => Err(ClassError(Class::Iterable { container, item }, span)),
+        Ty::Prim(PrimTy::Range) => (
+            vec![Constraint::Eq {
+                expected: Ty::Prim(PrimTy::Int),
+                actual: item,
+                span,
+            }],
+            Vec::new(),
+        ),
+        Ty::Array(container_item) => (
+            vec![Constraint::Eq {
+                expected: *container_item,
+                actual: item,
+                span,
+            }],
+            Vec::new(),
+        ),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(
+                Class::Iterable { container, item },
+                span,
+            ))],
+        ),
     }
 }
 
@@ -691,15 +859,24 @@ fn check_num(ty: &Ty) -> bool {
     matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int))
 }
 
-fn check_show(ty: Ty, span: Span) -> Result<Vec<Constraint>, ClassError> {
+fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
-        Ty::Array(item) => Ok(vec![Constraint::Class(Class::Show(*item), span)]),
-        Ty::Prim(_) => Ok(Vec::new()),
-        Ty::Tuple(items) => Ok(items
-            .into_iter()
-            .map(|item| Constraint::Class(Class::Show(item), span))
-            .collect()),
-        _ => Err(ClassError(Class::Show(ty), span)),
+        Ty::Array(item) => (
+            vec![Constraint::Class(Class::Show(*item), span)],
+            Vec::new(),
+        ),
+        Ty::Prim(_) => (Vec::new(), Vec::new()),
+        Ty::Tuple(items) => (
+            items
+                .into_iter()
+                .map(|item| Constraint::Class(Class::Show(item), span))
+                .collect(),
+            Vec::new(),
+        ),
+        _ => (
+            Vec::new(),
+            vec![Error(ErrorKind::MissingClass(Class::Show(ty), span))],
+        ),
     }
 }
 
@@ -708,16 +885,25 @@ fn check_unwrap(
     wrapper: Ty,
     base: Ty,
     span: Span,
-) -> Result<Constraint, ClassError> {
+) -> (Vec<Constraint>, Vec<Error>) {
     if let Ty::Udt(Res::Item(id)) = wrapper {
         if let Some(udt) = udts.get(&id) {
-            return Ok(Constraint::Eq {
-                expected: base,
-                actual: udt.base.clone(),
-                span,
-            });
+            return (
+                vec![Constraint::Eq {
+                    expected: base,
+                    actual: udt.base.clone(),
+                    span,
+                }],
+                Vec::new(),
+            );
         }
     }
 
-    Err(ClassError(Class::Unwrap { wrapper, base }, span))
+    (
+        Vec::new(),
+        vec![Error(ErrorKind::MissingClass(
+            Class::Unwrap { wrapper, base },
+            span,
+        ))],
+    )
 }
