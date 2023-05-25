@@ -499,6 +499,26 @@ fn check_repeated() {
 // Arrays namespace
 //
 
+//#[test]
+//fn check_all() {
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 3, 4, 5])",
+//        &Value::Bool(true),
+//    );
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 0, 4, 5])",
+//        &Value::Bool(false),
+//    );
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, One])",
+//        &Value::Bool(true),
+//    );
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, Zero])",
+//        &Value::Bool(false),
+//    );
+//}
+
 #[test]
 fn check_chunks() {
     run_stdlib_test(
