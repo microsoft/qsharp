@@ -52,7 +52,7 @@ fn check_intrinsic_result(file: &str, expr: &str, expect: &Expect) {
     let mut out = GenericReceiver::new(&mut stdout);
     match check_intrinsic(file, expr, &mut out) {
         Ok(result) => expect.assert_eq(&result.to_string()),
-        Err(e) => expect.assert_debug_eq(&e),
+        Err(e) => expect.assert_eq(&e.to_string()),
     }
 }
 
@@ -63,7 +63,7 @@ fn check_intrinsic_output(file: &str, expr: &str, expect: &Expect) {
         Ok(..) => expect.assert_eq(
             &String::from_utf8(stdout).expect("content should be convertable to string"),
         ),
-        Err(e) => expect.assert_debug_eq(&e),
+        Err(e) => expect.assert_eq(&e.to_string()),
     }
 }
 
@@ -838,14 +838,7 @@ fn unknown_intrinsic() {
             }
         "},
         "Test.Foo()",
-        &expect![[r#"
-            UnknownIntrinsic(
-                Span {
-                    lo: 76,
-                    hi: 84,
-                },
-            )
-        "#]],
+        &expect!["unknown intrinsic `Foo`"],
     );
 }
 
@@ -878,11 +871,7 @@ fn qubit_release_non_zero_failure() {
             use q = Qubit();
             X(q);
         }"},
-        &expect![[r#"
-            ReleasedQubitNotZero(
-                0,
-            )
-        "#]],
+        &expect!["Qubit0 released while not in |0⟩ state"],
     );
 }
 
@@ -894,14 +883,7 @@ fn qubit_not_unique_two_qubit_error() {
             use q = Qubit();
             CNOT(q , q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 58650,
-                    hi: 58667,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -913,14 +895,7 @@ fn qubit_not_unique_two_qubit_rotation_error() {
             use q = Qubit();
             Rxx(0.1, q, q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 71553,
-                    hi: 71576,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -933,14 +908,7 @@ fn qubit_not_unique_three_qubit_error_first_second() {
             use a = Qubit();
             CCNOT(q , q, a);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 57606,
-                    hi: 57634,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -953,14 +921,7 @@ fn qubit_not_unique_three_qubit_error_first_third() {
             use a = Qubit();
             CCNOT(q , a, q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 57606,
-                    hi: 57634,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
 
@@ -973,13 +934,6 @@ fn qubit_not_unique_three_qubit_error_second_third() {
             use a = Qubit();
             CCNOT(a , q, q);
         }"},
-        &expect![[r#"
-            QubitUniqueness(
-                Span {
-                    lo: 57606,
-                    hi: 57634,
-                },
-            )
-        "#]],
+        &expect!["qubits in gate invocation are not unique"],
     );
 }
