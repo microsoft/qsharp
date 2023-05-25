@@ -375,7 +375,7 @@ impl<'a> Solver<'a> {
 
     fn functor(&mut self, functor: Functor, functors: FunctorSet, span: Span) {
         match (functor, functors) {
-            (_, FunctorSet::AdjCtl)
+            (_, FunctorSet::CtlAdj)
             | (Functor::Adj, FunctorSet::Adj)
             | (Functor::Ctl, FunctorSet::Ctl) => {}
             (_, FunctorSet::Infer(infer)) => {

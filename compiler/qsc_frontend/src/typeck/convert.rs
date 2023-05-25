@@ -152,7 +152,7 @@ pub(crate) fn ast_callable_functors(decl: &CallableDecl) -> FunctorSet {
                 Spec::Body => FunctorSet::Empty,
                 Spec::Adj => FunctorSet::Adj,
                 Spec::Ctl => FunctorSet::Ctl,
-                Spec::CtlAdj => FunctorSet::AdjCtl,
+                Spec::CtlAdj => FunctorSet::CtlAdj,
             };
             functors = functors
                 .union(&spec_functors)

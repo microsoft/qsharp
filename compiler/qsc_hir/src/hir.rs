@@ -1165,7 +1165,7 @@ pub enum PrimTy {
     String,
 }
 
-/// The characteristic functors of an operation.
+/// A set of functors.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FunctorSet {
     /// The empty set.
@@ -1174,8 +1174,8 @@ pub enum FunctorSet {
     Adj,
     /// The singleton controlled set.
     Ctl,
-    /// The set of adjoint and controlled.
-    AdjCtl,
+    /// The set of controlled and adjoint.
+    CtlAdj,
     /// A placeholder functor variable used during type inference.
     Infer(InferFunctor),
 }
@@ -1186,7 +1186,7 @@ impl FunctorSet {
     pub fn is_empty(&self) -> Option<bool> {
         match self {
             Self::Empty => Some(true),
-            Self::Adj | Self::Ctl | Self::AdjCtl => Some(false),
+            Self::Adj | Self::Ctl | Self::CtlAdj => Some(false),
             Self::Infer(_) => None,
         }
     }
@@ -1198,7 +1198,7 @@ impl FunctorSet {
             Self::Empty => Some(false),
             Self::Adj => Some(matches!(functor, Functor::Adj)),
             Self::Ctl => Some(matches!(functor, Functor::Ctl)),
-            Self::AdjCtl => Some(matches!(functor, Functor::Adj | Functor::Ctl)),
+            Self::CtlAdj => Some(matches!(functor, Functor::Adj | Functor::Ctl)),
             Self::Infer(_) => None,
         }
     }
@@ -1213,7 +1213,8 @@ impl FunctorSet {
             | (Self::Ctl, Self::Adj) => Some(Self::Empty),
             (Self::Adj, Self::Adj) => Some(Self::Adj),
             (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
-            (Self::AdjCtl, &set) | (&set, Self::AdjCtl) => Some(set),
+            (Self::CtlAdj, &set) | (&set, Self::CtlAdj) => Some(set),
+            (&Self::Infer(i1), &Self::Infer(i2)) if i1 == i2 => Some(Self::Infer(i1)),
             (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
         }
     }
@@ -1225,10 +1226,11 @@ impl FunctorSet {
             (Self::Empty, &set) | (&set, Self::Empty) => Some(set),
             (Self::Adj, Self::Adj) => Some(Self::Adj),
             (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
-            (Self::AdjCtl, _)
-            | (_, Self::AdjCtl)
+            (Self::CtlAdj, _)
+            | (_, Self::CtlAdj)
             | (Self::Adj, Self::Ctl)
-            | (Self::Ctl, Self::Adj) => Some(Self::AdjCtl),
+            | (Self::Ctl, Self::Adj) => Some(Self::CtlAdj),
+            (&Self::Infer(i1), &Self::Infer(i2)) if i1 == i2 => Some(Self::Infer(i1)),
             (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
         }
     }
@@ -1240,7 +1242,7 @@ impl Display for FunctorSet {
             Self::Empty => f.write_str("empty set"),
             Self::Adj => f.write_str("Adj"),
             Self::Ctl => f.write_str("Ctl"),
-            Self::AdjCtl => f.write_str("Adj + Ctl"),
+            Self::CtlAdj => f.write_str("Adj + Ctl"),
             Self::Infer(infer) => Display::fmt(infer, f),
         }
     }
