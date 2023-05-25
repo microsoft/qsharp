@@ -179,8 +179,6 @@ enum Constraint {
 
 struct ClassError(Class, Span);
 
-struct UnifyError(Ty, Ty);
-
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
     next_ty: InferTy,
@@ -251,7 +249,7 @@ impl Inferrer {
         freshen(self, &mut HashMap::new(), ty);
     }
 
-    /// Solves for all type variables given the accumulated constraints.
+    /// Solves for all variables given the accumulated constraints.
     pub(super) fn solve(mut self, udts: &HashMap<ItemId, Udt>) -> (Solution, Vec<Error>) {
         // TODO: Variables that don't have a substitution should cause errors for ambiguous types.
         // However, if an unsolved variable is the result of a divergent expression, it may be OK to
@@ -336,41 +334,7 @@ impl<'a> Solver<'a> {
     fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
         substitute(&self.solution, &mut expected);
         substitute(&self.solution, &mut actual);
-
-        let mut bind_ty = |infer, ty| {
-            let constraints = if let Some(classes) = self.pending_tys.remove(&infer) {
-                classes
-                    .into_iter()
-                    .map(|class| Constraint::Class(class, span))
-                    .collect()
-            } else {
-                Vec::new()
-            };
-            self.solution.tys.insert(infer, ty);
-            constraints
-        };
-
-        let mut bind_functor = |infer, functors| {
-            let constraints = if let Some(pending) = self.pending_functors.remove(&infer) {
-                pending
-                    .into_iter()
-                    .map(|functor| Constraint::Functor(functor, functors, span))
-                    .collect()
-            } else {
-                Vec::new()
-            };
-            self.solution.functors.insert(infer, functors);
-            constraints
-        };
-
-        match unify(&mut bind_ty, &mut bind_functor, &expected, &actual) {
-            Ok(constraints) => constraints,
-            Err(UnifyError(expected, actual)) => {
-                self.errors
-                    .push(Error(ErrorKind::TypeMismatch(expected, actual, span)));
-                Vec::new()
-            }
-        }
+        self.unify(&expected, &actual, span)
     }
 
     fn functor(&mut self, functor: Functor, functors: FunctorSet, span: Span) {
@@ -388,6 +352,96 @@ impl<'a> Solver<'a> {
                 .errors
                 .push(Error(ErrorKind::MissingFunctor(functor, functors, span))),
         }
+    }
+
+    fn unify(&mut self, ty1: &Ty, ty2: &Ty, span: Span) -> Vec<Constraint> {
+        match (ty1, ty2) {
+            (Ty::Err, _)
+            | (_, Ty::Err)
+            | (Ty::Udt(Res::Err), Ty::Udt(_))
+            | (Ty::Udt(_), Ty::Udt(Res::Err)) => Vec::new(),
+            (Ty::Array(item1), Ty::Array(item2)) => self.unify(item1, item2, span),
+            (
+                Ty::Arrow(kind1, input1, output1, functors1),
+                Ty::Arrow(kind2, input2, output2, functors2),
+            ) => {
+                if kind1 != kind2 {
+                    self.errors
+                        .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                }
+
+                let mut constraints = self.unify(input1, input2, span);
+                constraints.append(&mut self.unify(output1, output2, span));
+
+                match (functors1, functors2) {
+                    (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
+                    (&FunctorSet::Infer(infer), &functors)
+                    | (&functors, &FunctorSet::Infer(infer)) => {
+                        constraints.append(&mut self.bind_functor(infer, functors, span));
+                    }
+                    _ => {
+                        // TODO: We ignore incompatible functors until subtyping is supported, even
+                        // though this is unsound.
+                        // https://github.com/microsoft/qsharp/issues/150
+                    }
+                }
+
+                constraints
+            }
+            (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Vec::new(),
+            (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
+                self.bind_ty(infer, ty.clone(), span)
+            }
+            (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Vec::new(),
+            (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Vec::new(),
+            (Ty::Tuple(items1), Ty::Tuple(items2)) => {
+                if items1.len() != items2.len() {
+                    self.errors
+                        .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                }
+
+                items1
+                    .iter()
+                    .zip(items2)
+                    .flat_map(|(item1, item2)| self.unify(item1, item2, span))
+                    .collect()
+            }
+            (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Vec::new(),
+            _ => {
+                self.errors
+                    .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                Vec::new()
+            }
+        }
+    }
+
+    fn bind_ty(&mut self, infer: InferTy, ty: Ty, span: Span) -> Vec<Constraint> {
+        self.solution.tys.insert(infer, ty);
+        self.pending_tys
+            .remove(&infer)
+            .map_or(Vec::new(), |pending| {
+                pending
+                    .into_iter()
+                    .map(|class| Constraint::Class(class, span))
+                    .collect()
+            })
+    }
+
+    fn bind_functor(
+        &mut self,
+        infer: InferFunctor,
+        functors: FunctorSet,
+        span: Span,
+    ) -> Vec<Constraint> {
+        self.solution.functors.insert(infer, functors);
+        self.pending_functors
+            .remove(&infer)
+            .map_or(Vec::new(), |pending| {
+                pending
+                    .into_iter()
+                    .map(|functor| Constraint::Functor(functor, functors, span))
+                    .collect()
+            })
     }
 
     fn into_solution(self) -> (Solution, Vec<Error>) {
@@ -425,57 +479,6 @@ pub(super) fn substitute(solution: &Solution, ty: &mut Ty) {
 fn substituted(solution: &Solution, mut ty: Ty) -> Ty {
     substitute(solution, &mut ty);
     ty
-}
-
-fn unify(
-    bind_ty: &mut impl FnMut(InferTy, Ty) -> Vec<Constraint>,
-    bind_functor: &mut impl FnMut(InferFunctor, FunctorSet) -> Vec<Constraint>,
-    ty1: &Ty,
-    ty2: &Ty,
-) -> Result<Vec<Constraint>, UnifyError> {
-    match (ty1, ty2) {
-        (Ty::Err, _)
-        | (_, Ty::Err)
-        | (Ty::Udt(Res::Err), Ty::Udt(_))
-        | (Ty::Udt(_), Ty::Udt(Res::Err)) => Ok(Vec::new()),
-        (Ty::Array(item1), Ty::Array(item2)) => unify(bind_ty, bind_functor, item1, item2),
-        (
-            Ty::Arrow(kind1, input1, output1, functors1),
-            Ty::Arrow(kind2, input2, output2, functors2),
-        ) if kind1 == kind2 => {
-            let mut constraints = unify(bind_ty, bind_functor, input1, input2)?;
-            constraints.append(&mut unify(bind_ty, bind_functor, output1, output2)?);
-
-            match (functors1, functors2) {
-                (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
-                (&FunctorSet::Infer(infer), &functors) | (&functors, &FunctorSet::Infer(infer)) => {
-                    constraints.append(&mut bind_functor(infer, functors));
-                }
-                _ => {
-                    // TODO: We ignore incompatible functors until subtyping is supported, even
-                    // though this is unsound.
-                    // https://github.com/microsoft/qsharp/issues/150
-                }
-            }
-
-            Ok(constraints)
-        }
-        (Ty::Infer(infer1), Ty::Infer(infer2)) if infer1 == infer2 => Ok(Vec::new()),
-        (&Ty::Infer(infer), ty) | (ty, &Ty::Infer(infer)) if !contains_infer_ty(infer, ty) => {
-            Ok(bind_ty(infer, ty.clone()))
-        }
-        (Ty::Param(name1), Ty::Param(name2)) if name1 == name2 => Ok(Vec::new()),
-        (Ty::Prim(prim1), Ty::Prim(prim2)) if prim1 == prim2 => Ok(Vec::new()),
-        (Ty::Tuple(items1), Ty::Tuple(items2)) if items1.len() == items2.len() => {
-            let mut constraints = Vec::new();
-            for (item1, item2) in items1.iter().zip(items2) {
-                constraints.append(&mut unify(bind_ty, bind_functor, item1, item2)?);
-            }
-            Ok(constraints)
-        }
-        (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Ok(Vec::new()),
-        _ => Err(UnifyError(ty1.clone(), ty2.clone())),
-    }
 }
 
 fn unknown_ty(tys: &IndexMap<InferTy, Ty>, ty: &Ty) -> Option<InferTy> {
