@@ -155,7 +155,7 @@ body {
   cursor: pointer;
 }
 
-.results-active-tab {
+.active-tab {
   font-size: 1.1rem;
   font-weight: 600;
   text-decoration: underline;

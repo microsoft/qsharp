@@ -240,7 +240,7 @@ where
     }
 }
 
-fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
+fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
     thread_local! {
         static STORE_STD: (PackageStore, PackageId) = {
             let mut store = PackageStore::new(compile::core());
@@ -251,15 +251,25 @@ fn check_code_internal(code: &str) -> Vec<VSDiagnostic> {
 
     STORE_STD.with(|(store, std)| {
         let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (_, errors) = compile::compile(store, &[*std], sources);
-        errors.into_iter().map(|error| (&error).into()).collect()
+        let (unit, errors) = compile::compile(store, &[*std], sources);
+        (
+            unit.package,
+            errors.into_iter().map(|error| (&error).into()).collect(),
+        )
     })
 }
 
 #[wasm_bindgen]
 pub fn check_code(code: &str) -> Result<JsValue, JsValue> {
-    let result = check_code_internal(code);
-    Ok(serde_wasm_bindgen::to_value(&result)?)
+    let (_, diags) = compile(code);
+    Ok(serde_wasm_bindgen::to_value(&diags)?)
+}
+
+#[wasm_bindgen]
+pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
+    let (package, _) = compile(code);
+    let hir = package.to_string();
+    Ok(serde_wasm_bindgen::to_value(&hir)?)
 }
 
 struct CallbackReceiver<F>
@@ -431,7 +441,7 @@ mod test {
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
-        let diag = crate::check_code_internal(code);
+        let (_, diag) = crate::compile(code);
         assert_eq!(diag.len(), 1, "{diag:#?}");
         let err = diag.first().unwrap();
 
@@ -475,7 +485,7 @@ mod test {
             }
         }";
 
-        let errors = crate::check_code_internal(code);
+        let (_, errors) = crate::compile(code);
         assert_eq!(errors.len(), 1, "{errors:#?}");
 
         let error = errors.first().unwrap();

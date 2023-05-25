@@ -5,6 +5,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { CompilerState, ICompilerWorker, Kata, QscEventTarget } from "qsharp";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
+import { ActiveTab } from "./main.js";
 
 export function Kata(props: {
   kata: Kata;
@@ -79,12 +80,17 @@ export function Kata(props: {
                 item.type === "exercise" ? item.verificationImplementation : ""
               }
               key={item.id}
+              activeTab="results-tab"
+              setHir={() => ({})}
             ></Editor>
             <OutputTabs
               key={item.id + "-results"}
               evtTarget={itemEvtHandlers[idx]}
               showPanel={false}
               kataMode={true}
+              activeTab="results-tab"
+              setActiveTab={() => ({})}
+              hir=""
             ></OutputTabs>
           </div>
         );

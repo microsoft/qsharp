@@ -92,6 +92,9 @@ export function createWorkerProxy(
       case "checkCode":
         msg = { type: "checkCode", code: curr.args[0] };
         break;
+      case "getHir":
+        msg = { type: "getHir", code: curr.args[0] };
+        break;
       case "getCompletions":
         msg = { type: "getCompletions" };
         break;
@@ -166,6 +169,7 @@ export function createWorkerProxy(
 
       // Response type messages. Resolve and complete this request.
       case "checkCode-result":
+      case "getHir-result":
       case "getCompletions-result":
       case "run-result":
       case "runKata-result":
@@ -192,6 +196,9 @@ export function createWorkerProxy(
   const proxy: ICompilerWorker = {
     checkCode(code) {
       return queueRequest("checkCode", [code]);
+    },
+    getHir(code) {
+      return queueRequest("getHir", [code]);
     },
     getCompletions() {
       return queueRequest("getCompletions", []);
@@ -289,6 +296,11 @@ export function handleMessageInWorker(
             logIntercepter({ type: "checkCode-result", result })
           );
         break;
+      case "getHir":
+        compiler
+          .getHir(data.code)
+          .then((result) => logIntercepter({ type: "getHir-result", result }));
+        break;
       case "getCompletions":
         compiler
           .getCompletions()
@@ -329,12 +341,14 @@ export function handleMessageInWorker(
 
 export type CompilerReqMsg =
   | { type: "checkCode"; code: string }
+  | { type: "getHir"; code: string }
   | { type: "getCompletions" }
   | { type: "run"; code: string; expr: string; shots: number }
   | { type: "runKata"; user_code: string; verify_code: string };
 
 type CompilerRespMsg =
   | { type: "checkCode-result"; result: VSDiagnostic[] }
+  | { type: "getHir-result"; result: string }
   | { type: "getCompletions-result"; result: ICompletionList }
   | { type: "run-result"; result: void }
   | { type: "runKata-result"; result: boolean }

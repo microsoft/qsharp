@@ -15,6 +15,7 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 export type CompilerState = "idle" | "busy";
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
+  getHir(code: string): Promise<string>;
   getCompletions(): Promise<ICompletionList>;
   run(
     code: string,
@@ -65,8 +66,12 @@ export class Compiler implements ICompiler {
   }
 
   async checkCode(code: string): Promise<VSDiagnostic[]> {
-    const raw_result = this.wasm.check_code(code) as IDiagnostic[];
-    return mapDiagnostics(raw_result, code);
+    const diags = this.wasm.check_code(code) as IDiagnostic[];
+    return mapDiagnostics(diags, code);
+  }
+
+  async getHir(code: string): Promise<string> {
+    return this.wasm.get_hir(code);
   }
 
   async getCompletions(): Promise<ICompletionList> {
