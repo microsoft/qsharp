@@ -28,11 +28,7 @@ mod given_interpreter {
                     .expect("interpreter should be created");
 
                 let (result, output) = line(&mut interpreter, "Message(\"_\")");
-                is_only_error(
-                    &result,
-                    &output,
-                    "name error: `Message` not found in this scope",
-                );
+                is_only_error(&result, &output, "name error: `Message` not found");
             }
         }
 
@@ -78,7 +74,7 @@ mod given_interpreter {
             is_only_error(&result, &output, "syntax error: expected `;`, found EOF");
 
             let (result, output) = line(&mut interpreter, "y");
-            is_only_error(&result, &output, "name error: `y` not found in this scope");
+            is_only_error(&result, &output, "name error: `y` not found");
         }
 
         #[test]
@@ -86,7 +82,7 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
 
             let (result, output) = line(&mut interpreter, "let y = x;");
-            is_only_error(&result, &output, "name error: `x` not found in this scope");
+            is_only_error(&result, &output, "name error: `x` not found");
 
             let (result, output) = line(&mut interpreter, "y");
             is_only_error(&result, &output, "runtime error: symbol is not bound");
@@ -122,11 +118,7 @@ mod given_interpreter {
         fn invalid_declare_function_and_unbound_call_return_error() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "function Foo() : Int { invalid }");
-            is_only_error(
-                &result,
-                &output,
-                "name error: `invalid` not found in this scope",
-            );
+            is_only_error(&result, &output, "name error: `invalid` not found");
             let (result, output) = line(&mut interpreter, "Foo()");
             is_only_error(&result, &output, "runtime error: symbol is not bound");
         }
