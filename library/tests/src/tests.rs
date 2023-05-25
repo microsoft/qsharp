@@ -519,6 +519,18 @@ fn check_repeated() {
 //    );
 //}
 
+//#[test]
+//fn check_any() {
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
+//        &Value::Bool(true),
+//    );
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 5, 7, 9])",
+//        &Value::Bool(false),
+//    );
+//}
+
 #[test]
 fn check_chunks() {
     run_stdlib_test(
@@ -643,6 +655,14 @@ fn check_excluding() {
 //    run_stdlib_test(
 //        "Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])",
 //        &Value::Int(15),
+//    );
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.Fold((x, y) -> x or y, 0, [true, false, true])",
+//        &Value::Bool(true),
+//    );
+//    run_stdlib_test(
+//        "Microsoft.Quantum.Arrays.Fold((x, y) -> x and y, 0, [true, false, true])",
+//        &Value::Bool(false),
 //    );
 //}
 
