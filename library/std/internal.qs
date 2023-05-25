@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Intrinsic {
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Math;
 
@@ -115,7 +116,7 @@ namespace Microsoft.Quantum.Intrinsic {
 
     /// Collects the given list of control qubits into one or two of the given auxiliarly qubits, using
     /// all but the last qubits in the auxiliary list as scratch qubits. The auxiliary list must be
-    /// big enough to accomodate the data, so it is usually smaller than controls list by number of 
+    /// big enough to accomodate the data, so it is usually smaller than controls list by number of
     /// qubits needed for the eventual controlled unitary application. The passed adjustment value is
     /// used to ensure the right number of auxiliary qubits are processed.
     ///
@@ -210,4 +211,31 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
+    internal function IndicesOfNonIdentity (paulies : Pauli[]) : Int[] {
+        mutable indices = [];
+        for i in 0 .. Length(paulies) - 1 {
+            if (paulies[i] != PauliI) {
+                set indices += [i];
+            }
+        }
+        indices
+    }
+
+    internal function RemovePauliI (paulis : Pauli[], qubits : Qubit[]) : (Pauli[], Qubit[]) {
+        let indices = IndicesOfNonIdentity(paulis);
+        let newPaulis = Subarray(indices, paulis);
+        let newQubits = Subarray(indices, qubits);
+        return (newPaulis, newQubits);
+    }
+
+    internal operation SpreadZ (from : Qubit, to : Qubit[]) : Unit is Adj {
+        if (Length(to) > 0) {
+            if (Length(to) > 1) {
+                let half = Length(to) / 2;
+                SpreadZ(to[0], to[half + 1 .. Length(to) - 1]);
+                SpreadZ(from, to[1 .. half]);
+            }
+            CNOT(to[0], from);
+        }
+    }
 }
