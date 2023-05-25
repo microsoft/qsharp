@@ -123,7 +123,7 @@ impl PackageIter<'_> {
                 visibility: Visibility::Public,
                 kind: Kind::Namespace,
             }),
-            _ => panic!("callables and tys should have parents"),
+            _ => None,
         }
     }
 }
