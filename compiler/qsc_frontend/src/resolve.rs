@@ -460,7 +460,7 @@ impl GlobalTable {
                         .insert(global.name, Res::Item(term.id));
                 }
                 global::Kind::Namespace => {
-                    self.scope.namespaces.insert(global.namespace);
+                    self.scope.namespaces.insert(global.name);
                 }
             }
         }

@@ -118,7 +118,7 @@ impl PackageIter<'_> {
                 })
             }
             (ItemKind::Namespace(ident, _), None) => Some(Global {
-                namespace: Rc::clone(&ident.name),
+                namespace: "".into(),
                 name: Rc::clone(&ident.name),
                 visibility: Visibility::Public,
                 kind: Kind::Namespace,
