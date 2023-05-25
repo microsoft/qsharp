@@ -46,7 +46,7 @@ pub(super) enum Res {
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
-    #[error("`{0}` not found in this scope")]
+    #[error("`{0}` not found")]
     NotFound(String, #[label] Span),
 
     #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
@@ -94,6 +94,7 @@ impl Scope {
 struct GlobalScope {
     tys: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
     terms: HashMap<Rc<str>, HashMap<Rc<str>, Res>>,
+    namespaces: HashSet<Rc<str>>,
 }
 
 impl GlobalScope {
@@ -162,6 +163,7 @@ impl Resolver {
         With {
             resolver: self,
             assigner,
+            in_block: false,
         }
     }
 
@@ -192,29 +194,34 @@ impl Resolver {
     fn bind_open(&mut self, name: &ast::Ident, alias: &Option<Box<ast::Ident>>) {
         let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
         let scope = self.scopes.last_mut().expect("open item should have scope");
-        scope.opens.entry(alias).or_default().push(Open {
-            namespace: Rc::clone(&name.name),
-            span: name.span,
-        });
+        if self.globals.namespaces.contains(&name.name) {
+            scope.opens.entry(alias).or_default().push(Open {
+                namespace: Rc::clone(&name.name),
+                span: name.span,
+            });
+        } else {
+            self.errors
+                .push(Error::NotFound(name.name.to_string(), name.span));
+        }
     }
 
-    fn bind_local_item_if_new(&mut self, assigner: &mut Assigner, item: &ast::Item) {
+    fn bind_local_item(&mut self, assigner: &mut Assigner, item: &ast::Item) {
         match &*item.kind {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
-            ast::ItemKind::Callable(decl) if !self.names.contains_key(decl.name.id) => {
+            ast::ItemKind::Callable(decl) => {
                 let id = intrapackage(assigner.next_item());
                 self.names.insert(decl.name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
             }
-            ast::ItemKind::Ty(name, _) if !self.names.contains_key(name.id) => {
+            ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
                 self.names.insert(name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
-            ast::ItemKind::Callable(..) | ast::ItemKind::Ty(..) | ast::ItemKind::Err => {}
+            ast::ItemKind::Err => {}
         }
     }
 }
@@ -222,6 +229,7 @@ impl Resolver {
 pub(super) struct With<'a> {
     resolver: &'a mut Resolver,
     assigner: &'a mut Assigner,
+    in_block: bool,
 }
 
 impl With<'_> {
@@ -249,6 +257,10 @@ impl AstVisitor<'_> for With<'_> {
             self.resolver
                 .names
                 .insert(namespace.name.id, Res::Item(intrapackage(id)));
+            self.resolver
+                .globals
+                .namespaces
+                .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
                 bind_global_item(
@@ -298,23 +310,26 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_block(&mut self, block: &ast::Block) {
+        let prev = self.in_block;
+        self.in_block = true;
         self.with_scope(ScopeKind::Block, |visitor| {
             for stmt in block.stmts.iter() {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
-                    visitor
-                        .resolver
-                        .bind_local_item_if_new(visitor.assigner, item);
+                    visitor.resolver.bind_local_item(visitor.assigner, item);
                 }
             }
 
             ast_visit::walk_block(visitor, block);
         });
+        self.in_block = prev;
     }
 
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match &*stmt.kind {
             ast::StmtKind::Item(item) => {
-                self.resolver.bind_local_item_if_new(self.assigner, item);
+                if !self.in_block {
+                    self.resolver.bind_local_item(self.assigner, item);
+                }
                 self.visit_item(item);
             }
             ast::StmtKind::Local(_, pat, _) => {
@@ -393,10 +408,13 @@ impl GlobalTable {
             ]),
         )]);
 
-        let terms = HashMap::new();
         Self {
             names: IndexMap::new(),
-            scope: GlobalScope { tys, terms },
+            scope: GlobalScope {
+                tys,
+                terms: HashMap::new(),
+                namespaces: HashSet::new(),
+            },
         }
     }
 
@@ -406,6 +424,9 @@ impl GlobalTable {
                 namespace.name.id,
                 Res::Item(intrapackage(assigner.next_item())),
             );
+            self.scope
+                .namespaces
+                .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
                 bind_global_item(
@@ -437,6 +458,9 @@ impl GlobalTable {
                         .entry(global.namespace)
                         .or_default()
                         .insert(global.name, Res::Item(term.id));
+                }
+                global::Kind::Namespace => {
+                    self.scope.namespaces.insert(global.name);
                 }
             }
         }
