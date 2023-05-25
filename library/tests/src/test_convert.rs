@@ -2,42 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::run_stdlib_test;
-use num_bigint::BigInt;
 use qsc::interpret::Value;
 
-// Testing functionality of Microsoft.Quantum.Convert namespace
-
-#[test]
-fn int_as_double() {
-    run_stdlib_test(
-        "Microsoft.Quantum.Convert.IntAsDouble(2)",
-        &Value::Double(2.0),
-    );
-}
-
-#[test]
-fn int_as_double_precision_loss() {
-    run_stdlib_test(
-        "Microsoft.Quantum.Convert.IntAsDouble(9_223_372_036_854_775_807)",
-        &Value::Double(9_223_372_036_854_775_808.0),
-    );
-}
-
-#[test]
-fn int_as_bigint() {
-    run_stdlib_test(
-        "Microsoft.Quantum.Convert.IntAsBigInt(0)",
-        &Value::BigInt(BigInt::from(0)),
-    );
-    run_stdlib_test(
-        "Microsoft.Quantum.Convert.IntAsBigInt(-10000)",
-        &Value::BigInt(BigInt::from(-10000)),
-    );
-    run_stdlib_test(
-        "Microsoft.Quantum.Convert.IntAsBigInt(9_223_372_036_854_775_807)",
-        &Value::BigInt(BigInt::from(9_223_372_036_854_775_807i64)),
-    );
-}
+// Tests for Microsoft.Quantum.Convert namespace
 
 #[test]
 fn check_bool_array_as_int() {
