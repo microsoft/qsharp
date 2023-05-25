@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 import { QscEventTarget, VSDiagnostic } from "qsharp";
-import { StateUpdater, useState } from "preact/hooks";
 import { ResultsTab } from "./results.js";
 import { ActiveTab } from "./main.js";
 

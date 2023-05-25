@@ -5,7 +5,6 @@ import { useEffect, useRef } from "preact/hooks";
 import { CompilerState, ICompilerWorker, Kata, QscEventTarget } from "qsharp";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
-import { ActiveTab } from "./main.js";
 
 export function Kata(props: {
   kata: Kata;
