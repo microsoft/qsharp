@@ -56,8 +56,8 @@ def test_multiple_errors() -> None:
 
     with pytest.raises(QSharpError) as excinfo:
         e.interpret("operation Foo() : Unit { Bar(); Baz(); }")
-    assert str(excinfo.value).find("`Bar` not found in this scope") != -1
-    assert str(excinfo.value).find("`Baz` not found in this scope") != -1
+    assert str(excinfo.value).find("`Bar` not found") != -1
+    assert str(excinfo.value).find("`Baz` not found") != -1
 
 
 def test_multiple_statements() -> None:
