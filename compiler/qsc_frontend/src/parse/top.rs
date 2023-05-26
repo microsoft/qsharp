@@ -22,7 +22,7 @@ use qsc_ast::ast::{
 
 pub(crate) enum Fragment {
     Namespace(Namespace),
-    Stmt(Stmt),
+    Stmt(Box<Stmt>),
 }
 
 pub(super) fn namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
@@ -55,12 +55,12 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
-        name: Box::new(name),
+        name,
         items: items.into_boxed_slice(),
     })
 }
 
-pub(super) fn item(s: &mut Scanner) -> Result<Item> {
+pub(super) fn item(s: &mut Scanner) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
     let attrs = many(s, attr)?;
     let visibility = opt(s, visibility)?;
@@ -69,31 +69,31 @@ pub(super) fn item(s: &mut Scanner) -> Result<Item> {
     } else if let Some(ty) = opt(s, item_ty)? {
         Ok(ty)
     } else if let Some(callable) = opt(s, callable_decl)? {
-        Ok(ItemKind::Callable(Box::new(callable)))
+        Ok(Box::new(ItemKind::Callable(callable)))
     } else {
         Err(Error::Rule("item", s.peek().kind, s.peek().span))
     }?;
 
-    Ok(Item {
+    Ok(Box::new(Item {
         id: NodeId::default(),
         span: s.span(lo),
         attrs: attrs.into_boxed_slice(),
         visibility,
-        kind: Box::new(kind),
-    })
+        kind,
+    }))
 }
 
-fn attr(s: &mut Scanner) -> Result<Attr> {
+fn attr(s: &mut Scanner) -> Result<Box<Attr>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::At)?;
     let name = ident(s)?;
     let arg = expr(s)?;
-    Ok(Attr {
+    Ok(Box::new(Attr {
         id: NodeId::default(),
         span: s.span(lo),
-        name: Box::new(name),
-        arg: Box::new(arg),
-    })
+        name,
+        arg,
+    }))
 }
 
 fn visibility(s: &mut Scanner) -> Result<Visibility> {
@@ -106,52 +106,52 @@ fn visibility(s: &mut Scanner) -> Result<Visibility> {
     })
 }
 
-fn item_open(s: &mut Scanner) -> Result<ItemKind> {
+fn item_open(s: &mut Scanner) -> Result<Box<ItemKind>> {
     keyword(s, Keyword::Open)?;
     let name = dot_ident(s)?;
     let alias = if keyword(s, Keyword::As).is_ok() {
-        Some(Box::new(dot_ident(s)?))
+        Some(dot_ident(s)?)
     } else {
         None
     };
     token(s, TokenKind::Semi)?;
-    Ok(ItemKind::Open(Box::new(name), alias))
+    Ok(Box::new(ItemKind::Open(name, alias)))
 }
 
-fn item_ty(s: &mut Scanner) -> Result<ItemKind> {
+fn item_ty(s: &mut Scanner) -> Result<Box<ItemKind>> {
     keyword(s, Keyword::Newtype)?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
     let def = ty_def(s)?;
     token(s, TokenKind::Semi)?;
-    Ok(ItemKind::Ty(Box::new(name), Box::new(def)))
+    Ok(Box::new(ItemKind::Ty(name, def)))
 }
 
-fn ty_def(s: &mut Scanner) -> Result<TyDef> {
+fn ty_def(s: &mut Scanner) -> Result<Box<TyDef>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (defs, final_sep) = seq(s, ty_def)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(final_sep.reify(defs, |d| TyDefKind::Paren(Box::new(d)), TyDefKind::Tuple))
+        Ok(final_sep.reify(defs, TyDefKind::Paren, TyDefKind::Tuple))
     } else {
         let field_ty = ty(s)?;
         if token(s, TokenKind::Colon).is_ok() {
             let name = ty_as_ident(field_ty)?;
             let field_ty = ty(s)?;
-            Ok(TyDefKind::Field(Some(Box::new(name)), Box::new(field_ty)))
+            Ok(TyDefKind::Field(Some(name), Box::new(field_ty)))
         } else {
             Ok(TyDefKind::Field(None, Box::new(field_ty)))
         }
     }?;
 
-    Ok(TyDef {
+    Ok(Box::new(TyDef {
         id: NodeId::default(),
         span: s.span(lo),
         kind: Box::new(kind),
-    })
+    }))
 }
 
-fn ty_as_ident(ty: Ty) -> Result<Ident> {
+fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     let TyKind::Path(path) = *ty.kind else {
         return Err(Error::Convert("identifier", "type", ty.span));
     };
@@ -161,13 +161,13 @@ fn ty_as_ident(ty: Ty) -> Result<Ident> {
         ..
     } = *path
     {
-        Ok(*name)
+        Ok(name)
     } else {
         Err(Error::Convert("identifier", "type", ty.span))
     }
 }
 
-fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
+fn callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
     let kind = if keyword(s, Keyword::Function).is_ok() {
         Ok(CallableKind::Function)
@@ -197,17 +197,17 @@ fn callable_decl(s: &mut Scanner) -> Result<CallableDecl> {
     };
     let body = callable_body(s)?;
 
-    Ok(CallableDecl {
+    Ok(Box::new(CallableDecl {
         id: NodeId::default(),
         span: s.span(lo),
         kind,
-        name: Box::new(name),
+        name,
         ty_params: ty_params.into_boxed_slice(),
-        input: Box::new(input),
+        input,
         output: Box::new(output),
         functors,
         body: Box::new(body),
-    })
+    }))
 }
 
 fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
@@ -228,7 +228,7 @@ fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
     }
 }
 
-fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
+fn spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
     let lo = s.peek().span.lo;
     let spec = if keyword(s, Keyword::Body).is_ok() {
         Ok(Spec::Body)
@@ -248,15 +248,15 @@ fn spec_decl(s: &mut Scanner) -> Result<SpecDecl> {
         token(s, TokenKind::Semi)?;
         SpecBody::Gen(gen)
     } else {
-        SpecBody::Impl(Box::new(pat(s)?), Box::new(stmt::block(s)?))
+        SpecBody::Impl(pat(s)?, stmt::block(s)?)
     };
 
-    Ok(SpecDecl {
+    Ok(Box::new(SpecDecl {
         id: NodeId::default(),
         span: s.span(lo),
         spec,
         body,
-    })
+    }))
 }
 
 fn spec_gen(s: &mut Scanner) -> Result<SpecGen> {
