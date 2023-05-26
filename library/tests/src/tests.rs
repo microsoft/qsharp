@@ -633,12 +633,16 @@ fn check_column_at() {
 
 #[test]
 fn check_count() {
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Count(x -> x % 2 != 0, [1, 3, 6, 7, 9])",
+    run_stdlib_test_operation(
+        r#"operation Test() : Int {
+            Microsoft.Quantum.Arrays.Count(x -> x % 2 != 0, [1, 3, 6, 7, 9])
+        }"#,
         &Value::Int(4),
     );
-    run_stdlib_test(
-        "Microsoft.Quantum.Arrays.Count(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
+    run_stdlib_test_operation(
+        r#"operation Test() : Int {
+            Microsoft.Quantum.Arrays.Count(x -> x % 2 == 0, [1, 3, 6, 7, 9])
+        }"#,
         &Value::Int(1),
     );
 }
@@ -664,6 +668,26 @@ fn check_diagnonal() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.Diagonal([[1, 2], [3, 4], [5, 6]])",
         &Value::Array(vec![Value::Int(1), Value::Int(4)].into()),
+    );
+}
+
+#[test]
+fn check_draw_many() {
+    run_stdlib_test_operation(
+        r#"operation Test() : Result[] {
+            use qubit = Qubit();
+            let results = Microsoft.Quantum.Arrays.DrawMany(q => {X(q); M(q)}, 3, qubit);
+            Reset(qubit);
+            results
+        }"#,
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(false),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
     );
 }
 

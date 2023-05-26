@@ -155,9 +155,8 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Example
     /// ```qsharp
-    ///  let predicate = GreaterThanI(_, 5);
-    ///  let count = Count(predicate, [2, 5, 9, 1, 8]);
-    ///  // count = 2
+    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]); 
+    /// // evensCount is 1.
     /// ```
     function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
         mutable count = 0;
@@ -204,6 +203,39 @@ namespace Microsoft.Quantum.Arrays {
         }
 
         diagonal
+    }
+
+    /// # Summary
+    /// Repeats an operation for a given number of samples, collecting its outputs
+    /// in an array.
+    ///
+    /// # Input
+    /// ## op
+    /// The operation to be called repeatedly.
+    /// ## nSamples
+    /// The number of samples of calling `op` to collect.
+    /// ## input
+    /// The input to be passed to `op`.
+    ///
+    /// # Type Parameters
+    /// ## TInput
+    /// The type of input expected by `op`.
+    /// ## TOutput
+    /// The type of output returned by `op`.
+    ///
+    /// # Example
+    /// The following samples an alternating array of results.
+    /// ```qsharp
+    /// use qubit = Qubit();
+    /// let results = Microsoft.Quantum.Arrays.DrawMany(q => {X(q); M(q)}, 3, qubit);
+    /// ```
+    operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput)
+    : 'TOutput[] {
+        mutable outputs = [];
+        for _ in 1 .. nSamples {
+            set outputs += [op(input)];
+        }
+        outputs
     }
 
     /// # Summary
