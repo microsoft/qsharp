@@ -18,7 +18,7 @@ function HirTab(props: { hir: string; activeTab: ActiveTab }) {
 function TabNavItem(props: {
   id: string;
   title: string;
-  activeTab: string;
+  activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
 }) {
   const handleClick = () => {
