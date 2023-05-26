@@ -38,7 +38,7 @@ enum OpKind {
     Postfix(UnOp),
     Binary(BinOp, Assoc),
     Ternary(TernOp, TokenKind, Assoc),
-    Rich(fn(&mut Scanner, Expr) -> Result<ExprKind>),
+    Rich(fn(&mut Scanner, Box<Expr>) -> Result<Box<ExprKind>>),
 }
 
 #[derive(Clone, Copy)]
@@ -63,11 +63,11 @@ const LAMBDA_PRECEDENCE: u8 = 1;
 
 const RANGE_PRECEDENCE: u8 = 1;
 
-pub(super) fn expr(s: &mut Scanner) -> Result<Expr> {
+pub(super) fn expr(s: &mut Scanner) -> Result<Box<Expr>> {
     expr_op(s, OpContext::Precedence(0))
 }
 
-pub(super) fn expr_stmt(s: &mut Scanner) -> Result<Expr> {
+pub(super) fn expr_stmt(s: &mut Scanner) -> Result<Box<Expr>> {
     expr_op(s, OpContext::Stmt)
 }
 
@@ -88,16 +88,16 @@ pub(super) fn is_stmt_final(kind: &ExprKind) -> bool {
     )
 }
 
-fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Expr> {
+fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Box<Expr>> {
     let lo = s.peek().span.lo;
     let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
         let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
-        Expr {
+        Box::new(Expr {
             id: NodeId::default(),
             span: s.span(lo),
-            kind: Box::new(ExprKind::UnOp(op.kind, Box::new(rhs))),
-        }
+            kind: Box::new(ExprKind::UnOp(op.kind, rhs)),
+        })
     } else {
         expr_base(s)?
     };
@@ -115,102 +115,101 @@ fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Expr> {
 
         s.advance();
         let kind = match op.kind {
-            OpKind::Postfix(kind) => ExprKind::UnOp(kind, Box::new(lhs)),
+            OpKind::Postfix(kind) => Box::new(ExprKind::UnOp(kind, lhs)),
             OpKind::Binary(kind, assoc) => {
                 let precedence = next_precedence(op.precedence, assoc);
                 let rhs = expr_op(s, OpContext::Precedence(precedence))?;
-                ExprKind::BinOp(kind, Box::new(lhs), Box::new(rhs))
+                Box::new(ExprKind::BinOp(kind, lhs, rhs))
             }
             OpKind::Ternary(kind, delim, assoc) => {
                 let mid = expr(s)?;
                 token(s, delim)?;
                 let precedence = next_precedence(op.precedence, assoc);
                 let rhs = expr_op(s, OpContext::Precedence(precedence))?;
-                ExprKind::TernOp(kind, Box::new(lhs), Box::new(mid), Box::new(rhs))
+                Box::new(ExprKind::TernOp(kind, lhs, mid, rhs))
             }
             OpKind::Rich(f) => f(s, lhs)?,
         };
 
-        lhs = Expr {
+        lhs = Box::new(Expr {
             id: NodeId::default(),
             span: s.span(lo),
-            kind: Box::new(kind),
-        };
+            kind,
+        });
     }
 
     Ok(lhs)
 }
 
-fn expr_base(s: &mut Scanner) -> Result<Expr> {
+fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (exprs, final_sep) = seq(s, expr)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(final_sep.reify(exprs, |e| ExprKind::Paren(Box::new(e)), ExprKind::Tuple))
+        Ok(Box::new(final_sep.reify(
+            exprs,
+            ExprKind::Paren,
+            ExprKind::Tuple,
+        )))
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         expr_range_prefix(s)
     } else if keyword(s, Keyword::Underscore).is_ok() {
-        Ok(ExprKind::Hole)
+        Ok(Box::new(ExprKind::Hole))
     } else if keyword(s, Keyword::Fail).is_ok() {
-        Ok(ExprKind::Fail(Box::new(expr(s)?)))
+        Ok(Box::new(ExprKind::Fail(expr(s)?)))
     } else if keyword(s, Keyword::For).is_ok() {
         let vars = pat(s)?;
         keyword(s, Keyword::In)?;
         let iter = expr(s)?;
         let body = stmt::block(s)?;
-        Ok(ExprKind::For(
-            Box::new(vars),
-            Box::new(iter),
-            Box::new(body),
-        ))
+        Ok(Box::new(ExprKind::For(vars, iter, body)))
     } else if keyword(s, Keyword::If).is_ok() {
         expr_if(s)
     } else if let Some(components) = opt(s, expr_interpolate)? {
-        Ok(ExprKind::Interpolate(components.into_boxed_slice()))
+        Ok(Box::new(ExprKind::Interpolate(
+            components.into_boxed_slice(),
+        )))
     } else if keyword(s, Keyword::Repeat).is_ok() {
         let body = stmt::block(s)?;
         keyword(s, Keyword::Until)?;
         let cond = expr(s)?;
         let fixup = if keyword(s, Keyword::Fixup).is_ok() {
-            Some(Box::new(stmt::block(s)?))
+            Some(stmt::block(s)?)
         } else {
             None
         };
-        Ok(ExprKind::Repeat(Box::new(body), Box::new(cond), fixup))
+        Ok(Box::new(ExprKind::Repeat(body, cond, fixup)))
     } else if keyword(s, Keyword::Return).is_ok() {
-        Ok(ExprKind::Return(Box::new(expr(s)?)))
+        Ok(Box::new(ExprKind::Return(expr(s)?)))
     } else if keyword(s, Keyword::Set).is_ok() {
         expr_set(s)
     } else if keyword(s, Keyword::While).is_ok() {
-        Ok(ExprKind::While(
-            Box::new(expr(s)?),
-            Box::new(stmt::block(s)?),
-        ))
+        Ok(Box::new(ExprKind::While(expr(s)?, stmt::block(s)?)))
     } else if keyword(s, Keyword::Within).is_ok() {
         let outer = stmt::block(s)?;
         keyword(s, Keyword::Apply)?;
         let inner = stmt::block(s)?;
-        Ok(ExprKind::Conjugate(Box::new(outer), Box::new(inner)))
+        Ok(Box::new(ExprKind::Conjugate(outer, inner)))
     } else if let Some(a) = opt(s, expr_array)? {
         Ok(a)
     } else if let Some(b) = opt(s, stmt::block)? {
-        Ok(ExprKind::Block(Box::new(b)))
+        Ok(Box::new(ExprKind::Block(b)))
     } else if let Some(l) = lit(s)? {
-        Ok(ExprKind::Lit(Box::new(l)))
+        Ok(Box::new(ExprKind::Lit(Box::new(l))))
     } else if let Some(p) = opt(s, path)? {
-        Ok(ExprKind::Path(Box::new(p)))
+        Ok(Box::new(ExprKind::Path(p)))
     } else {
         Err(Error::Rule("expression", s.peek().kind, s.peek().span))
     }?;
 
-    Ok(Expr {
+    Ok(Box::new(Expr {
         id: NodeId::default(),
         span: s.span(lo),
-        kind: Box::new(kind),
-    })
+        kind,
+    }))
 }
 
-fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
+fn expr_if(s: &mut Scanner) -> Result<Box<ExprKind>> {
     let cond = expr(s)?;
     let body = stmt::block(s)?;
     let lo = s.peek().span.lo;
@@ -218,7 +217,7 @@ fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
     let otherwise = if keyword(s, Keyword::Elif).is_ok() {
         Some(expr_if(s)?)
     } else if keyword(s, Keyword::Else).is_ok() {
-        Some(ExprKind::Block(Box::new(stmt::block(s)?)))
+        Some(Box::new(ExprKind::Block(stmt::block(s)?)))
     } else {
         None
     }
@@ -226,35 +225,27 @@ fn expr_if(s: &mut Scanner) -> Result<ExprKind> {
         Box::new(Expr {
             id: NodeId::default(),
             span: s.span(lo),
-            kind: Box::new(kind),
+            kind,
         })
     });
 
-    Ok(ExprKind::If(Box::new(cond), Box::new(body), otherwise))
+    Ok(Box::new(ExprKind::If(cond, body, otherwise)))
 }
 
-fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
+fn expr_set(s: &mut Scanner) -> Result<Box<ExprKind>> {
     let lhs = expr(s)?;
     if token(s, TokenKind::Eq).is_ok() {
         let rhs = expr(s)?;
-        Ok(ExprKind::Assign(Box::new(lhs), Box::new(rhs)))
+        Ok(Box::new(ExprKind::Assign(lhs, rhs)))
     } else if token(s, TokenKind::WSlashEq).is_ok() {
         let index = expr(s)?;
         token(s, TokenKind::LArrow)?;
         let rhs = expr(s)?;
-        Ok(ExprKind::AssignUpdate(
-            Box::new(lhs),
-            Box::new(index),
-            Box::new(rhs),
-        ))
+        Ok(Box::new(ExprKind::AssignUpdate(lhs, index, rhs)))
     } else if let TokenKind::BinOpEq(op) = s.peek().kind {
         s.advance();
         let rhs = expr(s)?;
-        Ok(ExprKind::AssignOp(
-            closed_bin_op(op),
-            Box::new(lhs),
-            Box::new(rhs),
-        ))
+        Ok(Box::new(ExprKind::AssignOp(closed_bin_op(op), lhs, rhs)))
     } else {
         Err(Error::Rule(
             "assignment operator",
@@ -264,53 +255,52 @@ fn expr_set(s: &mut Scanner) -> Result<ExprKind> {
     }
 }
 
-fn expr_array(s: &mut Scanner) -> Result<ExprKind> {
+fn expr_array(s: &mut Scanner) -> Result<Box<ExprKind>> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let kind = expr_array_core(s)?;
     token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(kind)
 }
 
-fn expr_array_core(s: &mut Scanner) -> Result<ExprKind> {
+fn expr_array_core(s: &mut Scanner) -> Result<Box<ExprKind>> {
     let Some(first) = opt(s, expr)? else {
-        return Ok(ExprKind::Array(Vec::new().into_boxed_slice()));
+        return Ok(Box::new(ExprKind::Array(Vec::new().into_boxed_slice())));
     };
 
     if token(s, TokenKind::Comma).is_err() {
-        return Ok(ExprKind::Array(vec![first].into_boxed_slice()));
+        return Ok(Box::new(ExprKind::Array(vec![first].into_boxed_slice())));
     }
 
     let second = expr(s)?;
     if is_ident("size", &second.kind) && token(s, TokenKind::Eq).is_ok() {
         let size = expr(s)?;
-        return Ok(ExprKind::ArrayRepeat(Box::new(first), Box::new(size)));
+        return Ok(Box::new(ExprKind::ArrayRepeat(first, size)));
     }
 
     let mut items = vec![first, second];
     if token(s, TokenKind::Comma).is_ok() {
         items.append(&mut seq(s, expr)?.0);
     }
-    Ok(ExprKind::Array(items.into_boxed_slice()))
+    Ok(Box::new(ExprKind::Array(items.into_boxed_slice())))
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
     matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name.as_ref() == name)
 }
 
-fn expr_range_prefix(s: &mut Scanner) -> Result<ExprKind> {
+fn expr_range_prefix(s: &mut Scanner) -> Result<Box<ExprKind>> {
     let e = opt(s, |s| {
         expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))
-    })?
-    .map(Box::new);
+    })?;
 
-    if token(s, TokenKind::DotDotDot).is_ok() {
-        Ok(ExprKind::Range(None, e, None))
+    Ok(Box::new(if token(s, TokenKind::DotDotDot).is_ok() {
+        ExprKind::Range(None, e, None)
     } else if token(s, TokenKind::DotDot).is_ok() {
-        let end = Box::new(expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?);
-        Ok(ExprKind::Range(None, e, Some(end)))
+        let end = expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?;
+        ExprKind::Range(None, e, Some(end))
     } else {
-        Ok(ExprKind::Range(None, None, e))
-    }
+        ExprKind::Range(None, None, e)
+    }))
 }
 
 fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
@@ -326,7 +316,7 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
 
     s.advance();
     while end == InterpolatedEnding::LBrace {
-        components.push(StringComponent::Expr(Box::new(expr(s)?)));
+        components.push(StringComponent::Expr(expr(s)?));
 
         let token = s.peek();
         let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
@@ -454,11 +444,11 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
 fn mixfix_op(name: OpName) -> Option<MixfixOp> {
     match name {
         OpName::Token(TokenKind::RArrow) => Some(MixfixOp {
-            kind: OpKind::Rich(|s, input| lambda_op(s, input, CallableKind::Function)),
+            kind: OpKind::Rich(|s, input| lambda_op(s, *input, CallableKind::Function)),
             precedence: LAMBDA_PRECEDENCE,
         }),
         OpName::Token(TokenKind::FatArrow) => Some(MixfixOp {
-            kind: OpKind::Rich(|s, input| lambda_op(s, input, CallableKind::Operation)),
+            kind: OpKind::Rich(|s, input| lambda_op(s, *input, CallableKind::Operation)),
             precedence: LAMBDA_PRECEDENCE,
         }),
         OpName::Token(TokenKind::DotDot) => Some(MixfixOp {
@@ -466,7 +456,7 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             precedence: RANGE_PRECEDENCE,
         }),
         OpName::Token(TokenKind::DotDotDot) => Some(MixfixOp {
-            kind: OpKind::Rich(|_, start| Ok(ExprKind::Range(Some(Box::new(start)), None, None))),
+            kind: OpKind::Rich(|_, start| Ok(Box::new(ExprKind::Range(Some(start), None, None)))),
             precedence: RANGE_PRECEDENCE,
         }),
         OpName::Token(TokenKind::WSlash) => Some(MixfixOp {
@@ -591,45 +581,44 @@ fn closed_bin_op(op: ClosedBinOp) -> BinOp {
     }
 }
 
-fn lambda_op(s: &mut Scanner, input: Expr, kind: CallableKind) -> Result<ExprKind> {
+fn lambda_op(s: &mut Scanner, input: Expr, kind: CallableKind) -> Result<Box<ExprKind>> {
     let input = expr_as_pat(input)?;
     let output = expr_op(s, OpContext::Precedence(LAMBDA_PRECEDENCE))?;
-    Ok(ExprKind::Lambda(kind, Box::new(input), Box::new(output)))
+    Ok(Box::new(ExprKind::Lambda(kind, input, output)))
 }
 
-fn field_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
-    Ok(ExprKind::Field(Box::new(lhs), Box::new(ident(s)?)))
+fn field_op(s: &mut Scanner, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+    Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
 }
 
-fn index_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
+fn index_op(s: &mut Scanner, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     let index = expr(s)?;
     token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(ExprKind::Index(Box::new(lhs), Box::new(index)))
+    Ok(Box::new(ExprKind::Index(lhs, index)))
 }
 
-fn call_op(s: &mut Scanner, lhs: Expr) -> Result<ExprKind> {
+fn call_op(s: &mut Scanner, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     let lo = s.span(0).hi - 1;
     let (args, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
-    let rhs = Expr {
+    let rhs = Box::new(Expr {
         id: NodeId::default(),
         span: s.span(lo),
-        kind: Box::new(final_sep.reify(args, |a| ExprKind::Paren(Box::new(a)), ExprKind::Tuple)),
-    };
-    Ok(ExprKind::Call(Box::new(lhs), Box::new(rhs)))
+        kind: Box::new(final_sep.reify(args, ExprKind::Paren, ExprKind::Tuple)),
+    });
+    Ok(Box::new(ExprKind::Call(lhs, rhs)))
 }
 
-fn range_op(s: &mut Scanner, start: Expr) -> Result<ExprKind> {
-    let start = Box::new(start);
-    let rhs = Box::new(expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?);
-    if token(s, TokenKind::DotDot).is_ok() {
-        let end = Box::new(expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?);
-        Ok(ExprKind::Range(Some(start), Some(rhs), Some(end)))
+fn range_op(s: &mut Scanner, start: Box<Expr>) -> Result<Box<ExprKind>> {
+    let rhs = expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?;
+    Ok(Box::new(if token(s, TokenKind::DotDot).is_ok() {
+        let end = expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?;
+        ExprKind::Range(Some(start), Some(rhs), Some(end))
     } else if token(s, TokenKind::DotDotDot).is_ok() {
-        Ok(ExprKind::Range(Some(start), Some(rhs), None))
+        ExprKind::Range(Some(start), Some(rhs), None)
     } else {
-        Ok(ExprKind::Range(Some(start), None, Some(rhs)))
-    }
+        ExprKind::Range(Some(start), None, Some(rhs))
+    }))
 }
 
 fn op_name(s: &Scanner) -> OpName {
@@ -646,28 +635,28 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
     }
 }
 
-fn expr_as_pat(expr: Expr) -> Result<Pat> {
+fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
     let kind = Box::new(match *expr.kind {
         ExprKind::Path(path) if path.namespace.is_none() => Ok(PatKind::Bind(path.name, None)),
         ExprKind::Hole => Ok(PatKind::Discard(None)),
         ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
-        ExprKind::Paren(expr) => Ok(PatKind::Paren(Box::new(expr_as_pat(*expr)?))),
+        ExprKind::Paren(expr) => Ok(PatKind::Paren(expr_as_pat(*expr)?)),
         ExprKind::Tuple(exprs) => {
             let pats = exprs
                 .into_vec()
                 .into_iter()
-                .map(expr_as_pat)
+                .map(|e| expr_as_pat(*e))
                 .collect::<Result<_>>()?;
             Ok(PatKind::Tuple(pats))
         }
         _ => Err(Error::Convert("pattern", "expression", expr.span)),
     }?);
 
-    Ok(Pat {
+    Ok(Box::new(Pat {
         id: NodeId::default(),
         span: expr.span,
         kind,
-    })
+    }))
 }
 
 fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
