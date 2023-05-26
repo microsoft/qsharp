@@ -239,6 +239,35 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given an array, returns a new array containing elements of the original
+    /// array along with the indices of each element.
+    ///
+    /// # Type Parameters
+    /// ## 'TElement
+    /// The type of elements of the array.
+    ///
+    /// # Input
+    /// ## array
+    /// An array whose elements are to be enumerated.
+    ///
+    /// # Output
+    /// A new array containing elements of the original array along with their
+    /// indices.
+    ///
+    /// # Example
+    /// The following `for` loops are equivalent:
+    /// ```qsharp
+    /// for (idx in IndexRange(array)) {
+    ///     let element = array[idx];
+    ///     ...
+    /// }
+    /// for ((idx, element) in Enumerated(array)) { ... }
+    /// ```
+    function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[] {
+        MappedByIndex((index, element) -> (index, element), array)
+    }
+
+    /// # Summary
     /// Returns an array containing the elements of another array,
     /// excluding elements at a given list of indices.
     ///
@@ -489,6 +518,47 @@ namespace Microsoft.Quantum.Arrays {
         }
 
         true
+    }
+
+    /// # Summary
+    /// Given an array and a function that is defined
+    /// for the indexed elements of the array, returns a new array that consists
+    /// of the images of the original array under the function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    /// ## 'U
+    /// The result type of the `mapper` function.
+    ///
+    /// # Input
+    /// ## mapper
+    /// A function from `(Int, 'T)` to `'U` that is used to map elements
+    /// and their indices.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'U[]` of elements that are mapped by the `mapper` function.
+    ///
+    /// # Example
+    /// The following two lines are equivalent:
+    /// ```qsharp
+    /// let array = MappedByIndex(f, [x0, x1, x2]);
+    /// ```
+	/// and
+	/// ```qsharp
+    /// let array = [f(0, x0), f(1, x1), f(2, x2)];
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Mapped
+    function MappedByIndex<'T, 'U> (mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] {
+        mutable mapped = [];
+        for index in 0 .. Length(array) - 1 {
+            set mapped += [mapper(index, array[index])];
+        }
+        mapped
     }
 
     /// # Summary

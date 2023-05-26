@@ -722,6 +722,21 @@ fn check_excluding() {
 }
 
 #[test]
+fn check_enumerated() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Enumerated([false, true, false])",
+        &Value::Array(
+            vec![
+                Value::Tuple(vec![Value::Int(0), Value::Bool(false)].into()),
+                Value::Tuple(vec![Value::Int(1), Value::Bool(true)].into()),
+                Value::Tuple(vec![Value::Int(2), Value::Bool(false)].into()),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_fold() {
     run_stdlib_test_operation(
         r#"operation Test() : Int {
@@ -841,6 +856,16 @@ fn check_is_square_array() {
     run_stdlib_test(
         "Microsoft.Quantum.Arrays.IsSquareArray([[1, 2], [3, 4], [5, 6]])",
         &Value::Bool(false),
+    );
+}
+
+#[test]
+fn check_mapped_by_index() {
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool[] {
+            Microsoft.Quantum.Arrays.MappedByIndex((index, element) -> index == element ,[0, -1, 2])
+        }"#,
+        &Value::Array(vec![Value::Bool(true), Value::Bool(false), Value::Bool(true)].into()),
     );
 }
 
