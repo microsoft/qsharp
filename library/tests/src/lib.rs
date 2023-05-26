@@ -18,7 +18,7 @@ use qsc::{
 /// # Panics
 ///
 /// Will panic if compilation fails or the result is not the same as expected.
-pub fn run_stdlib_test(operation: &str, expected: &Value) {
+pub fn test_operation(operation: &str, expected: &Value) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
     let mut operation_in_namespace = String::from("namespace Test {");
@@ -41,7 +41,7 @@ pub fn run_stdlib_test(operation: &str, expected: &Value) {
 /// # Panics
 ///
 /// Will panic if compilation fails or the result is not the same as expected.
-pub fn run_stdlib_test_expression(expr: &str, expected: &Value) {
+pub fn test_expression(expr: &str, expected: &Value) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
 
