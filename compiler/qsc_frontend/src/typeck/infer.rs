@@ -382,8 +382,8 @@ impl<'a> Solver<'a> {
                         constraints.append(&mut self.bind_functor(infer, functors, span));
                     }
                     _ => {
-                        // TODO: We ignore incompatible functors until subtyping is supported, even
-                        // though this is unsound.
+                        // TODO: We ignore incompatible functors for now, even though this is
+                        // unsound. This should be fixed later.
                         // https://github.com/microsoft/qsharp/issues/150
                     }
                 }
