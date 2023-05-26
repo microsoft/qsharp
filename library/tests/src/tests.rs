@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::run_stdlib_test;
+use crate::{run_stdlib_test, run_stdlib_test_operation};
 use indoc::indoc;
 use num_bigint::BigInt;
 use qsc::interpret::Value;
@@ -499,37 +499,49 @@ fn check_repeated() {
 // Arrays namespace
 //
 
-//#[test]
-//fn check_all() {
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 3, 4, 5])",
-//        &Value::Bool(true),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 0, 4, 5])",
-//        &Value::Bool(false),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, One])",
-//        &Value::Bool(true),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, Zero])",
-//        &Value::Bool(false),
-//    );
-//}
+#[test]
+fn check_all() {
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 3, 4, 5])
+        }"#,
+        &Value::Bool(true),
+    );
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 0, 4, 5])
+        }"#,
+        &Value::Bool(false),
+    );
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, One])
+        }"#,
+        &Value::Bool(true),
+    );
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, Zero])
+        }"#,
+        &Value::Bool(false),
+    );
+}
 
-//#[test]
-//fn check_any() {
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Any(l, [1, 3, 6, 7, 9])",
-//        &Value::Bool(true),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 5, 7, 9])",
-//        &Value::Bool(false),
-//    );
-//}
+#[test]
+fn check_any() {
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 6, 7, 9])
+        }"#,
+        &Value::Bool(true),
+    );
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 5, 7, 9])
+        }"#,
+        &Value::Bool(false),
+    );
+}
 
 #[test]
 fn check_chunks() {
@@ -619,17 +631,17 @@ fn check_column_at() {
     );
 }
 
-//#[test]
-//fn check_count() {
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Count(x -> x % 2 != 0, [1, 3, 6, 7, 9])",
-//        &Value::Int(4),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Count(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
-//        &Value::Int(1),
-//    );
-//}
+#[test]
+fn check_count() {
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Count(x -> x % 2 != 0, [1, 3, 6, 7, 9])",
+        &Value::Int(4),
+    );
+    run_stdlib_test(
+        "Microsoft.Quantum.Arrays.Count(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
+        &Value::Int(1),
+    );
+}
 
 #[test]
 fn check_diagnonal() {
@@ -685,21 +697,27 @@ fn check_excluding() {
     );
 }
 
-//#[test]
-//fn check_fold() {
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])",
-//        &Value::Int(15),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Fold((x, y) -> x or y, 0, [true, false, true])",
-//        &Value::Bool(true),
-//    );
-//    run_stdlib_test(
-//        "Microsoft.Quantum.Arrays.Fold((x, y) -> x and y, 0, [true, false, true])",
-//        &Value::Bool(false),
-//    );
-//}
+#[test]
+fn check_fold() {
+    run_stdlib_test_operation(
+        r#"operation Test() : Int {
+            Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])
+        }"#,
+        &Value::Int(15),
+    );
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.Fold((x, y) -> x or y, false, [true, false, true])
+        }"#,
+        &Value::Bool(true),
+    );
+    run_stdlib_test_operation(
+        r#"operation Test() : Bool {
+            Microsoft.Quantum.Arrays.Fold((x, y) -> x and y, true, [true, false, true])
+        }"#,
+        &Value::Bool(false),
+    );
+}
 
 #[test]
 fn check_head() {
