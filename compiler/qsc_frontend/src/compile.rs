@@ -10,7 +10,6 @@ use crate::{
     parse,
     resolve::{self, Names, Resolver},
     typeck::{self, Checker},
-    validate::{self, validate},
 };
 use miette::{
     Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
@@ -146,8 +145,6 @@ pub(super) enum ErrorKind {
     #[error(transparent)]
     FunOp(#[from] funop::Error),
     #[error(transparent)]
-    Validate(#[from] validate::Error),
-    #[error(transparent)]
     Lower(#[from] lower::Error),
 }
 
@@ -224,7 +221,6 @@ pub fn compile(
     let mut hir_assigner = HirAssigner::new();
     let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
-    let validate_errors = validate(&package);
     let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
     let package = lowerer
@@ -238,7 +234,6 @@ pub fn compile(
         .chain(name_errors.into_iter().map(Into::into))
         .chain(ty_errors.into_iter().map(Into::into))
         .chain(funop_errors.into_iter().map(Into::into))
-        .chain(validate_errors.into_iter().map(Into::into))
         .chain(lower_errors.into_iter().map(Into::into))
         .map(Error)
         .collect();

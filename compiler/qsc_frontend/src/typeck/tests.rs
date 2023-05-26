@@ -2399,7 +2399,6 @@ fn partial_ap_one_missing() {
             #14 86-92 "Foo(_)" : (Int -> Int)
             #15 86-89 "Foo" : (Int -> Int)
             #16 90-91 "_" : ?
-            Error(Validate(NotCurrentlySupported("partial applications", Span { lo: 86, hi: 92 })))
         "##]],
     );
 }
@@ -2430,7 +2429,6 @@ fn partial_ap_one_present_one_missing() {
             #21 102-108 "(2, _)" : (Int, ?)
             #22 103-104 "2" : Int
             #23 106-107 "_" : ?
-            Error(Validate(NotCurrentlySupported("partial applications", Span { lo: 99, hi: 108 })))
         "##]],
     );
 }
@@ -2461,7 +2459,6 @@ fn partial_ap_two_missing() {
             #21 102-108 "(_, _)" : (?, ?)
             #22 103-104 "_" : ?
             #23 106-107 "_" : ?
-            Error(Validate(NotCurrentlySupported("partial applications", Span { lo: 99, hi: 108 })))
         "##]],
     );
 }
