@@ -880,6 +880,16 @@ fn check_is_square_array() {
 }
 
 #[test]
+fn check_mapped() {
+    run_stdlib_test_operation(
+        r#"operation Test() : Int[] {
+            Microsoft.Quantum.Arrays.Mapped(i -> i * 2, [0, 1, 2])
+        }"#,
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
+    );
+}
+
+#[test]
 fn check_mapped_by_index() {
     run_stdlib_test_operation(
         r#"operation Test() : Bool[] {
