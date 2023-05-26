@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::run_stdlib_test;
+use crate::run_stdlib_test_expression;
 use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.Convert namespace
 
 #[test]
 fn check_bool_array_as_int() {
-    run_stdlib_test(
+    run_stdlib_test_expression(
         {
             "{
             let b = [true, false, true, false];
@@ -21,7 +21,7 @@ fn check_bool_array_as_int() {
 
 #[test]
 fn check_int_as_bool_array() {
-    run_stdlib_test(
+    run_stdlib_test_expression(
         {
             "{
             return Microsoft.Quantum.Convert.IntAsBoolArray(5,4);
@@ -41,7 +41,7 @@ fn check_int_as_bool_array() {
 
 #[test]
 fn check_result_array_as_int() {
-    run_stdlib_test(
+    run_stdlib_test_expression(
         {
             "{
             let b = [One, Zero, One, Zero];
@@ -54,7 +54,7 @@ fn check_result_array_as_int() {
 
 #[test]
 fn check_result_array_as_bool_array() {
-    run_stdlib_test(
+    run_stdlib_test_expression(
         {
             "{
             let r = [One, Zero, One, Zero];
@@ -75,7 +75,7 @@ fn check_result_array_as_bool_array() {
 
 #[test]
 fn check_bool_array_as_result_array() {
-    run_stdlib_test(
+    run_stdlib_test_expression(
         {
             "{
             let b = [true, false, true, false];
