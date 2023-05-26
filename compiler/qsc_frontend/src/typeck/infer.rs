@@ -186,7 +186,7 @@ impl Display for Class {
 
 #[derive(Clone, Debug)]
 pub(super) enum ArgTy {
-    Missing,
+    Missing(Ty),
     Present(Ty),
     Tuple(Vec<ArgTy>),
 }
@@ -194,7 +194,7 @@ pub(super) enum ArgTy {
 impl ArgTy {
     fn map(self, f: &mut impl FnMut(Ty) -> Ty) -> Self {
         match self {
-            Self::Missing => Self::Missing,
+            Self::Missing(ty) => Self::Missing(f(ty)),
             Self::Present(ty) => Self::Present(f(ty)),
             Self::Tuple(items) => Self::Tuple(items.into_iter().map(|i| i.map(f)).collect()),
         }
@@ -202,15 +202,19 @@ impl ArgTy {
 
     fn apply(&self, param: &Ty, span: Span) -> ArgAp {
         match (self, param) {
-            (Self::Missing, _) => ArgAp {
-                constraints: Vec::new(),
+            (Self::Missing(arg), _) => ArgAp {
+                constraints: vec![Constraint::Eq {
+                    expected: param.clone(),
+                    actual: arg.clone(),
+                    span,
+                }],
                 errors: Vec::new(),
                 missing: vec![param.clone()],
             },
-            (Self::Present(arg_ty), param_ty) => ArgAp {
+            (Self::Present(arg), _) => ArgAp {
                 constraints: vec![Constraint::Eq {
-                    expected: param_ty.clone(),
-                    actual: arg_ty.clone(),
+                    expected: param.clone(),
+                    actual: arg.clone(),
                     span,
                 }],
                 errors: Vec::new(),
@@ -259,8 +263,7 @@ impl ArgTy {
 
     pub(super) fn into_ty(self) -> Ty {
         match self {
-            ArgTy::Missing => Ty::Err,
-            ArgTy::Present(ty) => ty,
+            ArgTy::Missing(ty) | ArgTy::Present(ty) => ty,
             ArgTy::Tuple(items) => Ty::Tuple(items.into_iter().map(Self::into_ty).collect()),
         }
     }

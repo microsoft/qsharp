@@ -805,16 +805,16 @@ fn partial_ap() {
                     Parent: 2
                     Callable 34 [99-108] (Function):
                         name: Ident 35 [99-108] "lambda"
-                        input: Pat 32 [99-108] [Type (Int, ?)]: Tuple:
+                        input: Pat 32 [99-108] [Type (Int, Int)]: Tuple:
                             Pat 33 [99-108] [Type Int]: Bind: Ident 31 [99-108] "closed"
-                            Pat 21 [103-104] [Type ?]: Bind: Ident 20 [103-104] "arg"
+                            Pat 21 [103-104] [Type Int]: Bind: Ident 20 [103-104] "arg"
                         output: Int
                         functors: empty set
                         body: Block: Block 36 [99-108] [Type Int]:
                             Stmt 37 [99-108]: Expr: Expr 29 [99-108] [Type Int]: Call:
                                 Expr 30 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
-                                Expr 28 [102-108] [Type (?, Int)]: Tuple:
-                                    Expr 22 [103-104] [Type ?]: Var: Local 20
+                                Expr 28 [102-108] [Type (Int, Int)]: Tuple:
+                                    Expr 22 [103-104] [Type Int]: Var: Local 20
                                     Expr 27 [106-107] [Type Int]: Var: Local 31"#]],
     );
 }
