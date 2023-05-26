@@ -44,8 +44,8 @@ impl Visitor<'_> for Validator {
 fn has_hole(expr: &Expr) -> bool {
     match &*expr.kind {
         ExprKind::Hole => true,
-        ExprKind::Paren(sub_expr) => has_hole(sub_expr),
-        ExprKind::Tuple(sub_exprs) => sub_exprs.iter().any(has_hole),
+        ExprKind::Paren(sub_expr) => has_hole(sub_expr.as_ref()),
+        ExprKind::Tuple(sub_exprs) => sub_exprs.iter().any(|s| has_hole(s.as_ref())),
         _ => false,
     }
 }

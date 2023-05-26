@@ -370,7 +370,7 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
             let (mut entry, entry_errors) = parse::expr(&source.contents);
             Offsetter(source.offset).visit_expr(&mut entry);
             append_parse_errors(&mut errors, source.offset, entry_errors);
-            Box::new(entry)
+            entry
         });
 
     let package = ast::Package {

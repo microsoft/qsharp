@@ -17,25 +17,25 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::span::Span;
 
-pub(super) fn block(s: &mut Scanner) -> Result<Block> {
+pub(super) fn block(s: &mut Scanner) -> Result<Box<Block>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = many(s, stmt)?;
     check_semis(&stmts)?;
     token(s, TokenKind::Close(Delim::Brace))?;
-    Ok(Block {
+    Ok(Box::new(Block {
         id: NodeId::default(),
         span: s.span(lo),
         stmts: stmts.into_boxed_slice(),
-    })
+    }))
 }
 
-pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
+pub(super) fn stmt(s: &mut Scanner) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Semi).is_ok() {
-        Ok(StmtKind::Empty)
+        Ok(Box::new(StmtKind::Empty))
     } else if let Some(item) = opt(s, top::item)? {
-        Ok(StmtKind::Item(Box::new(item)))
+        Ok(Box::new(StmtKind::Item(item)))
     } else if let Some(var) = opt(s, var_binding)? {
         Ok(var)
     } else if let Some(qubit) = opt(s, qubit_binding)? {
@@ -43,20 +43,20 @@ pub(super) fn stmt(s: &mut Scanner) -> Result<Stmt> {
     } else {
         let e = expr_stmt(s)?;
         if token(s, TokenKind::Semi).is_ok() {
-            Ok(StmtKind::Semi(Box::new(e)))
+            Ok(Box::new(StmtKind::Semi(e)))
         } else {
-            Ok(StmtKind::Expr(Box::new(e)))
+            Ok(Box::new(StmtKind::Expr(e)))
         }
     }?;
 
-    Ok(Stmt {
+    Ok(Box::new(Stmt {
         id: NodeId::default(),
         span: s.span(lo),
-        kind: Box::new(kind),
-    })
+        kind,
+    }))
 }
 
-fn var_binding(s: &mut Scanner) -> Result<StmtKind> {
+fn var_binding(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let mutability = if keyword(s, Keyword::Let).is_ok() {
         Ok(Mutability::Immutable)
     } else if keyword(s, Keyword::Mutable).is_ok() {
@@ -70,10 +70,10 @@ fn var_binding(s: &mut Scanner) -> Result<StmtKind> {
     token(s, TokenKind::Eq)?;
     let rhs = expr(s)?;
     token(s, TokenKind::Semi)?;
-    Ok(StmtKind::Local(mutability, Box::new(lhs), Box::new(rhs)))
+    Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
 
-fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
+fn qubit_binding(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let source = if keyword(s, Keyword::Use).is_ok() {
         Ok(QubitSource::Fresh)
     } else if keyword(s, Keyword::Borrow).is_ok() {
@@ -90,15 +90,10 @@ fn qubit_binding(s: &mut Scanner) -> Result<StmtKind> {
         token(s, TokenKind::Semi)?;
     }
 
-    Ok(StmtKind::Qubit(
-        source,
-        Box::new(lhs),
-        Box::new(rhs),
-        scope.map(Box::new),
-    ))
+    Ok(Box::new(StmtKind::Qubit(source, lhs, rhs, scope)))
 }
 
-fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
+fn qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
     let lo = s.peek().span.lo;
     let kind = if let Ok(name) = ident(s) {
         if name.name.as_ref() != "Qubit" {
@@ -109,7 +104,7 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
         } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
             let size = expr(s)?;
             token(s, TokenKind::Close(Delim::Bracket))?;
-            Ok(QubitInitKind::Array(Box::new(size)))
+            Ok(QubitInitKind::Array(size))
         } else {
             let token = s.peek();
             Err(Error::Rule("qubit suffix", token.kind, token.span))
@@ -117,24 +112,20 @@ fn qubit_init(s: &mut Scanner) -> Result<QubitInit> {
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (inits, final_sep) = seq(s, qubit_init)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(final_sep.reify(
-            inits,
-            |i| QubitInitKind::Paren(Box::new(i)),
-            QubitInitKind::Tuple,
-        ))
+        Ok(final_sep.reify(inits, QubitInitKind::Paren, QubitInitKind::Tuple))
     } else {
         let token = s.peek();
         Err(Error::Rule("qubit initializer", token.kind, token.span))
     }?;
 
-    Ok(QubitInit {
+    Ok(Box::new(QubitInit {
         id: NodeId::default(),
         span: s.span(lo),
         kind: Box::new(kind),
-    })
+    }))
 }
 
-fn check_semis(stmts: &[Stmt]) -> Result<()> {
+fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
     let leading_stmts = stmts.split_last().map_or([].as_slice(), |s| s.1);
     for stmt in leading_stmts {
         if matches!(&*stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {

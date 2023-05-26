@@ -95,7 +95,7 @@ impl Compiler {
             parse::Fragment::Namespace(namespace) => {
                 self.compile_namespace(namespace).err().map(Fragment::Error)
             }
-            parse::Fragment::Stmt(stmt) => self.compile_stmt(stmt),
+            parse::Fragment::Stmt(stmt) => self.compile_stmt(*stmt),
         };
 
         fragment
