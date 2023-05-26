@@ -40,7 +40,7 @@ This will launch a local web server and output the URL to visit to the console.
 When building the Python packages (`pip` and `jupyterlab`), if the build script does not detect
 a current Python virtual environment, it will automatically create one under `pip/.venv` or
 `jupyterlab/.venv`. When developing locally, you can use these virtual environments to run the
-tests by running `source .venv/bin/activate` (Linux/MacOS) or `pip/.venv/Scripts/activate.bat` (Windows).
+tests by running `source .venv/bin/activate` (Linux/MacOS) or `.venv/Scripts/activate.bat` (Windows).
 
 ## Code editing
 
