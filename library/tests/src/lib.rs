@@ -4,6 +4,8 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 #[cfg(test)]
+mod test_convert;
+#[cfg(test)]
 mod tests;
 
 use qsc::{
