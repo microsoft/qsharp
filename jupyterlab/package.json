@@ -1,6 +1,6 @@
 {
   "name": "qsharp_jupyterlab",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Q# extension for JupyterLab",
   "keywords": [
     "jupyter",
@@ -25,8 +25,8 @@
     "url": "https://github.com/microsoft/qsharp.git"
   },
   "scripts": {
-    "build": "npm run build:lib && npm run build:labextension:prod",
-    "build:dev": "npm run build:lib && npm run build:labextension:dev",
+    "build": "jlpm run build:lib && jlpm run build:labextension:prod",
+    "build:dev": "jlpm run build:lib && jlpm run build:labextension:dev",
     "build:lib": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "build:labextension:dev": "jupyter labextension build --development True .",
     "build:labextension:prod": "jupyter labextension build ."
