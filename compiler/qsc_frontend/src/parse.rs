@@ -94,14 +94,14 @@ pub(super) fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
     }
 }
 
-pub(super) fn expr(input: &str) -> (Expr, Vec<Error>) {
+pub(super) fn expr(input: &str) -> (Box<Expr>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match expr::expr(&mut scanner) {
         Ok(expr) => (expr, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();
             errors.push(err);
-            (Expr::default(), errors)
+            (Box::default(), errors)
         }
     }
 }

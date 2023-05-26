@@ -49,7 +49,7 @@ pub(super) fn keyword(s: &mut Scanner, kw: Keyword) -> Result<()> {
     }
 }
 
-pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
+pub(super) fn ident(s: &mut Scanner) -> Result<Box<Ident>> {
     if s.peek().kind != TokenKind::Ident {
         return Err(Error::Rule("identifier", s.peek().kind, s.peek().span));
     } else if let Ok(kw) = Keyword::from_str(s.read()) {
@@ -59,14 +59,14 @@ pub(super) fn ident(s: &mut Scanner) -> Result<Ident> {
     let span = s.peek().span;
     let name = s.read().into();
     s.advance();
-    Ok(Ident {
+    Ok(Box::new(Ident {
         id: NodeId::default(),
         span,
         name,
-    })
+    }))
 }
 
-pub(super) fn dot_ident(s: &mut Scanner) -> Result<Ident> {
+pub(super) fn dot_ident(s: &mut Scanner) -> Result<Box<Ident>> {
     let p = path(s)?;
     let mut name = String::new();
     if let Some(namespace) = p.namespace {
@@ -75,14 +75,14 @@ pub(super) fn dot_ident(s: &mut Scanner) -> Result<Ident> {
     }
     name.push_str(&p.name.name);
 
-    Ok(Ident {
+    Ok(Box::new(Ident {
         id: p.id,
         span: p.span,
         name: name.into(),
-    })
+    }))
 }
 
-pub(super) fn path(s: &mut Scanner) -> Result<Path> {
+pub(super) fn path(s: &mut Scanner) -> Result<Box<Path>> {
     let lo = s.peek().span.lo;
     let mut parts = vec![ident(s)?];
     while token(s, TokenKind::Dot).is_ok() {
@@ -103,15 +103,15 @@ pub(super) fn path(s: &mut Scanner) -> Result<Path> {
         _ => None,
     };
 
-    Ok(Path {
+    Ok(Box::new(Path {
         id: NodeId::default(),
         span: s.span(lo),
         namespace,
-        name: Box::new(name),
-    })
+        name,
+    }))
 }
 
-pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
+pub(super) fn pat(s: &mut Scanner) -> Result<Box<Pat>> {
     let lo = s.peek().span.lo;
     let kind = if keyword(s, Keyword::Underscore).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
@@ -125,9 +125,9 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (pats, final_sep) = seq(s, pat)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(final_sep.reify(pats, |p| PatKind::Paren(Box::new(p)), PatKind::Tuple))
+        Ok(final_sep.reify(pats, PatKind::Paren, PatKind::Tuple))
     } else {
-        let name = Box::new(ident(s).map_err(|e| map_rule_name("pattern", e))?);
+        let name = ident(s).map_err(|e| map_rule_name("pattern", e))?;
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(Box::new(ty(s)?))
         } else {
@@ -136,11 +136,11 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Pat> {
         Ok(PatKind::Bind(name, ty))
     }?;
 
-    Ok(Pat {
+    Ok(Box::new(Pat {
         id: NodeId::default(),
         span: s.span(lo),
         kind: Box::new(kind),
-    })
+    }))
 }
 
 pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>> {
