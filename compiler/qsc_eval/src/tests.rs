@@ -2703,16 +2703,12 @@ fn nested_interpolated_string_with_exprs() {
 #[test]
 fn udt_unwrap() {
     check_expr(
-        indoc! {"
-            namespace A {
-                newtype Foo = (Int, Bool);
-            }
-        "},
-        indoc! {"{
-            open A;
+        "",
+        "{
+            newtype Foo = (Int, Bool);
             let foo = Foo(1, true);
             foo!
-        }"},
+        }",
         &expect!["(1, true)"],
     );
 }
@@ -2720,16 +2716,12 @@ fn udt_unwrap() {
 #[test]
 fn udt_fields() {
     check_expr(
-        indoc! {"
-            namespace A {
-                newtype Point = (X : Int, Y : Int);
-            }
-        "},
-        indoc! {"{
-            open A;
+        "",
+        "{
+            newtype Point = (X : Int, Y : Int);
             let p = Point(1, 2);
             (p::X, p::Y)
-        }"},
+        }",
         &expect!["(1, 2)"],
     );
 }
@@ -2737,46 +2729,26 @@ fn udt_fields() {
 #[test]
 fn udt_field_nested() {
     check_expr(
-        indoc! {"
-            namespace A {
-                newtype Point = (X : Int, (Y : Int, Z : Int));
-            }
-        "},
-        indoc! {"{
-            open A;
+        "",
+        "{
+            newtype Point = (X : Int, (Y : Int, Z : Int));
             let p = Point(1, (2, 3));
             (p::Y, p::Z)
-        }"},
+        }",
         &expect!["(2, 3)"],
     );
 }
 
 #[test]
 fn lambda_function_empty_closure() {
-    check_expr(
-        indoc! {"
-            namespace A {
-                function Foo() : Int {
-                    let f = x -> x + 1;
-                    f(1)
-                }
-            }
-        "},
-        "A.Foo()",
-        &expect!["2"],
-    );
+    check_expr("", "{ let f = x -> x + 1; f(1) }", &expect!["2"]);
 }
 
 #[test]
 fn lambda_function_empty_closure_passed() {
     check_expr(
-        indoc! {"
-            namespace A {
-                function Foo(f : Int -> Int) : Int { f(2) }
-                function Bar() : Int { Foo(x -> x + 1) }
-            }
-        "},
-        "A.Bar()",
+        "",
+        "{ function Foo(f : Int -> Int) : Int { f(2) }; Foo(x -> x + 1) }",
         &expect!["3"],
     );
 }
@@ -2784,16 +2756,8 @@ fn lambda_function_empty_closure_passed() {
 #[test]
 fn lambda_function_closure() {
     check_expr(
-        indoc! {"
-            namespace A {
-                function Foo() : (Int, Int) {
-                    let x = 5;
-                    let f = y -> (x, y);
-                    f(2)
-                }
-            }
-        "},
-        "A.Foo()",
+        "",
+        "{ let x = 5; let f = y -> (x, y); f(2) }",
         &expect!["(5, 2)"],
     );
 }
@@ -2801,16 +2765,8 @@ fn lambda_function_closure() {
 #[test]
 fn lambda_function_closure_passed() {
     check_expr(
-        indoc! {"
-            namespace A {
-                function Foo(f : Int -> (Int, Int)) : (Int, Int) { f(2) }
-                function Bar() : (Int, Int) {
-                    let x = 5;
-                    Foo(y -> (x, y))
-                }
-            }
-        "},
-        "A.Bar()",
+        "",
+        "{ function Foo(f : Int -> (Int, Int)) : (Int, Int) { f(2) }; let x = 5; Foo(y -> (x, y)) }",
         &expect!["(5, 2)"],
     );
 }
@@ -2818,7 +2774,7 @@ fn lambda_function_closure_passed() {
 #[test]
 fn lambda_function_nested_closure() {
     check_expr(
-        indoc! {"
+        "
             namespace A {
                 function Foo(f : Int -> Int -> (Int, Int, Int, Int)) : (Int, Int, Int, Int) {
                     f(2)(3)
@@ -2832,7 +2788,7 @@ fn lambda_function_nested_closure() {
                     })
                 }
             }
-        "},
+        ",
         "A.Bar()",
         &expect!["(5, 2, 1, 3)"],
     );
@@ -2841,7 +2797,7 @@ fn lambda_function_nested_closure() {
 #[test]
 fn lambda_operation_empty_closure() {
     check_expr(
-        indoc! {"
+        "
             namespace A {
                 open Microsoft.Quantum.Measurement;
 
@@ -2853,7 +2809,7 @@ fn lambda_operation_empty_closure() {
 
                 operation Bar() : Result { Foo(q => X(q)) }
             }
-        "},
+        ",
         "A.Bar()",
         &expect!["One"],
     );
@@ -2862,7 +2818,7 @@ fn lambda_operation_empty_closure() {
 #[test]
 fn lambda_operation_closure() {
     check_expr(
-        indoc! {"
+        "
             namespace A {
                 open Microsoft.Quantum.Measurement;
                 operation Foo(op : () => Result) : Result { op() }
@@ -2872,7 +2828,7 @@ fn lambda_operation_closure() {
                     Foo(() => MResetZ(q))
                 }
             }
-        "},
+        ",
         "A.Bar()",
         &expect!["One"],
     );

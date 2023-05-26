@@ -31,26 +31,3 @@ pub fn test_expression(expr: &str, expected: &Value) {
 
     assert_eq!(expected, &result);
 }
-
-/// # Panics
-///
-/// Will panic if compilation fails or the result is not the same as expected.
-pub fn test_operation(operation: &str, expected: &Value) {
-    let mut stdout = vec![];
-    let mut out = GenericReceiver::new(&mut stdout);
-    let mut operation_in_namespace = String::from("namespace Test {");
-    operation_in_namespace.push_str(operation);
-    operation_in_namespace.push('}');
-
-    let sources = SourceMap::new(
-        [("test".into(), operation_in_namespace.into())],
-        Some("Test.Test()".into()),
-    );
-
-    let context = stateless::Context::new(true, sources).expect("test should compile");
-    let result = context
-        .eval(&mut out)
-        .expect("test should run successfully");
-
-    assert_eq!(expected, &result);
-}

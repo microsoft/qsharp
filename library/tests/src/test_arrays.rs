@@ -1,51 +1,39 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{test_expression, test_operation};
+use crate::test_expression;
 use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.Arrays namespace
 
 #[test]
 fn check_all() {
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 3, 4, 5])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 3, 4, 5])",
         &Value::Bool(true),
     );
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 0, 4, 5])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.All(x -> x != 0, [1, 2, 0, 4, 5])",
         &Value::Bool(false),
     );
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, One])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, One])",
         &Value::Bool(true),
     );
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, Zero])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.All(x -> x == One, [One, One, Zero])",
         &Value::Bool(false),
     );
 }
 
 #[test]
 fn check_any() {
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 6, 7, 9])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
         &Value::Bool(true),
     );
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 5, 7, 9])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Any(x -> x % 2 == 0, [1, 3, 5, 7, 9])",
         &Value::Bool(false),
     );
 }
@@ -140,16 +128,12 @@ fn check_column_at() {
 
 #[test]
 fn check_count() {
-    test_operation(
-        r#"operation Test() : Int {
-            Microsoft.Quantum.Arrays.Count(x -> x % 2 != 0, [1, 3, 6, 7, 9])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Count(x -> x % 2 != 0, [1, 3, 6, 7, 9])",
         &Value::Int(4),
     );
-    test_operation(
-        r#"operation Test() : Int {
-            Microsoft.Quantum.Arrays.Count(x -> x % 2 == 0, [1, 3, 6, 7, 9])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Count(x -> x % 2 == 0, [1, 3, 6, 7, 9])",
         &Value::Int(1),
     );
 }
@@ -180,13 +164,13 @@ fn check_diagnonal() {
 
 #[test]
 fn check_draw_many() {
-    test_operation(
-        r#"operation Test() : Result[] {
+    test_expression(
+        "{
             use qubit = Qubit();
             let results = Microsoft.Quantum.Arrays.DrawMany(q => {X(q); M(q)}, 3, qubit);
             Reset(qubit);
             results
-        }"#,
+        }",
         &Value::Array(
             vec![
                 Value::Result(true),
@@ -245,35 +229,29 @@ fn check_enumerated() {
 
 #[test]
 fn check_fold() {
-    test_operation(
-        r#"operation Test() : Int {
-            Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])",
         &Value::Int(15),
     );
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.Fold((x, y) -> x or y, false, [true, false, true])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Fold((x, y) -> x or y, false, [true, false, true])",
         &Value::Bool(true),
     );
-    test_operation(
-        r#"operation Test() : Bool {
-            Microsoft.Quantum.Arrays.Fold((x, y) -> x and y, true, [true, false, true])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Fold((x, y) -> x and y, true, [true, false, true])",
         &Value::Bool(false),
     );
 }
 
 #[test]
 fn check_for_each() {
-    test_operation(
-        r#"operation Test() : Result[] {
+    test_expression(
+        "{
             use register = Qubit[3];
             Microsoft.Quantum.Arrays.ForEach
                 (q => {X(q); Microsoft.Quantum.Measurement.MResetZ(q)},
                 register)
-        }"#,
+        }",
         &Value::Array(
             vec![
                 Value::Result(true),
@@ -388,20 +366,16 @@ fn check_is_square_array() {
 
 #[test]
 fn check_mapped() {
-    test_operation(
-        r#"operation Test() : Int[] {
-            Microsoft.Quantum.Arrays.Mapped(i -> i * 2, [0, 1, 2])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.Mapped(i -> i * 2, [0, 1, 2])",
         &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
     );
 }
 
 #[test]
 fn check_mapped_by_index() {
-    test_operation(
-        r#"operation Test() : Bool[] {
-            Microsoft.Quantum.Arrays.MappedByIndex((index, element) -> index == element ,[0, -1, 2])
-        }"#,
+    test_expression(
+        "Microsoft.Quantum.Arrays.MappedByIndex((index, element) -> index == element ,[0, -1, 2])",
         &Value::Array(vec![Value::Bool(true), Value::Bool(false), Value::Bool(true)].into()),
     );
 }
