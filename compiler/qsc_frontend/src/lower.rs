@@ -870,8 +870,8 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
 fn has_hole(expr: &ast::Expr) -> bool {
     match &*expr.kind {
         ast::ExprKind::Hole => true,
-        ast::ExprKind::Paren(sub_expr) => has_hole(sub_expr),
-        ast::ExprKind::Tuple(sub_exprs) => sub_exprs.iter().any(has_hole),
+        ast::ExprKind::Paren(inner) => has_hole(inner),
+        ast::ExprKind::Tuple(items) => items.iter().any(|i| has_hole(i)),
         _ => false,
     }
 }
