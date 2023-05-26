@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.Canon {
     open QIR.Intrinsic;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Diagnostics;
 
     /// # Summary
     /// Applies an operation to each element in a register.
@@ -265,6 +266,97 @@ namespace Microsoft.Quantum.Canon {
     operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
         for i in 0..Length(qubits)-2 {
             CNOT(qubits[i], qubits[i+1]);
+        }
+    }
+
+    /// # Summary
+    /// Given a single-qubit Pauli operator, applies the corresponding operation
+    /// to a single qubit.
+    ///
+    /// # Input
+    /// ## pauli
+    /// The Pauli operator to be applied.
+    /// ## target
+    /// The qubit to which `pauli` is to be applied as an operation.
+    ///
+    /// # Example
+    /// The following are equivalent:
+    /// ```qsharp
+    /// ApplyP(PauliX, q);
+    /// ```
+    /// and
+    /// ```qsharp
+    /// X(q);
+    /// ```
+    operation ApplyP(pauli: Pauli, target : Qubit): Unit is Adj + Ctl {
+        if   pauli == PauliX { X(target); }
+        elif pauli == PauliY { Y(target); }
+        elif pauli == PauliZ { Z(target); }
+    }
+
+    /// # Summary
+    /// Given a multi-qubit Pauli operator, applies the corresponding operation
+    /// to a quantum register.
+    ///
+    /// # Input
+    /// ## pauli
+    /// A multi-qubit Pauli operator represented as an array of single-qubit Pauli operators.
+    /// ## target
+    /// Register to apply the given Pauli operation on.
+    ///
+    /// # Example
+    /// The following are equivalent:
+    /// ```qsharp
+    /// ApplyPauli([PauliY, PauliZ, PauliX], target);
+    /// ```
+    /// and
+    /// ```qsharp
+    /// Y(target[0]);
+    /// Z(target[1]);
+    /// X(target[2]);
+    /// ```
+    operation ApplyPauli(pauli: Pauli[], target: Qubit[]) : Unit is Adj + Ctl {
+        Fact(Length(pauli) == Length(target), "`pauli` and `target` must be of the same length.");
+        for i in 0..Length(pauli)-1 {
+            ApplyP(pauli[i], target[i]);
+        }
+    }
+
+    /// # Summary
+    /// Applies a Pauli operator on each qubit in an array if the corresponding
+    /// bit of a Boolean array matches a given input.
+    ///
+    /// # Input
+    /// ## pauli
+    /// Pauli operator to apply to `qubits[idx]` where `bitsApply == bits[idx]`
+    /// ## bitApply
+    /// apply Pauli if bit is this value
+    /// ## bits
+    /// Boolean register specifying which corresponding qubit in `qubits` should be operated on
+    /// ## qubits
+    /// Quantum register on which to selectively apply the specified Pauli operator
+    ///
+    /// # Remarks
+    /// The Boolean array and the quantum register must be of equal length.
+    ///
+    /// # Example
+    /// The following applies an X operation on qubits 0 and 2, and a Z operation on qubits 1 and 3.
+    /// ```qsharp
+    /// use qubits = Qubit[4];
+    /// let bits = [true, false, true, false];
+    /// // Apply when index in `bits` is `true`.
+    /// ApplyPauliFromBitString(PauliX, true, bits, qubits);
+    /// // Apply when index in `bits` is `false`.
+    /// ApplyPauliFromBitString(PauliZ, false, bits, qubits);
+    /// ```
+    operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[])
+    : Unit is Adj + Ctl {
+        let nBits = Length(bits);
+        Fact(nBits == Length(qubits), "Number of control bits must be equal to number of control qubits.");
+        for i in 0..nBits-1 {
+            if bits[i] == bitApply {
+                ApplyP(pauli, qubits[i]);
+            }
         }
     }
 

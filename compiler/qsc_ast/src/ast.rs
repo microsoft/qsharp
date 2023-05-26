@@ -106,7 +106,7 @@ pub struct Namespace {
     /// The namespace name.
     pub name: Box<Ident>,
     /// The items in the namespace.
-    pub items: Box<[Item]>,
+    pub items: Box<[Box<Item>]>,
 }
 
 impl Display for Namespace {
@@ -133,7 +133,7 @@ pub struct Item {
     /// The span.
     pub span: Span,
     /// The attributes.
-    pub attrs: Box<[Attr]>,
+    pub attrs: Box<[Box<Attr>]>,
     /// The visibility.
     pub visibility: Option<Visibility>,
     /// The item kind.
@@ -250,7 +250,7 @@ pub enum TyDefKind {
     /// A parenthesized type definition.
     Paren(Box<TyDef>),
     /// A tuple.
-    Tuple(Box<[TyDef]>),
+    Tuple(Box<[Box<TyDef>]>),
 }
 
 impl Display for TyDefKind {
@@ -298,7 +298,7 @@ pub struct CallableDecl {
     /// The name of the callable.
     pub name: Box<Ident>,
     /// The type parameters to the callable.
-    pub ty_params: Box<[Ident]>,
+    pub ty_params: Box<[Box<Ident>]>,
     /// The input to the callable.
     pub input: Box<Pat>,
     /// The return type of the callable.
@@ -343,7 +343,7 @@ pub enum CallableBody {
     /// A block for the callable's body specialization.
     Block(Box<Block>),
     /// One or more explicit specializations.
-    Specs(Box<[SpecDecl]>),
+    Specs(Box<[Box<SpecDecl>]>),
 }
 
 impl Display for CallableBody {
@@ -529,7 +529,7 @@ pub struct Block {
     /// The span.
     pub span: Span,
     /// The statements in the block.
-    pub stmts: Box<[Stmt]>,
+    pub stmts: Box<[Box<Stmt>]>,
 }
 
 impl Display for Block {
@@ -632,7 +632,7 @@ impl Display for Expr {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum ExprKind {
     /// An array: `[a, b, c]`.
-    Array(Box<[Expr]>),
+    Array(Box<[Box<Expr>]>),
     /// An array constructed by repeating a value: `[a, size = b]`.
     ArrayRepeat(Box<Expr>, Box<Expr>),
     /// An assignment: `set a = b`.
@@ -687,7 +687,7 @@ pub enum ExprKind {
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
-    Tuple(Box<[Expr]>),
+    Tuple(Box<[Box<Expr>]>),
     /// A unary operator.
     UnOp(UnOp, Box<Expr>),
     /// A while loop: `while a { ... }`.
@@ -735,7 +735,7 @@ impl Display for ExprKind {
     }
 }
 
-fn display_array(mut indent: Indented<Formatter>, exprs: &[Expr]) -> fmt::Result {
+fn display_array(mut indent: Indented<Formatter>, exprs: &[Box<Expr>]) -> fmt::Result {
     write!(indent, "Array:")?;
     indent = set_indentation(indent, 1);
     for e in exprs {
@@ -950,7 +950,7 @@ fn display_tern_op(
     Ok(())
 }
 
-fn display_tuple(mut indent: Indented<Formatter>, exprs: &[Expr]) -> fmt::Result {
+fn display_tuple(mut indent: Indented<Formatter>, exprs: &[Box<Expr>]) -> fmt::Result {
     if exprs.is_empty() {
         write!(indent, "Unit")?;
     } else {
@@ -1016,7 +1016,7 @@ pub enum PatKind {
     /// Parentheses: `(a)`.
     Paren(Box<Pat>),
     /// A tuple: `(a, b, c)`.
-    Tuple(Box<[Pat]>),
+    Tuple(Box<[Box<Pat>]>),
 }
 
 impl Display for PatKind {
@@ -1088,7 +1088,7 @@ pub enum QubitInitKind {
     /// A single qubit: `Qubit()`.
     Single,
     /// A tuple: `(a, b, c)`.
-    Tuple(Box<[QubitInit]>),
+    Tuple(Box<[Box<QubitInit>]>),
 }
 
 impl Display for QubitInitKind {

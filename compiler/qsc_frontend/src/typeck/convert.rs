@@ -7,8 +7,8 @@ use qsc_ast::ast::{
     SetOp, Spec, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, FieldPath, Functor, ItemId, Ty, UdtField};
-use std::{collections::HashSet, rc::Rc};
+use qsc_hir::hir::{self, FieldPath, FunctorSet, ItemId, Ty, UdtField};
+use std::rc::Rc;
 
 pub(crate) struct MissingTyError(pub(super) Span);
 
@@ -24,7 +24,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             errors.extend(output_errors);
             let functors = functors
                 .as_ref()
-                .map_or(HashSet::new(), |f| eval_functor_expr(f.as_ref()));
+                .map_or(FunctorSet::Empty, |f| eval_functor_expr(f.as_ref()));
             let ty = Ty::Arrow(
                 callable_kind_from_ast(*kind),
                 Box::new(input),
@@ -64,7 +64,7 @@ pub(super) fn ast_ty_def_cons(names: &Names, id: ItemId, def: &TyDef) -> (Ty, Ve
         hir::CallableKind::Function,
         Box::new(input),
         Box::new(Ty::Udt(hir::Res::Item(id))),
-        HashSet::new(),
+        FunctorSet::Empty,
     );
     (ty, errors)
 }
@@ -140,20 +140,23 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) 
     }
 }
 
-pub(super) fn ast_callable_functors(decl: &CallableDecl) -> HashSet<Functor> {
+pub(crate) fn ast_callable_functors(decl: &CallableDecl) -> FunctorSet {
     let mut functors = decl
         .functors
         .as_ref()
-        .map_or(HashSet::new(), |f| eval_functor_expr(f.as_ref()));
+        .map_or(FunctorSet::Empty, |f| eval_functor_expr(f.as_ref()));
 
-    if let CallableBody::Specs(specs) = &*decl.body {
+    if let CallableBody::Specs(specs) = decl.body.as_ref() {
         for spec in specs.iter() {
-            match spec.spec {
-                Spec::Body => {}
-                Spec::Adj => functors.extend([Functor::Adj]),
-                Spec::Ctl => functors.extend([Functor::Ctl]),
-                Spec::CtlAdj => functors.extend([Functor::Adj, Functor::Ctl]),
-            }
+            let spec_functors = match spec.spec {
+                Spec::Body => FunctorSet::Empty,
+                Spec::Adj => FunctorSet::Adj,
+                Spec::Ctl => FunctorSet::Ctl,
+                Spec::CtlAdj => FunctorSet::CtlAdj,
+            };
+            functors = functors
+                .union(&spec_functors)
+                .expect("union on known functors should always succeed");
         }
     }
 
@@ -167,19 +170,19 @@ pub(super) fn callable_kind_from_ast(kind: CallableKind) -> hir::CallableKind {
     }
 }
 
-pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> HashSet<Functor> {
-    match &*expr.kind {
+pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSet {
+    match expr.kind.as_ref() {
         FunctorExprKind::BinOp(op, lhs, rhs) => {
-            let mut functors = eval_functor_expr(lhs);
+            let lhs_functors = eval_functor_expr(lhs);
             let rhs_functors = eval_functor_expr(rhs);
             match op {
-                SetOp::Union => functors.extend(rhs_functors),
-                SetOp::Intersect => functors.retain(|f| rhs_functors.contains(f)),
+                SetOp::Union => lhs_functors.union(&rhs_functors),
+                SetOp::Intersect => lhs_functors.intersect(&rhs_functors),
             }
-            functors
+            .expect("union or intersect on set from functor expression should always succeed")
         }
-        FunctorExprKind::Lit(ast::Functor::Adj) => [Functor::Adj].into(),
-        FunctorExprKind::Lit(ast::Functor::Ctl) => [Functor::Ctl].into(),
+        FunctorExprKind::Lit(ast::Functor::Adj) => FunctorSet::Adj,
+        FunctorExprKind::Lit(ast::Functor::Ctl) => FunctorSet::Ctl,
         FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
 }

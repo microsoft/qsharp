@@ -9,7 +9,6 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
-    collections::HashSet,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
     result,
@@ -294,7 +293,7 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: HashSet<Functor>,
+    pub functors: FunctorSet,
     /// The body of the callable.
     pub body: CallableBody,
 }
@@ -307,7 +306,7 @@ impl CallableDecl {
             self.kind,
             Box::new(self.input.ty.clone()),
             Box::new(self.output.clone()),
-            self.functors.clone(),
+            self.functors,
         )
     }
 }
@@ -332,7 +331,7 @@ impl Display for CallableDecl {
         }
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
-        write!(indent, "\nfunctors: {}", functors_as_str(&self.functors))?;
+        write!(indent, "\nfunctors: {}", self.functors)?;
         write!(indent, "\nbody: {}", self.body)?;
         Ok(())
     }
@@ -1072,12 +1071,12 @@ pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, HashSet<Functor>),
+    Arrow(CallableKind, Box<Ty>, Box<Ty>, FunctorSet),
     /// An invalid type caused by an error.
     #[default]
     Err,
     /// A placeholder type variable used during type inference.
-    Infer(InferId),
+    Infer(InferTy),
     /// A type parameter.
     Param(String),
     /// A primitive type.
@@ -1103,9 +1102,9 @@ impl Display for Ty {
                     CallableKind::Operation => "=>",
                 };
                 write!(f, "({input} {arrow} {output}")?;
-                if !functors.is_empty() {
+                if functors.is_empty() != Some(true) {
                     f.write_str(" is ")?;
-                    f.write_str(functors_as_str(functors))?;
+                    Display::fmt(functors, f)?;
                 }
                 f.write_char(')')
             }
@@ -1166,11 +1165,94 @@ pub enum PrimTy {
     String,
 }
 
+/// A set of functors.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FunctorSet {
+    /// The empty set.
+    Empty,
+    /// The singleton adjoint set.
+    Adj,
+    /// The singleton controlled set.
+    Ctl,
+    /// The set of controlled and adjoint.
+    CtlAdj,
+    /// A placeholder functor variable used during type inference.
+    Infer(InferFunctor),
+}
+
+impl FunctorSet {
+    /// Whether the set is empty, or [None] if unknown.
+    #[must_use]
+    pub fn is_empty(&self) -> Option<bool> {
+        match self {
+            Self::Empty => Some(true),
+            Self::Adj | Self::Ctl | Self::CtlAdj => Some(false),
+            Self::Infer(_) => None,
+        }
+    }
+
+    /// Whether the set contains the functor, or [None] if unknown.
+    #[must_use]
+    pub fn contains(&self, functor: &Functor) -> Option<bool> {
+        match self {
+            Self::Empty => Some(false),
+            Self::Adj => Some(matches!(functor, Functor::Adj)),
+            Self::Ctl => Some(matches!(functor, Functor::Ctl)),
+            Self::CtlAdj => Some(matches!(functor, Functor::Adj | Functor::Ctl)),
+            Self::Infer(_) => None,
+        }
+    }
+
+    /// The intersection of this set and another set, or [None] if unknown.
+    #[must_use]
+    pub fn intersect(&self, other: &FunctorSet) -> Option<FunctorSet> {
+        match (self, other) {
+            (Self::Empty, _)
+            | (_, Self::Empty)
+            | (Self::Adj, Self::Ctl)
+            | (Self::Ctl, Self::Adj) => Some(Self::Empty),
+            (Self::Adj, Self::Adj) => Some(Self::Adj),
+            (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
+            (Self::CtlAdj, &set) | (&set, Self::CtlAdj) => Some(set),
+            (&Self::Infer(i1), &Self::Infer(i2)) if i1 == i2 => Some(Self::Infer(i1)),
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
+        }
+    }
+
+    /// The union of this set and another set, or [None] if unknown.
+    #[must_use]
+    pub fn union(&self, other: &FunctorSet) -> Option<FunctorSet> {
+        match (self, other) {
+            (Self::Empty, &set) | (&set, Self::Empty) => Some(set),
+            (Self::Adj, Self::Adj) => Some(Self::Adj),
+            (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
+            (Self::CtlAdj, _)
+            | (_, Self::CtlAdj)
+            | (Self::Adj, Self::Ctl)
+            | (Self::Ctl, Self::Adj) => Some(Self::CtlAdj),
+            (&Self::Infer(i1), &Self::Infer(i2)) if i1 == i2 => Some(Self::Infer(i1)),
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
+        }
+    }
+}
+
+impl Display for FunctorSet {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::Empty => f.write_str("empty set"),
+            Self::Adj => f.write_str("Adj"),
+            Self::Ctl => f.write_str("Ctl"),
+            Self::CtlAdj => f.write_str("Adj + Ctl"),
+            Self::Infer(infer) => Display::fmt(infer, f),
+        }
+    }
+}
+
 /// A placeholder type variable used during type inference.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct InferId(usize);
+pub struct InferTy(usize);
 
-impl InferId {
+impl InferTy {
     /// The successor of this ID.
     #[must_use]
     pub fn successor(self) -> Self {
@@ -1178,20 +1260,44 @@ impl InferId {
     }
 }
 
-impl Display for InferId {
+impl Display for InferTy {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "?{}", self.0)
     }
 }
 
-impl From<usize> for InferId {
+impl From<usize> for InferTy {
     fn from(value: usize) -> Self {
-        InferId(value)
+        InferTy(value)
     }
 }
 
-impl From<InferId> for usize {
-    fn from(value: InferId) -> Self {
+impl From<InferTy> for usize {
+    fn from(value: InferTy) -> Self {
+        value.0
+    }
+}
+
+/// A placeholder functor variable used during type inference.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct InferFunctor(usize);
+
+impl InferFunctor {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for InferFunctor {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "f?{}", self.0)
+    }
+}
+
+impl From<InferFunctor> for usize {
+    fn from(value: InferFunctor) -> Self {
         value.0
     }
 }
@@ -1217,7 +1323,7 @@ impl Udt {
             CallableKind::Function,
             Box::new(self.base.clone()),
             Box::new(Ty::Udt(Res::Item(id))),
-            HashSet::new(),
+            FunctorSet::Empty,
         )
     }
 
@@ -1432,6 +1538,15 @@ pub enum Functor {
     Ctl,
 }
 
+impl Display for Functor {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Functor::Adj => f.write_str("Adj"),
+            Functor::Ctl => f.write_str("Ctl"),
+        }
+    }
+}
+
 /// A specialization that may be implemented for an operation.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Spec {
@@ -1549,16 +1664,4 @@ pub enum TernOp {
     Cond,
     /// Update array index: `a w/ b <- c`.
     UpdateIndex,
-}
-
-fn functors_as_str(functors: &HashSet<Functor>) -> &str {
-    match (
-        functors.contains(&Functor::Adj),
-        functors.contains(&Functor::Ctl),
-    ) {
-        (true, true) => "Adj + Ctl",
-        (true, false) => "Adj",
-        (false, true) => "Ctl",
-        (false, false) => "",
-    }
 }

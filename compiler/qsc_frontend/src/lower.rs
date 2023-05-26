@@ -16,7 +16,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
 };
-use std::{clone::Clone, collections::HashSet, rc::Rc, vec};
+use std::{clone::Clone, rc::Rc, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -214,8 +214,8 @@ impl With<'_> {
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
             output: convert::ty_from_ast(self.names, &decl.output).0,
-            functors: callable_functors(decl),
-            body: match &*decl.body {
+            functors: convert::ast_callable_functors(decl),
+            body: match decl.body.as_ref() {
                 ast::CallableBody::Block(block) => {
                     hir::CallableBody::Block(self.lower_block(block))
                 }
@@ -381,7 +381,12 @@ impl With<'_> {
                 Box::new(self.lower_expr(index)),
             ),
             ast::ExprKind::Lambda(kind, input, body) => {
-                self.lower_lambda(*kind, input, body, expr.span)
+                let functors = if let hir::Ty::Arrow(_, _, _, functors) = ty {
+                    functors
+                } else {
+                    hir::FunctorSet::Empty
+                };
+                self.lower_lambda(*kind, input, body, functors, expr.span)
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
@@ -450,13 +455,21 @@ impl With<'_> {
         kind: ast::CallableKind,
         input: &ast::Pat,
         body: &ast::Expr,
+        functors: hir::FunctorSet,
         span: Span,
     ) -> hir::ExprKind {
         let kind = lower_callable_kind(kind);
         let input = self.lower_pat(ast::Mutability::Immutable, input);
         let body = self.lower_expr(body);
-        let (args, callable) =
-            closure::lift(self.assigner, &self.lowerer.locals, kind, input, body, span);
+        let (args, callable) = closure::lift(
+            self.assigner,
+            &self.lowerer.locals,
+            kind,
+            input,
+            body,
+            functors,
+            span,
+        );
 
         if args.iter().any(|&arg| self.is_mutable(arg)) {
             self.lowerer.errors.push(Error::MutableClosure(span));
@@ -687,24 +700,4 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
         ast::Functor::Adj => hir::Functor::Adj,
         ast::Functor::Ctl => hir::Functor::Ctl,
     }
-}
-
-fn callable_functors(callable: &ast::CallableDecl) -> HashSet<hir::Functor> {
-    let mut functors = callable
-        .functors
-        .as_ref()
-        .map_or(HashSet::new(), |f| convert::eval_functor_expr(f.as_ref()));
-
-    if let ast::CallableBody::Specs(specs) = &*callable.body {
-        for spec in specs.iter() {
-            match spec.spec {
-                ast::Spec::Body => {}
-                ast::Spec::Adj => functors.extend([hir::Functor::Adj]),
-                ast::Spec::Ctl => functors.extend([hir::Functor::Ctl]),
-                ast::Spec::CtlAdj => functors.extend([hir::Functor::Adj, hir::Functor::Ctl]),
-            }
-        }
-    }
-
-    functors
 }

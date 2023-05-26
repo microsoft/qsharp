@@ -124,7 +124,7 @@ pub(crate) fn call(
                 __quantum__rt__result_get_one(),
             )))
         }
-        _ => Err(Error::UnknownIntrinsic(name_span)),
+        _ => Err(Error::UnknownIntrinsic(name.to_string(), name_span)),
     }
 }
 

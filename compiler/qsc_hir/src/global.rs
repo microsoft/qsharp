@@ -13,6 +13,7 @@ pub struct Global {
 }
 
 pub enum Kind {
+    Namespace,
     Ty(Ty),
     Term(Term),
 }
@@ -61,6 +62,7 @@ impl FromIterator<Global> for Table {
                         .or_default()
                         .insert(global.name, term);
                 }
+                Kind::Namespace => {}
             }
         }
 
@@ -77,26 +79,27 @@ pub struct PackageIter<'a> {
 
 impl PackageIter<'_> {
     fn global_item(&mut self, item: &Item) -> Option<Global> {
-        let parent = self
-            .package
-            .items
-            .get(item.parent?)
-            .expect("parent should exist");
-
-        let ItemKind::Namespace(namespace, _) = &parent.kind else { return None; };
+        let parent = item.parent.map(|parent| {
+            &self
+                .package
+                .items
+                .get(parent)
+                .expect("parent should exist")
+                .kind
+        });
         let id = ItemId {
             package: self.id,
             item: item.id,
         };
 
-        match &item.kind {
-            ItemKind::Callable(decl) => Some(Global {
+        match (&item.kind, &parent) {
+            (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
                 namespace: Rc::clone(&namespace.name),
                 name: Rc::clone(&decl.name.name),
                 visibility: item.visibility,
                 kind: Kind::Term(Term { id, ty: decl.ty() }),
             }),
-            ItemKind::Ty(name, def) => {
+            (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
                     namespace: Rc::clone(&namespace.name),
                     name: Rc::clone(&name.name),
@@ -114,7 +117,13 @@ impl PackageIter<'_> {
                     kind: Kind::Ty(Ty { id }),
                 })
             }
-            ItemKind::Namespace(..) => None,
+            (ItemKind::Namespace(ident, _), None) => Some(Global {
+                namespace: "".into(),
+                name: Rc::clone(&ident.name),
+                visibility: Visibility::Public,
+                kind: Kind::Namespace,
+            }),
+            _ => None,
         }
     }
 }

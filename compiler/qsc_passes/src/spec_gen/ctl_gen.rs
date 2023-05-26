@@ -27,7 +27,7 @@ impl MutVisitor for CtlDistrib {
             ExprKind::Call(op, args) => {
                 match &op.ty {
                     Ty::Arrow(CallableKind::Operation, input, output, functors)
-                        if functors.contains(&Functor::Ctl) =>
+                        if functors.contains(&Functor::Ctl) == Some(true) =>
                     {
                         op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
                         op.ty = Ty::Arrow(
@@ -37,7 +37,7 @@ impl MutVisitor for CtlDistrib {
                                 Ty::clone(input),
                             ])),
                             output.clone(),
-                            functors.clone(),
+                            *functors,
                         );
 
                         args.kind = ExprKind::Tuple(vec![

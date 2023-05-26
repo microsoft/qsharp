@@ -2,6 +2,7 @@
 // a new one for this purpose.
 namespace Microsoft.Quantum.Samples.DeutschJozsa {
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Math;
 
 
@@ -76,8 +77,7 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
         // balanced.
         mutable result = true;
         for q in queryRegister {
-            if M(q) == One {
-                X(q);
+            if MResetZ(q) == One {
                 set result = false;
             }
         }

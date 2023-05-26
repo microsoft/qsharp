@@ -49,7 +49,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
     }
 }
 
-pub(super) fn param(s: &mut Scanner) -> Result<Ident> {
+pub(super) fn param(s: &mut Scanner) -> Result<Box<Ident>> {
     token(s, TokenKind::Apos)?;
     ident(s)
 }
@@ -75,9 +75,9 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     let kind = if keyword(s, Keyword::Underscore).is_ok() {
         Ok(TyKind::Hole)
     } else if let Some(name) = opt(s, param)? {
-        Ok(TyKind::Param(Box::new(name)))
+        Ok(TyKind::Param(name))
     } else if let Some(path) = opt(s, path)? {
-        Ok(TyKind::Path(Box::new(path)))
+        Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (tys, final_sep) = seq(s, ty)?;
         token(s, TokenKind::Close(Delim::Paren))?;

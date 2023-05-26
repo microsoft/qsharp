@@ -139,11 +139,11 @@ impl Checker {
     }
 
     fn check_callable_signature(&mut self, names: &Names, decl: &ast::CallableDecl) {
-        if !convert::ast_callable_functors(decl).is_empty() {
+        if convert::ast_callable_functors(decl).is_empty() != Some(true) {
             let output = convert::ty_from_ast(names, &decl.output).0;
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}
-                _ => self.errors.push(Error(ErrorKind::TypeMismatch(
+                _ => self.errors.push(Error(ErrorKind::Mismatch(
                     Ty::UNIT,
                     output,
                     decl.output.span,
