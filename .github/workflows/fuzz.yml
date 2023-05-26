@@ -175,18 +175,18 @@ jobs:
             ${{ env.OWNER_RDPATH }}/${{ env.SEEDS_RDPATH }}/${{ env.TARGET_NAME }}/${{ env.SEEDS_FNAME }}
           if-no-files-found: error
 
-      # - name: "If Fuzzing Failed: Report GutHub Issue"
-      #   if: failure()
-      #   uses: JasonEtco/create-an-issue@v2
-      #   env:
-      #     GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
-      #     WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      #   with:
-      #     filename: ${{ env.GH_ISSUE_TEMPLATE_RFPATH }}
-      #     # This issue template file uses a number of env vars collected above.
-      #   id: create-issue
+      - name: "If Fuzzing Failed: Report GutHub Issue"
+        if: failure()
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: ${{ env.GH_ISSUE_TEMPLATE_RFPATH }}
+          # This issue template file uses a number of env vars collected above.
+        id: create-issue
 
-      # - name: "If Fuzzing Failed: Log Issue Info"
-      #   if: failure()
-      #   run: |
-      #     echo "Created issue #${{ steps.create-issue.outputs.number }} ${{ steps.create-issue.outputs.url }}"
+      - name: "If Fuzzing Failed: Log Issue Info"
+        if: failure()
+        run: |
+          echo "Created issue #${{ steps.create-issue.outputs.number }} ${{ steps.create-issue.outputs.url }}"
