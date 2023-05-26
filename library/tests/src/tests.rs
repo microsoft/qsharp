@@ -759,6 +759,26 @@ fn check_fold() {
 }
 
 #[test]
+fn check_for_each() {
+    run_stdlib_test_operation(
+        r#"operation Test() : Result[] {
+            use register = Qubit[3];
+            Microsoft.Quantum.Arrays.ForEach
+                (q => {X(q); Microsoft.Quantum.Measurement.MResetZ(q)},
+                register)
+        }"#,
+        &Value::Array(
+            vec![
+                Value::Result(true),
+                Value::Result(true),
+                Value::Result(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_head() {
     run_stdlib_test("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
 }
