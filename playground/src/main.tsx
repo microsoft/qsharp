@@ -45,8 +45,6 @@ function createCompiler(onStateChange: (val: CompilerState) => void) {
   return compiler;
 }
 
-export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
-
 function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compilerState, setCompilerState] = useState<CompilerState>("idle");
   const [compiler, setCompiler] = useState(() =>
@@ -61,7 +59,6 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     undefined
   );
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
   const [hir, setHir] = useState<string>("");
 
   const onRestartCompiler = () => {
@@ -122,15 +119,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showShots={true}
             showExpr={true}
             shotError={shotError}
-            activeTab={activeTab}
             setHir={setHir}
           ></Editor>
           <OutputTabs
             evtTarget={evtTarget}
             showPanel={true}
             onShotError={onShotError}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
             hir={hir}
           ></OutputTabs>
         </>

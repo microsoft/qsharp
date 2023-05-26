@@ -79,7 +79,6 @@ export function Kata(props: {
                 item.type === "exercise" ? item.verificationImplementation : ""
               }
               key={item.id}
-              activeTab="results-tab"
               setHir={() => ({})}
             ></Editor>
             <OutputTabs
@@ -87,8 +86,6 @@ export function Kata(props: {
               evtTarget={itemEvtHandlers[idx]}
               showPanel={false}
               kataMode={true}
-              activeTab="results-tab"
-              setActiveTab={() => ({})}
               hir=""
             ></OutputTabs>
           </div>

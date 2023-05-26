@@ -6,6 +6,7 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Histogram } from "./histo.js";
 import { StateTable } from "./state.js";
+import { ActiveTab } from "./tabs.js";
 
 function resultToLabel(result: string | VSDiagnostic): string {
   if (typeof result !== "string") return "ERROR";
@@ -56,7 +57,7 @@ export function ResultsTab(props: {
   evtTarget: QscEventTarget;
   onShotError?: (err?: VSDiagnostic) => void;
   kataMode?: boolean;
-  activeTab: string;
+  activeTab: ActiveTab;
 }) {
   const [resultState, setResultState] = useState<ResultsState>(newRunState());
 

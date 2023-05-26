@@ -12,7 +12,6 @@ import {
   log,
 } from "qsharp";
 import { codeToCompressedBase64 } from "./utils.js";
-import { ActiveTab } from "./main.js";
 
 type ErrCollection = {
   checkDiags: VSDiagnostic[];
@@ -50,7 +49,6 @@ export function Editor(props: {
   shotError?: VSDiagnostic;
   showExpr: boolean;
   showShots: boolean;
-  activeTab: ActiveTab;
   setHir: (hir: string) => void;
 }) {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
