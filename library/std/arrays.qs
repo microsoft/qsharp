@@ -6,6 +6,71 @@ namespace Microsoft.Quantum.Arrays {
     open Microsoft.Quantum.Math;
 
     /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, and checks if all elements of the
+    /// array satisfy the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to `Bool` that is used to check elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// A `Bool` value of the AND function of the predicate applied to all elements.
+    ///
+    /// # Example
+    /// The following code checks whether all elements of the array are non-zero:
+    /// ```qsharp
+    /// let allNonZero = All(x -> x != 0, [1, 2, 3, 4, 5]);
+    /// ```
+    function All<'T> (predicate : ('T -> Bool), array : 'T[]) : Bool {
+        for element in array {
+            if not predicate(element) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, checks if at least one element of
+    /// the array satisfies the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to `Bool` that is used to check elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// A `Bool` value of the OR function of the predicate applied to all elements.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let anyEven = Any(x -> x % 2 == 0, [1, 3, 6, 7, 9]);
+    /// ```
+    function Any<'T> (predicate : ('T -> Bool), array : 'T[]) : Bool {
+        for element in array {
+            if predicate(element) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// # Summary
     /// Splits an array into multiple parts of equal length.
     ///
     /// # Input
@@ -31,6 +96,76 @@ namespace Microsoft.Quantum.Arrays {
         }
 
         output
+    }
+
+    /// # Summary
+    /// Extracts a column from a matrix.
+    ///
+    /// # Description
+    /// This function extracts a column in a matrix in row-wise order.
+    /// Extracting a row corresponds to element access of the first index
+    /// and therefore requires no further treatment.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `matrix`.
+    ///
+    /// # Input
+    /// ## column
+    /// Column of the matrix
+    /// ## matrix
+    /// 2-dimensional matrix in row-wise order
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+    /// let column = ColumnAt(0, matrix);
+    /// // same as: column = [1, 4, 7]
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Transposed
+    /// - Microsoft.Quantum.Arrays.Diagonal
+    function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[] {
+        Fact(IsRectangularArray(matrix), "`matrix` is not a rectangular array");
+        mutable columnValues = [];
+        for row in matrix {
+            set columnValues += [row[column]];
+        }
+        columnValues
+    }
+
+    /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, returns the number of elements
+    /// an array that consists of those elements that satisfy the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to Boolean that is used to filter elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// The number of elements in `array` that satisfy the predicate.
+    ///
+    /// # Example
+    /// ```qsharp
+    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]); 
+    /// // evensCount is 1.
+    /// ```
+    function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
+        mutable count = 0;
+        for element in array {
+            if predicate(element) {
+                set count += 1;
+            }
+        }
+        count
     }
 
     /// # Summary
@@ -71,6 +206,68 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Repeats an operation for a given number of samples, collecting its outputs
+    /// in an array.
+    ///
+    /// # Input
+    /// ## op
+    /// The operation to be called repeatedly.
+    /// ## nSamples
+    /// The number of samples of calling `op` to collect.
+    /// ## input
+    /// The input to be passed to `op`.
+    ///
+    /// # Type Parameters
+    /// ## TInput
+    /// The type of input expected by `op`.
+    /// ## TOutput
+    /// The type of output returned by `op`.
+    ///
+    /// # Example
+    /// The following samples an alternating array of results.
+    /// ```qsharp
+    /// use qubit = Qubit();
+    /// let results = Microsoft.Quantum.Arrays.DrawMany(q => {X(q); M(q)}, 3, qubit);
+    /// ```
+    operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput)
+    : 'TOutput[] {
+        mutable outputs = [];
+        for _ in 1 .. nSamples {
+            set outputs += [op(input)];
+        }
+        outputs
+    }
+
+    /// # Summary
+    /// Given an array, returns a new array containing elements of the original
+    /// array along with the indices of each element.
+    ///
+    /// # Type Parameters
+    /// ## 'TElement
+    /// The type of elements of the array.
+    ///
+    /// # Input
+    /// ## array
+    /// An array whose elements are to be enumerated.
+    ///
+    /// # Output
+    /// A new array containing elements of the original array along with their
+    /// indices.
+    ///
+    /// # Example
+    /// The following `for` loops are equivalent:
+    /// ```qsharp
+    /// for (idx in IndexRange(array)) {
+    ///     let element = array[idx];
+    ///     ...
+    /// }
+    /// for ((idx, element) in Enumerated(array)) { ... }
+    /// ```
+    function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[] {
+        MappedByIndex((index, element) -> (index, element), array)
+    }
+
+    /// # Summary
     /// Returns an array containing the elements of another array,
     /// excluding elements at a given list of indices.
     ///
@@ -108,6 +305,71 @@ namespace Microsoft.Quantum.Arrays {
             if toKeep[index] {
                 set output += [array[index]];
             }
+        }
+        output
+    }
+
+    /// # Summary
+    /// Iterates a function `f` through an array `array`, returning
+    /// `f(...f(f(initialState, array[0]), array[1]), ...)`.
+    ///
+    /// # Type Parameters
+    /// ## 'State
+    /// The type of states the `folder` function operates on, i.e., accepts as its first
+    /// argument and returns.
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## folder
+    /// A function to be folded over the array.
+    /// ## state
+    /// The initial state of the folder.
+    /// ## array
+    /// An array of values to be folded over.
+    ///
+    /// # Output
+    /// The final state returned by the folder after iterating over
+    /// all elements of `array`.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let sum = Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5]); // `sum` is 15.
+    /// ```
+    function Fold<'State, 'T> (folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State {
+        mutable current = state;
+        for element in array {
+            set current = folder(current, element);
+        }
+        current
+    }
+
+    /// # Summary
+    /// Given an array and an operation that is defined
+    /// for the elements of the array, returns a new array that consists
+    /// of the images of the original array under the operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    /// ## 'U
+    /// The result type of the `action` operation.
+    ///
+    /// # Input
+    /// ## action
+    /// An operation from `'T` to `'U` that is applied to each element.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'U[]` of elements that are mapped by the `action` operation.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Mapped
+    operation ForEach<'T, 'U> (action : ('T => 'U), array : 'T[]) : 'U[] {
+        mutable output = [];
+        for element in array {
+            set output += [action(element)];
         }
         output
     }
@@ -286,6 +548,77 @@ namespace Microsoft.Quantum.Arrays {
         }
 
         true
+    }
+
+    /// # Summary
+    /// Given an array and a function that is defined
+    /// for the elements of the array, returns a new array that consists
+    /// of the images of the original array under the function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    /// ## 'U
+    /// The result type of the `mapper` function.
+    ///
+    /// # Input
+    /// ## mapper
+    /// A function from `'T` to `'U` that is used to map elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'U[]` of elements that are mapped by the `mapper` function.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.ForEach
+    function Mapped<'T, 'U> (mapper : ('T -> 'U), array : 'T[]) : 'U[] {
+        mutable mapped = [];
+        for element in array {
+            set mapped += [mapper(element)];
+        }
+        mapped
+    }
+
+    /// # Summary
+    /// Given an array and a function that is defined
+    /// for the indexed elements of the array, returns a new array that consists
+    /// of the images of the original array under the function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    /// ## 'U
+    /// The result type of the `mapper` function.
+    ///
+    /// # Input
+    /// ## mapper
+    /// A function from `(Int, 'T)` to `'U` that is used to map elements
+    /// and their indices.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'U[]` of elements that are mapped by the `mapper` function.
+    ///
+    /// # Example
+    /// The following two lines are equivalent:
+    /// ```qsharp
+    /// let array = MappedByIndex(f, [x0, x1, x2]);
+    /// ```
+	/// and
+	/// ```qsharp
+    /// let array = [f(0, x0), f(1, x1), f(2, x2)];
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Mapped
+    function MappedByIndex<'T, 'U> (mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] {
+        mutable mapped = [];
+        for index in 0 .. Length(array) - 1 {
+            set mapped += [mapper(index, array[index])];
+        }
+        mapped
     }
 
     /// # Summary
