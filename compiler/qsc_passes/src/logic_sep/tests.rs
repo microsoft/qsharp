@@ -460,7 +460,7 @@ fn return_forbidden() {
             [
                 NonUnitBlock(
                     Infer(
-                        InferId(
+                        InferTy(
                             1,
                         ),
                     ),

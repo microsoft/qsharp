@@ -71,13 +71,11 @@ struct SpecPlacePass;
 
 impl MutVisitor for SpecPlacePass {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
-        if decl.functors.is_empty() {
+        let is_adj = decl.functors.contains(&Functor::Adj) == Some(true);
+        let is_ctl = decl.functors.contains(&Functor::Ctl) == Some(true);
+        if !is_adj && !is_ctl {
             return;
         }
-
-        let is_adj = decl.functors.contains(&Functor::Adj);
-        let is_ctl = decl.functors.contains(&Functor::Ctl);
-        let is_ctladj = is_adj && is_ctl;
 
         let mut spec_decl = match &decl.body {
             CallableBody::Block(body) => vec![SpecDecl {
@@ -122,7 +120,7 @@ impl MutVisitor for SpecPlacePass {
             .iter()
             .any(|s| s.spec == Spec::Ctl && matches!(s.body, SpecBody::Impl(..)));
 
-        if is_ctladj && spec_decl.iter().all(|s| s.spec != Spec::CtlAdj) {
+        if is_adj && is_ctl && spec_decl.iter().all(|s| s.spec != Spec::CtlAdj) {
             let gen = if is_self_adjoint(&spec_decl) {
                 SpecGen::Slf
             } else if has_explicit_ctl && !has_explicit_adj {

@@ -30,8 +30,8 @@ impl MutVisitor for AdjDistrib {
         match &mut expr.kind {
             ExprKind::Call(op, _) => {
                 match &op.ty {
-                    Ty::Arrow(CallableKind::Operation, _, _, functor)
-                        if functor.contains(&Functor::Adj) =>
+                    Ty::Arrow(CallableKind::Operation, _, _, functors)
+                        if functors.contains(&Functor::Adj) == Some(true) =>
                     {
                         *op = Box::new(Expr {
                             id: NodeId::default(),

@@ -12,8 +12,8 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, ItemId, PrimTy, Ty, Udt};
-use std::collections::{HashMap, HashSet};
+use qsc_hir::hir::{self, FunctorSet, ItemId, PrimTy, Ty, Udt};
+use std::collections::HashMap;
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
 /// computation.
@@ -80,11 +80,11 @@ impl<'a> Context<'a> {
                 convert::callable_kind_from_ast(*kind),
                 Box::new(self.infer_ty(input)),
                 Box::new(self.infer_ty(output)),
-                functors
-                    .as_ref()
-                    .map_or(HashSet::new(), |f| convert::eval_functor_expr(f.as_ref())),
+                functors.as_ref().map_or(FunctorSet::Empty, |f| {
+                    convert::eval_functor_expr(f.as_ref())
+                }),
             ),
-            TyKind::Hole => self.inferrer.fresh(),
+            TyKind::Hole => self.inferrer.fresh_ty(),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.names.get(path.id) {
                 Some(&Res::Item(item)) => Ty::Udt(hir::Res::Item(item)),
@@ -160,7 +160,7 @@ impl<'a> Context<'a> {
                     }
                     self.diverge_if(diverges, converge(Ty::Array(Box::new(first.ty))))
                 }
-                None => converge(Ty::Array(Box::new(self.inferrer.fresh()))),
+                None => converge(Ty::Array(Box::new(self.inferrer.fresh_ty()))),
             },
             ExprKind::ArrayRepeat(item, size) => {
                 let item = self.infer_expr(item);
@@ -195,7 +195,7 @@ impl<'a> Context<'a> {
                 // https://github.com/microsoft/qsharp/issues/151
                 let callee = self.infer_expr(callee);
                 let input = self.infer_expr(input);
-                let output_ty = self.inferrer.fresh();
+                let output_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
                     Class::Call {
@@ -219,7 +219,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Field(record, name) => {
                 let record = self.infer_expr(record);
-                let item_ty = self.inferrer.fresh();
+                let item_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
                     Class::HasField {
@@ -264,7 +264,7 @@ impl<'a> Context<'a> {
             ExprKind::Index(container, index) => {
                 let container = self.infer_expr(container);
                 let index = self.infer_expr(index);
-                let item_ty = self.inferrer.fresh();
+                let item_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
                     Class::HasIndex {
@@ -292,15 +292,13 @@ impl<'a> Context<'a> {
                 self.diverge_if(diverges, converge(Ty::Prim(PrimTy::String)))
             }
             ExprKind::Lambda(kind, input, body) => {
-                // TODO: Infer the supported functors or require that they are explicitly listed.
-                // https://github.com/microsoft/qsharp/issues/151
                 let input = self.infer_pat(input);
                 let body = self.infer_expr(body).ty;
                 converge(Ty::Arrow(
                     convert::callable_kind_from_ast(*kind),
                     Box::new(input),
                     Box::new(body),
-                    HashSet::new(),
+                    self.inferrer.fresh_functor(),
                 ))
             }
             ExprKind::Lit(lit) => match lit.as_ref() {
@@ -410,7 +408,7 @@ impl<'a> Context<'a> {
                 let body = self.infer_block(body);
                 self.diverge_if(cond.diverges || body.diverges, converge(Ty::UNIT))
             }
-            ExprKind::Err | ExprKind::Hole => converge(self.inferrer.fresh()),
+            ExprKind::Err | ExprKind::Hole => converge(self.inferrer.fresh_ty()),
         };
 
         self.record(expr.id, ty.ty.clone());
@@ -427,7 +425,7 @@ impl<'a> Context<'a> {
                 operand
             }
             UnOp::Functor(Functor::Ctl) => {
-                let with_ctls = self.inferrer.fresh();
+                let with_ctls = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     span,
                     Class::Ctl {
@@ -447,7 +445,7 @@ impl<'a> Context<'a> {
                 operand
             }
             UnOp::Unwrap => {
-                let base = self.inferrer.fresh();
+                let base = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     span,
                     Class::Unwrap {
@@ -553,7 +551,7 @@ impl<'a> Context<'a> {
     fn infer_pat(&mut self, pat: &Pat) -> Ty {
         let ty = match &*pat.kind {
             PatKind::Bind(name, None) => {
-                let ty = self.inferrer.fresh();
+                let ty = self.inferrer.fresh_ty();
                 self.record(name.id, ty.clone());
                 ty
             }
@@ -562,7 +560,7 @@ impl<'a> Context<'a> {
                 self.record(name.id, ty.clone());
                 ty
             }
-            PatKind::Discard(None) | PatKind::Elided => self.inferrer.fresh(),
+            PatKind::Discard(None) | PatKind::Elided => self.inferrer.fresh_ty(),
             PatKind::Discard(Some(ty)) => self.infer_ty(ty),
             PatKind::Paren(inner) => self.infer_pat(inner),
             PatKind::Tuple(items) => {
@@ -606,7 +604,7 @@ impl<'a> Context<'a> {
 
     fn diverge(&mut self) -> Partial {
         Partial {
-            ty: self.inferrer.fresh(),
+            ty: self.inferrer.fresh_ty(),
             diverges: true,
         }
     }
@@ -628,7 +626,7 @@ impl<'a> Context<'a> {
         let (substs, errors) = self.inferrer.solve(self.udts);
         for id in self.new {
             let ty = self.terms.get_mut(id).expect("node should have type");
-            infer::substitute(&substs, ty);
+            infer::substitute_ty(&substs, ty);
         }
         errors
     }
