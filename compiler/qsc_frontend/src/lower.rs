@@ -101,8 +101,8 @@ impl With<'_> {
             self.lower_namespace(namespace);
         }
 
-        let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
+        let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
         hir::Package { items, entry }
     }
 
