@@ -200,7 +200,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-struct Offsetter(u32);
+pub(super) struct Offsetter(pub(super) u32);
 
 impl MutVisitor for Offsetter {
     fn visit_span(&mut self, span: &mut Span) {
