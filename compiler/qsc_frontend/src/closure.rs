@@ -222,18 +222,56 @@ pub(super) fn partial_app_hole(
         }),
     };
 
-    let expr = Expr {
+    let var = Expr {
         id: assigner.next_node(),
         span,
         ty,
         kind: ExprKind::Var(Res::Local(local_id)),
     };
 
-    (expr, app)
+    (var, app)
 }
 
-pub(super) fn partial_app_given() {
-    todo!()
+pub(super) fn partial_app_given(
+    assigner: &mut Assigner,
+    locals: &mut IndexMap<NodeId, Local>,
+    arg: Expr,
+) -> (Expr, PartialApp) {
+    let local_id = assigner.next_node();
+    let local = Local {
+        mutability: Mutability::Immutable,
+        ty: arg.ty.clone(),
+    };
+    locals.insert(local_id, local);
+
+    let var = Expr {
+        id: assigner.next_node(),
+        span: arg.span,
+        ty: arg.ty.clone(),
+        kind: ExprKind::Var(Res::Local(local_id)),
+    };
+
+    let binding_pat = Pat {
+        id: assigner.next_node(),
+        span: arg.span,
+        ty: arg.ty.clone(),
+        kind: PatKind::Bind(Ident {
+            id: local_id,
+            span: arg.span,
+            name: "arg".into(),
+        }),
+    };
+    let binding_stmt = Stmt {
+        id: assigner.next_node(),
+        span: arg.span,
+        kind: StmtKind::Local(Mutability::Immutable, binding_pat, arg),
+    };
+    let app = PartialApp {
+        bindings: vec![binding_stmt],
+        input: None,
+    };
+
+    (var, app)
 }
 
 pub(super) fn partial_app_tuple(

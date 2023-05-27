@@ -2433,7 +2433,7 @@ fn partial_app_one_present_one_missing() {
             #19 99-108 "Foo(2, _)" : (Int -> Int)
             #38 99-108 "Foo(2, _)" : (Int -> Int)
             #24 103-104 "2" : Int
-            #22 103-104 "2" : Int
+            #21 103-104 "2" : Int
             #40 99-108 "Foo(2, _)" : (Int -> Int)
             #32 99-108 "Foo(2, _)" : (Int, Int)
             #33 99-108 "Foo(2, _)" : Int
@@ -2442,7 +2442,7 @@ fn partial_app_one_present_one_missing() {
             #30 99-108 "Foo(2, _)" : Int
             #20 99-102 "Foo" : ((Int, Int) -> Int)
             #29 102-108 "(2, _)" : (Int, Int)
-            #25 103-104 "2" : Int
+            #23 103-104 "2" : Int
             #28 106-107 "_" : Int
         "##]],
     );

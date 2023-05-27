@@ -797,10 +797,10 @@ fn partial_app_one_missing() {
                             Stmt 16 [91-109]: Local (Immutable):
                                 Pat 17 [95-96] [Type (Int -> Int)]: Bind: Ident 18 [95-96] "f"
                                 Expr 19 [99-108] [Type (Int -> Int)]: Expr Block: Block 38 [99-108] [Type (Int -> Int)]:
-                                    Stmt 26 [106-107]: Local (Immutable):
-                                        Pat 27 [106-107] [Type Int]: Bind: Ident 24 [106-107] "arg"
-                                        Expr 25 [106-107] [Type Int]: Lit: Int(2)
-                                    Stmt 39 [99-108]: Expr: Expr 40 [99-108] [Type (Int -> Int)]: Closure([24], 3)
+                                    Stmt 28 [106-107]: Local (Immutable):
+                                        Pat 27 [106-107] [Type Int]: Bind: Ident 25 [106-107] "arg"
+                                        Expr 24 [106-107] [Type Int]: Lit: Int(2)
+                                    Stmt 39 [99-108]: Expr: Expr 40 [99-108] [Type (Int -> Int)]: Closure([25], 3)
                 Item 3 [99-108] (Internal):
                     Parent: 2
                     Callable 34 [99-108] (Function):
@@ -815,7 +815,7 @@ fn partial_app_one_missing() {
                                 Expr 20 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
                                 Expr 29 [102-108] [Type (Int, Int)]: Tuple:
                                     Expr 23 [103-104] [Type Int]: Var: Local 21
-                                    Expr 28 [106-107] [Type Int]: Var: Local 31"#]],
+                                    Expr 26 [106-107] [Type Int]: Var: Local 31"#]],
     );
 }
 

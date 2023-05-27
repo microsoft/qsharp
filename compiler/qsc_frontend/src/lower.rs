@@ -501,44 +501,8 @@ impl With<'_> {
                 (arg, app)
             }
             _ => {
-                let id = self.assigner.next_node();
-                let span = arg.span;
                 let arg = self.lower_expr(arg);
-                self.lowerer.locals.insert(
-                    id,
-                    Local {
-                        mutability: hir::Mutability::Immutable,
-                        ty: ty.clone(),
-                    },
-                );
-                let app = PartialApp {
-                    bindings: vec![hir::Stmt {
-                        id: self.assigner.next_node(),
-                        span,
-                        kind: hir::StmtKind::Local(
-                            hir::Mutability::Immutable,
-                            hir::Pat {
-                                id: self.assigner.next_node(),
-                                span,
-                                ty: ty.clone(),
-                                kind: hir::PatKind::Bind(hir::Ident {
-                                    id,
-                                    span,
-                                    name: "arg".into(),
-                                }),
-                            },
-                            arg,
-                        ),
-                    }],
-                    input: None,
-                };
-                let var = hir::Expr {
-                    id: self.assigner.next_node(),
-                    span,
-                    ty,
-                    kind: hir::ExprKind::Var(hir::Res::Local(id)),
-                };
-                (var, app)
+                closure::partial_app_given(self.assigner, &mut self.lowerer.locals, arg)
             }
         }
     }
