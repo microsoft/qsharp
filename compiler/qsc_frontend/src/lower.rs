@@ -480,14 +480,13 @@ impl With<'_> {
     }
 
     fn lower_partial_arg(&mut self, arg: &ast::Expr) -> (hir::Expr, PartialApp) {
-        let ty = self
-            .tys
-            .terms
-            .get(arg.id)
-            .map_or(hir::Ty::Err, Clone::clone);
-
         match arg.kind.as_ref() {
             ast::ExprKind::Hole => {
+                let ty = self
+                    .tys
+                    .terms
+                    .get(arg.id)
+                    .map_or(hir::Ty::Err, Clone::clone);
                 closure::partial_app_hole(self.assigner, &mut self.lowerer.locals, ty, arg.span)
             }
             ast::ExprKind::Paren(inner) => self.lower_partial_arg(inner),
