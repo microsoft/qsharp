@@ -19,9 +19,9 @@ use std::{
 
 pub(super) struct Lambda {
     pub(super) kind: CallableKind,
+    pub(super) functors: FunctorSet,
     pub(super) input: Pat,
     pub(super) body: Expr,
-    pub(super) functors: FunctorSet,
 }
 
 pub(super) struct PartialApp {
@@ -172,9 +172,9 @@ pub(super) fn partial_app_block(
     };
     let lambda = Lambda {
         kind: *kind,
+        functors: *functors,
         input,
         body: call,
-        functors: *functors,
     };
     let closure = Expr {
         id: NodeId::default(),

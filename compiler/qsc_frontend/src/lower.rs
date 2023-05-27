@@ -392,9 +392,9 @@ impl With<'_> {
                 };
                 let lambda = Lambda {
                     kind: lower_callable_kind(*kind),
+                    functors,
                     input: self.lower_pat(ast::Mutability::Immutable, input),
                     body: self.lower_expr(body),
-                    functors,
                 };
                 self.lower_lambda(lambda, expr.span)
             }
