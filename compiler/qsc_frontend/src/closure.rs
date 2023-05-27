@@ -161,8 +161,9 @@ pub(super) fn partial_app_block(
 ) -> Block {
     let input = app.input.expect("partial application should have input");
     let Ty::Arrow(kind, _, output, functors) = &ty else {
-        panic!("partial application should arrow type");
+        panic!("partial application should have arrow type");
     };
+
     let call = Expr {
         id: NodeId::default(),
         span,
@@ -181,6 +182,7 @@ pub(super) fn partial_app_block(
         ty: ty.clone(),
         kind: close(lambda),
     };
+
     let mut stmts = app.bindings;
     stmts.push(Stmt {
         id: NodeId::default(),
