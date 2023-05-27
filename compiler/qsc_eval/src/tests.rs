@@ -2831,3 +2831,40 @@ fn partial_app_nested_tuple() {
         &expect!["(1, 2, 3, 4)"],
     );
 }
+
+#[test]
+fn partial_app_arg_with_side_effect() {
+    check_expr(
+        "",
+        "{
+            operation F(_ : (), x : Int) : Int { x }
+            use q = Qubit();
+            let f = F(X(q), _);
+            let r1 = M(q);
+            f(1);
+            let r2 = M(q);
+            f(2);
+            let r3 = M(q);
+            Reset(q);
+            (r1, r2, r3)
+        }",
+        &expect!["(One, One, One)"],
+    );
+}
+
+#[test]
+fn partial_app_mutable_arg() {
+    check_expr(
+        "",
+        "{
+            function F(a : Int, b : Int) : (Int, Int) { (a, b) }
+            mutable x = 0;
+            let f = F(x, _);
+            let r1 = f(1);
+            set x = 1;
+            let r2 = f(2);
+            (r1, r2)
+        }",
+        &expect!["((0, 1), (0, 2))"],
+    );
+}
