@@ -65,15 +65,15 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn resolve_names(input: &str) -> String {
-    let (package, names, resolve_errors) = compile(input);
+    let (package, names, errors) = compile(input);
     let mut renamer = Renamer::new(&names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
     renamer.rename(&mut output);
-    if !resolve_errors.is_empty() {
+    if !errors.is_empty() {
         output += "\n";
     }
-    for error in &resolve_errors {
+    for error in &errors {
         writeln!(output, "// {error:?}").expect("string should be writable");
     }
     output
@@ -87,6 +87,7 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
         namespaces: namespaces.into_boxed_slice(),
         entry: None,
     };
+
     AstAssigner::new().visit_package(&mut package);
     let mut assigner = HirAssigner::new();
     let mut globals = super::GlobalTable::new();
