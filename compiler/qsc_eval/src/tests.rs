@@ -2792,3 +2792,42 @@ fn lambda_operation_closure() {
         &expect!["One"],
     );
 }
+
+#[test]
+fn partial_app_all_holes() {
+    check_expr(
+        "",
+        "{
+            function F(x : Int, y : Int) : Int { x + y }
+            let f = F(_, _);
+            f(1, 2)
+        }",
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn partial_app_one_fixed_arg() {
+    check_expr(
+        "",
+        "{
+            function F(x : Int, y : Int) : Int { x + y }
+            let f = F(_, 2);
+            f(1)
+        }",
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn partial_app_nested_tuple() {
+    check_expr(
+        "",
+        "{
+            function F(a : Int, (b : Int, c : Int, d : Int)) : (Int, Int, Int, Int) { (a, b, c, d) }
+            let f = F(_, (_, 3, _));
+            f(1, (2, 4))
+        }",
+        &expect!["(1, 2, 3, 4)"],
+    );
+}
