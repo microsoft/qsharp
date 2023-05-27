@@ -761,7 +761,7 @@ fn lambda_adj() {
 }
 
 #[test]
-fn partial_app() {
+fn partial_app_one_missing() {
     check_hir(
         indoc! {"
             namespace A {
@@ -816,5 +816,62 @@ fn partial_app() {
                                 Expr 29 [102-108] [Type (Int, Int)]: Tuple:
                                     Expr 23 [103-104] [Type Int]: Var: Local 21
                                     Expr 28 [106-107] [Type Int]: Var: Local 31"#]],
+    );
+}
+
+#[test]
+fn partial_app_two_missing() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                function Foo(x : Int, y : Int) : Int { x + y }
+                function Bar() : () { let f = Foo(_, _); }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-113] (Public):
+                    Namespace (Ident 38 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-64] (Public):
+                    Parent: 0
+                    Callable 0 [18-64] (Function):
+                        name: Ident 1 [27-30] "Foo"
+                        input: Pat 2 [30-48] [Type (Int, Int)]: Tuple:
+                            Pat 3 [31-38] [Type Int]: Bind: Ident 4 [31-32] "x"
+                            Pat 5 [40-47] [Type Int]: Bind: Ident 6 [40-41] "y"
+                        output: Int
+                        functors: empty set
+                        body: Block: Block 7 [55-64] [Type Int]:
+                            Stmt 8 [57-62]: Expr: Expr 9 [57-62] [Type Int]: BinOp (Add):
+                                Expr 10 [57-58] [Type Int]: Var: Local 4
+                                Expr 11 [61-62] [Type Int]: Var: Local 6
+                Item 2 [69-111] (Public):
+                    Parent: 0
+                    Callable 12 [69-111] (Function):
+                        name: Ident 13 [78-81] "Bar"
+                        input: Pat 14 [81-83] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: Block: Block 15 [89-111] [Type Unit]:
+                            Stmt 16 [91-109]: Local (Immutable):
+                                Pat 17 [95-96] [Type ((Int, Int) -> Int)]: Bind: Ident 18 [95-96] "f"
+                                Expr 19 [99-108] [Type ((Int, Int) -> Int)]: Expr Block: Block 35 [99-108] [Type ((Int, Int) -> Int)]:
+                                    Stmt 36 [99-108]: Expr: Expr 37 [99-108] [Type ((Int, Int) -> Int)]: Closure([], 3)
+                Item 3 [99-108] (Internal):
+                    Parent: 2
+                    Callable 31 [99-108] (Function):
+                        name: Ident 32 [99-108] "lambda"
+                        input: Pat 30 [99-108] [Type ((Int, Int),)]: Tuple:
+                            Pat 28 [102-108] [Type (Int, Int)]: Tuple:
+                                Pat 22 [103-104] [Type Int]: Bind: Ident 21 [103-104] "hole"
+                                Pat 25 [106-107] [Type Int]: Bind: Ident 24 [106-107] "hole"
+                        output: Int
+                        functors: empty set
+                        body: Block: Block 33 [99-108] [Type Int]:
+                            Stmt 34 [99-108]: Expr: Expr 29 [99-108] [Type Int]: Call:
+                                Expr 20 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
+                                Expr 27 [102-108] [Type (Int, Int)]: Tuple:
+                                    Expr 23 [103-104] [Type Int]: Var: Local 21
+                                    Expr 26 [106-107] [Type Int]: Var: Local 24"#]],
     );
 }

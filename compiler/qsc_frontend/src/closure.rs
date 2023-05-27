@@ -222,14 +222,54 @@ pub(super) fn partial_app_hole(
         }),
     };
 
-    let var = Expr {
+    let expr = Expr {
         id: assigner.next_node(),
         span,
         ty,
         kind: ExprKind::Var(Res::Local(local_id)),
     };
 
-    (var, app)
+    (expr, app)
+}
+
+pub(super) fn partial_app_given() {
+    todo!()
+}
+
+pub(super) fn partial_app_tuple(
+    args: impl Iterator<Item = (Expr, PartialApp)>,
+    span: Span,
+) -> (Expr, PartialApp) {
+    let mut items = Vec::new();
+    let mut bindings = Vec::new();
+    let mut holes = Vec::new();
+    for (arg, mut app) in args {
+        items.push(arg);
+        bindings.append(&mut app.bindings);
+        if let Some(input) = app.input {
+            holes.push(input);
+        }
+    }
+
+    let input = if holes.len() > 1 {
+        Some(Pat {
+            id: NodeId::default(),
+            span,
+            ty: Ty::Tuple(holes.iter().map(|h| h.ty.clone()).collect()),
+            kind: PatKind::Tuple(holes),
+        })
+    } else {
+        holes.pop()
+    };
+
+    let expr = Expr {
+        id: NodeId::default(),
+        span,
+        ty: Ty::Tuple(items.iter().map(|i| i.ty.clone()).collect()),
+        kind: ExprKind::Tuple(items),
+    };
+
+    (expr, PartialApp { bindings, input })
 }
 
 fn closure_input(vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {

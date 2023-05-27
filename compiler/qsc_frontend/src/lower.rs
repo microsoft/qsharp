@@ -492,42 +492,13 @@ impl With<'_> {
             }
             ast::ExprKind::Paren(inner) => self.lower_partial_arg(inner),
             ast::ExprKind::Tuple(items) => {
-                let mut bindings = Vec::new();
-                let mut input: Option<hir::Pat> = None;
-                let mut new_items = Vec::new();
-                for item in items.iter() {
-                    let (item, mut app) = self.lower_partial_arg(item);
-                    bindings.append(&mut app.bindings);
-
-                    if let Some(app_input) = app.input {
-                        if let Some(mut last_input) = input {
-                            if let hir::PatKind::Tuple(last_items) = &mut last_input.kind {
-                                last_items.push(app_input);
-                                input = Some(last_input);
-                            } else {
-                                input = Some(hir::Pat {
-                                    id: self.assigner.next_node(),
-                                    span: item.span,
-                                    ty: item.ty.clone(),
-                                    kind: hir::PatKind::Tuple(vec![last_input, app_input]),
-                                });
-                            }
-                        } else {
-                            input = Some(app_input);
-                        }
-                    }
-
-                    new_items.push(item);
+                let items = items.iter().map(|item| self.lower_partial_arg(item));
+                let (mut arg, mut app) = closure::partial_app_tuple(items, arg.span);
+                self.assigner.visit_expr(&mut arg);
+                if let Some(input) = &mut app.input {
+                    self.assigner.visit_pat(input);
                 }
-
-                let vars = hir::Expr {
-                    id: self.assigner.next_node(),
-                    span: arg.span,
-                    ty,
-                    kind: hir::ExprKind::Tuple(new_items),
-                };
-                let ap = PartialApp { bindings, input };
-                (vars, ap)
+                (arg, app)
             }
             _ => {
                 let id = self.assigner.next_node();
