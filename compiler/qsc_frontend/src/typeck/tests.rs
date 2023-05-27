@@ -2501,87 +2501,147 @@ fn lambda_first_use_functors_inferred() {
 }
 
 #[test]
-fn partial_app_one_missing() {
+fn partial_app_one_hole() {
     check(
-        indoc! {"
-            namespace A {
-                function Foo(x : Int) : Int { x }
-                function Bar() : () { let f = Foo(_); }
-            }
-        "},
         "",
+        "{
+            function Foo(x : Int) : Int { x }
+            let f = Foo(_);
+        }",
         &expect![[r##"
-            #6 30-39 "(x : Int)" : Int
-            #7 31-38 "x : Int" : Int
-            #15 46-51 "{ x }" : Int
-            #17 48-49 "x" : Int
-            #23 68-70 "()" : Unit
-            #25 76-95 "{ let f = Foo(_); }" : Unit
-            #27 82-83 "f" : (Int -> Int)
-            #29 86-92 "Foo(_)" : (Int -> Int)
-            #30 86-89 "Foo" : (Int -> Int)
-            #33 89-92 "(_)" : Int
-            #34 90-91 "_" : Int
+            #1 0-85 "{\n            function Foo(x : Int) : Int { x }\n            let f = Foo(_);\n        }" : Unit
+            #2 0-85 "{\n            function Foo(x : Int) : Int { x }\n            let f = Foo(_);\n        }" : Unit
+            #7 26-35 "(x : Int)" : Int
+            #8 27-34 "x : Int" : Int
+            #16 42-47 "{ x }" : Int
+            #18 44-45 "x" : Int
+            #22 64-65 "f" : (Int -> Int)
+            #24 68-74 "Foo(_)" : (Int -> Int)
+            #25 68-71 "Foo" : (Int -> Int)
+            #28 71-74 "(_)" : Int
+            #29 72-73 "_" : Int
         "##]],
     );
 }
 
 #[test]
-fn partial_app_one_present_one_missing() {
+fn partial_app_one_given_one_hole() {
     check(
-        indoc! {"
-            namespace A {
-                function Foo(x : Int, y : Int) : Int { x + y }
-                function Bar() : () { let f = Foo(2, _); }
-            }
-        "},
         "",
+        indoc! {"{
+            function Foo(x : Int, y : Int) : Int { x + y }
+            let f = Foo(2, _);
+        }"},
         &expect![[r##"
-            #6 30-48 "(x : Int, y : Int)" : (Int, Int)
-            #7 31-38 "x : Int" : Int
-            #12 40-47 "y : Int" : Int
-            #20 55-64 "{ x + y }" : Int
-            #22 57-62 "x + y" : Int
-            #23 57-58 "x" : Int
-            #26 61-62 "y" : Int
-            #32 81-83 "()" : Unit
-            #34 89-111 "{ let f = Foo(2, _); }" : Unit
-            #36 95-96 "f" : (Int -> Int)
-            #38 99-108 "Foo(2, _)" : (Int -> Int)
-            #39 99-102 "Foo" : ((Int, Int) -> Int)
-            #42 102-108 "(2, _)" : (Int, Int)
-            #43 103-104 "2" : Int
-            #44 106-107 "_" : Int
+            #1 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(2, _);\n}" : Unit
+            #2 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(2, _);\n}" : Unit
+            #7 18-36 "(x : Int, y : Int)" : (Int, Int)
+            #8 19-26 "x : Int" : Int
+            #13 28-35 "y : Int" : Int
+            #21 43-52 "{ x + y }" : Int
+            #23 45-50 "x + y" : Int
+            #24 45-46 "x" : Int
+            #27 49-50 "y" : Int
+            #31 61-62 "f" : (Int -> Int)
+            #33 65-74 "Foo(2, _)" : (Int -> Int)
+            #34 65-68 "Foo" : ((Int, Int) -> Int)
+            #37 68-74 "(2, _)" : (Int, Int)
+            #38 69-70 "2" : Int
+            #39 72-73 "_" : Int
         "##]],
     );
 }
 
 #[test]
-fn partial_app_two_missing() {
+fn partial_app_two_holes() {
     check(
-        indoc! {"
-            namespace A {
-                function Foo(x : Int, y : Int) : Int { x + y }
-                function Bar() : () { let f = Foo(_, _); }
-            }
-        "},
         "",
+        indoc! {"{
+            function Foo(x : Int, y : Int) : Int { x + y }
+            let f = Foo(_, _);
+        }"},
         &expect![[r##"
-            #6 30-48 "(x : Int, y : Int)" : (Int, Int)
-            #7 31-38 "x : Int" : Int
-            #12 40-47 "y : Int" : Int
-            #20 55-64 "{ x + y }" : Int
-            #22 57-62 "x + y" : Int
-            #23 57-58 "x" : Int
-            #26 61-62 "y" : Int
-            #32 81-83 "()" : Unit
-            #34 89-111 "{ let f = Foo(_, _); }" : Unit
-            #36 95-96 "f" : ((Int, Int) -> Int)
-            #38 99-108 "Foo(_, _)" : ((Int, Int) -> Int)
-            #39 99-102 "Foo" : ((Int, Int) -> Int)
-            #42 102-108 "(_, _)" : (Int, Int)
-            #43 103-104 "_" : Int
-            #44 106-107 "_" : Int
+            #1 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(_, _);\n}" : Unit
+            #2 0-77 "{\n    function Foo(x : Int, y : Int) : Int { x + y }\n    let f = Foo(_, _);\n}" : Unit
+            #7 18-36 "(x : Int, y : Int)" : (Int, Int)
+            #8 19-26 "x : Int" : Int
+            #13 28-35 "y : Int" : Int
+            #21 43-52 "{ x + y }" : Int
+            #23 45-50 "x + y" : Int
+            #24 45-46 "x" : Int
+            #27 49-50 "y" : Int
+            #31 61-62 "f" : ((Int, Int) -> Int)
+            #33 65-74 "Foo(_, _)" : ((Int, Int) -> Int)
+            #34 65-68 "Foo" : ((Int, Int) -> Int)
+            #37 68-74 "(_, _)" : (Int, Int)
+            #38 69-70 "_" : Int
+            #39 72-73 "_" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn partial_app_nested_tuple() {
+    check(
+        "",
+        indoc! {"{
+            function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}
+            let f = Foo(_, (_, 1.0, _), _);
+        }"},
+        &expect![[r##"
+            #1 0-121 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (_, 1.0, _), _);\n}" : Unit
+            #2 0-121 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (_, 1.0, _), _);\n}" : Unit
+            #7 18-75 "(a : Int, (b : Bool, c : Double, d : String), e : Result)" : (Int, (Bool, Double, String), Result)
+            #8 19-26 "a : Int" : Int
+            #13 28-62 "(b : Bool, c : Double, d : String)" : (Bool, Double, String)
+            #14 29-37 "b : Bool" : Bool
+            #19 39-49 "c : Double" : Double
+            #24 51-61 "d : String" : String
+            #29 64-74 "e : Result" : Result
+            #35 81-83 "{}" : Unit
+            #37 92-93 "f" : ((Int, (Bool, String), Result) -> Unit)
+            #39 96-118 "Foo(_, (_, 1.0, _), _)" : ((Int, (Bool, String), Result) -> Unit)
+            #40 96-99 "Foo" : ((Int, (Bool, Double, String), Result) -> Unit)
+            #43 99-118 "(_, (_, 1.0, _), _)" : (Int, (Bool, Double, String), Result)
+            #44 100-101 "_" : Int
+            #45 103-114 "(_, 1.0, _)" : (Bool, Double, String)
+            #46 104-105 "_" : Bool
+            #47 107-110 "1.0" : Double
+            #48 112-113 "_" : String
+            #49 116-117 "_" : Result
+        "##]],
+    );
+}
+
+#[test]
+fn partial_app_nested_tuple_collapse() {
+    check(
+        "",
+        indoc! {"{
+            function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}
+            let f = Foo(_, (true, 1.0, _), _);
+        }"},
+        &expect![[r##"
+            #1 0-124 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (true, 1.0, _), _);\n}" : Unit
+            #2 0-124 "{\n    function Foo(a : Int, (b : Bool, c : Double, d : String), e : Result) : () {}\n    let f = Foo(_, (true, 1.0, _), _);\n}" : Unit
+            #7 18-75 "(a : Int, (b : Bool, c : Double, d : String), e : Result)" : (Int, (Bool, Double, String), Result)
+            #8 19-26 "a : Int" : Int
+            #13 28-62 "(b : Bool, c : Double, d : String)" : (Bool, Double, String)
+            #14 29-37 "b : Bool" : Bool
+            #19 39-49 "c : Double" : Double
+            #24 51-61 "d : String" : String
+            #29 64-74 "e : Result" : Result
+            #35 81-83 "{}" : Unit
+            #37 92-93 "f" : ((Int, String, Result) -> Unit)
+            #39 96-121 "Foo(_, (true, 1.0, _), _)" : ((Int, String, Result) -> Unit)
+            #40 96-99 "Foo" : ((Int, (Bool, Double, String), Result) -> Unit)
+            #43 99-121 "(_, (true, 1.0, _), _)" : (Int, (Bool, Double, String), Result)
+            #44 100-101 "_" : Int
+            #45 103-117 "(true, 1.0, _)" : (Bool, Double, String)
+            #46 104-108 "true" : Bool
+            #47 110-113 "1.0" : Double
+            #48 115-116 "_" : String
+            #49 119-120 "_" : Result
         "##]],
     );
 }
