@@ -6,8 +6,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FunctorSet, Ident, NodeId,
-        Pat, PatKind, Res, Stmt, StmtKind, Ty,
+        Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FunctorSet, Ident,
+        Mutability, NodeId, Pat, PatKind, Res, Stmt, StmtKind, Ty,
     },
     mut_visit::{self, MutVisitor},
     visit::{self, Visitor},
@@ -16,6 +16,18 @@ use std::{
     collections::{HashMap, HashSet},
     iter,
 };
+
+pub(super) struct Lambda {
+    pub(super) kind: CallableKind,
+    pub(super) input: Pat,
+    pub(super) body: Expr,
+    pub(super) functors: FunctorSet,
+}
+
+pub(super) struct PartialApp {
+    pub(super) bindings: Vec<Stmt>,
+    pub(super) input: Option<Pat>,
+}
 
 struct VarFinder {
     bindings: HashSet<NodeId>,
@@ -75,18 +87,15 @@ impl MutVisitor for VarReplacer<'_> {
 pub(super) fn lift(
     assigner: &mut Assigner,
     locals: &IndexMap<NodeId, Local>,
-    kind: CallableKind,
-    input: Pat,
-    mut body: Expr,
-    functors: FunctorSet,
+    mut lambda: Lambda,
     span: Span,
 ) -> (Vec<NodeId>, CallableDecl) {
     let mut finder = VarFinder {
         bindings: HashSet::new(),
         uses: HashSet::new(),
     };
-    finder.visit_pat(&input);
-    finder.visit_expr(&body);
+    finder.visit_pat(&lambda.input);
+    finder.visit_expr(&lambda.body);
 
     let free_vars = finder.free_vars();
     let substitutions: HashMap<_, _> = free_vars
@@ -97,7 +106,7 @@ pub(super) fn lift(
     VarReplacer {
         substitutions: &substitutions,
     }
-    .visit_expr(&mut body);
+    .visit_expr(&mut lambda.body);
 
     let substituted_vars = free_vars.iter().map(|&id| {
         let &new_id = substitutions
@@ -111,13 +120,13 @@ pub(super) fn lift(
         (new_id, ty)
     });
 
-    let mut input = close(substituted_vars, input, span);
+    let mut input = closure_input(substituted_vars, lambda.input, span);
     assigner.visit_pat(&mut input);
 
     let callable = CallableDecl {
         id: assigner.next_node(),
         span,
-        kind,
+        kind: lambda.kind,
         name: Ident {
             id: assigner.next_node(),
             span,
@@ -125,16 +134,16 @@ pub(super) fn lift(
         },
         ty_params: Vec::new(),
         input,
-        output: body.ty.clone(),
-        functors,
+        output: lambda.body.ty.clone(),
+        functors: lambda.functors,
         body: CallableBody::Block(Block {
             id: assigner.next_node(),
-            span: body.span,
-            ty: body.ty.clone(),
+            span: lambda.body.span,
+            ty: lambda.body.ty.clone(),
             stmts: vec![Stmt {
                 id: assigner.next_node(),
-                span: body.span,
-                kind: StmtKind::Expr(body),
+                span: lambda.body.span,
+                kind: StmtKind::Expr(lambda.body),
             }],
         }),
     };
@@ -142,7 +151,88 @@ pub(super) fn lift(
     (free_vars, callable)
 }
 
-fn close(vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {
+pub(super) fn partial_app_block(
+    close: impl FnOnce(Lambda) -> ExprKind,
+    callee: Expr,
+    arg: Expr,
+    app: PartialApp,
+    ty: Ty,
+    span: Span,
+) -> Block {
+    let input = app.input.expect("partial application should have input");
+    let Ty::Arrow(kind, _, output, functors) = &ty else {
+        panic!("partial application should arrow type");
+    };
+    let call = Expr {
+        id: NodeId::default(),
+        span,
+        ty: Ty::clone(output),
+        kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
+    };
+    let lambda = Lambda {
+        kind: *kind,
+        input,
+        body: call,
+        functors: *functors,
+    };
+    let closure = Expr {
+        id: NodeId::default(),
+        span,
+        ty: ty.clone(),
+        kind: close(lambda),
+    };
+    let mut stmts = app.bindings;
+    stmts.push(Stmt {
+        id: NodeId::default(),
+        span,
+        kind: StmtKind::Expr(closure),
+    });
+    Block {
+        id: NodeId::default(),
+        span,
+        ty,
+        stmts,
+    }
+}
+
+pub(super) fn partial_app_hole(
+    assigner: &mut Assigner,
+    locals: &mut IndexMap<NodeId, Local>,
+    ty: Ty,
+    span: Span,
+) -> (Expr, PartialApp) {
+    let local_id = assigner.next_node();
+    let local = Local {
+        mutability: Mutability::Immutable,
+        ty: ty.clone(),
+    };
+    locals.insert(local_id, local);
+
+    let app = PartialApp {
+        bindings: Vec::new(),
+        input: Some(Pat {
+            id: assigner.next_node(),
+            span,
+            ty: ty.clone(),
+            kind: PatKind::Bind(Ident {
+                id: local_id,
+                span,
+                name: "hole".into(),
+            }),
+        }),
+    };
+
+    let var = Expr {
+        id: assigner.next_node(),
+        span,
+        ty,
+        kind: ExprKind::Var(Res::Local(local_id)),
+    };
+
+    (var, app)
+}
+
+fn closure_input(vars: impl IntoIterator<Item = (NodeId, Ty)>, input: Pat, span: Span) -> Pat {
     let bindings: Vec<_> = vars
         .into_iter()
         .map(|(id, ty)| Pat {
