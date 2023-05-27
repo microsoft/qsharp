@@ -761,7 +761,7 @@ fn lambda_adj() {
 }
 
 #[test]
-fn partial_ap() {
+fn partial_app() {
     check_hir(
         indoc! {"
             namespace A {
@@ -772,7 +772,7 @@ fn partial_ap() {
         &expect![[r#"
             Package:
                 Item 0 [0-113] (Public):
-                    Namespace (Ident 38 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 41 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-64] (Public):
                     Parent: 0
                     Callable 0 [18-64] (Function):
@@ -796,25 +796,25 @@ fn partial_ap() {
                         body: Block: Block 15 [89-111] [Type Unit]:
                             Stmt 16 [91-109]: Local (Immutable):
                                 Pat 17 [95-96] [Type (Int -> Int)]: Bind: Ident 18 [95-96] "f"
-                                Expr 19 [99-108] [Type (Int -> Int)]: Expr Block: Block 19 [99-108] [Type (Int -> Int)]:
-                                    Stmt 25 [106-107]: Local (Immutable):
-                                        Pat 26 [106-107] [Type Int]: Bind: Ident 23 [106-107] "arg"
-                                        Expr 24 [106-107] [Type Int]: Lit: Int(2)
-                                    Stmt 19 [99-108]: Expr: Expr 19 [99-108] [Type (Int -> Int)]: Closure([23], 3)
+                                Expr 19 [99-108] [Type (Int -> Int)]: Expr Block: Block 38 [99-108] [Type (Int -> Int)]:
+                                    Stmt 26 [106-107]: Local (Immutable):
+                                        Pat 27 [106-107] [Type Int]: Bind: Ident 24 [106-107] "arg"
+                                        Expr 25 [106-107] [Type Int]: Lit: Int(2)
+                                    Stmt 39 [99-108]: Expr: Expr 40 [99-108] [Type (Int -> Int)]: Closure([24], 3)
                 Item 3 [99-108] (Internal):
                     Parent: 2
                     Callable 34 [99-108] (Function):
                         name: Ident 35 [99-108] "lambda"
                         input: Pat 32 [99-108] [Type (Int, Int)]: Tuple:
                             Pat 33 [99-108] [Type Int]: Bind: Ident 31 [99-108] "closed"
-                            Pat 21 [103-104] [Type Int]: Bind: Ident 20 [103-104] "arg"
+                            Pat 22 [103-104] [Type Int]: Bind: Ident 21 [103-104] "hole"
                         output: Int
                         functors: empty set
                         body: Block: Block 36 [99-108] [Type Int]:
-                            Stmt 37 [99-108]: Expr: Expr 29 [99-108] [Type Int]: Call:
-                                Expr 30 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
-                                Expr 28 [102-108] [Type (Int, Int)]: Tuple:
-                                    Expr 22 [103-104] [Type Int]: Var: Local 20
-                                    Expr 27 [106-107] [Type Int]: Var: Local 31"#]],
+                            Stmt 37 [99-108]: Expr: Expr 30 [99-108] [Type Int]: Call:
+                                Expr 20 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
+                                Expr 29 [102-108] [Type (Int, Int)]: Tuple:
+                                    Expr 23 [103-104] [Type Int]: Var: Local 21
+                                    Expr 28 [106-107] [Type Int]: Var: Local 31"#]],
     );
 }

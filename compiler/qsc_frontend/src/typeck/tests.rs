@@ -2380,7 +2380,7 @@ fn lambda_first_use_functors_inferred() {
 }
 
 #[test]
-fn partial_ap_one_missing() {
+fn partial_app_one_missing() {
     check(
         indoc! {"
             namespace A {
@@ -2410,7 +2410,7 @@ fn partial_ap_one_missing() {
 }
 
 #[test]
-fn partial_ap_one_present_one_missing() {
+fn partial_app_one_present_one_missing() {
     check(
         indoc! {"
             namespace A {
@@ -2449,7 +2449,7 @@ fn partial_ap_one_present_one_missing() {
 }
 
 #[test]
-fn partial_ap_two_missing() {
+fn partial_app_two_missing() {
     check(
         indoc! {"
             namespace A {
