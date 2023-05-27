@@ -13,7 +13,7 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{self, FunctorSet, ItemId, PrimTy, Ty, Udt};
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
 /// computation.
@@ -426,11 +426,11 @@ impl<'a> Context<'a> {
             ExprKind::Hole => {
                 let ty = self.inferrer.fresh_ty();
                 self.record(arg.id, ty.clone());
-                converge(ArgTy::Missing(ty))
+                converge(ArgTy::Hole(ty))
             }
             ExprKind::Paren(inner) => {
                 let inner = self.infer_arg(inner);
-                self.record(arg.id, inner.ty.clone().into_ty());
+                self.record(arg.id, inner.ty.to_ty());
                 inner
             }
             ExprKind::Tuple(items) => {
@@ -441,19 +441,10 @@ impl<'a> Context<'a> {
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
                 }
-
-                self.record(
-                    arg.id,
-                    Ty::Tuple(tys.iter().map(|ty| ty.clone().into_ty()).collect()),
-                );
-
-                if diverges {
-                    self.diverge().map(ArgTy::Present)
-                } else {
-                    converge(ArgTy::Tuple(tys))
-                }
+                self.record(arg.id, Ty::Tuple(tys.iter().map(ArgTy::to_ty).collect()));
+                self.diverge_if_map(ArgTy::Given, diverges, converge(ArgTy::Tuple(tys)))
             }
-            _ => self.infer_expr(arg).map(ArgTy::Present),
+            _ => self.infer_expr(arg).map(ArgTy::Given),
         }
     }
 
@@ -658,10 +649,19 @@ impl<'a> Context<'a> {
     }
 
     fn diverge_if(&mut self, diverges: bool, partial: Partial<Ty>) -> Partial<Ty> {
+        self.diverge_if_map(identity, diverges, partial)
+    }
+
+    fn diverge_if_map<T>(
+        &mut self,
+        f: impl FnOnce(Ty) -> T,
+        diverges: bool,
+        partial: Partial<T>,
+    ) -> Partial<T> {
         if !diverges || partial.diverges {
             partial
         } else {
-            self.diverge()
+            self.diverge().map(f)
         }
     }
 

@@ -184,95 +184,103 @@ impl Display for Class {
     }
 }
 
+/// An argument type and tags describing the call syntax.
 #[derive(Clone, Debug)]
 pub(super) enum ArgTy {
-    Missing(Ty),
-    Present(Ty),
+    /// A missing argument, indicating partial application.
+    Hole(Ty),
+    /// A given argument.
+    Given(Ty),
+    /// A list of arguments. This corresponds literally to tuple syntax, not to any expression of a tuple type.
     Tuple(Vec<ArgTy>),
 }
 
 impl ArgTy {
     fn map(self, f: &mut impl FnMut(Ty) -> Ty) -> Self {
         match self {
-            Self::Missing(ty) => Self::Missing(f(ty)),
-            Self::Present(ty) => Self::Present(f(ty)),
+            Self::Hole(ty) => Self::Hole(f(ty)),
+            Self::Given(ty) => Self::Given(f(ty)),
             Self::Tuple(items) => Self::Tuple(items.into_iter().map(|i| i.map(f)).collect()),
         }
     }
 
-    fn apply(&self, param: &Ty, span: Span) -> ArgAp {
+    fn apply(&self, param: &Ty, span: Span) -> App {
         match (self, param) {
-            (Self::Missing(arg), _) => ArgAp {
+            (Self::Hole(arg), _) => App {
+                holes: vec![param.clone()],
                 constraints: vec![Constraint::Eq {
                     expected: param.clone(),
                     actual: arg.clone(),
                     span,
                 }],
                 errors: Vec::new(),
-                missing: vec![param.clone()],
             },
-            (Self::Present(arg), _) => ArgAp {
+            (Self::Given(arg), _) => App {
+                holes: Vec::new(),
                 constraints: vec![Constraint::Eq {
                     expected: param.clone(),
                     actual: arg.clone(),
                     span,
                 }],
                 errors: Vec::new(),
-                missing: Vec::new(),
             },
             (Self::Tuple(args), Ty::Tuple(params)) => {
-                let mut constraints = Vec::new();
                 let mut errors = Vec::new();
                 if args.len() != params.len() {
                     errors.push(Error(ErrorKind::Mismatch(
                         Ty::Tuple(params.clone()),
-                        self.clone().into_ty(),
+                        self.to_ty(),
                         span,
                     )));
                 }
 
-                let mut missing = Vec::new();
+                let mut holes = Vec::new();
+                let mut constraints = Vec::new();
                 for (arg, param) in args.iter().zip(params) {
-                    let mut ap = arg.apply(param, span);
-                    constraints.append(&mut ap.constraints);
-                    errors.append(&mut ap.errors);
-                    if ap.missing.len() > 1 {
-                        missing.push(Ty::Tuple(ap.missing));
+                    let mut app = arg.apply(param, span);
+                    constraints.append(&mut app.constraints);
+                    errors.append(&mut app.errors);
+                    if app.holes.len() > 1 {
+                        holes.push(Ty::Tuple(app.holes));
                     } else {
-                        missing.append(&mut ap.missing);
+                        holes.append(&mut app.holes);
                     }
                 }
 
-                ArgAp {
+                App {
+                    holes,
                     constraints,
                     errors,
-                    missing,
                 }
             }
-            (Self::Tuple(_), _) => ArgAp {
+            (Self::Tuple(_), _) => App {
+                holes: Vec::new(),
                 constraints: Vec::new(),
                 errors: vec![Error(ErrorKind::Mismatch(
                     param.clone(),
-                    self.clone().into_ty(),
+                    self.to_ty(),
                     span,
                 ))],
-                missing: Vec::new(),
             },
         }
     }
 
-    pub(super) fn into_ty(self) -> Ty {
+    pub(super) fn to_ty(&self) -> Ty {
         match self {
-            ArgTy::Missing(ty) | ArgTy::Present(ty) => ty,
-            ArgTy::Tuple(items) => Ty::Tuple(items.into_iter().map(Self::into_ty).collect()),
+            ArgTy::Hole(ty) | ArgTy::Given(ty) => ty.clone(),
+            ArgTy::Tuple(items) => Ty::Tuple(items.iter().map(Self::to_ty).collect()),
         }
     }
 }
 
-struct ArgAp {
+/// The result of applying an argument to a callable.
+struct App {
+    /// The types of all missing arguments in order and preserving their recursive tuple structure.
+    holes: Vec<Ty>,
+    /// The constraints implied by the call.
     constraints: Vec<Constraint>,
+    /// The errors from the call.
     errors: Vec<Error>,
-    missing: Vec<Ty>,
 }
 
 enum Constraint {
@@ -407,32 +415,29 @@ impl<'a> Solver<'a> {
     }
 
     fn class(&mut self, class: Class, span: Span) -> Vec<Constraint> {
-        let mut unknown_dependency = false;
-        for ty in class.dependencies() {
+        let unknown_dependency = class.dependencies().into_iter().any(|ty| {
             if ty == &Ty::Err {
-                unknown_dependency = true;
+                true
             } else if let Some(infer) = unknown_ty(&self.solution.tys, ty) {
                 self.pending_tys
                     .entry(infer)
                     .or_default()
                     .push(class.clone());
-                unknown_dependency = true;
+                true
+            } else {
+                false
             }
-        }
+        });
 
         if unknown_dependency {
-            return Vec::new();
+            Vec::new()
+        } else {
+            let (constraints, mut errors) = class
+                .map(|ty| substituted_ty(&self.solution, ty))
+                .check(self.udts, span);
+            self.errors.append(&mut errors);
+            constraints
         }
-
-        let (constraints, mut errors) = class
-            .map(|mut ty| {
-                substitute_ty(&self.solution, &mut ty);
-                ty
-            })
-            .check(self.udts, span);
-
-        self.errors.append(&mut errors);
-        constraints
     }
 
     fn eq(&mut self, mut expected: Ty, mut actual: Ty, span: Span) -> Vec<Constraint> {
@@ -577,6 +582,11 @@ pub(super) fn substitute_ty(solution: &Solution, ty: &mut Ty) {
     }
 }
 
+fn substituted_ty(solution: &Solution, mut ty: Ty) -> Ty {
+    substitute_ty(solution, &mut ty);
+    ty
+}
+
 fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
     if let &mut FunctorSet::Infer(infer) = functors {
         if let Some(&new_functors) = solution.functors.get(infer) {
@@ -639,60 +649,48 @@ fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constrai
         ))]);
     };
 
-    let mut ap = input.apply(&callee_input, span);
-    if ap.missing.is_empty() {
-        ap.constraints.push(Constraint::Eq {
-            expected: *callee_output,
-            actual: output,
-            span,
-        });
-    } else if ap.missing.len() > 1 {
-        ap.constraints.push(Constraint::Eq {
-            expected: Ty::Arrow(
-                kind,
-                Box::new(Ty::Tuple(ap.missing)),
-                callee_output,
-                functors,
-            ),
-            actual: output,
-            span,
-        });
-    } else if let Some(missing) = ap.missing.pop() {
-        ap.constraints.push(Constraint::Eq {
-            expected: Ty::Arrow(kind, Box::new(missing), callee_output, functors),
-            actual: output,
-            span,
-        });
-    }
+    let mut app = input.apply(&callee_input, span);
+    let expected = if app.holes.len() > 1 {
+        let holes = Ty::Tuple(app.holes);
+        Ty::Arrow(kind, Box::new(holes), callee_output, functors)
+    } else if let Some(hole) = app.holes.pop() {
+        Ty::Arrow(kind, Box::new(hole), callee_output, functors)
+    } else {
+        *callee_output
+    };
 
-    (ap.constraints, ap.errors)
+    app.constraints.push(Constraint::Eq {
+        expected,
+        actual: output,
+        span,
+    });
+    (app.constraints, app.errors)
 }
 
 fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
-    match op {
-        Ty::Arrow(kind, input, output, functors) => {
-            let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
-            let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
-            (
-                vec![
-                    Constraint::Functor(Functor::Ctl, functors, span),
-                    Constraint::Eq {
-                        expected: Ty::Arrow(kind, ctl_input, output, functors),
-                        actual: with_ctls,
-                        span,
-                    },
-                ],
-                Vec::new(),
-            )
-        }
-        _ => (
+    let Ty::Arrow(kind, input, output, functors) = op else {
+        return (
             Vec::new(),
             vec![Error(ErrorKind::MissingClass(
                 Class::Ctl { op, with_ctls },
                 span,
             ))],
-        ),
-    }
+        );
+    };
+
+    let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
+    let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
+    (
+        vec![
+            Constraint::Functor(Functor::Ctl, functors, span),
+            Constraint::Eq {
+                expected: Ty::Arrow(kind, ctl_input, output, functors),
+                actual: with_ctls,
+                span,
+            },
+        ],
+        Vec::new(),
+    )
 }
 
 fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
