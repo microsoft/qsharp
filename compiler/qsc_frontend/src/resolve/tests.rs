@@ -1055,8 +1055,9 @@ fn repeat_until() {
         indoc! {"
             namespace Foo {
                 operation A() : Unit {
+                    mutable cond = false;
                     repeat {
-                        let cond = true;
+                        set cond = true;
                     } until cond;
                 }
             }
@@ -1064,9 +1065,10 @@ fn repeat_until() {
         &expect![[r#"
             namespace item0 {
                 operation item1() : Unit {
+                    mutable local13 = false;
                     repeat {
-                        let local16 = true;
-                    } until local16;
+                        set local13 = true;
+                    } until local13;
                 }
             }
         "#]],
@@ -1079,8 +1081,9 @@ fn repeat_until_fixup() {
         indoc! {"
             namespace Foo {
                 operation A() : Unit {
+                    mutable cond = false;
                     repeat {
-                        mutable cond = false;
+                        set cond = false;
                     } until cond
                     fixup {
                         set cond = true;
@@ -1091,14 +1094,48 @@ fn repeat_until_fixup() {
         &expect![[r#"
             namespace item0 {
                 operation item1() : Unit {
+                    mutable local13 = false;
                     repeat {
-                        mutable local16 = false;
-                    } until local16
+                        set local13 = false;
+                    } until local13
                     fixup {
-                        set local16 = true;
+                        set local13 = true;
                     }
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn repeat_until_fixup_scoping() {
+    check(
+        indoc! {"
+        namespace Foo {
+            operation A() : Unit {
+                repeat {
+                    mutable cond = false;
+                }
+                until cond
+                fixup {
+                    set cond = true;
+                }
+            }
+        }"},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    repeat {
+                        mutable local16 = false;
+                    }
+                    until cond
+                    fixup {
+                        set cond = true;
+                    }
+                }
+            }
+            // NotFound("cond", Span { lo: 118, hi: 122 })
+            // NotFound("cond", Span { lo: 155, hi: 159 })
         "#]],
     );
 }
@@ -1563,6 +1600,60 @@ fn cyclic_namespace_dependency_supported() {
                 open A;
                 operation item3() : Unit {
                     item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn bind_items_in_repeat() {
+    check(
+        indoc! {"
+            namespace A {
+                operation B() : Unit {
+                    repeat {
+                        function C() : Unit {}
+                    } until false
+                    fixup {
+                        function D() : Unit {}
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    repeat {
+                        function item2() : Unit {}
+                    } until false
+                    fixup {
+                        function item3() : Unit {}
+                    }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn bind_items_in_qubit_use_block() {
+    check(
+        indoc! {"
+            namespace A {
+                operation B() : Unit {
+                    use q = Qubit() {
+                        function C() : Unit {}
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    use local13 = Qubit() {
+                        function item2() : Unit {}
+                    }
                 }
             }
         "#]],
