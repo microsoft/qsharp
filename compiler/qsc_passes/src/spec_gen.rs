@@ -299,7 +299,9 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             if let Some(adj) = adj.as_mut() {
                 if adj.body == SpecBody::Gen(SpecGen::Slf) {
                     adj.body = body.body.clone();
-                } else if adj.body == SpecBody::Gen(SpecGen::Invert) {
+                } else if adj.body == SpecBody::Gen(SpecGen::Invert)
+                    || adj.body == SpecBody::Gen(SpecGen::Auto)
+                {
                     self.adj_invert(decl.input.ty.clone(), adj, body_block, None);
                 }
             }

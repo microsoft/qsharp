@@ -132,6 +132,71 @@ fn generate_ctl() {
 }
 
 #[test]
+fn generate_ctl_auto() {
+    check(
+        indoc! {"
+            namespace test {
+                operation A(q : Qubit) : Unit is Ctl {
+                    body ... {}
+                    controlled (ctls, ...) {}
+                }
+                operation B(q : Qubit) : Unit is Ctl {
+                    body ... {
+                        A(q);
+                    }
+                    controlled auto;
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-242] (Public):
+                    Namespace (Ident 25 [10-14] "test"): Item 1, Item 2
+                Item 1 [21-119] (Public):
+                    Parent: 0
+                    Callable 0 [21-119] (Operation):
+                        name: Ident 1 [31-32] "A"
+                        input: Pat 2 [33-42] [Type Qubit]: Bind: Ident 3 [33-34] "q"
+                        output: Unit
+                        functors: Ctl
+                        body: Specializations:
+                            SpecDecl 4 [68-79] (Body): Impl:
+                                Pat 5 [73-76] [Type Qubit]: Elided
+                                Block 6 [77-79]: <empty>
+                            SpecDecl 7 [88-113] (Ctl): Impl:
+                                Pat 8 [99-110] [Type ((Qubit)[], Qubit)]: Tuple:
+                                    Pat 9 [100-104] [Type (Qubit)[]]: Bind: Ident 10 [100-104] "ctls"
+                                    Pat 11 [106-109] [Type Qubit]: Elided
+                                Block 12 [111-113]: <empty>
+                Item 2 [124-240] (Public):
+                    Parent: 0
+                    Callable 13 [124-240] (Operation):
+                        name: Ident 14 [134-135] "B"
+                        input: Pat 15 [136-145] [Type Qubit]: Bind: Ident 16 [136-137] "q"
+                        output: Unit
+                        functors: Ctl
+                        body: Specializations:
+                            SpecDecl 17 [171-209] (Body): Impl:
+                                Pat 18 [176-179] [Type Qubit]: Elided
+                                Block 19 [180-209] [Type Unit]:
+                                    Stmt 20 [194-199]: Semi: Expr 21 [194-198] [Type Unit]: Call:
+                                        Expr 22 [194-195] [Type (Qubit => Unit is Ctl)]: Var: Item 1
+                                        Expr 23 [196-197] [Type Qubit]: Var: Local 16
+                            SpecDecl 24 [218-234] (Ctl): Impl:
+                                Pat _id_ [218-234] [Type ((Qubit)[], Qubit)]: Tuple:
+                                    Pat _id_ [218-234] [Type (Qubit)[]]: Bind: Ident 26 [218-234] "ctls"
+                                    Pat _id_ [218-234] [Type Qubit]: Elided
+                                Block 19 [180-209] [Type Unit]:
+                                    Stmt 20 [194-199]: Semi: Expr 21 [194-198] [Type Unit]: Call:
+                                        Expr 22 [194-195] [Type (((Qubit)[], Qubit) => Unit is Ctl)]: UnOp (Functor Ctl):
+                                            Expr 22 [194-195] [Type (Qubit => Unit is Ctl)]: Var: Item 1
+                                        Expr 23 [196-197] [Type ((Qubit)[], Qubit)]: Tuple:
+                                            Expr _id_ [196-197] [Type (Qubit)[]]: Var: Local 26
+                                            Expr 23 [196-197] [Type Qubit]: Var: Local 16"#]],
+    );
+}
+
+#[test]
 fn generate_ctladj_distrib() {
     check(
         indoc! {"
@@ -627,6 +692,70 @@ fn generate_adj_invert() {
                                         Expr _id_ [114-115] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
                                             Expr 12 [114-115] [Type (Int => Unit is Adj)]: Var: Item 1
                                         Expr 13 [116-117] [Type Int]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn generate_adj_auto() {
+    check(
+        indoc! {r#"
+            namespace test {
+                operation B(input : Int) : Unit is Adj {}
+                operation A(q : Qubit) : Unit is Adj {
+                    body ... {
+                        B(1);
+                        B(2);
+                    }
+                    adjoint auto;
+                }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-200] (Public):
+                    Namespace (Ident 21 [10-14] "test"): Item 1, Item 2
+                Item 1 [21-62] (Public):
+                    Parent: 0
+                    Callable 0 [21-62] (Operation):
+                        name: Ident 1 [31-32] "B"
+                        input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
+                        output: Unit
+                        functors: Adj
+                        body: Specializations:
+                            SpecDecl _id_ [60-62] (Body): Impl:
+                                Pat _id_ [60-62] [Type Int]: Elided
+                                Block 4 [60-62]: <empty>
+                            SpecDecl _id_ [21-62] (Adj): Impl:
+                                Pat _id_ [21-62] [Type Int]: Elided
+                                Block 4 [60-62]: <empty>
+                Item 2 [67-198] (Public):
+                    Parent: 0
+                    Callable 5 [67-198] (Operation):
+                        name: Ident 6 [77-78] "A"
+                        input: Pat 7 [79-88] [Type Qubit]: Bind: Ident 8 [79-80] "q"
+                        output: Unit
+                        functors: Adj
+                        body: Specializations:
+                            SpecDecl 9 [114-170] (Body): Impl:
+                                Pat 10 [119-122] [Type Qubit]: Elided
+                                Block 11 [123-170] [Type Unit]:
+                                    Stmt 12 [137-142]: Semi: Expr 13 [137-141] [Type Unit]: Call:
+                                        Expr 14 [137-138] [Type (Int => Unit is Adj)]: Var: Item 1
+                                        Expr 15 [139-140] [Type Int]: Lit: Int(1)
+                                    Stmt 16 [155-160]: Semi: Expr 17 [155-159] [Type Unit]: Call:
+                                        Expr 18 [155-156] [Type (Int => Unit is Adj)]: Var: Item 1
+                                        Expr 19 [157-158] [Type Int]: Lit: Int(2)
+                            SpecDecl 20 [179-192] (Adj): Impl:
+                                Pat _id_ [179-192] [Type Qubit]: Elided
+                                Block 11 [123-170] [Type Unit]:
+                                    Stmt 16 [155-160]: Semi: Expr 17 [155-159] [Type Unit]: Call:
+                                        Expr _id_ [155-156] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
+                                            Expr 18 [155-156] [Type (Int => Unit is Adj)]: Var: Item 1
+                                        Expr 19 [157-158] [Type Int]: Lit: Int(2)
+                                    Stmt 12 [137-142]: Semi: Expr 13 [137-141] [Type Unit]: Call:
+                                        Expr _id_ [137-138] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
+                                            Expr 14 [137-138] [Type (Int => Unit is Adj)]: Var: Item 1
+                                        Expr 15 [139-140] [Type Int]: Lit: Int(1)"#]],
     );
 }
 
