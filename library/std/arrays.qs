@@ -363,13 +363,42 @@ namespace Microsoft.Quantum.Arrays {
     /// the mapping function.
     ///
     /// # Example
+    /// The following code creates an array with each element of the input array repeated twice.
     /// ```qsharp
-    /// 
+    /// let repeatedPairs = FlatMapped(x -> Repeated(x, 2), [1, 2, 3]);
+    /// // repeatedPairs is [1, 1, 2, 2, 3, 3].
     /// ```
     function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array : 'TInput[]) : 'TOutput[] {
         mutable output = [];
         for element in array {
             set output += mapper(element); 
+        }
+        output
+    }
+
+    /// # Summary
+    /// Given an array of arrays, returns the concatenation of all arrays.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## arrays
+    /// Array of arrays.
+    ///
+    /// # Output
+    /// Concatenation of all arrays.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let flattened = Flattened([[1, 2], [3], [4, 5, 6]]);
+    /// // flattened = [1, 2, 3, 4, 5, 6]
+    /// ```
+    function Flattened<'T>(arrays : 'T[][]): 'T[] {
+        mutable output = [];
+        for array in arrays {
+            set output += array;
         }
         output
     }
