@@ -659,6 +659,23 @@ fn check_subarray() {
 }
 
 #[test]
+fn check_swapped() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Swapped(1, 3, [0, 1, 2, 3, 4])",
+        &Value::Array(
+            vec![
+                Value::Int(0),
+                Value::Int(3),
+                Value::Int(2),
+                Value::Int(1),
+                Value::Int(4),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_tail() {
     test_expression("Microsoft.Quantum.Arrays.Tail([5,6,7,8])", &Value::Int(8));
 }
