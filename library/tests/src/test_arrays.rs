@@ -497,7 +497,7 @@ fn check_mapped_over_range() {
 #[test]
 fn check_most() {
     test_expression(
-        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
+        "Microsoft.Quantum.Arrays.Most([5, 6, 7, 8])",
         &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
     );
 }
@@ -563,6 +563,57 @@ fn check_sequence_i() {
     test_expression(
         "Microsoft.Quantum.Arrays.SequenceI(0, 3)",
         &Value::Array(vec![Value::Int(0), Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+    );
+}
+
+#[test]
+fn check_sorted() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [])",
+        &Value::Array(vec![].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [-1])",
+        &Value::Array(vec![Value::Int(-1)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [1, 2, 0, 4, 3])",
+        &Value::Array(
+            vec![
+                Value::Int(0),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(4),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x >= y, [1, 2, 0, 4, 3])",
+        &Value::Array(
+            vec![
+                Value::Int(4),
+                Value::Int(3),
+                Value::Int(2),
+                Value::Int(1),
+                Value::Int(0),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [-1, 2, 0, 1, -2])",
+        &Value::Array(
+            vec![
+                Value::Int(-2),
+                Value::Int(-1),
+                Value::Int(0),
+                Value::Int(1),
+                Value::Int(2),
+            ]
+            .into(),
+        ),
     );
 }
 

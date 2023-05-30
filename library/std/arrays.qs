@@ -982,6 +982,78 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given an array, returns the elements of that array sorted by a given
+    /// comparison function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `array`.
+    ///
+    /// # Input
+    /// ## comparison
+    /// A function that compares two elements such that `a` is considered to
+    /// be less than or equal to `b` if `comparison(a, b)` is `true`.
+    /// ## array
+    /// The array to be sorted.
+    ///
+    /// # Output
+    /// An array containing the same elements as `array`, such that for all
+    /// elements `a` occurring earlier than elements `b`, `comparison(a, b)`
+    /// is `true`.
+    ///
+    /// # Example
+    /// The following snippet sorts an array of integers to occur in ascending
+    /// order:
+    /// ```qsharp
+    /// let sortedArray = Sorted(LessThanOrEqualI, [3, 17, 11, -201, -11]);
+    /// ```
+    /// 
+    /// # Remarks
+    /// The function `comparison` is assumed to be transitive, such that
+    /// if `comparison(a, b)` and `comparison(b, c)`, then `comparison(a, c)`
+    /// is assumed. If this property does not hold, then the output of this
+    /// function may be incorrect.
+    function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[] {
+        if Length(array) <= 1 {
+            return array;
+        }
+
+        let pivotIndex = Length(array) / 2;
+        let left = array[...pivotIndex - 1];
+        let right = array[pivotIndex...];
+
+        // Sort each sublist, then merge them back into a single combined
+        // list and return.
+        SortedMerged(
+            comparison, 
+            Sorted(comparison, left),
+            Sorted(comparison, right)
+        )
+    }
+
+    /// # Summary
+    /// Given two sorted arrays, returns a single array containing the
+    /// elements of both in sorted order. Used internally by `Sorted`.
+    internal function SortedMerged<'T>(comparison : (('T, 'T) -> Bool), left : 'T[], right : 'T[]) : 'T[] {
+        mutable output = [];
+        mutable remainingLeft = left;
+        mutable remainingRight = right;
+        while (not IsEmpty(remainingLeft)) and (not IsEmpty(remainingRight)) {
+            if comparison(Head(remainingLeft), Head(remainingRight)) {
+                set output += [Head(remainingLeft)];
+                set remainingLeft = Rest(remainingLeft);
+            } else {
+                set output += [Head(remainingRight)];
+                set remainingRight = Rest(remainingRight);
+            }
+        }
+
+        // Note that at this point, either or both of `remainingLeft` and `remainingRight` are empty,
+        // such that we can simply append both to our output to get the whole merged array.
+        output + remainingLeft + remainingRight
+    }
+
+    /// # Summary
     /// Takes an array and a list of locations and
     /// produces a new array formed from the elements of the original
     /// array that match the given locations.
