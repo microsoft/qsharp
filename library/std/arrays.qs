@@ -506,8 +506,8 @@ namespace Microsoft.Quantum.Arrays {
     /// // `indexOfFirstEven` is 3.
     /// ```
     function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
-        for (index, element) in Enumerated(array) {
-            if predicate(element) {
+        for index in 0 .. Length(array) - 1 {
+            if predicate(array[index]) {
                 return index;
             }
         }
@@ -1234,8 +1234,8 @@ namespace Microsoft.Quantum.Arrays {
     /// An array of indices where `predicate` is true.
     function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[] {
         mutable indexes = [];
-        for (index, element) in Enumerated(array) {
-            if predicate(element) {
+        for index in 0 .. Length(array) - 1 {
+            if predicate(array[index]) {
                 set indexes += [index];
             }
         }
