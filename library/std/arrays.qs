@@ -310,6 +310,39 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, returns an array that consists of
+    /// those elements that satisfy the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to Boolean that is used to filter elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'T[]` of elements that satisfy the predicate.
+    ///
+    /// # Example
+    /// The following code creates an array that contains only even numbers.
+    /// ```qsharp
+    /// Filtered(x -> x % 2 == 0, [0, 1, 2, 3, 4])
+    /// ```
+    function Filtered<'T>(predicate : ('T -> Bool), array : 'T[]) : 'T[] {
+        mutable filtered = [];
+        for element in array {
+            if predicate(element) {
+                set filtered += [element];
+            }
+        }
+        filtered
+    }
+
+    /// # Summary
     /// Iterates a function `f` through an array `array`, returning
     /// `f(...f(f(initialState, array[0]), array[1]), ...)`.
     ///

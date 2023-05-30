@@ -228,6 +228,18 @@ fn check_enumerated() {
 }
 
 #[test]
+fn check_filtered() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Filtered(x -> x % 2 == 0, [0, 1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Filtered(x -> x % 2 != 0, [1, 2, 3, 4, 5])",
+        &Value::Array(vec![Value::Int(1), Value::Int(3), Value::Int(5)].into()),
+    );
+}
+
+#[test]
 fn check_fold() {
     test_expression(
         "Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])",
