@@ -405,6 +405,34 @@ fn check_is_rectangular_array() {
 }
 
 #[test]
+fn check_is_sorted() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [1])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [1, 2, 3, 4, 5])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x >= y, [5, 4, 3, 2, 1])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [1, 2, 3, 5, 4])",
+        &Value::Bool(false),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [5, 4, 3, 2, 1])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
 fn check_is_square_array() {
     test_expression(
         "Microsoft.Quantum.Arrays.IsSquareArray([])",
