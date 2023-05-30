@@ -1428,7 +1428,7 @@ fn generate_ctladj_distribute() {
 }
 
 #[test]
-fn generate_ctladj_auto_to_distrubute() {
+fn generate_ctladj_auto_to_distribute() {
     check(
         indoc! {r#"
             namespace test {
