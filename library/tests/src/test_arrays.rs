@@ -752,6 +752,18 @@ fn check_unzipped() {
 }
 
 #[test]
+fn check_where() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Where(x -> x % 2 == 0, [0, 1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Where(x -> x % 2 != 0, [1, 2, 3, 4, 5])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
+    );
+}
+
+#[test]
 fn check_windows() {
     test_expression(
         "Microsoft.Quantum.Arrays.Windows(1, [1, 2, 3, 4, 5])",

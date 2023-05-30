@@ -1217,6 +1217,32 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given a predicate and an array, returns the indices of that
+    /// array where the predicate is true.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to Boolean that is used to filter elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array of indices where `predicate` is true.
+    function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[] {
+        mutable indexes = [];
+        for (index, element) in Enumerated(array) {
+            if predicate(element) {
+                set indexes += [index];
+            }
+        }
+        indexes
+    }
+
+    /// # Summary
     /// Returns all consecutive subarrays of length `size`.
     ///
     /// # Description
