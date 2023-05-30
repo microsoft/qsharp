@@ -1,28 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compile::{self, compile, PackageStore, SourceMap};
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
+use qsc_hir::visit::Visitor;
+
+use crate::callable_limits::CallableLimits;
 
 fn check(file: &str, expect: &Expect) {
+    let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let unit = compile(&PackageStore::new(compile::core()), &[], sources);
+    let unit = compile(&store, &[], sources);
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
-    let funop_errors: Vec<_> = unit
-        .errors
-        .into_iter()
-        .filter_map(try_into_funop_error)
-        .collect();
-
-    expect.assert_debug_eq(&funop_errors);
-}
-
-fn try_into_funop_error(error: compile::Error) -> Option<super::Error> {
-    if let compile::ErrorKind::FunOp(error) = error.0 {
-        Some(error)
+    let mut call_limits = CallableLimits::default();
+    call_limits.visit_package(&unit.package);
+    let errors = call_limits.errors;
+    if errors.is_empty() {
+        expect.assert_eq(&unit.package.to_string());
     } else {
-        None
+        expect.assert_debug_eq(&errors);
     }
 }
 
@@ -38,7 +36,7 @@ fn funcs_cannot_use_conj() {
         "},
         &expect![[r#"
             [
-                ConjInFunc(
+                Conj(
                     Span {
                         lo: 51,
                         hi: 69,
@@ -59,10 +57,10 @@ fn funcs_cannot_have_functors() {
         "},
         &expect![[r#"
             [
-                FunctorInFunc(
+                Functor(
                     Span {
-                        lo: 44,
-                        hi: 47,
+                        lo: 21,
+                        hi: 50,
                     },
                 ),
             ]
@@ -83,7 +81,7 @@ fn funcs_cannot_call_ops() {
         "},
         &expect![[r#"
             [
-                OpCallInFunc(
+                OpCall(
                     Span {
                         lo: 79,
                         hi: 82,
@@ -106,7 +104,7 @@ fn funcs_cannot_allocate_qubits() {
         "},
         &expect![[r#"
             [
-                QubitAllocInFunc(
+                QubitAlloc(
                     Span {
                         lo: 51,
                         hi: 67,
@@ -129,7 +127,7 @@ fn funcs_cannot_use_repeat() {
         "},
         &expect![[r#"
             [
-                RepeatInFunc(
+                Repeat(
                     Span {
                         lo: 51,
                         hi: 71,
@@ -153,33 +151,16 @@ fn funcs_cannot_have_specs() {
         "},
         &expect![[r#"
             [
-                SpecInFunc(
+                Spec(
                     Span {
                         lo: 21,
                         hi: 90,
                     },
                 ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn ops_cannot_use_while() {
-    check(
-        indoc! {"
-            namespace Test {
-                operation B() : Unit {
-                    while true {}
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                WhileInOp(
+                Functor(
                     Span {
-                        lo: 52,
-                        hi: 65,
+                        lo: 21,
+                        hi: 90,
                     },
                 ),
             ]

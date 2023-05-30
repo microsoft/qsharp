@@ -98,9 +98,10 @@ impl Compiler {
             parse::Fragment::Stmt(stmt) => self.compile_stmt(*stmt),
         };
 
-        fragment
-            .into_iter()
-            .chain(self.lowerer.drain_items().map(Fragment::Item))
+        self.lowerer
+            .drain_items()
+            .map(Fragment::Item)
+            .chain(fragment)
             .collect()
     }
 
@@ -112,15 +113,16 @@ impl Compiler {
         self.checker
             .check_namespace(self.resolver.names(), &namespace);
 
+        self.lowerer
+            .with(
+                &mut self.hir_assigner,
+                self.resolver.names(),
+                self.checker.tys(),
+            )
+            .lower_namespace(&namespace);
+
         let errors = self.drain_errors();
         if errors.is_empty() {
-            self.lowerer
-                .with(
-                    &mut self.hir_assigner,
-                    self.resolver.names(),
-                    self.checker.tys(),
-                )
-                .lower_namespace(&namespace);
             Ok(())
         } else {
             Err(errors)
@@ -133,16 +135,18 @@ impl Compiler {
         self.checker
             .check_stmt_fragment(self.resolver.names(), &stmt);
 
+        let fragment = self
+            .lowerer
+            .with(
+                &mut self.hir_assigner,
+                self.resolver.names(),
+                self.checker.tys(),
+            )
+            .lower_stmt(&stmt)
+            .map(Fragment::Stmt);
         let errors = self.drain_errors();
         if errors.is_empty() {
-            self.lowerer
-                .with(
-                    &mut self.hir_assigner,
-                    self.resolver.names(),
-                    self.checker.tys(),
-                )
-                .lower_stmt(&stmt)
-                .map(Fragment::Stmt)
+            fragment
         } else {
             Some(Fragment::Error(errors))
         }

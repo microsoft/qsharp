@@ -17,8 +17,8 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, CallableBody, CallableDecl, Functor, Ident, NodeId, Pat, PatKind, PrimTy, Res, Spec,
-        SpecBody, SpecDecl, SpecGen, Ty,
+        Block, CallableBody, CallableDecl, CallableKind, Functor, Ident, NodeId, Pat, PatKind,
+        PrimTy, Res, Spec, SpecBody, SpecDecl, SpecGen, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -71,6 +71,11 @@ struct SpecPlacePass;
 
 impl MutVisitor for SpecPlacePass {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
+        // Only applies to operations.
+        if decl.kind == CallableKind::Function {
+            return;
+        }
+
         let is_adj = decl.functors.contains(&Functor::Adj) == Some(true);
         let is_ctl = decl.functors.contains(&Functor::Ctl) == Some(true);
         if !is_adj && !is_ctl {
@@ -264,6 +269,11 @@ impl<'a> SpecImplPass<'a> {
 
 impl<'a> MutVisitor for SpecImplPass<'a> {
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
+        // Only applies to operations.
+        if decl.kind == CallableKind::Function {
+            return;
+        }
+
         if let CallableBody::Specs(spec_decls) = &mut decl.body {
             let (mut body, mut adj, mut ctl, mut ctladj) = (None, None, None, None);
             for spec_decl in spec_decls.drain(0..) {
