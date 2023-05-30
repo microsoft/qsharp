@@ -120,7 +120,12 @@ impl MutVisitor for SpecPlacePass {
             .iter()
             .any(|s| s.spec == Spec::Ctl && matches!(s.body, SpecBody::Impl(..)));
 
-        if is_adj && is_ctl && spec_decl.iter().all(|s| s.spec != Spec::CtlAdj) {
+        if is_adj
+            && is_ctl
+            && spec_decl
+                .iter()
+                .all(|s| s.spec != Spec::CtlAdj || s.body == SpecBody::Gen(SpecGen::Auto))
+        {
             let gen = if is_self_adjoint(&spec_decl) {
                 SpecGen::Slf
             } else if has_explicit_ctl && !has_explicit_adj {
