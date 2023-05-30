@@ -1512,10 +1512,10 @@ fn generate_ctladj_auto_to_distrubute() {
                                         Expr 19 [145-146] [Type ((Qubit)[], Int)]: Tuple:
                                             Expr _id_ [145-146] [Type (Qubit)[]]: Var: Local 24
                                             Expr 19 [145-146] [Type Int]: Lit: Int(2)
-                            SpecDecl 20 [159-183] (CtlAdj): Impl:
-                                Pat _id_ [159-183] [Type ((Qubit)[], Qubit)]: Tuple:
-                                    Pat _id_ [159-183] [Type (Qubit)[]]: Bind: Ident 25 [159-183] "ctls"
-                                    Pat _id_ [159-183] [Type Qubit]: Elided
+                            SpecDecl _id_ [73-189] (CtlAdj): Impl:
+                                Pat _id_ [73-189] [Type ((Qubit)[], Qubit)]: Tuple:
+                                    Pat _id_ [73-189] [Type (Qubit)[]]: Bind: Ident 25 [73-189] "ctls"
+                                    Pat _id_ [73-189] [Type Qubit]: Elided
                                 Block 11 [135-150] [Type Unit]:
                                     Stmt 16 [143-148]: Semi: Expr 17 [143-147] [Type Unit]: Call:
                                         Expr _id_ [143-144] [Type (((Qubit)[], Int) => Unit is Adj + Ctl)]: UnOp (Functor Ctl):
