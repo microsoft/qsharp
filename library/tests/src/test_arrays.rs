@@ -473,6 +473,28 @@ fn check_mapped_by_index() {
 }
 
 #[test]
+fn check_mapped_over_range() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.MappedOverRange(x -> x + 1, 0..2..10)",
+        &Value::Array(
+            vec![
+                Value::Int(1),
+                Value::Int(3),
+                Value::Int(5),
+                Value::Int(7),
+                Value::Int(9),
+                Value::Int(11),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.MappedOverRange(x -> x * 2, 3..-1..1)",
+        &Value::Array(vec![Value::Int(6), Value::Int(4), Value::Int(2)].into()),
+    );
+}
+
+#[test]
 fn check_most() {
     test_expression(
         "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
