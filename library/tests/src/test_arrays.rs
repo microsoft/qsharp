@@ -240,6 +240,24 @@ fn check_filtered() {
 }
 
 #[test]
+fn check_flat_mapped() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.FlatMapped(x -> Repeated(x, 2), [1, 2, 3])",
+        &Value::Array(
+            vec![
+                Value::Int(1),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(3),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_fold() {
     test_expression(
         "Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])",
