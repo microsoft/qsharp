@@ -317,6 +317,22 @@ fn check_head() {
 }
 
 #[test]
+fn check_index_of() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 != 0, [10, 8, 6, 5, 4])",
+        &Value::Int(3),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 == 0, [1, 3, 4, 5, 7])",
+        &Value::Int(2),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 == 0, [1, 3, 5, 7, 9])",
+        &Value::Int(-1),
+    );
+}
+
+#[test]
 fn check_index_range() {
     test_expression(
         "Microsoft.Quantum.Arrays.IndexRange([7,6,5,4])::Start",
