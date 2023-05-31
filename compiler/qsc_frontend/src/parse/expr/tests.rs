@@ -272,37 +272,57 @@ fn lit_string_escape_quote() {
 
 #[test]
 fn lit_string_escape_backslash() {
-    check(expr, r#""\\""#, &expect![[r#"Expr _id_ [0-4]: Lit: String("\\")"#]]);
+    check(
+        expr,
+        r#""\\""#,
+        &expect![[r#"Expr _id_ [0-4]: Lit: String("\\")"#]],
+    );
 }
 
 #[test]
 fn lit_string_escape_newline() {
-    check(expr, r#""\n""#, &expect![[r#"Expr _id_ [0-4]: Lit: String("\n")"#]]);
+    check(
+        expr,
+        r#""\n""#,
+        &expect![[r#"Expr _id_ [0-4]: Lit: String("\n")"#]],
+    );
 }
 
 #[test]
 fn lit_string_escape_carriage_return() {
-    check(expr, r#""\r""#, &expect![[r#"Expr _id_ [0-4]: Lit: String("\r")"#]]);
+    check(
+        expr,
+        r#""\r""#,
+        &expect![[r#"Expr _id_ [0-4]: Lit: String("\r")"#]],
+    );
 }
 
 #[test]
 fn lit_string_escape_tab() {
-    check(expr, r#""\t""#, &expect![[r#"Expr _id_ [0-4]: Lit: String("\t")"#]]);
+    check(
+        expr,
+        r#""\t""#,
+        &expect![[r#"Expr _id_ [0-4]: Lit: String("\t")"#]],
+    );
 }
 
 #[test]
 fn lit_string_unknown_escape() {
-    check(expr, r#""\x""#, &expect![[r#"
-        Err(
-            Escape(
-                'x',
-                Span {
-                    lo: 2,
-                    hi: 3,
-                },
-            ),
-        )
-    "#]]);
+    check(
+        expr,
+        r#""\x""#,
+        &expect![[r#"
+            Err(
+                Escape(
+                    'x',
+                    Span {
+                        lo: 2,
+                        hi: 3,
+                    },
+                ),
+            )
+        "#]],
+    );
 }
 
 #[test]
