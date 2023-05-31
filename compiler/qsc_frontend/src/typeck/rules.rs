@@ -3,7 +3,7 @@
 
 use super::{
     convert,
-    infer::{self, Class, Inferrer},
+    infer::{self, ArgTy, Class, Inferrer},
     Error,
 };
 use crate::resolve::{self, Names, Res};
@@ -13,13 +13,22 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{self, FunctorSet, ItemId, PrimTy, Ty, Udt};
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
 /// computation.
-struct Partial {
-    ty: Ty,
+struct Partial<T> {
+    ty: T,
     diverges: bool,
+}
+
+impl<T> Partial<T> {
+    fn map<U>(self, f: impl FnOnce(T) -> U) -> Partial<U> {
+        Partial {
+            ty: f(self.ty),
+            diverges: self.diverges,
+        }
+    }
 }
 
 struct Context<'a> {
@@ -99,7 +108,7 @@ impl<'a> Context<'a> {
         }
     }
 
-    fn infer_block(&mut self, block: &Block) -> Partial {
+    fn infer_block(&mut self, block: &Block) -> Partial<Ty> {
         let mut diverges = false;
         let mut last = None;
         for stmt in block.stmts.iter() {
@@ -113,7 +122,7 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn infer_stmt(&mut self, stmt: &Stmt) -> Partial {
+    fn infer_stmt(&mut self, stmt: &Stmt) -> Partial<Ty> {
         let ty = match &*stmt.kind {
             StmtKind::Empty | StmtKind::Item(_) => converge(Ty::UNIT),
             StmtKind::Expr(expr) => self.infer_expr(expr),
@@ -146,7 +155,7 @@ impl<'a> Context<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn infer_expr(&mut self, expr: &Expr) -> Partial {
+    fn infer_expr(&mut self, expr: &Expr) -> Partial<Ty> {
         let ty = match &*expr.kind {
             ExprKind::Array(items) => match items.split_first() {
                 Some((first, rest)) => {
@@ -190,11 +199,8 @@ impl<'a> Context<'a> {
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
-                // TODO: Handle partial application. (It's probably easier to turn them into lambdas
-                // before type inference.)
-                // https://github.com/microsoft/qsharp/issues/151
                 let callee = self.infer_expr(callee);
-                let input = self.infer_expr(input);
+                let input = self.infer_arg(input);
                 let output_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
@@ -415,7 +421,34 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn infer_unop(&mut self, op: UnOp, operand: &Expr) -> Partial {
+    fn infer_arg(&mut self, arg: &Expr) -> Partial<ArgTy> {
+        match arg.kind.as_ref() {
+            ExprKind::Hole => {
+                let ty = self.inferrer.fresh_ty();
+                self.record(arg.id, ty.clone());
+                converge(ArgTy::Hole(ty))
+            }
+            ExprKind::Paren(inner) => {
+                let inner = self.infer_arg(inner);
+                self.record(arg.id, inner.ty.to_ty());
+                inner
+            }
+            ExprKind::Tuple(items) => {
+                let mut tys = Vec::new();
+                let mut diverges = false;
+                for item in items.iter() {
+                    let item = self.infer_arg(item);
+                    diverges = diverges || item.diverges;
+                    tys.push(item.ty);
+                }
+                self.record(arg.id, Ty::Tuple(tys.iter().map(ArgTy::to_ty).collect()));
+                self.diverge_if_map(ArgTy::Given, diverges, converge(ArgTy::Tuple(tys)))
+            }
+            _ => self.infer_expr(arg).map(ArgTy::Given),
+        }
+    }
+
+    fn infer_unop(&mut self, op: UnOp, operand: &Expr) -> Partial<Ty> {
         let span = operand.span;
         let operand = self.infer_expr(operand);
         let diverges = operand.diverges;
@@ -460,7 +493,7 @@ impl<'a> Context<'a> {
         self.diverge_if(diverges, ty)
     }
 
-    fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Partial {
+    fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Partial<Ty> {
         let lhs_span = lhs.span;
         let lhs = self.infer_expr(lhs);
         let rhs_span = rhs.span;
@@ -521,7 +554,13 @@ impl<'a> Context<'a> {
         self.diverge_if(diverges, ty)
     }
 
-    fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Partial {
+    fn infer_update(
+        &mut self,
+        span: Span,
+        container: &Expr,
+        index: &Expr,
+        item: &Expr,
+    ) -> Partial<Ty> {
         let container = self.infer_expr(container);
         let item = self.infer_expr(item);
         if let Some(field) = resolve::extract_field_name(self.names, index) {
@@ -572,7 +611,7 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn infer_qubit_init(&mut self, init: &QubitInit) -> Partial {
+    fn infer_qubit_init(&mut self, init: &QubitInit) -> Partial<Ty> {
         let ty = match &*init.kind {
             QubitInitKind::Array(length) => {
                 let length_span = length.span;
@@ -602,18 +641,27 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn diverge(&mut self) -> Partial {
+    fn diverge(&mut self) -> Partial<Ty> {
         Partial {
             ty: self.inferrer.fresh_ty(),
             diverges: true,
         }
     }
 
-    fn diverge_if(&mut self, diverges: bool, partial: Partial) -> Partial {
+    fn diverge_if(&mut self, diverges: bool, partial: Partial<Ty>) -> Partial<Ty> {
+        self.diverge_if_map(identity, diverges, partial)
+    }
+
+    fn diverge_if_map<T>(
+        &mut self,
+        f: impl FnOnce(Ty) -> T,
+        diverges: bool,
+        partial: Partial<T>,
+    ) -> Partial<T> {
         if !diverges || partial.diverges {
             partial
         } else {
-            self.diverge()
+            self.diverge().map(f)
         }
     }
 
@@ -677,7 +725,7 @@ pub(super) fn stmt(
     context.solve()
 }
 
-fn converge(ty: Ty) -> Partial {
+fn converge<T>(ty: T) -> Partial<T> {
     Partial {
         ty,
         diverges: false,
