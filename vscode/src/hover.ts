@@ -31,7 +31,7 @@ class QSharpHoverProvider implements vscode.HoverProvider {
     this.output.appendLine("hover:");
     this.output.appendLine(JSON.stringify(hover));
     return new vscode.Hover(
-      hover.contents,
+      new vscode.MarkdownString(hover.contents),
       new vscode.Range(
         document.positionAt(hover.span.start),
         document.positionAt(hover.span.end)

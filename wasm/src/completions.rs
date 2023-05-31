@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::ls_utils::{get_compilation, span_contains};
 use crate::{CompletionItem, CompletionList};
 use enum_iterator::all;
-use qsc::{compile, hir::ItemKind, hir::PackageId, PackageStore, SourceMap};
-use qsc_frontend::{compile::CompileUnit, parse::Keyword};
+use qsc::hir::ItemKind;
+use qsc_frontend::parse::Keyword;
+use qsc_hir::hir::Package;
 use qsc_hir::{
     hir::{Block, Item},
     visit::Visitor,
@@ -20,16 +22,10 @@ enum CompletionKind {
     Issue = 26,
 }
 
-pub fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    // TODO: I don't like thread locals
-    thread_local! {
-        static STORE_STD: (PackageStore, PackageId) = {
-            let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store));
-            (store, std)
-        };
-    }
+pub(crate) fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
+    let (std_package, package, no_compilation, errors) = get_compilation(code);
 
+    // TODO: I don't like thread locals
     thread_local! {
         static KEYWORDS: Vec<CompletionItem> = {
             all::<Keyword>().map(|k| CompletionItem {
@@ -39,110 +35,93 @@ pub fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
         }
     }
 
-    STORE_STD.with(|(store, std)| {
-        let sources = SourceMap::new([("code".into(), code.into())], None);
-        let (compile_unit, errors) = compile::compile(store, &[*std], sources);
-        let no_compilation = compile_unit.package.items.values().next().is_none();
+    // Determine context
+    let mut context_builder = ContextFinder {
+        offset,
+        context: if no_compilation {
+            Context::NoCompilation
+        } else {
+            Context::TopLevel
+        },
+    };
+    context_builder.visit_package(&package);
+    let context = context_builder.context;
 
-        // Determine context
-        let mut context_builder = ContextFinder {
-            offset,
-            context: if no_compilation {
-                Context::NoCompilation
-            } else {
-                Context::TopLevel
-            },
-        };
-        context_builder.visit_package(&compile_unit.package);
-        let context = context_builder.context;
+    // Collect namespaces
+    let mut namespace_collector = NamespaceCollector {
+        namespaces: HashSet::new(),
+    };
+    namespace_collector.visit_package(&package);
+    namespace_collector.visit_package(&std_package);
 
-        // Collect namespaces
-        let mut namespace_collector = NamespaceCollector {
-            namespaces: HashSet::new(),
-        };
-        namespace_collector.visit_package(&compile_unit.package);
-        namespace_collector.visit_package(
-            &store
-                .get(*std)
-                .expect("expected to find std package")
-                .package,
-        );
+    // Add debug items for convenience
+    let mut debug_items = Vec::new();
+    debug_items.push(CompletionItem {
+        label: format!("__DEBUG__ context: {:?}", context),
+        kind: CompletionKind::Issue as i32,
+    });
+    debug_items.push(CompletionItem {
+        label: format!("__DEBUG__ errors: {:?}", errors),
+        kind: CompletionKind::Issue as i32,
+    });
 
-        // Add debug items for convenience
-        let mut debug_items = Vec::new();
-        debug_items.push(CompletionItem {
-            label: format!("__DEBUG__ context: {:?}", context),
-            kind: CompletionKind::Issue as i32,
-        });
-        debug_items.push(CompletionItem {
-            label: format!("__DEBUG__ errors: {:?}", errors),
-            kind: CompletionKind::Issue as i32,
-        });
+    let mut res = CompletionList { items: Vec::new() };
 
-        let mut res = CompletionList { items: Vec::new() };
+    // Callables from the current code
+    let mut current_callables = callable_names_from_package(&package);
 
-        // Callables from the current code
-        let mut current_callables = callable_names_from_compile_unit(&compile_unit);
+    // All callables from std package
+    let mut std_callables = callable_names_from_package(&std_package);
 
-        // All callables from std package
-        let mut std_callables = callable_names_from_compile_unit(
-            store.get(*std).expect("expected to find std package"),
-        );
+    // All keywords
+    let mut keywords = KEYWORDS.with(|kws| kws.to_vec());
 
-        // All keywords
-        let mut keywords = KEYWORDS.with(|kws| kws.to_vec());
+    // All namespaces
+    let mut namespaces = namespace_collector
+        .namespaces
+        .drain()
+        .map(|ns| CompletionItem {
+            label: ns,
+            kind: CompletionKind::Module as i32,
+        })
+        .collect::<Vec<_>>();
 
-        // All namespaces
-        let mut namespaces = namespace_collector
-            .namespaces
-            .drain()
-            .map(|ns| CompletionItem {
-                label: ns,
-                kind: CompletionKind::Module as i32,
-            })
-            .collect::<Vec<_>>();
-
-        match context {
-            Context::Namespace => {
-                res.items.push(CompletionItem {
-                    label: "open".to_string(),
-                    kind: CompletionKind::Keyword as i32,
-                });
-                res.items.append(&mut namespaces);
-            }
-            Context::Block => {
-                res.items.append(&mut keywords);
-                res.items.append(&mut std_callables);
-                res.items.append(&mut current_callables);
-                res.items.append(&mut namespaces);
-            }
-            Context::TopLevel | Context::NotSignificant => res.items.push(CompletionItem {
-                label: "namespace".to_string(),
+    match context {
+        Context::Namespace => {
+            res.items.push(CompletionItem {
+                label: "open".to_string(),
                 kind: CompletionKind::Keyword as i32,
-            }),
-            Context::NoCompilation => {
-                // Add everything we know of.
-                // Of course, what's the point in determining context
-                // if we're going to do this in most cases?
-                res.items.append(&mut keywords);
-                res.items.append(&mut std_callables);
-                res.items.append(&mut current_callables);
-                res.items.append(&mut namespaces);
-
-                debug_items.push(CompletionItem {
-                    label: "__DEBUG__ NO COMPILATION".to_string(),
-                    kind: CompletionKind::Issue as i32,
-                });
-            }
+            });
+            res.items.append(&mut namespaces);
         }
+        Context::Block => {
+            res.items.append(&mut keywords);
+            res.items.append(&mut std_callables);
+            res.items.append(&mut current_callables);
+            res.items.append(&mut namespaces);
+        }
+        Context::TopLevel | Context::NotSignificant => res.items.push(CompletionItem {
+            label: "namespace".to_string(),
+            kind: CompletionKind::Keyword as i32,
+        }),
+        Context::NoCompilation => {
+            // Add everything we know of.
+            // Of course, what's the point in determining context
+            // if we're going to do this in most cases?
+            res.items.append(&mut keywords);
+            res.items.append(&mut std_callables);
+            res.items.append(&mut current_callables);
+            res.items.append(&mut namespaces);
 
-        res.items.append(&mut debug_items);
-        Ok(serde_wasm_bindgen::to_value(&res)?)
-    })
-}
+            debug_items.push(CompletionItem {
+                label: "__DEBUG__ NO COMPILATION".to_string(),
+                kind: CompletionKind::Issue as i32,
+            });
+        }
+    }
 
-fn span_contains(span: qsc_data_structures::span::Span, offset: u32) -> bool {
-    offset >= span.lo && offset < span.hi
+    res.items.append(&mut debug_items);
+    Ok(serde_wasm_bindgen::to_value(&res)?)
 }
 
 struct NamespaceCollector {
@@ -192,9 +171,8 @@ impl Visitor<'_> for ContextFinder {
     }
 }
 
-fn callable_names_from_compile_unit(compile_unit: &CompileUnit) -> Vec<CompletionItem> {
-    compile_unit
-        .package
+fn callable_names_from_package(package: &Package) -> Vec<CompletionItem> {
+    package
         .items
         .values()
         .filter_map(|i| match &i.kind {

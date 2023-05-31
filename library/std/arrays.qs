@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Example
     /// ```qsharp
-    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]); 
+    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]);
     /// // evensCount is 1.
     /// ```
     function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
@@ -797,7 +797,7 @@ namespace Microsoft.Quantum.Arrays {
     /// array that match the given locations.
     ///
     /// # Remarks
-    /// If `locations` contains repeated elements, the corresponding elements 
+    /// If `locations` contains repeated elements, the corresponding elements
     /// of `array` will likewise be repeated.
     ///
     /// # Type Parameters
@@ -813,9 +813,9 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array `out` of elements whose locations correspond to the subarray,
     /// such that `out[index] == array[locations[index]]`.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```qsharp
     /// let array = [1, 2, 3, 4];
     /// let permutation = Subarray([3, 0, 2, 1], array); // [4, 1, 3, 2]

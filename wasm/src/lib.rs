@@ -20,6 +20,7 @@ use wasm_bindgen::prelude::*;
 
 mod completions;
 mod hover;
+mod ls_utils;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CompletionItem {
