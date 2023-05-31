@@ -73,7 +73,7 @@ test("one syntax error", async () => {
 test("completions include CNOT", async () => {
   const compiler = getCompiler();
 
-  let results = await compiler.getCompletions("namespace Foo {}", 1);
+  let results = await compiler.getCompletions("", 1);
   let cnot = results.items.find((x) => x.label === "CNOT");
   assert.ok(cnot, `items are ${results.items.map((i) => i.label).join(", ")}`);
 });

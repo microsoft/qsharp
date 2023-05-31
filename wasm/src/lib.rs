@@ -27,8 +27,10 @@ use wasm_bindgen::prelude::*;
 
 // These definitions match the values expected by VS Code and Monaco.
 enum CompletionKind {
-    Method = 1,
+    Function = 1,
+    Module = 8,
     Keyword = 13,
+    Issue = 26,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -115,11 +117,11 @@ pub fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
         let mut debug_items = Vec::new();
         debug_items.push(CompletionItem {
             label: format!("__DEBUG__ context: {:?}", context),
-            kind: CompletionKind::Keyword as i32,
+            kind: CompletionKind::Issue as i32,
         });
         debug_items.push(CompletionItem {
             label: format!("__DEBUG__ errors: {:?}", errors),
-            kind: CompletionKind::Keyword as i32,
+            kind: CompletionKind::Issue as i32,
         });
 
         let mut res = CompletionList { items: Vec::new() };
@@ -141,7 +143,7 @@ pub fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
             .drain()
             .map(|ns| CompletionItem {
                 label: ns,
-                kind: CompletionKind::Keyword as i32,
+                kind: CompletionKind::Module as i32,
             })
             .collect::<Vec<_>>();
 
@@ -164,9 +166,17 @@ pub fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
                 kind: CompletionKind::Keyword as i32,
             }),
             Context::NoCompilation => {
+                // Add everything we know of.
+                // Of course, what's the point in determining context
+                // if we're going to do this in most cases?
+                res.items.append(&mut keywords);
+                res.items.append(&mut std_callables);
+                res.items.append(&mut current_callables);
+                res.items.append(&mut namespaces);
+
                 debug_items.push(CompletionItem {
                     label: "__DEBUG__ NO COMPILATION".to_string(),
-                    kind: CompletionKind::Keyword as i32,
+                    kind: CompletionKind::Issue as i32,
                 });
             }
         }
@@ -235,7 +245,7 @@ fn callable_names_from_compile_unit(compile_unit: &CompileUnit) -> Vec<Completio
         .filter_map(|i| match &i.kind {
             ItemKind::Callable(callable_decl) => Some(CompletionItem {
                 label: callable_decl.name.name.to_string(),
-                kind: CompletionKind::Method as i32,
+                kind: CompletionKind::Function as i32,
             }),
             _ => None,
         })
