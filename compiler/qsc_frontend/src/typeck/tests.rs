@@ -2614,7 +2614,7 @@ fn partial_app_nested_tuple() {
 }
 
 #[test]
-fn partial_app_nested_tuple_collapse() {
+fn partial_app_nested_tuple_singleton_unwrap() {
     check(
         "",
         indoc! {"{
