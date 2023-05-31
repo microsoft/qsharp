@@ -34,7 +34,10 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     }
     if (compiler) {
       try {
-        const completions = await compiler.getCompletions(document.getText());
+        const completions = await compiler.getCompletions(
+          document.getText(),
+          document.offsetAt(position)
+        );
         this.output.appendLine(`got ${completions.items.length} completions`);
         return completions.items.map((c) => new CompletionItem(c.label));
       } catch (e: unknown) {
@@ -42,6 +45,6 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
         this.output.appendLine(JSON.stringify(e));
       }
     }
-    return [new CompletionItem("DUMMY")];
+    return [new CompletionItem("__FAILED__")];
   }
 }

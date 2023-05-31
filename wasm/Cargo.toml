@@ -20,7 +20,9 @@ miette = { workspace = true}
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc = { path = "../compiler/qsc" }
+qsc_hir = { path = "../compiler/qsc_hir" }
 qsc_frontend = { path = "../compiler/qsc_frontend" }
+qsc_data_structures = { path = "../compiler/qsc_data_structures" }
 serde = { workspace = true, features = ["derive"]}
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}
