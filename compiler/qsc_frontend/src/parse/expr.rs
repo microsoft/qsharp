@@ -389,8 +389,8 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                     .chars()
                     .next()
                     .expect("character should be found at index");
-                let offset: u32 = index.try_into().expect("index should fit into u32");
-                let lo = token.span.lo + offset + 2;
+                let index: u32 = index.try_into().expect("index should fit into u32");
+                let lo = token.span.lo + index + 2;
                 let span = Span { lo, hi: lo + 1 };
                 Error::Escape(ch, span)
             })?;
