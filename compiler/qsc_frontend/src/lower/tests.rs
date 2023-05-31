@@ -946,7 +946,7 @@ fn partial_app_nested_tuple() {
 }
 
 #[test]
-fn partial_app_nested_tuple_collapse() {
+fn partial_app_nested_tuple_singleton_unwrap() {
     check_hir(
         indoc! {"
             namespace A {
