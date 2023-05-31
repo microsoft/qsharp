@@ -6,8 +6,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FunctorSet, Ident, NodeId,
-        Pat, PatKind, Res, Stmt, StmtKind, Ty,
+        Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSet, Ident, NodeId, Pat, PatKind,
+        Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
     },
     mut_visit::{self, MutVisitor},
     visit::{self, Visitor},
@@ -114,6 +114,8 @@ pub(super) fn lift(
     let mut input = close(substituted_vars, input, span);
     assigner.visit_pat(&mut input);
 
+    let input_ty = input.ty.clone();
+
     let callable = CallableDecl {
         id: assigner.next_node(),
         span,
@@ -127,16 +129,32 @@ pub(super) fn lift(
         input,
         output: body.ty.clone(),
         functors,
-        body: CallableBody::Block(Block {
+        body: SpecDecl {
             id: assigner.next_node(),
             span: body.span,
-            ty: body.ty.clone(),
-            stmts: vec![Stmt {
-                id: assigner.next_node(),
-                span: body.span,
-                kind: StmtKind::Expr(body),
-            }],
-        }),
+            spec: Spec::Body,
+            body: SpecBody::Impl(
+                Pat {
+                    id: assigner.next_node(),
+                    span,
+                    ty: input_ty,
+                    kind: PatKind::Elided,
+                },
+                Block {
+                    id: assigner.next_node(),
+                    span: body.span,
+                    ty: body.ty.clone(),
+                    stmts: vec![Stmt {
+                        id: assigner.next_node(),
+                        span: body.span,
+                        kind: StmtKind::Expr(body),
+                    }],
+                },
+            ),
+        },
+        adj: None,
+        ctl: None,
+        ctladj: None,
     };
 
     (free_vars, callable)

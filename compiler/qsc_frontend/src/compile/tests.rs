@@ -9,8 +9,8 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     global,
     hir::{
-        Block, CallableBody, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy,
-        Res, Stmt, StmtKind, Ty,
+        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy, Res, SpecBody,
+        Stmt, StmtKind, Ty,
     },
     mut_visit::MutVisitor,
 };
@@ -290,7 +290,7 @@ fn replace_node() {
         .get(LocalItemId::from(1))
         .expect("package should have item")
         .kind else { panic!("item should be a callable"); };
-    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
+    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     expect![[r#"
         Block 3 [39-56] [Type Int]:
             Stmt 4 [49-50]: Expr: Expr 7 [49-50] [Type Int]: Lit: Int(2)"#]]
@@ -419,7 +419,7 @@ fn package_dependency() {
         .get(foo_id)
         .expect("package should have item")
         .kind else { panic!("item should be a callable"); };
-    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
+    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
@@ -474,7 +474,7 @@ fn package_dependency_internal() {
         .get(LocalItemId::from(1))
         .expect("package should have item")
         .kind else { panic!("item should be a callable"); };
-    let CallableBody::Block(block) = &callable.body else { panic!("callable body should be a block") };
+    let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
     let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };

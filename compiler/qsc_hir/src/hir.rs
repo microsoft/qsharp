@@ -295,7 +295,13 @@ pub struct CallableDecl {
     /// The functors supported by the callable.
     pub functors: FunctorSet,
     /// The body of the callable.
-    pub body: CallableBody,
+    pub body: SpecDecl,
+    /// The body of the Adjoint specialization.
+    pub adj: Option<SpecDecl>,
+    /// The body of the Controlled specialization.
+    pub ctl: Option<SpecDecl>,
+    /// The body of the Controlled-Adjoint specialization.
+    pub ctladj: Option<SpecDecl>,
 }
 
 impl CallableDecl {
@@ -333,31 +339,17 @@ impl Display for CallableDecl {
         write!(indent, "\noutput: {}", self.output)?;
         write!(indent, "\nfunctors: {}", self.functors)?;
         write!(indent, "\nbody: {}", self.body)?;
-        Ok(())
-    }
-}
-
-/// The body of a callable.
-#[derive(Clone, Debug, PartialEq)]
-pub enum CallableBody {
-    /// A block for the callable's body specialization.
-    Block(Block),
-    /// One or more explicit specializations.
-    Specs(Vec<SpecDecl>),
-}
-
-impl Display for CallableBody {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            CallableBody::Block(body) => write!(f, "Block: {body}")?,
-            CallableBody::Specs(specs) => {
-                let mut indent = set_indentation(indented(f), 0);
-                write!(indent, "Specializations:")?;
-                indent = set_indentation(indent, 1);
-                for spec in specs {
-                    write!(indent, "\n{spec}")?;
-                }
-            }
+        match &self.adj {
+            Some(spec) => write!(indent, "\nadj: {spec}")?,
+            None => write!(indent, "\n<no adj>")?,
+        }
+        match &self.ctl {
+            Some(spec) => write!(indent, "\nctl: {spec}")?,
+            None => write!(indent, "\n<no ctl>")?,
+        }
+        match &self.ctladj {
+            Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
+            None => write!(indent, "\n<no ctl-adj>")?,
         }
         Ok(())
     }

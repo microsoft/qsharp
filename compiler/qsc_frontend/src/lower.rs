@@ -28,6 +28,8 @@ pub(super) enum Error {
     InvalidAttrArgs(&'static str, #[label] Span),
     #[error("lambda closes over mutable variable")]
     MutableClosure(#[label] Span),
+    #[error("Missing Callable Body")]
+    MissingBody(#[label] Span),
 }
 
 pub(super) struct Local {
@@ -206,24 +208,76 @@ impl With<'_> {
     }
 
     pub(super) fn lower_callable_decl(&mut self, decl: &ast::CallableDecl) -> hir::CallableDecl {
-        hir::CallableDecl {
-            id: self.lower_id(decl.id),
-            span: decl.span,
-            kind: lower_callable_kind(decl.kind),
-            name: self.lower_ident(&decl.name),
-            ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
-            input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
-            output: convert::ty_from_ast(self.names, &decl.output).0,
-            functors: convert::ast_callable_functors(decl),
-            body: match decl.body.as_ref() {
-                ast::CallableBody::Block(block) => {
-                    hir::CallableBody::Block(self.lower_block(block))
-                }
-                ast::CallableBody::Specs(specs) => hir::CallableBody::Specs(
-                    specs.iter().map(|s| self.lower_spec_decl(s)).collect(),
+        let id = self.lower_id(decl.id);
+        let span = decl.span;
+        let kind = lower_callable_kind(decl.kind);
+        let name = self.lower_ident(&decl.name);
+        let ty_params = decl.ty_params.iter().map(|p| self.lower_ident(p)).collect();
+        let input = self.lower_pat(ast::Mutability::Immutable, &decl.input);
+        let output = convert::ty_from_ast(self.names, &decl.output).0;
+        let functors = convert::ast_callable_functors(decl);
+        let mut adj = None;
+        let mut ctl = None;
+        let mut ctladj = None;
+        let body = match decl.body.as_ref() {
+            ast::CallableBody::Block(block) => hir::SpecDecl {
+                id: self.assigner.next_node(),
+                span,
+                spec: hir::Spec::Body,
+                body: hir::SpecBody::Impl(
+                    hir::Pat {
+                        id: self.assigner.next_node(),
+                        span,
+                        ty: input.ty.clone(),
+                        kind: hir::PatKind::Elided,
+                    },
+                    self.lower_block(block),
                 ),
             },
+            ast::CallableBody::Specs(specs) => {
+                let body = if let Some(body) = specs.iter().find(|s| s.spec == ast::Spec::Body) {
+                    self.lower_spec_decl(body)
+                } else {
+                    self.lowerer.errors.push(Error::MissingBody(span));
+                    hir::SpecDecl {
+                        id: self.assigner.next_node(),
+                        span,
+                        spec: hir::Spec::Body,
+                        body: hir::SpecBody::Gen(hir::SpecGen::Auto),
+                    }
+                };
+                adj = self.find_spec(specs, ast::Spec::Adj);
+                ctl = self.find_spec(specs, ast::Spec::Ctl);
+                ctladj = self.find_spec(specs, ast::Spec::CtlAdj);
+                body
+            }
+        };
+
+        hir::CallableDecl {
+            id,
+            span,
+            kind,
+            name,
+            ty_params,
+            input,
+            output,
+            functors,
+            body,
+            adj,
+            ctl,
+            ctladj,
         }
+    }
+
+    fn find_spec(
+        &mut self,
+        specs: &[Box<ast::SpecDecl>],
+        spec: ast::Spec,
+    ) -> Option<hir::SpecDecl> {
+        specs
+            .iter()
+            .find(|s| s.spec == spec)
+            .map(|spec| self.lower_spec_decl(spec))
     }
 
     fn lower_spec_decl(&mut self, decl: &ast::SpecDecl) -> hir::SpecDecl {

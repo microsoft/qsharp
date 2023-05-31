@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableBody, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat,
-    PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    Block, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat, PatKind, QubitInit,
+    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 use qsc_data_structures::span::Span;
 
@@ -70,11 +70,16 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_ident(&mut decl.name);
     decl.ty_params.iter_mut().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&mut decl.input);
-
-    match &mut decl.body {
-        CallableBody::Block(block) => vis.visit_block(block),
-        CallableBody::Specs(specs) => specs.iter_mut().for_each(|s| vis.visit_spec_decl(s)),
-    }
+    vis.visit_spec_decl(&mut decl.body);
+    decl.adj
+        .iter_mut()
+        .for_each(|spec| vis.visit_spec_decl(spec));
+    decl.ctl
+        .iter_mut()
+        .for_each(|spec| vis.visit_spec_decl(spec));
+    decl.ctladj
+        .iter_mut()
+        .for_each(|spec| vis.visit_spec_decl(spec));
 }
 
 pub fn walk_spec_decl(vis: &mut impl MutVisitor, decl: &mut SpecDecl) {

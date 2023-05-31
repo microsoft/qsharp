@@ -19,9 +19,9 @@ use output::Receiver;
 use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, BinOp, Block, CallableBody, CallableDecl, Expr, ExprKind, Field, Functor, Lit,
-    LocalItemId, Mutability, NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody,
-    SpecDecl, SpecGen, Stmt, StmtKind, StringComponent, TernOp, UnOp,
+    self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
+    NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody, SpecGen, Stmt, StmtKind,
+    StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -781,29 +781,27 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         let spec = spec_from_functor_app(functor);
         self.push_frame(Some(callee_span), callee_id, functor);
         self.push_scope();
-        match (&callee.body, spec) {
-            (CallableBody::Block(block), Spec::Body) => {
-                bind_value(self.env, &callee.input, arg, Mutability::Immutable);
-                self.push_block(block);
+        let block_body = &match spec {
+            Spec::Body => Some(&callee.body),
+            Spec::Adj => callee.adj.as_ref(),
+            Spec::Ctl => callee.ctl.as_ref(),
+            Spec::CtlAdj => callee.ctladj.as_ref(),
+        }
+        .ok_or(Error::MissingSpec(spec, callee_span))?
+        .body;
+        match block_body {
+            SpecBody::Impl(input, body_block) => {
+                bind_args_for_spec(self.env, &callee.input, input, arg, functor.controlled);
+                self.push_block(body_block);
                 Ok(())
             }
-            (CallableBody::Specs(specs), spec) => {
-                match &find_spec(callee_span, specs, spec)?.body {
-                    SpecBody::Impl(input, body_block) => {
-                        bind_args_for_spec(self.env, &callee.input, input, arg, functor.controlled);
-                        self.push_block(body_block);
-                        Ok(())
-                    }
-                    SpecBody::Gen(SpecGen::Intrinsic) => {
-                        let name = &callee.name.name;
-                        let val = intrinsic::call(name, callee_span, arg, arg_span, self.out)?;
-                        self.push_val(val);
-                        Ok(())
-                    }
-                    SpecBody::Gen(_) => Err(Error::MissingSpec(spec, callee_span)),
-                }
+            SpecBody::Gen(SpecGen::Intrinsic) => {
+                let name = &callee.name.name;
+                let val = intrinsic::call(name, callee_span, arg, arg_span, self.out)?;
+                self.push_val(val);
+                Ok(())
             }
-            _ => Err(Error::MissingSpec(spec, callee_span)),
+            SpecBody::Gen(_) => Err(Error::MissingSpec(spec, callee_span)),
         }
     }
 
@@ -1091,13 +1089,6 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
         (false, _) => Spec::Ctl,
         (true, _) => Spec::CtlAdj,
     }
-}
-
-fn find_spec(span: Span, specs: &[SpecDecl], spec: Spec) -> Result<&SpecDecl, Error> {
-    specs
-        .iter()
-        .find(|s| s.spec == spec)
-        .ok_or(Error::MissingSpec(spec, span))
 }
 
 fn resolve_closure(
