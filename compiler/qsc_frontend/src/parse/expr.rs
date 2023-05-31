@@ -22,7 +22,8 @@ use qsc_ast::ast::{
     self, BinOp, CallableKind, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, Pauli,
     StringComponent, TernOp, UnOp,
 };
-use std::{num::Wrapping, str::FromStr};
+use qsc_data_structures::span::Span;
+use std::{num::Wrapping, result, str::FromStr};
 
 struct PrefixOp {
     kind: UnOp,
@@ -337,17 +338,23 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
 fn lit(s: &mut Scanner) -> Result<Option<Lit>> {
     let lexeme = s.read();
     let token = s.peek();
-
-    if let Some(lit) = lit_token(lexeme, token)? {
-        s.advance();
-        Ok(Some(lit))
-    } else if token.kind != TokenKind::Ident {
-        Ok(None)
-    } else if let Some(lit) = lit_keyword(lexeme) {
-        s.advance();
-        Ok(Some(lit))
-    } else {
-        Ok(None)
+    match lit_token(lexeme, token) {
+        Ok(Some(lit)) => {
+            s.advance();
+            Ok(Some(lit))
+        }
+        Ok(None) if token.kind != TokenKind::Ident => Ok(None),
+        Ok(None) => match lit_keyword(lexeme) {
+            Some(lit) => {
+                s.advance();
+                Ok(Some(lit))
+            }
+            None => Ok(None),
+        },
+        Err(err) => {
+            s.advance();
+            Err(err)
+        }
     }
 }
 
@@ -376,7 +383,18 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             Ok(Some(Lit::Int(value)))
         }
         TokenKind::String(StringToken::Normal) => {
-            Ok(Some(Lit::String(shorten(1, 1, lexeme).into())))
+            let lexeme = shorten(1, 1, lexeme);
+            let string = unescape(lexeme).map_err(|index| {
+                let ch = lexeme[index + 1..]
+                    .chars()
+                    .next()
+                    .expect("character should be found at index");
+                let offset: u32 = index.try_into().expect("index should fit into u32");
+                let lo = token.span.lo + offset + 2;
+                let span = Span { lo, hi: lo + 1 };
+                Error::Escape(ch, span)
+            })?;
+            Ok(Some(Lit::String(string.into())))
         }
         _ => Ok(None),
     }
@@ -661,4 +679,26 @@ fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
 
 fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
     &s[from_start..s.len() - from_end]
+}
+
+fn unescape(s: &str) -> result::Result<String, usize> {
+    let mut chars = s.char_indices();
+    let mut buf = String::with_capacity(s.len());
+    while let Some((index, ch)) = chars.next() {
+        buf.push(if ch == '\\' {
+            let escape = chars.next().expect("escape should not be empty").1;
+            match escape {
+                '\\' => '\\',
+                '"' => '"',
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                _ => return Err(index),
+            }
+        } else {
+            ch
+        });
+    }
+
+    Ok(buf)
 }
