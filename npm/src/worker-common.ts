@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { log } from "./log.js";
-import { ICompletionList } from "../lib/web/qsc_wasm.js";
+import { ICompletionList, IHover } from "../lib/web/qsc_wasm.js";
 import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
@@ -99,6 +99,13 @@ export function createWorkerProxy(
           offset: curr.args[1],
         };
         break;
+      case "getHover":
+        msg = {
+          type: "getHover",
+          code: curr.args[0],
+          offset: curr.args[1],
+        };
+        break;
       case "run":
         // run and runKata can take a long time, so set state to busy
         setState("busy");
@@ -166,6 +173,7 @@ export function createWorkerProxy(
       // Response type messages. Resolve and complete this request.
       case "checkCode-result":
       case "getCompletions-result":
+      case "getHover-result":
       case "run-result":
       case "runKata-result":
         curr.resolve(msg.result);
@@ -194,6 +202,9 @@ export function createWorkerProxy(
     },
     getCompletions(code, offset) {
       return queueRequest("getCompletions", [code, offset]);
+    },
+    getHover(code, offset) {
+      return queueRequest("getHover", [code, offset]);
     },
     run(code, expr, shots, evtHandler) {
       return queueRequest("run", [code, expr, shots], evtHandler);
@@ -288,6 +299,13 @@ export function handleMessageInWorker(
             logIntercepter({ type: "getCompletions-result", result })
           );
         break;
+      case "getHover":
+        compiler
+          .getHover(data.code, data.offset)
+          .then((result) =>
+            logIntercepter({ type: "getHover-result", result })
+          );
+        break;
       case "run":
         compiler
           .run(data.code, data.expr, data.shots, evtTarget)
@@ -322,12 +340,17 @@ export function handleMessageInWorker(
 export type CompilerReqMsg =
   | { type: "checkCode"; code: string }
   | { type: "getCompletions"; code: string; offset: number }
+  | { type: "getHover"; code: string; offset: number }
   | { type: "run"; code: string; expr: string; shots: number }
   | { type: "runKata"; user_code: string; verify_code: string };
 
 type CompilerRespMsg =
   | { type: "checkCode-result"; result: VSDiagnostic[] }
   | { type: "getCompletions-result"; result: ICompletionList }
+  | {
+      type: "getHover-result";
+      result: IHover;
+    }
   | { type: "run-result"; result: void }
   | { type: "runKata-result"; result: boolean }
   | { type: "error-result"; result: any }; // eslint-disable-line @typescript-eslint/no-explicit-any

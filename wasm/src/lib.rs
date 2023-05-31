@@ -17,7 +17,9 @@ use qsc::{
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
+
 mod completions;
+mod hover;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CompletionItem {
@@ -28,6 +30,18 @@ pub struct CompletionItem {
 #[derive(Serialize, Deserialize)]
 pub struct CompletionList {
     pub items: Vec<CompletionItem>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Hover {
+    pub contents: String,
+    pub span: Span,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Span {
+    pub start: u32,
+    pub end: u32,
 }
 
 #[wasm_bindgen]
@@ -50,9 +64,22 @@ export interface ICompletionList {
 }
 "#;
 
+#[wasm_bindgen(typescript_custom_section)]
+const IHover: &'static str = r#"
+export interface IHover {
+    contents: string;
+    span: { start: number; end: number }
+}
+"#;
+
 #[wasm_bindgen]
 pub fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
     completions::get_completions(code, offset)
+}
+
+#[wasm_bindgen]
+pub fn get_hover(code: &str, offset: u32) -> Result<JsValue, JsValue> {
+    hover::get_hover(code, offset)
 }
 
 #[wasm_bindgen(typescript_custom_section)]

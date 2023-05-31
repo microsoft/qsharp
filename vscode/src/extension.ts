@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { getCompiler, loadWasmModule } from "qsharp";
 import { createCompletionItemProvider } from "./completion.js";
+import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebooks.js";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -21,6 +22,12 @@ export async function activate(context: vscode.ExtensionContext) {
     "qsharp",
     createCompletionItemProvider(compiler, output),
     "."
+  );
+
+  // hover
+  vscode.languages.registerHoverProvider(
+    "qsharp",
+    createHoverProvider(compiler, output)
   );
 
   // notebooks

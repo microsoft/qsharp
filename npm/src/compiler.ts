@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import type { IDiagnostic, ICompletionList } from "../lib/node/qsc_wasm.cjs";
+import type {
+  IDiagnostic,
+  ICompletionList,
+  IHover,
+} from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
 import { eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
@@ -16,6 +20,7 @@ export type CompilerState = "idle" | "busy";
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getCompletions(code: string, offset: number): Promise<ICompletionList>;
+  getHover(code: string, offset: number): Promise<IHover>;
   run(
     code: string,
     expr: string,
@@ -70,7 +75,12 @@ export class Compiler implements ICompiler {
   }
 
   async getCompletions(code: string, offset: number): Promise<ICompletionList> {
+    // TODO: Pretty sure offsets are going to blow up thanks to utf8-utf16 discrepancy
     return this.wasm.get_completions(code, offset);
+  }
+
+  async getHover(code: string, offset: number) {
+    return this.wasm.get_hover(code, offset);
   }
 
   async run(
