@@ -16,7 +16,7 @@ use qsc::{
     },
     PackageStore, SourceMap,
 };
-use qsc_frontend::parse::Keyword;
+use qsc_frontend::{compile::CompileUnit, parse::Keyword};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -82,35 +82,14 @@ pub fn get_completions(code: &str) -> Result<JsValue, JsValue> {
         let sources = SourceMap::new([("code".into(), code.into())], None);
         let (compile_unit, _) = compile::compile(store, &[*std], sources);
         // TODO: ignoring errors for now (should we always? Probably?)
-        let package = compile_unit.package;
         let mut res = CompletionList {
-            items: package
-                .items
-                .values()
-                .filter_map(|i| match &i.kind {
-                    ItemKind::Callable(callable_decl) => Some(CompletionItem {
-                        label: callable_decl.name.name.to_string(),
-                        kind: CompletionKind::Method as i32,
-                    }),
-                    _ => None,
-                })
-                .collect::<Vec<_>>(),
+            items: completion_items_from_compile_unit(&compile_unit),
         };
+
         // Add all callables from std package
-        let mut std_callables = store
-            .get(*std)
-            .expect("expected to find std package")
-            .package
-            .items
-            .values()
-            .filter_map(|i| match &i.kind {
-                ItemKind::Callable(callable_decl) => Some(CompletionItem {
-                    label: callable_decl.name.name.to_string(),
-                    kind: CompletionKind::Method as i32,
-                }),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
+        let mut std_callables = completion_items_from_compile_unit(
+            store.get(*std).expect("expected to find std package"),
+        );
 
         // Add all keywords
         let mut keywords = KEYWORDS.with(|kws| kws.to_vec());
@@ -118,6 +97,21 @@ pub fn get_completions(code: &str) -> Result<JsValue, JsValue> {
         res.items.append(&mut std_callables);
         Ok(serde_wasm_bindgen::to_value(&res)?)
     })
+}
+
+fn completion_items_from_compile_unit(compile_unit: &CompileUnit) -> Vec<CompletionItem> {
+    compile_unit
+        .package
+        .items
+        .values()
+        .filter_map(|i| match &i.kind {
+            ItemKind::Callable(callable_decl) => Some(CompletionItem {
+                label: callable_decl.name.name.to_string(),
+                kind: CompletionKind::Method as i32,
+            }),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
 }
 
 #[wasm_bindgen(typescript_custom_section)]
