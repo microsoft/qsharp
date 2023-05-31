@@ -20,9 +20,11 @@ miette = { workspace = true}
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc = { path = "../compiler/qsc" }
+qsc_frontend = { path = "../compiler/qsc_frontend" }
 serde = { workspace = true, features = ["derive"]}
 serde-wasm-bindgen = { workspace = true}
 wasm-bindgen = { workspace = true}
+enum-iterator = { workspace = true }
 
 # This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
 getrandom = { workspace = true, features = ["js"] }

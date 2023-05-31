@@ -23,7 +23,7 @@ use scan::Scanner;
 use std::result;
 use thiserror::Error;
 
-pub(super) use keyword::Keyword;
+pub use keyword::Keyword;
 pub(super) use top::Fragment;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]

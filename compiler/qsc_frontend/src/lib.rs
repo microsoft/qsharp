@@ -9,7 +9,7 @@ mod funop;
 pub mod incremental;
 mod lex;
 mod lower;
-mod parse;
+pub mod parse;
 pub mod resolve;
 pub mod typeck;
 mod validate;

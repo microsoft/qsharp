@@ -38,9 +38,11 @@
     ]
   },
   "scripts": {
+    "cargoBuild": "cargo build --manifest-path=../Cargo.toml",
     "copyWasm": "mkdir -p wasm && cp ../npm/lib/web/qsc_wasm_bg.wasm wasm/qsc_wasm_bg.wasm",
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "build": "npm run copyWasm && npm run tsc:check && npm run -S esbuild-base -- --sourcemap",
+    "build:all": "npm run cargoBuild && npm run copyWasm && npm run tsc:check && npm run -S esbuild-base -- --sourcemap",
+    "build": "npm run build:all",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.cjs --external:vscode --format=cjs --platform=browser --define:import.meta.url=__filename"
   }
 }

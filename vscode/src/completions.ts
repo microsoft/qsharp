@@ -34,7 +34,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     }
     if (compiler) {
       try {
-        const completions = await compiler.getCompletions();
+        const completions = await compiler.getCompletions(document.getText());
         this.output.appendLine(`got ${completions.items.length} completions`);
         return completions.items.map((c) => new CompletionItem(c.label));
       } catch (e: unknown) {

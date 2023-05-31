@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use enum_iterator::all;
 use katas::{run_kata, KATA_ENTRY};
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
     compile,
+    hir::ItemKind,
     hir::PackageId,
     interpret::{
         output::{self, Receiver},
@@ -14,6 +16,7 @@ use qsc::{
     },
     PackageStore, SourceMap,
 };
+use qsc_frontend::parse::Keyword;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -24,7 +27,7 @@ enum CompletionKind {
     Keyword = 13,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct CompletionItem {
     pub label: String,
     pub kind: i32,
@@ -56,120 +59,65 @@ export interface ICompletionList {
 "#;
 
 #[wasm_bindgen]
-pub fn get_completions() -> Result<JsValue, JsValue> {
-    let res = CompletionList {
-        items: vec![
-            CompletionItem {
-                label: "CCNOT".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "CNOT".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "CZ".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "X".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Y".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Z".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "H".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "S".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "T".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "M".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "CheckZero".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "DumpMachine".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Equal".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Qubit".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "Reset".to_string(),
-                kind: CompletionKind::Method as i32,
-            },
-            CompletionItem {
-                label: "@EntryPoint".to_string(),
+pub fn get_completions(code: &str) -> Result<JsValue, JsValue> {
+    // TODO: I don't like thread locals
+    thread_local! {
+        static STORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new(compile::core());
+            let std = store.insert(compile::std(&store));
+            (store, std)
+        };
+    }
+
+    thread_local! {
+        static KEYWORDS: Vec<CompletionItem> = {
+            all::<Keyword>().map(|k| CompletionItem {
+                label: k.to_string(),
                 kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Adjoint".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Controlled".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Int".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "if".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "else".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "namespace".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "open".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "operation".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "return".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "use".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-            CompletionItem {
-                label: "Unit".to_string(),
-                kind: CompletionKind::Keyword as i32,
-            },
-        ],
-    };
-    Ok(serde_wasm_bindgen::to_value(&res)?)
+            }).collect::<Vec<_>>()
+        }
+    }
+
+    STORE_STD.with(|(store, std)| {
+        let sources = SourceMap::new([("code".into(), code.into())], None);
+        let (compile_unit, _) = compile::compile(store, &[*std], sources);
+        // TODO: ignoring errors for now (should we always? Probably?)
+        let package = compile_unit.package;
+        let mut res = CompletionList {
+            items: package
+                .items
+                .values()
+                .filter_map(|i| match &i.kind {
+                    ItemKind::Callable(callable_decl) => Some(CompletionItem {
+                        label: callable_decl.name.name.to_string(),
+                        kind: CompletionKind::Method as i32,
+                    }),
+                    _ => None,
+                })
+                .collect::<Vec<_>>(),
+        };
+        // Add all callables from std package
+        let mut std_callables = store
+            .get(*std)
+            .expect("expected to find std package")
+            .package
+            .items
+            .values()
+            .filter_map(|i| match &i.kind {
+                ItemKind::Callable(callable_decl) => Some(CompletionItem {
+                    label: callable_decl.name.name.to_string(),
+                    kind: CompletionKind::Method as i32,
+                }),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        // Add all keywords
+        let mut keywords = KEYWORDS.with(|kws| kws.to_vec());
+        res.items.append(&mut keywords);
+        res.items.append(&mut std_callables);
+        Ok(serde_wasm_bindgen::to_value(&res)?)
+    })
 }
 
 #[wasm_bindgen(typescript_custom_section)]

@@ -93,7 +93,7 @@ export function createWorkerProxy(
         msg = { type: "checkCode", code: curr.args[0] };
         break;
       case "getCompletions":
-        msg = { type: "getCompletions" };
+        msg = { type: "getCompletions", code: curr.args[0] };
         break;
       case "run":
         // run and runKata can take a long time, so set state to busy
@@ -188,8 +188,8 @@ export function createWorkerProxy(
     checkCode(code) {
       return queueRequest("checkCode", [code]);
     },
-    getCompletions() {
-      return queueRequest("getCompletions", []);
+    getCompletions(code) {
+      return queueRequest("getCompletions", [code]);
     },
     run(code, expr, shots, evtHandler) {
       return queueRequest("run", [code, expr, shots], evtHandler);
@@ -279,7 +279,7 @@ export function handleMessageInWorker(
         break;
       case "getCompletions":
         compiler
-          .getCompletions()
+          .getCompletions(data.code)
           .then((result) =>
             logIntercepter({ type: "getCompletions-result", result })
           );
@@ -317,7 +317,7 @@ export function handleMessageInWorker(
 
 export type CompilerReqMsg =
   | { type: "checkCode"; code: string }
-  | { type: "getCompletions" }
+  | { type: "getCompletions"; code: string }
   | { type: "run"; code: string; expr: string; shots: number }
   | { type: "runKata"; user_code: string; verify_code: string };
 
