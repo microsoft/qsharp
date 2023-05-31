@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { getCompiler, loadWasmModule } from "qsharp";
-import { createCompletionItemProvider } from "./completions.js";
+import { createCompletionItemProvider } from "./completion.js";
 import { registerQSharpNotebookHandlers } from "./notebooks.js";
 
 export async function activate(context: vscode.ExtensionContext) {
