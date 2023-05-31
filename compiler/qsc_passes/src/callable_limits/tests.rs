@@ -59,8 +59,8 @@ fn funcs_cannot_have_functors() {
             [
                 Functor(
                     Span {
-                        lo: 21,
-                        hi: 50,
+                        lo: 30,
+                        hi: 31,
                     },
                 ),
             ]
@@ -159,8 +159,8 @@ fn funcs_cannot_have_specs() {
                 ),
                 Functor(
                     Span {
-                        lo: 21,
-                        hi: 90,
+                        lo: 30,
+                        hi: 31,
                     },
                 ),
             ]

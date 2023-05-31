@@ -7,7 +7,9 @@ mod tests;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Spec, Stmt, StmtKind, Ty},
+    hir::{
+        CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Package, Spec, Stmt, StmtKind, Ty,
+    },
     visit::{self, Visitor},
 };
 use thiserror::Error;
@@ -39,6 +41,10 @@ pub(super) struct CallableLimits {
 }
 
 impl Visitor<'_> for CallableLimits {
+    fn visit_package(&mut self, package: &Package) {
+        package.items.values().for_each(|i| self.visit_item(i));
+    }
+
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         if decl.kind == CallableKind::Function {
             match &decl.body {
@@ -49,7 +55,7 @@ impl Visitor<'_> for CallableLimits {
                 }
                 CallableBody::Block(_) => {}
             }
-            if decl.functors.is_empty() != Some(true) {
+            if decl.functors.is_empty() == Some(false) {
                 self.errors.push(Error::Functor(decl.name.span));
             }
             visit::walk_callable_decl(self, decl);

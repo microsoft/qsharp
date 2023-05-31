@@ -98,11 +98,16 @@ impl Compiler {
             parse::Fragment::Stmt(stmt) => self.compile_stmt(*stmt),
         };
 
-        self.lowerer
-            .drain_items()
-            .map(Fragment::Item)
-            .chain(fragment)
-            .collect()
+        if matches!(fragment, Some(Fragment::Error(..))) {
+            self.lowerer.drain_items();
+            fragment.into_iter().collect()
+        } else {
+            self.lowerer
+                .drain_items()
+                .map(Fragment::Item)
+                .chain(fragment)
+                .collect()
+        }
     }
 
     fn compile_namespace(&mut self, mut namespace: ast::Namespace) -> Result<(), Vec<Error>> {
