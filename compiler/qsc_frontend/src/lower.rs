@@ -29,8 +29,10 @@ pub(super) enum Error {
     InvalidAttrArgs(&'static str, #[label] Span),
     #[error("lambda closes over mutable variable")]
     MutableClosure(#[label] Span),
-    #[error("Missing Callable Body")]
+    #[error("missing callable body")]
     MissingBody(#[label] Span),
+    #[error("duplicate specialization body")]
+    DuplicateSpec(#[label] Span),
 }
 
 pub(super) struct Local {
@@ -236,20 +238,20 @@ impl With<'_> {
                 ),
             },
             ast::CallableBody::Specs(specs) => {
-                let body = if let Some(body) = specs.iter().find(|s| s.spec == ast::Spec::Body) {
-                    self.lower_spec_decl(body)
-                } else {
-                    self.lowerer.errors.push(Error::MissingBody(span));
-                    hir::SpecDecl {
-                        id: self.assigner.next_node(),
-                        span,
-                        spec: hir::Spec::Body,
-                        body: hir::SpecBody::Gen(hir::SpecGen::Auto),
-                    }
-                };
-                adj = self.find_spec(specs, ast::Spec::Adj);
-                ctl = self.find_spec(specs, ast::Spec::Ctl);
-                ctladj = self.find_spec(specs, ast::Spec::CtlAdj);
+                let body = self
+                    .process_spec(specs, ast::Spec::Body, span)
+                    .unwrap_or_else(|| {
+                        self.lowerer.errors.push(Error::MissingBody(span));
+                        hir::SpecDecl {
+                            id: self.assigner.next_node(),
+                            span,
+                            spec: hir::Spec::Body,
+                            body: hir::SpecBody::Gen(hir::SpecGen::Auto),
+                        }
+                    });
+                adj = self.process_spec(specs, ast::Spec::Adj, span);
+                ctl = self.process_spec(specs, ast::Spec::Ctl, span);
+                ctladj = self.process_spec(specs, ast::Spec::CtlAdj, span);
                 body
             }
         };
@@ -270,15 +272,25 @@ impl With<'_> {
         }
     }
 
-    fn find_spec(
+    fn process_spec(
         &mut self,
         specs: &[Box<ast::SpecDecl>],
         spec: ast::Spec,
+        span: Span,
     ) -> Option<hir::SpecDecl> {
-        specs
+        match specs
             .iter()
-            .find(|s| s.spec == spec)
-            .map(|spec| self.lower_spec_decl(spec))
+            .filter(|s| s.spec == spec)
+            .collect::<Vec<_>>()
+            .as_slice()
+        {
+            [] => None,
+            [s] => Some(self.lower_spec_decl(s)),
+            _ => {
+                self.lowerer.errors.push(Error::DuplicateSpec(span));
+                None
+            }
+        }
     }
 
     fn lower_spec_decl(&mut self, decl: &ast::SpecDecl) -> hir::SpecDecl {
