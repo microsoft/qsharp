@@ -121,10 +121,7 @@ impl MutVisitor for SpecPlacePass {
 }
 
 fn is_self_adjoint(decl: &CallableDecl) -> bool {
-    match &decl.adj {
-        Some(s) => matches!(s.body, SpecBody::Gen(SpecGen::Slf)),
-        None => false,
-    }
+    matches!(&decl.adj, Some(s) if matches!(&s.body, SpecBody::Gen(SpecGen::Slf)))
 }
 
 fn generate_spec_impls(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {

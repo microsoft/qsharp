@@ -285,10 +285,10 @@ impl With<'_> {
             .as_slice()
         {
             [] => None,
-            [s] => Some(self.lower_spec_decl(s)),
-            _ => {
+            [single] => Some(self.lower_spec_decl(single)),
+            [first, ..] => {
                 self.lowerer.errors.push(Error::DuplicateSpec(span));
-                None
+                Some(self.lower_spec_decl(first))
             }
         }
     }
