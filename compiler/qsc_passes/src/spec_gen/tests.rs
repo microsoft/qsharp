@@ -735,7 +735,17 @@ fn generate_adj_auto() {
                                 Stmt 18 [155-160]: Semi: Expr 19 [155-159] [Type Unit]: Call:
                                     Expr 20 [155-156] [Type (Int => Unit is Adj)]: Var: Item 1
                                     Expr 21 [157-158] [Type Int]: Lit: Int(2)
-                        adj: SpecDecl 22 [179-192] (Adj): Gen: Auto
+                        adj: SpecDecl 22 [179-192] (Adj): Impl:
+                            Pat _id_ [179-192] [Type Qubit]: Elided
+                            Block 13 [123-170] [Type Unit]:
+                                Stmt 18 [155-160]: Semi: Expr 19 [155-159] [Type Unit]: Call:
+                                    Expr _id_ [155-156] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
+                                        Expr 20 [155-156] [Type (Int => Unit is Adj)]: Var: Item 1
+                                    Expr 21 [157-158] [Type Int]: Lit: Int(2)
+                                Stmt 14 [137-142]: Semi: Expr 15 [137-141] [Type Unit]: Call:
+                                    Expr _id_ [137-138] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
+                                        Expr 16 [137-138] [Type (Int => Unit is Adj)]: Var: Item 1
+                                    Expr 17 [139-140] [Type Int]: Lit: Int(1)
                         ctl: <none>
                         ctl-adj: <none>"#]],
     );
