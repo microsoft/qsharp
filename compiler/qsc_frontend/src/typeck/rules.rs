@@ -37,6 +37,7 @@ struct Context<'a> {
     globals: &'a HashMap<ItemId, Ty>,
     terms: &'a mut IndexMap<NodeId, Ty>,
     return_ty: Option<&'a Ty>,
+    typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
     inferrer: Inferrer,
 }
@@ -54,6 +55,7 @@ impl<'a> Context<'a> {
             globals,
             terms,
             return_ty: None,
+            typed_holes: Vec::new(),
             new: Vec::new(),
             inferrer: Inferrer::new(),
         }
@@ -75,11 +77,9 @@ impl<'a> Context<'a> {
 
         self.return_ty = Some(spec.output);
         let block = self.infer_block(spec.block).ty;
-        if let Some(return_ty) = self.return_ty {
+        if let Some(return_ty) = self.return_ty.take() {
             self.inferrer.eq(spec.block.span, return_ty.clone(), block);
         }
-
-        self.return_ty = None;
     }
 
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
@@ -125,10 +125,10 @@ impl<'a> Context<'a> {
     fn infer_stmt(&mut self, stmt: &Stmt) -> Partial<Ty> {
         let ty = match &*stmt.kind {
             StmtKind::Empty | StmtKind::Item(_) => converge(Ty::UNIT),
-            StmtKind::Expr(expr) => self.infer_expr(expr),
+            StmtKind::Expr(expr) => self.infer_expr(expr, false),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
-                let expr = self.infer_expr(expr);
+                let expr = self.infer_expr(expr, false);
                 self.inferrer.eq(pat.span, expr.ty, pat_ty);
                 self.diverge_if(expr.diverges, converge(Ty::UNIT))
             }
@@ -145,7 +145,7 @@ impl<'a> Context<'a> {
                 }
             }
             StmtKind::Semi(expr) => {
-                let expr = self.infer_expr(expr);
+                let expr = self.infer_expr(expr, false);
                 self.diverge_if(expr.diverges, converge(Ty::UNIT))
             }
         };
@@ -155,15 +155,15 @@ impl<'a> Context<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn infer_expr(&mut self, expr: &Expr) -> Partial<Ty> {
+    fn infer_expr(&mut self, expr: &Expr, hole_allowed: bool) -> Partial<Ty> {
         let ty = match &*expr.kind {
             ExprKind::Array(items) => match items.split_first() {
                 Some((first, rest)) => {
-                    let first = self.infer_expr(first);
+                    let first = self.infer_expr(first, false);
                     let mut diverges = first.diverges;
                     for item in rest {
                         let span = item.span;
-                        let item = self.infer_expr(item);
+                        let item = self.infer_expr(item, false);
                         diverges = diverges || item.diverges;
                         self.inferrer.eq(span, first.ty.clone(), item.ty);
                     }
@@ -172,9 +172,9 @@ impl<'a> Context<'a> {
                 None => converge(Ty::Array(Box::new(self.inferrer.fresh_ty()))),
             },
             ExprKind::ArrayRepeat(item, size) => {
-                let item = self.infer_expr(item);
+                let item = self.infer_expr(item, false);
                 let size_span = size.span;
-                let size = self.infer_expr(size);
+                let size = self.infer_expr(size, false);
                 self.inferrer.eq(size_span, Ty::Prim(PrimTy::Int), size.ty);
                 self.diverge_if(
                     item.diverges || size.diverges,
@@ -183,8 +183,8 @@ impl<'a> Context<'a> {
             }
             ExprKind::Assign(lhs, rhs) => {
                 let lhs_span = lhs.span;
-                let lhs = self.infer_expr(lhs);
-                let rhs = self.infer_expr(rhs);
+                let lhs = self.infer_expr(lhs, true);
+                let rhs = self.infer_expr(rhs, false);
                 self.inferrer.eq(lhs_span, lhs.ty, rhs.ty);
                 self.diverge_if(lhs.diverges || rhs.diverges, converge(Ty::UNIT))
             }
@@ -199,7 +199,7 @@ impl<'a> Context<'a> {
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
-                let callee = self.infer_expr(callee);
+                let callee = self.infer_expr(callee, false);
                 let input = self.infer_arg(input);
                 let output_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
@@ -218,13 +218,13 @@ impl<'a> Context<'a> {
                 self.diverge_if(within.diverges, apply)
             }
             ExprKind::Fail(message) => {
-                let message_ty = self.infer_expr(message).ty;
+                let message_ty = self.infer_expr(message, false).ty;
                 self.inferrer
                     .eq(message.span, Ty::Prim(PrimTy::String), message_ty);
                 self.diverge()
             }
             ExprKind::Field(record, name) => {
-                let record = self.infer_expr(record);
+                let record = self.infer_expr(record, false);
                 let item_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
@@ -239,7 +239,7 @@ impl<'a> Context<'a> {
             ExprKind::For(item, container, body) => {
                 let item_ty = self.infer_pat(item);
                 let container_span = container.span;
-                let container = self.infer_expr(container);
+                let container = self.infer_expr(container, false);
                 self.inferrer.class(
                     container_span,
                     Class::Iterable {
@@ -252,12 +252,12 @@ impl<'a> Context<'a> {
             }
             ExprKind::If(cond, if_true, if_false) => {
                 let cond_span = cond.span;
-                let cond = self.infer_expr(cond);
+                let cond = self.infer_expr(cond, false);
                 self.inferrer.eq(cond_span, Ty::Prim(PrimTy::Bool), cond.ty);
                 let if_true = self.infer_block(if_true);
                 let if_false = if_false
                     .as_ref()
-                    .map_or(converge(Ty::UNIT), |e| self.infer_expr(e));
+                    .map_or(converge(Ty::UNIT), |e| self.infer_expr(e, false));
                 self.inferrer.eq(expr.span, if_true.ty.clone(), if_false.ty);
                 self.diverge_if(
                     cond.diverges,
@@ -268,8 +268,8 @@ impl<'a> Context<'a> {
                 )
             }
             ExprKind::Index(container, index) => {
-                let container = self.infer_expr(container);
-                let index = self.infer_expr(index);
+                let container = self.infer_expr(container, false);
+                let index = self.infer_expr(index, false);
                 let item_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
@@ -287,7 +287,7 @@ impl<'a> Context<'a> {
                     match component {
                         StringComponent::Expr(expr) => {
                             let span = expr.span;
-                            let expr = self.infer_expr(expr.as_ref());
+                            let expr = self.infer_expr(expr.as_ref(), false);
                             self.inferrer.class(span, Class::Show(expr.ty));
                             diverges = diverges || expr.diverges;
                         }
@@ -299,7 +299,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
-                let body = self.infer_expr(body).ty;
+                let body = self.infer_expr(body, false).ty;
                 converge(Ty::Arrow(Box::new(ArrowTy {
                     kind: convert::callable_kind_from_ast(*kind),
                     input: Box::new(input),
@@ -316,7 +316,7 @@ impl<'a> Context<'a> {
                 Lit::Result(_) => converge(Ty::Prim(PrimTy::Result)),
                 Lit::String(_) => converge(Ty::Prim(PrimTy::String)),
             },
-            ExprKind::Paren(expr) => self.infer_expr(expr),
+            ExprKind::Paren(expr) => self.infer_expr(expr, hole_allowed),
             ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
                 Some(Res::Item(item)) => {
@@ -340,7 +340,7 @@ impl<'a> Context<'a> {
                 let mut diverges = false;
                 for expr in start.iter().chain(step).chain(end) {
                     let span = expr.span;
-                    let expr = self.infer_expr(expr);
+                    let expr = self.infer_expr(expr, false);
                     diverges = diverges || expr.diverges;
                     self.inferrer.eq(span, Ty::Prim(PrimTy::Int), expr.ty);
                 }
@@ -360,7 +360,7 @@ impl<'a> Context<'a> {
             ExprKind::Repeat(body, until, fixup) => {
                 let body = self.infer_block(body);
                 let until_span = until.span;
-                let until = self.infer_expr(until);
+                let until = self.infer_expr(until, false);
                 self.inferrer
                     .eq(until_span, Ty::Prim(PrimTy::Bool), until.ty);
                 let fixup_diverges = fixup
@@ -372,7 +372,7 @@ impl<'a> Context<'a> {
                 )
             }
             ExprKind::Return(expr) => {
-                let ty = self.infer_expr(expr).ty;
+                let ty = self.infer_expr(expr, false).ty;
                 if let Some(return_ty) = &self.return_ty {
                     self.inferrer.eq(expr.span, (*return_ty).clone(), ty);
                 }
@@ -380,10 +380,10 @@ impl<'a> Context<'a> {
             }
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
-                let cond = self.infer_expr(cond);
+                let cond = self.infer_expr(cond, false);
                 self.inferrer.eq(cond_span, Ty::Prim(PrimTy::Bool), cond.ty);
-                let if_true = self.infer_expr(if_true);
-                let if_false = self.infer_expr(if_false);
+                let if_true = self.infer_expr(if_true, false);
+                let if_false = self.infer_expr(if_false, false);
                 self.inferrer.eq(expr.span, if_true.ty.clone(), if_false.ty);
                 self.diverge_if(
                     cond.diverges,
@@ -400,7 +400,7 @@ impl<'a> Context<'a> {
                 let mut tys = Vec::new();
                 let mut diverges = false;
                 for item in items.iter() {
-                    let item = self.infer_expr(item);
+                    let item = self.infer_expr(item, hole_allowed);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
                 }
@@ -409,12 +409,18 @@ impl<'a> Context<'a> {
             ExprKind::UnOp(op, expr) => self.infer_unop(*op, expr),
             ExprKind::While(cond, body) => {
                 let cond_span = cond.span;
-                let cond = self.infer_expr(cond);
+                let cond = self.infer_expr(cond, false);
                 self.inferrer.eq(cond_span, Ty::Prim(PrimTy::Bool), cond.ty);
                 let body = self.infer_block(body);
                 self.diverge_if(cond.diverges || body.diverges, converge(Ty::UNIT))
             }
-            ExprKind::Err | ExprKind::Hole => converge(self.inferrer.fresh_ty()),
+            ExprKind::Hole => {
+                if !hole_allowed {
+                    self.typed_holes.push((expr.id, expr.span));
+                }
+                converge(self.inferrer.fresh_ty())
+            }
+            ExprKind::Err => converge(Ty::Err),
         };
 
         self.record(expr.id, ty.ty.clone());
@@ -444,13 +450,13 @@ impl<'a> Context<'a> {
                 self.record(arg.id, Ty::Tuple(tys.iter().map(ArgTy::to_ty).collect()));
                 self.diverge_if_map(ArgTy::Given, diverges, converge(ArgTy::Tuple(tys)))
             }
-            _ => self.infer_expr(arg).map(ArgTy::Given),
+            _ => self.infer_expr(arg, false).map(ArgTy::Given),
         }
     }
 
     fn infer_unop(&mut self, op: UnOp, operand: &Expr) -> Partial<Ty> {
         let span = operand.span;
-        let operand = self.infer_expr(operand);
+        let operand = self.infer_expr(operand, false);
         let diverges = operand.diverges;
         let ty = match op {
             UnOp::Functor(Functor::Adj) => {
@@ -495,9 +501,9 @@ impl<'a> Context<'a> {
 
     fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Partial<Ty> {
         let lhs_span = lhs.span;
-        let lhs = self.infer_expr(lhs);
+        let lhs = self.infer_expr(lhs, false);
         let rhs_span = rhs.span;
-        let rhs = self.infer_expr(rhs);
+        let rhs = self.infer_expr(rhs, false);
         let diverges = lhs.diverges || rhs.diverges;
 
         let ty = match op {
@@ -561,8 +567,8 @@ impl<'a> Context<'a> {
         index: &Expr,
         item: &Expr,
     ) -> Partial<Ty> {
-        let container = self.infer_expr(container);
-        let item = self.infer_expr(item);
+        let container = self.infer_expr(container, false);
+        let item = self.infer_expr(item, false);
         if let Some(field) = resolve::extract_field_name(self.names, index) {
             self.inferrer.class(
                 span,
@@ -574,7 +580,7 @@ impl<'a> Context<'a> {
             );
             self.diverge_if(item.diverges, container)
         } else {
-            let index = self.infer_expr(index);
+            let index = self.infer_expr(index, false);
             self.inferrer.class(
                 span,
                 Class::HasIndex {
@@ -615,7 +621,7 @@ impl<'a> Context<'a> {
         let ty = match &*init.kind {
             QubitInitKind::Array(length) => {
                 let length_span = length.span;
-                let length = self.infer_expr(length);
+                let length = self.infer_expr(length, false);
                 self.inferrer
                     .eq(length_span, Ty::Prim(PrimTy::Int), length.ty);
                 self.diverge_if(
@@ -671,10 +677,14 @@ impl<'a> Context<'a> {
     }
 
     fn solve(self) -> Vec<Error> {
-        let (substs, errors) = self.inferrer.solve(self.udts);
+        let (substs, mut errors) = self.inferrer.solve(self.udts);
         for id in self.new {
             let ty = self.terms.get_mut(id).expect("node should have type");
             infer::substitute_ty(&substs, ty);
+        }
+        for (id, span) in self.typed_holes {
+            let ty = self.terms.get_mut(id).expect("node should have type");
+            errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
         errors
     }
@@ -709,7 +719,7 @@ pub(super) fn expr(
     expr: &Expr,
 ) -> Vec<Error> {
     let mut context = Context::new(names, udts, globals, terms);
-    context.infer_expr(expr);
+    context.infer_expr(expr, false);
     context.solve()
 }
 
