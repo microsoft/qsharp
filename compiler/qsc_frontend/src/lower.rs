@@ -239,7 +239,7 @@ impl With<'_> {
             },
             ast::CallableBody::Specs(specs) => {
                 let body = self
-                    .process_spec(specs, ast::Spec::Body, span)
+                    .process_spec(specs, ast::Spec::Body)
                     .unwrap_or_else(|| {
                         self.lowerer.errors.push(Error::MissingBody(span));
                         hir::SpecDecl {
@@ -249,9 +249,9 @@ impl With<'_> {
                             body: hir::SpecBody::Gen(hir::SpecGen::Auto),
                         }
                     });
-                adj = self.process_spec(specs, ast::Spec::Adj, span);
-                ctl = self.process_spec(specs, ast::Spec::Ctl, span);
-                ctladj = self.process_spec(specs, ast::Spec::CtlAdj, span);
+                adj = self.process_spec(specs, ast::Spec::Adj);
+                ctl = self.process_spec(specs, ast::Spec::Ctl);
+                ctladj = self.process_spec(specs, ast::Spec::CtlAdj);
                 body
             }
         };
@@ -276,7 +276,6 @@ impl With<'_> {
         &mut self,
         specs: &[Box<ast::SpecDecl>],
         spec: ast::Spec,
-        span: Span,
     ) -> Option<hir::SpecDecl> {
         match specs
             .iter()
