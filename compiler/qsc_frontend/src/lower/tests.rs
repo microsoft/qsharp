@@ -1133,3 +1133,44 @@ fn partial_app_bound_to_non_arrow_ty() {
                                         Expr 23 [120-121] [Type Int]: Hole"#]],
     );
 }
+
+#[test]
+fn partial_app_hole_as_callee() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                @EntryPoint()
+                operation Main() : Result[] {
+                    let f = _(_);
+                    let res = f(4);
+                    return [res];
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-141] (Public):
+                    Namespace (Ident 20 [10-11] "A"): Item 1
+                Item 1 [18-139] (Public):
+                    Parent: 0
+                    EntryPoint
+                    Callable 0 [36-139] (Operation):
+                        name: Ident 1 [46-50] "Main"
+                        input: Pat 2 [50-52] [Type Unit]: Unit
+                        output: (Result)[]
+                        functors: empty set
+                        body: Block: Block 3 [64-139] [Type (Result)[]]:
+                            Stmt 4 [74-87]: Local (Immutable):
+                                Pat 5 [78-79] [Type ?0]: Bind: Ident 6 [78-79] "f"
+                                Expr 7 [82-86] [Type ?0]: Call:
+                                    Expr 8 [82-83] [Type ?1]: Hole
+                                    Expr 9 [84-85] [Type ?2]: Hole
+                            Stmt 10 [96-111]: Local (Immutable):
+                                Pat 11 [100-103] [Type Result]: Bind: Ident 12 [100-103] "res"
+                                Expr 13 [106-110] [Type Result]: Call:
+                                    Expr 14 [106-107] [Type ?0]: Var: Local 6
+                                    Expr 15 [108-109] [Type Int]: Lit: Int(4)
+                            Stmt 16 [120-133]: Semi: Expr 17 [120-132] [Type ?6]: Return: Expr 18 [127-132] [Type (Result)[]]: Array:
+                                Expr 19 [128-131] [Type Result]: Var: Local 12"#]],
+    );
+}
