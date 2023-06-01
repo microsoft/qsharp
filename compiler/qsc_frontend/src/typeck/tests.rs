@@ -2672,3 +2672,32 @@ fn partial_app_too_many_args() {
         "##]],
     );
 }
+
+#[test]
+fn typed_hole_error_concrete_type() {
+    check(
+        "",
+        "_ + 3",
+        &expect![[r##"
+            #1 0-5 "_ + 3" : Int
+            #2 0-1 "_" : Int
+            #3 4-5 "3" : Int
+            Error(Type(Error(TyHole(Prim(Int), Span { lo: 0, hi: 1 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn typed_hole_error_ambiguous_type() {
+    check(
+        "",
+        "_(3)",
+        &expect![[r##"
+            #1 0-4 "_(3)" : ?1
+            #2 0-1 "_" : ?0
+            #3 1-4 "(3)" : Int
+            #4 2-3 "3" : Int
+            Error(Type(Error(TyHole(Infer(InferTy(0)), Span { lo: 0, hi: 1 }))))
+        "##]],
+    );
+}

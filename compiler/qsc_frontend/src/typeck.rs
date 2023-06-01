@@ -39,4 +39,7 @@ enum ErrorKind {
     #[error("missing type in item signature")]
     #[diagnostic(help("types cannot be inferred for global declarations"))]
     MissingItemTy(#[label] Span),
+    #[error("found hole with type {0}")]
+    #[diagnostic(help("replace this hole with an expression of the expected type"))]
+    TyHole(Ty, #[label] Span),
 }
