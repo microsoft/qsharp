@@ -286,9 +286,11 @@ impl With<'_> {
         {
             [] => None,
             [single] => Some(self.lower_spec_decl(single)),
-            [first, ..] => {
-                self.lowerer.errors.push(Error::DuplicateSpec(span));
-                Some(self.lower_spec_decl(first))
+            dupes => {
+                for dup in dupes {
+                    self.lowerer.errors.push(Error::DuplicateSpec(dup.span));
+                }
+                Some(self.lower_spec_decl(dupes[0]))
             }
         }
     }
