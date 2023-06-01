@@ -19,6 +19,7 @@ use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
 mod completions;
+mod definition;
 mod hover;
 mod ls_utils;
 
@@ -37,6 +38,12 @@ pub struct CompletionList {
 pub struct Hover {
     pub contents: String,
     pub span: Span,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Definition {
+    pub source: String,
+    pub offset: u32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -73,14 +80,27 @@ export interface IHover {
 }
 "#;
 
+#[wasm_bindgen(typescript_custom_section)]
+const IDefinition: &'static str = r#"
+export interface IDefinition {
+    source: string;
+    offset: number;
+}
+"#;
+
 #[wasm_bindgen]
-pub fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    completions::get_completions(code, offset)
+pub fn get_completions(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
+    completions::get_completions(source_path, code, offset)
 }
 
 #[wasm_bindgen]
-pub fn get_hover(code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    hover::get_hover(code, offset)
+pub fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
+    hover::get_hover(source_path, code, offset)
+}
+
+#[wasm_bindgen]
+pub fn get_definition(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
+    definition::get_definition(source_path, code, offset)
 }
 
 #[wasm_bindgen(typescript_custom_section)]

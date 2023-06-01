@@ -25,6 +25,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     context: vscode.CompletionContext
   ) {
     const completions = await this.compiler.getCompletions(
+      document.uri.fsPath,
       document.getText(),
       document.offsetAt(position)
     );

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { log } from "./log.js";
-import { ICompletionList, IHover } from "../lib/web/qsc_wasm.js";
+import { ICompletionList, IHover, IDefinition } from "../lib/web/qsc_wasm.js";
 import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
@@ -95,15 +95,25 @@ export function createWorkerProxy(
       case "getCompletions":
         msg = {
           type: "getCompletions",
-          code: curr.args[0],
-          offset: curr.args[1],
+          sourcePath: curr.args[0],
+          code: curr.args[1],
+          offset: curr.args[2],
         };
         break;
       case "getHover":
         msg = {
           type: "getHover",
-          code: curr.args[0],
-          offset: curr.args[1],
+          sourcePath: curr.args[0],
+          code: curr.args[1],
+          offset: curr.args[2],
+        };
+        break;
+      case "getDefinition":
+        msg = {
+          type: "getDefinition",
+          sourcePath: curr.args[0],
+          code: curr.args[1],
+          offset: curr.args[2],
         };
         break;
       case "run":
@@ -174,6 +184,7 @@ export function createWorkerProxy(
       case "checkCode-result":
       case "getCompletions-result":
       case "getHover-result":
+      case "getDefinition-result":
       case "run-result":
       case "runKata-result":
         curr.resolve(msg.result);
@@ -200,11 +211,14 @@ export function createWorkerProxy(
     checkCode(code) {
       return queueRequest("checkCode", [code]);
     },
-    getCompletions(code, offset) {
-      return queueRequest("getCompletions", [code, offset]);
+    getCompletions(sourcePath, code, offset) {
+      return queueRequest("getCompletions", [sourcePath, code, offset]);
     },
-    getHover(code, offset) {
-      return queueRequest("getHover", [code, offset]);
+    getHover(sourcePath, code, offset) {
+      return queueRequest("getHover", [sourcePath, code, offset]);
+    },
+    getDefinition(sourcePath, code, offset) {
+      return queueRequest("getDefinition", [sourcePath, code, offset]);
     },
     run(code, expr, shots, evtHandler) {
       return queueRequest("run", [code, expr, shots], evtHandler);
@@ -294,16 +308,23 @@ export function handleMessageInWorker(
         break;
       case "getCompletions":
         compiler
-          .getCompletions(data.code, data.offset)
+          .getCompletions(data.sourcePath, data.code, data.offset)
           .then((result) =>
             logIntercepter({ type: "getCompletions-result", result })
           );
         break;
       case "getHover":
         compiler
-          .getHover(data.code, data.offset)
+          .getHover(data.sourcePath, data.code, data.offset)
           .then((result) =>
             logIntercepter({ type: "getHover-result", result })
+          );
+        break;
+      case "getDefinition":
+        compiler
+          .getDefinition(data.sourcePath, data.code, data.offset)
+          .then((result) =>
+            logIntercepter({ type: "getDefinition-result", result })
           );
         break;
       case "run":
@@ -339,8 +360,9 @@ export function handleMessageInWorker(
 
 export type CompilerReqMsg =
   | { type: "checkCode"; code: string }
-  | { type: "getCompletions"; code: string; offset: number }
-  | { type: "getHover"; code: string; offset: number }
+  | { type: "getCompletions"; sourcePath: string; code: string; offset: number }
+  | { type: "getHover"; sourcePath: string; code: string; offset: number }
+  | { type: "getDefinition"; sourcePath: string; code: string; offset: number }
   | { type: "run"; code: string; expr: string; shots: number }
   | { type: "runKata"; user_code: string; verify_code: string };
 
@@ -350,6 +372,10 @@ type CompilerRespMsg =
   | {
       type: "getHover-result";
       result: IHover;
+    }
+  | {
+      type: "getDefinition-result";
+      result: IDefinition;
     }
   | { type: "run-result"; result: void }
   | { type: "runKata-result"; result: boolean }

@@ -7,8 +7,8 @@ use qsc_hir::hir::CallableKind;
 use qsc_hir::visit::Visitor;
 use wasm_bindgen::prelude::*;
 
-pub(crate) fn get_hover(code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    let (_, package, _, _) = get_compilation(code);
+pub(crate) fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
+    let (_, package, _, _, _) = get_compilation(source_path, code);
 
     let mut callable_finder = CallableFinder {
         offset,

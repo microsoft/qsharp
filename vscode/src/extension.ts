@@ -3,6 +3,7 @@ import { getCompiler, loadWasmModule } from "qsharp";
 import { createCompletionItemProvider } from "./completion.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebooks.js";
+import { createDefinitionProvider } from "./definition.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("Q#");
@@ -28,6 +29,12 @@ export async function activate(context: vscode.ExtensionContext) {
   vscode.languages.registerHoverProvider(
     "qsharp",
     createHoverProvider(compiler, output)
+  );
+
+  // go to def
+  vscode.languages.registerDefinitionProvider(
+    "qsharp",
+    createDefinitionProvider(compiler, output)
   );
 
   // notebooks

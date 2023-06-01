@@ -22,8 +22,12 @@ enum CompletionKind {
     Issue = 26,
 }
 
-pub(crate) fn get_completions(code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    let (std_package, package, no_compilation, errors) = get_compilation(code);
+pub(crate) fn get_completions(
+    source_path: &str,
+    code: &str,
+    offset: u32,
+) -> Result<JsValue, JsValue> {
+    let (std_package, package, _, no_compilation, errors) = get_compilation(source_path, code);
 
     // TODO: I don't like thread locals
     thread_local! {

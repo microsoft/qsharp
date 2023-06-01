@@ -5,12 +5,14 @@ import type {
   IDiagnostic,
   ICompletionList,
   IHover,
+  IDefinition,
 } from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
 import {
   eventStringToMsg,
   mapDiagnostics,
   mapUtf16UnitsToUtf8Units,
+  mapUtf8UnitsToUtf16Units,
   VSDiagnostic,
 } from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
@@ -24,8 +26,17 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 export type CompilerState = "idle" | "busy";
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
-  getCompletions(code: string, offset: number): Promise<ICompletionList>;
-  getHover(code: string, offset: number): Promise<IHover>;
+  getCompletions(
+    sourcePath: string,
+    code: string,
+    offset: number
+  ): Promise<ICompletionList>;
+  getHover(sourcePath: string, code: string, offset: number): Promise<IHover>;
+  getDefinition(
+    sourcePath: string,
+    code: string,
+    offset: number
+  ): Promise<IDefinition>;
   run(
     code: string,
     expr: string,
@@ -79,20 +90,27 @@ export class Compiler implements ICompiler {
     return mapDiagnostics(raw_result, code);
   }
 
-  async getCompletions(code: string, offset: number): Promise<ICompletionList> {
+  async getCompletions(
+    sourcePath: string,
+    code: string,
+    offset: number
+  ): Promise<ICompletionList> {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    console.log(
-      `originalOffset: ${offset} convertedOffset: ${convertedOffset}`
-    );
-    return this.wasm.get_completions(code, convertedOffset);
+    return this.wasm.get_completions(sourcePath, code, convertedOffset);
   }
 
-  async getHover(code: string, offset: number) {
+  async getHover(sourcePath: string, code: string, offset: number) {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    console.log(
-      `originalOffset: ${offset} convertedOffset: ${convertedOffset}`
-    );
-    return this.wasm.get_hover(code, convertedOffset);
+    return this.wasm.get_hover(sourcePath, code, convertedOffset);
+  }
+
+  async getDefinition(sourcePath: string, code: string, offset: number) {
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    const result = this.wasm.get_definition(sourcePath, code, convertedOffset);
+    result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
+      result.offset
+    ];
+    return result;
   }
 
   async run(
