@@ -772,7 +772,7 @@ fn partial_app_one_hole() {
         &expect![[r#"
             Package:
                 Item 0 [0-113] (Public):
-                    Namespace (Ident 41 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 42 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-64] (Public):
                     Parent: 0
                     Callable 0 [18-64] (Function):
@@ -796,26 +796,26 @@ fn partial_app_one_hole() {
                         body: Block: Block 15 [89-111] [Type Unit]:
                             Stmt 16 [91-109]: Local (Immutable):
                                 Pat 17 [95-96] [Type (Int -> Int)]: Bind: Ident 18 [95-96] "f"
-                                Expr 19 [99-108] [Type (Int -> Int)]: Expr Block: Block 38 [99-108] [Type (Int -> Int)]:
+                                Expr 19 [99-108] [Type (Int -> Int)]: Expr Block: Block 39 [99-108] [Type (Int -> Int)]:
                                     Stmt 28 [106-107]: Local (Immutable):
                                         Pat 27 [106-107] [Type Int]: Bind: Ident 25 [106-107] "arg"
                                         Expr 24 [106-107] [Type Int]: Lit: Int(2)
-                                    Stmt 39 [99-108]: Expr: Expr 40 [99-108] [Type (Int -> Int)]: Closure([25], 3)
+                                    Stmt 40 [99-108]: Expr: Expr 41 [99-108] [Type (Int -> Int)]: Closure([25], 3)
                 Item 3 [99-108] (Internal):
                     Parent: 2
-                    Callable 34 [99-108] (Function):
-                        name: Ident 35 [99-108] "lambda"
-                        input: Pat 32 [99-108] [Type (Int, Int)]: Tuple:
-                            Pat 33 [99-108] [Type Int]: Bind: Ident 31 [99-108] "closed"
+                    Callable 35 [99-108] (Function):
+                        name: Ident 36 [99-108] "lambda"
+                        input: Pat 33 [99-108] [Type (Int, Int)]: Tuple:
+                            Pat 34 [99-108] [Type Int]: Bind: Ident 32 [99-108] "closed"
                             Pat 22 [103-104] [Type Int]: Bind: Ident 21 [103-104] "hole"
                         output: Int
                         functors: empty set
-                        body: Block: Block 36 [99-108] [Type Int]:
-                            Stmt 37 [99-108]: Expr: Expr 30 [99-108] [Type Int]: Call:
+                        body: Block: Block 37 [99-108] [Type Int]:
+                            Stmt 38 [99-108]: Expr: Expr 31 [99-108] [Type Int]: Call:
                                 Expr 20 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
-                                Expr 29 [102-108] [Type (Int, Int)]: Tuple:
+                                Expr 30 [102-108] [Type (Int, Int)]: Tuple:
                                     Expr 23 [103-104] [Type Int]: Var: Local 21
-                                    Expr 26 [106-107] [Type Int]: Var: Local 31"#]],
+                                    Expr 26 [106-107] [Type Int]: Var: Local 32"#]],
     );
 }
 
@@ -888,7 +888,7 @@ fn partial_app_nested_tuple() {
         &expect![[r#"
             Package:
                 Item 0 [0-157] (Public):
-                    Namespace (Ident 56 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 57 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-95] (Public):
                     Parent: 0
                     Callable 0 [18-95] (Function):
@@ -913,35 +913,35 @@ fn partial_app_nested_tuple() {
                         body: Block: Block 18 [120-155] [Type Unit]:
                             Stmt 19 [122-153]: Local (Immutable):
                                 Pat 20 [126-127] [Type ((Int, (Bool, String), Result) -> Unit)]: Bind: Ident 21 [126-127] "f"
-                                Expr 22 [130-152] [Type ((Int, (Bool, String), Result) -> Unit)]: Expr Block: Block 53 [130-152] [Type ((Int, (Bool, String), Result) -> Unit)]:
+                                Expr 22 [130-152] [Type ((Int, (Bool, String), Result) -> Unit)]: Expr Block: Block 54 [130-152] [Type ((Int, (Bool, String), Result) -> Unit)]:
                                     Stmt 34 [141-144]: Local (Immutable):
                                         Pat 33 [141-144] [Type Double]: Bind: Ident 31 [141-144] "arg"
                                         Expr 30 [141-144] [Type Double]: Lit: Double(1)
-                                    Stmt 54 [130-152]: Expr: Expr 55 [130-152] [Type ((Int, (Bool, String), Result) -> Unit)]: Closure([31], 3)
+                                    Stmt 55 [130-152]: Expr: Expr 56 [130-152] [Type ((Int, (Bool, String), Result) -> Unit)]: Closure([31], 3)
                 Item 3 [130-152] (Internal):
                     Parent: 2
-                    Callable 49 [130-152] (Function):
-                        name: Ident 50 [130-152] "lambda"
-                        input: Pat 47 [130-152] [Type (Double, (Int, (Bool, String), Result))]: Tuple:
-                            Pat 48 [130-152] [Type Double]: Bind: Ident 46 [130-152] "closed"
-                            Pat 44 [133-152] [Type (Int, (Bool, String), Result)]: Tuple:
+                    Callable 50 [130-152] (Function):
+                        name: Ident 51 [130-152] "lambda"
+                        input: Pat 48 [130-152] [Type (Double, (Int, (Bool, String), Result))]: Tuple:
+                            Pat 49 [130-152] [Type Double]: Bind: Ident 47 [130-152] "closed"
+                            Pat 45 [133-152] [Type (Int, (Bool, String), Result)]: Tuple:
                                 Pat 25 [134-135] [Type Int]: Bind: Ident 24 [134-135] "hole"
-                                Pat 39 [137-148] [Type (Bool, String)]: Tuple:
+                                Pat 40 [137-148] [Type (Bool, String)]: Tuple:
                                     Pat 28 [138-139] [Type Bool]: Bind: Ident 27 [138-139] "hole"
-                                    Pat 36 [146-147] [Type String]: Bind: Ident 35 [146-147] "hole"
-                                Pat 41 [150-151] [Type Result]: Bind: Ident 40 [150-151] "hole"
+                                    Pat 37 [146-147] [Type String]: Bind: Ident 36 [146-147] "hole"
+                                Pat 42 [150-151] [Type Result]: Bind: Ident 41 [150-151] "hole"
                         output: Unit
                         functors: empty set
-                        body: Block: Block 51 [130-152] [Type Unit]:
-                            Stmt 52 [130-152]: Expr: Expr 45 [130-152] [Type Unit]: Call:
+                        body: Block: Block 52 [130-152] [Type Unit]:
+                            Stmt 53 [130-152]: Expr: Expr 46 [130-152] [Type Unit]: Call:
                                 Expr 23 [130-133] [Type ((Int, (Bool, Double, String), Result) -> Unit)]: Var: Item 1
-                                Expr 43 [133-152] [Type (Int, (Bool, Double, String), Result)]: Tuple:
+                                Expr 44 [133-152] [Type (Int, (Bool, Double, String), Result)]: Tuple:
                                     Expr 26 [134-135] [Type Int]: Var: Local 24
-                                    Expr 38 [137-148] [Type (Bool, Double, String)]: Tuple:
+                                    Expr 39 [137-148] [Type (Bool, Double, String)]: Tuple:
                                         Expr 29 [138-139] [Type Bool]: Var: Local 27
-                                        Expr 32 [141-144] [Type Double]: Var: Local 46
-                                        Expr 37 [146-147] [Type String]: Var: Local 35
-                                    Expr 42 [150-151] [Type Result]: Var: Local 40"#]],
+                                        Expr 32 [141-144] [Type Double]: Var: Local 47
+                                        Expr 38 [146-147] [Type String]: Var: Local 36
+                                    Expr 43 [150-151] [Type Result]: Var: Local 41"#]],
     );
 }
 
@@ -957,7 +957,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
         &expect![[r#"
             Package:
                 Item 0 [0-160] (Public):
-                    Namespace (Ident 59 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 61 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-95] (Public):
                     Parent: 0
                     Callable 0 [18-95] (Function):
@@ -982,36 +982,154 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                         body: Block: Block 18 [120-158] [Type Unit]:
                             Stmt 19 [122-156]: Local (Immutable):
                                 Pat 20 [126-127] [Type ((Int, String, Result) -> Unit)]: Bind: Ident 21 [126-127] "f"
-                                Expr 22 [130-155] [Type ((Int, String, Result) -> Unit)]: Expr Block: Block 56 [130-155] [Type ((Int, String, Result) -> Unit)]:
+                                Expr 22 [130-155] [Type ((Int, String, Result) -> Unit)]: Expr Block: Block 58 [130-155] [Type ((Int, String, Result) -> Unit)]:
                                     Stmt 31 [138-142]: Local (Immutable):
                                         Pat 30 [138-142] [Type Bool]: Bind: Ident 28 [138-142] "arg"
                                         Expr 27 [138-142] [Type Bool]: Lit: Bool(true)
-                                    Stmt 36 [144-147]: Local (Immutable):
-                                        Pat 35 [144-147] [Type Double]: Bind: Ident 33 [144-147] "arg"
-                                        Expr 32 [144-147] [Type Double]: Lit: Double(1)
-                                    Stmt 57 [130-155]: Expr: Expr 58 [130-155] [Type ((Int, String, Result) -> Unit)]: Closure([28, 33], 3)
+                                    Stmt 37 [144-147]: Local (Immutable):
+                                        Pat 36 [144-147] [Type Double]: Bind: Ident 34 [144-147] "arg"
+                                        Expr 33 [144-147] [Type Double]: Lit: Double(1)
+                                    Stmt 59 [130-155]: Expr: Expr 60 [130-155] [Type ((Int, String, Result) -> Unit)]: Closure([28, 34], 3)
                 Item 3 [130-155] (Internal):
                     Parent: 2
-                    Callable 52 [130-155] (Function):
-                        name: Ident 53 [130-155] "lambda"
-                        input: Pat 49 [130-155] [Type (Bool, Double, (Int, String, Result))]: Tuple:
-                            Pat 50 [130-155] [Type Bool]: Bind: Ident 47 [130-155] "closed"
-                            Pat 51 [130-155] [Type Double]: Bind: Ident 48 [130-155] "closed"
-                            Pat 45 [133-155] [Type (Int, String, Result)]: Tuple:
+                    Callable 54 [130-155] (Function):
+                        name: Ident 55 [130-155] "lambda"
+                        input: Pat 51 [130-155] [Type (Bool, Double, (Int, String, Result))]: Tuple:
+                            Pat 52 [130-155] [Type Bool]: Bind: Ident 49 [130-155] "closed"
+                            Pat 53 [130-155] [Type Double]: Bind: Ident 50 [130-155] "closed"
+                            Pat 47 [133-155] [Type (Int, String, Result)]: Tuple:
                                 Pat 25 [134-135] [Type Int]: Bind: Ident 24 [134-135] "hole"
-                                Pat 38 [149-150] [Type String]: Bind: Ident 37 [149-150] "hole"
-                                Pat 42 [153-154] [Type Result]: Bind: Ident 41 [153-154] "hole"
+                                Pat 40 [149-150] [Type String]: Bind: Ident 39 [149-150] "hole"
+                                Pat 44 [153-154] [Type Result]: Bind: Ident 43 [153-154] "hole"
                         output: Unit
                         functors: empty set
-                        body: Block: Block 54 [130-155] [Type Unit]:
-                            Stmt 55 [130-155]: Expr: Expr 46 [130-155] [Type Unit]: Call:
+                        body: Block: Block 56 [130-155] [Type Unit]:
+                            Stmt 57 [130-155]: Expr: Expr 48 [130-155] [Type Unit]: Call:
                                 Expr 23 [130-133] [Type ((Int, (Bool, Double, String), Result) -> Unit)]: Var: Item 1
-                                Expr 44 [133-155] [Type (Int, (Bool, Double, String), Result)]: Tuple:
+                                Expr 46 [133-155] [Type (Int, (Bool, Double, String), Result)]: Tuple:
                                     Expr 26 [134-135] [Type Int]: Var: Local 24
-                                    Expr 40 [137-151] [Type (Bool, Double, String)]: Tuple:
-                                        Expr 29 [138-142] [Type Bool]: Var: Local 47
-                                        Expr 34 [144-147] [Type Double]: Var: Local 48
-                                        Expr 39 [149-150] [Type String]: Var: Local 37
-                                    Expr 43 [153-154] [Type Result]: Var: Local 41"#]],
+                                    Expr 42 [137-151] [Type (Bool, Double, String)]: Tuple:
+                                        Expr 29 [138-142] [Type Bool]: Var: Local 49
+                                        Expr 35 [144-147] [Type Double]: Var: Local 50
+                                        Expr 41 [149-150] [Type String]: Var: Local 39
+                                    Expr 45 [153-154] [Type Result]: Var: Local 43"#]],
+    );
+}
+
+#[test]
+fn partial_app_unknown_callable() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                function Foo() : () { let f = Unknown(true, _, _); }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-72] (Public):
+                    Namespace (Ident 13 [10-11] "A"): Item 1
+                Item 1 [18-70] (Public):
+                    Parent: 0
+                    Callable 0 [18-70] (Function):
+                        name: Ident 1 [27-30] "Foo"
+                        input: Pat 2 [30-32] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: Block: Block 3 [38-70] [Type Unit]:
+                            Stmt 4 [40-68]: Local (Immutable):
+                                Pat 5 [44-45] [Type ?0]: Bind: Ident 6 [44-45] "f"
+                                Expr 7 [48-67] [Type ?0]: Call:
+                                    Expr 8 [48-55] [Type ?]: Var: Err
+                                    Expr 9 [55-67] [Type (Bool, ?1, ?2)]: Tuple:
+                                        Expr 10 [56-60] [Type Bool]: Lit: Bool(true)
+                                        Expr 11 [62-63] [Type ?1]: Hole
+                                        Expr 12 [65-66] [Type ?2]: Hole"#]],
+    );
+}
+
+#[test]
+fn partial_app_too_many_args() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                function Foo(x : Int) : Int { x }
+                function Bar() : () { let f = Foo(1, _, _); }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-103] (Public):
+                    Namespace (Ident 20 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-51] (Public):
+                    Parent: 0
+                    Callable 0 [18-51] (Function):
+                        name: Ident 1 [27-30] "Foo"
+                        input: Pat 2 [31-38] [Type Int]: Bind: Ident 3 [31-32] "x"
+                        output: Int
+                        functors: empty set
+                        body: Block: Block 4 [46-51] [Type Int]:
+                            Stmt 5 [48-49]: Expr: Expr 6 [48-49] [Type Int]: Var: Local 3
+                Item 2 [56-101] (Public):
+                    Parent: 0
+                    Callable 7 [56-101] (Function):
+                        name: Ident 8 [65-68] "Bar"
+                        input: Pat 9 [68-70] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: Block: Block 10 [76-101] [Type Unit]:
+                            Stmt 11 [78-99]: Local (Immutable):
+                                Pat 12 [82-83] [Type Int]: Bind: Ident 13 [82-83] "f"
+                                Expr 14 [86-98] [Type Int]: Call:
+                                    Expr 15 [86-89] [Type (Int -> Int)]: Var: Item 1
+                                    Expr 16 [89-98] [Type (Int, ?1, ?2)]: Tuple:
+                                        Expr 17 [90-91] [Type Int]: Lit: Int(1)
+                                        Expr 18 [93-94] [Type ?1]: Hole
+                                        Expr 19 [96-97] [Type ?2]: Hole"#]],
+    );
+}
+
+#[test]
+fn partial_app_bound_to_non_arrow_ty() {
+    check_hir(
+        indoc! {"
+            namespace A {
+                function Foo(x : Int, y : Int) : Int { x + y }
+                function Bar() : () {
+                    let f : Int = Foo(1, _);
+                }
+            }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-131] (Public):
+                    Namespace (Ident 24 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-64] (Public):
+                    Parent: 0
+                    Callable 0 [18-64] (Function):
+                        name: Ident 1 [27-30] "Foo"
+                        input: Pat 2 [30-48] [Type (Int, Int)]: Tuple:
+                            Pat 3 [31-38] [Type Int]: Bind: Ident 4 [31-32] "x"
+                            Pat 5 [40-47] [Type Int]: Bind: Ident 6 [40-41] "y"
+                        output: Int
+                        functors: empty set
+                        body: Block: Block 7 [55-64] [Type Int]:
+                            Stmt 8 [57-62]: Expr: Expr 9 [57-62] [Type Int]: BinOp (Add):
+                                Expr 10 [57-58] [Type Int]: Var: Local 4
+                                Expr 11 [61-62] [Type Int]: Var: Local 6
+                Item 2 [69-129] (Public):
+                    Parent: 0
+                    Callable 12 [69-129] (Function):
+                        name: Ident 13 [78-81] "Bar"
+                        input: Pat 14 [81-83] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: Block: Block 15 [89-129] [Type Unit]:
+                            Stmt 16 [99-123]: Local (Immutable):
+                                Pat 17 [103-110] [Type Int]: Bind: Ident 18 [103-104] "f"
+                                Expr 19 [113-122] [Type Int]: Call:
+                                    Expr 20 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
+                                    Expr 21 [116-122] [Type (Int, Int)]: Tuple:
+                                        Expr 22 [117-118] [Type Int]: Lit: Int(1)
+                                        Expr 23 [120-121] [Type Int]: Hole"#]],
     );
 }

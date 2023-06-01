@@ -97,7 +97,8 @@ impl Visitor<'_> for Checker<'_> {
         match &*expr.kind {
             ExprKind::Call(callee, _) if self.in_func => {
                 let ty = self.tys.terms.get(callee.id);
-                if matches!(ty, Some(hir::Ty::Arrow(hir::CallableKind::Operation, ..))) {
+                if matches!(ty, Some(hir::Ty::Arrow(arrow)) if arrow.kind == hir::CallableKind::Operation)
+                {
                     self.errors.push(Error::OpCallInFunc(expr.span));
                 }
             }
