@@ -521,7 +521,7 @@ fn binop_equal_callable() {
             #19 73-89 "Test.A == Test.B" : Bool
             #20 73-79 "Test.A" : (Unit -> Unit)
             #24 83-89 "Test.B" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Eq(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 73, hi: 79 }))))
+            Error(Type(Error(MissingClass(Eq(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 73, hi: 79 }))))
         "##]],
     );
 }
@@ -1835,7 +1835,7 @@ fn interpolate_function() {
             #8 38-40 "{}" : Unit
             #9 43-53 "$\"{A.Foo}\"" : String
             #10 46-51 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 46, hi: 51 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 46, hi: 51 }))))
         "##]],
     );
 }
@@ -1854,7 +1854,7 @@ fn interpolate_operation() {
             #8 39-41 "{}" : Unit
             #9 44-54 "$\"{A.Foo}\"" : String
             #10 47-52 "A.Foo" : (Unit => Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Operation, Tuple([]), Tuple([]), Empty)), Span { lo: 47, hi: 52 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 47, hi: 52 }))))
         "##]],
     );
 }
@@ -1893,7 +1893,7 @@ fn interpolate_function_array() {
             #16 73-87 "[A.Foo, A.Bar]" : ((Unit -> Unit))[]
             #17 74-79 "A.Foo" : (Unit -> Unit)
             #21 81-86 "A.Bar" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 73, hi: 87 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 73, hi: 87 }))))
         "##]],
     );
 }
@@ -1928,7 +1928,7 @@ fn interpolate_int_function_tuple() {
             #10 46-56 "(1, A.Foo)" : (Int, (Unit -> Unit))
             #11 47-48 "1" : Int
             #12 50-55 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Function, Tuple([]), Tuple([]), Empty)), Span { lo: 46, hi: 56 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 46, hi: 56 }))))
         "##]],
     );
 }
@@ -2642,6 +2642,33 @@ fn partial_app_nested_tuple_singleton_unwrap() {
             #47 110-113 "1.0" : Double
             #48 115-116 "_" : String
             #49 119-120 "_" : Result
+        "##]],
+    );
+}
+
+#[test]
+fn partial_app_too_many_args() {
+    check(
+        "",
+        indoc! {"{
+            function Foo(x : Int) : Int { x }
+            let f = Foo(1, _, _);
+        }"},
+        &expect![[r##"
+            #1 0-67 "{\n    function Foo(x : Int) : Int { x }\n    let f = Foo(1, _, _);\n}" : Unit
+            #2 0-67 "{\n    function Foo(x : Int) : Int { x }\n    let f = Foo(1, _, _);\n}" : Unit
+            #7 18-27 "(x : Int)" : Int
+            #8 19-26 "x : Int" : Int
+            #16 34-39 "{ x }" : Int
+            #18 36-37 "x" : Int
+            #22 48-49 "f" : Int
+            #24 52-64 "Foo(1, _, _)" : Int
+            #25 52-55 "Foo" : (Int -> Int)
+            #28 55-64 "(1, _, _)" : (Int, ?1, ?2)
+            #29 56-57 "1" : Int
+            #30 59-60 "_" : ?1
+            #31 62-63 "_" : ?2
+            Error(Type(Error(Mismatch(Prim(Int), Tuple([Prim(Int), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 52, hi: 64 }))))
         "##]],
     );
 }
