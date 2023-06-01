@@ -13,6 +13,8 @@ pub(crate) fn get_hover(code: &str, offset: u32) -> Result<JsValue, JsValue> {
     let mut callable_finder = CallableFinder {
         offset,
         header: None,
+        start: 0,
+        end: 0,
     };
     callable_finder.visit_package(&package);
 
@@ -32,6 +34,8 @@ pub(crate) fn get_hover(code: &str, offset: u32) -> Result<JsValue, JsValue> {
 struct CallableFinder {
     offset: u32,
     header: Option<String>,
+    start: u32,
+    end: u32,
 }
 
 impl Visitor<'_> for CallableFinder {
@@ -42,16 +46,33 @@ impl Visitor<'_> for CallableFinder {
                 CallableKind::Operation => "operation",
             };
 
-            let header = format!(
-                "_A callable!_
+            let chars = &['/', ' '];
 
-```qsharp
+            let docs = decl
+                .doc_comments
+                .iter()
+                .map(|c| c.trim_start_matches(chars))
+                .collect::<Vec<_>>();
+            let mut doc_paragraph = String::new();
+            for line in docs {
+                doc_paragraph.push_str(line);
+                doc_paragraph.push('\n');
+            }
+
+            let header = format!(
+                "```qsharp
 {} {}
-```",
-                kind, decl.name.name
+```
+
+{}
+
+",
+                kind, decl.name.name, doc_paragraph
             );
 
             self.header = Some(header);
+            self.start = decl.span.lo;
+            self.end = decl.span.hi;
         }
     }
 }

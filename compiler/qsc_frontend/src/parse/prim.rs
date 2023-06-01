@@ -8,7 +8,7 @@ use super::{keyword::Keyword, scan::Scanner, ty::ty, Error, Parser, Result};
 use crate::lex::{Delim, TokenKind};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
 use qsc_data_structures::span::Span;
-use std::str::FromStr;
+use std::{cell::RefCell, str::FromStr};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum FinalSep {
@@ -28,6 +28,36 @@ impl FinalSep {
         } else {
             as_seq(xs.into_boxed_slice())
         }
+    }
+}
+
+// omg why
+thread_local!(pub(super) static CURRENT_COMMENT: RefCell<Vec<String>> = RefCell::new(Vec::new()));
+
+pub(super) fn consume_comments(s: &mut Scanner) {
+    let mut comments = Vec::new();
+    while let Some(x) = {
+        match comment(s) {
+            Ok(x) => Some(x),
+            Err(_) => None,
+        }
+    } {
+        comments.push(x);
+    }
+
+    if !comments.is_empty() {
+        CURRENT_COMMENT.with(|c| *c.borrow_mut() = comments);
+    }
+}
+
+pub(super) fn comment(s: &mut Scanner) -> Result<String> {
+    if s.peek().kind == TokenKind::Comment {
+        let comment = s.read();
+        eprintln!("comment: {comment}");
+        s.advance();
+        Ok(comment.to_string())
+    } else {
+        Err(Error::Rule("comment", s.peek().kind, s.peek().span))
     }
 }
 
@@ -144,6 +174,7 @@ pub(super) fn pat(s: &mut Scanner) -> Result<Box<Pat>> {
 }
 
 pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>> {
+    consume_comments(s);
     let offset = s.peek().span.lo;
     match p(s) {
         Ok(x) => Ok(Some(x)),

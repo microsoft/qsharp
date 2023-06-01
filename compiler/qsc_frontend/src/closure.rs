@@ -118,6 +118,7 @@ pub(super) fn lift(
         id: assigner.next_node(),
         span,
         kind,
+        doc_comments: Vec::new(),
         name: Ident {
             id: assigner.next_node(),
             span,

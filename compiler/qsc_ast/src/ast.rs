@@ -295,6 +295,8 @@ pub struct CallableDecl {
     pub span: Span,
     /// The callable kind.
     pub kind: CallableKind,
+    /// The doc comments for the callable.
+    pub doc_comments: Vec<String>,
     /// The name of the callable.
     pub name: Box<Ident>,
     /// The type parameters to the callable.

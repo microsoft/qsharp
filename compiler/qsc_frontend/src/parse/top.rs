@@ -7,7 +7,7 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token},
+    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token, CURRENT_COMMENT},
     scan::Scanner,
     stmt::{self, stmt},
     ty::{self, ty},
@@ -178,6 +178,8 @@ fn callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         Err(Error::Rule("callable declaration", token.kind, token.span))
     }?;
 
+    let doc_comments = CURRENT_COMMENT.with(|c| c.borrow().clone());
+
     let name = ident(s)?;
     let ty_params = if token(s, TokenKind::Lt).is_ok() {
         let params = seq(s, ty::param)?.0;
@@ -201,6 +203,7 @@ fn callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         id: NodeId::default(),
         span: s.span(lo),
         kind,
+        doc_comments,
         name,
         ty_params: ty_params.into_boxed_slice(),
         input,

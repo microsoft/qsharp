@@ -26,6 +26,8 @@ use thiserror::Error;
 pub use keyword::Keyword;
 pub(super) use top::Fragment;
 
+use self::prim::consume_comments;
+
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub(super) enum Error {
     #[error(transparent)]
@@ -72,6 +74,7 @@ impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
 pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
+    consume_comments(&mut scanner);
     match top::namespaces(&mut scanner) {
         Ok(namespaces) => (namespaces, scanner.errors()),
         Err(err) => {

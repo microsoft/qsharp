@@ -210,6 +210,7 @@ impl With<'_> {
             id: self.lower_id(decl.id),
             span: decl.span,
             kind: lower_callable_kind(decl.kind),
+            doc_comments: decl.doc_comments.clone(),
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
             input: self.lower_pat(ast::Mutability::Immutable, &decl.input),

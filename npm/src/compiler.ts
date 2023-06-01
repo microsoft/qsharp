@@ -7,7 +7,12 @@ import type {
   IHover,
 } from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
-import { eventStringToMsg, mapDiagnostics, VSDiagnostic } from "./common.js";
+import {
+  eventStringToMsg,
+  mapDiagnostics,
+  mapUtf16UnitsToUtf8Units,
+  VSDiagnostic,
+} from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
@@ -75,12 +80,19 @@ export class Compiler implements ICompiler {
   }
 
   async getCompletions(code: string, offset: number): Promise<ICompletionList> {
-    // TODO: Pretty sure offsets are going to blow up thanks to utf8-utf16 discrepancy
-    return this.wasm.get_completions(code, offset);
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    console.log(
+      `originalOffset: ${offset} convertedOffset: ${convertedOffset}`
+    );
+    return this.wasm.get_completions(code, convertedOffset);
   }
 
   async getHover(code: string, offset: number) {
-    return this.wasm.get_hover(code, offset);
+    const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
+    console.log(
+      `originalOffset: ${offset} convertedOffset: ${convertedOffset}`
+    );
+    return this.wasm.get_hover(code, convertedOffset);
   }
 
   async run(
