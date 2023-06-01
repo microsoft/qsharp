@@ -7,7 +7,7 @@ use qsc_ast::ast::{
     SetOp, Spec, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, FieldPath, FunctorSet, ItemId, Ty, UdtField};
+use qsc_hir::hir::{self, ArrowTy, FieldPath, FunctorSet, ItemId, Ty, UdtField};
 use std::rc::Rc;
 
 pub(crate) struct MissingTyError(pub(super) Span);
@@ -25,12 +25,12 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             let functors = functors
                 .as_ref()
                 .map_or(FunctorSet::Empty, |f| eval_functor_expr(f.as_ref()));
-            let ty = Ty::Arrow(
-                callable_kind_from_ast(*kind),
-                Box::new(input),
-                Box::new(output),
+            let ty = Ty::Arrow(Box::new(ArrowTy {
+                kind: callable_kind_from_ast(*kind),
+                input: Box::new(input),
+                output: Box::new(output),
                 functors,
-            );
+            }));
             (ty, errors)
         }
         TyKind::Hole => (Ty::Err, vec![MissingTyError(ty.span)]),
@@ -60,12 +60,12 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
 
 pub(super) fn ast_ty_def_cons(names: &Names, id: ItemId, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
     let (input, errors) = ast_ty_def_base(names, def);
-    let ty = Ty::Arrow(
-        hir::CallableKind::Function,
-        Box::new(input),
-        Box::new(Ty::Udt(hir::Res::Item(id))),
-        FunctorSet::Empty,
-    );
+    let ty = Ty::Arrow(Box::new(ArrowTy {
+        kind: hir::CallableKind::Function,
+        input: Box::new(input),
+        output: Box::new(Ty::Udt(hir::Res::Item(id))),
+        functors: FunctorSet::Empty,
+    }));
     (ty, errors)
 }
 
@@ -116,7 +116,12 @@ pub(super) fn ast_callable_ty(names: &Names, decl: &CallableDecl) -> (Ty, Vec<Mi
     let (output, output_errors) = ty_from_ast(names, &decl.output);
     errors.extend(output_errors);
     let functors = ast_callable_functors(decl);
-    let ty = Ty::Arrow(kind, Box::new(input), Box::new(output), functors);
+    let ty = Ty::Arrow(Box::new(ArrowTy {
+        kind,
+        input: Box::new(input),
+        output: Box::new(output),
+        functors,
+    }));
     (ty, errors)
 }
 

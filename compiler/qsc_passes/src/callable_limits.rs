@@ -72,7 +72,7 @@ impl Visitor<'_> for CallableLimits {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Call(callee, _) => {
-                if matches!(callee.ty, Ty::Arrow(CallableKind::Operation, ..)) {
+                if matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation) {
                     self.errors.push(Error::OpCall(expr.span));
                 }
             }

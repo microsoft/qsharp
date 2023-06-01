@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    closure,
+    closure::{self, Lambda, PartialApp},
     resolve::{self, Names},
     typeck::{self, convert},
 };
@@ -15,6 +15,7 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
+    mut_visit::MutVisitor,
 };
 use std::{clone::Clone, rc::Rc, vec};
 use thiserror::Error;
@@ -355,10 +356,15 @@ impl With<'_> {
                 Box::new(self.lower_expr(rhs)),
             ),
             ast::ExprKind::Block(block) => hir::ExprKind::Block(self.lower_block(block)),
-            ast::ExprKind::Call(callee, arg) => hir::ExprKind::Call(
-                Box::new(self.lower_expr(callee)),
-                Box::new(self.lower_expr(arg)),
-            ),
+            ast::ExprKind::Call(callee, arg) => match &ty {
+                hir::Ty::Arrow(arrow) if is_partial_app(arg) => hir::ExprKind::Block(
+                    self.lower_partial_app(callee, arg, (**arrow).clone(), expr.span),
+                ),
+                _ => hir::ExprKind::Call(
+                    Box::new(self.lower_expr(callee)),
+                    Box::new(self.lower_expr(arg)),
+                ),
+            },
             ast::ExprKind::Conjugate(within, apply) => {
                 hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
             }
@@ -385,12 +391,18 @@ impl With<'_> {
                 Box::new(self.lower_expr(index)),
             ),
             ast::ExprKind::Lambda(kind, input, body) => {
-                let functors = if let hir::Ty::Arrow(_, _, _, functors) = ty {
-                    functors
+                let functors = if let hir::Ty::Arrow(arrow) = &ty {
+                    arrow.functors
                 } else {
                     hir::FunctorSet::Empty
                 };
-                self.lower_lambda(*kind, input, body, functors, expr.span)
+                let lambda = Lambda {
+                    kind: lower_callable_kind(*kind),
+                    functors,
+                    input: self.lower_pat(ast::Mutability::Immutable, input),
+                    body: self.lower_expr(body),
+                };
+                self.lower_lambda(lambda, expr.span)
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
@@ -454,27 +466,52 @@ impl With<'_> {
         }
     }
 
-    fn lower_lambda(
+    fn lower_partial_app(
         &mut self,
-        kind: ast::CallableKind,
-        input: &ast::Pat,
-        body: &ast::Expr,
-        functors: hir::FunctorSet,
+        callee: &ast::Expr,
+        arg: &ast::Expr,
+        arrow: hir::ArrowTy,
         span: Span,
-    ) -> hir::ExprKind {
-        let kind = lower_callable_kind(kind);
-        let input = self.lower_pat(ast::Mutability::Immutable, input);
-        let body = self.lower_expr(body);
-        let (args, callable) = closure::lift(
-            self.assigner,
-            &self.lowerer.locals,
-            kind,
-            input,
-            body,
-            functors,
-            span,
-        );
+    ) -> hir::Block {
+        let callee = self.lower_expr(callee);
+        let (arg, app) = self.lower_partial_arg(arg);
+        let close = |mut lambda: Lambda| {
+            self.assigner.visit_expr(&mut lambda.body);
+            self.lower_lambda(lambda, span)
+        };
 
+        let mut block = closure::partial_app_block(close, callee, arg, app, arrow, span);
+        self.assigner.visit_block(&mut block);
+        block
+    }
+
+    fn lower_partial_arg(&mut self, arg: &ast::Expr) -> (hir::Expr, PartialApp) {
+        match arg.kind.as_ref() {
+            ast::ExprKind::Hole => {
+                let ty = self
+                    .tys
+                    .terms
+                    .get(arg.id)
+                    .map_or(hir::Ty::Err, Clone::clone);
+                closure::partial_app_hole(self.assigner, &mut self.lowerer.locals, ty, arg.span)
+            }
+            ast::ExprKind::Paren(inner) => self.lower_partial_arg(inner),
+            ast::ExprKind::Tuple(items) => {
+                let items = items.iter().map(|item| self.lower_partial_arg(item));
+                let (mut arg, mut app) = closure::partial_app_tuple(items, arg.span);
+                self.assigner.visit_expr(&mut arg);
+                self.assigner.visit_pat(&mut app.input);
+                (arg, app)
+            }
+            _ => {
+                let arg = self.lower_expr(arg);
+                closure::partial_app_given(self.assigner, &mut self.lowerer.locals, arg)
+            }
+        }
+    }
+
+    fn lower_lambda(&mut self, lambda: Lambda, span: Span) -> hir::ExprKind {
+        let (args, callable) = closure::lift(self.assigner, &self.lowerer.locals, lambda, span);
         if args.iter().any(|&arg| self.is_mutable(arg)) {
             self.lowerer.errors.push(Error::MutableClosure(span));
         }
@@ -703,5 +740,14 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
     match functor {
         ast::Functor::Adj => hir::Functor::Adj,
         ast::Functor::Ctl => hir::Functor::Ctl,
+    }
+}
+
+fn is_partial_app(arg: &ast::Expr) -> bool {
+    match arg.kind.as_ref() {
+        ast::ExprKind::Hole => true,
+        ast::ExprKind::Paren(inner) => is_partial_app(inner),
+        ast::ExprKind::Tuple(items) => items.iter().any(|i| is_partial_app(i)),
+        _ => false,
     }
 }

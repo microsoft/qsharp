@@ -11,4 +11,3 @@ mod lower;
 mod parse;
 pub mod resolve;
 pub mod typeck;
-mod validate;
