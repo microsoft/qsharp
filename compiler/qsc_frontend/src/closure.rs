@@ -6,8 +6,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSet, Ident, Mutability, NodeId,
-        Pat, PatKind, Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
+        ArrowTy, Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSet, Ident, Mutability,
+        NodeId, Pat, PatKind, Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
     },
     mut_visit::{self, MutVisitor},
     visit::{self, Visitor},
@@ -26,7 +26,7 @@ pub(super) struct Lambda {
 
 pub(super) struct PartialApp {
     pub(super) bindings: Vec<Stmt>,
-    pub(super) input: Option<Pat>,
+    pub(super) input: Pat,
 }
 
 struct VarFinder {
@@ -174,30 +174,25 @@ pub(super) fn partial_app_block(
     callee: Expr,
     arg: Expr,
     app: PartialApp,
-    ty: Ty,
+    arrow: ArrowTy,
     span: Span,
 ) -> Block {
-    let input = app.input.expect("partial application should have input");
-    let Ty::Arrow(kind, _, output, functors) = &ty else {
-        panic!("partial application should have arrow type");
-    };
-
     let call = Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::clone(output),
+        ty: (*arrow.output).clone(),
         kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
     };
     let lambda = Lambda {
-        kind: *kind,
-        functors: *functors,
-        input,
+        kind: arrow.kind,
+        functors: arrow.functors,
+        input: app.input,
         body: call,
     };
     let closure = Expr {
         id: NodeId::default(),
         span,
-        ty: ty.clone(),
+        ty: Ty::Arrow(Box::new(arrow.clone())),
         kind: close(lambda),
     };
 
@@ -210,7 +205,7 @@ pub(super) fn partial_app_block(
     Block {
         id: NodeId::default(),
         span,
-        ty,
+        ty: Ty::Arrow(Box::new(arrow)),
         stmts,
     }
 }
@@ -230,7 +225,7 @@ pub(super) fn partial_app_hole(
 
     let app = PartialApp {
         bindings: Vec::new(),
-        input: Some(Pat {
+        input: Pat {
             id: assigner.next_node(),
             span,
             ty: ty.clone(),
@@ -239,7 +234,7 @@ pub(super) fn partial_app_hole(
                 span,
                 name: "hole".into(),
             }),
-        }),
+        },
     };
 
     let var = Expr {
@@ -264,16 +259,17 @@ pub(super) fn partial_app_given(
     };
     locals.insert(local_id, local);
 
+    let span = arg.span;
     let var = Expr {
         id: assigner.next_node(),
-        span: arg.span,
+        span,
         ty: arg.ty.clone(),
         kind: ExprKind::Var(Res::Local(local_id)),
     };
 
     let binding_pat = Pat {
         id: assigner.next_node(),
-        span: arg.span,
+        span,
         ty: arg.ty.clone(),
         kind: PatKind::Bind(Ident {
             id: local_id,
@@ -283,12 +279,17 @@ pub(super) fn partial_app_given(
     };
     let binding_stmt = Stmt {
         id: assigner.next_node(),
-        span: arg.span,
+        span,
         kind: StmtKind::Local(Mutability::Immutable, binding_pat, arg),
     };
     let app = PartialApp {
         bindings: vec![binding_stmt],
-        input: None,
+        input: Pat {
+            id: assigner.next_node(),
+            span,
+            ty: Ty::UNIT,
+            kind: PatKind::Tuple(Vec::new()),
+        },
     };
 
     (var, app)
@@ -304,20 +305,20 @@ pub(super) fn partial_app_tuple(
     for (arg, mut app) in args {
         items.push(arg);
         bindings.append(&mut app.bindings);
-        if let Some(input) = app.input {
-            holes.push(input);
+        if !matches!(&app.input.kind, PatKind::Tuple(items) if items.is_empty()) {
+            holes.push(app.input);
         }
     }
 
-    let input = if holes.len() > 1 {
-        Some(Pat {
+    let input = if holes.len() == 1 {
+        holes.pop().expect("holes should have one element")
+    } else {
+        Pat {
             id: NodeId::default(),
             span,
             ty: Ty::Tuple(holes.iter().map(|h| h.ty.clone()).collect()),
             kind: PatKind::Tuple(holes),
-        })
-    } else {
-        holes.pop()
+        }
     };
 
     let expr = Expr {
