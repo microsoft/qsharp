@@ -1232,3 +1232,26 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                         <no ctl-adj>"#]],
     );
 }
+
+#[test]
+fn body_missing_should_fail() {
+    check_errors(
+        indoc! {"
+        namespace test {
+            operation A(q : Qubit) : Unit is Adj {
+                adjoint ... {}
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                MissingBody(
+                    Span {
+                        lo: 21,
+                        hi: 88,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

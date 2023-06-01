@@ -47,29 +47,6 @@ fn generate_specs_body_intrinsic_should_fail() {
 }
 
 #[test]
-fn generate_specs_body_missing_should_fail() {
-    check(
-        indoc! {"
-        namespace test {
-            operation A(q : Qubit) : Unit is Adj {
-                adjoint ... {}
-            }
-        }
-        "},
-        &expect![[r#"
-            [
-                MissingBody(
-                    Span {
-                        lo: 21,
-                        hi: 88,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn generate_ctl() {
     check(
         indoc! {"
