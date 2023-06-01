@@ -11,12 +11,12 @@ use wasm_bindgen::prelude::*;
 pub(crate) fn get_definition(
     source_path: &str,
     code: &str,
-    offset: u32,
+    offset: u32, // TODO: return a range
 ) -> Result<JsValue, JsValue> {
-    let (std_package, package, source_map, _, _) = get_compilation(source_path, code);
+    let (_, package, source_map, _, _) = get_compilation(source_path, code);
 
     let mut definition_finder = DefinitionFinder {
-        std_package: &std_package,
+        //std_package: &std_package,
         package: &package,
         source_map: &source_map,
         offset,
@@ -38,7 +38,7 @@ pub(crate) fn get_definition(
 }
 
 struct DefinitionFinder<'a> {
-    std_package: &'a Package,
+    //std_package: &'a Package,
     package: &'a Package,
     source_map: &'a SourceMap,
     offset: u32,

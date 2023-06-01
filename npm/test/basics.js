@@ -73,7 +73,7 @@ test("one syntax error", async () => {
 test("completions include CNOT", async () => {
   const compiler = getCompiler();
 
-  let results = await compiler.getCompletions("", 1);
+  let results = await compiler.getCompletions("<source>", "", 0);
   let cnot = results.items.find((x) => x.label === "CNOT");
   assert.ok(cnot, `items are ${results.items.map((i) => i.label).join(", ")}`);
 });
@@ -245,8 +245,13 @@ test("Run samples", async () => {
 
   compiler.terminate();
   assert.equal(resultsHandler.resultCount(), samples.length);
-  resultsHandler.getResults().forEach((result) => {
-    assert(result.success);
+  resultsHandler.getResults().forEach((result, i) => {
+    assert(
+      result.success,
+      `sample ${i}: ${samples[i].title} failed, result: ${JSON.stringify(
+        result.result
+      )}`
+    );
   });
 });
 

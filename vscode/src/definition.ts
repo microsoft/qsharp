@@ -24,12 +24,12 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
   ) {
     this.output.appendLine("requesting definition...");
     const definition = await this.compiler.getDefinition(
-      document.uri.fsPath,
+      document.uri.toString(),
       document.getText(),
       document.offsetAt(position)
     );
 
-    const uri = vscode.Uri.file(definition.source);
+    const uri = vscode.Uri.parse(definition.source);
     // We have to do this to map the position :(
     const definitionPosition = (
       await vscode.workspace.openTextDocument(uri)

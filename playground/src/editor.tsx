@@ -118,6 +118,89 @@ export function Editor(props: {
       lineNumbersMinChars: 3,
     });
 
+    monaco.languages.registerCompletionItemProvider("qsharp", {
+      provideCompletionItems: async (
+        model: monaco.editor.ITextModel,
+        position: monaco.Position
+      ) => {
+        const completions = await props.compiler.getCompletions(
+          model.uri.toString(),
+          model.getValue(),
+          model.getOffsetAt(position)
+        );
+        return {
+          suggestions: completions.items.map((i) => {
+            return {
+              label: i.label,
+              kind: i.kind,
+              insertText: i.label,
+              range: {
+                startLineNumber: position.lineNumber,
+                startColumn: position.column,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column,
+              },
+            };
+          }),
+        };
+      },
+    });
+
+    monaco.languages.registerHoverProvider("qsharp", {
+      provideHover: async (
+        model: monaco.editor.ITextModel,
+        position: monaco.Position
+      ) => {
+        const hover = await props.compiler.getHover(
+          model.uri.toString(),
+          model.getValue(),
+          model.getOffsetAt(position)
+        );
+
+        const start = model.getPositionAt(hover.span.start);
+        const end = model.getPositionAt(hover.span.end);
+
+        return {
+          contents: [{ value: hover.contents }],
+          range: {
+            startLineNumber: start.lineNumber,
+            startColumn: start.column,
+            endLineNumber: end.lineNumber,
+            endColumn: end.column,
+          },
+        };
+      },
+    });
+
+    monaco.languages.registerDefinitionProvider("qsharp", {
+      provideDefinition: async (
+        model: monaco.editor.ITextModel,
+        position: monaco.Position
+      ) => {
+        const definition = await props.compiler.getDefinition(
+          model.uri.toString(),
+          model.getValue(),
+          model.getOffsetAt(position)
+        );
+
+        const uri = monaco.Uri.parse(definition.source);
+        const definitionPosition =
+          uri.toString() === model.uri.toString()
+            ? model.getPositionAt(definition.offset)
+            : { lineNumber: 1, column: 1 };
+        return {
+          uri,
+          range: {
+            startLineNumber: definitionPosition.lineNumber,
+            startColumn: definitionPosition.column,
+            // TODO: get accurate range from language service
+            endLineNumber: definitionPosition.lineNumber,
+            endColumn: definitionPosition.column + 1,
+          },
+        };
+      },
+    });
+
     editor.current = newEditor;
     const srcModel = monaco.editor.createModel(props.code, "qsharp");
     newEditor.setModel(srcModel);

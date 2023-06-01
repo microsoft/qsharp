@@ -9,7 +9,7 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{ident, keyword, opt, pat, path, seq, token},
+    prim::{consume_comments, ident, keyword, opt, pat, path, seq, token},
     scan::Scanner,
     stmt, Error, Result,
 };
@@ -213,6 +213,8 @@ fn expr_if(s: &mut Scanner) -> Result<Box<ExprKind>> {
     let cond = expr(s)?;
     let body = stmt::block(s)?;
     let lo = s.peek().span.lo;
+
+    consume_comments(s);
 
     let otherwise = if keyword(s, Keyword::Elif).is_ok() {
         Some(expr_if(s)?)
