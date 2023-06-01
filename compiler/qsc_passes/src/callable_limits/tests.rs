@@ -17,11 +17,7 @@ fn check(file: &str, expect: &Expect) {
     let mut call_limits = CallableLimits::default();
     call_limits.visit_package(&unit.package);
     let errors = call_limits.errors;
-    if errors.is_empty() {
-        expect.assert_eq(&unit.package.to_string());
-    } else {
-        expect.assert_debug_eq(&errors);
-    }
+    expect.assert_debug_eq(&errors);
 }
 
 #[test]

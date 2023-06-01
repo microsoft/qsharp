@@ -99,7 +99,10 @@ impl Compiler {
         };
 
         if matches!(fragment, Some(Fragment::Error(..))) {
-            self.lowerer.drain_items();
+            // In the error case, we should not return items up to the caller since them cannot
+            // safely be used by later parts of the compilation. Clear them here to prevent
+            // them from persisting into the next invocation of `compile_fragment`.
+            self.lowerer.clear_items();
             fragment.into_iter().collect()
         } else {
             self.lowerer
