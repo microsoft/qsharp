@@ -45,8 +45,17 @@ pub fn compile(
 #[must_use]
 pub fn core() -> CompileUnit {
     let mut unit = qsc_frontend::compile::core();
-    run_core_passes(&mut unit);
-    unit
+    let pass_errors = run_core_passes(&mut unit);
+    if pass_errors.is_empty() {
+        unit
+    } else {
+        for error in pass_errors {
+            let report = Report::new(WithSource::from_map(&unit.sources, error, None));
+            eprintln!("{report:?}");
+        }
+
+        panic!("could not compile standard library")
+    }
 }
 
 /// Compiles the standard library.

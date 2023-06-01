@@ -3,14 +3,15 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
+mod borrowck;
 mod common;
-pub mod conjugate_invert;
+mod conjugate_invert;
 pub mod entry_point;
 mod invert_block;
 mod logic_sep;
-pub mod loop_unification;
-pub mod replace_qubit_allocation;
-pub mod spec_gen;
+mod loop_unification;
+mod replace_qubit_allocation;
+mod spec_gen;
 
 use loop_unification::LoopUni;
 use miette::Diagnostic;
@@ -20,6 +21,7 @@ use qsc_hir::{
     global::{self, Table},
     hir::{Item, ItemKind},
     mut_visit::MutVisitor,
+    visit::Visitor,
 };
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
@@ -28,6 +30,7 @@ use thiserror::Error;
 #[diagnostic(transparent)]
 #[error(transparent)]
 pub enum Error {
+    BorrowCk(borrowck::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
     ConjInvert(conjugate_invert::Error),
@@ -35,7 +38,12 @@ pub enum Error {
 
 /// Run the default set of passes required for evaluation.
 pub fn run_default_passes(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
+    let mut borrow_check = borrowck::Checker::default();
+    borrow_check.visit_package(&unit.package);
+    let borrow_errors = borrow_check.errors;
+
     let spec_errors = spec_gen::generate_specs(core, unit);
+
     let conjugate_errors = conjugate_invert::invert_conjugate_exprs(core, unit);
 
     LoopUni {
@@ -45,14 +53,19 @@ pub fn run_default_passes(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     .visit_package(&mut unit.package);
     ReplaceQubitAllocation::new(core, &mut unit.assigner).visit_package(&mut unit.package);
 
-    spec_errors
+    borrow_errors
         .into_iter()
-        .map(Error::SpecGen)
+        .map(Error::BorrowCk)
+        .chain(spec_errors.into_iter().map(Error::SpecGen))
         .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
         .collect()
 }
 
-pub fn run_core_passes(core: &mut CompileUnit) {
+pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
+    let mut borrow_check = borrowck::Checker::default();
+    borrow_check.visit_package(&core.package);
+    let borrow_errors = borrow_check.errors;
+
     let table = global::iter_package(None, &core.package).collect();
     LoopUni {
         core: &table,
@@ -60,6 +73,8 @@ pub fn run_core_passes(core: &mut CompileUnit) {
     }
     .visit_package(&mut core.package);
     ReplaceQubitAllocation::new(&table, &mut core.assigner).visit_package(&mut core.package);
+
+    borrow_errors.into_iter().map(Error::BorrowCk).collect()
 }
 
 pub fn run_default_passes_for_fragment(
@@ -71,6 +86,10 @@ pub fn run_default_passes_for_fragment(
 
     match fragment {
         Fragment::Stmt(stmt) => {
+            let mut borrow_check = borrowck::Checker::default();
+            borrow_check.visit_stmt(stmt);
+            errors.extend(borrow_check.errors.into_iter().map(Error::BorrowCk));
+
             errors.extend(
                 conjugate_invert::invert_conjugate_exprs_for_stmt(core, assigner, stmt)
                     .into_iter()
@@ -83,6 +102,10 @@ pub fn run_default_passes_for_fragment(
             kind: ItemKind::Callable(decl),
             ..
         }) => {
+            let mut borrow_check = borrowck::Checker::default();
+            borrow_check.visit_callable_decl(decl);
+            errors.extend(borrow_check.errors.into_iter().map(Error::BorrowCk));
+
             errors.extend(
                 spec_gen::generate_specs_for_callable(core, assigner, decl)
                     .into_iter()
