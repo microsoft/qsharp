@@ -352,13 +352,15 @@ impl With<'_> {
                 Box::new(self.lower_expr(rhs)),
             ),
             ast::ExprKind::Block(block) => hir::ExprKind::Block(self.lower_block(block)),
-            ast::ExprKind::Call(callee, arg) if is_partial_app(arg) => {
-                hir::ExprKind::Block(self.lower_partial_app(callee, arg, ty.clone(), expr.span))
-            }
-            ast::ExprKind::Call(callee, arg) => hir::ExprKind::Call(
-                Box::new(self.lower_expr(callee)),
-                Box::new(self.lower_expr(arg)),
-            ),
+            ast::ExprKind::Call(callee, arg) => match &ty {
+                hir::Ty::Arrow(arrow) if is_partial_app(arg) => hir::ExprKind::Block(
+                    self.lower_partial_app(callee, arg, (**arrow).clone(), expr.span),
+                ),
+                _ => hir::ExprKind::Call(
+                    Box::new(self.lower_expr(callee)),
+                    Box::new(self.lower_expr(arg)),
+                ),
+            },
             ast::ExprKind::Conjugate(within, apply) => {
                 hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
             }
@@ -385,8 +387,8 @@ impl With<'_> {
                 Box::new(self.lower_expr(index)),
             ),
             ast::ExprKind::Lambda(kind, input, body) => {
-                let functors = if let hir::Ty::Arrow(_, _, _, functors) = ty {
-                    functors
+                let functors = if let hir::Ty::Arrow(arrow) = &ty {
+                    arrow.functors
                 } else {
                     hir::FunctorSet::Empty
                 };
@@ -464,7 +466,7 @@ impl With<'_> {
         &mut self,
         callee: &ast::Expr,
         arg: &ast::Expr,
-        ty: hir::Ty,
+        arrow: hir::ArrowTy,
         span: Span,
     ) -> hir::Block {
         let callee = self.lower_expr(callee);
@@ -474,7 +476,7 @@ impl With<'_> {
             self.lower_lambda(lambda, span)
         };
 
-        let mut block = closure::partial_app_block(close, callee, arg, app, ty, span);
+        let mut block = closure::partial_app_block(close, callee, arg, app, arrow, span);
         self.assigner.visit_block(&mut block);
         block
     }
@@ -494,9 +496,7 @@ impl With<'_> {
                 let items = items.iter().map(|item| self.lower_partial_arg(item));
                 let (mut arg, mut app) = closure::partial_app_tuple(items, arg.span);
                 self.assigner.visit_expr(&mut arg);
-                if let Some(input) = &mut app.input {
-                    self.assigner.visit_pat(input);
-                }
+                self.assigner.visit_pat(&mut app.input);
                 (arg, app)
             }
             _ => {

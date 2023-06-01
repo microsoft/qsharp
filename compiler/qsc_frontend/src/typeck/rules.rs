@@ -12,7 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, FunctorSet, ItemId, PrimTy, Ty, Udt};
+use qsc_hir::hir::{self, ArrowTy, FunctorSet, ItemId, PrimTy, Ty, Udt};
 use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -85,14 +85,14 @@ impl<'a> Context<'a> {
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
         match &*ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
-            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
-                convert::callable_kind_from_ast(*kind),
-                Box::new(self.infer_ty(input)),
-                Box::new(self.infer_ty(output)),
-                functors.as_ref().map_or(FunctorSet::Empty, |f| {
+            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(Box::new(ArrowTy {
+                kind: convert::callable_kind_from_ast(*kind),
+                input: Box::new(self.infer_ty(input)),
+                output: Box::new(self.infer_ty(output)),
+                functors: functors.as_ref().map_or(FunctorSet::Empty, |f| {
                     convert::eval_functor_expr(f.as_ref())
                 }),
-            ),
+            })),
             TyKind::Hole => self.inferrer.fresh_ty(),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.names.get(path.id) {
@@ -300,12 +300,12 @@ impl<'a> Context<'a> {
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
                 let body = self.infer_expr(body).ty;
-                converge(Ty::Arrow(
-                    convert::callable_kind_from_ast(*kind),
-                    Box::new(input),
-                    Box::new(body),
-                    self.inferrer.fresh_functor(),
-                ))
+                converge(Ty::Arrow(Box::new(ArrowTy {
+                    kind: convert::callable_kind_from_ast(*kind),
+                    input: Box::new(input),
+                    output: Box::new(body),
+                    functors: self.inferrer.fresh_functor(),
+                })))
             }
             ExprKind::Lit(lit) => match lit.as_ref() {
                 Lit::BigInt(_) => converge(Ty::Prim(PrimTy::BigInt)),

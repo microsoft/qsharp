@@ -147,7 +147,7 @@ impl<'a> Visitor<'a> for SepCheck {
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         if let ExprKind::Call(callee, _) = &expr.kind {
-            if matches!(callee.ty, Ty::Arrow(CallableKind::Operation, _, _, _)) {
+            if matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation) {
                 self.errors.push(Error::OpCallForbidden(expr.span));
             }
         }
@@ -192,7 +192,8 @@ impl SepCheck {
     }
 
     fn handle_call(&mut self, expr: &Expr, callee: &Expr, args: &Expr, prior: bool) -> bool {
-        let is_op_call = matches!(callee.ty, Ty::Arrow(CallableKind::Operation, _, _, _));
+        let is_op_call =
+            matches!(&callee.ty, Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation);
         self.op_call_allowed = false;
         self.visit_expr(callee);
         self.visit_expr(args);

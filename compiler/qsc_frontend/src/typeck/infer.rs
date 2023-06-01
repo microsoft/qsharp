@@ -4,7 +4,7 @@
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{
-    Functor, FunctorSet, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt,
+    ArrowTy, Functor, FunctorSet, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt,
 };
 use std::{
     collections::{HashMap, HashSet, VecDeque},
@@ -342,9 +342,9 @@ impl Inferrer {
             match ty {
                 Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
                 Ty::Array(item) => freshen(solver, params, item),
-                Ty::Arrow(_, input, output, _) => {
-                    freshen(solver, params, input);
-                    freshen(solver, params, output);
+                Ty::Arrow(arrow) => {
+                    freshen(solver, params, &mut arrow.input);
+                    freshen(solver, params, &mut arrow.output);
                 }
                 Ty::Param(name) => {
                     *ty = params
@@ -471,22 +471,18 @@ impl<'a> Solver<'a> {
             | (Ty::Udt(Res::Err), Ty::Udt(_))
             | (Ty::Udt(_), Ty::Udt(Res::Err)) => Vec::new(),
             (Ty::Array(item1), Ty::Array(item2)) => self.unify(item1, item2, span),
-            (
-                Ty::Arrow(kind1, input1, output1, functors1),
-                Ty::Arrow(kind2, input2, output2, functors2),
-            ) => {
-                if kind1 != kind2 {
+            (Ty::Arrow(arrow1), Ty::Arrow(arrow2)) => {
+                if arrow1.kind != arrow2.kind {
                     self.errors
                         .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
                 }
 
-                let mut constraints = self.unify(input1, input2, span);
-                constraints.append(&mut self.unify(output1, output2, span));
+                let mut constraints = self.unify(&arrow1.input, &arrow2.input, span);
+                constraints.append(&mut self.unify(&arrow1.output, &arrow2.output, span));
 
-                match (functors1, functors2) {
+                match (arrow1.functors, arrow2.functors) {
                     (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
-                    (&FunctorSet::Infer(infer), &functors)
-                    | (&functors, &FunctorSet::Infer(infer)) => {
+                    (FunctorSet::Infer(infer), functors) | (functors, FunctorSet::Infer(infer)) => {
                         constraints.append(&mut self.bind_functor(infer, functors, span));
                     }
                     _ => {
@@ -563,10 +559,10 @@ pub(super) fn substitute_ty(solution: &Solution, ty: &mut Ty) {
     match ty {
         Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => {}
         Ty::Array(item) => substitute_ty(solution, item),
-        Ty::Arrow(_, input, output, functors) => {
-            substitute_ty(solution, input);
-            substitute_ty(solution, output);
-            substitute_functor(solution, functors);
+        Ty::Arrow(arrow) => {
+            substitute_ty(solution, &mut arrow.input);
+            substitute_ty(solution, &mut arrow.output);
+            substitute_functor(solution, &mut arrow.functors);
         }
         Ty::Tuple(items) => {
             for item in items {
@@ -609,8 +605,8 @@ fn contains_infer_ty(id: InferTy, ty: &Ty) -> bool {
     match ty {
         Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => false,
         Ty::Array(item) => contains_infer_ty(id, item),
-        Ty::Arrow(_, input, output, _) => {
-            contains_infer_ty(id, input) || contains_infer_ty(id, output)
+        Ty::Arrow(arrow) => {
+            contains_infer_ty(id, &arrow.input) || contains_infer_ty(id, &arrow.output)
         }
         Ty::Infer(other_id) => id == *other_id,
         Ty::Tuple(items) => items.iter().any(|ty| contains_infer_ty(id, ty)),
@@ -626,8 +622,8 @@ fn check_add(ty: &Ty) -> bool {
 
 fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
-        Ty::Arrow(_, _, _, functors) => (
-            vec![Constraint::Functor(Functor::Adj, functors, span)],
+        Ty::Arrow(arrow) => (
+            vec![Constraint::Functor(Functor::Adj, arrow.functors, span)],
             Vec::new(),
         ),
         _ => (
@@ -638,7 +634,7 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
-    let Ty::Arrow(kind, callee_input, callee_output, functors) = callee else {
+    let Ty::Arrow(arrow) = callee else {
         return (Vec::new(), vec![Error(ErrorKind::MissingClass(
             Class::Call {
                 callee,
@@ -649,14 +645,23 @@ fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constrai
         ))]);
     };
 
-    let mut app = input.apply(&callee_input, span);
+    let mut app = input.apply(&arrow.input, span);
     let expected = if app.holes.len() > 1 {
-        let holes = Ty::Tuple(app.holes);
-        Ty::Arrow(kind, Box::new(holes), callee_output, functors)
+        Ty::Arrow(Box::new(ArrowTy {
+            kind: arrow.kind,
+            input: Box::new(Ty::Tuple(app.holes)),
+            output: arrow.output,
+            functors: arrow.functors,
+        }))
     } else if let Some(hole) = app.holes.pop() {
-        Ty::Arrow(kind, Box::new(hole), callee_output, functors)
+        Ty::Arrow(Box::new(ArrowTy {
+            kind: arrow.kind,
+            input: Box::new(hole),
+            output: arrow.output,
+            functors: arrow.functors,
+        }))
     } else {
-        *callee_output
+        *arrow.output
     };
 
     app.constraints.push(Constraint::Eq {
@@ -668,7 +673,7 @@ fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constrai
 }
 
 fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
-    let Ty::Arrow(kind, input, output, functors) = op else {
+    let Ty::Arrow(arrow) = op else {
         return (
             Vec::new(),
             vec![Error(ErrorKind::MissingClass(
@@ -679,12 +684,17 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     };
 
     let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
-    let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *input]));
+    let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *arrow.input]));
     (
         vec![
-            Constraint::Functor(Functor::Ctl, functors, span),
+            Constraint::Functor(Functor::Ctl, arrow.functors, span),
             Constraint::Eq {
-                expected: Ty::Arrow(kind, ctl_input, output, functors),
+                expected: Ty::Arrow(Box::new(ArrowTy {
+                    kind: arrow.kind,
+                    input: ctl_input,
+                    output: arrow.output,
+                    functors: arrow.functors,
+                })),
                 actual: with_ctls,
                 span,
             },
