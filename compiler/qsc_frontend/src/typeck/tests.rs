@@ -2683,7 +2683,7 @@ fn typed_hole_error_concrete_type() {
             #2 0-1 "_" : Int
             #3 4-5 "3" : Int
             Error(Type(Error(TyHole(Prim(Int), Span { lo: 0, hi: 1 }))))
-        "##]]
+        "##]],
     );
 }
 
@@ -2698,6 +2698,6 @@ fn typed_hole_error_ambiguous_type() {
             #3 1-4 "(3)" : Int
             #4 2-3 "3" : Int
             Error(Type(Error(TyHole(Infer(InferTy(0)), Span { lo: 0, hi: 1 }))))
-        "##]]
+        "##]],
     );
 }
