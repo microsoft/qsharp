@@ -375,9 +375,9 @@ fn insert_core_call() {
                             Stmt 7 [0-0]: Semi: Expr 8 [0-0] [Type Qubit]: Call:
                                 Expr 9 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                 Expr 10 [0-0] [Type Unit]: Unit
-                    <no adj>
-                    <no ctl>
-                    <no ctl-adj>"#]]
+                    adj: <none>
+                    ctl: <none>
+                    ctl-adj: <none>"#]]
     .assert_eq(&unit.package.to_string());
 }
 

@@ -341,15 +341,15 @@ impl Display for CallableDecl {
         write!(indent, "\nbody: {}", self.body)?;
         match &self.adj {
             Some(spec) => write!(indent, "\nadj: {spec}")?,
-            None => write!(indent, "\n<no adj>")?,
+            None => write!(indent, "\nadj: <none>")?,
         }
         match &self.ctl {
             Some(spec) => write!(indent, "\nctl: {spec}")?,
-            None => write!(indent, "\n<no ctl>")?,
+            None => write!(indent, "\nctl: <none>")?,
         }
         match &self.ctladj {
             Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
-            None => write!(indent, "\n<no ctl-adj>")?,
+            None => write!(indent, "\nctl-adj: <none>")?,
         }
         Ok(())
     }

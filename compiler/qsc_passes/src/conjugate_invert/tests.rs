@@ -55,9 +55,9 @@ fn conjugate_invert() {
                         body: SpecDecl 4 [21-58] (Body): Impl:
                             Pat 5 [21-58] [Type Int]: Elided
                             Block 6 [56-58]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [63-216] (Public):
                     Parent: 0
                     Callable 7 [63-216] (Operation):
@@ -95,9 +95,9 @@ fn conjugate_invert() {
                                                 Expr 18 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
                                             Expr 19 [117-118] [Type Int]: Lit: Int(1)
                                     Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 34
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -135,9 +135,9 @@ fn conjugate_invert_with_output() {
                         body: SpecDecl 4 [21-58] (Body): Impl:
                             Pat 5 [21-58] [Type Int]: Elided
                             Block 6 [56-58]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [63-252] (Public):
                     Parent: 0
                     Callable 7 [63-252] (Operation):
@@ -179,9 +179,9 @@ fn conjugate_invert_with_output() {
                                                 Expr 21 [126-127] [Type Int]: Lit: Int(1)
                                         Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Int]: Var: Local 40
                                 Stmt 37 [243-246]: Expr: Expr 38 [243-246] [Type Int]: Var: Local 15
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -224,9 +224,9 @@ fn nested_conjugate_invert() {
                         body: SpecDecl 4 [21-58] (Body): Impl:
                             Pat 5 [21-58] [Type Int]: Elided
                             Block 6 [56-58]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [63-355] (Public):
                     Parent: 0
                     Callable 7 [63-355] (Operation):
@@ -313,9 +313,9 @@ fn nested_conjugate_invert() {
                                                 Expr 18 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
                                             Expr 19 [117-118] [Type Int]: Lit: Int(0)
                                     Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 50
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -494,9 +494,9 @@ fn conjugate_mutable_correct_use_succeeds() {
                         body: SpecDecl 4 [21-58] (Body): Impl:
                             Pat 5 [21-58] [Type Int]: Elided
                             Block 6 [56-58]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [63-312] (Public):
                     Parent: 0
                     Callable 7 [63-312] (Operation):
@@ -549,8 +549,8 @@ fn conjugate_mutable_correct_use_succeeds() {
                                                 Expr 26 [161-162] [Type (Int => Unit is Adj)]: Var: Item 1
                                             Expr 27 [163-164] [Type Int]: Lit: Int(1)
                                     Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 50
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }

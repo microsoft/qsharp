@@ -78,9 +78,9 @@ fn convert_for_array() {
                                             Stmt _id_ [75-78]: Semi: Expr _id_ [75-78] [Type Unit]: AssignOp (Add):
                                                 Expr _id_ [75-78] [Type Int]: Var: Local 20
                                                 Expr _id_ [75-78] [Type Int]: Lit: Int(1)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -141,9 +141,9 @@ fn convert_for_array_deconstruct() {
                                             Stmt _id_ [90-93]: Semi: Expr _id_ [90-93] [Type Unit]: AssignOp (Add):
                                                 Expr _id_ [90-93] [Type Int]: Var: Local 23
                                                 Expr _id_ [90-93] [Type Int]: Lit: Int(1)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -208,9 +208,9 @@ fn convert_for_slice() {
                                             Stmt _id_ [75-88]: Semi: Expr _id_ [75-88] [Type Unit]: AssignOp (Add):
                                                 Expr _id_ [75-88] [Type Int]: Var: Local 26
                                                 Expr _id_ [75-88] [Type Int]: Lit: Int(1)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -289,9 +289,9 @@ fn convert_for_range() {
                                             Stmt _id_ [64-68]: Semi: Expr _id_ [64-68] [Type Unit]: AssignOp (Add):
                                                 Expr _id_ [64-68] [Type Int]: Var: Local 20
                                                 Expr _id_ [64-68] [Type Int]: Var: Local 21
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -371,9 +371,9 @@ fn convert_for_reverse_range() {
                                             Stmt _id_ [64-72]: Semi: Expr _id_ [64-72] [Type Unit]: AssignOp (Add):
                                                 Expr _id_ [64-72] [Type Int]: Var: Local 22
                                                 Expr _id_ [64-72] [Type Int]: Var: Local 23
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -418,9 +418,9 @@ fn convert_repeat() {
                                                 Expr _id_ [115-119] [Type Bool]: Var: Local 15
                                                 Expr _id_ [115-119] [Type Bool]: UnOp (NotL):
                                                     Expr 13 [115-119] [Type Bool]: Lit: Bool(true)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -475,9 +475,9 @@ fn convert_repeat_fixup() {
                                                         Pat 16 [152-153] [Type String]: Bind: Ident 17 [152-153] "y"
                                                         Expr 18 [156-163] [Type String]: String:
                                                             Lit: "Fixup"
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -580,8 +580,8 @@ fn convert_repeat_nested() {
                                                                     Expr _id_ [383-384] [Type Bool]: Var: Local 46
                                                                     Expr _id_ [383-384] [Type Bool]: UnOp (NotL):
                                                                         Expr 43 [383-384] [Type Bool]: Var: Local 16
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }

@@ -130,9 +130,9 @@ fn lift_local_function() {
                                     Expr 22 [106-111] [Type Int]: BinOp (Add):
                                         Expr 23 [106-107] [Type Int]: Var: Local 3
                                         Expr 24 [110-111] [Type Int]: Lit: Int(2)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [56-93] (Internal):
                     Parent: 1
                     Callable 8 [56-93] (Function):
@@ -146,9 +146,9 @@ fn lift_local_function() {
                                 Stmt 15 [86-91]: Expr: Expr 16 [86-91] [Type Int]: BinOp (Add):
                                     Expr 17 [86-87] [Type Int]: Var: Local 11
                                     Expr 18 [90-91] [Type Int]: Lit: Int(1)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -185,9 +185,9 @@ fn lift_local_operation() {
                                 Stmt 20 [129-135]: Expr: Expr 21 [129-135] [Type Result]: Call:
                                     Expr 22 [129-132] [Type (Qubit => Result)]: Var: Item 2
                                     Expr 23 [133-134] [Type Qubit]: Var: Local 18
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [53-95] (Internal):
                     Parent: 1
                     Callable 7 [53-95] (Operation):
@@ -199,9 +199,9 @@ fn lift_local_operation() {
                             Pat 12 [53-95] [Type Qubit]: Elided
                             Block 13 [87-95] [Type Result]:
                                 Stmt 14 [89-93]: Expr: Expr 15 [89-93] [Type Result]: Lit: Result(Zero)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -239,9 +239,9 @@ fn lift_local_newtype() {
                                         Expr 13 [88-89] [Type Int]: Lit: Int(5)
                                 Stmt 14 [100-102]: Expr: Expr 15 [100-102] [Type Int]: UnOp (Unwrap):
                                     Expr 16 [100-101] [Type UDT<Item 2>]: Var: Local 10
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [49-67] (Internal):
                     Parent: 1
                     Type (Ident 7 [57-60] "Bar"): Udt:
@@ -281,9 +281,9 @@ fn lambda_function_empty_closure() {
                                 Stmt 22 [77-81]: Expr: Expr 23 [77-81] [Type Int]: Call:
                                     Expr 24 [77-78] [Type (Int -> Int is f?0)]: Var: Local 8
                                     Expr 25 [79-80] [Type Int]: Lit: Int(1)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [57-67] (Internal):
                     Parent: 1
                     Callable 16 [57-67] (Function):
@@ -298,9 +298,9 @@ fn lambda_function_empty_closure() {
                                 Stmt 21 [62-67]: Expr: Expr 12 [62-67] [Type Int]: BinOp (Add):
                                     Expr 13 [62-63] [Type Int]: Var: Local 11
                                     Expr 14 [66-67] [Type Int]: Lit: Int(1)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -330,9 +330,9 @@ fn lambda_function_empty_closure_passed() {
                                 Stmt 7 [55-59]: Expr: Expr 8 [55-59] [Type Int]: Call:
                                     Expr 9 [55-56] [Type (Int -> Int)]: Var: Local 3
                                     Expr 10 [57-58] [Type Int]: Lit: Int(2)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [66-106] (Public):
                     Parent: 0
                     Callable 11 [66-106] (Function):
@@ -346,9 +346,9 @@ fn lambda_function_empty_closure_passed() {
                                 Stmt 17 [89-104]: Expr: Expr 18 [89-104] [Type Int]: Call:
                                     Expr 19 [89-92] [Type ((Int -> Int) -> Int)]: Var: Item 1
                                     Expr 20 [93-103] [Type (Int -> Int)]: Closure([], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [93-103] (Internal):
                     Parent: 2
                     Callable 27 [93-103] (Function):
@@ -363,9 +363,9 @@ fn lambda_function_empty_closure_passed() {
                                 Stmt 32 [98-103]: Expr: Expr 23 [98-103] [Type Int]: BinOp (Add):
                                     Expr 24 [98-99] [Type Int]: Var: Local 22
                                     Expr 25 [102-103] [Type Int]: Lit: Int(1)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -404,9 +404,9 @@ fn lambda_function_closure() {
                                 Stmt 28 [96-100]: Expr: Expr 29 [96-100] [Type Int]: Call:
                                     Expr 30 [96-97] [Type (Int -> Int is f?0)]: Var: Local 12
                                     Expr 31 [98-99] [Type Int]: Lit: Int(2)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [76-86] (Internal):
                     Parent: 1
                     Callable 22 [76-86] (Function):
@@ -422,9 +422,9 @@ fn lambda_function_closure() {
                                 Stmt 27 [81-86]: Expr: Expr 16 [81-86] [Type Int]: BinOp (Add):
                                     Expr 17 [81-82] [Type Int]: Var: Local 19
                                     Expr 18 [85-86] [Type Int]: Var: Local 15
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -463,9 +463,9 @@ fn lambda_function_closure_repeated_var() {
                                 Stmt 30 [100-104]: Expr: Expr 31 [100-104] [Type Int]: Call:
                                     Expr 32 [100-101] [Type (Int -> Int is f?0)]: Var: Local 12
                                     Expr 33 [102-103] [Type Int]: Lit: Int(2)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [76-90] (Internal):
                     Parent: 1
                     Callable 24 [76-90] (Function):
@@ -483,9 +483,9 @@ fn lambda_function_closure_repeated_var() {
                                         Expr 18 [81-82] [Type Int]: Var: Local 21
                                         Expr 19 [85-86] [Type Int]: Var: Local 21
                                     Expr 20 [89-90] [Type Int]: Var: Local 15
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -518,9 +518,9 @@ fn lambda_function_closure_passed() {
                                 Stmt 7 [55-59]: Expr: Expr 8 [55-59] [Type Int]: Call:
                                     Expr 9 [55-56] [Type (Int -> Int)]: Var: Local 3
                                     Expr 10 [57-58] [Type Int]: Lit: Int(2)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [66-137] (Public):
                     Parent: 0
                     Callable 11 [66-137] (Function):
@@ -537,9 +537,9 @@ fn lambda_function_closure_passed() {
                                 Stmt 21 [116-131]: Expr: Expr 22 [116-131] [Type Int]: Call:
                                     Expr 23 [116-119] [Type ((Int -> Int) -> Int)]: Var: Item 1
                                     Expr 24 [120-130] [Type (Int -> Int)]: Closure([19], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [120-130] (Internal):
                     Parent: 2
                     Callable 33 [120-130] (Function):
@@ -555,9 +555,9 @@ fn lambda_function_closure_passed() {
                                 Stmt 38 [125-130]: Expr: Expr 27 [125-130] [Type Int]: BinOp (Add):
                                     Expr 28 [125-126] [Type Int]: Var: Local 30
                                     Expr 29 [129-130] [Type Int]: Var: Local 26
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -595,9 +595,9 @@ fn lambda_function_nested_closure() {
                                         Expr 10 [62-63] [Type (Int -> (Int -> Int))]: Var: Local 3
                                         Expr 11 [64-65] [Type Int]: Lit: Int(2)
                                     Expr 12 [67-68] [Type Int]: Lit: Int(3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [76-207] (Public):
                     Parent: 0
                     Callable 13 [76-207] (Function):
@@ -614,9 +614,9 @@ fn lambda_function_nested_closure() {
                                 Stmt 23 [126-201]: Expr: Expr 24 [126-201] [Type Int]: Call:
                                     Expr 25 [126-129] [Type ((Int -> (Int -> Int)) -> Int)]: Var: Item 1
                                     Expr 26 [130-200] [Type (Int -> (Int -> Int))]: Closure([21], 4)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [172-190] (Internal):
                     Parent: 2
                     Callable 53 [172-190] (Function):
@@ -638,9 +638,9 @@ fn lambda_function_nested_closure() {
                                             Expr 43 [181-182] [Type Int]: Var: Local 47
                                         Expr 44 [185-186] [Type Int]: Var: Local 48
                                     Expr 45 [189-190] [Type Int]: Var: Local 38
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 4 [130-200] (Internal):
                     Parent: 2
                     Callable 62 [130-200] (Function):
@@ -658,9 +658,9 @@ fn lambda_function_nested_closure() {
                                         Pat 32 [153-154] [Type Int]: Bind: Ident 33 [153-154] "c"
                                         Expr 34 [157-158] [Type Int]: Lit: Int(1)
                                     Stmt 35 [172-190]: Expr: Expr 36 [172-190] [Type (Int -> Int)]: Closure([59, 28, 33], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -696,9 +696,9 @@ fn lambda_operation_empty_closure() {
                                 Stmt 11 [90-95]: Expr: Expr 12 [90-95] [Type Unit]: Call:
                                     Expr 13 [90-92] [Type (Qubit => Unit)]: Var: Local 3
                                     Expr 14 [93-94] [Type Qubit]: Var: Local 9
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [106-147] (Public):
                     Parent: 0
                     Callable 15 [106-147] (Operation):
@@ -712,9 +712,9 @@ fn lambda_operation_empty_closure() {
                                 Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Result]: Call:
                                     Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
                                     Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [137-144] (Internal):
                     Parent: 2
                     Callable 29 [137-144] (Operation):
@@ -727,9 +727,9 @@ fn lambda_operation_empty_closure() {
                             Pat 32 [137-144] [Type (Qubit,)]: Elided
                             Block 33 [142-144] [Type Unit]:
                                 Stmt 34 [142-144]: Expr: Expr 27 [142-144] [Type Unit]: Unit
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -758,9 +758,9 @@ fn lambda_operation_closure() {
                         output: Result
                         functors: empty set
                         body: SpecDecl 4 [58-73] (Body): Gen: Intrinsic
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [80-130] (Public):
                     Parent: 0
                     Callable 5 [80-130] (Operation):
@@ -774,9 +774,9 @@ fn lambda_operation_closure() {
                                 Stmt 12 [124-128]: Expr: Expr 13 [124-128] [Type Result]: Call:
                                     Expr 14 [124-126] [Type (Unit => Result)]: Var: Local 8
                                     Expr 15 [126-128] [Type Unit]: Unit
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [135-222] (Public):
                     Parent: 0
                     Callable 16 [135-222] (Operation):
@@ -793,9 +793,9 @@ fn lambda_operation_closure() {
                                 Stmt 26 [195-216]: Expr: Expr 27 [195-216] [Type Result]: Call:
                                     Expr 28 [195-198] [Type ((Unit => Result) => Result)]: Var: Item 2
                                     Expr 29 [199-215] [Type (Unit => Result)]: Closure([24], 4)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 4 [199-215] (Internal):
                     Parent: 3
                     Callable 37 [199-215] (Operation):
@@ -811,9 +811,9 @@ fn lambda_operation_closure() {
                                 Stmt 42 [205-215]: Expr: Expr 31 [205-215] [Type Result]: Call:
                                     Expr 32 [205-212] [Type (Qubit => Result)]: Var: Item 1
                                     Expr 33 [213-214] [Type Qubit]: Var: Local 34
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -865,9 +865,9 @@ fn lambda_adj() {
                         body: SpecDecl 4 [18-55] (Body): Impl:
                             Pat 5 [18-55] [Type Qubit]: Elided
                             Block 6 [53-55]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [60-106] (Public):
                     Parent: 0
                     Callable 7 [60-106] (Operation):
@@ -878,9 +878,9 @@ fn lambda_adj() {
                         body: SpecDecl 11 [60-106] (Body): Impl:
                             Pat 12 [60-106] [Type (Qubit => Unit is Adj)]: Elided
                             Block 13 [104-106]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [111-151] (Public):
                     Parent: 0
                     Callable 14 [111-151] (Operation):
@@ -894,9 +894,9 @@ fn lambda_adj() {
                                 Stmt 20 [134-149]: Semi: Expr 21 [134-148] [Type Unit]: Call:
                                     Expr 22 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var: Item 2
                                     Expr 23 [138-147] [Type (Qubit => Unit is Adj)]: Closure([], 4)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 4 [138-147] (Internal):
                     Parent: 3
                     Callable 30 [138-147] (Operation):
@@ -911,9 +911,9 @@ fn lambda_adj() {
                                 Stmt 35 [143-147]: Expr: Expr 26 [143-147] [Type Unit]: Call:
                                     Expr 27 [143-144] [Type (Qubit => Unit is Adj)]: Var: Item 1
                                     Expr 28 [145-146] [Type Qubit]: Var: Local 25
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -945,9 +945,9 @@ fn partial_app_one_hole() {
                                 Stmt 10 [57-62]: Expr: Expr 11 [57-62] [Type Int]: BinOp (Add):
                                     Expr 12 [57-58] [Type Int]: Var: Local 4
                                     Expr 13 [61-62] [Type Int]: Var: Local 6
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [69-111] (Public):
                     Parent: 0
                     Callable 14 [69-111] (Function):
@@ -965,9 +965,9 @@ fn partial_app_one_hole() {
                                             Pat 31 [106-107] [Type Int]: Bind: Ident 29 [106-107] "arg"
                                             Expr 28 [106-107] [Type Int]: Lit: Int(2)
                                         Stmt 45 [99-108]: Expr: Expr 46 [99-108] [Type (Int -> Int)]: Closure([29], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [99-108] (Internal):
                     Parent: 2
                     Callable 38 [99-108] (Function):
@@ -985,9 +985,9 @@ fn partial_app_one_hole() {
                                     Expr 33 [102-108] [Type (Int, Int)]: Tuple:
                                         Expr 27 [103-104] [Type Int]: Var: Local 25
                                         Expr 30 [106-107] [Type Int]: Var: Local 35
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -1019,9 +1019,9 @@ fn partial_app_two_holes() {
                                 Stmt 10 [57-62]: Expr: Expr 11 [57-62] [Type Int]: BinOp (Add):
                                     Expr 12 [57-58] [Type Int]: Var: Local 4
                                     Expr 13 [61-62] [Type Int]: Var: Local 6
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [69-111] (Public):
                     Parent: 0
                     Callable 14 [69-111] (Function):
@@ -1036,9 +1036,9 @@ fn partial_app_two_holes() {
                                     Pat 21 [95-96] [Type ((Int, Int) -> Int)]: Bind: Ident 22 [95-96] "f"
                                     Expr 23 [99-108] [Type ((Int, Int) -> Int)]: Expr Block: Block 41 [99-108] [Type ((Int, Int) -> Int)]:
                                         Stmt 42 [99-108]: Expr: Expr 43 [99-108] [Type ((Int, Int) -> Int)]: Closure([], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [99-108] (Internal):
                     Parent: 2
                     Callable 35 [99-108] (Function):
@@ -1057,9 +1057,9 @@ fn partial_app_two_holes() {
                                     Expr 31 [102-108] [Type (Int, Int)]: Tuple:
                                         Expr 27 [103-104] [Type Int]: Var: Local 25
                                         Expr 30 [106-107] [Type Int]: Var: Local 28
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -1092,9 +1092,9 @@ fn partial_app_nested_tuple() {
                         body: SpecDecl 14 [18-95] (Body): Impl:
                             Pat 15 [18-95] [Type (Int, (Bool, Double, String), Result)]: Elided
                             Block 16 [93-95]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [100-155] (Public):
                     Parent: 0
                     Callable 17 [100-155] (Function):
@@ -1112,9 +1112,9 @@ fn partial_app_nested_tuple() {
                                             Pat 37 [141-144] [Type Double]: Bind: Ident 35 [141-144] "arg"
                                             Expr 34 [141-144] [Type Double]: Lit: Double(1)
                                         Stmt 60 [130-152]: Expr: Expr 61 [130-152] [Type ((Int, (Bool, String), Result) -> Unit)]: Closure([35], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [130-152] (Internal):
                     Parent: 2
                     Callable 53 [130-152] (Function):
@@ -1141,9 +1141,9 @@ fn partial_app_nested_tuple() {
                                             Expr 36 [141-144] [Type Double]: Var: Local 50
                                             Expr 41 [146-147] [Type String]: Var: Local 39
                                         Expr 46 [150-151] [Type Result]: Var: Local 44
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -1176,9 +1176,9 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                         body: SpecDecl 14 [18-95] (Body): Impl:
                             Pat 15 [18-95] [Type (Int, (Bool, Double, String), Result)]: Elided
                             Block 16 [93-95]: <empty>
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [100-158] (Public):
                     Parent: 0
                     Callable 17 [100-158] (Function):
@@ -1199,9 +1199,9 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                                             Pat 39 [144-147] [Type Double]: Bind: Ident 37 [144-147] "arg"
                                             Expr 36 [144-147] [Type Double]: Lit: Double(1)
                                         Stmt 63 [130-155]: Expr: Expr 64 [130-155] [Type ((Int, String, Result) -> Unit)]: Closure([32, 37], 3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 3 [130-155] (Internal):
                     Parent: 2
                     Callable 56 [130-155] (Function):
@@ -1227,9 +1227,9 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                                             Expr 38 [144-147] [Type Double]: Var: Local 52
                                             Expr 43 [149-150] [Type String]: Var: Local 41
                                         Expr 47 [153-154] [Type Result]: Var: Local 45
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 

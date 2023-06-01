@@ -50,9 +50,9 @@ fn test_single_qubit() {
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                     Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [59-60] [Type Qubit]: Var: Local 8
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -90,9 +90,9 @@ fn test_qubit_array() {
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                     Expr _id_ [59-60] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
                                     Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 8
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -143,9 +143,9 @@ fn test_qubit_tuple() {
                                 Stmt _id_ [64-71]: Semi: Expr _id_ [64-71] [Type Unit]: Call:
                                     Expr _id_ [64-71] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [64-71] [Type Qubit]: Var: Local 17
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -198,9 +198,9 @@ fn test_multiple_qubits_tuple() {
                                 Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type Unit]: Call:
                                     Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [69-76] [Type Qubit]: Var: Local 21
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -258,9 +258,9 @@ fn test_multiple_callables() {
                                 Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type Unit]: Call:
                                     Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [69-76] [Type Qubit]: Var: Local 39
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
                 Item 2 [122-212] (Public):
                     Parent: 0
                     Callable 19 [122-212] (Operation):
@@ -297,9 +297,9 @@ fn test_multiple_callables() {
                                 Stmt _id_ [169-176]: Semi: Expr _id_ [169-176] [Type Unit]: Call:
                                     Expr _id_ [169-176] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [169-176] [Type Qubit]: Var: Local 41
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -371,9 +371,9 @@ fn test_qubit_block() {
                                 Stmt 28 [182-192]: Local (Immutable):
                                     Pat 29 [186-187] [Type Int]: Bind: Ident 30 [186-187] "z"
                                     Expr 31 [190-191] [Type Int]: Lit: Int(3)
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -426,9 +426,9 @@ fn test_qubit_nested_block() {
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                     Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [59-60] [Type Qubit]: Var: Local 8
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -518,9 +518,9 @@ fn test_qubit_multiple_nested_blocks() {
                                 Stmt _id_ [79-80]: Semi: Expr _id_ [79-80] [Type Unit]: Call:
                                     Expr _id_ [79-80] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [79-80] [Type Qubit]: Var: Local 12
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -610,9 +610,9 @@ fn test_early_returns() {
                                     Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [59-60] [Type Qubit]: Var: Local 8
                                 Stmt _id_ [161-233]: Expr: Expr _id_ [161-233] [Type Unit]: Var: Local 35
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -670,9 +670,9 @@ fn test_end_exprs() {
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                     Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [59-60] [Type Qubit]: Var: Local 8
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -725,9 +725,9 @@ fn test_array_expr() {
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
                                     Expr _id_ [59-60] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
                                     Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 8
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -785,9 +785,9 @@ fn test_rtrn_expr() {
                                 Stmt _id_ [58-59]: Semi: Expr _id_ [58-59] [Type Unit]: Call:
                                     Expr _id_ [58-59] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
                                     Expr _id_ [58-59] [Type Qubit]: Var: Local 8
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
 
@@ -829,8 +829,8 @@ fn test_unrelated_unaffected() {
                                         Pat 17 [123-124] [Type Int]: Bind: Ident 18 [123-124] "x"
                                         Expr 19 [127-128] [Type Int]: Lit: Int(4)
                                     Stmt 20 [142-143]: Expr: Expr 21 [142-143] [Type Int]: Var: Local 18
-                        <no adj>
-                        <no ctl>
-                        <no ctl-adj>"#]],
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
     );
 }
