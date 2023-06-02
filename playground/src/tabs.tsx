@@ -3,9 +3,7 @@
 
 import { QscEventTarget, VSDiagnostic } from "qsharp";
 import { ResultsTab } from "./results.js";
-import { useState } from "preact/hooks";
-
-export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
+import { ActiveTab } from "./main.js";
 
 function HirTab(props: { hir: string; activeTab: ActiveTab }) {
   return props.activeTab === "hir-tab" ? (
@@ -50,9 +48,9 @@ export function OutputTabs(props: {
   onShotError?: (err?: VSDiagnostic) => void;
   kataMode?: boolean;
   hir: string;
+  activeTab: ActiveTab;
+  setActiveTab: (tab: ActiveTab) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
-
   return (
     <div class="results-column">
       {props.showPanel ? (
@@ -61,27 +59,27 @@ export function OutputTabs(props: {
             {...props}
             id="results-tab"
             title="RESULTS"
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            activeTab={props.activeTab}
+            setActiveTab={props.setActiveTab}
           />
           <TabNavItem
             {...props}
             id="hir-tab"
             title="HIR"
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            activeTab={props.activeTab}
+            setActiveTab={props.setActiveTab}
           />
           <TabNavItem
             {...props}
             id="logs-tab"
             title="LOGS"
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            activeTab={props.activeTab}
+            setActiveTab={props.setActiveTab}
           />
         </div>
       ) : null}
-      <ResultsTab {...props} activeTab={activeTab} />
-      <HirTab {...props} activeTab={activeTab} />
+      <ResultsTab {...props} />
+      <HirTab {...props} />
     </div>
   );
 }

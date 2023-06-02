@@ -22,6 +22,8 @@ import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
 import { compressedBase64ToCode } from "./utils.js";
 
+export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
+
 // Configure any logging as early as possible
 const logLevelUri = new URLSearchParams(window.location.search).get("logLevel");
 if (logLevelUri) log.setLogLevel(logLevelUri as LogLevel);
@@ -60,6 +62,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   );
 
   const [hir, setHir] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
   const onRestartCompiler = () => {
     compiler.terminate();
@@ -120,12 +123,15 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showExpr={true}
             shotError={shotError}
             setHir={setHir}
+            activeTab={activeTab}
           ></Editor>
           <OutputTabs
             evtTarget={evtTarget}
             showPanel={true}
             onShotError={onShotError}
             hir={hir}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
           ></OutputTabs>
         </>
       ) : (

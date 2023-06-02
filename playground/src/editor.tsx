@@ -12,6 +12,7 @@ import {
   log,
 } from "qsharp";
 import { codeToCompressedBase64 } from "./utils.js";
+import { ActiveTab } from "./main.js";
 
 type ErrCollection = {
   checkDiags: VSDiagnostic[];
@@ -50,6 +51,7 @@ export function Editor(props: {
   showExpr: boolean;
   showShots: boolean;
   setHir: (hir: string) => void;
+  activeTab: ActiveTab;
 }) {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
@@ -85,7 +87,9 @@ export function Editor(props: {
     const code = editor.current?.getValue();
     if (code == null) return;
     const diags = await props.compiler.checkCode(code);
-    props.setHir(await props.compiler.getHir(code));
+    if (props.activeTab === "hir-tab") {
+      props.setHir(await props.compiler.getHir(code));
+    }
     errMarks.current.checkDiags = diags;
     markErrors();
     setHasCheckErrors(diags.length > 0);
