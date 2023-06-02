@@ -4,6 +4,7 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 mod borrowck;
+mod callable_limits;
 mod common;
 mod conjugate_invert;
 pub mod entry_point;
@@ -13,6 +14,7 @@ mod loop_unification;
 mod replace_qubit_allocation;
 mod spec_gen;
 
+use callable_limits::CallableLimits;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
 use qsc_frontend::{compile::CompileUnit, incremental::Fragment};
@@ -31,13 +33,18 @@ use thiserror::Error;
 #[error(transparent)]
 pub enum Error {
     BorrowCk(borrowck::Error),
+    CallableLimits(callable_limits::Error),
+    ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
-    ConjInvert(conjugate_invert::Error),
 }
 
 /// Run the default set of passes required for evaluation.
 pub fn run_default_passes(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
+    let mut call_limits = CallableLimits::default();
+    call_limits.visit_package(&unit.package);
+    let callable_errors = call_limits.errors;
+
     let mut borrow_check = borrowck::Checker::default();
     borrow_check.visit_package(&unit.package);
     let borrow_errors = borrow_check.errors;
@@ -53,9 +60,10 @@ pub fn run_default_passes(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     .visit_package(&mut unit.package);
     ReplaceQubitAllocation::new(core, &mut unit.assigner).visit_package(&mut unit.package);
 
-    borrow_errors
+    callable_errors
         .into_iter()
-        .map(Error::BorrowCk)
+        .map(Error::CallableLimits)
+        .chain(borrow_errors.into_iter().map(Error::BorrowCk))
         .chain(spec_errors.into_iter().map(Error::SpecGen))
         .chain(conjugate_errors.into_iter().map(Error::ConjInvert))
         .collect()
@@ -106,6 +114,10 @@ pub fn run_default_passes_for_fragment(
             kind: ItemKind::Callable(decl),
             ..
         }) => {
+            let mut call_limits = CallableLimits::default();
+            call_limits.visit_callable_decl(decl);
+            errors.extend(call_limits.errors.into_iter().map(Error::CallableLimits));
+
             let mut borrow_check = borrowck::Checker::default();
             borrow_check.visit_callable_decl(decl);
             errors.extend(borrow_check.errors.into_iter().map(Error::BorrowCk));

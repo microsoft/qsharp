@@ -73,7 +73,7 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
 
     let (result, _) = line(
         &mut interpreter,
-        "function Z(input : Int) : Unit { Adjoint Test2.A(input); }",
+        "operation Z(input : Int) : Unit { Adjoint Test2.A(input); }",
     );
     result.expect("code should compile");
 
