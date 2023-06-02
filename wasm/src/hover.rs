@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::fmt::Write;
+
 use crate::ls_utils::{get_compilation, span_contains};
 use crate::{Hover, Span};
-use qsc_hir::hir::CallableKind;
+use qsc_hir::hir::{CallableKind, Ty};
 use qsc_hir::visit::Visitor;
 use wasm_bindgen::prelude::*;
 
@@ -61,13 +63,41 @@ impl Visitor<'_> for CallableFinder {
 
             let header = format!(
                 "```qsharp
-{} {}
+{} {}{} : {}
 ```
 
 {}
 
 ",
-                kind, decl.name.name, doc_paragraph
+                kind,
+                decl.name.name,
+                match &decl.input.ty {
+                    Ty::Tuple(items) => {
+                        // I'm just doing this so I can format Unit as ()
+                        if items.is_empty() {
+                            "()".to_string()
+                        } else {
+                            let mut s = String::new();
+                            s.push('(');
+                            if let Some((first, rest)) = items.split_first() {
+                                let _ = write!(s, "{}", first);
+                                if rest.is_empty() {
+                                    s.push_str(", ");
+                                } else {
+                                    for item in rest {
+                                        s.push_str(", ");
+                                        let _ = write!(s, "{}", item);
+                                    }
+                                }
+                            }
+                            s.push(')');
+                            s
+                        }
+                    }
+                    x => x.to_string(),
+                },
+                decl.output,
+                doc_paragraph
             );
 
             self.header = Some(header);

@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
-mod completions;
+mod completion;
 mod definition;
 mod hover;
 mod ls_utils;
@@ -90,7 +90,7 @@ export interface IDefinition {
 
 #[wasm_bindgen]
 pub fn get_completions(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    completions::get_completions(source_path, code, offset)
+    completion::get_completions(source_path, code, offset)
 }
 
 #[wasm_bindgen]

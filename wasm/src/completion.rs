@@ -110,8 +110,6 @@ pub(crate) fn get_completions(
         }),
         Context::NoCompilation => {
             // Add everything we know of.
-            // Of course, what's the point in determining context
-            // if we're going to do this in most cases?
             res.items.append(&mut keywords);
             res.items.append(&mut std_callables);
             res.items.append(&mut current_callables);
