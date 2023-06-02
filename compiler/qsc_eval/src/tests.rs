@@ -220,30 +220,6 @@ fn block_mutable_nested_scopes_shadowing_expr() {
 }
 
 #[test]
-fn block_mutable_immutable_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            let x = 0;
-            set x = 1;
-        }"},
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 25,
-                        hi: 26,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn block_qubit_use_expr() {
     check_expr(
         "",
@@ -379,27 +355,6 @@ fn block_qubit_use_nested_tuple_expr() {
             q
         }"},
         &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
-    );
-}
-
-#[test]
-fn assign_invalid_expr() {
-    check_expr(
-        "",
-        "set 0 = 1",
-        &expect![[r#"
-            (
-                Unassignable(
-                    Span {
-                        lo: 4,
-                        hi: 5,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
     );
 }
 
@@ -1193,31 +1148,6 @@ fn assignop_orl_expr() {
 }
 
 #[test]
-fn assignop_mutability_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            let x = false;
-            set x or= true;
-            x
-        }"},
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 29,
-                        hi: 30,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn fail_expr() {
     check_expr(
         "",
@@ -1308,27 +1238,6 @@ fn for_loop_array_expr() {
             x
         }"},
         &expect!["25"],
-    );
-}
-
-#[test]
-fn for_loop_iterator_immutable_expr() {
-    check_expr(
-        "",
-        "for i in 0..10 { set i = 0; }",
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 21,
-                        hi: 22,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
     );
 }
 
@@ -1905,31 +1814,6 @@ fn assignupdate_expr() {
             x
         }"},
         &expect!["[1, 2, 4]"],
-    );
-}
-
-#[test]
-fn assignupdate_immutable_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            let x = [1, 2, 3];
-            set x w/= 2 <- 4;
-            x
-        }"},
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 33,
-                        hi: 34,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
     );
 }
 

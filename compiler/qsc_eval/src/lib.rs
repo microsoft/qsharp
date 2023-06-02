@@ -58,9 +58,6 @@ pub enum Error {
     #[error("missing specialization: {0}")]
     MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
 
-    #[error("reassigning immutable variable")]
-    Mutability(#[label("variable declared as immutable")] Span),
-
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
 
@@ -78,10 +75,6 @@ pub enum Error {
 
     #[error("Qubit{0} released while not in |0⟩ state")]
     ReleasedQubitNotZero(usize),
-
-    #[error("invalid left-hand side of assignment")]
-    #[diagnostic(help("the left-hand side must be a variable or tuple of variables"))]
-    Unassignable(#[label("not assignable")] Span),
 
     #[error("symbol is not bound")]
     Unbound(#[label] Span),
@@ -1031,7 +1024,7 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
             Some(var) if var.is_mutable() => {
                 var.value = rhs;
             }
-            Some(_) => return Err(Error::Mutability(lhs.span)),
+            Some(_) => panic!("update of mutable variable should be disallowed by compiler"),
             None => return Err(Error::Unbound(lhs.span)),
         },
         (ExprKind::Tuple(var_tup), Value::Tuple(tup)) => {
@@ -1039,7 +1032,7 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
                 update_binding(env, expr, val.clone())?;
             }
         }
-        _ => return Err(Error::Unassignable(lhs.span)),
+        _ => panic!("unassignable pattern should be disallowed by compiler"),
     }
     Ok(())
 }

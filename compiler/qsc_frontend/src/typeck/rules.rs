@@ -37,6 +37,7 @@ struct Context<'a> {
     globals: &'a HashMap<ItemId, Ty>,
     terms: &'a mut IndexMap<NodeId, Ty>,
     return_ty: Option<&'a Ty>,
+    typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
     inferrer: Inferrer,
 }
@@ -54,6 +55,7 @@ impl<'a> Context<'a> {
             globals,
             terms,
             return_ty: None,
+            typed_holes: Vec::new(),
             new: Vec::new(),
             inferrer: Inferrer::new(),
         }
@@ -75,11 +77,9 @@ impl<'a> Context<'a> {
 
         self.return_ty = Some(spec.output);
         let block = self.infer_block(spec.block).ty;
-        if let Some(return_ty) = self.return_ty {
+        if let Some(return_ty) = self.return_ty.take() {
             self.inferrer.eq(spec.block.span, return_ty.clone(), block);
         }
-
-        self.return_ty = None;
     }
 
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
@@ -183,7 +183,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Assign(lhs, rhs) => {
                 let lhs_span = lhs.span;
-                let lhs = self.infer_expr(lhs);
+                let lhs = self.infer_hole_tuple(identity, identity, Ty::Tuple, Ty::clone, lhs);
                 let rhs = self.infer_expr(rhs);
                 self.inferrer.eq(lhs_span, lhs.ty, rhs.ty);
                 self.diverge_if(lhs.diverges || rhs.diverges, converge(Ty::UNIT))
@@ -200,7 +200,13 @@ impl<'a> Context<'a> {
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
                 let callee = self.infer_expr(callee);
-                let input = self.infer_arg(input);
+                let input = self.infer_hole_tuple(
+                    ArgTy::Hole,
+                    ArgTy::Given,
+                    ArgTy::Tuple,
+                    ArgTy::to_ty,
+                    input,
+                );
                 let output_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
@@ -414,37 +420,48 @@ impl<'a> Context<'a> {
                 let body = self.infer_block(body);
                 self.diverge_if(cond.diverges || body.diverges, converge(Ty::UNIT))
             }
-            ExprKind::Err | ExprKind::Hole => converge(self.inferrer.fresh_ty()),
+            ExprKind::Hole => {
+                self.typed_holes.push((expr.id, expr.span));
+                converge(self.inferrer.fresh_ty())
+            }
+            ExprKind::Err => converge(Ty::Err),
         };
 
         self.record(expr.id, ty.ty.clone());
         ty
     }
 
-    fn infer_arg(&mut self, arg: &Expr) -> Partial<ArgTy> {
-        match arg.kind.as_ref() {
+    fn infer_hole_tuple<T>(
+        &mut self,
+        hole: fn(Ty) -> T,
+        given: fn(Ty) -> T,
+        tuple: fn(Vec<T>) -> T,
+        to_ty: fn(&T) -> Ty,
+        expr: &Expr,
+    ) -> Partial<T> {
+        match expr.kind.as_ref() {
             ExprKind::Hole => {
                 let ty = self.inferrer.fresh_ty();
-                self.record(arg.id, ty.clone());
-                converge(ArgTy::Hole(ty))
+                self.record(expr.id, ty.clone());
+                converge(hole(ty))
             }
             ExprKind::Paren(inner) => {
-                let inner = self.infer_arg(inner);
-                self.record(arg.id, inner.ty.to_ty());
+                let inner = self.infer_hole_tuple(hole, given, tuple, to_ty, inner);
+                self.record(expr.id, to_ty(&inner.ty));
                 inner
             }
             ExprKind::Tuple(items) => {
                 let mut tys = Vec::new();
                 let mut diverges = false;
                 for item in items.iter() {
-                    let item = self.infer_arg(item);
+                    let item = self.infer_hole_tuple(hole, given, tuple, to_ty, item);
                     diverges = diverges || item.diverges;
                     tys.push(item.ty);
                 }
-                self.record(arg.id, Ty::Tuple(tys.iter().map(ArgTy::to_ty).collect()));
-                self.diverge_if_map(ArgTy::Given, diverges, converge(ArgTy::Tuple(tys)))
+                self.record(expr.id, Ty::Tuple(tys.iter().map(to_ty).collect()));
+                self.diverge_if_map(given, diverges, converge(tuple(tys)))
             }
-            _ => self.infer_expr(arg).map(ArgTy::Given),
+            _ => self.infer_expr(expr).map(given),
         }
     }
 
@@ -671,10 +688,14 @@ impl<'a> Context<'a> {
     }
 
     fn solve(self) -> Vec<Error> {
-        let (substs, errors) = self.inferrer.solve(self.udts);
+        let (substs, mut errors) = self.inferrer.solve(self.udts);
         for id in self.new {
             let ty = self.terms.get_mut(id).expect("node should have type");
             infer::substitute_ty(&substs, ty);
+        }
+        for (id, span) in self.typed_holes {
+            let ty = self.terms.get_mut(id).expect("node should have type");
+            errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
         errors
     }

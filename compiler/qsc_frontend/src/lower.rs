@@ -27,13 +27,6 @@ pub(super) enum Error {
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
     InvalidAttrArgs(&'static str, #[label] Span),
-    #[error("lambda closes over mutable variable")]
-    MutableClosure(#[label] Span),
-}
-
-pub(super) struct Local {
-    pub(super) mutability: hir::Mutability,
-    pub(super) ty: hir::Ty,
 }
 
 #[derive(Clone, Copy)]
@@ -44,7 +37,7 @@ enum ItemScope {
 
 pub(super) struct Lowerer {
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
-    locals: IndexMap<hir::NodeId, Local>,
+    locals: IndexMap<hir::NodeId, hir::Ty>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
     errors: Vec<Error>,
@@ -217,7 +210,7 @@ impl With<'_> {
             kind: lower_callable_kind(decl.kind),
             name: self.lower_ident(&decl.name),
             ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
-            input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
+            input: self.lower_pat(&decl.input),
             output: convert::ty_from_ast(self.names, &decl.output).0,
             functors: convert::ast_callable_functors(decl),
             body: match decl.body.as_ref() {
@@ -249,10 +242,9 @@ impl With<'_> {
                     ast::SpecGen::Invert => hir::SpecGen::Invert,
                     ast::SpecGen::Slf => hir::SpecGen::Slf,
                 }),
-                ast::SpecBody::Impl(input, block) => hir::SpecBody::Impl(
-                    self.lower_pat(ast::Mutability::Immutable, input),
-                    self.lower_block(block),
-                ),
+                ast::SpecBody::Impl(input, block) => {
+                    hir::SpecBody::Impl(self.lower_pat(input), self.lower_block(block))
+                }
             },
         }
     }
@@ -284,7 +276,7 @@ impl With<'_> {
             }
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
-                self.lower_pat(*mutability, lhs),
+                self.lower_pat(lhs),
                 self.lower_expr(rhs),
             ),
             ast::StmtKind::Qubit(source, lhs, rhs, block) => hir::StmtKind::Qubit(
@@ -292,7 +284,7 @@ impl With<'_> {
                     ast::QubitSource::Fresh => hir::QubitSource::Fresh,
                     ast::QubitSource::Dirty => hir::QubitSource::Dirty,
                 },
-                self.lower_pat(ast::Mutability::Immutable, lhs),
+                self.lower_pat(lhs),
                 self.lower_qubit_init(rhs),
                 block.as_ref().map(|b| self.lower_block(b)),
             ),
@@ -376,7 +368,7 @@ impl With<'_> {
                 hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
-                self.lower_pat(ast::Mutability::Immutable, pat),
+                self.lower_pat(pat),
                 Box::new(self.lower_expr(iter)),
                 self.lower_block(block),
             ),
@@ -399,7 +391,7 @@ impl With<'_> {
                 let lambda = Lambda {
                     kind: lower_callable_kind(*kind),
                     functors,
-                    input: self.lower_pat(ast::Mutability::Immutable, input),
+                    input: self.lower_pat(input),
                     body: self.lower_expr(body),
                 };
                 self.lower_lambda(lambda, expr.span)
@@ -512,9 +504,6 @@ impl With<'_> {
 
     fn lower_lambda(&mut self, lambda: Lambda, span: Span) -> hir::ExprKind {
         let (args, callable) = closure::lift(self.assigner, &self.lowerer.locals, lambda, span);
-        if args.iter().any(|&arg| self.is_mutable(arg)) {
-            self.lowerer.errors.push(Error::MutableClosure(span));
-        }
 
         let id = self.assigner.next_item();
         self.lowerer.items.push(hir::Item {
@@ -550,9 +539,9 @@ impl With<'_> {
         }
     }
 
-    fn lower_pat(&mut self, mutability: ast::Mutability, pat: &ast::Pat) -> hir::Pat {
+    fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
         if let ast::PatKind::Paren(inner) = &*pat.kind {
-            return self.lower_pat(mutability, inner);
+            return self.lower_pat(inner);
         }
 
         let id = self.lower_id(pat.id);
@@ -565,24 +554,15 @@ impl With<'_> {
         let kind = match &*pat.kind {
             ast::PatKind::Bind(name, _) => {
                 let name = self.lower_ident(name);
-                self.lowerer.locals.insert(
-                    name.id,
-                    Local {
-                        mutability: lower_mutability(mutability),
-                        ty: ty.clone(),
-                    },
-                );
+                self.lowerer.locals.insert(name.id, ty.clone());
                 hir::PatKind::Bind(name)
             }
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
             ast::PatKind::Elided => hir::PatKind::Elided,
             ast::PatKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            ast::PatKind::Tuple(items) => hir::PatKind::Tuple(
-                items
-                    .iter()
-                    .map(|i| self.lower_pat(mutability, i))
-                    .collect(),
-            ),
+            ast::PatKind::Tuple(items) => {
+                hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
+            }
         };
 
         hir::Pat {
@@ -646,15 +626,6 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
-    }
-
-    fn is_mutable(&mut self, id: hir::NodeId) -> bool {
-        self.lowerer
-            .locals
-            .get(id)
-            .expect("node ID should be a local")
-            .mutability
-            == hir::Mutability::Mutable
     }
 }
 
