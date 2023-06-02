@@ -7,7 +7,7 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token, CURRENT_COMMENT},
+    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token, try_many, CURRENT_COMMENT},
     scan::Scanner,
     stmt::{self, stmt},
     ty::{self, ty},
@@ -50,8 +50,28 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
     keyword(s, Keyword::Namespace)?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = many(s, item)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
+    let mut items = try_many(s, item);
+    // try_many parses as many items as possible, but will leave
+    // the scanner in an indeterminate position.
+    // Keep eating garbage until we get to a valid statement
+    loop {
+        match opt(s, item) {
+            Ok(Some(item)) => items.push(item),
+            Ok(None) | Err(_) => {
+                if token(s, TokenKind::Close(Delim::Brace)).is_ok() {
+                    break;
+                };
+                if token(s, TokenKind::Eof).is_ok() {
+                    return Err(Error::Token(
+                        TokenKind::Close(Delim::Brace),
+                        TokenKind::Eof,
+                        s.peek().span,
+                    ));
+                };
+                s.advance();
+            }
+        }
+    }
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
@@ -218,8 +238,19 @@ fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
     token(s, TokenKind::Open(Delim::Brace))?;
     let specs = many(s, spec_decl)?;
     if specs.is_empty() {
-        let stmts = many(s, stmt)?;
-        token(s, TokenKind::Close(Delim::Brace))?;
+        let stmts = try_many(s, stmt);
+        // try_many parses as many statements as possible, but will leave
+        // the scanner in an indeterminate position. Seek to the closing brace (or eof)
+        while token(s, TokenKind::Close(Delim::Brace)).is_err() {
+            if token(s, TokenKind::Eof).is_ok() {
+                return Err(Error::Token(
+                    TokenKind::Close(Delim::Brace),
+                    TokenKind::Eof,
+                    s.peek().span,
+                ));
+            }
+            s.advance();
+        }
         Ok(CallableBody::Block(Box::new(Block {
             id: NodeId::default(),
             span: s.span(lo),

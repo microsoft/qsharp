@@ -183,6 +183,17 @@ pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>
     }
 }
 
+pub(super) fn try_many<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Vec<T> {
+    let mut xs = Vec::new();
+    while let Ok(r) = opt(s, &mut p) {
+        match r {
+            Some(x) => xs.push(x),
+            None => break,
+        };
+    }
+    xs
+}
+
 pub(super) fn many<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Vec<T>> {
     let mut xs = Vec::new();
     while let Some(x) = opt(s, &mut p)? {
