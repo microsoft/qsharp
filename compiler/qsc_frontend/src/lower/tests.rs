@@ -1257,6 +1257,73 @@ fn body_missing_should_fail() {
 }
 
 #[test]
+fn duplicate_specialization() {
+    check_errors(
+        indoc! {"
+        namespace test {
+            operation Foo() : Unit {
+                body ... {}
+                body ... {}
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                DuplicateSpec(
+                    Span {
+                        lo: 54,
+                        hi: 65,
+                    },
+                ),
+                DuplicateSpec(
+                    Span {
+                        lo: 74,
+                        hi: 85,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn duplicate_specialization_with_gen() {
+    check_errors(
+        indoc! {"
+        namespace test {
+            operation Foo() : Unit {
+                body ... {}
+                body auto;
+                body intrinsic;
+            }
+        }
+        "},
+        &expect![[r#"
+            [
+                DuplicateSpec(
+                    Span {
+                        lo: 54,
+                        hi: 65,
+                    },
+                ),
+                DuplicateSpec(
+                    Span {
+                        lo: 74,
+                        hi: 84,
+                    },
+                ),
+                DuplicateSpec(
+                    Span {
+                        lo: 93,
+                        hi: 108,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn partial_app_unknown_callable() {
     check_hir(
         indoc! {"

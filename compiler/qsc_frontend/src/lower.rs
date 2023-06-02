@@ -31,7 +31,7 @@ pub(super) enum Error {
     MutableClosure(#[label] Span),
     #[error("missing callable body")]
     MissingBody(#[label] Span),
-    #[error("duplicate specialization body")]
+    #[error("duplicate specialization")]
     DuplicateSpec(#[label] Span),
 }
 
