@@ -21,20 +21,20 @@ export async function activate(context: vscode.ExtensionContext) {
   // completions
   vscode.languages.registerCompletionItemProvider(
     "qsharp",
-    createCompletionItemProvider(compiler, output),
+    createCompletionItemProvider(compiler),
     "."
   );
 
   // hover
   vscode.languages.registerHoverProvider(
     "qsharp",
-    createHoverProvider(compiler, output)
+    createHoverProvider(compiler)
   );
 
   // go to def
   vscode.languages.registerDefinitionProvider(
     "qsharp",
-    createDefinitionProvider(compiler, output)
+    createDefinitionProvider(compiler)
   );
 
   // notebooks

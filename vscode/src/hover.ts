@@ -4,18 +4,12 @@ import * as vscode from "vscode";
 
 type ICompiler = Awaited<ReturnType<typeof getCompiler>>;
 
-export function createHoverProvider(
-  compiler: ICompiler,
-  output: vscode.OutputChannel
-) {
-  return new QSharpHoverProvider(compiler, output);
+export function createHoverProvider(compiler: ICompiler) {
+  return new QSharpHoverProvider(compiler);
 }
 
 class QSharpHoverProvider implements vscode.HoverProvider {
-  constructor(
-    public compiler: ICompiler,
-    public output: vscode.OutputChannel
-  ) {}
+  constructor(public compiler: ICompiler) {}
 
   async provideHover(
     document: vscode.TextDocument,

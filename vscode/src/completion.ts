@@ -5,18 +5,12 @@ import { CompletionItem } from "vscode";
 
 type ICompiler = Awaited<ReturnType<typeof getCompiler>>;
 
-export function createCompletionItemProvider(
-  compiler: ICompiler,
-  output: vscode.OutputChannel
-) {
-  return new QSharpCompletionItemProvider(compiler, output);
+export function createCompletionItemProvider(compiler: ICompiler) {
+  return new QSharpCompletionItemProvider(compiler);
 }
 
 class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
-  constructor(
-    public compiler: ICompiler,
-    public output: vscode.OutputChannel
-  ) {}
+  constructor(public compiler: ICompiler) {}
 
   async provideCompletionItems(
     document: vscode.TextDocument,

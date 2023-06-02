@@ -4,25 +4,18 @@ import * as vscode from "vscode";
 
 type ICompiler = Awaited<ReturnType<typeof getCompiler>>;
 
-export function createDefinitionProvider(
-  compiler: ICompiler,
-  output: vscode.OutputChannel
-) {
-  return new QSharpDefinitionProvider(compiler, output);
+export function createDefinitionProvider(compiler: ICompiler) {
+  return new QSharpDefinitionProvider(compiler);
 }
 
 class QSharpDefinitionProvider implements vscode.DefinitionProvider {
-  constructor(
-    public compiler: ICompiler,
-    public output: vscode.OutputChannel
-  ) {}
+  constructor(public compiler: ICompiler) {}
 
   async provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken
   ) {
-    this.output.appendLine("requesting definition...");
     const definition = await this.compiler.getDefinition(
       document.uri.toString(),
       document.getText(),
