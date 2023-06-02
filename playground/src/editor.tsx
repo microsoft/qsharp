@@ -119,6 +119,8 @@ export function Editor(props: {
     });
 
     monaco.languages.registerCompletionItemProvider("qsharp", {
+      // @ts-expect-error - Monaco's types expect range to be defined,
+      // but it's actually optional and the default behavior is better
       provideCompletionItems: async (
         model: monaco.editor.ITextModel,
         position: monaco.Position
@@ -134,12 +136,7 @@ export function Editor(props: {
               label: i.label,
               kind: i.kind,
               insertText: i.label,
-              range: {
-                startLineNumber: position.lineNumber,
-                startColumn: position.column,
-                endLineNumber: position.lineNumber,
-                endColumn: position.column,
-              },
+              range: undefined,
             };
           }),
         };
