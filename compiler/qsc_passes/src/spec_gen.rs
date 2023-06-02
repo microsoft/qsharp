@@ -100,7 +100,7 @@ impl MutVisitor for SpecPlacePass {
         let has_explicit_ctl =
             matches!(&decl.ctl, Some(s) if matches!(&s.body, SpecBody::Impl(..)));
         let has_explicit_ctladj =
-            matches!(&decl.ctladj, Some(s) if matches!(&s.body, SpecBody::Impl(..)));
+            matches!(&decl.ctladj, Some(s) if !matches!(&s.body, SpecBody::Gen(SpecGen::Auto)));
 
         if is_adj && is_ctl && !has_explicit_ctladj {
             let gen = if is_self_adjoint(decl) {
