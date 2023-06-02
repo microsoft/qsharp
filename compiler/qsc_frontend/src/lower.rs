@@ -54,6 +54,10 @@ impl Lowerer {
         }
     }
 
+    pub(super) fn clear_items(&mut self) {
+        self.items.clear();
+    }
+
     pub(super) fn drain_items(&mut self) -> vec::Drain<hir::Item> {
         self.items.drain(..)
     }

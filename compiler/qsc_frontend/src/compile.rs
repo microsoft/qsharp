@@ -5,7 +5,6 @@
 mod tests;
 
 use crate::{
-    funop,
     lower::{self, Lowerer},
     parse,
     resolve::{self, Names, Resolver},
@@ -143,8 +142,6 @@ pub(super) enum ErrorKind {
     #[error("type error")]
     Type(#[from] typeck::Error),
     #[error(transparent)]
-    FunOp(#[from] funop::Error),
-    #[error(transparent)]
     Lower(#[from] lower::Error),
 }
 
@@ -221,7 +218,6 @@ pub fn compile(
     let mut hir_assigner = HirAssigner::new();
     let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
-    let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
@@ -233,7 +229,6 @@ pub fn compile(
         .map(Into::into)
         .chain(name_errors.into_iter().map(Into::into))
         .chain(ty_errors.into_iter().map(Into::into))
-        .chain(funop_errors.into_iter().map(Into::into))
         .chain(lower_errors.into_iter().map(Into::into))
         .map(Error)
         .collect();
