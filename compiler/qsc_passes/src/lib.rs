@@ -86,6 +86,10 @@ pub fn run_default_passes_for_fragment(
 
     match fragment {
         Fragment::Stmt(stmt) => {
+            // TODO: This creates a branch new borrow checker for every statement, when it really
+            // should have a context that tracks mutability across all statements that are part of
+            // incremental compilation. This is realted thematically to https://github.com/microsoft/qsharp/issues/205,
+            // which has been updated to note the connection.
             let mut borrow_check = borrowck::Checker::default();
             borrow_check.visit_stmt(stmt);
             errors.extend(borrow_check.errors.into_iter().map(Error::BorrowCk));

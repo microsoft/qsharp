@@ -54,7 +54,7 @@ pub fn core() -> CompileUnit {
             eprintln!("{report:?}");
         }
 
-        panic!("could not compile standard library")
+        panic!("could not compile core library")
     }
 }
 
