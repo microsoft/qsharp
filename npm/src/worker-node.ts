@@ -29,7 +29,7 @@ const port = parentPort!; // eslint-disable-line @typescript-eslint/no-non-null-
 const postMessage = port.postMessage.bind(port);
 
 const evtTarget = getWorkerEventHandlers(postMessage);
-const compiler = new Compiler(wasm);
+const compiler = new Compiler(wasm, evtTarget);
 
 function messageHandler(data: CompilerReqMsg) {
   if (!data.type || typeof data.type !== "string") {
@@ -37,7 +37,7 @@ function messageHandler(data: CompilerReqMsg) {
     return;
   }
 
-  handleMessageInWorker(data, compiler, postMessage, evtTarget);
+  handleMessageInWorker(data, compiler, postMessage);
 }
 
 port.addListener("message", messageHandler);

@@ -3,7 +3,7 @@
 
 import { log } from "./log.js";
 import { ICompletionList, IHover, IDefinition } from "../lib/web/qsc_wasm.js";
-import { DumpMsg, MessageMsg, VSDiagnostic } from "./common.js";
+import { DiagnosticsMsg, DumpMsg, MessageMsg } from "./common.js";
 import { CompilerState, ICompiler, ICompilerWorker } from "./compiler.js";
 import { CancellationToken } from "./cancellation.js";
 import { IQscEventTarget, QscEventTarget, makeEvent } from "./events.js";
@@ -42,7 +42,8 @@ type RequestState = {
 export function createWorkerProxy(
   postMessage: (msg: CompilerReqMsg) => void,
   setMsgHandler: (handler: (e: ResponseMsgType) => void) => void,
-  terminator: () => void
+  terminator: () => void,
+  evtTarget: IQscEventTarget
 ): ICompilerWorker {
   const queue: RequestState[] = [];
   let curr: RequestState | undefined;
@@ -57,11 +58,10 @@ export function createWorkerProxy(
   function queueRequest(
     type: string,
     args: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
-    evtTarget?: IQscEventTarget,
     cancellationToken?: CancellationToken
   ): Promise<RespResultTypes> {
     return new Promise((resolve, reject) => {
-      queue.push({ type, args, resolve, reject, evtTarget, cancellationToken });
+      queue.push({ type, args, resolve, reject, cancellationToken });
 
       // If nothing was running when this got added, kick off processing
       if (queue.length === 1) doNextRequest();
@@ -89,8 +89,8 @@ export function createWorkerProxy(
 
     let msg: CompilerReqMsg | null = null;
     switch (curr.type) {
-      case "checkCode":
-        msg = { type: "checkCode", code: curr.args[0] };
+      case "updateCode":
+        msg = { type: "updateCode", code: curr.args[0] };
         break;
       case "getCompletions":
         msg = {
@@ -155,12 +155,12 @@ export function createWorkerProxy(
       // Event type messages don't complete the request
       case "message-event": {
         const msgEvent = makeEvent("Message", msg.event.message);
-        curr.evtTarget?.dispatchEvent(msgEvent);
+        evtTarget.dispatchEvent(msgEvent);
         return;
       }
       case "dumpMachine-event": {
         const dmpEvent = makeEvent("DumpMachine", msg.event.state);
-        curr.evtTarget?.dispatchEvent(dmpEvent);
+        evtTarget.dispatchEvent(dmpEvent);
         return;
       }
       case "failure-event": {
@@ -168,7 +168,12 @@ export function createWorkerProxy(
           success: false,
           value: msg.event,
         });
-        curr.evtTarget?.dispatchEvent(failEvent);
+        evtTarget.dispatchEvent(failEvent);
+        return;
+      }
+      case "diagnostics-event": {
+        const diagEvent = makeEvent("diagnostics", msg.event.diagnostics);
+        evtTarget.dispatchEvent(diagEvent);
         return;
       }
       case "success-event": {
@@ -176,12 +181,12 @@ export function createWorkerProxy(
           success: true,
           value: msg.event,
         });
-        curr.evtTarget?.dispatchEvent(successEvent);
+        evtTarget.dispatchEvent(successEvent);
         return;
       }
 
       // Response type messages. Resolve and complete this request.
-      case "checkCode-result":
+      case "updateCode-result":
       case "getCompletions-result":
       case "getHover-result":
       case "getDefinition-result":
@@ -208,8 +213,8 @@ export function createWorkerProxy(
   setMsgHandler(onMsgFromWorker);
 
   const proxy: ICompilerWorker = {
-    checkCode(code) {
-      return queueRequest("checkCode", [code]);
+    updateCode(code) {
+      return queueRequest("updateCode", [code]);
     },
     getCompletions(sourcePath, code, offset) {
       return queueRequest("getCompletions", [sourcePath, code, offset]);
@@ -220,11 +225,11 @@ export function createWorkerProxy(
     getDefinition(sourcePath, code, offset) {
       return queueRequest("getDefinition", [sourcePath, code, offset]);
     },
-    run(code, expr, shots, evtHandler) {
-      return queueRequest("run", [code, expr, shots], evtHandler);
+    run(code, expr, shots) {
+      return queueRequest("run", [code, expr, shots]);
     },
-    runKata(user_code, verify_code, evtHandler) {
-      return queueRequest("runKata", [user_code, verify_code], evtHandler);
+    runKata(user_code, verify_code) {
+      return queueRequest("runKata", [user_code, verify_code]);
     },
     onstatechange: null,
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
@@ -249,7 +254,7 @@ export function createWorkerProxy(
 // Used by the worker to handle compiler events by posting a message back to the client
 export function getWorkerEventHandlers(
   postMessage: (msg: CompilerEventMsg) => void
-): IQscEventTarget {
+): QscEventTarget {
   log.debug("Constructing WorkerEventHandler");
 
   const logAndPost = (msg: CompilerEventMsg) => {
@@ -272,6 +277,13 @@ export function getWorkerEventHandlers(
     });
   });
 
+  evtTarget.addEventListener("diagnostics", (ev) => {
+    logAndPost({
+      type: "diagnostics-event",
+      event: { type: "diagnostics", diagnostics: ev.detail },
+    });
+  });
+
   evtTarget.addEventListener("Result", (ev) => {
     if (ev.detail.success) {
       logAndPost({ type: "success-event", event: ev.detail.value });
@@ -287,8 +299,7 @@ export function getWorkerEventHandlers(
 export function handleMessageInWorker(
   data: CompilerReqMsg,
   compiler: ICompiler,
-  postMessage: (msg: CompilerRespMsg) => void,
-  evtTarget: IQscEventTarget
+  postMessage: (msg: CompilerRespMsg) => void
 ) {
   log.debug("Handling message in worker: %o", data);
   const logIntercepter = (msg: CompilerRespMsg) => {
@@ -299,11 +310,11 @@ export function handleMessageInWorker(
   try {
     const msgType = data.type;
     switch (msgType) {
-      case "checkCode":
+      case "updateCode":
         compiler
-          .checkCode(data.code)
-          .then((result) =>
-            logIntercepter({ type: "checkCode-result", result })
+          .updateCode(data.code)
+          .then(() =>
+            logIntercepter({ type: "updateCode-result", result: undefined })
           );
         break;
       case "getCompletions":
@@ -329,7 +340,7 @@ export function handleMessageInWorker(
         break;
       case "run":
         compiler
-          .run(data.code, data.expr, data.shots, evtTarget)
+          .run(data.code, data.expr, data.shots)
           // 'run' can throw on compiler errors, which should be reported as events for
           // each 'shot', so just resolve as run 'complete' regardless.
           .finally(() =>
@@ -338,7 +349,7 @@ export function handleMessageInWorker(
         break;
       case "runKata":
         compiler
-          .runKata(data.user_code, data.verify_code, evtTarget)
+          .runKata(data.user_code, data.verify_code)
           .then((result) => logIntercepter({ type: "runKata-result", result }))
           // It shouldn't throw, but just in case there's a runtime or compiler failure
           .catch(() =>
@@ -359,7 +370,7 @@ export function handleMessageInWorker(
 }
 
 export type CompilerReqMsg =
-  | { type: "checkCode"; code: string }
+  | { type: "updateCode"; code: string }
   | { type: "getCompletions"; sourcePath: string; code: string; offset: number }
   | { type: "getHover"; sourcePath: string; code: string; offset: number }
   | { type: "getDefinition"; sourcePath: string; code: string; offset: number }
@@ -367,7 +378,7 @@ export type CompilerReqMsg =
   | { type: "runKata"; user_code: string; verify_code: string };
 
 type CompilerRespMsg =
-  | { type: "checkCode-result"; result: VSDiagnostic[] }
+  | { type: "updateCode-result"; result: void }
   | { type: "getCompletions-result"; result: ICompletionList }
   | {
       type: "getHover-result";
@@ -389,6 +400,7 @@ type CompilerEventMsg =
   | { type: "message-event"; event: MessageMsg }
   | { type: "dumpMachine-event"; event: DumpMsg }
   | { type: "success-event"; event: string }
-  | { type: "failure-event"; event: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  | { type: "failure-event"; event: any } // eslint-disable-line @typescript-eslint/no-explicit-any
+  | { type: "diagnostics-event"; event: DiagnosticsMsg };
 
 export type ResponseMsgType = CompilerRespMsg | CompilerEventMsg;

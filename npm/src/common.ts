@@ -33,9 +33,14 @@ export interface ResultMsg {
   result: Result;
 }
 
-export type EventMsg = ResultMsg | DumpMsg | MessageMsg;
+export interface DiagnosticsMsg {
+  type: "diagnostics";
+  diagnostics: VSDiagnostic[];
+}
 
-export function outputAsResult(msg: string): ResultMsg | null {
+export type EventMsg = ResultMsg | DumpMsg | MessageMsg | DiagnosticsMsg;
+
+function outputAsResult(msg: string): ResultMsg | null {
   try {
     const obj = JSON.parse(msg);
     if (obj?.type == "Result" && typeof obj.success == "boolean") {
@@ -53,7 +58,7 @@ export function outputAsResult(msg: string): ResultMsg | null {
   return null;
 }
 
-export function outputAsMessage(msg: string): MessageMsg | null {
+function outputAsMessage(msg: string): MessageMsg | null {
   try {
     const obj = JSON.parse(msg);
     if (obj?.type == "Message" && typeof obj.message == "string") {
@@ -65,7 +70,7 @@ export function outputAsMessage(msg: string): MessageMsg | null {
   return null;
 }
 
-export function outputAsDump(msg: string): DumpMsg | null {
+function outputAsDump(msg: string): DumpMsg | null {
   try {
     const obj = JSON.parse(msg);
     if (obj?.type == "DumpMachine" && typeof obj.state == "object") {
@@ -77,8 +82,25 @@ export function outputAsDump(msg: string): DumpMsg | null {
   return null;
 }
 
+export function outputAsDiagnostics(msg: string): DiagnosticsMsg | null {
+  try {
+    const obj = JSON.parse(msg);
+    if (obj?.type === "diagnostics" && typeof obj.diagnostics == "object") {
+      return obj as DiagnosticsMsg;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function eventStringToMsg(msg: string): EventMsg | null {
-  return outputAsResult(msg) || outputAsMessage(msg) || outputAsDump(msg);
+  return (
+    outputAsResult(msg) ||
+    outputAsMessage(msg) ||
+    outputAsDump(msg) ||
+    outputAsDiagnostics(msg)
+  );
 }
 
 export type ShotResult = {

@@ -38,19 +38,23 @@ declare global {
 
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
-function createCompiler(onStateChange: (val: CompilerState) => void) {
+function createCompiler(
+  onStateChange: (val: CompilerState) => void,
+  qscEvtTarget: QscEventTarget
+) {
   log.info("In createCompiler");
-  const compiler = getCompilerWorker(workerPath);
+  const compiler = getCompilerWorker(workerPath, qscEvtTarget);
   compiler.onstatechange = onStateChange;
   return compiler;
 }
 
 function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compilerState, setCompilerState] = useState<CompilerState>("idle");
+  const qscEvtTarget = new QscEventTarget(true);
+  const [evtTarget] = useState(qscEvtTarget);
   const [compiler, setCompiler] = useState(() =>
-    createCompiler(setCompilerState)
+    createCompiler(setCompilerState, qscEvtTarget)
   );
-  const [evtTarget] = useState(new QscEventTarget(true));
 
   const [currentNavItem, setCurrentNavItem] = useState(
     props.linkedCode ? "linked" : "Minimal"
@@ -61,7 +65,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   const onRestartCompiler = () => {
     compiler.terminate();
-    const newCompiler = createCompiler(setCompilerState);
+    const newCompiler = createCompiler(setCompilerState, qscEvtTarget);
     setCompiler(newCompiler);
     setCompilerState("idle");
   };

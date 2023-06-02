@@ -32,7 +32,7 @@ export function messageHandler(e: MessageEvent) {
     case "init":
       log.setLogLevel(data.qscLogLevel);
       wasm.initSync(data.wasmModule);
-      compiler = new Compiler(wasm);
+      compiler = new Compiler(wasm, evtTarget);
       break;
     default:
       if (!compiler) {
@@ -41,7 +41,7 @@ export function messageHandler(e: MessageEvent) {
           data
         );
       } else {
-        handleMessageInWorker(data, compiler, self.postMessage, evtTarget);
+        handleMessageInWorker(data, compiler, self.postMessage);
       }
   }
 }

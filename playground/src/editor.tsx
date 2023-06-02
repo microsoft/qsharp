@@ -80,10 +80,13 @@ export function Editor(props: {
     setErrors(errList);
   }
 
-  async function onCheck() {
+  async function updateCode() {
     const code = editor.current?.getValue();
-    if (code == null) return;
-    const results = await props.compiler.checkCode(code);
+    if (code == null) throw new Error("Why is code null?");
+    await props.compiler.updateCode(code);
+  }
+
+  function onCheck(results: VSDiagnostic[]) {
     errMarks.current.checkDiags = results;
     markErrors();
     setHasCheckErrors(results.length > 0);
@@ -97,9 +100,9 @@ export function Editor(props: {
     try {
       if (props.kataVerify) {
         // This is for a kata. Provide the verification code.
-        await props.compiler.runKata(code, props.kataVerify, props.evtTarget);
+        await props.compiler.runKata(code, props.kataVerify);
       } else {
-        await props.compiler.run(code, runExpr, shotCount, props.evtTarget);
+        await props.compiler.run(code, runExpr, shotCount);
       }
     } catch (err) {
       // This could fail for several reasons, e.g. the run being cancelled.
@@ -216,9 +219,12 @@ export function Editor(props: {
   }, []);
 
   useEffect(() => {
+    props.evtTarget.addEventListener("diagnostics", (evt) =>
+      onCheck(evt.detail)
+    );
     const theEditor = editor.current;
     if (!theEditor) return;
-    theEditor.getModel()?.onDidChangeContent(onCheck);
+    theEditor.getModel()?.onDidChangeContent(updateCode);
   }, [props.compiler]);
 
   useEffect(() => {

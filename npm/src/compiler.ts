@@ -25,7 +25,7 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export type CompilerState = "idle" | "busy";
 export interface ICompiler {
-  checkCode(code: string): Promise<VSDiagnostic[]>;
+  updateCode(code: string): Promise<void>;
   getCompletions(
     sourcePath: string,
     code: string,
@@ -37,17 +37,8 @@ export interface ICompiler {
     code: string,
     offset: number
   ): Promise<IDefinition>;
-  run(
-    code: string,
-    expr: string,
-    shots: number,
-    eventHandler: IQscEventTarget
-  ): Promise<void>;
-  runKata(
-    user_code: string,
-    verify_code: string,
-    eventHandler: IQscEventTarget
-  ): Promise<boolean>;
+  run(code: string, expr: string, shots: number): Promise<void>;
+  runKata(user_code: string, verify_code: string): Promise<boolean>;
   onstatechange: ((state: CompilerState) => void) | null;
 }
 
@@ -76,13 +67,21 @@ function errToDiagnostic(err: any): VSDiagnostic {
 
 export class Compiler implements ICompiler {
   private wasm: Wasm;
+  private eventHandler: IQscEventTarget;
 
   onstatechange: ((state: CompilerState) => void) | null = null;
 
-  constructor(wasm: Wasm) {
+  constructor(wasm: Wasm, eventHandler: IQscEventTarget) {
     log.info("Constructing a Compiler instance");
     this.wasm = wasm;
+    this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
+  }
+
+  async updateCode(code: string): Promise<void> {
+    const diagnostics = await this.checkCode(code);
+    // This will be updated with an event from the language service
+    this.eventHandler.dispatchEvent(makeEvent("diagnostics", diagnostics));
   }
 
   async checkCode(code: string): Promise<VSDiagnostic[]> {
@@ -113,12 +112,7 @@ export class Compiler implements ICompiler {
     return result;
   }
 
-  async run(
-    code: string,
-    expr: string,
-    shots: number,
-    eventHandler: IQscEventTarget
-  ): Promise<void> {
+  async run(code: string, expr: string, shots: number): Promise<void> {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
@@ -127,18 +121,14 @@ export class Compiler implements ICompiler {
     this.wasm.run(
       code,
       expr,
-      (msg: string) => onCompilerEvent(msg, eventHandler),
+      (msg: string) => onCompilerEvent(msg, this.eventHandler),
       shots
     );
 
     if (this.onstatechange) this.onstatechange("idle");
   }
 
-  async runKata(
-    user_code: string,
-    verify_code: string,
-    eventHandler: IQscEventTarget
-  ): Promise<boolean> {
+  async runKata(user_code: string, verify_code: string): Promise<boolean> {
     let success = false;
     let err: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
@@ -146,7 +136,7 @@ export class Compiler implements ICompiler {
       success = this.wasm.run_kata_exercise(
         verify_code,
         user_code,
-        (msg: string) => onCompilerEvent(msg, eventHandler)
+        (msg: string) => onCompilerEvent(msg, this.eventHandler)
       );
     } catch (e) {
       err = e;
@@ -158,17 +148,17 @@ export class Compiler implements ICompiler {
         success: true,
         value: success.toString(),
       });
-      eventHandler.dispatchEvent(evt);
+      this.eventHandler.dispatchEvent(evt);
     } else {
       const diag = errToDiagnostic(err);
       const evt = makeEvent("Result", { success: false, value: diag });
-      eventHandler.dispatchEvent(evt);
+      this.eventHandler.dispatchEvent(evt);
     }
     return success;
   }
 }
 
-export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
+function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
   const qscMsg = eventStringToMsg(msg);
   if (!qscMsg) {
     log.error("Unknown event message: %s", msg);
@@ -187,6 +177,9 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       break;
     case "Result":
       qscEvent = makeEvent("Result", qscMsg.result);
+      break;
+    case "diagnostics":
+      qscEvent = makeEvent("diagnostics", qscMsg.diagnostics);
       break;
     default:
       log.never(msgType);

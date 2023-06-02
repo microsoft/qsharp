@@ -8,6 +8,7 @@ import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
 import { LogLevel, log } from "./log.js";
 import { Compiler, ICompiler, ICompilerWorker } from "./compiler.js";
 import { ResponseMsgType, createWorkerProxy } from "./worker-common.js";
+import { IQscEventTarget } from "./events.js";
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
@@ -25,17 +26,22 @@ export async function loadWasmModule(uriOrBuffer: string | ArrayBuffer) {
   }
 }
 
-export async function getCompiler(): Promise<ICompiler> {
+export async function getCompiler(
+  evtTarget: IQscEventTarget
+): Promise<ICompiler> {
   if (!wasmModule) throw "Wasm module must be loaded first";
   if (!wasmInstance) wasmInstance = await initWasm(wasmModule);
 
-  return new Compiler(wasm);
+  return new Compiler(wasm, evtTarget);
 }
 
 // Create the compiler inside a WebWorker and proxy requests.
 // If the Worker was already created via other means and is ready to receive
 // messages, then the worker may be passed in and it will be initialized.
-export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
+export function getCompilerWorker(
+  workerArg: string | Worker,
+  evtTarget: IQscEventTarget
+): ICompilerWorker {
   if (!wasmModule) throw "Wasm module must be loaded first";
 
   // Create or use the WebWorker
@@ -55,7 +61,7 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
     (worker.onmessage = (ev) => handler(ev.data));
   const onTerminate = () => worker.terminate();
 
-  return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
+  return createWorkerProxy(postMessage, setMsgHandler, onTerminate, evtTarget);
 }
 
 export type { ICompilerWorker };

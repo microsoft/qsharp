@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { getCompiler, loadWasmModule } from "qsharp";
+import { QscEventTarget, getCompiler, loadWasmModule } from "qsharp";
 import { createCompletionItemProvider } from "./completion.js";
 import { createHoverProvider } from "./hover.js";
 import { registerQSharpNotebookHandlers } from "./notebooks.js";
@@ -16,7 +16,8 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
   await loadWasmModule(wasmBytes);
-  const compiler = await getCompiler();
+  const evtTarget = new QscEventTarget(false);
+  const compiler = await getCompiler(evtTarget);
 
   // completions
   vscode.languages.registerCompletionItemProvider(
