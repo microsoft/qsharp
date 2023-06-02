@@ -33,6 +33,8 @@ pub(super) enum Error {
     Lex(lex::Error),
     #[error("invalid {0} literal")]
     Lit(&'static str, #[label] Span),
+    #[error("unknown escape sequence: `{0}`")]
+    Escape(char, #[label] Span),
     #[error("expected {0}, found {1}")]
     Token(TokenKind, TokenKind, #[label] Span),
     #[error("expected keyword `{0}`, found {1}")]
@@ -52,6 +54,7 @@ impl Error {
         match self {
             Self::Lex(error) => Self::Lex(error.with_offset(offset)),
             Self::Lit(name, span) => Self::Lit(name, span + offset),
+            Self::Escape(ch, span) => Self::Escape(ch, span + offset),
             Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
             Self::Keyword(keyword, token, span) => Self::Keyword(keyword, token, span + offset),
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
@@ -94,14 +97,14 @@ pub(super) fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
     }
 }
 
-pub(super) fn expr(input: &str) -> (Expr, Vec<Error>) {
+pub(super) fn expr(input: &str) -> (Box<Expr>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match expr::expr(&mut scanner) {
         Ok(expr) => (expr, scanner.errors()),
         Err(err) => {
             let mut errors = scanner.errors();
             errors.push(err);
-            (Expr::default(), errors)
+            (Box::default(), errors)
         }
     }
 }

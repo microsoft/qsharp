@@ -5,12 +5,10 @@
 mod tests;
 
 use crate::{
-    funop,
     lower::{self, Lowerer},
     parse,
     resolve::{self, Names, Resolver},
     typeck::{self, Checker},
-    validate::{self, validate},
 };
 use miette::{
     Diagnostic, MietteError, MietteSpanContents, Report, SourceCode, SourceSpan, SpanContents,
@@ -144,10 +142,6 @@ pub(super) enum ErrorKind {
     #[error("type error")]
     Type(#[from] typeck::Error),
     #[error(transparent)]
-    FunOp(#[from] funop::Error),
-    #[error(transparent)]
-    Validate(#[from] validate::Error),
-    #[error(transparent)]
     Lower(#[from] lower::Error),
 }
 
@@ -203,7 +197,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-struct Offsetter(u32);
+pub(super) struct Offsetter(pub(super) u32);
 
 impl MutVisitor for Offsetter {
     fn visit_span(&mut self, span: &mut Span) {
@@ -224,8 +218,6 @@ pub fn compile(
     let mut hir_assigner = HirAssigner::new();
     let (names, name_errors) = resolve_all(store, dependencies, &mut hir_assigner, &package);
     let (tys, ty_errors) = typeck_all(store, dependencies, &package, &names);
-    let validate_errors = validate(&package);
-    let funop_errors = funop::check(&tys, &package);
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
@@ -237,8 +229,6 @@ pub fn compile(
         .map(Into::into)
         .chain(name_errors.into_iter().map(Into::into))
         .chain(ty_errors.into_iter().map(Into::into))
-        .chain(funop_errors.into_iter().map(Into::into))
-        .chain(validate_errors.into_iter().map(Into::into))
         .chain(lower_errors.into_iter().map(Into::into))
         .map(Error)
         .collect();
@@ -370,7 +360,7 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
             let (mut entry, entry_errors) = parse::expr(&source.contents);
             Offsetter(source.offset).visit_expr(&mut entry);
             append_parse_errors(&mut errors, source.offset, entry_errors);
-            Box::new(entry)
+            entry
         });
 
     let package = ast::Package {

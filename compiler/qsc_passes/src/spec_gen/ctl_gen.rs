@@ -4,7 +4,7 @@
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, PrimTy, Res, Ty, UnOp},
+    hir::{ArrowTy, CallableKind, Expr, ExprKind, Functor, NodeId, PrimTy, Res, Ty, UnOp},
     mut_visit::{walk_expr, MutVisitor},
 };
 use thiserror::Error;
@@ -26,19 +26,20 @@ impl MutVisitor for CtlDistrib {
         match &mut expr.kind {
             ExprKind::Call(op, args) => {
                 match &op.ty {
-                    Ty::Arrow(CallableKind::Operation, input, output, functors)
-                        if functors.contains(&Functor::Ctl) =>
+                    Ty::Arrow(arrow)
+                        if arrow.kind == CallableKind::Operation
+                            && arrow.functors.contains(&Functor::Ctl) == Some(true) =>
                     {
                         op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
-                        op.ty = Ty::Arrow(
-                            CallableKind::Operation,
-                            Box::new(Ty::Tuple(vec![
+                        op.ty = Ty::Arrow(Box::new(ArrowTy {
+                            kind: CallableKind::Operation,
+                            input: Box::new(Ty::Tuple(vec![
                                 Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                                Ty::clone(input),
+                                Ty::clone(&arrow.input),
                             ])),
-                            output.clone(),
-                            functors.clone(),
-                        );
+                            output: arrow.output.clone(),
+                            functors: arrow.functors,
+                        }));
 
                         args.kind = ExprKind::Tuple(vec![
                             Expr {
@@ -54,7 +55,7 @@ impl MutVisitor for CtlDistrib {
                             Ty::clone(&args.ty),
                         ]);
                     }
-                    Ty::Arrow(CallableKind::Operation, _, _, _) => {
+                    Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation => {
                         self.errors.push(Error::MissingCtlFunctor(op.span));
                     }
                     _ => {}

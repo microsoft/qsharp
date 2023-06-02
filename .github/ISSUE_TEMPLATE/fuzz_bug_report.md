@@ -24,7 +24,7 @@ download the artifact, and extract the file with the exact minimized input.
 The fragment of interest starts with "panicked at".
 
 ```gdb
-{{ env.FUZZ_STDERR_LOG }}
+{{ env.STDERR_LOG }}
 ```
 
 </details>

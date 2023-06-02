@@ -4,6 +4,10 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
 #[cfg(test)]
+mod test_arrays;
+#[cfg(test)]
+mod test_convert;
+#[cfg(test)]
 mod tests;
 
 use qsc::{
@@ -14,7 +18,7 @@ use qsc::{
 /// # Panics
 ///
 /// Will panic if compilation fails or the result is not the same as expected.
-pub fn run_stdlib_test(expr: &str, expected: &Value) {
+pub fn test_expression(expr: &str, expected: &Value) {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
 

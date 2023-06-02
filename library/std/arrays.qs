@@ -6,6 +6,71 @@ namespace Microsoft.Quantum.Arrays {
     open Microsoft.Quantum.Math;
 
     /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, and checks if all elements of the
+    /// array satisfy the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to `Bool` that is used to check elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// A `Bool` value of the AND function of the predicate applied to all elements.
+    ///
+    /// # Example
+    /// The following code checks whether all elements of the array are non-zero:
+    /// ```qsharp
+    /// let allNonZero = All(x -> x != 0, [1, 2, 3, 4, 5]);
+    /// ```
+    function All<'T> (predicate : ('T -> Bool), array : 'T[]) : Bool {
+        for element in array {
+            if not predicate(element) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, checks if at least one element of
+    /// the array satisfies the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to `Bool` that is used to check elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// A `Bool` value of the OR function of the predicate applied to all elements.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let anyEven = Any(x -> x % 2 == 0, [1, 3, 6, 7, 9]);
+    /// ```
+    function Any<'T> (predicate : ('T -> Bool), array : 'T[]) : Bool {
+        for element in array {
+            if predicate(element) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// # Summary
     /// Splits an array into multiple parts of equal length.
     ///
     /// # Input
@@ -31,6 +96,76 @@ namespace Microsoft.Quantum.Arrays {
         }
 
         output
+    }
+
+    /// # Summary
+    /// Extracts a column from a matrix.
+    ///
+    /// # Description
+    /// This function extracts a column in a matrix in row-wise order.
+    /// Extracting a row corresponds to element access of the first index
+    /// and therefore requires no further treatment.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `matrix`.
+    ///
+    /// # Input
+    /// ## column
+    /// Column of the matrix
+    /// ## matrix
+    /// 2-dimensional matrix in row-wise order
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+    /// let column = ColumnAt(0, matrix);
+    /// // same as: column = [1, 4, 7]
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Transposed
+    /// - Microsoft.Quantum.Arrays.Diagonal
+    function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[] {
+        Fact(IsRectangularArray(matrix), "`matrix` is not a rectangular array");
+        mutable columnValues = [];
+        for row in matrix {
+            set columnValues += [row[column]];
+        }
+        columnValues
+    }
+
+    /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, returns the number of elements
+    /// an array that consists of those elements that satisfy the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to Boolean that is used to filter elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// The number of elements in `array` that satisfy the predicate.
+    ///
+    /// # Example
+    /// ```qsharp
+    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]); 
+    /// // evensCount is 1.
+    /// ```
+    function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
+        mutable count = 0;
+        for element in array {
+            if predicate(element) {
+                set count += 1;
+            }
+        }
+        count
     }
 
     /// # Summary
@@ -68,6 +203,68 @@ namespace Microsoft.Quantum.Arrays {
         }
 
         diagonal
+    }
+
+    /// # Summary
+    /// Repeats an operation for a given number of samples, collecting its outputs
+    /// in an array.
+    ///
+    /// # Input
+    /// ## op
+    /// The operation to be called repeatedly.
+    /// ## nSamples
+    /// The number of samples of calling `op` to collect.
+    /// ## input
+    /// The input to be passed to `op`.
+    ///
+    /// # Type Parameters
+    /// ## TInput
+    /// The type of input expected by `op`.
+    /// ## TOutput
+    /// The type of output returned by `op`.
+    ///
+    /// # Example
+    /// The following samples an alternating array of results.
+    /// ```qsharp
+    /// use qubit = Qubit();
+    /// let results = Microsoft.Quantum.Arrays.DrawMany(q => {X(q); M(q)}, 3, qubit);
+    /// ```
+    operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput)
+    : 'TOutput[] {
+        mutable outputs = [];
+        for _ in 1 .. nSamples {
+            set outputs += [op(input)];
+        }
+        outputs
+    }
+
+    /// # Summary
+    /// Given an array, returns a new array containing elements of the original
+    /// array along with the indices of each element.
+    ///
+    /// # Type Parameters
+    /// ## 'TElement
+    /// The type of elements of the array.
+    ///
+    /// # Input
+    /// ## array
+    /// An array whose elements are to be enumerated.
+    ///
+    /// # Output
+    /// A new array containing elements of the original array along with their
+    /// indices.
+    ///
+    /// # Example
+    /// The following `for` loops are equivalent:
+    /// ```qsharp
+    /// for (idx in IndexRange(array)) {
+    ///     let element = array[idx];
+    ///     ...
+    /// }
+    /// for ((idx, element) in Enumerated(array)) { ... }
+    /// ```
+    function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[] {
+        MappedByIndex((index, element) -> (index, element), array)
     }
 
     /// # Summary
@@ -113,6 +310,165 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given an array and a predicate that is defined
+    /// for the elements of the array, returns an array that consists of
+    /// those elements that satisfy the predicate.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to Boolean that is used to filter elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'T[]` of elements that satisfy the predicate.
+    ///
+    /// # Example
+    /// The following code creates an array that contains only even numbers.
+    /// ```qsharp
+    /// Filtered(x -> x % 2 == 0, [0, 1, 2, 3, 4])
+    /// ```
+    function Filtered<'T>(predicate : ('T -> Bool), array : 'T[]) : 'T[] {
+        mutable filtered = [];
+        for element in array {
+            if predicate(element) {
+                set filtered += [element];
+            }
+        }
+        filtered
+    }
+
+    /// # Summary
+    /// Given an array and a function that maps an array element to some output
+    /// array, returns the concatenated output arrays for each array element.
+    ///
+    /// # Type Parameters
+    /// ## 'TInput
+    /// The type of `array` elements.
+    /// ## 'TOutput
+    /// The `mapper` function returns arrays of this type.
+    ///
+    /// # Input
+    /// ## mapper
+    /// A function from `'TInput` to `'TOutput[]` that is used to map array elements.
+    /// ## array
+    /// An array of elements.
+    ///
+    /// # Output
+    /// An array of `'TOutput[]` which is the concatenation of all arrays generated by
+    /// the mapping function.
+    ///
+    /// # Example
+    /// The following code creates an array with each element of the input array repeated twice.
+    /// ```qsharp
+    /// let repeatedPairs = FlatMapped(x -> Repeated(x, 2), [1, 2, 3]);
+    /// // repeatedPairs is [1, 1, 2, 2, 3, 3].
+    /// ```
+    function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array : 'TInput[]) : 'TOutput[] {
+        mutable output = [];
+        for element in array {
+            set output += mapper(element); 
+        }
+        output
+    }
+
+    /// # Summary
+    /// Given an array of arrays, returns the concatenation of all arrays.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## arrays
+    /// Array of arrays.
+    ///
+    /// # Output
+    /// Concatenation of all arrays.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let flattened = Flattened([[1, 2], [3], [4, 5, 6]]);
+    /// // flattened = [1, 2, 3, 4, 5, 6]
+    /// ```
+    function Flattened<'T>(arrays : 'T[][]): 'T[] {
+        mutable output = [];
+        for array in arrays {
+            set output += array;
+        }
+        output
+    }
+
+    /// # Summary
+    /// Iterates a function `f` through an array `array`, returning
+    /// `f(...f(f(initialState, array[0]), array[1]), ...)`.
+    ///
+    /// # Type Parameters
+    /// ## 'State
+    /// The type of states the `folder` function operates on, i.e., accepts as its first
+    /// argument and returns.
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## folder
+    /// A function to be folded over the array.
+    /// ## state
+    /// The initial state of the folder.
+    /// ## array
+    /// An array of values to be folded over.
+    ///
+    /// # Output
+    /// The final state returned by the folder after iterating over
+    /// all elements of `array`.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let sum = Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5]); // `sum` is 15.
+    /// ```
+    function Fold<'State, 'T> (folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State {
+        mutable current = state;
+        for element in array {
+            set current = folder(current, element);
+        }
+        current
+    }
+
+    /// # Summary
+    /// Given an array and an operation that is defined
+    /// for the elements of the array, returns a new array that consists
+    /// of the images of the original array under the operation.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    /// ## 'U
+    /// The result type of the `action` operation.
+    ///
+    /// # Input
+    /// ## action
+    /// An operation from `'T` to `'U` that is applied to each element.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'U[]` of elements that are mapped by the `action` operation.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Mapped
+    operation ForEach<'T, 'U> (action : ('T => 'U), array : 'T[]) : 'U[] {
+        mutable output = [];
+        for element in array {
+            set output += [action(element)];
+        }
+        output
+    }
+
+    /// # Summary
     /// Returns the first element of the array.
     ///
     /// # Type Parameters
@@ -127,6 +483,35 @@ namespace Microsoft.Quantum.Arrays {
     /// The first element of the array.
     function Head<'A> (array : 'A[]) : 'A {
         array[0]
+    }
+
+    /// # Summary
+    /// Returns the first index of the first element in an array that satisfies
+    /// a given predicate. If no such element exists, returns -1.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A predicate function acting on elements of the array.
+    /// ## array
+    /// An array to be searched using the given predicate.
+    ///
+    /// # Output
+    /// Either the smallest index of an element for which `predicate(array[index])` is true,
+    /// or -1 if no such element exists.
+    ///
+    /// # Example
+    /// The following code gets the index of the first even number in the input array.
+    /// ```qsharp
+    /// let indexOfFirstEven = IndexOf(x -> x % 2 == 0, [1, 3, 17, 2, 21]);
+    /// // `indexOfFirstEven` is 3.
+    /// ```
+    function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
+        for index in 0 .. Length(array) - 1 {
+            if predicate(array[index]) {
+                return index;
+            }
+        }
+        -1
     }
 
     /// # Summary
@@ -253,6 +638,38 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given an array, returns whether that array is sorted as defined by
+    /// a given comparison function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `array`.
+    ///
+    /// # Input
+    /// ## comparison
+    /// A function that compares two elements such that `a` is considered to
+    /// be less than or equal to `b` if `comparison(a, b)` is `true`.
+    /// ## array
+    /// The array to be checked.
+    ///
+    /// # Output
+    /// `true` if and only if for each pair of elements `a` and `b` of
+    /// `array` occurring in that order, `comparison(a, b)` is `true`.
+    ///
+    /// # Remarks
+    /// The function `comparison` is assumed to be transitive, such that
+    /// if `comparison(a, b)` and `comparison(b, c)`, then `comparison(a, c)`
+    /// is assumed.
+    function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool {
+        for index in 1 .. Length(array) - 1 {
+            if not comparison(array[index - 1], array[index]) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// # Summary
     /// Returns whether a 2-dimensional array has a square shape
     ///
     /// # Type Parameters
@@ -286,6 +703,112 @@ namespace Microsoft.Quantum.Arrays {
         }
 
         true
+    }
+
+    /// # Summary
+    /// Given an array and a function that is defined
+    /// for the elements of the array, returns a new array that consists
+    /// of the images of the original array under the function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    /// ## 'U
+    /// The result type of the `mapper` function.
+    ///
+    /// # Input
+    /// ## mapper
+    /// A function from `'T` to `'U` that is used to map elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'U[]` of elements that are mapped by the `mapper` function.
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.ForEach
+    function Mapped<'T, 'U> (mapper : ('T -> 'U), array : 'T[]) : 'U[] {
+        mutable mapped = [];
+        for element in array {
+            set mapped += [mapper(element)];
+        }
+        mapped
+    }
+
+    /// # Summary
+    /// Given an array and a function that is defined
+    /// for the indexed elements of the array, returns a new array that consists
+    /// of the images of the original array under the function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    /// ## 'U
+    /// The result type of the `mapper` function.
+    ///
+    /// # Input
+    /// ## mapper
+    /// A function from `(Int, 'T)` to `'U` that is used to map elements
+    /// and their indices.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array `'U[]` of elements that are mapped by the `mapper` function.
+    ///
+    /// # Example
+    /// The following two lines are equivalent:
+    /// ```qsharp
+    /// let array = MappedByIndex(f, [x0, x1, x2]);
+    /// ```
+	/// and
+	/// ```qsharp
+    /// let array = [f(0, x0), f(1, x1), f(2, x2)];
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Mapped
+    function MappedByIndex<'T, 'U> (mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] {
+        mutable mapped = [];
+        for index in 0 .. Length(array) - 1 {
+            set mapped += [mapper(index, array[index])];
+        }
+        mapped
+    }
+
+    /// # Summary
+    /// Given a range and a function that takes an integer as input,
+    /// returns a new array that consists
+    /// of the images of the range values under the function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The result type of the `mapper` function.
+    ///
+    /// # Input
+    /// ## mapper
+    /// A function from `Int` to `'T` that is used to map range values.
+    /// ## range
+    /// A range of integers.
+    ///
+    /// # Output
+    /// An array `'T[]` of elements that are mapped by the `mapper` function.
+    ///
+    /// # Example
+    /// This example adds 1 to a range of even numbers:
+    /// ```qsharp
+    /// let numbers = MappedOverRange(x -> x + 1, 0..2..10);
+    /// // numbers = [1, 3, 5, 7, 9, 11]
+    /// ```
+    ///
+    /// # See Also
+    /// - Microsoft.Quantum.Arrays.Mapped
+    function MappedOverRange<'T> (mapper : (Int -> 'T), range : Range) : 'T[] {
+        mutable output = [];
+        for element in range {
+            set output += [mapper(element)];
+        }
+        output
     }
 
     /// # Summary
@@ -459,6 +982,78 @@ namespace Microsoft.Quantum.Arrays {
     }
 
     /// # Summary
+    /// Given an array, returns the elements of that array sorted by a given
+    /// comparison function.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of each element of `array`.
+    ///
+    /// # Input
+    /// ## comparison
+    /// A function that compares two elements such that `a` is considered to
+    /// be less than or equal to `b` if `comparison(a, b)` is `true`.
+    /// ## array
+    /// The array to be sorted.
+    ///
+    /// # Output
+    /// An array containing the same elements as `array`, such that for all
+    /// elements `a` occurring earlier than elements `b`, `comparison(a, b)`
+    /// is `true`.
+    ///
+    /// # Example
+    /// The following snippet sorts an array of integers to occur in ascending
+    /// order:
+    /// ```qsharp
+    /// let sortedArray = Sorted(LessThanOrEqualI, [3, 17, 11, -201, -11]);
+    /// ```
+    /// 
+    /// # Remarks
+    /// The function `comparison` is assumed to be transitive, such that
+    /// if `comparison(a, b)` and `comparison(b, c)`, then `comparison(a, c)`
+    /// is assumed. If this property does not hold, then the output of this
+    /// function may be incorrect.
+    function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[] {
+        if Length(array) <= 1 {
+            return array;
+        }
+
+        let pivotIndex = Length(array) / 2;
+        let left = array[...pivotIndex - 1];
+        let right = array[pivotIndex...];
+
+        // Sort each sublist, then merge them back into a single combined
+        // list and return.
+        SortedMerged(
+            comparison, 
+            Sorted(comparison, left),
+            Sorted(comparison, right)
+        )
+    }
+
+    /// # Summary
+    /// Given two sorted arrays, returns a single array containing the
+    /// elements of both in sorted order. Used internally by `Sorted`.
+    internal function SortedMerged<'T>(comparison : (('T, 'T) -> Bool), left : 'T[], right : 'T[]) : 'T[] {
+        mutable output = [];
+        mutable remainingLeft = left;
+        mutable remainingRight = right;
+        while (not IsEmpty(remainingLeft)) and (not IsEmpty(remainingRight)) {
+            if comparison(Head(remainingLeft), Head(remainingRight)) {
+                set output += [Head(remainingLeft)];
+                set remainingLeft = Rest(remainingLeft);
+            } else {
+                set output += [Head(remainingRight)];
+                set remainingRight = Rest(remainingRight);
+            }
+        }
+
+        // Note that at this point, either or both of `remainingLeft` and `remainingRight` are empty,
+        // such that we can simply append both to our output to get the whole merged array.
+        output + remainingLeft + remainingRight
+    }
+
+    /// # Summary
     /// Takes an array and a list of locations and
     /// produces a new array formed from the elements of the original
     /// array that match the given locations.
@@ -494,6 +1089,33 @@ namespace Microsoft.Quantum.Arrays {
             set subarray += [array[location]];
         }
         subarray
+    }
+
+    /// # Summary
+    /// Applies a swap of two elements in an array.
+    ///
+    /// # Input
+    /// ## firstIndex
+    /// Index of the first element to be swapped.
+    ///
+    /// ## secondIndex
+    /// Index of the second element to be swapped.
+    ///
+    /// ## array
+    /// Array with elements to be swapped.
+    ///
+    /// # Output
+    /// The array with the in place swap applied.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// // The following returns [0, 3, 2, 1, 4]
+    /// Swapped(1, 3, [0, 1, 2, 3, 4]);
+    /// ```
+    function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[] {
+        array
+            w/ firstIndex <- array[secondIndex]
+            w/ secondIndex <- array[firstIndex]
     }
 
     /// # Summary
@@ -592,6 +1214,32 @@ namespace Microsoft.Quantum.Arrays {
             set second += [right];
         }
         return (first, second);
+    }
+
+    /// # Summary
+    /// Given a predicate and an array, returns the indices of that
+    /// array where the predicate is true.
+    ///
+    /// # Type Parameters
+    /// ## 'T
+    /// The type of `array` elements.
+    ///
+    /// # Input
+    /// ## predicate
+    /// A function from `'T` to Boolean that is used to filter elements.
+    /// ## array
+    /// An array of elements over `'T`.
+    ///
+    /// # Output
+    /// An array of indices where `predicate` is true.
+    function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[] {
+        mutable indexes = [];
+        for index in 0 .. Length(array) - 1 {
+            if predicate(array[index]) {
+                set indexes += [index];
+            }
+        }
+        indexes
     }
 
     /// # Summary

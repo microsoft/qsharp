@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    closure,
+    closure::{self, Lambda, PartialApp},
     resolve::{self, Names},
     typeck::{self, convert},
 };
@@ -15,8 +15,9 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
+    mut_visit::MutVisitor,
 };
-use std::{clone::Clone, collections::HashSet, rc::Rc, vec};
+use std::{clone::Clone, rc::Rc, vec};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -26,13 +27,10 @@ pub(super) enum Error {
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
     InvalidAttrArgs(&'static str, #[label] Span),
-    #[error("lambda closes over mutable variable")]
-    MutableClosure(#[label] Span),
-}
-
-pub(super) struct Local {
-    pub(super) mutability: hir::Mutability,
-    pub(super) ty: hir::Ty,
+    #[error("missing callable body")]
+    MissingBody(#[label] Span),
+    #[error("duplicate specialization")]
+    DuplicateSpec(#[label] Span),
 }
 
 #[derive(Clone, Copy)]
@@ -43,7 +41,7 @@ enum ItemScope {
 
 pub(super) struct Lowerer {
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
-    locals: IndexMap<hir::NodeId, Local>,
+    locals: IndexMap<hir::NodeId, hir::Ty>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
     errors: Vec<Error>,
@@ -58,6 +56,10 @@ impl Lowerer {
             items: Vec::new(),
             errors: Vec::new(),
         }
+    }
+
+    pub(super) fn clear_items(&mut self) {
+        self.items.clear();
     }
 
     pub(super) fn drain_items(&mut self) -> vec::Drain<hir::Item> {
@@ -96,8 +98,8 @@ impl With<'_> {
             self.lower_namespace(namespace);
         }
 
-        let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
+        let items = self.lowerer.items.drain(..).map(|i| (i.id, i)).collect();
         hir::Package { items, entry }
     }
 
@@ -206,23 +208,86 @@ impl With<'_> {
     }
 
     pub(super) fn lower_callable_decl(&mut self, decl: &ast::CallableDecl) -> hir::CallableDecl {
-        hir::CallableDecl {
-            id: self.lower_id(decl.id),
-            span: decl.span,
-            kind: lower_callable_kind(decl.kind),
-            name: self.lower_ident(&decl.name),
-            ty_params: decl.ty_params.iter().map(|p| self.lower_ident(p)).collect(),
-            input: self.lower_pat(ast::Mutability::Immutable, &decl.input),
-            output: convert::ty_from_ast(self.names, &decl.output).0,
-            functors: callable_functors(decl),
-            body: match &*decl.body {
-                ast::CallableBody::Block(block) => {
-                    hir::CallableBody::Block(self.lower_block(block))
-                }
-                ast::CallableBody::Specs(specs) => hir::CallableBody::Specs(
-                    specs.iter().map(|s| self.lower_spec_decl(s)).collect(),
+        let id = self.lower_id(decl.id);
+        let span = decl.span;
+        let kind = lower_callable_kind(decl.kind);
+        let name = self.lower_ident(&decl.name);
+        let ty_params = decl.ty_params.iter().map(|p| self.lower_ident(p)).collect();
+        let input = self.lower_pat(&decl.input);
+        let output = convert::ty_from_ast(self.names, &decl.output).0;
+        let functors = convert::ast_callable_functors(decl);
+        let mut adj = None;
+        let mut ctl = None;
+        let mut ctladj = None;
+        let body = match decl.body.as_ref() {
+            ast::CallableBody::Block(block) => hir::SpecDecl {
+                id: self.assigner.next_node(),
+                span,
+                spec: hir::Spec::Body,
+                body: hir::SpecBody::Impl(
+                    hir::Pat {
+                        id: self.assigner.next_node(),
+                        span,
+                        ty: input.ty.clone(),
+                        kind: hir::PatKind::Elided,
+                    },
+                    self.lower_block(block),
                 ),
             },
+            ast::CallableBody::Specs(specs) => {
+                let body = self
+                    .process_spec(specs, ast::Spec::Body)
+                    .unwrap_or_else(|| {
+                        self.lowerer.errors.push(Error::MissingBody(span));
+                        hir::SpecDecl {
+                            id: self.assigner.next_node(),
+                            span,
+                            spec: hir::Spec::Body,
+                            body: hir::SpecBody::Gen(hir::SpecGen::Auto),
+                        }
+                    });
+                adj = self.process_spec(specs, ast::Spec::Adj);
+                ctl = self.process_spec(specs, ast::Spec::Ctl);
+                ctladj = self.process_spec(specs, ast::Spec::CtlAdj);
+                body
+            }
+        };
+
+        hir::CallableDecl {
+            id,
+            span,
+            kind,
+            name,
+            ty_params,
+            input,
+            output,
+            functors,
+            body,
+            adj,
+            ctl,
+            ctladj,
+        }
+    }
+
+    fn process_spec(
+        &mut self,
+        specs: &[Box<ast::SpecDecl>],
+        spec: ast::Spec,
+    ) -> Option<hir::SpecDecl> {
+        match specs
+            .iter()
+            .filter(|s| s.spec == spec)
+            .collect::<Vec<_>>()
+            .as_slice()
+        {
+            [] => None,
+            [single] => Some(self.lower_spec_decl(single)),
+            dupes => {
+                for dup in dupes {
+                    self.lowerer.errors.push(Error::DuplicateSpec(dup.span));
+                }
+                Some(self.lower_spec_decl(dupes[0]))
+            }
         }
     }
 
@@ -244,10 +309,9 @@ impl With<'_> {
                     ast::SpecGen::Invert => hir::SpecGen::Invert,
                     ast::SpecGen::Slf => hir::SpecGen::Slf,
                 }),
-                ast::SpecBody::Impl(input, block) => hir::SpecBody::Impl(
-                    self.lower_pat(ast::Mutability::Immutable, input),
-                    self.lower_block(block),
-                ),
+                ast::SpecBody::Impl(input, block) => {
+                    hir::SpecBody::Impl(self.lower_pat(input), self.lower_block(block))
+                }
             },
         }
     }
@@ -279,7 +343,7 @@ impl With<'_> {
             }
             ast::StmtKind::Local(mutability, lhs, rhs) => hir::StmtKind::Local(
                 lower_mutability(*mutability),
-                self.lower_pat(*mutability, lhs),
+                self.lower_pat(lhs),
                 self.lower_expr(rhs),
             ),
             ast::StmtKind::Qubit(source, lhs, rhs, block) => hir::StmtKind::Qubit(
@@ -287,7 +351,7 @@ impl With<'_> {
                     ast::QubitSource::Fresh => hir::QubitSource::Fresh,
                     ast::QubitSource::Dirty => hir::QubitSource::Dirty,
                 },
-                self.lower_pat(ast::Mutability::Immutable, lhs),
+                self.lower_pat(lhs),
                 self.lower_qubit_init(rhs),
                 block.as_ref().map(|b| self.lower_block(b)),
             ),
@@ -351,10 +415,15 @@ impl With<'_> {
                 Box::new(self.lower_expr(rhs)),
             ),
             ast::ExprKind::Block(block) => hir::ExprKind::Block(self.lower_block(block)),
-            ast::ExprKind::Call(callee, arg) => hir::ExprKind::Call(
-                Box::new(self.lower_expr(callee)),
-                Box::new(self.lower_expr(arg)),
-            ),
+            ast::ExprKind::Call(callee, arg) => match &ty {
+                hir::Ty::Arrow(arrow) if is_partial_app(arg) => hir::ExprKind::Block(
+                    self.lower_partial_app(callee, arg, (**arrow).clone(), expr.span),
+                ),
+                _ => hir::ExprKind::Call(
+                    Box::new(self.lower_expr(callee)),
+                    Box::new(self.lower_expr(arg)),
+                ),
+            },
             ast::ExprKind::Conjugate(within, apply) => {
                 hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
             }
@@ -366,7 +435,7 @@ impl With<'_> {
                 hir::ExprKind::Field(Box::new(container), field)
             }
             ast::ExprKind::For(pat, iter, block) => hir::ExprKind::For(
-                self.lower_pat(ast::Mutability::Immutable, pat),
+                self.lower_pat(pat),
                 Box::new(self.lower_expr(iter)),
                 self.lower_block(block),
             ),
@@ -381,7 +450,18 @@ impl With<'_> {
                 Box::new(self.lower_expr(index)),
             ),
             ast::ExprKind::Lambda(kind, input, body) => {
-                self.lower_lambda(*kind, input, body, expr.span)
+                let functors = if let hir::Ty::Arrow(arrow) = &ty {
+                    arrow.functors
+                } else {
+                    hir::FunctorSet::Empty
+                };
+                let lambda = Lambda {
+                    kind: lower_callable_kind(*kind),
+                    functors,
+                    input: self.lower_pat(input),
+                    body: self.lower_expr(body),
+                };
+                self.lower_lambda(lambda, expr.span)
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
@@ -445,22 +525,52 @@ impl With<'_> {
         }
     }
 
-    fn lower_lambda(
+    fn lower_partial_app(
         &mut self,
-        kind: ast::CallableKind,
-        input: &ast::Pat,
-        body: &ast::Expr,
+        callee: &ast::Expr,
+        arg: &ast::Expr,
+        arrow: hir::ArrowTy,
         span: Span,
-    ) -> hir::ExprKind {
-        let kind = lower_callable_kind(kind);
-        let input = self.lower_pat(ast::Mutability::Immutable, input);
-        let body = self.lower_expr(body);
-        let (args, callable) =
-            closure::lift(self.assigner, &self.lowerer.locals, kind, input, body, span);
+    ) -> hir::Block {
+        let callee = self.lower_expr(callee);
+        let (arg, app) = self.lower_partial_arg(arg);
+        let close = |mut lambda: Lambda| {
+            self.assigner.visit_expr(&mut lambda.body);
+            self.lower_lambda(lambda, span)
+        };
 
-        if args.iter().any(|&arg| self.is_mutable(arg)) {
-            self.lowerer.errors.push(Error::MutableClosure(span));
+        let mut block = closure::partial_app_block(close, callee, arg, app, arrow, span);
+        self.assigner.visit_block(&mut block);
+        block
+    }
+
+    fn lower_partial_arg(&mut self, arg: &ast::Expr) -> (hir::Expr, PartialApp) {
+        match arg.kind.as_ref() {
+            ast::ExprKind::Hole => {
+                let ty = self
+                    .tys
+                    .terms
+                    .get(arg.id)
+                    .map_or(hir::Ty::Err, Clone::clone);
+                closure::partial_app_hole(self.assigner, &mut self.lowerer.locals, ty, arg.span)
+            }
+            ast::ExprKind::Paren(inner) => self.lower_partial_arg(inner),
+            ast::ExprKind::Tuple(items) => {
+                let items = items.iter().map(|item| self.lower_partial_arg(item));
+                let (mut arg, mut app) = closure::partial_app_tuple(items, arg.span);
+                self.assigner.visit_expr(&mut arg);
+                self.assigner.visit_pat(&mut app.input);
+                (arg, app)
+            }
+            _ => {
+                let arg = self.lower_expr(arg);
+                closure::partial_app_given(self.assigner, &mut self.lowerer.locals, arg)
+            }
         }
+    }
+
+    fn lower_lambda(&mut self, lambda: Lambda, span: Span) -> hir::ExprKind {
+        let (args, callable) = closure::lift(self.assigner, &self.lowerer.locals, lambda, span);
 
         let id = self.assigner.next_item();
         self.lowerer.items.push(hir::Item {
@@ -496,9 +606,9 @@ impl With<'_> {
         }
     }
 
-    fn lower_pat(&mut self, mutability: ast::Mutability, pat: &ast::Pat) -> hir::Pat {
+    fn lower_pat(&mut self, pat: &ast::Pat) -> hir::Pat {
         if let ast::PatKind::Paren(inner) = &*pat.kind {
-            return self.lower_pat(mutability, inner);
+            return self.lower_pat(inner);
         }
 
         let id = self.lower_id(pat.id);
@@ -511,24 +621,15 @@ impl With<'_> {
         let kind = match &*pat.kind {
             ast::PatKind::Bind(name, _) => {
                 let name = self.lower_ident(name);
-                self.lowerer.locals.insert(
-                    name.id,
-                    Local {
-                        mutability: lower_mutability(mutability),
-                        ty: ty.clone(),
-                    },
-                );
+                self.lowerer.locals.insert(name.id, ty.clone());
                 hir::PatKind::Bind(name)
             }
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
             ast::PatKind::Elided => hir::PatKind::Elided,
             ast::PatKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            ast::PatKind::Tuple(items) => hir::PatKind::Tuple(
-                items
-                    .iter()
-                    .map(|i| self.lower_pat(mutability, i))
-                    .collect(),
-            ),
+            ast::PatKind::Tuple(items) => {
+                hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())
+            }
         };
 
         hir::Pat {
@@ -592,15 +693,6 @@ impl With<'_> {
             self.lowerer.nodes.insert(id, new_id);
             new_id
         })
-    }
-
-    fn is_mutable(&mut self, id: hir::NodeId) -> bool {
-        self.lowerer
-            .locals
-            .get(id)
-            .expect("node ID should be a local")
-            .mutability
-            == hir::Mutability::Mutable
     }
 }
 
@@ -689,22 +781,11 @@ fn lower_functor(functor: ast::Functor) -> hir::Functor {
     }
 }
 
-fn callable_functors(callable: &ast::CallableDecl) -> HashSet<hir::Functor> {
-    let mut functors = callable
-        .functors
-        .as_ref()
-        .map_or(HashSet::new(), |f| convert::eval_functor_expr(f.as_ref()));
-
-    if let ast::CallableBody::Specs(specs) = &*callable.body {
-        for spec in specs.iter() {
-            match spec.spec {
-                ast::Spec::Body => {}
-                ast::Spec::Adj => functors.extend([hir::Functor::Adj]),
-                ast::Spec::Ctl => functors.extend([hir::Functor::Ctl]),
-                ast::Spec::CtlAdj => functors.extend([hir::Functor::Adj, hir::Functor::Ctl]),
-            }
-        }
+fn is_partial_app(arg: &ast::Expr) -> bool {
+    match arg.kind.as_ref() {
+        ast::ExprKind::Hole => true,
+        ast::ExprKind::Paren(inner) => is_partial_app(inner),
+        ast::ExprKind::Tuple(items) => items.iter().any(|i| is_partial_app(i)),
+        _ => false,
     }
-
-    functors
 }

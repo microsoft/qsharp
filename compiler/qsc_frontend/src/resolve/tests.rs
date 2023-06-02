@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{GlobalTable, Names, Res};
+use super::{Error, Names, Res};
 use crate::{parse, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -65,34 +65,37 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn resolve_names(input: &str) -> String {
-    let (namespaces, errors) = parse::namespaces(input);
-    assert!(errors.is_empty(), "syntax errors: {errors:#?}");
+    let (package, names, errors) = compile(input);
+    let mut renamer = Renamer::new(&names);
+    renamer.visit_package(&package);
+    let mut output = input.to_string();
+    renamer.rename(&mut output);
+    if !errors.is_empty() {
+        output += "\n";
+    }
+    for error in &errors {
+        writeln!(output, "// {error:?}").expect("string should be writable");
+    }
+    output
+}
+
+fn compile(input: &str) -> (Package, Names, Vec<Error>) {
+    let (namespaces, parse_errors) = parse::namespaces(input);
+    assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
         namespaces: namespaces.into_boxed_slice(),
         entry: None,
     };
-    let mut ast_assigner = AstAssigner::new();
-    ast_assigner.visit_package(&mut package);
-    let mut hir_assigner = HirAssigner::new();
-    let mut globals = GlobalTable::new();
-    globals.add_local_package(&mut hir_assigner, &package);
+
+    AstAssigner::new().visit_package(&mut package);
+    let mut assigner = HirAssigner::new();
+    let mut globals = super::GlobalTable::new();
+    globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals);
-    resolver.with(&mut hir_assigner).visit_package(&package);
-    let (names, errors) = resolver.into_names();
-    let mut renamer = Renamer::new(&names);
-    renamer.visit_package(&package);
-    let mut output = input.to_string();
-    renamer.rename(&mut output);
-
-    if !errors.is_empty() {
-        output += "\n";
-    }
-    for error in &errors {
-        writeln!(output, "// {error:?}").expect("error should write to output string");
-    }
-
-    output
+    resolver.with(&mut assigner).visit_package(&package);
+    let (names, resolve_errors) = resolver.into_names();
+    (package, names, resolve_errors)
 }
 
 #[test]
@@ -1055,8 +1058,9 @@ fn repeat_until() {
         indoc! {"
             namespace Foo {
                 operation A() : Unit {
+                    mutable cond = false;
                     repeat {
-                        let cond = true;
+                        set cond = true;
                     } until cond;
                 }
             }
@@ -1064,9 +1068,10 @@ fn repeat_until() {
         &expect![[r#"
             namespace item0 {
                 operation item1() : Unit {
+                    mutable local13 = false;
                     repeat {
-                        let local16 = true;
-                    } until local16;
+                        set local13 = true;
+                    } until local13;
                 }
             }
         "#]],
@@ -1079,8 +1084,9 @@ fn repeat_until_fixup() {
         indoc! {"
             namespace Foo {
                 operation A() : Unit {
+                    mutable cond = false;
                     repeat {
-                        mutable cond = false;
+                        set cond = false;
                     } until cond
                     fixup {
                         set cond = true;
@@ -1091,14 +1097,48 @@ fn repeat_until_fixup() {
         &expect![[r#"
             namespace item0 {
                 operation item1() : Unit {
+                    mutable local13 = false;
                     repeat {
-                        mutable local16 = false;
-                    } until local16
+                        set local13 = false;
+                    } until local13
                     fixup {
-                        set local16 = true;
+                        set local13 = true;
                     }
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn repeat_until_fixup_scoping() {
+    check(
+        indoc! {"
+        namespace Foo {
+            operation A() : Unit {
+                repeat {
+                    mutable cond = false;
+                }
+                until cond
+                fixup {
+                    set cond = true;
+                }
+            }
+        }"},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    repeat {
+                        mutable local16 = false;
+                    }
+                    until cond
+                    fixup {
+                        set cond = true;
+                    }
+                }
+            }
+            // NotFound("cond", Span { lo: 118, hi: 122 })
+            // NotFound("cond", Span { lo: 155, hi: 159 })
         "#]],
     );
 }
@@ -1563,6 +1603,60 @@ fn cyclic_namespace_dependency_supported() {
                 open A;
                 operation item3() : Unit {
                     item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn bind_items_in_repeat() {
+    check(
+        indoc! {"
+            namespace A {
+                operation B() : Unit {
+                    repeat {
+                        function C() : Unit {}
+                    } until false
+                    fixup {
+                        function D() : Unit {}
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    repeat {
+                        function item2() : Unit {}
+                    } until false
+                    fixup {
+                        function item3() : Unit {}
+                    }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn bind_items_in_qubit_use_block() {
+    check(
+        indoc! {"
+            namespace A {
+                operation B() : Unit {
+                    use q = Qubit() {
+                        function C() : Unit {}
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    use local13 = Qubit() {
+                        function item2() : Unit {}
+                    }
                 }
             }
         "#]],

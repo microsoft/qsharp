@@ -95,13 +95,22 @@ impl Compiler {
             parse::Fragment::Namespace(namespace) => {
                 self.compile_namespace(namespace).err().map(Fragment::Error)
             }
-            parse::Fragment::Stmt(stmt) => self.compile_stmt(stmt),
+            parse::Fragment::Stmt(stmt) => self.compile_stmt(*stmt),
         };
 
-        fragment
-            .into_iter()
-            .chain(self.lowerer.drain_items().map(Fragment::Item))
-            .collect()
+        if matches!(fragment, Some(Fragment::Error(..))) {
+            // In the error case, we should not return items up to the caller since they cannot
+            // safely be used by later parts of the compilation. Clear them here to prevent
+            // them from persisting into the next invocation of `compile_fragment`.
+            self.lowerer.clear_items();
+            fragment.into_iter().collect()
+        } else {
+            self.lowerer
+                .drain_items()
+                .map(Fragment::Item)
+                .chain(fragment)
+                .collect()
+        }
     }
 
     fn compile_namespace(&mut self, mut namespace: ast::Namespace) -> Result<(), Vec<Error>> {
@@ -112,15 +121,16 @@ impl Compiler {
         self.checker
             .check_namespace(self.resolver.names(), &namespace);
 
+        self.lowerer
+            .with(
+                &mut self.hir_assigner,
+                self.resolver.names(),
+                self.checker.tys(),
+            )
+            .lower_namespace(&namespace);
+
         let errors = self.drain_errors();
         if errors.is_empty() {
-            self.lowerer
-                .with(
-                    &mut self.hir_assigner,
-                    self.resolver.names(),
-                    self.checker.tys(),
-                )
-                .lower_namespace(&namespace);
             Ok(())
         } else {
             Err(errors)
@@ -133,16 +143,18 @@ impl Compiler {
         self.checker
             .check_stmt_fragment(self.resolver.names(), &stmt);
 
+        let fragment = self
+            .lowerer
+            .with(
+                &mut self.hir_assigner,
+                self.resolver.names(),
+                self.checker.tys(),
+            )
+            .lower_stmt(&stmt)
+            .map(Fragment::Stmt);
         let errors = self.drain_errors();
         if errors.is_empty() {
-            self.lowerer
-                .with(
-                    &mut self.hir_assigner,
-                    self.resolver.names(),
-                    self.checker.tys(),
-                )
-                .lower_stmt(&stmt)
-                .map(Fragment::Stmt)
+            fragment
         } else {
             Some(Fragment::Error(errors))
         }
