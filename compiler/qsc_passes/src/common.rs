@@ -11,7 +11,7 @@ use qsc_hir::{
 };
 use std::rc::Rc;
 
-pub struct IdentTemplate {
+pub(crate) struct IdentTemplate {
     pub id: NodeId,
     pub span: Span,
     pub name: Rc<str>,
@@ -59,7 +59,7 @@ impl IdentTemplate {
     }
 }
 
-pub fn create_gen_core_ref(core_table: &Table, ns: &str, name: &str, span: Span) -> Expr {
+pub(crate) fn create_gen_core_ref(core_table: &Table, ns: &str, name: &str, span: Span) -> Expr {
     let term = core_table
         .resolve_term(ns, name)
         .unwrap_or_else(|| panic!("Cannot find function `{ns}.{name}`"));

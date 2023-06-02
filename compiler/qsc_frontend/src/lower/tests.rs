@@ -818,30 +818,6 @@ fn lambda_operation_closure() {
 }
 
 #[test]
-fn lambda_mutable_closure() {
-    check_errors(
-        indoc! {"
-            namespace A {
-                function Foo() : () {
-                    mutable x = 1;
-                    let f = y -> x + y;
-                }
-            }
-        "},
-        &expect![[r#"
-            [
-                MutableClosure(
-                    Span {
-                        lo: 79,
-                        hi: 89,
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn lambda_adj() {
     check_hir(
         indoc! {r#"

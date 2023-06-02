@@ -40,7 +40,7 @@ pub enum Error {
 }
 
 /// Generates specializations for the given compile unit, updating it in-place.
-pub fn generate_specs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
+pub(super) fn generate_specs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     generate_placeholders(unit);
 
     // TODO: Generating specialization violates the invariant of node ids being unique because of how
@@ -50,7 +50,7 @@ pub fn generate_specs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     generate_spec_impls(core, unit)
 }
 
-pub fn generate_specs_for_callable(
+pub(super) fn generate_specs_for_callable(
     core: &Table,
     assigner: &mut Assigner,
     decl: &mut CallableDecl,

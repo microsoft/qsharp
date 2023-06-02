@@ -42,7 +42,7 @@ pub enum Error {
 
 /// Generates adjoint inverted blocks for within-blocks across all conjugate expressions,
 /// eliminating the conjugate expression from the compilation unit.
-pub fn invert_conjugate_exprs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
+pub(super) fn invert_conjugate_exprs(core: &Table, unit: &mut CompileUnit) -> Vec<Error> {
     let mut pass = ConjugateElim {
         core,
         assigner: &mut unit.assigner,
@@ -52,7 +52,7 @@ pub fn invert_conjugate_exprs(core: &Table, unit: &mut CompileUnit) -> Vec<Error
     pass.errors
 }
 
-pub fn invert_conjugate_exprs_for_callable(
+pub(super) fn invert_conjugate_exprs_for_callable(
     core: &Table,
     assigner: &mut Assigner,
     decl: &mut CallableDecl,
@@ -66,7 +66,7 @@ pub fn invert_conjugate_exprs_for_callable(
     pass.errors
 }
 
-pub fn invert_conjugate_exprs_for_stmt(
+pub(super) fn invert_conjugate_exprs_for_stmt(
     core: &Table,
     assigner: &mut Assigner,
     stmt: &mut Stmt,

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::lower::Local;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
@@ -86,7 +85,7 @@ impl MutVisitor for VarReplacer<'_> {
 
 pub(super) fn lift(
     assigner: &mut Assigner,
-    locals: &IndexMap<NodeId, Local>,
+    locals: &IndexMap<NodeId, Ty>,
     mut lambda: Lambda,
     span: Span,
 ) -> (Vec<NodeId>, CallableDecl) {
@@ -115,7 +114,6 @@ pub(super) fn lift(
         let ty = locals
             .get(id)
             .expect("free variable should be a local")
-            .ty
             .clone();
         (new_id, ty)
     });
@@ -212,16 +210,12 @@ pub(super) fn partial_app_block(
 
 pub(super) fn partial_app_hole(
     assigner: &mut Assigner,
-    locals: &mut IndexMap<NodeId, Local>,
+    locals: &mut IndexMap<NodeId, Ty>,
     ty: Ty,
     span: Span,
 ) -> (Expr, PartialApp) {
     let local_id = assigner.next_node();
-    let local = Local {
-        mutability: Mutability::Immutable,
-        ty: ty.clone(),
-    };
-    locals.insert(local_id, local);
+    locals.insert(local_id, ty.clone());
 
     let app = PartialApp {
         bindings: Vec::new(),
@@ -249,15 +243,11 @@ pub(super) fn partial_app_hole(
 
 pub(super) fn partial_app_given(
     assigner: &mut Assigner,
-    locals: &mut IndexMap<NodeId, Local>,
+    locals: &mut IndexMap<NodeId, Ty>,
     arg: Expr,
 ) -> (Expr, PartialApp) {
     let local_id = assigner.next_node();
-    let local = Local {
-        mutability: Mutability::Immutable,
-        ty: arg.ty.clone(),
-    };
-    locals.insert(local_id, local);
+    locals.insert(local_id, arg.ty.clone());
 
     let span = arg.span;
     let var = Expr {
