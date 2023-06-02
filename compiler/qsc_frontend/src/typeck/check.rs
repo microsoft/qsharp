@@ -143,7 +143,7 @@ impl Checker {
             let output = convert::ty_from_ast(names, &decl.output).0;
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}
-                _ => self.errors.push(Error(ErrorKind::Mismatch(
+                _ => self.errors.push(Error(ErrorKind::TyMismatch(
                     Ty::UNIT,
                     output,
                     decl.output.span,

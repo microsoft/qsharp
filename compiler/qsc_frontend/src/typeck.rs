@@ -12,7 +12,7 @@ use self::infer::Class;
 use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{Functor, FunctorSet, ItemId, Ty, Udt};
+use qsc_hir::hir::{CallableKind, Functor, FunctorSet, ItemId, Ty, Udt};
 use std::{collections::HashMap, fmt::Debug};
 use thiserror::Error;
 
@@ -31,7 +31,11 @@ pub(super) struct Error(ErrorKind);
 #[derive(Clone, Debug, Diagnostic, Error)]
 enum ErrorKind {
     #[error("expected {0}, found {1}")]
-    Mismatch(Ty, Ty, #[label] Span),
+    TyMismatch(Ty, Ty, #[label] Span),
+    #[error("expected {0}, found {1}")]
+    CallableMismatch(CallableKind, CallableKind, #[label] Span),
+    #[error("expected {0}, found {1}")]
+    FunctorMismatch(FunctorSet, FunctorSet, #[label] Span),
     #[error("missing class instance {0}")]
     MissingClass(Class, #[label] Span),
     #[error("missing functor {0} in {1}")]

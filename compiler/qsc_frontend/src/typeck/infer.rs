@@ -227,7 +227,7 @@ impl ArgTy {
             (Self::Tuple(args), Ty::Tuple(params)) => {
                 let mut errors = Vec::new();
                 if args.len() != params.len() {
-                    errors.push(Error(ErrorKind::Mismatch(
+                    errors.push(Error(ErrorKind::TyMismatch(
                         Ty::Tuple(params.clone()),
                         self.to_ty(),
                         span,
@@ -256,7 +256,7 @@ impl ArgTy {
             (Self::Tuple(_), _) => App {
                 holes: Vec::new(),
                 constraints: Vec::new(),
-                errors: vec![Error(ErrorKind::Mismatch(
+                errors: vec![Error(ErrorKind::TyMismatch(
                     param.clone(),
                     self.to_ty(),
                     span,
@@ -473,22 +473,31 @@ impl<'a> Solver<'a> {
             (Ty::Array(item1), Ty::Array(item2)) => self.unify(item1, item2, span),
             (Ty::Arrow(arrow1), Ty::Arrow(arrow2)) => {
                 if arrow1.kind != arrow2.kind {
-                    self.errors
-                        .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                    self.errors.push(Error(ErrorKind::CallableMismatch(
+                        arrow1.kind,
+                        arrow2.kind,
+                        span,
+                    )));
                 }
 
                 let mut constraints = self.unify(&arrow1.input, &arrow2.input, span);
                 constraints.append(&mut self.unify(&arrow1.output, &arrow2.output, span));
 
                 match (arrow1.functors, arrow2.functors) {
+                    (FunctorSet::Empty, FunctorSet::Empty)
+                    | (FunctorSet::Adj, FunctorSet::Adj)
+                    | (FunctorSet::Ctl, FunctorSet::Ctl)
+                    | (FunctorSet::CtlAdj, FunctorSet::CtlAdj) => {}
                     (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
                     (FunctorSet::Infer(infer), functors) | (functors, FunctorSet::Infer(infer)) => {
                         constraints.append(&mut self.bind_functor(infer, functors, span));
                     }
                     _ => {
-                        // TODO: We ignore incompatible functors for now, even though this is
-                        // unsound. This should be fixed later.
-                        // https://github.com/microsoft/qsharp/issues/150
+                        self.errors.push(Error(ErrorKind::FunctorMismatch(
+                            arrow1.functors,
+                            arrow2.functors,
+                            span,
+                        )));
                     }
                 }
 
@@ -503,7 +512,7 @@ impl<'a> Solver<'a> {
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
                     self.errors
-                        .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                        .push(Error(ErrorKind::TyMismatch(ty1.clone(), ty2.clone(), span)));
                 }
 
                 items1
@@ -515,7 +524,7 @@ impl<'a> Solver<'a> {
             (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Vec::new(),
             _ => {
                 self.errors
-                    .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                    .push(Error(ErrorKind::TyMismatch(ty1.clone(), ty2.clone(), span)));
                 Vec::new()
             }
         }

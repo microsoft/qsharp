@@ -1466,6 +1466,15 @@ pub enum CallableKind {
     Operation,
 }
 
+impl Display for CallableKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            CallableKind::Function => f.write_str("function"),
+            CallableKind::Operation => f.write_str("operation"),
+        }
+    }
+}
+
 /// The mutability of a binding.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Mutability {
