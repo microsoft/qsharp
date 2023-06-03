@@ -1455,7 +1455,7 @@ fn adj_non_adj() {
             #9 46-48 "{}" : Unit
             #10 51-64 "Adjoint A.Foo" : (Unit => Unit is Ctl)
             #11 59-64 "A.Foo" : (Unit => Unit is Ctl)
-            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 59, hi: 64 }))))
+            Error(Type(Error(FunctorMismatch(Adj, Ctl, Span { lo: 59, hi: 64 }))))
         "##]],
     );
 }
@@ -1474,7 +1474,7 @@ fn ctl_non_ctl() {
             #9 46-48 "{}" : Unit
             #10 51-67 "Controlled A.Foo" : (((Qubit)[], Unit) => Unit is Adj)
             #11 62-67 "A.Foo" : (Unit => Unit is Adj)
-            Error(Type(Error(MissingFunctor(Ctl, Adj, Span { lo: 62, hi: 67 }))))
+            Error(Type(Error(FunctorMismatch(Ctl, Adj, Span { lo: 62, hi: 67 }))))
         "##]],
     );
 }
@@ -2450,13 +2450,13 @@ fn lambda_invalid_adjoint_before_functors_inferred() {
             #22 80-82 "()" : Unit
             #24 92-102 "Adjoint op" : (Qubit => Unit is Ctl)
             #25 100-102 "op" : (Qubit => Unit is Ctl)
-            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 100, hi: 102 }))))
+            Error(Type(Error(FunctorMismatch(Adj, Ctl, Span { lo: 100, hi: 102 }))))
         "##]],
     );
 }
 
 #[test]
-fn lambda_first_use_functors_inferred() {
+fn lambda_multiple_uses_functors_inferred() {
     check(
         indoc! {"
             namespace A {
@@ -2480,23 +2480,21 @@ fn lambda_first_use_functors_inferred() {
             #32 130-132 "{}" : Unit
             #36 150-152 "()" : Unit
             #38 158-271 "{\n        let op = q => ();\n        TakeAdj(op);\n        TakeAdjCtl(op);\n        let opCtl = Controlled op;\n    }" : Unit
-            #40 172-174 "op" : (Qubit => Unit is Adj)
-            #42 177-184 "q => ()" : (Qubit => Unit is Adj)
+            #40 172-174 "op" : (Qubit => Unit is Adj + Ctl)
+            #42 177-184 "q => ()" : (Qubit => Unit is Adj + Ctl)
             #43 177-178 "q" : Qubit
             #45 182-184 "()" : Unit
             #47 194-205 "TakeAdj(op)" : Unit
-            #48 194-201 "TakeAdj" : ((Qubit => Unit is Adj) => Unit)
-            #51 201-205 "(op)" : (Qubit => Unit is Adj)
-            #52 202-204 "op" : (Qubit => Unit is Adj)
+            #48 194-201 "TakeAdj" : ((Qubit => Unit is Adj + Ctl) => Unit)
+            #51 201-205 "(op)" : (Qubit => Unit is Adj + Ctl)
+            #52 202-204 "op" : (Qubit => Unit is Adj + Ctl)
             #56 215-229 "TakeAdjCtl(op)" : Unit
             #57 215-225 "TakeAdjCtl" : ((Qubit => Unit is Adj + Ctl) => Unit)
-            #60 225-229 "(op)" : (Qubit => Unit is Adj)
-            #61 226-228 "op" : (Qubit => Unit is Adj)
-            #65 243-248 "opCtl" : (((Qubit)[], Qubit) => Unit is Adj)
-            #67 251-264 "Controlled op" : (((Qubit)[], Qubit) => Unit is Adj)
-            #68 262-264 "op" : (Qubit => Unit is Adj)
-            Error(Type(Error(FunctorMismatch(CtlAdj, Adj, Span { lo: 215, hi: 229 }))))
-            Error(Type(Error(MissingFunctor(Ctl, Adj, Span { lo: 262, hi: 264 }))))
+            #60 225-229 "(op)" : (Qubit => Unit is Adj + Ctl)
+            #61 226-228 "op" : (Qubit => Unit is Adj + Ctl)
+            #65 243-248 "opCtl" : (((Qubit)[], Qubit) => Unit is Adj + Ctl)
+            #67 251-264 "Controlled op" : (((Qubit)[], Qubit) => Unit is Adj + Ctl)
+            #68 262-264 "op" : (Qubit => Unit is Adj + Ctl)
         "##]],
     );
 }

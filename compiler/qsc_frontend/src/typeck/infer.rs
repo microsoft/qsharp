@@ -4,10 +4,10 @@
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{
-    ArrowTy, Functor, FunctorSet, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt,
+    ArrowTy, FunctorSet, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt,
 };
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{hash_map::Entry, HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
 };
 
@@ -290,7 +290,11 @@ enum Constraint {
         actual: Ty,
         span: Span,
     },
-    Functor(Functor, FunctorSet, Span),
+    SubFunctor {
+        expected: FunctorSet,
+        actual: FunctorSet,
+        span: Span,
+    },
 }
 
 pub(super) struct Inferrer {
@@ -336,31 +340,83 @@ impl Inferrer {
         FunctorSet::Infer(fresh)
     }
 
-    /// Replaces all type parameters with fresh types.
-    pub(super) fn freshen(&mut self, ty: &mut Ty) {
-        fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
+    /// Replaces all type parameters with fresh types and creates synthetic functor parameters for
+    /// second-order arrow types.
+    pub(super) fn freshen_item(&mut self, arrow: &mut ArrowTy, span: Span) {
+        #[derive(Clone, Copy)]
+        enum FunctorMode {
+            Fresh,
+            Preserve,
+        }
+
+        fn freshen(
+            inferrer: &mut Inferrer,
+            params: &mut HashMap<String, Ty>,
+            mode: FunctorMode,
+            ty: &mut Ty,
+            span: Span,
+        ) {
             match ty {
                 Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
-                Ty::Array(item) => freshen(solver, params, item),
+                Ty::Array(item) => freshen(inferrer, params, mode, item, span),
                 Ty::Arrow(arrow) => {
-                    freshen(solver, params, &mut arrow.input);
-                    freshen(solver, params, &mut arrow.output);
+                    freshen(
+                        inferrer,
+                        params,
+                        FunctorMode::Preserve,
+                        &mut arrow.input,
+                        span,
+                    );
+                    freshen(
+                        inferrer,
+                        params,
+                        FunctorMode::Preserve,
+                        &mut arrow.output,
+                        span,
+                    );
+                    match mode {
+                        FunctorMode::Fresh => {
+                            let functors = inferrer.fresh_functor();
+                            inferrer.constraints.push_back(Constraint::SubFunctor {
+                                expected: arrow.functors,
+                                actual: functors,
+                                span,
+                            });
+                            arrow.functors = functors;
+                        }
+                        FunctorMode::Preserve => {}
+                    }
                 }
                 Ty::Param(name) => {
                     *ty = params
                         .entry(name.clone())
-                        .or_insert_with(|| solver.fresh_ty())
+                        .or_insert_with(|| inferrer.fresh_ty())
                         .clone();
                 }
                 Ty::Tuple(items) => {
                     for item in items {
-                        freshen(solver, params, item);
+                        freshen(inferrer, params, mode, item, span);
                     }
                 }
             }
         }
 
-        freshen(self, &mut HashMap::new(), ty);
+        let mut params = HashMap::new();
+
+        freshen(
+            self,
+            &mut params,
+            FunctorMode::Fresh,
+            &mut arrow.input,
+            span,
+        );
+        freshen(
+            self,
+            &mut params,
+            FunctorMode::Fresh,
+            &mut arrow.output,
+            span,
+        );
     }
 
     /// Solves for all variables given the accumulated constraints.
@@ -381,7 +437,7 @@ struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     solution: Solution,
     pending_tys: HashMap<InferTy, Vec<Class>>,
-    pending_functors: HashMap<InferFunctor, HashSet<Functor>>,
+    pending_functors: HashMap<InferFunctor, FunctorSet>,
     errors: Vec<Error>,
 }
 
@@ -407,8 +463,12 @@ impl<'a> Solver<'a> {
                 actual,
                 span,
             } => self.eq(expected, actual, span),
-            Constraint::Functor(functor, functors, span) => {
-                self.functor(functor, functors, span);
+            Constraint::SubFunctor {
+                expected,
+                actual,
+                span,
+            } => {
+                self.sub_functor(expected, actual, span);
                 Vec::new()
             }
         }
@@ -446,21 +506,34 @@ impl<'a> Solver<'a> {
         self.unify(&expected, &actual, span)
     }
 
-    fn functor(&mut self, functor: Functor, mut functors: FunctorSet, span: Span) {
-        substitute_functor(&self.solution, &mut functors);
-        match (functor, functors) {
+    fn sub_functor(&mut self, mut expected: FunctorSet, mut actual: FunctorSet, span: Span) {
+        substitute_functor(&self.solution, &mut expected);
+        substitute_functor(&self.solution, &mut actual);
+        match (expected, actual) {
             (_, FunctorSet::CtlAdj)
-            | (Functor::Adj, FunctorSet::Adj)
-            | (Functor::Ctl, FunctorSet::Ctl) => {}
-            (_, FunctorSet::Infer(infer)) => {
-                self.pending_functors
-                    .entry(infer)
-                    .or_default()
-                    .insert(functor);
-            }
-            _ => self
+            | (FunctorSet::Empty, _)
+            | (FunctorSet::Adj, FunctorSet::Adj)
+            | (FunctorSet::Ctl, FunctorSet::Ctl) => {}
+            (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
+            (FunctorSet::Infer(infer), actual) => self.errors.push(Error(
+                ErrorKind::FunctorMismatch(FunctorSet::Infer(infer), actual, span),
+            )),
+            (expected, FunctorSet::Infer(infer)) => match self.pending_functors.entry(infer) {
+                Entry::Occupied(mut entry) => {
+                    entry.insert(
+                        entry
+                            .get()
+                            .union(&expected)
+                            .expect("pending functors should be known"),
+                    );
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(expected);
+                }
+            },
+            (expected, actual) => self
                 .errors
-                .push(Error(ErrorKind::MissingFunctor(functor, functors, span))),
+                .push(Error(ErrorKind::FunctorMismatch(expected, actual, span))),
         }
     }
 
@@ -551,15 +624,20 @@ impl<'a> Solver<'a> {
         self.solution.functors.insert(infer, functors);
         self.pending_functors
             .remove(&infer)
-            .map_or(Vec::new(), |pending| {
-                pending
-                    .into_iter()
-                    .map(|functor| Constraint::Functor(functor, functors, span))
-                    .collect()
+            .map_or(Vec::new(), |expected| {
+                vec![Constraint::SubFunctor {
+                    expected,
+                    actual: functors,
+                    span,
+                }]
             })
     }
 
-    fn into_solution(self) -> (Solution, Vec<Error>) {
+    fn into_solution(mut self) -> (Solution, Vec<Error>) {
+        for (infer, functors) in self.pending_functors {
+            self.solution.functors.insert(infer, functors);
+        }
+
         (self.solution, self.errors)
     }
 }
@@ -596,6 +674,7 @@ fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
     if let &mut FunctorSet::Infer(infer) = functors {
         if let Some(&new_functors) = solution.functors.get(infer) {
             *functors = new_functors;
+            substitute_functor(solution, functors);
         }
     }
 }
@@ -632,7 +711,11 @@ fn check_add(ty: &Ty) -> bool {
 fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Arrow(arrow) => (
-            vec![Constraint::Functor(Functor::Adj, arrow.functors, span)],
+            vec![Constraint::SubFunctor {
+                expected: FunctorSet::Adj,
+                actual: arrow.functors,
+                span,
+            }],
             Vec::new(),
         ),
         _ => (
@@ -696,7 +779,11 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *arrow.input]));
     (
         vec![
-            Constraint::Functor(Functor::Ctl, arrow.functors, span),
+            Constraint::SubFunctor {
+                expected: FunctorSet::Ctl,
+                actual: arrow.functors,
+                span,
+            },
             Constraint::Eq {
                 expected: Ty::Arrow(Box::new(ArrowTy {
                     kind: arrow.kind,
