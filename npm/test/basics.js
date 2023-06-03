@@ -73,7 +73,7 @@ test("one syntax error", async () => {
   });
   const compiler = getCompiler(evtTarget);
   let diagnostics = false;
-  await compiler.updateCode("namespace Foo []");
+  await compiler.updateCode("<buffer>", "namespace Foo []");
   assert(diagnostics);
 });
 
@@ -127,7 +127,7 @@ test("type error", async () => {
   });
   const compiler = getCompiler(evtTarget);
   let diagnostics = false;
-  await compiler.updateCode(code);
+  await compiler.updateCode("<buffer>", code);
   assert(diagnostics);
 });
 
@@ -224,7 +224,7 @@ test("worker check", async () => {
   });
   const compiler = getCompilerWorker(evtTarget);
   let diagnostics = false;
-  await compiler.updateCode(code);
+  await compiler.updateCode("<buffer>", code);
   compiler.terminate();
   assert(diagnostics);
 });
@@ -320,7 +320,7 @@ test("cancel worker", () => {
     compiler.run(code, "", 10).catch((err) => {
       cancelledArray.push(err);
     });
-    compiler.updateCode(code).catch((err) => {
+    compiler.updateCode("<buffer>", code).catch((err) => {
       cancelledArray.push(err);
     });
 
@@ -337,7 +337,7 @@ test("cancel worker", () => {
         assert(Array.isArray(evt.detail) && evt.detail.length === 0);
       });
       let diagnostics = false;
-      await compiler2.updateCode(code);
+      await compiler2.updateCode("<buffer>", code);
       compiler2.terminate();
       assert(diagnostics);
 

@@ -26,7 +26,7 @@ function VSDiagsToMarkers(
     const startPos = srcModel.getPositionAt(err.start_pos);
     const endPos = srcModel.getPositionAt(err.end_pos);
     const marker: monaco.editor.IMarkerData = {
-      severity: monaco.MarkerSeverity.Error,
+      severity: monaco.MarkerSeverity.Error, // TODO: map severity from the diagnostic
       message: err.message,
       startLineNumber: startPos.lineNumber,
       startColumn: startPos.column,
@@ -83,7 +83,7 @@ export function Editor(props: {
   async function updateCode() {
     const code = editor.current?.getValue();
     if (code == null) throw new Error("Why is code null?");
-    await props.compiler.updateCode(code);
+    await props.compiler.updateCode("<code>", code);
   }
 
   function onCheck(results: VSDiagnostic[]) {

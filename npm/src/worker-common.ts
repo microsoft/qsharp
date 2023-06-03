@@ -90,12 +90,16 @@ export function createWorkerProxy(
     let msg: CompilerReqMsg | null = null;
     switch (curr.type) {
       case "updateCode":
-        msg = { type: "updateCode", code: curr.args[0] };
+        msg = {
+          type: "updateCode",
+          documentUri: curr.args[0],
+          code: curr.args[1],
+        };
         break;
       case "getCompletions":
         msg = {
           type: "getCompletions",
-          sourcePath: curr.args[0],
+          documentUri: curr.args[0],
           code: curr.args[1],
           offset: curr.args[2],
         };
@@ -103,7 +107,7 @@ export function createWorkerProxy(
       case "getHover":
         msg = {
           type: "getHover",
-          sourcePath: curr.args[0],
+          documentUri: curr.args[0],
           code: curr.args[1],
           offset: curr.args[2],
         };
@@ -111,7 +115,7 @@ export function createWorkerProxy(
       case "getDefinition":
         msg = {
           type: "getDefinition",
-          sourcePath: curr.args[0],
+          documentUri: curr.args[0],
           code: curr.args[1],
           offset: curr.args[2],
         };
@@ -213,17 +217,17 @@ export function createWorkerProxy(
   setMsgHandler(onMsgFromWorker);
 
   const proxy: ICompilerWorker = {
-    updateCode(code) {
-      return queueRequest("updateCode", [code]);
+    updateCode(documentUri, code) {
+      return queueRequest("updateCode", [documentUri, code]);
     },
-    getCompletions(sourcePath, code, offset) {
-      return queueRequest("getCompletions", [sourcePath, code, offset]);
+    getCompletions(documentUri, code, offset) {
+      return queueRequest("getCompletions", [documentUri, code, offset]);
     },
-    getHover(sourcePath, code, offset) {
-      return queueRequest("getHover", [sourcePath, code, offset]);
+    getHover(documentUri, code, offset) {
+      return queueRequest("getHover", [documentUri, code, offset]);
     },
-    getDefinition(sourcePath, code, offset) {
-      return queueRequest("getDefinition", [sourcePath, code, offset]);
+    getDefinition(documentUri, code, offset) {
+      return queueRequest("getDefinition", [documentUri, code, offset]);
     },
     run(code, expr, shots) {
       return queueRequest("run", [code, expr, shots]);
@@ -312,28 +316,28 @@ export function handleMessageInWorker(
     switch (msgType) {
       case "updateCode":
         compiler
-          .updateCode(data.code)
+          .updateCode(data.documentUri, data.code)
           .then(() =>
             logIntercepter({ type: "updateCode-result", result: undefined })
           );
         break;
       case "getCompletions":
         compiler
-          .getCompletions(data.sourcePath, data.code, data.offset)
+          .getCompletions(data.documentUri, data.code, data.offset)
           .then((result) =>
             logIntercepter({ type: "getCompletions-result", result })
           );
         break;
       case "getHover":
         compiler
-          .getHover(data.sourcePath, data.code, data.offset)
+          .getHover(data.documentUri, data.code, data.offset)
           .then((result) =>
             logIntercepter({ type: "getHover-result", result })
           );
         break;
       case "getDefinition":
         compiler
-          .getDefinition(data.sourcePath, data.code, data.offset)
+          .getDefinition(data.documentUri, data.code, data.offset)
           .then((result) =>
             logIntercepter({ type: "getDefinition-result", result })
           );
@@ -370,10 +374,15 @@ export function handleMessageInWorker(
 }
 
 export type CompilerReqMsg =
-  | { type: "updateCode"; code: string }
-  | { type: "getCompletions"; sourcePath: string; code: string; offset: number }
-  | { type: "getHover"; sourcePath: string; code: string; offset: number }
-  | { type: "getDefinition"; sourcePath: string; code: string; offset: number }
+  | { type: "updateCode"; documentUri: string; code: string }
+  | {
+      type: "getCompletions";
+      documentUri: string;
+      code: string;
+      offset: number;
+    }
+  | { type: "getHover"; documentUri: string; code: string; offset: number }
+  | { type: "getDefinition"; documentUri: string; code: string; offset: number }
   | { type: "run"; code: string; expr: string; shots: number }
   | { type: "runKata"; user_code: string; verify_code: string };
 

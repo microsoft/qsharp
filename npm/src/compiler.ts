@@ -6,6 +6,7 @@ import type {
   ICompletionList,
   IHover,
   IDefinition,
+  QSharpLanguageService,
 } from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
 import {
@@ -25,15 +26,15 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export type CompilerState = "idle" | "busy";
 export interface ICompiler {
-  updateCode(code: string): Promise<void>;
+  updateCode(documentUri: string, code: string): Promise<void>;
   getCompletions(
-    sourcePath: string,
+    documentUri: string,
     code: string,
     offset: number
   ): Promise<ICompletionList>;
-  getHover(sourcePath: string, code: string, offset: number): Promise<IHover>;
+  getHover(documentUri: string, code: string, offset: number): Promise<IHover>;
   getDefinition(
-    sourcePath: string,
+    documentUri: string,
     code: string,
     offset: number
   ): Promise<IDefinition>;
@@ -68,6 +69,7 @@ function errToDiagnostic(err: any): VSDiagnostic {
 export class Compiler implements ICompiler {
   private wasm: Wasm;
   private eventHandler: IQscEventTarget;
+  private languageService: QSharpLanguageService;
 
   onstatechange: ((state: CompilerState) => void) | null = null;
 
@@ -76,36 +78,41 @@ export class Compiler implements ICompiler {
     this.wasm = wasm;
     this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
+    this.languageService = new this.wasm.QSharpLanguageService();
   }
 
-  async updateCode(code: string): Promise<void> {
-    const diagnostics = await this.checkCode(code);
+  async updateCode(documentUri: string, code: string): Promise<void> {
+    this.languageService.update_code(documentUri, code);
+    const diagnostics = await this.checkCode(documentUri, code);
     // This will be updated with an event from the language service
     this.eventHandler.dispatchEvent(makeEvent("diagnostics", diagnostics));
   }
 
-  async checkCode(code: string): Promise<VSDiagnostic[]> {
-    const raw_result = this.wasm.check_code(code) as IDiagnostic[];
+  async checkCode(documentUri: string, code: string): Promise<VSDiagnostic[]> {
+    const raw_result = this.languageService.check_code(
+      documentUri
+    ) as IDiagnostic[];
+    //const raw_result = this.wasm.check_code(code) as IDiagnostic[];
     return mapDiagnostics(raw_result, code);
   }
 
   async getCompletions(
-    sourcePath: string,
+    documentUri: string,
     code: string,
     offset: number
   ): Promise<ICompletionList> {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    return this.wasm.get_completions(sourcePath, code, convertedOffset);
+    return this.wasm.get_completions(documentUri, code, convertedOffset);
   }
 
-  async getHover(sourcePath: string, code: string, offset: number) {
+  async getHover(documentUri: string, code: string, offset: number) {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    return this.wasm.get_hover(sourcePath, code, convertedOffset);
+    return this.wasm.get_hover(documentUri, code, convertedOffset);
   }
 
-  async getDefinition(sourcePath: string, code: string, offset: number) {
+  async getDefinition(documentUri: string, code: string, offset: number) {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    const result = this.wasm.get_definition(sourcePath, code, convertedOffset);
+    const result = this.wasm.get_definition(documentUri, code, convertedOffset);
     result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
       result.offset
     ];

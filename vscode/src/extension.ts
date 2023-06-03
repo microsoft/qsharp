@@ -22,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // send document updates
   vscode.workspace.onDidChangeTextDocument((evt) => {
     if (vscode.languages.match("qsharp", evt.document)) {
-      compiler.updateCode(evt.document.getText());
+      compiler.updateCode(evt.document.uri.toString(), evt.document.getText());
     }
   });
 
@@ -54,31 +54,17 @@ export async function activate(context: vscode.ExtensionContext) {
       diagCollection.clear();
       diagCollection.set(
         document.uri,
-        diagnostics.map((d) => {
-          let severity;
-          switch (d.severity) {
-            case 0:
-              severity = vscode.DiagnosticSeverity.Information;
-              break;
-            case 1:
-              severity = vscode.DiagnosticSeverity.Warning;
-              break;
-            case 2:
-              severity = vscode.DiagnosticSeverity.Error;
-              break;
-            default:
-              severity = vscode.DiagnosticSeverity.Error;
-              output.appendLine(`Unknown severity: ${d.severity}`);
-          }
-          return new vscode.Diagnostic(
-            new vscode.Range(
-              document.positionAt(d.start_pos),
-              document.positionAt(d.end_pos)
-            ),
-            d.message,
-            severity
-          );
-        })
+        diagnostics.map(
+          (d) =>
+            new vscode.Diagnostic(
+              new vscode.Range(
+                document.positionAt(d.start_pos),
+                document.positionAt(d.end_pos)
+              ),
+              d.message,
+              d.severity
+            )
+        )
       );
     }
   });
