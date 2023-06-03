@@ -19,6 +19,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const evtTarget = new QscEventTarget(false);
   const compiler = await getCompiler(evtTarget);
 
+  // send document updates
+  vscode.workspace.onDidChangeTextDocument((evt) => {
+    if (vscode.languages.match("qsharp", evt.document)) {
+      compiler.updateCode(evt.document.getText());
+    }
+  });
+
   // completions
   vscode.languages.registerCompletionItemProvider(
     "qsharp",
@@ -37,6 +44,44 @@ export async function activate(context: vscode.ExtensionContext) {
     "qsharp",
     createDefinitionProvider(compiler)
   );
+
+  const diagCollection = vscode.languages.createDiagnosticCollection("qsharp");
+  evtTarget.addEventListener("diagnostics", (evt) => {
+    const diagnostics = evt.detail;
+    // Of course the uri should come from the event
+    const document = vscode.window.activeTextEditor?.document;
+    if (document) {
+      diagCollection.clear();
+      diagCollection.set(
+        document.uri,
+        diagnostics.map((d) => {
+          let severity;
+          switch (d.severity) {
+            case 0:
+              severity = vscode.DiagnosticSeverity.Information;
+              break;
+            case 1:
+              severity = vscode.DiagnosticSeverity.Warning;
+              break;
+            case 2:
+              severity = vscode.DiagnosticSeverity.Error;
+              break;
+            default:
+              severity = vscode.DiagnosticSeverity.Error;
+              output.appendLine(`Unknown severity: ${d.severity}`);
+          }
+          return new vscode.Diagnostic(
+            new vscode.Range(
+              document.positionAt(d.start_pos),
+              document.positionAt(d.end_pos)
+            ),
+            d.message,
+            severity
+          );
+        })
+      );
+    }
+  });
 
   // notebooks
   registerQSharpNotebookHandlers(context);
