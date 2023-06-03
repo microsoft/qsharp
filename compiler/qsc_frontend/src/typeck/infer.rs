@@ -4,7 +4,8 @@
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{
-    ArrowTy, FunctorSet, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt,
+    ArrowTy, FunctorSet, FunctorSetValue, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res,
+    Ty, Udt,
 };
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
@@ -291,7 +292,7 @@ enum Constraint {
         span: Span,
     },
     SubFunctor {
-        expected: FunctorSet,
+        expected: FunctorSetValue,
         actual: FunctorSet,
         span: Span,
     },
@@ -378,7 +379,9 @@ impl Inferrer {
                         FunctorMode::Fresh => {
                             let functors = inferrer.fresh_functor();
                             inferrer.constraints.push_back(Constraint::SubFunctor {
-                                expected: arrow.functors,
+                                expected: arrow.functors.expect_value(
+                                    "item type should contain only concrete functors",
+                                ),
                                 actual: functors,
                                 span,
                             });
@@ -425,7 +428,7 @@ impl Inferrer {
         // However, if an unsolved variable is the result of a divergent expression, it may be OK to
         // leave it or substitute it with a concrete uninhabited type.
         // https://github.com/microsoft/qsharp/issues/152
-        let mut solver = Solver::new(udts);
+        let mut solver = Solver::new(udts, self.next_functor);
         while let Some(constraint) = self.constraints.pop_front() {
             self.constraints.extend(solver.constrain(constraint));
         }
@@ -435,16 +438,18 @@ impl Inferrer {
 
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
+    functor_universe: InferFunctor,
     solution: Solution,
     pending_tys: HashMap<InferTy, Vec<Class>>,
-    pending_functors: HashMap<InferFunctor, FunctorSet>,
+    pending_functors: HashMap<InferFunctor, FunctorSetValue>,
     errors: Vec<Error>,
 }
 
 impl<'a> Solver<'a> {
-    fn new(udts: &'a HashMap<ItemId, Udt>) -> Self {
+    fn new(udts: &'a HashMap<ItemId, Udt>, functor_universe: InferFunctor) -> Self {
         Self {
             udts,
+            functor_universe,
             solution: Solution {
                 tys: IndexMap::new(),
                 functors: IndexMap::new(),
@@ -506,34 +511,26 @@ impl<'a> Solver<'a> {
         self.unify(&expected, &actual, span)
     }
 
-    fn sub_functor(&mut self, mut expected: FunctorSet, mut actual: FunctorSet, span: Span) {
-        substitute_functor(&self.solution, &mut expected);
+    fn sub_functor(&mut self, expected: FunctorSetValue, mut actual: FunctorSet, span: Span) {
         substitute_functor(&self.solution, &mut actual);
         match (expected, actual) {
-            (_, FunctorSet::CtlAdj)
-            | (FunctorSet::Empty, _)
-            | (FunctorSet::Adj, FunctorSet::Adj)
-            | (FunctorSet::Ctl, FunctorSet::Ctl) => {}
-            (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
-            (FunctorSet::Infer(infer), actual) => self.errors.push(Error(
-                ErrorKind::FunctorMismatch(FunctorSet::Infer(infer), actual, span),
-            )),
+            (_, FunctorSet::Value(FunctorSetValue::CtlAdj))
+            | (FunctorSetValue::Empty, _)
+            | (FunctorSetValue::Adj, FunctorSet::Value(FunctorSetValue::Adj))
+            | (FunctorSetValue::Ctl, FunctorSet::Value(FunctorSetValue::Ctl)) => {}
             (expected, FunctorSet::Infer(infer)) => match self.pending_functors.entry(infer) {
                 Entry::Occupied(mut entry) => {
-                    entry.insert(
-                        entry
-                            .get()
-                            .union(&expected)
-                            .expect("pending functors should be known"),
-                    );
+                    entry.insert(entry.get().union(&expected));
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(expected);
                 }
             },
-            (expected, actual) => self
-                .errors
-                .push(Error(ErrorKind::FunctorMismatch(expected, actual, span))),
+            (expected, actual) => self.errors.push(Error(ErrorKind::FunctorMismatch(
+                FunctorSet::Value(expected),
+                actual,
+                span,
+            ))),
         }
     }
 
@@ -557,10 +554,7 @@ impl<'a> Solver<'a> {
                 constraints.append(&mut self.unify(&arrow1.output, &arrow2.output, span));
 
                 match (arrow1.functors, arrow2.functors) {
-                    (FunctorSet::Empty, FunctorSet::Empty)
-                    | (FunctorSet::Adj, FunctorSet::Adj)
-                    | (FunctorSet::Ctl, FunctorSet::Ctl)
-                    | (FunctorSet::CtlAdj, FunctorSet::CtlAdj) => {}
+                    (FunctorSet::Value(value1), FunctorSet::Value(value2)) if value1 == value2 => {}
                     (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
                     (FunctorSet::Infer(infer), functors) | (functors, FunctorSet::Infer(infer)) => {
                         constraints.append(&mut self.bind_functor(infer, functors, span));
@@ -634,8 +628,22 @@ impl<'a> Solver<'a> {
     }
 
     fn into_solution(mut self) -> (Solution, Vec<Error>) {
+        // Default functor variables with a pending constraint to the value of that constraint.
         for (infer, functors) in self.pending_functors {
-            self.solution.functors.insert(infer, functors);
+            self.solution
+                .functors
+                .insert(infer, FunctorSet::Value(functors));
+        }
+
+        // Default unconstrained functor variables to the empty set.
+        let mut functor = InferFunctor::default();
+        while functor < self.functor_universe {
+            if !self.solution.functors.contains_key(functor) {
+                self.solution
+                    .functors
+                    .insert(functor, FunctorSet::Value(FunctorSetValue::Empty));
+            }
+            functor = functor.successor();
         }
 
         (self.solution, self.errors)
@@ -712,7 +720,7 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Arrow(arrow) => (
             vec![Constraint::SubFunctor {
-                expected: FunctorSet::Adj,
+                expected: FunctorSetValue::Adj,
                 actual: arrow.functors,
                 span,
             }],
@@ -780,7 +788,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     (
         vec![
             Constraint::SubFunctor {
-                expected: FunctorSet::Ctl,
+                expected: FunctorSetValue::Ctl,
                 actual: arrow.functors,
                 span,
             },

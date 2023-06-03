@@ -12,7 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, ArrowTy, FunctorSet, ItemId, PrimTy, Ty, Udt};
+use qsc_hir::hir::{self, ArrowTy, FunctorSet, FunctorSetValue, ItemId, PrimTy, Ty, Udt};
 use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -89,9 +89,11 @@ impl<'a> Context<'a> {
                 kind: convert::callable_kind_from_ast(*kind),
                 input: Box::new(self.infer_ty(input)),
                 output: Box::new(self.infer_ty(output)),
-                functors: functors.as_ref().map_or(FunctorSet::Empty, |f| {
-                    convert::eval_functor_expr(f.as_ref())
-                }),
+                functors: FunctorSet::Value(
+                    functors.as_ref().map_or(FunctorSetValue::Empty, |f| {
+                        convert::eval_functor_expr(f.as_ref())
+                    }),
+                ),
             })),
             TyKind::Hole => self.inferrer.fresh_ty(),
             TyKind::Paren(inner) => self.infer_ty(inner),

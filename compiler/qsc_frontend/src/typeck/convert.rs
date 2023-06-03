@@ -7,7 +7,7 @@ use qsc_ast::ast::{
     SetOp, Spec, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, ArrowTy, FieldPath, FunctorSet, ItemId, Ty, UdtField};
+use qsc_hir::hir::{self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, ItemId, Ty, UdtField};
 use std::rc::Rc;
 
 pub(crate) struct MissingTyError(pub(super) Span);
@@ -24,12 +24,12 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             errors.extend(output_errors);
             let functors = functors
                 .as_ref()
-                .map_or(FunctorSet::Empty, |f| eval_functor_expr(f.as_ref()));
+                .map_or(FunctorSetValue::Empty, |f| eval_functor_expr(f.as_ref()));
             let ty = Ty::Arrow(Box::new(ArrowTy {
                 kind: callable_kind_from_ast(*kind),
                 input: Box::new(input),
                 output: Box::new(output),
-                functors,
+                functors: FunctorSet::Value(functors),
             }));
             (ty, errors)
         }
@@ -64,7 +64,7 @@ pub(super) fn ast_ty_def_cons(names: &Names, id: ItemId, def: &TyDef) -> (Ty, Ve
         kind: hir::CallableKind::Function,
         input: Box::new(input),
         output: Box::new(Ty::Udt(hir::Res::Item(id))),
-        functors: FunctorSet::Empty,
+        functors: FunctorSet::Value(FunctorSetValue::Empty),
     }));
     (ty, errors)
 }
@@ -120,7 +120,7 @@ pub(super) fn ast_callable_ty(names: &Names, decl: &CallableDecl) -> (Ty, Vec<Mi
         kind,
         input: Box::new(input),
         output: Box::new(output),
-        functors,
+        functors: FunctorSet::Value(functors),
     }));
     (ty, errors)
 }
@@ -145,23 +145,21 @@ pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) 
     }
 }
 
-pub(crate) fn ast_callable_functors(decl: &CallableDecl) -> FunctorSet {
+pub(crate) fn ast_callable_functors(decl: &CallableDecl) -> FunctorSetValue {
     let mut functors = decl
         .functors
         .as_ref()
-        .map_or(FunctorSet::Empty, |f| eval_functor_expr(f.as_ref()));
+        .map_or(FunctorSetValue::Empty, |f| eval_functor_expr(f.as_ref()));
 
     if let CallableBody::Specs(specs) = decl.body.as_ref() {
         for spec in specs.iter() {
             let spec_functors = match spec.spec {
-                Spec::Body => FunctorSet::Empty,
-                Spec::Adj => FunctorSet::Adj,
-                Spec::Ctl => FunctorSet::Ctl,
-                Spec::CtlAdj => FunctorSet::CtlAdj,
+                Spec::Body => FunctorSetValue::Empty,
+                Spec::Adj => FunctorSetValue::Adj,
+                Spec::Ctl => FunctorSetValue::Ctl,
+                Spec::CtlAdj => FunctorSetValue::CtlAdj,
             };
-            functors = functors
-                .union(&spec_functors)
-                .expect("union on known functors should always succeed");
+            functors = functors.union(&spec_functors);
         }
     }
 
@@ -175,7 +173,7 @@ pub(super) fn callable_kind_from_ast(kind: CallableKind) -> hir::CallableKind {
     }
 }
 
-pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSet {
+pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSetValue {
     match expr.kind.as_ref() {
         FunctorExprKind::BinOp(op, lhs, rhs) => {
             let lhs_functors = eval_functor_expr(lhs);
@@ -184,10 +182,9 @@ pub(crate) fn eval_functor_expr(expr: &FunctorExpr) -> FunctorSet {
                 SetOp::Union => lhs_functors.union(&rhs_functors),
                 SetOp::Intersect => lhs_functors.intersect(&rhs_functors),
             }
-            .expect("union or intersect on set from functor expression should always succeed")
         }
-        FunctorExprKind::Lit(ast::Functor::Adj) => FunctorSet::Adj,
-        FunctorExprKind::Lit(ast::Functor::Ctl) => FunctorSet::Ctl,
+        FunctorExprKind::Lit(ast::Functor::Adj) => FunctorSetValue::Adj,
+        FunctorExprKind::Lit(ast::Functor::Ctl) => FunctorSetValue::Ctl,
         FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
 }

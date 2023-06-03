@@ -276,10 +276,10 @@ fn lambda_function_empty_closure() {
                             Pat 4 [18-87] [Type Unit]: Elided
                             Block 5 [39-87] [Type Int]:
                                 Stmt 6 [49-68]: Local (Immutable):
-                                    Pat 7 [53-54] [Type (Int -> Int is f?0)]: Bind: Ident 8 [53-54] "f"
-                                    Expr 9 [57-67] [Type (Int -> Int is f?0)]: Closure([], 2)
+                                    Pat 7 [53-54] [Type (Int -> Int)]: Bind: Ident 8 [53-54] "f"
+                                    Expr 9 [57-67] [Type (Int -> Int)]: Closure([], 2)
                                 Stmt 22 [77-81]: Expr: Expr 23 [77-81] [Type Int]: Call:
-                                    Expr 24 [77-78] [Type (Int -> Int is f?0)]: Var: Local 8
+                                    Expr 24 [77-78] [Type (Int -> Int)]: Var: Local 8
                                     Expr 25 [79-80] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
@@ -291,7 +291,7 @@ fn lambda_function_empty_closure() {
                         input: Pat 15 [57-67] [Type (Int,)]: Tuple:
                             Pat 10 [57-58] [Type Int]: Bind: Ident 11 [57-58] "x"
                         output: Int
-                        functors: f?0
+                        functors: empty set
                         body: SpecDecl 18 [62-67] (Body): Impl:
                             Pat 19 [57-67] [Type (Int,)]: Elided
                             Block 20 [62-67] [Type Int]:
@@ -344,8 +344,8 @@ fn lambda_function_empty_closure_passed() {
                             Pat 15 [66-106] [Type Unit]: Elided
                             Block 16 [87-106] [Type Int]:
                                 Stmt 17 [89-104]: Expr: Expr 18 [89-104] [Type Int]: Call:
-                                    Expr 19 [89-92] [Type ((Int -> Int is f?1) -> Int)]: Var: Item 1
-                                    Expr 20 [93-103] [Type (Int -> Int is f?1)]: Closure([], 3)
+                                    Expr 19 [89-92] [Type ((Int -> Int) -> Int)]: Var: Item 1
+                                    Expr 20 [93-103] [Type (Int -> Int)]: Closure([], 3)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -356,7 +356,7 @@ fn lambda_function_empty_closure_passed() {
                         input: Pat 26 [93-103] [Type (Int,)]: Tuple:
                             Pat 21 [93-94] [Type Int]: Bind: Ident 22 [93-94] "x"
                         output: Int
-                        functors: f?1
+                        functors: empty set
                         body: SpecDecl 29 [98-103] (Body): Impl:
                             Pat 30 [93-103] [Type (Int,)]: Elided
                             Block 31 [98-103] [Type Int]:
@@ -399,10 +399,10 @@ fn lambda_function_closure() {
                                     Pat 7 [53-54] [Type Int]: Bind: Ident 8 [53-54] "x"
                                     Expr 9 [57-58] [Type Int]: Lit: Int(5)
                                 Stmt 10 [68-87]: Local (Immutable):
-                                    Pat 11 [72-73] [Type (Int -> Int is f?0)]: Bind: Ident 12 [72-73] "f"
-                                    Expr 13 [76-86] [Type (Int -> Int is f?0)]: Closure([8], 2)
+                                    Pat 11 [72-73] [Type (Int -> Int)]: Bind: Ident 12 [72-73] "f"
+                                    Expr 13 [76-86] [Type (Int -> Int)]: Closure([8], 2)
                                 Stmt 28 [96-100]: Expr: Expr 29 [96-100] [Type Int]: Call:
-                                    Expr 30 [96-97] [Type (Int -> Int is f?0)]: Var: Local 12
+                                    Expr 30 [96-97] [Type (Int -> Int)]: Var: Local 12
                                     Expr 31 [98-99] [Type Int]: Lit: Int(2)
                         adj: <none>
                         ctl: <none>
@@ -415,7 +415,7 @@ fn lambda_function_closure() {
                             Pat 21 [76-86] [Type Int]: Bind: Ident 19 [76-86] "closed"
                             Pat 14 [76-77] [Type Int]: Bind: Ident 15 [76-77] "y"
                         output: Int
-                        functors: f?0
+                        functors: empty set
                         body: SpecDecl 24 [81-86] (Body): Impl:
                             Pat 25 [76-86] [Type (Int, Int)]: Elided
                             Block 26 [81-86] [Type Int]:
@@ -458,10 +458,10 @@ fn lambda_function_closure_repeated_var() {
                                     Pat 7 [53-54] [Type Int]: Bind: Ident 8 [53-54] "x"
                                     Expr 9 [57-58] [Type Int]: Lit: Int(5)
                                 Stmt 10 [68-91]: Local (Immutable):
-                                    Pat 11 [72-73] [Type (Int -> Int is f?0)]: Bind: Ident 12 [72-73] "f"
-                                    Expr 13 [76-90] [Type (Int -> Int is f?0)]: Closure([8], 2)
+                                    Pat 11 [72-73] [Type (Int -> Int)]: Bind: Ident 12 [72-73] "f"
+                                    Expr 13 [76-90] [Type (Int -> Int)]: Closure([8], 2)
                                 Stmt 30 [100-104]: Expr: Expr 31 [100-104] [Type Int]: Call:
-                                    Expr 32 [100-101] [Type (Int -> Int is f?0)]: Var: Local 12
+                                    Expr 32 [100-101] [Type (Int -> Int)]: Var: Local 12
                                     Expr 33 [102-103] [Type Int]: Lit: Int(2)
                         adj: <none>
                         ctl: <none>
@@ -474,7 +474,7 @@ fn lambda_function_closure_repeated_var() {
                             Pat 23 [76-90] [Type Int]: Bind: Ident 21 [76-90] "closed"
                             Pat 14 [76-77] [Type Int]: Bind: Ident 15 [76-77] "y"
                         output: Int
-                        functors: f?0
+                        functors: empty set
                         body: SpecDecl 26 [81-90] (Body): Impl:
                             Pat 27 [76-90] [Type (Int, Int)]: Elided
                             Block 28 [81-90] [Type Int]:
@@ -535,8 +535,8 @@ fn lambda_function_closure_passed() {
                                     Pat 18 [101-102] [Type Int]: Bind: Ident 19 [101-102] "x"
                                     Expr 20 [105-106] [Type Int]: Lit: Int(5)
                                 Stmt 21 [116-131]: Expr: Expr 22 [116-131] [Type Int]: Call:
-                                    Expr 23 [116-119] [Type ((Int -> Int is f?1) -> Int)]: Var: Item 1
-                                    Expr 24 [120-130] [Type (Int -> Int is f?1)]: Closure([19], 3)
+                                    Expr 23 [116-119] [Type ((Int -> Int) -> Int)]: Var: Item 1
+                                    Expr 24 [120-130] [Type (Int -> Int)]: Closure([19], 3)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -548,7 +548,7 @@ fn lambda_function_closure_passed() {
                             Pat 32 [120-130] [Type Int]: Bind: Ident 30 [120-130] "closed"
                             Pat 25 [120-121] [Type Int]: Bind: Ident 26 [120-121] "y"
                         output: Int
-                        functors: f?1
+                        functors: empty set
                         body: SpecDecl 35 [125-130] (Body): Impl:
                             Pat 36 [120-130] [Type (Int, Int)]: Elided
                             Block 37 [125-130] [Type Int]:
@@ -612,8 +612,8 @@ fn lambda_function_nested_closure() {
                                     Pat 20 [111-112] [Type Int]: Bind: Ident 21 [111-112] "a"
                                     Expr 22 [115-116] [Type Int]: Lit: Int(5)
                                 Stmt 23 [126-201]: Expr: Expr 24 [126-201] [Type Int]: Call:
-                                    Expr 25 [126-129] [Type ((Int -> (Int -> Int) is f?2) -> Int)]: Var: Item 1
-                                    Expr 26 [130-200] [Type (Int -> (Int -> Int) is f?2)]: Closure([21], 4)
+                                    Expr 25 [126-129] [Type ((Int -> (Int -> Int)) -> Int)]: Var: Item 1
+                                    Expr 26 [130-200] [Type (Int -> (Int -> Int))]: Closure([21], 4)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -649,7 +649,7 @@ fn lambda_function_nested_closure() {
                             Pat 61 [130-200] [Type Int]: Bind: Ident 59 [130-200] "closed"
                             Pat 27 [130-131] [Type Int]: Bind: Ident 28 [130-131] "b"
                         output: (Int -> Int)
-                        functors: f?2
+                        functors: empty set
                         body: SpecDecl 64 [135-200] (Body): Impl:
                             Pat 65 [130-200] [Type (Int, Int)]: Elided
                             Block 66 [135-200] [Type (Int -> Int)]:
@@ -710,8 +710,8 @@ fn lambda_operation_empty_closure() {
                             Pat 19 [106-147] [Type Unit]: Elided
                             Block 20 [131-147] [Type Result]:
                                 Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Result]: Call:
-                                    Expr 23 [133-136] [Type ((Qubit => Unit is f?1) => Unit)]: Var: Item 1
-                                    Expr 24 [137-144] [Type (Qubit => Unit is f?1)]: Closure([], 3)
+                                    Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
+                                    Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -722,7 +722,7 @@ fn lambda_operation_empty_closure() {
                         input: Pat 28 [137-144] [Type (Qubit,)]: Tuple:
                             Pat 25 [137-138] [Type Qubit]: Bind: Ident 26 [137-138] "q"
                         output: Unit
-                        functors: f?1
+                        functors: empty set
                         body: SpecDecl 31 [142-144] (Body): Impl:
                             Pat 32 [137-144] [Type (Qubit,)]: Elided
                             Block 33 [142-144] [Type Unit]:
@@ -791,8 +791,8 @@ fn lambda_operation_closure() {
                                     Pat 23 [174-175] [Type Qubit]: Bind: Ident 24 [174-175] "q"
                                     QubitInit 25 [178-185] [Type Qubit]: Single
                                 Stmt 26 [195-216]: Expr: Expr 27 [195-216] [Type Result]: Call:
-                                    Expr 28 [195-198] [Type ((Unit => Result is f?1) => Result)]: Var: Item 2
-                                    Expr 29 [199-215] [Type (Unit => Result is f?1)]: Closure([24], 4)
+                                    Expr 28 [195-198] [Type ((Unit => Result) => Result)]: Var: Item 2
+                                    Expr 29 [199-215] [Type (Unit => Result)]: Closure([24], 4)
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -804,7 +804,7 @@ fn lambda_operation_closure() {
                             Pat 36 [199-215] [Type Qubit]: Bind: Ident 34 [199-215] "closed"
                             Pat 30 [199-201] [Type Unit]: Unit
                         output: Result
-                        functors: f?1
+                        functors: empty set
                         body: SpecDecl 39 [205-215] (Body): Impl:
                             Pat 40 [199-215] [Type (Qubit, Unit)]: Elided
                             Block 41 [205-215] [Type Result]:

@@ -521,7 +521,7 @@ fn binop_equal_callable() {
             #19 73-89 "Test.A == Test.B" : Bool
             #20 73-79 "Test.A" : (Unit -> Unit)
             #24 83-89 "Test.B" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Eq(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 73, hi: 79 }))))
+            Error(Type(Error(MissingClass(Eq(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 73, hi: 79 }))))
         "##]],
     );
 }
@@ -1455,7 +1455,7 @@ fn adj_non_adj() {
             #9 46-48 "{}" : Unit
             #10 51-64 "Adjoint A.Foo" : (Unit => Unit is Ctl)
             #11 59-64 "A.Foo" : (Unit => Unit is Ctl)
-            Error(Type(Error(FunctorMismatch(Adj, Ctl, Span { lo: 59, hi: 64 }))))
+            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Ctl), Span { lo: 59, hi: 64 }))))
         "##]],
     );
 }
@@ -1474,7 +1474,7 @@ fn ctl_non_ctl() {
             #9 46-48 "{}" : Unit
             #10 51-67 "Controlled A.Foo" : (((Qubit)[], Unit) => Unit is Adj)
             #11 62-67 "A.Foo" : (Unit => Unit is Adj)
-            Error(Type(Error(FunctorMismatch(Ctl, Adj, Span { lo: 62, hi: 67 }))))
+            Error(Type(Error(FunctorMismatch(Value(Ctl), Value(Adj), Span { lo: 62, hi: 67 }))))
         "##]],
     );
 }
@@ -1835,7 +1835,7 @@ fn interpolate_function() {
             #8 38-40 "{}" : Unit
             #9 43-53 "$\"{A.Foo}\"" : String
             #10 46-51 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 46, hi: 51 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 46, hi: 51 }))))
         "##]],
     );
 }
@@ -1854,7 +1854,7 @@ fn interpolate_operation() {
             #8 39-41 "{}" : Unit
             #9 44-54 "$\"{A.Foo}\"" : String
             #10 47-52 "A.Foo" : (Unit => Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 47, hi: 52 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 47, hi: 52 }))))
         "##]],
     );
 }
@@ -1893,7 +1893,7 @@ fn interpolate_function_array() {
             #16 73-87 "[A.Foo, A.Bar]" : ((Unit -> Unit))[]
             #17 74-79 "A.Foo" : (Unit -> Unit)
             #21 81-86 "A.Bar" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 73, hi: 87 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 73, hi: 87 }))))
         "##]],
     );
 }
@@ -1928,7 +1928,7 @@ fn interpolate_int_function_tuple() {
             #10 46-56 "(1, A.Foo)" : (Int, (Unit -> Unit))
             #11 47-48 "1" : Int
             #12 50-55 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 46, hi: 56 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 46, hi: 56 }))))
         "##]],
     );
 }
@@ -2450,7 +2450,7 @@ fn lambda_invalid_adjoint_before_functors_inferred() {
             #22 80-82 "()" : Unit
             #24 92-102 "Adjoint op" : (Qubit => Unit is Ctl)
             #25 100-102 "op" : (Qubit => Unit is Ctl)
-            Error(Type(Error(FunctorMismatch(Adj, Ctl, Span { lo: 100, hi: 102 }))))
+            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Ctl), Span { lo: 100, hi: 102 }))))
         "##]],
     );
 }

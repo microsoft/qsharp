@@ -48,7 +48,7 @@ impl Visitor<'_> for CallableLimits {
             if decl.adj.is_some() || decl.ctl.is_some() || decl.ctladj.is_some() {
                 self.errors.push(Error::Spec(decl.span));
             }
-            if decl.functors.is_empty() == Some(false) {
+            if !decl.functors.is_empty() {
                 self.errors.push(Error::Functor(decl.name.span));
             }
             visit::walk_callable_decl(self, decl);
