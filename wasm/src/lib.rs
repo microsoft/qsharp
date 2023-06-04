@@ -20,6 +20,7 @@ mod completion;
 mod definition;
 mod hover;
 mod language_service;
+mod language_service_wasm;
 mod ls_utils;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -145,7 +146,8 @@ where
     fn from(err: &T) -> Self {
         let label = err.labels().and_then(|mut ls| ls.next());
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
-        let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
+        // Monaco handles 0-length diagnostics just fine...?
+        let len = label.as_ref().map_or(1, |lbl| lbl.len());
         let severity = match err.severity().unwrap_or(Severity::Error) {
             Severity::Error => 0,
             Severity::Warning => 1,
@@ -330,43 +332,21 @@ pub fn run_kata_exercise(
 
 #[cfg(test)]
 mod test {
-    use wasm_bindgen::JsValue;
-
-    use crate::language_service::QSharpLanguageService;
+    use crate::{language_service::QSharpLanguageService, VSDiagnostic};
 
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
-        let mut lang_serv = QSharpLanguageService::new();
+        let mut lang_serv = QSharpLanguageService::new(|| {});
         lang_serv.update_code("<code>", code);
-        let diagnostics = lang_serv
-            .check_code("<code>")
-            .expect("check_code should succeed");
-        let mut iterator = js_sys::try_iter(&diagnostics)
-            .expect("diag should be iterable")
-            .expect("iterator should exist");
-        let diag = iterator
-            .next()
-            .expect("diag should have one element")
-            .expect("iterator should succeed");
-        let start_pos = js_sys::Reflect::get(&diag, &JsValue::from_str("start_pos"))
-            .expect("start_pos should exist")
-            .as_f64()
-            .expect("start_pos should be a number") as u32;
-        let end_pos = js_sys::Reflect::get(&diag, &JsValue::from_str("end_pos"))
-            .expect("end_pos should exist")
-            .as_f64()
-            .expect("end_pos should be a number") as u32;
-        let message = js_sys::Reflect::get(&diag, &JsValue::from_str("message"))
-            .expect("message should exist")
-            .as_string()
-            .expect("message should be a string");
-        //assert_eq!(diagnostics.len(), 1, "{diag:#?}");
-        //let err = diagnostics.first().unwrap();
+        let diagnostics = lang_serv.check_code("<code>");
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+        let err = diagnostics.first().unwrap();
+        let diag = VSDiagnostic::from(err);
 
-        assert_eq!(start_pos, 32);
-        assert_eq!(end_pos, 33);
-        assert_eq!(message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
+        assert_eq!(diag.start_pos, 32);
+        assert_eq!(diag.end_pos, 33);
+        assert_eq!(diag.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
     }
 
     #[test]

@@ -6,24 +6,19 @@ use qsc::{
     PackageStore, SourceMap,
 };
 
-//use qsc_frontend::compile::CompileUnit;
-use crate::VSDiagnostic;
 use qsc_hir::hir::PackageId;
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
 pub struct QSharpLanguageService {
     store: PackageStore,
     std: PackageId,
     code: String,
     //    compile_unit: Option<CompileUnit>,
     errors: Vec<Error>,
+    event_callback: Box<dyn FnMut()>,
 }
 
-#[wasm_bindgen]
 impl QSharpLanguageService {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> QSharpLanguageService {
+    pub fn new(event_callback: impl FnMut() + 'static) -> Self {
         let mut store = PackageStore::new(compile::core());
         let std = store.insert(compile::std(&store));
 
@@ -31,8 +26,8 @@ impl QSharpLanguageService {
             code: String::new(),
             store,
             std,
-            //            compile_unit: None,
             errors: Vec::new(),
+            event_callback: Box::new(event_callback),
         }
     }
 
@@ -47,14 +42,8 @@ impl QSharpLanguageService {
         // TODO: check the code
     }
 
-    pub fn check_code(&mut self, _uri: &str) -> Result<JsValue, JsValue> {
-        let result: Vec<VSDiagnostic> = self.errors.iter().map(|error| (error).into()).collect();
-        Ok(serde_wasm_bindgen::to_value(&result)?)
-    }
-}
-
-impl Default for QSharpLanguageService {
-    fn default() -> Self {
-        Self::new()
+    pub fn check_code(&mut self, _uri: &str) -> Vec<Error> {
+        (self.event_callback)();
+        self.errors.clone()
     }
 }

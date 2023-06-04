@@ -78,7 +78,11 @@ export class Compiler implements ICompiler {
     this.wasm = wasm;
     this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
-    this.languageService = new this.wasm.QSharpLanguageService();
+    this.languageService = new this.wasm.QSharpLanguageService(() => {
+      log.info("QSharpLanguageService event handler called");
+      console.log("hi!");
+    });
+    // TODO: should call free() on this at some point
   }
 
   async updateCode(documentUri: string, code: string): Promise<void> {
@@ -92,7 +96,6 @@ export class Compiler implements ICompiler {
     const raw_result = this.languageService.check_code(
       documentUri
     ) as IDiagnostic[];
-    //const raw_result = this.wasm.check_code(code) as IDiagnostic[];
     return mapDiagnostics(raw_result, code);
   }
 
