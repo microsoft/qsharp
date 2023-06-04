@@ -332,21 +332,28 @@ pub fn run_kata_exercise(
 
 #[cfg(test)]
 mod test {
+    use qsc::compile::Error;
+
     use crate::{language_service::QSharpLanguageService, VSDiagnostic};
 
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
-        let mut lang_serv = QSharpLanguageService::new(|| {});
-        lang_serv.update_code("<code>", code);
-        let diagnostics = lang_serv.check_code("<code>");
-        assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
-        let err = diagnostics.first().unwrap();
-        let diag = VSDiagnostic::from(err);
+        let mut error_callback_called = false;
+        {
+            let mut lang_serv = QSharpLanguageService::new(|diagnostics: &[Error]| {
+                error_callback_called = true;
+                assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+                let err = diagnostics.first().unwrap();
+                let diag = VSDiagnostic::from(err);
 
-        assert_eq!(diag.start_pos, 32);
-        assert_eq!(diag.end_pos, 33);
-        assert_eq!(diag.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
+                assert_eq!(diag.start_pos, 32);
+                assert_eq!(diag.end_pos, 33);
+                assert_eq!(diag.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
+            });
+            lang_serv.update_code("<code>", code);
+        }
+        assert!(error_callback_called)
     }
 
     #[test]

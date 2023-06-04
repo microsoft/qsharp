@@ -70,6 +70,10 @@ export class Compiler implements ICompiler {
   private wasm: Wasm;
   private eventHandler: IQscEventTarget;
   private languageService: QSharpLanguageService;
+  // We only need to keep a copy of the code for mapping diagnostics
+  // It would be much better if the wasm layer could do the utf16 mapping
+  // but here we are
+  private code: { [uri: string]: string } = {};
 
   onstatechange: ((state: CompilerState) => void) | null = null;
 
@@ -78,25 +82,28 @@ export class Compiler implements ICompiler {
     this.wasm = wasm;
     this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
-    this.languageService = new this.wasm.QSharpLanguageService(() => {
-      log.info("QSharpLanguageService event handler called");
-      console.log("hi!");
-    });
-    // TODO: should call free() on this at some point
+    this.languageService = new this.wasm.QSharpLanguageService(
+      this.onCheck.bind(this)
+    );
+    // TODO: should call free() on this at some point?
   }
 
   async updateCode(documentUri: string, code: string): Promise<void> {
+    this.code[documentUri] = code;
     this.languageService.update_code(documentUri, code);
-    const diagnostics = await this.checkCode(documentUri, code);
-    // This will be updated with an event from the language service
-    this.eventHandler.dispatchEvent(makeEvent("diagnostics", diagnostics));
   }
 
-  async checkCode(documentUri: string, code: string): Promise<VSDiagnostic[]> {
-    const raw_result = this.languageService.check_code(
-      documentUri
-    ) as IDiagnostic[];
-    return mapDiagnostics(raw_result, code);
+  onCheck(diagnostics: IDiagnostic[]) {
+    try {
+      // TODO: use the uri of course
+      const code = Object.values(this.code)[0];
+      this.eventHandler.dispatchEvent(
+        // Oh no, I don't have the source here to do the utf16 mapping 😱
+        makeEvent("diagnostics", mapDiagnostics(diagnostics, code))
+      );
+    } catch (e) {
+      log.error("Error in onCheck", e);
+    }
   }
 
   async getCompletions(

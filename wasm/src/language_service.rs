@@ -8,17 +8,18 @@ use qsc::{
 
 use qsc_hir::hir::PackageId;
 
-pub struct QSharpLanguageService {
+pub struct QSharpLanguageService<'a> {
     store: PackageStore,
     std: PackageId,
     code: String,
-    //    compile_unit: Option<CompileUnit>,
     errors: Vec<Error>,
-    event_callback: Box<dyn FnMut()>,
+    event_callback: Box<EventCallback<'a>>,
 }
 
-impl QSharpLanguageService {
-    pub fn new(event_callback: impl FnMut() + 'static) -> Self {
+type EventCallback<'a> = dyn FnMut(&[Error]) + 'a;
+
+impl<'a> QSharpLanguageService<'a> {
+    pub fn new(event_callback: impl FnMut(&[Error]) + 'a) -> Self {
         let mut store = PackageStore::new(compile::core());
         let std = store.insert(compile::std(&store));
 
@@ -39,11 +40,7 @@ impl QSharpLanguageService {
 
         self.errors = errors;
 
-        // TODO: check the code
-    }
-
-    pub fn check_code(&mut self, _uri: &str) -> Vec<Error> {
-        (self.event_callback)();
-        self.errors.clone()
+        // TODO: document uri with callback, and one callback per document
+        (self.event_callback)(&self.errors);
     }
 }
