@@ -709,7 +709,7 @@ fn lambda_operation_empty_closure() {
                         body: SpecDecl 18 [106-147] (Body): Impl:
                             Pat 19 [106-147] [Type Unit]: Elided
                             Block 20 [131-147] [Type Result]:
-                                Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Result]: Call:
+                                Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Unit]: Call:
                                     Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
                                     Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                         adj: <none>
@@ -1400,7 +1400,7 @@ fn partial_app_bound_to_non_arrow_ty() {
         &expect![[r#"
             Package:
                 Item 0 [0-131] (Public):
-                    Namespace (Ident 28 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 48 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-64] (Public):
                     Parent: 0
                     Callable 0 [18-64] (Function):
@@ -1431,11 +1431,31 @@ fn partial_app_bound_to_non_arrow_ty() {
                             Block 19 [89-129] [Type Unit]:
                                 Stmt 20 [99-123]: Local (Immutable):
                                     Pat 21 [103-110] [Type Int]: Bind: Ident 22 [103-104] "f"
-                                    Expr 23 [113-122] [Type Int]: Call:
-                                        Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
-                                        Expr 25 [116-122] [Type (Int, Int)]: Tuple:
-                                            Expr 26 [117-118] [Type Int]: Lit: Int(1)
-                                            Expr 27 [120-121] [Type Int]: Hole
+                                    Expr 23 [113-122] [Type (Int -> Int)]: Expr Block: Block 45 [113-122] [Type (Int -> Int)]:
+                                        Stmt 29 [117-118]: Local (Immutable):
+                                            Pat 28 [117-118] [Type Int]: Bind: Ident 26 [117-118] "arg"
+                                            Expr 25 [117-118] [Type Int]: Lit: Int(1)
+                                        Stmt 46 [113-122]: Expr: Expr 47 [113-122] [Type (Int -> Int)]: Closure([26], 3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 3 [113-122] (Internal):
+                    Parent: 2
+                    Callable 39 [113-122] (Function):
+                        name: Ident 40 [113-122] "lambda"
+                        input: Pat 37 [113-122] [Type (Int, Int)]: Tuple:
+                            Pat 38 [113-122] [Type Int]: Bind: Ident 36 [113-122] "closed"
+                            Pat 32 [120-121] [Type Int]: Bind: Ident 31 [120-121] "hole"
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 41 [113-122] (Body): Impl:
+                            Pat 42 [113-122] [Type (Int, Int)]: Elided
+                            Block 43 [113-122] [Type Int]:
+                                Stmt 44 [113-122]: Expr: Expr 35 [113-122] [Type Int]: Call:
+                                    Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
+                                    Expr 34 [116-122] [Type (Int, Int)]: Tuple:
+                                        Expr 27 [117-118] [Type Int]: Var: Local 36
+                                        Expr 33 [120-121] [Type Int]: Var: Local 31
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
