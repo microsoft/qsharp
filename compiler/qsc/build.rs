@@ -7,7 +7,7 @@ use std::process::Command;
 
 fn main() {
     let git_hash = Command::new("git")
-        .args(["rev-parse", "--short", "HEAD"])
+        .args(["rev-parse", "--short=8", "HEAD"])
         .output()
         .map_or_else(
             |_| "unknown".to_string(),
