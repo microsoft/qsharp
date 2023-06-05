@@ -79,7 +79,7 @@ test("one syntax error", async () => {
 
 test("completions include CNOT", async () => {
   const compiler = getCompiler(new QscEventTarget(false));
-
+  await compiler.updateCode("<source>", "");
   let results = await compiler.getCompletions("<source>", "", 0);
   let cnot = results.items.find((x) => x.label === "CNOT");
   assert.ok(cnot, `items are ${results.items.map((i) => i.label).join(", ")}`);

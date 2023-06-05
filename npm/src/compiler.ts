@@ -83,7 +83,7 @@ export class Compiler implements ICompiler {
     this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
     this.languageService = new this.wasm.QSharpLanguageService(
-      this.onCheck.bind(this)
+      this.onDiagnostics.bind(this)
     );
     // TODO: should call free() on this at some point?
   }
@@ -93,7 +93,7 @@ export class Compiler implements ICompiler {
     this.languageService.update_code(documentUri, code);
   }
 
-  onCheck(diagnostics: IDiagnostic[]) {
+  onDiagnostics(diagnostics: IDiagnostic[]) {
     try {
       // TODO: use the uri of course
       const code = Object.values(this.code)[0];
@@ -112,7 +112,7 @@ export class Compiler implements ICompiler {
     offset: number
   ): Promise<ICompletionList> {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    return this.wasm.get_completions(documentUri, code, convertedOffset);
+    return this.languageService.get_completions(documentUri, convertedOffset);
   }
 
   async getHover(documentUri: string, code: string, offset: number) {

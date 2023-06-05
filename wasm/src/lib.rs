@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use katas::{run_kata, KATA_ENTRY};
-use miette::{Diagnostic, Severity};
+use language_service_wasm::VSDiagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
@@ -12,8 +12,7 @@ use qsc::{
     },
     SourceMap,
 };
-use serde::{Deserialize, Serialize};
-use std::{fmt::Write, iter};
+use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 mod completion;
@@ -22,43 +21,6 @@ mod hover;
 mod language_service;
 mod language_service_wasm;
 mod ls_utils;
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CompletionItem {
-    pub label: String,
-    pub kind: i32,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CompletionList {
-    pub items: Vec<CompletionItem>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Hover {
-    pub contents: String,
-    pub span: Span,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Definition {
-    pub source: String,
-    pub offset: u32,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Span {
-    pub start: u32,
-    pub end: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct VSDiagnostic {
-    pub start_pos: usize,
-    pub end_pos: usize,
-    pub message: String,
-    pub severity: i32,
-}
 
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
@@ -97,11 +59,6 @@ export interface IDefinition {
 "#;
 
 #[wasm_bindgen]
-pub fn get_completions(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    completion::get_completions(source_path, code, offset)
-}
-
-#[wasm_bindgen]
 pub fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
     hover::get_hover(source_path, code, offset)
 }
@@ -124,6 +81,7 @@ export interface IDiagnostic {
     }
 }
 "#;
+
 impl std::fmt::Display for VSDiagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -136,42 +94,6 @@ impl std::fmt::Display for VSDiagnostic {
 }}"#,
             self.message, self.severity, self.start_pos, self.end_pos
         )
-    }
-}
-
-impl<T> From<&T> for VSDiagnostic
-where
-    T: Diagnostic,
-{
-    fn from(err: &T) -> Self {
-        let label = err.labels().and_then(|mut ls| ls.next());
-        let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
-        // Monaco handles 0-length diagnostics just fine...?
-        let len = label.as_ref().map_or(1, |lbl| lbl.len());
-        let severity = match err.severity().unwrap_or(Severity::Error) {
-            Severity::Error => 0,
-            Severity::Warning => 1,
-            Severity::Advice => 2,
-        };
-
-        let mut pre_message = err.to_string();
-        for source in iter::successors(err.source(), |e| e.source()) {
-            write!(pre_message, ": {source}").expect("message should be writable");
-        }
-        if let Some(help) = err.help() {
-            write!(pre_message, "\n\nhelp: {help}").expect("message should be writable");
-        }
-
-        // Newlines in JSON need to be double escaped
-        // TODO: Maybe some other chars too: https://stackoverflow.com/a/5191059
-        let message = pre_message.replace('\n', "\\\\n");
-
-        VSDiagnostic {
-            start_pos: offset,
-            end_pos: offset + len,
-            severity,
-            message,
-        }
     }
 }
 

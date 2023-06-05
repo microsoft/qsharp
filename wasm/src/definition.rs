@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::language_service_wasm::Definition;
 use crate::ls_utils::{get_compilation, span_contains};
-use crate::Definition;
 use qsc::SourceMap;
 use qsc_hir::hir::{ExprKind, ItemKind, Package, Res};
 use qsc_hir::visit::Visitor;

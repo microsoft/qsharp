@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::fmt::Write;
-
+use crate::language_service_wasm::{Hover, Span};
 use crate::ls_utils::{get_compilation, span_contains};
-use crate::{Hover, Span};
 use qsc_hir::hir::{CallableKind, Ty};
 use qsc_hir::visit::Visitor;
+use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 pub(crate) fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {

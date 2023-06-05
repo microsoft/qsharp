@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ls_utils::{get_compilation, span_contains};
-use crate::{CompletionItem, CompletionList};
+use crate::language_service::CompilationState;
+use crate::ls_utils::span_contains;
 use enum_iterator::all;
 use qsc::hir::ItemKind;
 use qsc_frontend::parse::Keyword;
@@ -12,7 +12,6 @@ use qsc_hir::{
     visit::Visitor,
 };
 use std::collections::HashSet;
-use wasm_bindgen::prelude::*;
 
 // These definitions match the values expected by VS Code and Monaco.
 enum CompletionKind {
@@ -22,12 +21,31 @@ enum CompletionKind {
     Issue = 26,
 }
 
-pub(crate) fn get_completions(
-    source_path: &str,
-    code: &str,
+pub struct CompletionList {
+    pub items: Vec<CompletionItem>,
+}
+
+#[derive(Clone)]
+pub struct CompletionItem {
+    pub label: String,
+    pub kind: i32,
+}
+
+pub fn get_completions(
+    compilation_state: &CompilationState,
+    _uri: &str,
     offset: u32,
-) -> Result<JsValue, JsValue> {
-    let (std_package, package, _, no_compilation, errors) = get_compilation(source_path, code);
+) -> CompletionList {
+    let compile_unit = &compilation_state.compile_unit.as_ref().expect(
+        "a compilation unit should exist for the current file - has update_code been called?",
+    );
+    let no_compilation = compile_unit.package.items.values().next().is_none();
+    let package = &compile_unit.package;
+    let std_package = &compilation_state
+        .store
+        .get(compilation_state.std)
+        .expect("expected to find std package")
+        .package;
 
     // TODO: I don't like thread locals
     thread_local! {
@@ -48,34 +66,34 @@ pub(crate) fn get_completions(
             Context::TopLevel
         },
     };
-    context_builder.visit_package(&package);
+    context_builder.visit_package(package);
     let context = context_builder.context;
 
     // Collect namespaces
     let mut namespace_collector = NamespaceCollector {
         namespaces: HashSet::new(),
     };
-    namespace_collector.visit_package(&package);
-    namespace_collector.visit_package(&std_package);
+    namespace_collector.visit_package(package);
+    namespace_collector.visit_package(std_package);
 
     // Add debug items for convenience
     let mut debug_items = Vec::new();
-    debug_items.push(CompletionItem {
-        label: format!("__DEBUG__ context: {:?}", context),
-        kind: CompletionKind::Issue as i32,
-    });
-    debug_items.push(CompletionItem {
-        label: format!("__DEBUG__ errors: {:?}", errors),
-        kind: CompletionKind::Issue as i32,
-    });
+    // debug_items.push(CompletionItem {
+    //     label: format!("__DEBUG__ context: {:?}", context),
+    //     kind: CompletionKind::Issue as i32,
+    // });
+    // debug_items.push(CompletionItem {
+    //     label: format!("__DEBUG__ errors: {:?}", errors),
+    //     kind: CompletionKind::Issue as i32,
+    // });
 
     let mut res = CompletionList { items: Vec::new() };
 
     // Callables from the current code
-    let mut current_callables = callable_names_from_package(&package);
+    let mut current_callables = callable_names_from_package(package);
 
     // All callables from std package
-    let mut std_callables = callable_names_from_package(&std_package);
+    let mut std_callables = callable_names_from_package(std_package);
 
     // All keywords
     let mut keywords = KEYWORDS.with(|kws| kws.to_vec());
@@ -123,7 +141,7 @@ pub(crate) fn get_completions(
     }
 
     res.items.append(&mut debug_items);
-    Ok(serde_wasm_bindgen::to_value(&res)?)
+    res
 }
 
 struct NamespaceCollector {
