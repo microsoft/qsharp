@@ -13,13 +13,13 @@ import tempfile
 import functools
 
 python_ver = (3, 11)  # Python support for Windows on ARM64 requires v3.11 or later
-rust_ver = (1, 69)  # Ensure Rust version 1.69 or later is installed
+rust_ver = (1, 70)  # Ensure Rust version 1.70 or later is installed
 node_ver = (
     16,
     17,
 )  # Node.js version 16.17 or later is required to support the Node.js 'test' module
 wasmpack_ver = (0, 11, 0)  # Latest tested wasm-pack version
-rust_fmt_ver = (1, 5, 2)  # Current version when Rust 1.69 shipped
+rust_fmt_ver = (1, 5, 2)  # Current version when Rust 1.70 shipped
 clippy_ver = (0, 1, 69)
 
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
