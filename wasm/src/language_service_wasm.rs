@@ -14,16 +14,28 @@ pub struct QSharpLanguageService(language_service::QSharpLanguageService<'static
 #[wasm_bindgen]
 impl QSharpLanguageService {
     #[wasm_bindgen(constructor)]
-    pub fn new(diagnostics_callback: &js_sys::Function) -> Self {
+    pub fn new(diagnostics_callback: &js_sys::Function, logger: &js_sys::Function) -> Self {
         let diagnostics_callback = diagnostics_callback.clone();
-        let inner = language_service::QSharpLanguageService::new(move |errors: &[Error]| {
-            let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
-            let value = serde_wasm_bindgen::to_value(&diags)
-                .expect("conversion to VSDiagnostic should succeed");
-            diagnostics_callback
-                .call1(&JsValue::null(), &value)
-                .expect("callback should succeed");
-        });
+        let logger = logger.clone();
+        let inner = language_service::QSharpLanguageService::new(
+            move |errors: &[Error]| {
+                let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
+                let value = serde_wasm_bindgen::to_value(&diags)
+                    .expect("conversion to VSDiagnostic should succeed");
+                diagnostics_callback
+                    .call1(&JsValue::null(), &value)
+                    .expect("callback should succeed");
+            },
+            move |msg: &str| {
+                logger
+                    .call1(
+                        &JsValue::null(),
+                        &serde_wasm_bindgen::to_value(msg)
+                            .expect("string conversion should succeed"),
+                    )
+                    .expect("callback should succeed");
+            },
+        );
         QSharpLanguageService(inner)
     }
 
@@ -32,9 +44,9 @@ impl QSharpLanguageService {
     }
 
     pub fn get_completions(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
-        let res = self.0.get_completions(uri, offset);
+        let completion_list = self.0.get_completions(uri, offset);
         Ok(serde_wasm_bindgen::to_value(&CompletionList {
-            items: res
+            items: completion_list
                 .items
                 .into_iter()
                 .map(|i| CompletionItem {
@@ -44,6 +56,34 @@ impl QSharpLanguageService {
                 .collect(),
         })?)
     }
+
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
+        let definition = self.0.get_definition(uri, offset);
+        Ok(serde_wasm_bindgen::to_value(&Definition {
+            source: definition.source,
+            offset: definition.offset,
+        })?)
+    }
+}
+
+// There is no easy way to serialize the result with serde_wasm_bindgen and get
+// good TypeScript typing. Here we manually specify the type that the follow
+// method will return. At the call-site in the TypeScript, the response should be
+// cast to this type. (e.g., var result = get_completions() as ICompletionList).
+// It does mean this type decl must be kept up to date with any structural changes.
+#[wasm_bindgen(typescript_custom_section)]
+const ICompletionList: &'static str = r#"
+export interface ICompletionList {
+    items: Array<{
+        label: string;
+        kind: number;
+    }>
+}
+"#;
+
+#[derive(Serialize, Deserialize)]
+pub struct CompletionList {
+    pub items: Vec<CompletionItem>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -53,15 +93,18 @@ pub struct CompletionItem {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CompletionList {
-    pub items: Vec<CompletionItem>,
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct Hover {
     pub contents: String,
     pub span: Span,
 }
+
+#[wasm_bindgen(typescript_custom_section)]
+const IDefinition: &'static str = r#"
+export interface IDefinition {
+    source: string;
+    offset: number;
+}
+"#;
 
 #[derive(Serialize, Deserialize)]
 pub struct Definition {

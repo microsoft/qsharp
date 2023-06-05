@@ -1,30 +1,37 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::language_service_wasm::Definition;
-use crate::ls_utils::{get_compilation, span_contains};
+use crate::language_service::CompilationState;
+use crate::ls_utils::span_contains;
 use qsc::SourceMap;
 use qsc_hir::hir::{ExprKind, ItemKind, Package, Res};
 use qsc_hir::visit::Visitor;
-use wasm_bindgen::prelude::*;
+
+pub struct Definition {
+    pub source: String,
+    pub offset: u32,
+}
 
 pub(crate) fn get_definition(
-    source_path: &str,
-    code: &str,
+    compilation_state: &CompilationState,
+    _uri: &str,
     offset: u32, // TODO: return a range
-) -> Result<JsValue, JsValue> {
-    let (_, package, source_map, _, _) = get_compilation(source_path, code);
+) -> Definition {
+    let compile_unit = &compilation_state.compile_unit.as_ref().expect(
+        "a compilation unit should exist for the current file - has update_code been called?",
+    );
+    let package = &compile_unit.package;
 
     let mut definition_finder = DefinitionFinder {
         //std_package: &std_package,
-        package: &package,
-        source_map: &source_map,
+        package,
+        source_map: &compile_unit.sources,
         offset,
         definition: None,
     };
-    definition_finder.visit_package(&package);
+    definition_finder.visit_package(package);
 
-    let definition = match definition_finder.definition {
+    match definition_finder.definition {
         Some((name, offset)) => Definition {
             source: name,
             offset,
@@ -33,8 +40,7 @@ pub(crate) fn get_definition(
             source: "".to_string(),
             offset: 0,
         },
-    };
-    Ok(serde_wasm_bindgen::to_value(&definition)?)
+    }
 }
 
 struct DefinitionFinder<'a> {

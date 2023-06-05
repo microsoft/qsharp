@@ -31,7 +31,7 @@ pub struct CompletionItem {
     pub kind: i32,
 }
 
-pub fn get_completions(
+pub(crate) fn get_completions(
     compilation_state: &CompilationState,
     _uri: &str,
     offset: u32,

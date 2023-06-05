@@ -20,6 +20,12 @@ export async function activate(context: vscode.ExtensionContext) {
   const compiler = await getCompiler(evtTarget);
 
   // send document updates
+  vscode.workspace.onDidOpenTextDocument((document) => {
+    if (vscode.languages.match("qsharp", document)) {
+      compiler.updateCode(document.uri.toString(), document.getText());
+    }
+  });
+
   vscode.workspace.onDidChangeTextDocument((evt) => {
     if (vscode.languages.match("qsharp", evt.document)) {
       compiler.updateCode(evt.document.uri.toString(), evt.document.getText());

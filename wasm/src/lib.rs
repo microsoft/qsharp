@@ -27,21 +27,6 @@ pub fn git_hash() -> JsValue {
     JsValue::from_str(env!("QSHARP_GIT_HASH"))
 }
 
-// There is no easy way to serialize the result with serde_wasm_bindgen and get
-// good TypeScript typing. Here we manually specify the type that the follow
-// method will return. At the call-site in the TypeScript, the response should be
-// cast to this type. (e.g., var result = get_completions() as ICompletionList).
-// It does mean this type decl must be kept up to date with any structural changes.
-#[wasm_bindgen(typescript_custom_section)]
-const ICompletionList: &'static str = r#"
-export interface ICompletionList {
-    items: Array<{
-        label: string;
-        kind: number;
-    }>
-}
-"#;
-
 #[wasm_bindgen(typescript_custom_section)]
 const IHover: &'static str = r#"
 export interface IHover {
@@ -50,22 +35,9 @@ export interface IHover {
 }
 "#;
 
-#[wasm_bindgen(typescript_custom_section)]
-const IDefinition: &'static str = r#"
-export interface IDefinition {
-    source: string;
-    offset: number;
-}
-"#;
-
 #[wasm_bindgen]
 pub fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
     hover::get_hover(source_path, code, offset)
-}
-
-#[wasm_bindgen]
-pub fn get_definition(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    definition::get_definition(source_path, code, offset)
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -263,16 +235,19 @@ mod test {
         let code = "namespace input { operation Foo(a) : Unit {} }";
         let mut error_callback_called = false;
         {
-            let mut lang_serv = QSharpLanguageService::new(|diagnostics: &[Error]| {
-                error_callback_called = true;
-                assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
-                let err = diagnostics.first().unwrap();
-                let diag = VSDiagnostic::from(err);
+            let mut lang_serv = QSharpLanguageService::new(
+                |diagnostics: &[Error]| {
+                    error_callback_called = true;
+                    assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+                    let err = diagnostics.first().unwrap();
+                    let diag = VSDiagnostic::from(err);
 
-                assert_eq!(diag.start_pos, 32);
-                assert_eq!(diag.end_pos, 33);
-                assert_eq!(diag.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
-            });
+                    assert_eq!(diag.start_pos, 32);
+                    assert_eq!(diag.end_pos, 33);
+                    assert_eq!(diag.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
+                },
+                |_| {},
+            );
             lang_serv.update_code("<code>", code);
         }
         assert!(error_callback_called)

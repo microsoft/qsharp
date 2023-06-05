@@ -9,7 +9,7 @@ use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
 pub(crate) fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    let (_, package, _, _, _) = get_compilation(source_path, code);
+    let (_, package, _, _) = get_compilation(source_path, code);
 
     let mut callable_finder = CallableFinder {
         offset,

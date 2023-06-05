@@ -81,9 +81,14 @@ export function Editor(props: {
   }
 
   async function updateCode() {
+    // This should get called on initial load and on every document update.
     const code = editor.current?.getValue();
     if (code == null) throw new Error("Why is code null?");
-    await props.compiler.updateCode("<code>", code);
+
+    const uri = editor.current?.getModel()?.uri.toString();
+    if (uri) {
+      await props.compiler.updateCode(uri, code);
+    }
   }
 
   function onCheck(results: VSDiagnostic[]) {

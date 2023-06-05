@@ -83,7 +83,10 @@ export class Compiler implements ICompiler {
     this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
     this.languageService = new this.wasm.QSharpLanguageService(
-      this.onDiagnostics.bind(this)
+      this.onDiagnostics.bind(this),
+      (msg: string) => {
+        log.info(msg);
+      }
     );
     // TODO: should call free() on this at some point?
   }
@@ -122,7 +125,10 @@ export class Compiler implements ICompiler {
 
   async getDefinition(documentUri: string, code: string, offset: number) {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    const result = this.wasm.get_definition(documentUri, code, convertedOffset);
+    const result = this.languageService.get_definition(
+      documentUri,
+      convertedOffset
+    );
     result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
       result.offset
     ];
