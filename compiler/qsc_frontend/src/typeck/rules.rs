@@ -331,7 +331,7 @@ impl<'a> Context<'a> {
                     let Some(Ty::Arrow(mut arrow)) = self.globals.get(item).cloned() else {
                         panic!("global item should have arrow type");
                     };
-                    self.inferrer.freshen_item(&mut arrow, expr.span);
+                    self.inferrer.freshen_arrow(&mut arrow, expr.span);
                     converge(Ty::Arrow(arrow))
                 }
                 Some(&Res::Local(node)) => converge(

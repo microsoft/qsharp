@@ -298,6 +298,12 @@ enum Constraint {
     },
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum FreshenMode {
+    Functors,
+    NoFunctors,
+}
+
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
     next_ty: InferTy,
@@ -343,83 +349,11 @@ impl Inferrer {
 
     /// Replaces all type parameters with fresh types and creates synthetic functor parameters for
     /// second-order arrow types.
-    pub(super) fn freshen_item(&mut self, arrow: &mut ArrowTy, span: Span) {
-        #[derive(Clone, Copy)]
-        enum FunctorMode {
-            Fresh,
-            Preserve,
-        }
-
-        fn freshen(
-            inferrer: &mut Inferrer,
-            params: &mut HashMap<String, Ty>,
-            mode: FunctorMode,
-            ty: &mut Ty,
-            span: Span,
-        ) {
-            match ty {
-                Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
-                Ty::Array(item) => freshen(inferrer, params, mode, item, span),
-                Ty::Arrow(arrow) => {
-                    freshen(
-                        inferrer,
-                        params,
-                        FunctorMode::Preserve,
-                        &mut arrow.input,
-                        span,
-                    );
-                    freshen(
-                        inferrer,
-                        params,
-                        FunctorMode::Preserve,
-                        &mut arrow.output,
-                        span,
-                    );
-                    match mode {
-                        FunctorMode::Fresh => {
-                            let functors = inferrer.fresh_functor();
-                            inferrer.constraints.push_back(Constraint::Superset {
-                                expected: arrow.functors.expect_value(
-                                    "item type should contain only concrete functors",
-                                ),
-                                actual: functors,
-                                span,
-                            });
-                            arrow.functors = functors;
-                        }
-                        FunctorMode::Preserve => {}
-                    }
-                }
-                Ty::Param(name) => {
-                    *ty = params
-                        .entry(name.clone())
-                        .or_insert_with(|| inferrer.fresh_ty())
-                        .clone();
-                }
-                Ty::Tuple(items) => {
-                    for item in items {
-                        freshen(inferrer, params, mode, item, span);
-                    }
-                }
-            }
-        }
-
+    pub(super) fn freshen_arrow(&mut self, arrow: &mut ArrowTy, span: Span) {
+        let mode = FreshenMode::Functors;
         let mut params = HashMap::new();
-
-        freshen(
-            self,
-            &mut params,
-            FunctorMode::Fresh,
-            &mut arrow.input,
-            span,
-        );
-        freshen(
-            self,
-            &mut params,
-            FunctorMode::Fresh,
-            &mut arrow.output,
-            span,
-        );
+        freshen_ty(self, mode, span, &mut params, &mut arrow.input);
+        freshen_ty(self, mode, span, &mut params, &mut arrow.output);
     }
 
     /// Solves for all variables given the accumulated constraints.
@@ -647,6 +581,48 @@ impl<'a> Solver<'a> {
         }
 
         (self.solution, self.errors)
+    }
+}
+
+fn freshen_ty(
+    inferrer: &mut Inferrer,
+    mode: FreshenMode,
+    span: Span,
+    params: &mut HashMap<String, Ty>,
+    ty: &mut Ty,
+) {
+    match ty {
+        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
+        Ty::Array(item) => freshen_ty(inferrer, mode, span, params, item),
+        Ty::Arrow(arrow) => {
+            let new_mode = FreshenMode::NoFunctors;
+            freshen_ty(inferrer, new_mode, span, params, &mut arrow.input);
+            freshen_ty(inferrer, new_mode, span, params, &mut arrow.output);
+
+            if mode == FreshenMode::Functors {
+                let old_functors = arrow
+                    .functors
+                    .expect_value("arrow type should have concrete functors");
+                let new_functors = inferrer.fresh_functor();
+                inferrer.constraints.push_back(Constraint::Superset {
+                    expected: old_functors,
+                    actual: new_functors,
+                    span,
+                });
+                arrow.functors = new_functors;
+            }
+        }
+        Ty::Param(name) => {
+            *ty = params
+                .entry(name.clone())
+                .or_insert_with(|| inferrer.fresh_ty())
+                .clone();
+        }
+        Ty::Tuple(items) => {
+            for item in items {
+                freshen_ty(inferrer, mode, span, params, item);
+            }
+        }
     }
 }
 
