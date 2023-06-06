@@ -129,9 +129,9 @@ impl<'a> Context<'a> {
             StmtKind::Expr(expr) => self.infer_expr(expr),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
-                let expr = self.infer_expr(expr);
-                self.inferrer.eq(pat.span, expr.ty, pat_ty);
-                self.diverge_if(expr.diverges, converge(Ty::UNIT))
+                let expr_ty = self.infer_expr(expr);
+                self.inferrer.eq(expr.span, pat_ty, expr_ty.ty);
+                self.diverge_if(expr_ty.diverges, converge(Ty::UNIT))
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 let pat_ty = self.infer_pat(pat);

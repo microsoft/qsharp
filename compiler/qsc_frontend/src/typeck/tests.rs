@@ -707,7 +707,7 @@ fn let_tuple_arity_error() {
             #11 18-24 "(0, 1)" : (Int, Int)
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
-            Error(Type(Error(Mismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 6, hi: 15 }))))
+            Error(Type(Error(Mismatch(Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Tuple([Prim(Int), Prim(Int)]), Span { lo: 18, hi: 24 }))))
         "##]],
     );
 }
@@ -1556,13 +1556,13 @@ fn return_diverges_stmt_after() {
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #17 61-62 "x" : ?0
-            #19 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #20 65-115 "{\n            return 1;\n            true\n        }" : ?0
+            #17 61-62 "x" : ?3
+            #19 65-115 "{\n            return 1;\n            true\n        }" : ?3
+            #20 65-115 "{\n            return 1;\n            true\n        }" : ?3
             #22 79-87 "return 1" : ?1
             #23 86-87 "1" : Int
             #25 101-105 "true" : Bool
-            #27 125-126 "x" : ?0
+            #27 125-126 "x" : ?3
         "##]],
     );
 }
@@ -2083,8 +2083,8 @@ fn newtype_field_invalid() {
             #13 59-68 "(x : Foo)" : UDT<Item 1>
             #14 60-67 "x : Foo" : UDT<Item 1>
             #20 74-106 "{\n        let y = x::Nope;\n    }" : Unit
-            #22 88-89 "y" : ?0
-            #24 92-99 "x::Nope" : ?0
+            #22 88-89 "y" : ?1
+            #24 92-99 "x::Nope" : ?1
             #25 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferTy(1)) }, Span { lo: 92, hi: 99 }))))
         "##]],

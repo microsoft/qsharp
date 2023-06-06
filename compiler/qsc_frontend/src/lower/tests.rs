@@ -1322,8 +1322,8 @@ fn partial_app_unknown_callable() {
                             Pat 4 [18-70] [Type Unit]: Elided
                             Block 5 [38-70] [Type Unit]:
                                 Stmt 6 [40-68]: Local (Immutable):
-                                    Pat 7 [44-45] [Type ?0]: Bind: Ident 8 [44-45] "f"
-                                    Expr 9 [48-67] [Type ?0]: Call:
+                                    Pat 7 [44-45] [Type ?3]: Bind: Ident 8 [44-45] "f"
+                                    Expr 9 [48-67] [Type ?3]: Call:
                                         Expr 10 [48-55] [Type ?]: Var: Err
                                         Expr 11 [55-67] [Type (Bool, ?1, ?2)]: Tuple:
                                             Expr 12 [56-60] [Type Bool]: Lit: Bool(true)
@@ -1491,14 +1491,14 @@ fn partial_app_hole_as_callee() {
                             Pat 4 [36-139] [Type Unit]: Elided
                             Block 5 [64-139] [Type (Result)[]]:
                                 Stmt 6 [74-87]: Local (Immutable):
-                                    Pat 7 [78-79] [Type ?0]: Bind: Ident 8 [78-79] "f"
-                                    Expr 9 [82-86] [Type ?0]: Call:
+                                    Pat 7 [78-79] [Type ?3]: Bind: Ident 8 [78-79] "f"
+                                    Expr 9 [82-86] [Type ?3]: Call:
                                         Expr 10 [82-83] [Type ?1]: Hole
                                         Expr 11 [84-85] [Type ?2]: Hole
                                 Stmt 12 [96-111]: Local (Immutable):
                                     Pat 13 [100-103] [Type Result]: Bind: Ident 14 [100-103] "res"
                                     Expr 15 [106-110] [Type Result]: Call:
-                                        Expr 16 [106-107] [Type ?0]: Var: Local 8
+                                        Expr 16 [106-107] [Type ?3]: Var: Local 8
                                         Expr 17 [108-109] [Type Int]: Lit: Int(4)
                                 Stmt 18 [120-133]: Semi: Expr 19 [120-132] [Type ?6]: Return: Expr 20 [127-132] [Type (Result)[]]: Array:
                                     Expr 21 [128-131] [Type Result]: Var: Local 14
