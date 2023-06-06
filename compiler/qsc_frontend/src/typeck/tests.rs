@@ -2700,3 +2700,378 @@ fn typed_hole_error_ambiguous_type() {
         "##]],
     );
 }
+
+#[test]
+fn functors_in_arg_superset_of_empty() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => ()) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-137 "{\n            operation Foo(op : Qubit => ()) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-137 "{\n            operation Foo(op : Qubit => ()) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-45 "(op : Qubit => ())" : (Qubit => Unit)
+            #8 28-44 "op : Qubit => ()" : (Qubit => Unit)
+            #16 51-53 "{}" : Unit
+            #21 79-90 "(q : Qubit)" : Qubit
+            #22 80-89 "q : Qubit" : Qubit
+            #29 103-105 "{}" : Unit
+            #31 118-126 "Foo(Bar)" : Unit
+            #32 118-121 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #35 121-126 "(Bar)" : (Qubit => Unit is Adj)
+            #36 122-125 "Bar" : (Qubit => Unit is Adj)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_superset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj) : () {}
+            operation Bar(q : Qubit) : () is Adj + Ctl {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-150 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-150 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #8 28-51 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #17 58-60 "{}" : Unit
+            #22 86-97 "(q : Qubit)" : Qubit
+            #23 87-96 "q : Qubit" : Qubit
+            #32 116-118 "{}" : Unit
+            #34 131-139 "Foo(Bar)" : Unit
+            #35 131-134 "Foo" : ((Qubit => Unit is Adj + Ctl) => Unit)
+            #38 134-139 "(Bar)" : (Qubit => Unit is Adj + Ctl)
+            #39 135-138 "Bar" : (Qubit => Unit is Adj + Ctl)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_subset_of_ctladj() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj + Ctl) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-150 "{\n            operation Foo(op : Qubit => () is Adj + Ctl) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-150 "{\n            operation Foo(op : Qubit => () is Adj + Ctl) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-58 "(op : Qubit => () is Adj + Ctl)" : (Qubit => Unit is Adj + Ctl)
+            #8 28-57 "op : Qubit => () is Adj + Ctl" : (Qubit => Unit is Adj + Ctl)
+            #19 64-66 "{}" : Unit
+            #24 92-103 "(q : Qubit)" : Qubit
+            #25 93-102 "q : Qubit" : Qubit
+            #32 116-118 "{}" : Unit
+            #34 131-139 "Foo(Bar)" : Unit
+            #35 131-134 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #38 134-139 "(Bar)" : (Qubit => Unit is Adj)
+            #39 135-138 "Bar" : (Qubit => Unit is Adj)
+            Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Adj), Span { lo: 131, hi: 139 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_eq_to_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-144 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-144 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #8 28-51 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #17 58-60 "{}" : Unit
+            #22 86-97 "(q : Qubit)" : Qubit
+            #23 87-96 "q : Qubit" : Qubit
+            #30 110-112 "{}" : Unit
+            #32 125-133 "Foo(Bar)" : Unit
+            #33 125-128 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #36 128-133 "(Bar)" : (Qubit => Unit is Adj)
+            #37 129-132 "Bar" : (Qubit => Unit is Adj)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_nested_arrow_superset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : (Qubit => () is Adj) => ()) : () {}
+            operation Bar(op : Qubit => () is Adj + Ctl) : () {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-165 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj + Ctl) : () {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-165 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj + Ctl) : () {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
+            #8 28-59 "op : (Qubit => () is Adj) => ()" : ((Qubit => Unit is Adj) => Unit)
+            #20 66-68 "{}" : Unit
+            #25 94-125 "(op : Qubit => () is Adj + Ctl)" : (Qubit => Unit is Adj + Ctl)
+            #26 95-124 "op : Qubit => () is Adj + Ctl" : (Qubit => Unit is Adj + Ctl)
+            #37 131-133 "{}" : Unit
+            #39 146-154 "Foo(Bar)" : Unit
+            #40 146-149 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
+            #43 149-154 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
+            #44 150-153 "Bar" : ((Qubit => Unit is Adj) => Unit)
+            Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Adj), Span { lo: 146, hi: 154 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_nested_arrow_sub_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : (Qubit => () is Adj) => ()) : () {}
+            operation Bar(op : Qubit => ()) : () {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-152 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => ()) : () {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-152 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => ()) : () {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
+            #8 28-59 "op : (Qubit => () is Adj) => ()" : ((Qubit => Unit is Adj) => Unit)
+            #20 66-68 "{}" : Unit
+            #25 94-112 "(op : Qubit => ())" : (Qubit => Unit)
+            #26 95-111 "op : Qubit => ()" : (Qubit => Unit)
+            #34 118-120 "{}" : Unit
+            #36 133-141 "Foo(Bar)" : Unit
+            #37 133-136 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
+            #40 136-141 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
+            #41 137-140 "Bar" : ((Qubit => Unit is Adj) => Unit)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_nested_arrow_eq_to_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : (Qubit => () is Adj) => ()) : () {}
+            operation Bar(op : Qubit => () is Adj) : () {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-159 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj) : () {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-159 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj) : () {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
+            #8 28-59 "op : (Qubit => () is Adj) => ()" : ((Qubit => Unit is Adj) => Unit)
+            #20 66-68 "{}" : Unit
+            #25 94-119 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #26 95-118 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #35 125-127 "{}" : Unit
+            #37 140-148 "Foo(Bar)" : Unit
+            #38 140-143 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
+            #41 143-148 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
+            #42 144-147 "Bar" : ((Qubit => Unit is Adj) => Unit)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_array_superset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(ops : (Qubit => () is Adj)[]) : () {}
+            operation Bar(q : Qubit) : () is Adj + Ctl {}
+            Foo([Bar]);
+        }",
+        &expect![[r##"
+            #1 0-157 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo([Bar]);\n        }" : Unit
+            #2 0-157 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo([Bar]);\n        }" : Unit
+            #7 27-57 "(ops : (Qubit => () is Adj)[])" : ((Qubit => Unit is Adj))[]
+            #8 28-56 "ops : (Qubit => () is Adj)[]" : ((Qubit => Unit is Adj))[]
+            #19 63-65 "{}" : Unit
+            #24 91-102 "(q : Qubit)" : Qubit
+            #25 92-101 "q : Qubit" : Qubit
+            #34 121-123 "{}" : Unit
+            #36 136-146 "Foo([Bar])" : Unit
+            #37 136-139 "Foo" : (((Qubit => Unit is Adj + Ctl))[] => Unit)
+            #40 139-146 "([Bar])" : ((Qubit => Unit is Adj + Ctl))[]
+            #41 140-145 "[Bar]" : ((Qubit => Unit is Adj + Ctl))[]
+            #42 141-144 "Bar" : (Qubit => Unit is Adj + Ctl)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_array_subset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(ops : (Qubit => () is Adj)[]) : () {}
+            operation Bar(q : Qubit) : () {}
+            Foo([Bar]);
+        }",
+        &expect![[r##"
+            #1 0-144 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () {}\n            Foo([Bar]);\n        }" : Unit
+            #2 0-144 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () {}\n            Foo([Bar]);\n        }" : Unit
+            #7 27-57 "(ops : (Qubit => () is Adj)[])" : ((Qubit => Unit is Adj))[]
+            #8 28-56 "ops : (Qubit => () is Adj)[]" : ((Qubit => Unit is Adj))[]
+            #19 63-65 "{}" : Unit
+            #24 91-102 "(q : Qubit)" : Qubit
+            #25 92-101 "q : Qubit" : Qubit
+            #31 108-110 "{}" : Unit
+            #33 123-133 "Foo([Bar])" : Unit
+            #34 123-126 "Foo" : (((Qubit => Unit))[] => Unit)
+            #37 126-133 "([Bar])" : ((Qubit => Unit))[]
+            #38 127-132 "[Bar]" : ((Qubit => Unit))[]
+            #39 128-131 "Bar" : (Qubit => Unit)
+            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Empty), Span { lo: 123, hi: 133 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_all_same() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () is Adj {}
+            let ops = [Foo, Foo, Foo];
+        }",
+        &expect![[r##"
+            #1 0-102 "{\n            operation Foo(q : Qubit) : () is Adj {}\n            let ops = [Foo, Foo, Foo];\n        }" : Unit
+            #2 0-102 "{\n            operation Foo(q : Qubit) : () is Adj {}\n            let ops = [Foo, Foo, Foo];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #15 51-53 "{}" : Unit
+            #17 70-73 "ops" : ((Qubit => Unit is Adj))[]
+            #19 76-91 "[Foo, Foo, Foo]" : ((Qubit => Unit is Adj))[]
+            #20 77-80 "Foo" : (Qubit => Unit is Adj)
+            #23 82-85 "Foo" : (Qubit => Unit is Adj)
+            #26 87-90 "Foo" : (Qubit => Unit is Adj)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_mixed() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let ops = [Foo, Bar, Baz];
+        }",
+        &expect![[r##"
+            #1 0-205 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, Bar, Baz];\n        }" : Unit
+            #2 0-205 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, Bar, Baz];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #14 44-46 "{}" : Unit
+            #19 72-83 "(q : Qubit)" : Qubit
+            #20 73-82 "q : Qubit" : Qubit
+            #27 96-98 "{}" : Unit
+            #32 124-135 "(q : Qubit)" : Qubit
+            #33 125-134 "q : Qubit" : Qubit
+            #42 154-156 "{}" : Unit
+            #44 173-176 "ops" : ((Qubit => Unit))[]
+            #46 179-194 "[Foo, Bar, Baz]" : ((Qubit => Unit))[]
+            #47 180-183 "Foo" : (Qubit => Unit)
+            #50 185-188 "Bar" : (Qubit => Unit is Adj)
+            #53 190-193 "Baz" : (Qubit => Unit is Adj + Ctl)
+            Error(Type(Error(FunctorMismatch(Value(Empty), Value(Adj), Span { lo: 185, hi: 188 }))))
+            Error(Type(Error(FunctorMismatch(Value(Empty), Value(CtlAdj), Span { lo: 190, hi: 193 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_mixed_lambda() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let ops = [q => Foo(q), q => Bar(q), Baz];
+        }",
+        &expect![[r##"
+            #1 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [q => Foo(q), q => Bar(q), Baz];\n        }" : Unit
+            #2 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [q => Foo(q), q => Bar(q), Baz];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #14 44-46 "{}" : Unit
+            #19 72-83 "(q : Qubit)" : Qubit
+            #20 73-82 "q : Qubit" : Qubit
+            #27 96-98 "{}" : Unit
+            #32 124-135 "(q : Qubit)" : Qubit
+            #33 125-134 "q : Qubit" : Qubit
+            #42 154-156 "{}" : Unit
+            #44 173-176 "ops" : ((Qubit => Unit is Adj + Ctl))[]
+            #46 179-210 "[q => Foo(q), q => Bar(q), Baz]" : ((Qubit => Unit is Adj + Ctl))[]
+            #47 180-191 "q => Foo(q)" : (Qubit => Unit is Adj + Ctl)
+            #48 180-181 "q" : Qubit
+            #50 185-191 "Foo(q)" : Unit
+            #51 185-188 "Foo" : (Qubit => Unit)
+            #54 188-191 "(q)" : Qubit
+            #55 189-190 "q" : Qubit
+            #58 193-204 "q => Bar(q)" : (Qubit => Unit is Adj + Ctl)
+            #59 193-194 "q" : Qubit
+            #61 198-204 "Bar(q)" : Unit
+            #62 198-201 "Bar" : (Qubit => Unit is Adj)
+            #65 201-204 "(q)" : Qubit
+            #66 202-203 "q" : Qubit
+            #69 206-209 "Baz" : (Qubit => Unit is Adj + Ctl)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_bound_to_let_becomes_monotype() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let foo = Foo;
+            foo(Bar);
+            foo(Baz);
+        }",
+        &expect![[r##"
+            #1 0-251 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let foo = Foo;\n            foo(Bar);\n            foo(Baz);\n        }" : Unit
+            #2 0-251 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let foo = Foo;\n            foo(Bar);\n            foo(Baz);\n        }" : Unit
+            #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #8 28-51 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #17 58-60 "{}" : Unit
+            #22 86-97 "(q : Qubit)" : Qubit
+            #23 87-96 "q : Qubit" : Qubit
+            #30 110-112 "{}" : Unit
+            #35 138-149 "(q : Qubit)" : Qubit
+            #36 139-148 "q : Qubit" : Qubit
+            #45 168-170 "{}" : Unit
+            #47 187-190 "foo" : ((Qubit => Unit is Adj) => Unit)
+            #49 193-196 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #53 210-218 "foo(Bar)" : Unit
+            #54 210-213 "foo" : ((Qubit => Unit is Adj) => Unit)
+            #57 213-218 "(Bar)" : (Qubit => Unit is Adj)
+            #58 214-217 "Bar" : (Qubit => Unit is Adj)
+            #62 232-240 "foo(Baz)" : Unit
+            #63 232-235 "foo" : ((Qubit => Unit is Adj) => Unit)
+            #66 235-240 "(Baz)" : (Qubit => Unit is Adj + Ctl)
+            #67 236-239 "Baz" : (Qubit => Unit is Adj + Ctl)
+            Error(Type(Error(FunctorMismatch(Value(Adj), Value(CtlAdj), Span { lo: 232, hi: 240 }))))
+        "##]],
+    );
+}
