@@ -372,7 +372,7 @@ impl Inferrer {
 
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
-    functor_universe: InferFunctor,
+    functor_end: InferFunctor,
     solution: Solution,
     pending_tys: HashMap<InferTy, Vec<Class>>,
     pending_functors: HashMap<InferFunctor, FunctorSetValue>,
@@ -380,10 +380,10 @@ struct Solver<'a> {
 }
 
 impl<'a> Solver<'a> {
-    fn new(udts: &'a HashMap<ItemId, Udt>, functor_universe: InferFunctor) -> Self {
+    fn new(udts: &'a HashMap<ItemId, Udt>, functor_end: InferFunctor) -> Self {
         Self {
             udts,
-            functor_universe,
+            functor_end,
             solution: Solution {
                 tys: IndexMap::new(),
                 functors: IndexMap::new(),
@@ -561,25 +561,22 @@ impl<'a> Solver<'a> {
             })
     }
 
-    fn into_solution(mut self) -> (Solution, Vec<Error>) {
-        // Default functor variables with a pending constraint to the value of that constraint.
-        for (infer, functors) in self.pending_functors {
-            self.solution
-                .functors
-                .insert(infer, FunctorSet::Value(functors));
-        }
-
-        // Default unconstrained functor variables to the empty set.
+    fn default_functors(&mut self) {
         let mut functor = InferFunctor::default();
-        while functor < self.functor_universe {
+        while functor < self.functor_end {
             if !self.solution.functors.contains_key(functor) {
+                let value = self.pending_functors.remove(&functor).unwrap_or_default();
                 self.solution
                     .functors
-                    .insert(functor, FunctorSet::Value(FunctorSetValue::Empty));
+                    .insert(functor, FunctorSet::Value(value));
             }
+
             functor = functor.successor();
         }
+    }
 
+    fn into_solution(mut self) -> (Solution, Vec<Error>) {
+        self.default_functors();
         (self.solution, self.errors)
     }
 }
