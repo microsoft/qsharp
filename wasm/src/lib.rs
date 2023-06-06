@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::language_service::VSDiagnostic;
 use katas::{run_kata, KATA_ENTRY};
-use language_service_wasm::VSDiagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
@@ -15,7 +15,7 @@ use qsc::{
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
-mod language_service_wasm;
+mod language_service;
 
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {

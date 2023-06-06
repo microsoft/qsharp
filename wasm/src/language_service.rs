@@ -23,10 +23,10 @@ unsafe impl Send for JsPanicHook {}
 unsafe impl Sync for JsPanicHook {}
 
 #[wasm_bindgen]
-pub struct QSharpLanguageService(language_service::LanguageService<'static>);
+pub struct LanguageService(language_service::LanguageService<'static>);
 
 #[wasm_bindgen]
-impl QSharpLanguageService {
+impl LanguageService {
     #[wasm_bindgen(constructor)]
     pub fn new(diagnostics_callback: &js_sys::Function, logger: &js_sys::Function) -> Self {
         let diagnostics_callback = diagnostics_callback.clone();
@@ -62,7 +62,7 @@ impl QSharpLanguageService {
                 .expect("panic logger failed, nothing else we can do");
         }));
 
-        QSharpLanguageService(inner)
+        LanguageService(inner)
     }
 
     pub fn update_code(&mut self, uri: &str, code: &str) {

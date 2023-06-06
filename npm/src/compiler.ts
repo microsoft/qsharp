@@ -6,7 +6,7 @@ import type {
   ICompletionList,
   IHover,
   IDefinition,
-  QSharpLanguageService,
+  LanguageService,
 } from "../lib/node/qsc_wasm.cjs";
 import { log } from "./log.js";
 import {
@@ -73,7 +73,7 @@ function errToDiagnostic(err: any): VSDiagnostic {
 export class Compiler implements ICompiler {
   private wasm: Wasm;
   private eventHandler: IQscEventTarget;
-  private languageService: QSharpLanguageService;
+  private languageService: LanguageService;
   // We only need to keep a copy of the code for mapping diagnostics
   // It would be much better if the wasm layer could do the utf16 mapping
   // but here we are
@@ -86,7 +86,7 @@ export class Compiler implements ICompiler {
     this.wasm = wasm;
     this.eventHandler = eventHandler;
     globalThis.qscGitHash = this.wasm.git_hash();
-    this.languageService = new this.wasm.QSharpLanguageService(
+    this.languageService = new this.wasm.LanguageService(
       this.onDiagnostics.bind(this),
       (msg: string) => {
         log.info(msg);
