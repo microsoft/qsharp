@@ -708,8 +708,8 @@ fn lambda_operation_empty_closure() {
                         functors: empty set
                         body: SpecDecl 18 [106-147] (Body): Impl:
                             Pat 19 [106-147] [Type Unit]: Elided
-                            Block 20 [131-147] [Type Result]:
-                                Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Result]: Call:
+                            Block 20 [131-147] [Type Unit]:
+                                Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Unit]: Call:
                                     Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
                                     Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                         adj: <none>
@@ -1322,8 +1322,8 @@ fn partial_app_unknown_callable() {
                             Pat 4 [18-70] [Type Unit]: Elided
                             Block 5 [38-70] [Type Unit]:
                                 Stmt 6 [40-68]: Local (Immutable):
-                                    Pat 7 [44-45] [Type ?0]: Bind: Ident 8 [44-45] "f"
-                                    Expr 9 [48-67] [Type ?0]: Call:
+                                    Pat 7 [44-45] [Type ?3]: Bind: Ident 8 [44-45] "f"
+                                    Expr 9 [48-67] [Type ?3]: Call:
                                         Expr 10 [48-55] [Type ?]: Var: Err
                                         Expr 11 [55-67] [Type (Bool, ?1, ?2)]: Tuple:
                                             Expr 12 [56-60] [Type Bool]: Lit: Bool(true)
@@ -1400,7 +1400,7 @@ fn partial_app_bound_to_non_arrow_ty() {
         &expect![[r#"
             Package:
                 Item 0 [0-131] (Public):
-                    Namespace (Ident 28 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 48 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-64] (Public):
                     Parent: 0
                     Callable 0 [18-64] (Function):
@@ -1431,11 +1431,31 @@ fn partial_app_bound_to_non_arrow_ty() {
                             Block 19 [89-129] [Type Unit]:
                                 Stmt 20 [99-123]: Local (Immutable):
                                     Pat 21 [103-110] [Type Int]: Bind: Ident 22 [103-104] "f"
-                                    Expr 23 [113-122] [Type Int]: Call:
-                                        Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
-                                        Expr 25 [116-122] [Type (Int, Int)]: Tuple:
-                                            Expr 26 [117-118] [Type Int]: Lit: Int(1)
-                                            Expr 27 [120-121] [Type Int]: Hole
+                                    Expr 23 [113-122] [Type (Int -> Int)]: Expr Block: Block 45 [113-122] [Type (Int -> Int)]:
+                                        Stmt 29 [117-118]: Local (Immutable):
+                                            Pat 28 [117-118] [Type Int]: Bind: Ident 26 [117-118] "arg"
+                                            Expr 25 [117-118] [Type Int]: Lit: Int(1)
+                                        Stmt 46 [113-122]: Expr: Expr 47 [113-122] [Type (Int -> Int)]: Closure([26], 3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 3 [113-122] (Internal):
+                    Parent: 2
+                    Callable 39 [113-122] (Function):
+                        name: Ident 40 [113-122] "lambda"
+                        input: Pat 37 [113-122] [Type (Int, Int)]: Tuple:
+                            Pat 38 [113-122] [Type Int]: Bind: Ident 36 [113-122] "closed"
+                            Pat 32 [120-121] [Type Int]: Bind: Ident 31 [120-121] "hole"
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 41 [113-122] (Body): Impl:
+                            Pat 42 [113-122] [Type (Int, Int)]: Elided
+                            Block 43 [113-122] [Type Int]:
+                                Stmt 44 [113-122]: Expr: Expr 35 [113-122] [Type Int]: Call:
+                                    Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
+                                    Expr 34 [116-122] [Type (Int, Int)]: Tuple:
+                                        Expr 27 [117-118] [Type Int]: Var: Local 36
+                                        Expr 33 [120-121] [Type Int]: Var: Local 31
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -1471,14 +1491,14 @@ fn partial_app_hole_as_callee() {
                             Pat 4 [36-139] [Type Unit]: Elided
                             Block 5 [64-139] [Type (Result)[]]:
                                 Stmt 6 [74-87]: Local (Immutable):
-                                    Pat 7 [78-79] [Type ?0]: Bind: Ident 8 [78-79] "f"
-                                    Expr 9 [82-86] [Type ?0]: Call:
+                                    Pat 7 [78-79] [Type ?3]: Bind: Ident 8 [78-79] "f"
+                                    Expr 9 [82-86] [Type ?3]: Call:
                                         Expr 10 [82-83] [Type ?1]: Hole
                                         Expr 11 [84-85] [Type ?2]: Hole
                                 Stmt 12 [96-111]: Local (Immutable):
                                     Pat 13 [100-103] [Type Result]: Bind: Ident 14 [100-103] "res"
                                     Expr 15 [106-110] [Type Result]: Call:
-                                        Expr 16 [106-107] [Type ?0]: Var: Local 8
+                                        Expr 16 [106-107] [Type ?3]: Var: Local 8
                                         Expr 17 [108-109] [Type Int]: Lit: Int(4)
                                 Stmt 18 [120-133]: Semi: Expr 19 [120-132] [Type ?6]: Return: Expr 20 [127-132] [Type (Result)[]]: Array:
                                     Expr 21 [128-131] [Type Result]: Var: Local 14
