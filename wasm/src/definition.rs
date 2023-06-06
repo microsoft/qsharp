@@ -7,6 +7,7 @@ use qsc::SourceMap;
 use qsc_hir::hir::{ExprKind, ItemKind, Package, Res};
 use qsc_hir::visit::Visitor;
 
+#[derive(Debug)]
 pub struct Definition {
     pub source: String,
     pub offset: u32,

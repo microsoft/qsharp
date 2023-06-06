@@ -4,6 +4,7 @@
 use crate::{
     completion::{self, CompletionList},
     definition::{self, Definition},
+    hover::{self, Hover},
 };
 use qsc::{
     compile::{self, Error},
@@ -42,7 +43,10 @@ impl<'a> QSharpLanguageService<'a> {
     }
 
     pub fn update_code(&mut self, uri: &str, code: &str) {
-        self.log(&format!("update_code enter: uri: {}, code: {}", uri, code));
+        self.log(&format!(
+            "update_code enter: uri: {:?}, code: {:?}",
+            uri, code
+        ));
         let mut store = PackageStore::new(compile::core());
         let std = store.insert(compile::std(&store));
 
@@ -58,34 +62,50 @@ impl<'a> QSharpLanguageService<'a> {
             compile_unit: Some(compile_unit),
             errors,
         });
-        self.log(&format!("update_code exit: uri: {}, code: {}", uri, code));
+        self.log(&format!(
+            "update_code exit: uri: {:?}, code: {:?}",
+            uri, code
+        ));
     }
 
     pub fn get_completions(&self, uri: &str, offset: u32) -> CompletionList {
         self.log(&format!(
-            "get_completions: uri: {}, offset: {}",
+            "get_completions: uri: {:?}, offset: {:?}",
             uri, offset
         ));
-        completion::get_completions(
+        let res = completion::get_completions(
             self
                 .compilation_state.as_ref()
                 .expect("get_completions should not be called before compilation has been initialized with update_code"),
             uri,
             offset,
-        )
+        );
+        self.log(&format!("get_completions result: {:?}", res));
+        res
     }
 
     pub fn get_definition(&self, uri: &str, offset: u32) -> Definition {
-        self.log(&format!("get_definition: uri: {}, offset: {}", uri, offset));
+        self.log(&format!(
+            "get_definition: uri: {:?}, offset: {:?}",
+            uri, offset
+        ));
         let res = definition::get_definition(
             self
                 .compilation_state.as_ref()
                 .expect("get_definition should not be called before compilation has been initialized with update_code"),
                 uri, offset);
-        self.log(&format!(
-            "get_definition result: source: {}, offset: {}",
-            res.source, res.offset
-        ));
+        self.log(&format!("get_definition result: {:?}", res));
+        res
+    }
+
+    pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
+        self.log(&format!("get_hover: uri: {:?}, offset: {:?}", uri, offset));
+        let res = hover::get_hover(
+            self
+                .compilation_state.as_ref()
+                .expect("get_hover should not be called before compilation has been initialized with update_code"),
+                uri, offset);
+        self.log(&format!("get_hover result: {:?}", res));
         res
     }
 }

@@ -28,19 +28,6 @@ pub fn git_hash() -> JsValue {
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-const IHover: &'static str = r#"
-export interface IHover {
-    contents: string;
-    span: { start: number; end: number }
-}
-"#;
-
-#[wasm_bindgen]
-pub fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    hover::get_hover(source_path, code, offset)
-}
-
-#[wasm_bindgen(typescript_custom_section)]
 const IDiagnostic: &'static str = r#"
 export interface IDiagnostic {
     start_pos: number;

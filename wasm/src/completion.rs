@@ -21,11 +21,12 @@ enum CompletionKind {
     Issue = 26,
 }
 
+#[derive(Debug)]
 pub struct CompletionList {
     pub items: Vec<CompletionItem>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CompletionItem {
     pub label: String,
     pub kind: i32,

@@ -1,15 +1,36 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::language_service_wasm::{Hover, Span};
-use crate::ls_utils::{get_compilation, span_contains};
+use crate::language_service::CompilationState;
+use crate::ls_utils::span_contains;
 use qsc_hir::hir::{CallableKind, Ty};
 use qsc_hir::visit::Visitor;
 use std::fmt::Write;
-use wasm_bindgen::prelude::*;
 
-pub(crate) fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<JsValue, JsValue> {
-    let (_, package, _, _) = get_compilation(source_path, code);
+#[derive(Debug)]
+pub struct Hover {
+    pub contents: String,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub struct Span {
+    pub start: u32,
+    pub end: u32,
+}
+
+pub(crate) fn get_hover(
+    compilation_state: &CompilationState,
+    _uri: &str,
+    offset: u32,
+) -> Option<Hover> {
+    let package = &compilation_state
+        .compile_unit
+        .as_ref()
+        .expect(
+            "a compilation unit should exist for the current file - has update_code been called?",
+        )
+        .package;
 
     let mut callable_finder = CallableFinder {
         offset,
@@ -17,19 +38,15 @@ pub(crate) fn get_hover(source_path: &str, code: &str, offset: u32) -> Result<Js
         start: 0,
         end: 0,
     };
-    callable_finder.visit_package(&package);
+    callable_finder.visit_package(package);
 
-    let hover = Hover {
-        contents: match callable_finder.header {
-            Some(header) => header,
-            None => "not found".to_string(),
-        },
+    callable_finder.header.map(|header| Hover {
+        contents: header,
         span: Span {
             start: offset,
             end: offset + 1,
         },
-    };
-    Ok(serde_wasm_bindgen::to_value(&hover)?)
+    })
 }
 
 struct CallableFinder {

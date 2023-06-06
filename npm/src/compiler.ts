@@ -120,7 +120,7 @@ export class Compiler implements ICompiler {
 
   async getHover(documentUri: string, code: string, offset: number) {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    return this.wasm.get_hover(documentUri, code, convertedOffset);
+    return this.languageService.get_hover(documentUri, convertedOffset);
   }
 
   async getDefinition(documentUri: string, code: string, offset: number) {

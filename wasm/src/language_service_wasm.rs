@@ -64,6 +64,20 @@ impl QSharpLanguageService {
             offset: definition.offset,
         })?)
     }
+
+    pub fn get_hover(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
+        let hover = self.0.get_hover(uri, offset);
+        Ok(match hover {
+            Some(hover) => serde_wasm_bindgen::to_value(&Hover {
+                contents: hover.contents,
+                span: Span {
+                    start: hover.span.start,
+                    end: hover.span.end,
+                },
+            })?,
+            None => JsValue::NULL,
+        })
+    }
 }
 
 // There is no easy way to serialize the result with serde_wasm_bindgen and get
@@ -91,6 +105,14 @@ pub struct CompletionItem {
     pub label: String,
     pub kind: i32,
 }
+
+#[wasm_bindgen(typescript_custom_section)]
+const IHover: &'static str = r#"
+export interface IHover {
+    contents: string;
+    span: { start: number; end: number }
+}
+"#;
 
 #[derive(Serialize, Deserialize)]
 pub struct Hover {
