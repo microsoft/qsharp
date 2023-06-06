@@ -89,11 +89,18 @@ export function createWorkerProxy(
 
     let msg: CompilerReqMsg | null = null;
     switch (curr.type) {
-      case "updateCode":
+      case "updateDocument":
         msg = {
-          type: "updateCode",
-          documentUri: curr.args[0],
-          code: curr.args[1],
+          type: "updateDocument",
+          uri: curr.args[0],
+          version: curr.args[1],
+          code: curr.args[2],
+        };
+        break;
+      case "closeDocument":
+        msg = {
+          type: "closeDocument",
+          uri: curr.args[0],
         };
         break;
       case "getCompletions":
@@ -190,7 +197,8 @@ export function createWorkerProxy(
       }
 
       // Response type messages. Resolve and complete this request.
-      case "updateCode-result":
+      case "updateDocument-result":
+      case "closeDocument-result":
       case "getCompletions-result":
       case "getHover-result":
       case "getDefinition-result":
@@ -217,8 +225,11 @@ export function createWorkerProxy(
   setMsgHandler(onMsgFromWorker);
 
   const proxy: ICompilerWorker = {
-    updateCode(documentUri, code) {
-      return queueRequest("updateCode", [documentUri, code]);
+    updateDocument(uri, version, code) {
+      return queueRequest("updateDocument", [uri, version, code]);
+    },
+    closeDocument(uri) {
+      return queueRequest("closeDocument", [uri]);
     },
     getCompletions(documentUri, code, offset) {
       return queueRequest("getCompletions", [documentUri, code, offset]);
@@ -314,11 +325,18 @@ export function handleMessageInWorker(
   try {
     const msgType = data.type;
     switch (msgType) {
-      case "updateCode":
+      case "updateDocument":
         compiler
-          .updateCode(data.documentUri, data.code)
+          .updateDocument(data.uri, data.version, data.code)
           .then(() =>
-            logIntercepter({ type: "updateCode-result", result: undefined })
+            logIntercepter({ type: "updateDocument-result", result: undefined })
+          );
+        break;
+      case "closeDocument":
+        compiler
+          .closeDocument(data.uri)
+          .then(() =>
+            logIntercepter({ type: "closeDocument-result", result: undefined })
           );
         break;
       case "getCompletions":
@@ -374,7 +392,8 @@ export function handleMessageInWorker(
 }
 
 export type CompilerReqMsg =
-  | { type: "updateCode"; documentUri: string; code: string }
+  | { type: "updateDocument"; uri: string; version: number; code: string }
+  | { type: "closeDocument"; uri: string }
   | {
       type: "getCompletions";
       documentUri: string;
@@ -387,7 +406,8 @@ export type CompilerReqMsg =
   | { type: "runKata"; user_code: string; verify_code: string };
 
 type CompilerRespMsg =
-  | { type: "updateCode-result"; result: void }
+  | { type: "updateDocument-result"; result: void }
+  | { type: "closeDocument-result"; result: void }
   | { type: "getCompletions-result"; result: ICompletionList }
   | {
       type: "getHover-result";

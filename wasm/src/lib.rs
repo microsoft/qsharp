@@ -218,7 +218,7 @@ mod test {
         let mut error_callback_called = false;
         {
             let mut lang_serv = language_service::LanguageService::new(
-                |diagnostics: &[Error]| {
+                |_: &str, _: u32, diagnostics: &[Error]| {
                     error_callback_called = true;
                     assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
                     let err = diagnostics.first().unwrap();
@@ -230,7 +230,7 @@ mod test {
                 },
                 |_| {},
             );
-            lang_serv.update_code("<code>", code);
+            lang_serv.update_document("<code>", 1, code);
         }
         assert!(error_callback_called)
     }

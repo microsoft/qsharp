@@ -8,6 +8,8 @@ mod definition;
 mod hover;
 mod ls_utils;
 
+use std::collections::HashMap;
+
 use crate::{completion::CompletionList, definition::Definition, hover::Hover};
 use ls_utils::CompilationState;
 use qsc::{
@@ -16,18 +18,21 @@ use qsc::{
 };
 
 pub struct LanguageService<'a> {
-    compilation_state: Option<CompilationState>,
+    compilation_state: HashMap<String, CompilationState>,
     diagnostics_receiver: Box<DiagnosticsReceiver<'a>>,
     logger: Box<Logger<'a>>,
 }
 
-type DiagnosticsReceiver<'a> = dyn FnMut(&[Error]) + 'a;
+type DiagnosticsReceiver<'a> = dyn FnMut(&str, u32, &[Error]) + 'a;
 type Logger<'a> = dyn Fn(&str) + 'a;
 
 impl<'a> LanguageService<'a> {
-    pub fn new(event_callback: impl FnMut(&[Error]) + 'a, logger: impl Fn(&str) + 'a) -> Self {
+    pub fn new(
+        event_callback: impl FnMut(&str, u32, &[Error]) + 'a,
+        logger: impl Fn(&str) + 'a,
+    ) -> Self {
         LanguageService {
-            compilation_state: None,
+            compilation_state: HashMap::new(),
             diagnostics_receiver: Box::new(event_callback),
             logger: Box::new(logger),
         }
@@ -37,23 +42,50 @@ impl<'a> LanguageService<'a> {
         (self.logger)(msg);
     }
 
-    pub fn update_code(&mut self, uri: &str, code: &str) {
-        self.log(&format!("update_code enter: uri: {uri:?}"));
+    /// Updates the version and compilation for the document identified by `uri`.
+    /// This should be called before any language service requests have been made
+    /// for the document, typically when the document is first opened in the editor.
+    /// It should also be called whenever the source code is updated.
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        self.log(&format!("update_document enter: uri: {uri:?}"));
         let mut store = PackageStore::new(compile::core());
         let std = store.insert(compile::std(&store));
 
-        let sources = SourceMap::new([(uri.into(), code.into())], None);
+        let sources = SourceMap::new([(uri.into(), text.into())], None);
         let (compile_unit, errors) = compile::compile(&store, &[std], sources);
 
-        // TODO: document uri with callback, and one callback per document
-        (self.diagnostics_receiver)(&errors);
+        self.log(&format!("publishing diagnostics for {uri:?}: {errors:?}"));
+        (self.diagnostics_receiver)(uri, version, &errors);
 
-        self.compilation_state = Some(CompilationState {
-            store,
-            std,
-            compile_unit: Some(compile_unit),
-        });
-        self.log(&format!("update_code exit: uri: {uri:?}"));
+        // insert() will update the value if the key already exists
+        self.compilation_state.insert(
+            uri.to_string(),
+            CompilationState {
+                version,
+                store,
+                std,
+                compile_unit: Some(compile_unit),
+            },
+        );
+        self.log(&format!("update_document exit: uri: {uri:?}"));
+    }
+
+    /// Indicates that the client is no longer interested in the document,
+    /// typically occurs when the document is closed in the editor.
+    pub fn close_document(&mut self, uri: &str) {
+        self.log(&format!("close_document enter: uri: {uri:?}"));
+        let item = self.compilation_state.remove(uri);
+
+        // Clear the diagnostics, as each document represents
+        // a separate compilation that disappears when the document is closed.
+        self.log(&format!("clearing diagnostics for {uri:?}"));
+        (self.diagnostics_receiver)(
+            uri,
+            item.expect("close_document received for unknown uri")
+                .version,
+            &[],
+        );
+        self.log(&format!("close_document exit: uri: {uri:?}"));
     }
 
     #[must_use]
@@ -63,8 +95,8 @@ impl<'a> LanguageService<'a> {
         ));
         let res = completion::get_completions(
             self
-                .compilation_state.as_ref()
-                .expect("get_completions should not be called before compilation has been initialized with update_code"),
+                .compilation_state.get(uri).as_ref()
+                .expect("get_completions should not be called before document has been initialized with update_document"),
             uri,
             offset,
         );
@@ -77,8 +109,8 @@ impl<'a> LanguageService<'a> {
         self.log(&format!("get_definition: uri: {uri:?}, offset: {offset:?}"));
         let res = definition::get_definition(
             self
-                .compilation_state.as_ref()
-                .expect("get_definition should not be called before compilation has been initialized with update_code"),
+            .compilation_state.get(uri).as_ref()
+                .expect("get_definition should not be called before document has been initialized with update_document"),
                 uri, offset);
         self.log(&format!("get_definition result: {res:?}"));
         res
@@ -89,8 +121,8 @@ impl<'a> LanguageService<'a> {
         self.log(&format!("get_hover: uri: {uri:?}, offset: {offset:?}"));
         let res = hover::get_hover(
             self
-                .compilation_state.as_ref()
-                .expect("get_hover should not be called before compilation has been initialized with update_code"),
+            .compilation_state.get(uri).as_ref()
+                .expect("get_hover should not be called before document has been initialized with update_document"),
                 uri, offset);
         self.log(&format!("get_hover result: {res:?}"));
         res

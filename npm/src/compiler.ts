@@ -26,7 +26,8 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export type CompilerState = "idle" | "busy";
 export interface ICompiler {
-  updateCode(documentUri: string, code: string): Promise<void>;
+  updateDocument(uri: string, version: number, code: string): Promise<void>;
+  closeDocument(uri: string): Promise<void>;
   getCompletions(
     documentUri: string,
     code: string,
@@ -95,18 +96,29 @@ export class Compiler implements ICompiler {
     // TODO: should call free() on this at some point?
   }
 
-  async updateCode(documentUri: string, code: string): Promise<void> {
+  async updateDocument(
+    documentUri: string,
+    version: number,
+    code: string
+  ): Promise<void> {
     this.code[documentUri] = code;
-    this.languageService.update_code(documentUri, code);
+    this.languageService.update_document(documentUri, version, code);
   }
 
-  onDiagnostics(diagnostics: IDiagnostic[]) {
+  async closeDocument(documentUri: string): Promise<void> {
+    delete this.code[documentUri];
+    this.languageService.close_document(documentUri);
+  }
+
+  onDiagnostics(uri: string, version: number, diagnostics: IDiagnostic[]) {
     try {
-      // TODO: use the uri of course
-      const code = Object.values(this.code)[0];
+      const code = this.code[uri];
       this.eventHandler.dispatchEvent(
-        // Oh no, I don't have the source here to do the utf16 mapping 😱
-        makeEvent("diagnostics", mapDiagnostics(diagnostics, code))
+        makeEvent("diagnostics", {
+          uri,
+          version,
+          diagnostics: mapDiagnostics(diagnostics, code),
+        })
       );
     } catch (e) {
       log.error("Error in onCheck", e);

@@ -85,9 +85,13 @@ export function Editor(props: {
     const code = editor.current?.getValue();
     if (code == null) throw new Error("Why is code null?");
 
-    const uri = editor.current?.getModel()?.uri.toString();
-    if (uri) {
-      await props.compiler.updateCode(uri, code);
+    const model = editor.current?.getModel();
+    if (model) {
+      await props.compiler.updateDocument(
+        model.uri.toString(),
+        model.getVersionId(),
+        code
+      );
     }
   }
 
@@ -228,7 +232,7 @@ export function Editor(props: {
 
   useEffect(() => {
     props.evtTarget.addEventListener("diagnostics", (evt) =>
-      onCheck(evt.detail)
+      onCheck(evt.detail.diagnostics)
     );
     const theEditor = editor.current;
     if (!theEditor) return;

@@ -67,19 +67,19 @@ test("one syntax error", async () => {
   const evtTarget = new QscEventTarget(true);
   evtTarget.addEventListener("diagnostics", (evt) => {
     diagnostics = true;
-    assert.equal(evt.detail.length, 1);
-    assert.equal(evt.detail[0].start_pos, 14);
-    assert.equal(evt.detail[0].end_pos, 15);
+    assert.equal(evt.detail.diagnostics.length, 1);
+    assert.equal(evt.detail.diagnostics[0].start_pos, 14);
+    assert.equal(evt.detail.diagnostics[0].end_pos, 15);
   });
   const compiler = getCompiler(evtTarget);
   let diagnostics = false;
-  await compiler.updateCode("<buffer>", "namespace Foo []");
+  await compiler.updateDocument("<buffer>", 1, "namespace Foo []");
   assert(diagnostics);
 });
 
 test("completions include CNOT", async () => {
   const compiler = getCompiler(new QscEventTarget(false));
-  await compiler.updateCode("<source>", "");
+  await compiler.updateDocument("<source>", 1, "");
   let results = await compiler.getCompletions("<source>", "", 0);
   let cnot = results.items.find((x) => x.label === "CNOT");
   assert.ok(cnot, `items are ${results.items.map((i) => i.label).join(", ")}`);
@@ -117,17 +117,17 @@ test("type error", async () => {
   evtTarget.addEventListener("diagnostics", (evt) => {
     diagnostics = true;
     const diags = evt.detail;
-    assert.equal(diags.length, 1);
-    assert.equal(diags[0].start_pos, 99);
-    assert.equal(diags[0].end_pos, 105);
+    assert.equal(diags.diagnostics.length, 1);
+    assert.equal(diags.diagnostics[0].start_pos, 99);
+    assert.equal(diags.diagnostics[0].end_pos, 105);
     assert.equal(
-      diags[0].message,
+      diags.diagnostics[0].message,
       "type error: expected (Double, Qubit), found Qubit"
     );
   });
   const compiler = getCompiler(evtTarget);
   let diagnostics = false;
-  await compiler.updateCode("<buffer>", code);
+  await compiler.updateDocument("<buffer>", 1, code);
   assert(diagnostics);
 });
 
@@ -214,17 +214,17 @@ test("worker check", async () => {
   evtTarget.addEventListener("diagnostics", (evt) => {
     diagnostics = true;
     const diags = evt.detail;
-    assert.equal(diags.length, 1);
-    assert.equal(diags[0].start_pos, 99);
-    assert.equal(diags[0].end_pos, 105);
+    assert.equal(diags.diagnostics.length, 1);
+    assert.equal(diags.diagnostics[0].start_pos, 99);
+    assert.equal(diags.diagnostics[0].end_pos, 105);
     assert.equal(
-      diags[0].message,
+      diags.diagnostics[0].message,
       "type error: expected (Double, Qubit), found Qubit"
     );
   });
   const compiler = getCompilerWorker(evtTarget);
   let diagnostics = false;
-  await compiler.updateCode("<buffer>", code);
+  await compiler.updateDocument("<buffer>", 1, code);
   compiler.terminate();
   assert(diagnostics);
 });
@@ -320,7 +320,7 @@ test("cancel worker", () => {
     compiler.run(code, "", 10).catch((err) => {
       cancelledArray.push(err);
     });
-    compiler.updateCode("<buffer>", code).catch((err) => {
+    compiler.updateDocument("<buffer>", 1, code).catch((err) => {
       cancelledArray.push(err);
     });
 
@@ -334,10 +334,13 @@ test("cancel worker", () => {
       evtTarget.addEventListener("diagnostics", (evt) => {
         diagnostics = true;
         // New 'check' result is good
-        assert(Array.isArray(evt.detail) && evt.detail.length === 0);
+        assert(
+          Array.isArray(evt.detail.diagnostics) &&
+            evt.detail.diagnostics.length === 0
+        );
       });
       let diagnostics = false;
-      await compiler2.updateCode("<buffer>", code);
+      await compiler2.updateDocument("<buffer>", 1, code);
       compiler2.terminate();
       assert(diagnostics);
 

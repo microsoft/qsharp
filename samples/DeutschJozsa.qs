@@ -207,5 +207,4 @@ namespace Microsoft.Quantum.Samples.DeutschJozsa {
 
         Message("All functions measured successfully!");
     }
-
 }

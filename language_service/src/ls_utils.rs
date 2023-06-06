@@ -9,6 +9,7 @@ pub(crate) fn span_contains(span: qsc_data_structures::span::Span, offset: u32) 
     offset >= span.lo && offset < span.hi
 }
 pub(crate) struct CompilationState {
+    pub version: u32,
     pub store: PackageStore,
     pub std: PackageId,
     pub compile_unit: Option<CompileUnit>,

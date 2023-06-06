@@ -7,6 +7,12 @@ export type Dump = {
   [index: string]: [number, number];
 };
 
+export type Diagnostics = {
+  uri: string;
+  version: number;
+  diagnostics: VSDiagnostic[];
+};
+
 export interface VSDiagnostic {
   start_pos: number;
   end_pos: number;
@@ -35,7 +41,7 @@ export interface ResultMsg {
 
 export interface DiagnosticsMsg {
   type: "diagnostics";
-  diagnostics: VSDiagnostic[];
+  diagnostics: Diagnostics;
 }
 
 export type EventMsg = ResultMsg | DumpMsg | MessageMsg | DiagnosticsMsg;

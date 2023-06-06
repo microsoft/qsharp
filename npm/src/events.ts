@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ShotResult, Dump, Result, VSDiagnostic } from "./common.js";
+import { ShotResult, Dump, Result, Diagnostics } from "./common.js";
 import { log } from "./log.js";
 
 // Create strongly typed compiler events
@@ -10,7 +10,7 @@ interface QscEventMap {
   Message: QscEvent<string>;
   DumpMachine: QscEvent<Dump>;
   Result: QscEvent<Result>;
-  diagnostics: QscEvent<VSDiagnostic[]>;
+  diagnostics: QscEvent<Diagnostics>;
   uiResultsRefresh: QscEvent<void>;
 }
 

@@ -17,7 +17,7 @@ class QSharpHoverProvider implements vscode.HoverProvider {
     token: vscode.CancellationToken
   ) {
     const hover = await this.compiler.getHover(
-      document.uri.fsPath,
+      document.uri.toString(),
       document.getText(),
       document.offsetAt(position)
     );

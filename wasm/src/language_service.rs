@@ -33,21 +33,21 @@ impl LanguageService {
         let logger = logger.clone();
         let panic_logger = JsPanicHook(logger.clone());
         let inner = language_service::LanguageService::new(
-            move |errors: &[compile::Error]| {
+            move |uri: &str, version: u32, errors: &[compile::Error]| {
                 let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
-                let value = serde_wasm_bindgen::to_value(&diags)
-                    .expect("conversion to VSDiagnostic should succeed");
                 diagnostics_callback
-                    .call1(&JsValue::null(), &value)
+                    .call3(
+                        &JsValue::NULL,
+                        &wasm_bindgen::JsValue::from(uri),
+                        &wasm_bindgen::JsValue::from(version),
+                        &serde_wasm_bindgen::to_value(&diags)
+                            .expect("conversion to VSDiagnostic should succeed"),
+                    )
                     .expect("callback should succeed");
             },
             move |msg: &str| {
                 logger
-                    .call1(
-                        &JsValue::null(),
-                        &serde_wasm_bindgen::to_value(msg)
-                            .expect("string conversion should succeed"),
-                    )
+                    .call1(&JsValue::NULL, &wasm_bindgen::JsValue::from(msg))
                     .expect("callback should succeed");
             },
         );
@@ -55,9 +55,8 @@ impl LanguageService {
         panic::set_hook(Box::new(move |info: &panic::PanicInfo| {
             panic_logger
                 .call1(
-                    &JsValue::null(),
-                    &serde_wasm_bindgen::to_value(&info.to_string())
-                        .expect("expected to be able to convert string to JsValue"),
+                    &JsValue::NULL,
+                    &wasm_bindgen::JsValue::from(&info.to_string()),
                 )
                 .expect("panic logger failed, nothing else we can do");
         }));
@@ -65,8 +64,12 @@ impl LanguageService {
         LanguageService(inner)
     }
 
-    pub fn update_code(&mut self, uri: &str, code: &str) {
-        self.0.update_code(uri, code);
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+        self.0.update_document(uri, version, text);
+    }
+
+    pub fn close_document(&mut self, uri: &str) {
+        self.0.close_document(uri);
     }
 
     pub fn get_completions(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
