@@ -44,7 +44,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             };
             (ty, Vec::new())
         }
-        TyKind::Param(name) => (Ty::Param(name.name.to_string()), Vec::new()),
+        TyKind::Param(name) => (Ty::Param((*name.name).into()), Vec::new()),
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();

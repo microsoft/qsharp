@@ -778,7 +778,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Spec::Body => Some(&callee.body),
             Spec::Adj => callee.adj.as_ref(),
             Spec::Ctl => callee.ctl.as_ref(),
-            Spec::CtlAdj => callee.ctladj.as_ref(),
+            Spec::CtlAdj => callee.ctl_adj.as_ref(),
         }
         .ok_or(Error::MissingSpec(spec, callee_span))?
         .body;

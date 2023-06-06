@@ -132,7 +132,7 @@ pub(super) fn lift(
             span,
             name: "lambda".into(),
         },
-        ty_params: Vec::new(),
+        generics: Vec::new(),
         input,
         output: lambda.body.ty.clone(),
         functors: lambda.functors,
@@ -161,7 +161,7 @@ pub(super) fn lift(
         },
         adj: None,
         ctl: None,
-        ctladj: None,
+        ctl_adj: None,
     };
 
     (free_vars, callable)
