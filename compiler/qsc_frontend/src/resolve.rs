@@ -340,7 +340,7 @@ impl AstVisitor<'_> for With<'_> {
                 ast_visit::walk_qubit_init(self, init);
                 self.resolver.bind_pat(pat);
                 if let Some(block) = block {
-                    ast_visit::walk_block(self, block);
+                    self.visit_block(block);
                 }
             }
             ast::StmtKind::Empty | ast::StmtKind::Expr(_) | ast::StmtKind::Semi(_) => {
@@ -354,18 +354,6 @@ impl AstVisitor<'_> for With<'_> {
             ast::ExprKind::For(pat, iter, block) => {
                 self.visit_expr(iter);
                 self.with_pat(ScopeKind::Block, pat, |visitor| visitor.visit_block(block));
-            }
-            ast::ExprKind::Repeat(repeat, cond, fixup) => {
-                self.with_scope(ScopeKind::Block, |visitor| {
-                    repeat
-                        .stmts
-                        .iter()
-                        .for_each(|stmt| visitor.visit_stmt(stmt));
-                    visitor.visit_expr(cond);
-                    if let Some(block) = fixup.as_ref() {
-                        block.stmts.iter().for_each(|stmt| visitor.visit_stmt(stmt));
-                    }
-                });
             }
             ast::ExprKind::Lambda(_, input, output) => {
                 self.with_pat(ScopeKind::Block, input, |visitor| {

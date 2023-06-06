@@ -8,9 +8,7 @@ use super::Error as PassErr;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{
-        Attr, CallableBody, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind,
-    },
+    hir::{Attr, CallableDecl, Expr, ExprKind, Item, ItemKind, NodeId, Package, PatKind},
     visit::Visitor,
 };
 use thiserror::Error;
@@ -50,15 +48,20 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
             1
         };
         if arg_count == 0 {
-            if let CallableBody::Block(block) = &ep.body {
-                Ok(Expr {
-                    id: NodeId::default(),
-                    span: Span::default(),
-                    ty: ep.output.clone(),
-                    kind: ExprKind::Block(block.clone()),
-                })
-            } else {
+            if ep.adj.is_some() || ep.ctl.is_some() || ep.ctladj.is_some() {
                 Err(vec![PassErr::EntryPoint(Error::EntryPointBody(ep.span))])
+            } else {
+                match &ep.body.body {
+                    qsc_hir::hir::SpecBody::Gen(_) => {
+                        Err(vec![PassErr::EntryPoint(Error::EntryPointBody(ep.span))])
+                    }
+                    qsc_hir::hir::SpecBody::Impl(_, block) => Ok(Expr {
+                        id: NodeId::default(),
+                        span: Span::default(),
+                        ty: ep.output.clone(),
+                        kind: ExprKind::Block(block.clone()),
+                    }),
+                }
             }
         } else {
             Err(vec![PassErr::EntryPoint(Error::EntryPointArgs(

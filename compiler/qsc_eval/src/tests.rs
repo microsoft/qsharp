@@ -220,30 +220,6 @@ fn block_mutable_nested_scopes_shadowing_expr() {
 }
 
 #[test]
-fn block_mutable_immutable_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            let x = 0;
-            set x = 1;
-        }"},
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 25,
-                        hi: 26,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn block_qubit_use_expr() {
     check_expr(
         "",
@@ -379,27 +355,6 @@ fn block_qubit_use_nested_tuple_expr() {
             q
         }"},
         &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
-    );
-}
-
-#[test]
-fn assign_invalid_expr() {
-    check_expr(
-        "",
-        "set 0 = 1",
-        &expect![[r#"
-            (
-                Unassignable(
-                    Span {
-                        lo: 4,
-                        hi: 5,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
     );
 }
 
@@ -1193,31 +1148,6 @@ fn assignop_orl_expr() {
 }
 
 #[test]
-fn assignop_mutability_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            let x = false;
-            set x or= true;
-            x
-        }"},
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 29,
-                        hi: 30,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn fail_expr() {
     check_expr(
         "",
@@ -1308,27 +1238,6 @@ fn for_loop_array_expr() {
             x
         }"},
         &expect!["25"],
-    );
-}
-
-#[test]
-fn for_loop_iterator_immutable_expr() {
-    check_expr(
-        "",
-        "for i in 0..10 { set i = 0; }",
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 21,
-                        hi: 22,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
     );
 }
 
@@ -1675,47 +1584,6 @@ fn repeat_until_fixup_expr() {
 }
 
 #[test]
-fn repeat_until_fixup_scoping_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            mutable x = 0;
-            repeat {
-                let increment = 2;
-            }
-            until x >= 3 * increment
-            fixup {
-                set x = x + increment;
-            }
-            x
-        }"},
-        &expect!["6"],
-    );
-}
-
-#[test]
-fn repeat_until_fixup_shadowing_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            mutable x = 0;
-            mutable y = 0;
-            repeat {
-                let increment = 2;
-            }
-            until x >= 3 * increment
-            fixup {
-                set x = x + increment;
-                set y = 1;
-                let y = 2;
-            }
-            y
-        }"},
-        &expect!["1"],
-    );
-}
-
-#[test]
 fn return_expr() {
     check_expr("", "return 4", &expect!["4"]);
 }
@@ -1946,31 +1814,6 @@ fn assignupdate_expr() {
             x
         }"},
         &expect!["[1, 2, 4]"],
-    );
-}
-
-#[test]
-fn assignupdate_immutable_expr() {
-    check_expr(
-        "",
-        indoc! {"{
-            let x = [1, 2, 3];
-            set x w/= 2 <- 4;
-            x
-        }"},
-        &expect![[r#"
-            (
-                Mutability(
-                    Span {
-                        lo: 33,
-                        hi: 34,
-                    },
-                ),
-                CallStack {
-                    frames: [],
-                },
-            )
-        "#]],
     );
 }
 
@@ -2831,5 +2674,81 @@ fn lambda_operation_closure() {
         ",
         "A.Bar()",
         &expect!["One"],
+    );
+}
+
+#[test]
+fn partial_app_all_holes() {
+    check_expr(
+        "",
+        "{
+            function F(x : Int, y : Int) : Int { x + y }
+            let f = F(_, _);
+            f(1, 2)
+        }",
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn partial_app_one_fixed_arg() {
+    check_expr(
+        "",
+        "{
+            function F(x : Int, y : Int) : Int { x + y }
+            let f = F(_, 2);
+            f(1)
+        }",
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn partial_app_nested_tuple() {
+    check_expr(
+        "",
+        "{
+            function F(a : Int, (b : Int, c : Int, d : Int)) : (Int, Int, Int, Int) { (a, b, c, d) }
+            let f = F(_, (_, 3, _));
+            f(1, (2, 4))
+        }",
+        &expect!["(1, 2, 3, 4)"],
+    );
+}
+
+#[test]
+fn partial_app_arg_with_side_effect() {
+    check_expr(
+        "",
+        "{
+            operation F(_ : (), x : Int) : Int { x }
+            use q = Qubit();
+            let f = F(X(q), _);
+            let r1 = M(q);
+            f(1);
+            let r2 = M(q);
+            f(2);
+            let r3 = M(q);
+            Reset(q);
+            (r1, r2, r3)
+        }",
+        &expect!["(One, One, One)"],
+    );
+}
+
+#[test]
+fn partial_app_mutable_arg() {
+    check_expr(
+        "",
+        "{
+            function F(a : Int, b : Int) : (Int, Int) { (a, b) }
+            mutable x = 0;
+            let f = F(x, _);
+            let r1 = f(1);
+            set x = 1;
+            let r2 = f(2);
+            (r1, r2)
+        }",
+        &expect!["((0, 1), (0, 2))"],
     );
 }

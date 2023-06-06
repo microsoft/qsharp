@@ -3,7 +3,7 @@
 
 use super::{
     convert,
-    infer::{self, Class, Inferrer},
+    infer::{self, ArgTy, Class, Inferrer},
     Error,
 };
 use crate::resolve::{self, Names, Res};
@@ -12,14 +12,23 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, FunctorSet, ItemId, PrimTy, Ty, Udt};
-use std::collections::HashMap;
+use qsc_hir::hir::{self, ArrowTy, FunctorSet, ItemId, PrimTy, Ty, Udt};
+use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
 /// computation.
-struct Partial {
-    ty: Ty,
+struct Partial<T> {
+    ty: T,
     diverges: bool,
+}
+
+impl<T> Partial<T> {
+    fn map<U>(self, f: impl FnOnce(T) -> U) -> Partial<U> {
+        Partial {
+            ty: f(self.ty),
+            diverges: self.diverges,
+        }
+    }
 }
 
 struct Context<'a> {
@@ -28,6 +37,7 @@ struct Context<'a> {
     globals: &'a HashMap<ItemId, Ty>,
     terms: &'a mut IndexMap<NodeId, Ty>,
     return_ty: Option<&'a Ty>,
+    typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
     inferrer: Inferrer,
 }
@@ -45,6 +55,7 @@ impl<'a> Context<'a> {
             globals,
             terms,
             return_ty: None,
+            typed_holes: Vec::new(),
             new: Vec::new(),
             inferrer: Inferrer::new(),
         }
@@ -66,24 +77,22 @@ impl<'a> Context<'a> {
 
         self.return_ty = Some(spec.output);
         let block = self.infer_block(spec.block).ty;
-        if let Some(return_ty) = self.return_ty {
+        if let Some(return_ty) = self.return_ty.take() {
             self.inferrer.eq(spec.block.span, return_ty.clone(), block);
         }
-
-        self.return_ty = None;
     }
 
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
         match &*ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
-            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(
-                convert::callable_kind_from_ast(*kind),
-                Box::new(self.infer_ty(input)),
-                Box::new(self.infer_ty(output)),
-                functors.as_ref().map_or(FunctorSet::Empty, |f| {
+            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(Box::new(ArrowTy {
+                kind: convert::callable_kind_from_ast(*kind),
+                input: Box::new(self.infer_ty(input)),
+                output: Box::new(self.infer_ty(output)),
+                functors: functors.as_ref().map_or(FunctorSet::Empty, |f| {
                     convert::eval_functor_expr(f.as_ref())
                 }),
-            ),
+            })),
             TyKind::Hole => self.inferrer.fresh_ty(),
             TyKind::Paren(inner) => self.infer_ty(inner),
             TyKind::Path(path) => match self.names.get(path.id) {
@@ -99,7 +108,7 @@ impl<'a> Context<'a> {
         }
     }
 
-    fn infer_block(&mut self, block: &Block) -> Partial {
+    fn infer_block(&mut self, block: &Block) -> Partial<Ty> {
         let mut diverges = false;
         let mut last = None;
         for stmt in block.stmts.iter() {
@@ -113,7 +122,7 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn infer_stmt(&mut self, stmt: &Stmt) -> Partial {
+    fn infer_stmt(&mut self, stmt: &Stmt) -> Partial<Ty> {
         let ty = match &*stmt.kind {
             StmtKind::Empty | StmtKind::Item(_) => converge(Ty::UNIT),
             StmtKind::Expr(expr) => self.infer_expr(expr),
@@ -146,7 +155,7 @@ impl<'a> Context<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn infer_expr(&mut self, expr: &Expr) -> Partial {
+    fn infer_expr(&mut self, expr: &Expr) -> Partial<Ty> {
         let ty = match &*expr.kind {
             ExprKind::Array(items) => match items.split_first() {
                 Some((first, rest)) => {
@@ -174,7 +183,7 @@ impl<'a> Context<'a> {
             }
             ExprKind::Assign(lhs, rhs) => {
                 let lhs_span = lhs.span;
-                let lhs = self.infer_expr(lhs);
+                let lhs = self.infer_hole_tuple(identity, identity, Ty::Tuple, Ty::clone, lhs);
                 let rhs = self.infer_expr(rhs);
                 self.inferrer.eq(lhs_span, lhs.ty, rhs.ty);
                 self.diverge_if(lhs.diverges || rhs.diverges, converge(Ty::UNIT))
@@ -190,11 +199,14 @@ impl<'a> Context<'a> {
             ExprKind::BinOp(op, lhs, rhs) => self.infer_binop(expr.span, *op, lhs, rhs),
             ExprKind::Block(block) => self.infer_block(block),
             ExprKind::Call(callee, input) => {
-                // TODO: Handle partial application. (It's probably easier to turn them into lambdas
-                // before type inference.)
-                // https://github.com/microsoft/qsharp/issues/151
                 let callee = self.infer_expr(callee);
-                let input = self.infer_expr(input);
+                let input = self.infer_hole_tuple(
+                    ArgTy::Hole,
+                    ArgTy::Given,
+                    ArgTy::Tuple,
+                    ArgTy::to_ty,
+                    input,
+                );
                 let output_ty = self.inferrer.fresh_ty();
                 self.inferrer.class(
                     expr.span,
@@ -294,12 +306,12 @@ impl<'a> Context<'a> {
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
                 let body = self.infer_expr(body).ty;
-                converge(Ty::Arrow(
-                    convert::callable_kind_from_ast(*kind),
-                    Box::new(input),
-                    Box::new(body),
-                    self.inferrer.fresh_functor(),
-                ))
+                converge(Ty::Arrow(Box::new(ArrowTy {
+                    kind: convert::callable_kind_from_ast(*kind),
+                    input: Box::new(input),
+                    output: Box::new(body),
+                    functors: self.inferrer.fresh_functor(),
+                })))
             }
             ExprKind::Lit(lit) => match lit.as_ref() {
                 Lit::BigInt(_) => converge(Ty::Prim(PrimTy::BigInt)),
@@ -408,14 +420,52 @@ impl<'a> Context<'a> {
                 let body = self.infer_block(body);
                 self.diverge_if(cond.diverges || body.diverges, converge(Ty::UNIT))
             }
-            ExprKind::Err | ExprKind::Hole => converge(self.inferrer.fresh_ty()),
+            ExprKind::Hole => {
+                self.typed_holes.push((expr.id, expr.span));
+                converge(self.inferrer.fresh_ty())
+            }
+            ExprKind::Err => converge(Ty::Err),
         };
 
         self.record(expr.id, ty.ty.clone());
         ty
     }
 
-    fn infer_unop(&mut self, op: UnOp, operand: &Expr) -> Partial {
+    fn infer_hole_tuple<T>(
+        &mut self,
+        hole: fn(Ty) -> T,
+        given: fn(Ty) -> T,
+        tuple: fn(Vec<T>) -> T,
+        to_ty: fn(&T) -> Ty,
+        expr: &Expr,
+    ) -> Partial<T> {
+        match expr.kind.as_ref() {
+            ExprKind::Hole => {
+                let ty = self.inferrer.fresh_ty();
+                self.record(expr.id, ty.clone());
+                converge(hole(ty))
+            }
+            ExprKind::Paren(inner) => {
+                let inner = self.infer_hole_tuple(hole, given, tuple, to_ty, inner);
+                self.record(expr.id, to_ty(&inner.ty));
+                inner
+            }
+            ExprKind::Tuple(items) => {
+                let mut tys = Vec::new();
+                let mut diverges = false;
+                for item in items.iter() {
+                    let item = self.infer_hole_tuple(hole, given, tuple, to_ty, item);
+                    diverges = diverges || item.diverges;
+                    tys.push(item.ty);
+                }
+                self.record(expr.id, Ty::Tuple(tys.iter().map(to_ty).collect()));
+                self.diverge_if_map(given, diverges, converge(tuple(tys)))
+            }
+            _ => self.infer_expr(expr).map(given),
+        }
+    }
+
+    fn infer_unop(&mut self, op: UnOp, operand: &Expr) -> Partial<Ty> {
         let span = operand.span;
         let operand = self.infer_expr(operand);
         let diverges = operand.diverges;
@@ -460,7 +510,7 @@ impl<'a> Context<'a> {
         self.diverge_if(diverges, ty)
     }
 
-    fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Partial {
+    fn infer_binop(&mut self, span: Span, op: BinOp, lhs: &Expr, rhs: &Expr) -> Partial<Ty> {
         let lhs_span = lhs.span;
         let lhs = self.infer_expr(lhs);
         let rhs_span = rhs.span;
@@ -521,7 +571,13 @@ impl<'a> Context<'a> {
         self.diverge_if(diverges, ty)
     }
 
-    fn infer_update(&mut self, span: Span, container: &Expr, index: &Expr, item: &Expr) -> Partial {
+    fn infer_update(
+        &mut self,
+        span: Span,
+        container: &Expr,
+        index: &Expr,
+        item: &Expr,
+    ) -> Partial<Ty> {
         let container = self.infer_expr(container);
         let item = self.infer_expr(item);
         if let Some(field) = resolve::extract_field_name(self.names, index) {
@@ -572,7 +628,7 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn infer_qubit_init(&mut self, init: &QubitInit) -> Partial {
+    fn infer_qubit_init(&mut self, init: &QubitInit) -> Partial<Ty> {
         let ty = match &*init.kind {
             QubitInitKind::Array(length) => {
                 let length_span = length.span;
@@ -602,18 +658,27 @@ impl<'a> Context<'a> {
         ty
     }
 
-    fn diverge(&mut self) -> Partial {
+    fn diverge(&mut self) -> Partial<Ty> {
         Partial {
             ty: self.inferrer.fresh_ty(),
             diverges: true,
         }
     }
 
-    fn diverge_if(&mut self, diverges: bool, partial: Partial) -> Partial {
+    fn diverge_if(&mut self, diverges: bool, partial: Partial<Ty>) -> Partial<Ty> {
+        self.diverge_if_map(identity, diverges, partial)
+    }
+
+    fn diverge_if_map<T>(
+        &mut self,
+        f: impl FnOnce(Ty) -> T,
+        diverges: bool,
+        partial: Partial<T>,
+    ) -> Partial<T> {
         if !diverges || partial.diverges {
             partial
         } else {
-            self.diverge()
+            self.diverge().map(f)
         }
     }
 
@@ -623,10 +688,14 @@ impl<'a> Context<'a> {
     }
 
     fn solve(self) -> Vec<Error> {
-        let (substs, errors) = self.inferrer.solve(self.udts);
+        let (substs, mut errors) = self.inferrer.solve(self.udts);
         for id in self.new {
             let ty = self.terms.get_mut(id).expect("node should have type");
             infer::substitute_ty(&substs, ty);
+        }
+        for (id, span) in self.typed_holes {
+            let ty = self.terms.get_mut(id).expect("node should have type");
+            errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
         errors
     }
@@ -677,7 +746,7 @@ pub(super) fn stmt(
     context.solve()
 }
 
-fn converge(ty: Ty) -> Partial {
+fn converge<T>(ty: T) -> Partial<T> {
     Partial {
         ty,
         diverges: false,

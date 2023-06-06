@@ -5,11 +5,9 @@
 
 mod closure;
 pub mod compile;
-mod funop;
 pub mod incremental;
 mod lex;
 mod lower;
 pub mod parse;
 pub mod resolve;
 pub mod typeck;
-mod validate;
