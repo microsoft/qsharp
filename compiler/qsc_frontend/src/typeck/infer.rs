@@ -454,7 +454,8 @@ impl<'a> Solver<'a> {
             | (FunctorSetValue::Ctl, FunctorSet::Value(FunctorSetValue::Ctl)) => {}
             (expected, FunctorSet::Infer(infer)) => match self.pending_functors.entry(infer) {
                 Entry::Occupied(mut entry) => {
-                    entry.insert(entry.get().union(&expected));
+                    let functors = entry.get_mut();
+                    *functors = functors.union(&expected);
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(expected);
