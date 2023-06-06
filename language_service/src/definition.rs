@@ -14,12 +14,10 @@ pub struct Definition {
 
 pub(crate) fn get_definition(
     compilation_state: &CompilationState,
-    _uri: &str,
+    _source_name: &str,
     offset: u32, // TODO: return a range
 ) -> Definition {
-    let compile_unit = &compilation_state.compile_unit.as_ref().expect(
-        "a compilation unit should exist for the current file - has update_code been called?",
-    );
+    let compile_unit = &compilation_state.compile_unit;
     let package = &compile_unit.package;
 
     let mut definition_finder = DefinitionFinder {

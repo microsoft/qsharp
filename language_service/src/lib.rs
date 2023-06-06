@@ -48,11 +48,13 @@ impl<'a> LanguageService<'a> {
     /// It should also be called whenever the source code is updated.
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
         self.log(&format!("update_document enter: uri: {uri:?}"));
-        let mut store = PackageStore::new(compile::core());
-        let std = store.insert(compile::std(&store));
+        let mut package_store = PackageStore::new(compile::core());
+        let std_package_id = package_store.insert(compile::std(&package_store));
 
-        let sources = SourceMap::new([(uri.into(), text.into())], None);
-        let (compile_unit, errors) = compile::compile(&store, &[std], sources);
+        // Source map only contains the current document.
+        let source_map = SourceMap::new([(uri.into(), text.into())], None);
+        let (compile_unit, errors) =
+            compile::compile(&package_store, &[std_package_id], source_map);
 
         self.log(&format!("publishing diagnostics for {uri:?}: {errors:?}"));
         (self.diagnostics_receiver)(uri, version, &errors);
@@ -62,9 +64,9 @@ impl<'a> LanguageService<'a> {
             uri.to_string(),
             CompilationState {
                 version,
-                store,
-                std,
-                compile_unit: Some(compile_unit),
+                package_store,
+                std_package_id,
+                compile_unit,
             },
         );
         self.log(&format!("update_document exit: uri: {uri:?}"));

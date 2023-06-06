@@ -10,7 +10,7 @@ pub(crate) fn span_contains(span: qsc_data_structures::span::Span, offset: u32) 
 }
 pub(crate) struct CompilationState {
     pub version: u32,
-    pub store: PackageStore,
-    pub std: PackageId,
-    pub compile_unit: Option<CompileUnit>,
+    pub package_store: PackageStore,
+    pub std_package_id: PackageId,
+    pub compile_unit: CompileUnit,
 }

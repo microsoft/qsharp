@@ -19,16 +19,10 @@ pub struct Span {
 
 pub(crate) fn get_hover(
     compilation_state: &CompilationState,
-    _uri: &str,
+    _source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
-    let package = &compilation_state
-        .compile_unit
-        .as_ref()
-        .expect(
-            "a compilation unit should exist for the current file - has update_code been called?",
-        )
-        .package;
+    let package = &compilation_state.compile_unit.package;
 
     let mut callable_finder = CallableFinder {
         offset,

@@ -35,17 +35,15 @@ pub struct CompletionItem {
 
 pub(crate) fn get_completions(
     compilation_state: &CompilationState,
-    _uri: &str,
+    _source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    let compile_unit = &compilation_state.compile_unit.as_ref().expect(
-        "a compilation unit should exist for the current file - has update_code been called?",
-    );
+    let compile_unit = &compilation_state.compile_unit;
     let no_compilation = compile_unit.package.items.values().next().is_none();
     let package = &compile_unit.package;
     let std_package = &compilation_state
-        .store
-        .get(compilation_state.std)
+        .package_store
+        .get(compilation_state.std_package_id)
         .expect("expected to find std package")
         .package;
 
