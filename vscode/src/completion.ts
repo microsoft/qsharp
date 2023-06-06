@@ -23,6 +23,23 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       document.getText(),
       document.offsetAt(position)
     );
-    return completions.items.map((c) => new CompletionItem(c.label, c.kind));
+    return completions.items.map((c) => {
+      let kind;
+      switch (c.kind) {
+        case "function":
+          kind = vscode.CompletionItemKind.Function;
+          break;
+        case "module":
+          kind = vscode.CompletionItemKind.Module;
+          break;
+        case "keyword":
+          kind = vscode.CompletionItemKind.Keyword;
+          break;
+        case "issue":
+          kind = vscode.CompletionItemKind.Issue;
+          break;
+      }
+      return new CompletionItem(c.label, kind);
+    });
   }
 }

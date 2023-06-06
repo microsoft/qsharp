@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ls_utils::{span_contains, CompilationState};
+use crate::qsc_utils::{span_contains, Compilation};
 use qsc::SourceMap;
 use qsc_hir::hir::{ExprKind, ItemKind, Package, Res};
 use qsc_hir::visit::Visitor;
@@ -13,17 +13,16 @@ pub struct Definition {
 }
 
 pub(crate) fn get_definition(
-    compilation_state: &CompilationState,
+    compilation: &Compilation,
     source_name: &str,
-    offset: u32, // TODO: return a range
+    offset: u32,
 ) -> Definition {
-    let compile_unit = &compilation_state.compile_unit;
+    let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
     let offset = compile_unit.sources.map_offset(source_name, offset);
     let package = &compile_unit.package;
 
     let mut definition_finder = DefinitionFinder {
-        //std_package: &std_package,
         package,
         source_map: &compile_unit.sources,
         offset,
@@ -44,7 +43,6 @@ pub(crate) fn get_definition(
 }
 
 struct DefinitionFinder<'a> {
-    //std_package: &'a Package,
     package: &'a Package,
     source_map: &'a SourceMap,
     offset: u32,
@@ -62,7 +60,7 @@ impl<'a> Visitor<'_> for DefinitionFinder<'a> {
                         if item.package.is_none() {
                             self.package.items.get(item.item)
                         } else {
-                            // Handling library is tricky for now
+                            // Handling std library is tricky for now
                             None
                         }
                     }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ls_utils::{span_contains, CompilationState};
+use crate::qsc_utils::{span_contains, Compilation};
 use qsc_hir::hir::{CallableKind, Ty};
 use qsc_hir::visit::Visitor;
 
@@ -18,13 +18,13 @@ pub struct Span {
 }
 
 pub(crate) fn get_hover(
-    compilation_state: &CompilationState,
+    compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
-    let package = &compilation_state.compile_unit.package;
+    let package = &compilation.compile_unit.package;
     // Map the file offset into a SourceMap offset
-    let offset = compilation_state
+    let offset = compilation
         .compile_unit
         .sources
         .map_offset(source_name, offset);

@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ls_utils::{span_contains, CompilationState};
+#[cfg(test)]
+mod tests;
+
+use crate::qsc_utils::{span_contains, Compilation};
 use enum_iterator::all;
 use qsc::hir::ItemKind;
 use qsc_frontend::parse::Keyword;
@@ -12,14 +15,16 @@ use qsc_hir::{
 };
 use std::collections::HashSet;
 
-// These definitions match the values expected by VS Code and Monaco.
+// It would have been nice to match these enum values to the ones used by
+// VS Code and Monaco, but unfortunately those two disagree in the exact values.
+// So we define our own unique enum here to reduce confusion.
 #[derive(Clone, Debug)]
 #[allow(clippy::module_name_repetitions)]
-pub enum CompletionKind {
-    Function = 1,
-    Module = 8,
-    Keyword = 13,
-    Issue = 26,
+pub enum CompletionItemKind {
+    Function,
+    Module,
+    Keyword,
+    Issue,
 }
 
 #[derive(Debug)]
@@ -32,22 +37,22 @@ pub struct CompletionList {
 #[allow(clippy::module_name_repetitions)]
 pub struct CompletionItem {
     pub label: String,
-    pub kind: CompletionKind,
+    pub kind: CompletionItemKind,
 }
 
 pub(crate) fn get_completions(
-    compilation_state: &CompilationState,
+    compilation: &Compilation,
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    let compile_unit = &compilation_state.compile_unit;
+    let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
     let offset = compile_unit.sources.map_offset(source_name, offset);
     let no_compilation = compile_unit.package.items.values().next().is_none();
     let package = &compile_unit.package;
-    let std_package = &compilation_state
+    let std_package = &compilation
         .package_store
-        .get(compilation_state.std_package_id)
+        .get(compilation.std_package_id)
         .expect("expected to find std package")
         .package;
 
@@ -70,20 +75,9 @@ pub(crate) fn get_completions(
     namespace_collector.visit_package(package);
     namespace_collector.visit_package(std_package);
 
-    // Add debug items for convenience
-    let mut debug_items = Vec::new();
-    // debug_items.push(CompletionItem {
-    //     label: format!("__DEBUG__ context: {:?}", context),
-    //     kind: CompletionKind::Issue as i32,
-    // });
-    // debug_items.push(CompletionItem {
-    //     label: format!("__DEBUG__ errors: {:?}", errors),
-    //     kind: CompletionKind::Issue as i32,
-    // });
-
     let mut res = CompletionList { items: Vec::new() };
 
-    // Callables from the current code
+    // Callables from the current document
     let mut current_callables = callable_names_from_package(package);
 
     // All callables from std package
@@ -93,7 +87,7 @@ pub(crate) fn get_completions(
     let mut keywords = all::<Keyword>()
         .map(|k| CompletionItem {
             label: k.to_string(),
-            kind: CompletionKind::Keyword,
+            kind: CompletionItemKind::Keyword,
         })
         .collect::<Vec<_>>();
 
@@ -103,7 +97,7 @@ pub(crate) fn get_completions(
         .drain()
         .map(|ns| CompletionItem {
             label: ns,
-            kind: CompletionKind::Module,
+            kind: CompletionItemKind::Module,
         })
         .collect::<Vec<_>>();
 
@@ -111,11 +105,12 @@ pub(crate) fn get_completions(
         Context::Namespace => {
             res.items.push(CompletionItem {
                 label: "open".to_string(),
-                kind: CompletionKind::Keyword,
+                kind: CompletionItemKind::Keyword,
             });
             res.items.append(&mut namespaces);
         }
-        Context::Block => {
+        Context::Block | Context::NoCompilation => {
+            // Add everything we know of.
             res.items.append(&mut keywords);
             res.items.append(&mut std_callables);
             res.items.append(&mut current_callables);
@@ -123,23 +118,9 @@ pub(crate) fn get_completions(
         }
         Context::TopLevel | Context::NotSignificant => res.items.push(CompletionItem {
             label: "namespace".to_string(),
-            kind: CompletionKind::Keyword,
+            kind: CompletionItemKind::Keyword,
         }),
-        Context::NoCompilation => {
-            // Add everything we know of.
-            res.items.append(&mut keywords);
-            res.items.append(&mut std_callables);
-            res.items.append(&mut current_callables);
-            res.items.append(&mut namespaces);
-
-            debug_items.push(CompletionItem {
-                label: "__DEBUG__ NO COMPILATION".to_string(),
-                kind: CompletionKind::Issue,
-            });
-        }
     }
-
-    res.items.append(&mut debug_items);
     res
 }
 
@@ -197,7 +178,7 @@ fn callable_names_from_package(package: &Package) -> Vec<CompletionItem> {
         .filter_map(|i| match &i.kind {
             ItemKind::Callable(callable_decl) => Some(CompletionItem {
                 label: callable_decl.name.name.to_string(),
-                kind: CompletionKind::Function,
+                kind: CompletionItemKind::Function,
             }),
             _ => None,
         })

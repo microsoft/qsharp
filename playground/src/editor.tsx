@@ -144,9 +144,24 @@ export function Editor(props: {
         );
         return {
           suggestions: completions.items.map((i) => {
+            let kind;
+            switch (i.kind) {
+              case "function":
+                kind = monaco.languages.CompletionItemKind.Function;
+                break;
+              case "module":
+                kind = monaco.languages.CompletionItemKind.Module;
+                break;
+              case "keyword":
+                kind = monaco.languages.CompletionItemKind.Keyword;
+                break;
+              case "issue":
+                kind = monaco.languages.CompletionItemKind.Issue;
+                break;
+            }
             return {
               label: i.label,
-              kind: i.kind,
+              kind: kind,
               insertText: i.label,
               range: undefined,
             };

@@ -76,7 +76,13 @@ impl LanguageService {
                 .into_iter()
                 .map(|i| CompletionItem {
                     label: i.label,
-                    kind: i.kind as i32,
+                    kind: (match i.kind {
+                        language_service::completion::CompletionItemKind::Function => "function",
+                        language_service::completion::CompletionItemKind::Module => "module",
+                        language_service::completion::CompletionItemKind::Keyword => "keyword",
+                        language_service::completion::CompletionItemKind::Issue => "issue",
+                    })
+                    .to_string(),
                 })
                 .collect(),
         })?)
@@ -115,7 +121,7 @@ const ICompletionList: &'static str = r#"
 export interface ICompletionList {
     items: Array<{
         label: string;
-        kind: number;
+        kind: "function" | "module" | "keyword" | "issue";
     }>
 }
 "#;
@@ -128,7 +134,7 @@ pub struct CompletionList {
 #[derive(Serialize, Deserialize)]
 pub struct CompletionItem {
     pub label: String,
-    pub kind: i32,
+    pub kind: String,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
