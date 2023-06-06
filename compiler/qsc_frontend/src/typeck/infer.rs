@@ -371,11 +371,9 @@ impl Inferrer {
         // https://github.com/microsoft/qsharp/issues/152
         let mut solver = Solver::new(udts);
         while let Some(constraint) = self.constraints.pop_front() {
-            solver
-                .constrain(constraint)
-                .drain(..)
-                .rev()
-                .for_each(|c| self.constraints.push_front(c));
+            for constraint in solver.constrain(constraint).into_iter().rev() {
+                self.constraints.push_front(constraint);
+            }
         }
         solver.into_solution()
     }

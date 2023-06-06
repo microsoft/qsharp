@@ -708,7 +708,7 @@ fn lambda_operation_empty_closure() {
                         functors: empty set
                         body: SpecDecl 18 [106-147] (Body): Impl:
                             Pat 19 [106-147] [Type Unit]: Elided
-                            Block 20 [131-147] [Type Result]:
+                            Block 20 [131-147] [Type Unit]:
                                 Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Unit]: Call:
                                     Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
                                     Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)

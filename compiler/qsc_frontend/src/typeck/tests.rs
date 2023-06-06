@@ -171,7 +171,7 @@ fn return_wrong_type() {
         "",
         &expect![[r##"
             #6 30-32 "()" : Unit
-            #10 39-47 "{ true }" : Int
+            #10 39-47 "{ true }" : Bool
             #12 41-45 "true" : Bool
             Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 41, hi: 45 }))))
         "##]],
@@ -189,7 +189,7 @@ fn return_semi() {
         "",
         &expect![[r##"
             #6 30-32 "()" : Unit
-            #10 39-45 "{ 4; }" : Int
+            #10 39-45 "{ 4; }" : Unit
             #12 41-42 "4" : Int
             Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 41, hi: 43 }))))
         "##]],
@@ -1988,7 +1988,7 @@ fn newtype_does_not_match_base_ty() {
         "",
         &expect![[r##"
             #12 56-58 "()" : Unit
-            #16 65-78 "{ NewInt(5) }" : Int
+            #16 65-78 "{ NewInt(5) }" : UDT<Item 1>
             #18 67-76 "NewInt(5)" : UDT<Item 1>
             #19 67-73 "NewInt" : (Int -> UDT<Item 1>)
             #22 73-76 "(5)" : Int
@@ -2011,7 +2011,7 @@ fn newtype_does_not_match_other_newtype() {
         "",
         &expect![[r##"
             #18 84-86 "()" : Unit
-            #22 97-111 "{ NewInt1(5) }" : UDT<Item 2>
+            #22 97-111 "{ NewInt1(5) }" : UDT<Item 1>
             #24 99-109 "NewInt1(5)" : UDT<Item 1>
             #25 99-106 "NewInt1" : (Int -> UDT<Item 1>)
             #28 106-109 "(5)" : Int
@@ -2172,7 +2172,7 @@ fn local_function_error() {
             #6 30-32 "()" : Unit
             #10 39-97 "{\n        function Bar() : Int { 2.0 }\n        Bar()\n    }" : Int
             #15 61-63 "()" : Unit
-            #19 70-77 "{ 2.0 }" : Int
+            #19 70-77 "{ 2.0 }" : Double
             #21 72-75 "2.0" : Double
             #23 86-91 "Bar()" : Int
             #24 86-89 "Bar" : (Unit -> Int)
@@ -2220,7 +2220,7 @@ fn local_function_last_stmt_is_unit_block() {
         "",
         &expect![[r##"
             #6 30-32 "()" : Unit
-            #10 39-95 "{\n        Bar()\n        function Bar() : Int { 4 }\n    }" : Int
+            #10 39-95 "{\n        Bar()\n        function Bar() : Int { 4 }\n    }" : Unit
             #12 49-54 "Bar()" : Int
             #13 49-52 "Bar" : (Unit -> Int)
             #16 52-54 "()" : Unit
