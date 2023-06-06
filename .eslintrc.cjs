@@ -9,6 +9,8 @@ module.exports = {
     "playground/public/",
     "npm/dist/",
     "npm/lib/",
+    "jupyterlab/lib",
+    "jupyterlab/qsharp_jupyterlab/labextension",
     "vscode/out/",
   ],
   env: {
