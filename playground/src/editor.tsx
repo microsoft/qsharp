@@ -162,18 +162,21 @@ export function Editor(props: {
           model.getOffsetAt(position)
         );
 
-        const start = model.getPositionAt(hover.span.start);
-        const end = model.getPositionAt(hover.span.end);
+        if (hover) {
+          const start = model.getPositionAt(hover.span.start);
+          const end = model.getPositionAt(hover.span.end);
 
-        return {
-          contents: [{ value: hover.contents }],
-          range: {
-            startLineNumber: start.lineNumber,
-            startColumn: start.column,
-            endLineNumber: end.lineNumber,
-            endColumn: end.column,
-          },
-        };
+          return {
+            contents: [{ value: hover.contents }],
+            range: {
+              startLineNumber: start.lineNumber,
+              startColumn: start.column,
+              endLineNumber: end.lineNumber,
+              endColumn: end.column,
+            },
+          };
+        }
+        return null;
       },
     });
 

@@ -217,7 +217,7 @@ mod test {
         let code = "namespace input { operation Foo(a) : Unit {} }";
         let mut error_callback_called = false;
         {
-            let mut lang_serv = language_service::QSharpLanguageService::new(
+            let mut lang_serv = language_service::LanguageService::new(
                 |diagnostics: &[Error]| {
                     error_callback_called = true;
                     assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");

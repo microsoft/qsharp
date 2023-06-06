@@ -32,7 +32,11 @@ export interface ICompiler {
     code: string,
     offset: number
   ): Promise<ICompletionList>;
-  getHover(documentUri: string, code: string, offset: number): Promise<IHover>;
+  getHover(
+    documentUri: string,
+    code: string,
+    offset: number
+  ): Promise<IHover | null>;
   getDefinition(
     documentUri: string,
     code: string,

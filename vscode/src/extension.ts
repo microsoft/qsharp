@@ -9,6 +9,33 @@ export async function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("Q#");
   output.appendLine("Q# extension activated.");
 
+  // Override the global logger with functions that write to the output channel
+  global.qscLog.error = (...args: unknown[]) => {
+    output.appendLine(
+      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
+    );
+  };
+  global.qscLog.warn = (...args: unknown[]) => {
+    output.appendLine(
+      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
+    );
+  };
+  global.qscLog.info = (...args: unknown[]) => {
+    output.appendLine(
+      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
+    );
+  };
+  global.qscLog.debug = (...args: unknown[]) => {
+    output.appendLine(
+      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
+    );
+  };
+  global.qscLog.trace = (...args: unknown[]) => {
+    output.appendLine(
+      args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
+    );
+  };
+
   // load the compiler
   const wasmUri = vscode.Uri.joinPath(
     context.extensionUri,
@@ -19,18 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const evtTarget = new QscEventTarget(false);
   const compiler = await getCompiler(evtTarget);
 
-  // send document updates
-  vscode.workspace.onDidOpenTextDocument((document) => {
-    if (vscode.languages.match("qsharp", document)) {
-      compiler.updateCode(document.uri.toString(), document.getText());
-    }
-  });
-
-  vscode.workspace.onDidChangeTextDocument((evt) => {
-    if (vscode.languages.match("qsharp", evt.document)) {
-      compiler.updateCode(evt.document.uri.toString(), evt.document.getText());
-    }
-  });
+  registerDocumentUpdateHandlers(output, compiler);
 
   // completions
   vscode.languages.registerCompletionItemProvider(
@@ -77,4 +93,29 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // notebooks
   registerQSharpNotebookHandlers(context);
+}
+
+function registerDocumentUpdateHandlers(
+  output: vscode.OutputChannel,
+  compiler: Awaited<ReturnType<typeof getCompiler>>
+) {
+  const document = vscode.window.activeTextEditor?.document;
+  if (document && vscode.languages.match("qsharp", document)) {
+    output.appendLine(`Active document: ${document.uri.toString()}`);
+    compiler.updateCode(document.uri.toString(), document.getText());
+  }
+
+  vscode.window.onDidChangeActiveTextEditor((editor) => {
+    const document = editor?.document;
+    if (document && vscode.languages.match("qsharp", document)) {
+      output.appendLine(`Active document changed: ${document.uri.toString()}`);
+      compiler.updateCode(document.uri.toString(), document.getText());
+    }
+  });
+
+  vscode.workspace.onDidChangeTextDocument((evt) => {
+    if (vscode.languages.match("qsharp", evt.document)) {
+      compiler.updateCode(evt.document.uri.toString(), evt.document.getText());
+    }
+  });
 }

@@ -2,13 +2,28 @@
 // Licensed under the MIT License.
 
 use miette::{Diagnostic, Severity};
-use qsc::compile::Error;
+use qsc::compile;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Write, iter};
+use std::{fmt::Write, iter, panic};
 use wasm_bindgen::prelude::*;
 
+// Wrapper for a JavaScript function that implements Send + Sync
+// so that it can be used as a panic hook
+struct JsPanicHook(js_sys::Function);
+
+impl JsPanicHook {
+    pub fn call1(&self, context: &JsValue, arg1: &JsValue) -> Result<JsValue, JsValue> {
+        self.0.call1(context, arg1)
+    }
+}
+
+// We'll always be on the same JavaScript thread where the logger function was passed in,
+// so let's pretend js_sys::Function is thread-safe to make set_hook() happy.
+unsafe impl Send for JsPanicHook {}
+unsafe impl Sync for JsPanicHook {}
+
 #[wasm_bindgen]
-pub struct QSharpLanguageService(language_service::QSharpLanguageService<'static>);
+pub struct QSharpLanguageService(language_service::LanguageService<'static>);
 
 #[wasm_bindgen]
 impl QSharpLanguageService {
@@ -16,8 +31,9 @@ impl QSharpLanguageService {
     pub fn new(diagnostics_callback: &js_sys::Function, logger: &js_sys::Function) -> Self {
         let diagnostics_callback = diagnostics_callback.clone();
         let logger = logger.clone();
-        let inner = language_service::QSharpLanguageService::new(
-            move |errors: &[Error]| {
+        let panic_logger = JsPanicHook(logger.clone());
+        let inner = language_service::LanguageService::new(
+            move |errors: &[compile::Error]| {
                 let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
                 let value = serde_wasm_bindgen::to_value(&diags)
                     .expect("conversion to VSDiagnostic should succeed");
@@ -35,6 +51,17 @@ impl QSharpLanguageService {
                     .expect("callback should succeed");
             },
         );
+
+        panic::set_hook(Box::new(move |info: &panic::PanicInfo| {
+            panic_logger
+                .call1(
+                    &JsValue::null(),
+                    &serde_wasm_bindgen::to_value(&info.to_string())
+                        .expect("expected to be able to convert string to JsValue"),
+                )
+                .expect("panic logger failed, nothing else we can do");
+        }));
+
         QSharpLanguageService(inner)
     }
 

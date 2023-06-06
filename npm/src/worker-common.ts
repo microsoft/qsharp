@@ -391,7 +391,7 @@ type CompilerRespMsg =
   | { type: "getCompletions-result"; result: ICompletionList }
   | {
       type: "getHover-result";
-      result: IHover;
+      result: IHover | null;
     }
   | {
       type: "getDefinition-result";

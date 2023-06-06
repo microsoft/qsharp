@@ -15,7 +15,7 @@ use qsc::{
     PackageStore, SourceMap,
 };
 
-pub struct QSharpLanguageService<'a> {
+pub struct LanguageService<'a> {
     compilation_state: Option<CompilationState>,
     diagnostics_receiver: Box<DiagnosticsReceiver<'a>>,
     logger: Box<Logger<'a>>,
@@ -24,9 +24,9 @@ pub struct QSharpLanguageService<'a> {
 type DiagnosticsReceiver<'a> = dyn FnMut(&[Error]) + 'a;
 type Logger<'a> = dyn Fn(&str) + 'a;
 
-impl<'a> QSharpLanguageService<'a> {
+impl<'a> LanguageService<'a> {
     pub fn new(event_callback: impl FnMut(&[Error]) + 'a, logger: impl Fn(&str) + 'a) -> Self {
-        QSharpLanguageService {
+        LanguageService {
             compilation_state: None,
             diagnostics_receiver: Box::new(event_callback),
             logger: Box::new(logger),
@@ -38,7 +38,7 @@ impl<'a> QSharpLanguageService<'a> {
     }
 
     pub fn update_code(&mut self, uri: &str, code: &str) {
-        self.log(&format!("update_code enter: uri: {uri:?}, code: {code:?}"));
+        self.log(&format!("update_code enter: uri: {uri:?}"));
         let mut store = PackageStore::new(compile::core());
         let std = store.insert(compile::std(&store));
 
@@ -53,7 +53,7 @@ impl<'a> QSharpLanguageService<'a> {
             std,
             compile_unit: Some(compile_unit),
         });
-        self.log(&format!("update_code exit: uri: {uri:?}, code: {code:?}"));
+        self.log(&format!("update_code exit: uri: {uri:?}"));
     }
 
     #[must_use]
