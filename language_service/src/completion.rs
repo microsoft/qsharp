@@ -13,7 +13,9 @@ use qsc_hir::{
 use std::collections::HashSet;
 
 // These definitions match the values expected by VS Code and Monaco.
-enum CompletionKind {
+#[derive(Clone, Debug)]
+#[allow(clippy::module_name_repetitions)]
+pub enum CompletionKind {
     Function = 1,
     Module = 8,
     Keyword = 13,
@@ -30,15 +32,17 @@ pub struct CompletionList {
 #[allow(clippy::module_name_repetitions)]
 pub struct CompletionItem {
     pub label: String,
-    pub kind: i32,
+    pub kind: CompletionKind,
 }
 
 pub(crate) fn get_completions(
     compilation_state: &CompilationState,
-    _source_name: &str,
+    source_name: &str,
     offset: u32,
 ) -> CompletionList {
     let compile_unit = &compilation_state.compile_unit;
+    // Map the file offset into a SourceMap offset
+    let offset = compile_unit.sources.map_offset(source_name, offset);
     let no_compilation = compile_unit.package.items.values().next().is_none();
     let package = &compile_unit.package;
     let std_package = &compilation_state
@@ -89,7 +93,7 @@ pub(crate) fn get_completions(
     let mut keywords = all::<Keyword>()
         .map(|k| CompletionItem {
             label: k.to_string(),
-            kind: CompletionKind::Keyword as i32,
+            kind: CompletionKind::Keyword,
         })
         .collect::<Vec<_>>();
 
@@ -99,7 +103,7 @@ pub(crate) fn get_completions(
         .drain()
         .map(|ns| CompletionItem {
             label: ns,
-            kind: CompletionKind::Module as i32,
+            kind: CompletionKind::Module,
         })
         .collect::<Vec<_>>();
 
@@ -107,7 +111,7 @@ pub(crate) fn get_completions(
         Context::Namespace => {
             res.items.push(CompletionItem {
                 label: "open".to_string(),
-                kind: CompletionKind::Keyword as i32,
+                kind: CompletionKind::Keyword,
             });
             res.items.append(&mut namespaces);
         }
@@ -119,7 +123,7 @@ pub(crate) fn get_completions(
         }
         Context::TopLevel | Context::NotSignificant => res.items.push(CompletionItem {
             label: "namespace".to_string(),
-            kind: CompletionKind::Keyword as i32,
+            kind: CompletionKind::Keyword,
         }),
         Context::NoCompilation => {
             // Add everything we know of.
@@ -130,7 +134,7 @@ pub(crate) fn get_completions(
 
             debug_items.push(CompletionItem {
                 label: "__DEBUG__ NO COMPILATION".to_string(),
-                kind: CompletionKind::Issue as i32,
+                kind: CompletionKind::Issue,
             });
         }
     }
@@ -193,7 +197,7 @@ fn callable_names_from_package(package: &Package) -> Vec<CompletionItem> {
         .filter_map(|i| match &i.kind {
             ItemKind::Callable(callable_decl) => Some(CompletionItem {
                 label: callable_decl.name.name.to_string(),
-                kind: CompletionKind::Function as i32,
+                kind: CompletionKind::Function,
             }),
             _ => None,
         })

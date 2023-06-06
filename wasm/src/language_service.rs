@@ -80,7 +80,7 @@ impl LanguageService {
                 .into_iter()
                 .map(|i| CompletionItem {
                     label: i.label,
-                    kind: i.kind,
+                    kind: i.kind as i32,
                 })
                 .collect(),
         })?)

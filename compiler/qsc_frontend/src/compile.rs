@@ -90,6 +90,16 @@ impl SourceMap {
                 )
             })
     }
+
+    #[must_use]
+    pub fn map_offset(&self, source_name: &str, source_offset: u32) -> u32 {
+        self.sources
+            .iter()
+            .find(|s| s.name.as_ref() == source_name)
+            .expect("source_name should match at least one source")
+            .offset
+            + source_offset
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -19,10 +19,15 @@ pub struct Span {
 
 pub(crate) fn get_hover(
     compilation_state: &CompilationState,
-    _source_name: &str,
+    source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
     let package = &compilation_state.compile_unit.package;
+    // Map the file offset into a SourceMap offset
+    let offset = compilation_state
+        .compile_unit
+        .sources
+        .map_offset(source_name, offset);
 
     let mut callable_finder = CallableFinder {
         offset,
