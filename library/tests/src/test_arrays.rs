@@ -228,6 +228,54 @@ fn check_enumerated() {
 }
 
 #[test]
+fn check_filtered() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Filtered(x -> x % 2 == 0, [0, 1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Filtered(x -> x % 2 != 0, [1, 2, 3, 4, 5])",
+        &Value::Array(vec![Value::Int(1), Value::Int(3), Value::Int(5)].into()),
+    );
+}
+
+#[test]
+fn check_flat_mapped() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.FlatMapped(x -> Repeated(x, 2), [1, 2, 3])",
+        &Value::Array(
+            vec![
+                Value::Int(1),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(3),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_flattened() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Flattened([[1, 2], [3], [4, 5, 6]])",
+        &Value::Array(
+            vec![
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(4),
+                Value::Int(5),
+                Value::Int(6),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_fold() {
     test_expression(
         "Microsoft.Quantum.Arrays.Fold((x, y) -> x + y, 0, [1, 2, 3, 4, 5])",
@@ -266,6 +314,22 @@ fn check_for_each() {
 #[test]
 fn check_head() {
     test_expression("Microsoft.Quantum.Arrays.Head([5,6,7,8])", &Value::Int(5));
+}
+
+#[test]
+fn check_index_of() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 != 0, [10, 8, 6, 5, 4])",
+        &Value::Int(3),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 == 0, [1, 3, 4, 5, 7])",
+        &Value::Int(2),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IndexOf(x -> x % 2 == 0, [1, 3, 5, 7, 9])",
+        &Value::Int(-1),
+    );
 }
 
 #[test]
@@ -341,6 +405,34 @@ fn check_is_rectangular_array() {
 }
 
 #[test]
+fn check_is_sorted() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [1])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [1, 2, 3, 4, 5])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x >= y, [5, 4, 3, 2, 1])",
+        &Value::Bool(true),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [1, 2, 3, 5, 4])",
+        &Value::Bool(false),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.IsSorted((x, y) -> x <= y, [5, 4, 3, 2, 1])",
+        &Value::Bool(false),
+    );
+}
+
+#[test]
 fn check_is_square_array() {
     test_expression(
         "Microsoft.Quantum.Arrays.IsSquareArray([])",
@@ -381,9 +473,31 @@ fn check_mapped_by_index() {
 }
 
 #[test]
+fn check_mapped_over_range() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.MappedOverRange(x -> x + 1, 0..2..10)",
+        &Value::Array(
+            vec![
+                Value::Int(1),
+                Value::Int(3),
+                Value::Int(5),
+                Value::Int(7),
+                Value::Int(9),
+                Value::Int(11),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.MappedOverRange(x -> x * 2, 3..-1..1)",
+        &Value::Array(vec![Value::Int(6), Value::Int(4), Value::Int(2)].into()),
+    );
+}
+
+#[test]
 fn check_most() {
     test_expression(
-        "Microsoft.Quantum.Arrays.Most([5,6,7,8])",
+        "Microsoft.Quantum.Arrays.Most([5, 6, 7, 8])",
         &Value::Array(vec![Value::Int(5), Value::Int(6), Value::Int(7)].into()),
     );
 }
@@ -453,6 +567,57 @@ fn check_sequence_i() {
 }
 
 #[test]
+fn check_sorted() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [])",
+        &Value::Array(vec![].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [-1])",
+        &Value::Array(vec![Value::Int(-1)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [1, 2, 0, 4, 3])",
+        &Value::Array(
+            vec![
+                Value::Int(0),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(4),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x >= y, [1, 2, 0, 4, 3])",
+        &Value::Array(
+            vec![
+                Value::Int(4),
+                Value::Int(3),
+                Value::Int(2),
+                Value::Int(1),
+                Value::Int(0),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Sorted((x, y) -> x <= y, [-1, 2, 0, 1, -2])",
+        &Value::Array(
+            vec![
+                Value::Int(-2),
+                Value::Int(-1),
+                Value::Int(0),
+                Value::Int(1),
+                Value::Int(2),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_rest() {
     test_expression(
         "Microsoft.Quantum.Arrays.Rest([5,6,7,8])",
@@ -487,6 +652,23 @@ fn check_subarray() {
                 Value::Bool(false),
                 Value::Bool(false),
                 Value::Bool(false),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_swapped() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Swapped(1, 3, [0, 1, 2, 3, 4])",
+        &Value::Array(
+            vec![
+                Value::Int(0),
+                Value::Int(3),
+                Value::Int(2),
+                Value::Int(1),
+                Value::Int(4),
             ]
             .into(),
         ),
@@ -566,6 +748,18 @@ fn check_unzipped() {
             ]
             .into()
         ),
+    );
+}
+
+#[test]
+fn check_where() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.Where(x -> x % 2 == 0, [0, 1, 2, 3, 4])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.Where(x -> x % 2 != 0, [1, 2, 3, 4, 5])",
+        &Value::Array(vec![Value::Int(0), Value::Int(2), Value::Int(4)].into()),
     );
 }
 

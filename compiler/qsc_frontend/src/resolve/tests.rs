@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{GlobalTable, Names, Res};
+use super::{Error, Names, Res};
 use crate::{parse, resolve::Resolver};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -65,34 +65,37 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn resolve_names(input: &str) -> String {
-    let (namespaces, errors) = parse::namespaces(input);
-    assert!(errors.is_empty(), "syntax errors: {errors:#?}");
+    let (package, names, errors) = compile(input);
+    let mut renamer = Renamer::new(&names);
+    renamer.visit_package(&package);
+    let mut output = input.to_string();
+    renamer.rename(&mut output);
+    if !errors.is_empty() {
+        output += "\n";
+    }
+    for error in &errors {
+        writeln!(output, "// {error:?}").expect("string should be writable");
+    }
+    output
+}
+
+fn compile(input: &str) -> (Package, Names, Vec<Error>) {
+    let (namespaces, parse_errors) = parse::namespaces(input);
+    assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
         namespaces: namespaces.into_boxed_slice(),
         entry: None,
     };
-    let mut ast_assigner = AstAssigner::new();
-    ast_assigner.visit_package(&mut package);
-    let mut hir_assigner = HirAssigner::new();
-    let mut globals = GlobalTable::new();
-    globals.add_local_package(&mut hir_assigner, &package);
+
+    AstAssigner::new().visit_package(&mut package);
+    let mut assigner = HirAssigner::new();
+    let mut globals = super::GlobalTable::new();
+    globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals);
-    resolver.with(&mut hir_assigner).visit_package(&package);
-    let (names, errors) = resolver.into_names();
-    let mut renamer = Renamer::new(&names);
-    renamer.visit_package(&package);
-    let mut output = input.to_string();
-    renamer.rename(&mut output);
-
-    if !errors.is_empty() {
-        output += "\n";
-    }
-    for error in &errors {
-        writeln!(output, "// {error:?}").expect("error should write to output string");
-    }
-
-    output
+    resolver.with(&mut assigner).visit_package(&package);
+    let (names, resolve_errors) = resolver.into_names();
+    (package, names, resolve_errors)
 }
 
 #[test]

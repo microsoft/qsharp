@@ -54,6 +54,8 @@ impl LineError {
 pub enum LineErrorKind {
     #[error(transparent)]
     Compile(#[from] incremental::Error),
+    #[error(transparent)]
+    Pass(#[from] qsc_passes::Error),
     #[error("runtime error")]
     Eval(#[from] qsc_eval::Error),
 }
@@ -112,11 +114,20 @@ impl Interpreter {
     ) -> Result<Value, Vec<LineError>> {
         let mut result = Value::unit();
         for mut fragment in self.compiler.compile_fragments(line) {
-            run_default_passes_for_fragment(
+            let pass_errors = run_default_passes_for_fragment(
                 self.store.core(),
                 self.compiler.assigner_mut(),
                 &mut fragment,
             );
+            if !pass_errors.is_empty() {
+                let source = line.into();
+                return Err(pass_errors
+                    .into_iter()
+                    .map(|error| {
+                        LineError(WithSource::new(Arc::clone(&source), error.into(), None))
+                    })
+                    .collect());
+            }
 
             match fragment {
                 Fragment::Item(item) => match item.kind {

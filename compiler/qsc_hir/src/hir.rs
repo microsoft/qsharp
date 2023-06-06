@@ -295,19 +295,25 @@ pub struct CallableDecl {
     /// The functors supported by the callable.
     pub functors: FunctorSet,
     /// The body of the callable.
-    pub body: CallableBody,
+    pub body: SpecDecl,
+    /// The body of the Adjoint specialization.
+    pub adj: Option<SpecDecl>,
+    /// The body of the Controlled specialization.
+    pub ctl: Option<SpecDecl>,
+    /// The body of the Controlled-Adjoint specialization.
+    pub ctladj: Option<SpecDecl>,
 }
 
 impl CallableDecl {
     /// The type of the callable.
     #[must_use]
     pub fn ty(&self) -> Ty {
-        Ty::Arrow(
-            self.kind,
-            Box::new(self.input.ty.clone()),
-            Box::new(self.output.clone()),
-            self.functors,
-        )
+        Ty::Arrow(Box::new(ArrowTy {
+            kind: self.kind,
+            input: Box::new(self.input.ty.clone()),
+            output: Box::new(self.output.clone()),
+            functors: self.functors,
+        }))
     }
 }
 
@@ -333,31 +339,17 @@ impl Display for CallableDecl {
         write!(indent, "\noutput: {}", self.output)?;
         write!(indent, "\nfunctors: {}", self.functors)?;
         write!(indent, "\nbody: {}", self.body)?;
-        Ok(())
-    }
-}
-
-/// The body of a callable.
-#[derive(Clone, Debug, PartialEq)]
-pub enum CallableBody {
-    /// A block for the callable's body specialization.
-    Block(Block),
-    /// One or more explicit specializations.
-    Specs(Vec<SpecDecl>),
-}
-
-impl Display for CallableBody {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            CallableBody::Block(body) => write!(f, "Block: {body}")?,
-            CallableBody::Specs(specs) => {
-                let mut indent = set_indentation(indented(f), 0);
-                write!(indent, "Specializations:")?;
-                indent = set_indentation(indent, 1);
-                for spec in specs {
-                    write!(indent, "\n{spec}")?;
-                }
-            }
+        match &self.adj {
+            Some(spec) => write!(indent, "\nadj: {spec}")?,
+            None => write!(indent, "\nadj: <none>")?,
+        }
+        match &self.ctl {
+            Some(spec) => write!(indent, "\nctl: {spec}")?,
+            None => write!(indent, "\nctl: <none>")?,
+        }
+        match &self.ctladj {
+            Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
+            None => write!(indent, "\nctl-adj: <none>")?,
         }
         Ok(())
     }
@@ -1071,10 +1063,7 @@ pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(CallableKind, Box<Ty>, Box<Ty>, FunctorSet),
-    /// An invalid type caused by an error.
-    #[default]
-    Err,
+    Arrow(Box<ArrowTy>),
     /// A placeholder type variable used during type inference.
     Infer(InferTy),
     /// A type parameter.
@@ -1085,6 +1074,9 @@ pub enum Ty {
     Tuple(Vec<Ty>),
     /// A user-defined type.
     Udt(Res),
+    /// An invalid type.
+    #[default]
+    Err,
 }
 
 impl Ty {
@@ -1096,19 +1088,7 @@ impl Display for Ty {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Ty::Array(item) => write!(f, "({item})[]"),
-            Ty::Arrow(kind, input, output, functors) => {
-                let arrow = match kind {
-                    CallableKind::Function => "->",
-                    CallableKind::Operation => "=>",
-                };
-                write!(f, "({input} {arrow} {output}")?;
-                if functors.is_empty() != Some(true) {
-                    f.write_str(" is ")?;
-                    Display::fmt(functors, f)?;
-                }
-                f.write_char(')')
-            }
-            Ty::Err => f.write_str("?"),
+            Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
             Ty::Param(name) => write!(f, "'{name}"),
             Ty::Prim(prim) => Debug::fmt(prim, f),
@@ -1132,7 +1112,36 @@ impl Display for Ty {
                 }
             }
             Ty::Udt(res) => write!(f, "UDT<{res}>"),
+            Ty::Err => f.write_str("?"),
         }
+    }
+}
+
+/// An arrow type: `->` for a function or `=>` for an operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ArrowTy {
+    /// Whether the callable is a function or an operation.
+    pub kind: CallableKind,
+    /// The input type to the callable.
+    pub input: Box<Ty>,
+    /// The output type from the callable.
+    pub output: Box<Ty>,
+    /// The functors supported by the callable.
+    pub functors: FunctorSet,
+}
+
+impl Display for ArrowTy {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let arrow = match self.kind {
+            CallableKind::Function => "->",
+            CallableKind::Operation => "=>",
+        };
+        write!(f, "({} {arrow} {}", self.input, self.output)?;
+        if self.functors.is_empty() != Some(true) {
+            f.write_str(" is ")?;
+            Display::fmt(&self.functors, f)?;
+        }
+        f.write_char(')')
     }
 }
 
@@ -1319,12 +1328,12 @@ impl Udt {
     /// * `id` - The ID of the constructed type.
     #[must_use]
     pub fn cons_ty(&self, id: ItemId) -> Ty {
-        Ty::Arrow(
-            CallableKind::Function,
-            Box::new(self.base.clone()),
-            Box::new(Ty::Udt(Res::Item(id))),
-            FunctorSet::Empty,
-        )
+        Ty::Arrow(Box::new(ArrowTy {
+            kind: CallableKind::Function,
+            input: Box::new(self.base.clone()),
+            output: Box::new(Ty::Udt(Res::Item(id))),
+            functors: FunctorSet::Empty,
+        }))
     }
 
     /// The path to the field with the given name. Returns [None] if this user-defined type does not
