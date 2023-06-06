@@ -479,6 +479,7 @@ name = "language_service"
 version = "0.0.0"
 dependencies = [
  "enum-iterator",
+ "log",
  "miette",
  "num-bigint",
  "num-complex",
@@ -941,6 +942,7 @@ dependencies = [
  "js-sys",
  "katas",
  "language_service",
+ "log",
  "miette",
  "num-bigint",
  "num-complex",

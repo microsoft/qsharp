@@ -228,7 +228,6 @@ mod test {
                     assert_eq!(diag.end_pos, 33);
                     assert_eq!(diag.message, "type error: missing type in item signature\\\\n\\\\nhelp: types cannot be inferred for global declarations");
                 },
-                |_| {},
             );
             lang_serv.update_document("<code>", 1, code);
         }

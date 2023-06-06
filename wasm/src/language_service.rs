@@ -1,26 +1,31 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use log::{error, Log};
 use miette::{Diagnostic, Severity};
 use qsc::compile;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter, panic};
 use wasm_bindgen::prelude::*;
 
-// Wrapper for a JavaScript function that implements Send + Sync
-// so that it can be used as a panic hook
-struct JsPanicHook(js_sys::Function);
-
-impl JsPanicHook {
-    pub fn call1(&self, context: &JsValue, arg1: &JsValue) -> Result<JsValue, JsValue> {
-        self.0.call1(context, arg1)
-    }
-}
-
+struct Logger(js_sys::Function);
 // We'll always be on the same JavaScript thread where the logger function was passed in,
 // so let's pretend js_sys::Function is thread-safe to make set_hook() happy.
-unsafe impl Send for JsPanicHook {}
-unsafe impl Sync for JsPanicHook {}
+unsafe impl Send for Logger {}
+unsafe impl Sync for Logger {}
+impl Log for Logger {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        true
+    }
+
+    fn log(&self, record: &log::Record) {
+        self.0
+            .call1(&JsValue::NULL, &JsValue::from(format!("{}", record.args())))
+            .expect("logging callback should not fail");
+    }
+
+    fn flush(&self) {}
+}
 
 #[wasm_bindgen]
 pub struct LanguageService(language_service::LanguageService<'static>);
@@ -30,8 +35,6 @@ impl LanguageService {
     #[wasm_bindgen(constructor)]
     pub fn new(diagnostics_callback: &js_sys::Function, logger: &js_sys::Function) -> Self {
         let diagnostics_callback = diagnostics_callback.clone();
-        let logger = logger.clone();
-        let panic_logger = JsPanicHook(logger.clone());
         let inner = language_service::LanguageService::new(
             move |uri: &str, version: u32, errors: &[compile::Error]| {
                 let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
@@ -45,20 +48,13 @@ impl LanguageService {
                     )
                     .expect("callback should succeed");
             },
-            move |msg: &str| {
-                logger
-                    .call1(&JsValue::NULL, &wasm_bindgen::JsValue::from(msg))
-                    .expect("callback should succeed");
-            },
         );
 
-        panic::set_hook(Box::new(move |info: &panic::PanicInfo| {
-            panic_logger
-                .call1(
-                    &JsValue::NULL,
-                    &wasm_bindgen::JsValue::from(&info.to_string()),
-                )
-                .expect("panic logger failed, nothing else we can do");
+        log::set_boxed_logger(Box::new(Logger(logger.clone())))
+            .expect("setting logger should succeed");
+
+        panic::set_hook(Box::new(|info: &panic::PanicInfo| {
+            error!("{}", info);
         }));
 
         LanguageService(inner)

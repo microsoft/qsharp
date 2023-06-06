@@ -9,7 +9,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-miette = { workspace = true}
+log = { workspace = true }
+miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc = { path = "../compiler/qsc" }
