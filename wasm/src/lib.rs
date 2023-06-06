@@ -15,12 +15,7 @@ use qsc::{
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
-mod completion;
-mod definition;
-mod hover;
-mod language_service;
 mod language_service_wasm;
-mod ls_utils;
 
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
@@ -215,14 +210,14 @@ pub fn run_kata_exercise(
 mod test {
     use qsc::compile::Error;
 
-    use crate::{language_service::QSharpLanguageService, VSDiagnostic};
+    use crate::VSDiagnostic;
 
     #[test]
     fn test_missing_type() {
         let code = "namespace input { operation Foo(a) : Unit {} }";
         let mut error_callback_called = false;
         {
-            let mut lang_serv = QSharpLanguageService::new(
+            let mut lang_serv = language_service::QSharpLanguageService::new(
                 |diagnostics: &[Error]| {
                     error_callback_called = true;
                     assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");

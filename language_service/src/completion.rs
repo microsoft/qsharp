@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::language_service::CompilationState;
-use crate::ls_utils::span_contains;
+use crate::ls_utils::{span_contains, CompilationState};
 use enum_iterator::all;
 use qsc::hir::ItemKind;
 use qsc_frontend::parse::Keyword;
@@ -22,11 +21,13 @@ enum CompletionKind {
 }
 
 #[derive(Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct CompletionList {
     pub items: Vec<CompletionItem>,
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct CompletionItem {
     pub label: String,
     pub kind: i32,
@@ -47,16 +48,6 @@ pub(crate) fn get_completions(
         .get(compilation_state.std)
         .expect("expected to find std package")
         .package;
-
-    // TODO: I don't like thread locals
-    thread_local! {
-        static KEYWORDS: Vec<CompletionItem> = {
-            all::<Keyword>().map(|k| CompletionItem {
-                label: k.to_string(),
-                kind: CompletionKind::Keyword as i32,
-            }).collect::<Vec<_>>()
-        }
-    }
 
     // Determine context
     let mut context_builder = ContextFinder {
@@ -97,7 +88,12 @@ pub(crate) fn get_completions(
     let mut std_callables = callable_names_from_package(std_package);
 
     // All keywords
-    let mut keywords = KEYWORDS.with(|kws| kws.to_vec());
+    let mut keywords = all::<Keyword>()
+        .map(|k| CompletionItem {
+            label: k.to_string(),
+            kind: CompletionKind::Keyword as i32,
+        })
+        .collect::<Vec<_>>();
 
     // All namespaces
     let mut namespaces = namespace_collector
@@ -155,7 +151,7 @@ impl Visitor<'_> for NamespaceCollector {
             // Collect namespaces
             self.namespaces.insert(ident.name.to_string());
         }
-        qsc_hir::visit::walk_item(self, item)
+        qsc_hir::visit::walk_item(self, item);
     }
 }
 
@@ -182,7 +178,7 @@ impl Visitor<'_> for ContextFinder {
             }
         }
 
-        qsc_hir::visit::walk_item(self, item)
+        qsc_hir::visit::walk_item(self, item);
     }
 
     fn visit_block(&mut self, block: &Block) {

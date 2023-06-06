@@ -19,6 +19,7 @@ katas = { path = "../katas"}
 miette = { workspace = true}
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
+language_service = { path = "../language_service" }
 qsc = { path = "../compiler/qsc" }
 qsc_hir = { path = "../compiler/qsc_hir" }
 qsc_frontend = { path = "../compiler/qsc_frontend" }

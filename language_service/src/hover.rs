@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::language_service::CompilationState;
-use crate::ls_utils::span_contains;
+use crate::ls_utils::{span_contains, CompilationState};
 use qsc_hir::hir::{CallableKind, Ty};
 use qsc_hir::visit::Visitor;
-use std::fmt::Write;
 
 #[derive(Debug)]
 pub struct Hover {
@@ -93,21 +91,7 @@ impl Visitor<'_> for CallableFinder {
                         if items.is_empty() {
                             "()".to_string()
                         } else {
-                            let mut s = String::new();
-                            s.push('(');
-                            if let Some((first, rest)) = items.split_first() {
-                                let _ = write!(s, "{}", first);
-                                if rest.is_empty() {
-                                    s.push_str(", ");
-                                } else {
-                                    for item in rest {
-                                        s.push_str(", ");
-                                        let _ = write!(s, "{}", item);
-                                    }
-                                }
-                            }
-                            s.push(')');
-                            s
+                            format!("{}", &decl.input.ty)
                         }
                     }
                     x => x.to_string(),

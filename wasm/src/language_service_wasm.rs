@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::language_service;
 use miette::{Diagnostic, Severity};
 use qsc::compile::Error;
 use serde::{Deserialize, Serialize};

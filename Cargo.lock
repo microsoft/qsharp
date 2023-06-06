@@ -475,6 +475,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "language_service"
+version = "0.0.0"
+dependencies = [
+ "enum-iterator",
+ "miette",
+ "num-bigint",
+ "num-complex",
+ "qsc",
+ "qsc_data_structures",
+ "qsc_frontend",
+ "qsc_hir",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -926,6 +940,7 @@ dependencies = [
  "getrandom",
  "js-sys",
  "katas",
+ "language_service",
  "miette",
  "num-bigint",
  "num-complex",
