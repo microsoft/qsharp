@@ -10,6 +10,7 @@ use qsc_hir::hir::{
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
+    sync::Arc,
 };
 
 pub(super) struct Solution {
@@ -586,7 +587,7 @@ fn freshen_ty(
     inferrer: &mut Inferrer,
     mode: FreshenMode,
     span: Span,
-    params: &mut HashMap<String, Ty>,
+    params: &mut HashMap<Arc<str>, Ty>,
     ty: &mut Ty,
 ) {
     match ty {
@@ -612,7 +613,7 @@ fn freshen_ty(
         }
         Ty::Param(name) => {
             *ty = params
-                .entry(name.clone())
+                .entry(Arc::clone(name))
                 .or_insert_with(|| inferrer.fresh_ty())
                 .clone();
         }

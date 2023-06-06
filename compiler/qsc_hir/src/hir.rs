@@ -13,6 +13,7 @@ use std::{
     rc::Rc,
     result,
     str::FromStr,
+    sync::Arc,
 };
 
 fn set_indentation<'a, 'b>(
@@ -286,8 +287,8 @@ pub struct CallableDecl {
     pub kind: CallableKind,
     /// The name of the callable.
     pub name: Ident,
-    /// The type parameters to the callable.
-    pub ty_params: Vec<Ident>,
+    /// The generic parameters to the callable.
+    pub generics: Vec<Ident>,
     /// The input to the callable.
     pub input: Pat,
     /// The return type of the callable.
@@ -301,7 +302,7 @@ pub struct CallableDecl {
     /// The body of the Controlled specialization.
     pub ctl: Option<SpecDecl>,
     /// The body of the Controlled-Adjoint specialization.
-    pub ctladj: Option<SpecDecl>,
+    pub ctl_adj: Option<SpecDecl>,
 }
 
 impl CallableDecl {
@@ -327,10 +328,10 @@ impl Display for CallableDecl {
         )?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
-        if !self.ty_params.is_empty() {
-            write!(indent, "\ntype params:")?;
+        if !self.generics.is_empty() {
+            write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for t in &self.ty_params {
+            for t in &self.generics {
                 write!(indent, "\n{t}")?;
             }
             indent = set_indentation(indent, 1);
@@ -347,7 +348,7 @@ impl Display for CallableDecl {
             Some(spec) => write!(indent, "\nctl: {spec}")?,
             None => write!(indent, "\nctl: <none>")?,
         }
-        match &self.ctladj {
+        match &self.ctl_adj {
             Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
             None => write!(indent, "\nctl-adj: <none>")?,
         }
@@ -1067,7 +1068,7 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTy),
     /// A type parameter.
-    Param(String),
+    Param(Arc<str>),
     /// A primitive type.
     Prim(PrimTy),
     /// A tuple type.

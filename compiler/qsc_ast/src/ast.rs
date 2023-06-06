@@ -297,8 +297,8 @@ pub struct CallableDecl {
     pub kind: CallableKind,
     /// The name of the callable.
     pub name: Box<Ident>,
-    /// The type parameters to the callable.
-    pub ty_params: Box<[Box<Ident>]>,
+    /// The generic parameters to the callable.
+    pub generics: Box<[Box<Ident>]>,
     /// The input to the callable.
     pub input: Box<Pat>,
     /// The return type of the callable.
@@ -319,10 +319,10 @@ impl Display for CallableDecl {
         )?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
-        if !self.ty_params.is_empty() {
-            write!(indent, "\ntype params:")?;
+        if !self.generics.is_empty() {
+            write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for t in self.ty_params.iter() {
+            for t in self.generics.iter() {
                 write!(indent, "\n{t}")?;
             }
             indent = set_indentation(indent, 1);

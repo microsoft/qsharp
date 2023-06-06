@@ -212,44 +212,43 @@ impl With<'_> {
         let span = decl.span;
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
-        let ty_params = decl.ty_params.iter().map(|p| self.lower_ident(p)).collect();
+        let generics = decl.generics.iter().map(|p| self.lower_ident(p)).collect();
         let input = self.lower_pat(&decl.input);
         let output = convert::ty_from_ast(self.names, &decl.output).0;
         let functors = convert::ast_callable_functors(decl);
-        let mut adj = None;
-        let mut ctl = None;
-        let mut ctladj = None;
-        let body = match decl.body.as_ref() {
-            ast::CallableBody::Block(block) => hir::SpecDecl {
-                id: self.assigner.next_node(),
-                span,
-                spec: hir::Spec::Body,
-                body: hir::SpecBody::Impl(
-                    hir::Pat {
-                        id: self.assigner.next_node(),
-                        span,
-                        ty: input.ty.clone(),
-                        kind: hir::PatKind::Elided,
-                    },
-                    self.lower_block(block),
-                ),
-            },
-            ast::CallableBody::Specs(specs) => {
-                let body = self
-                    .process_spec(specs, ast::Spec::Body)
-                    .unwrap_or_else(|| {
-                        self.lowerer.errors.push(Error::MissingBody(span));
-                        hir::SpecDecl {
+
+        let (body, adj, ctl, ctl_adj) = match decl.body.as_ref() {
+            ast::CallableBody::Block(block) => {
+                let body = hir::SpecDecl {
+                    id: self.assigner.next_node(),
+                    span,
+                    spec: hir::Spec::Body,
+                    body: hir::SpecBody::Impl(
+                        hir::Pat {
                             id: self.assigner.next_node(),
                             span,
-                            spec: hir::Spec::Body,
-                            body: hir::SpecBody::Gen(hir::SpecGen::Auto),
-                        }
-                    });
-                adj = self.process_spec(specs, ast::Spec::Adj);
-                ctl = self.process_spec(specs, ast::Spec::Ctl);
-                ctladj = self.process_spec(specs, ast::Spec::CtlAdj);
-                body
+                            ty: input.ty.clone(),
+                            kind: hir::PatKind::Elided,
+                        },
+                        self.lower_block(block),
+                    ),
+                };
+                (body, None, None, None)
+            }
+            ast::CallableBody::Specs(specs) => {
+                let body = self.find_spec(specs, ast::Spec::Body).unwrap_or_else(|| {
+                    self.lowerer.errors.push(Error::MissingBody(span));
+                    hir::SpecDecl {
+                        id: self.assigner.next_node(),
+                        span,
+                        spec: hir::Spec::Body,
+                        body: hir::SpecBody::Gen(hir::SpecGen::Auto),
+                    }
+                });
+                let adj = self.find_spec(specs, ast::Spec::Adj);
+                let ctl = self.find_spec(specs, ast::Spec::Ctl);
+                let ctl_adj = self.find_spec(specs, ast::Spec::CtlAdj);
+                (body, adj, ctl, ctl_adj)
             }
         };
 
@@ -258,18 +257,18 @@ impl With<'_> {
             span,
             kind,
             name,
-            ty_params,
+            generics,
             input,
             output,
             functors,
             body,
             adj,
             ctl,
-            ctladj,
+            ctl_adj,
         }
     }
 
-    fn process_spec(
+    fn find_spec(
         &mut self,
         specs: &[Box<ast::SpecDecl>],
         spec: ast::Spec,

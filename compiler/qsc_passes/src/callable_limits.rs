@@ -45,7 +45,7 @@ impl Visitor<'_> for CallableLimits {
 
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         if decl.kind == CallableKind::Function {
-            if decl.adj.is_some() || decl.ctl.is_some() || decl.ctladj.is_some() {
+            if decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some() {
                 self.errors.push(Error::Spec(decl.span));
             }
             if !decl.functors.is_empty() {

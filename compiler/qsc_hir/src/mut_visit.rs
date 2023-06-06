@@ -68,7 +68,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_span(&mut decl.span);
     vis.visit_ident(&mut decl.name);
-    decl.ty_params.iter_mut().for_each(|p| vis.visit_ident(p));
+    decl.generics.iter_mut().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&mut decl.input);
     vis.visit_spec_decl(&mut decl.body);
     decl.adj
@@ -77,7 +77,7 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     decl.ctl
         .iter_mut()
         .for_each(|spec| vis.visit_spec_decl(spec));
-    decl.ctladj
+    decl.ctl_adj
         .iter_mut()
         .for_each(|spec| vis.visit_spec_decl(spec));
 }
