@@ -38,6 +38,8 @@ enum ErrorKind {
     FunctorMismatch(FunctorSet, FunctorSet, #[label] Span),
     #[error("missing class instance {0}")]
     MissingClass(Class, #[label] Span),
+    #[error("expected superset of {0}, found {1}")]
+    MissingFunctor(FunctorSet, FunctorSet, #[label] Span),
     #[error("missing type in item signature")]
     #[diagnostic(help("types cannot be inferred for global declarations"))]
     MissingItemTy(#[label] Span),

@@ -291,7 +291,7 @@ enum Constraint {
         actual: Ty,
         span: Span,
     },
-    SubFunctor {
+    Superset {
         expected: FunctorSetValue,
         actual: FunctorSet,
         span: Span,
@@ -378,7 +378,7 @@ impl Inferrer {
                     match mode {
                         FunctorMode::Fresh => {
                             let functors = inferrer.fresh_functor();
-                            inferrer.constraints.push_back(Constraint::SubFunctor {
+                            inferrer.constraints.push_back(Constraint::Superset {
                                 expected: arrow.functors.expect_value(
                                     "item type should contain only concrete functors",
                                 ),
@@ -468,12 +468,12 @@ impl<'a> Solver<'a> {
                 actual,
                 span,
             } => self.eq(expected, actual, span),
-            Constraint::SubFunctor {
+            Constraint::Superset {
                 expected,
                 actual,
                 span,
             } => {
-                self.sub_functor(expected, actual, span);
+                self.superset(expected, actual, span);
                 Vec::new()
             }
         }
@@ -511,7 +511,7 @@ impl<'a> Solver<'a> {
         self.unify(&expected, &actual, span)
     }
 
-    fn sub_functor(&mut self, expected: FunctorSetValue, mut actual: FunctorSet, span: Span) {
+    fn superset(&mut self, expected: FunctorSetValue, mut actual: FunctorSet, span: Span) {
         substitute_functor(&self.solution, &mut actual);
         match (expected, actual) {
             (_, FunctorSet::Value(FunctorSetValue::CtlAdj))
@@ -526,7 +526,7 @@ impl<'a> Solver<'a> {
                     entry.insert(expected);
                 }
             },
-            (expected, actual) => self.errors.push(Error(ErrorKind::FunctorMismatch(
+            (expected, actual) => self.errors.push(Error(ErrorKind::MissingFunctor(
                 FunctorSet::Value(expected),
                 actual,
                 span,
@@ -619,7 +619,7 @@ impl<'a> Solver<'a> {
         self.pending_functors
             .remove(&infer)
             .map_or(Vec::new(), |expected| {
-                vec![Constraint::SubFunctor {
+                vec![Constraint::Superset {
                     expected,
                     actual: functors,
                     span,
@@ -719,7 +719,7 @@ fn check_add(ty: &Ty) -> bool {
 fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Arrow(arrow) => (
-            vec![Constraint::SubFunctor {
+            vec![Constraint::Superset {
                 expected: FunctorSetValue::Adj,
                 actual: arrow.functors,
                 span,
@@ -787,7 +787,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *arrow.input]));
     (
         vec![
-            Constraint::SubFunctor {
+            Constraint::Superset {
                 expected: FunctorSetValue::Ctl,
                 actual: arrow.functors,
                 span,

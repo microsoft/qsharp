@@ -1455,7 +1455,7 @@ fn adj_non_adj() {
             #9 46-48 "{}" : Unit
             #10 51-64 "Adjoint A.Foo" : (Unit => Unit is Ctl)
             #11 59-64 "A.Foo" : (Unit => Unit is Ctl)
-            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Ctl), Span { lo: 59, hi: 64 }))))
+            Error(Type(Error(MissingFunctor(Value(Adj), Value(Ctl), Span { lo: 59, hi: 64 }))))
         "##]],
     );
 }
@@ -1474,7 +1474,7 @@ fn ctl_non_ctl() {
             #9 46-48 "{}" : Unit
             #10 51-67 "Controlled A.Foo" : (((Qubit)[], Unit) => Unit is Adj)
             #11 62-67 "A.Foo" : (Unit => Unit is Adj)
-            Error(Type(Error(FunctorMismatch(Value(Ctl), Value(Adj), Span { lo: 62, hi: 67 }))))
+            Error(Type(Error(MissingFunctor(Value(Ctl), Value(Adj), Span { lo: 62, hi: 67 }))))
         "##]],
     );
 }
@@ -2450,7 +2450,7 @@ fn lambda_invalid_adjoint_before_functors_inferred() {
             #22 80-82 "()" : Unit
             #24 92-102 "Adjoint op" : (Qubit => Unit is Ctl)
             #25 100-102 "op" : (Qubit => Unit is Ctl)
-            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Ctl), Span { lo: 100, hi: 102 }))))
+            Error(Type(Error(MissingFunctor(Value(Adj), Value(Ctl), Span { lo: 100, hi: 102 }))))
         "##]],
     );
 }
@@ -2775,7 +2775,7 @@ fn functors_in_arg_subset_of_ctladj() {
             #35 131-134 "Foo" : ((Qubit => Unit is Adj) => Unit)
             #38 134-139 "(Bar)" : (Qubit => Unit is Adj)
             #39 135-138 "Bar" : (Qubit => Unit is Adj)
-            Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Adj), Span { lo: 131, hi: 139 }))))
+            Error(Type(Error(MissingFunctor(Value(CtlAdj), Value(Adj), Span { lo: 131, hi: 139 }))))
         "##]],
     );
 }
@@ -2828,7 +2828,7 @@ fn functors_in_arg_nested_arrow_superset_of_adj() {
             #40 146-149 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
             #43 149-154 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
             #44 150-153 "Bar" : ((Qubit => Unit is Adj) => Unit)
-            Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Adj), Span { lo: 146, hi: 154 }))))
+            Error(Type(Error(MissingFunctor(Value(CtlAdj), Value(Adj), Span { lo: 146, hi: 154 }))))
         "##]],
     );
 }
@@ -2935,7 +2935,7 @@ fn functors_in_arg_array_subset_of_adj() {
             #37 126-133 "([Bar])" : ((Qubit => Unit))[]
             #38 127-132 "[Bar]" : ((Qubit => Unit))[]
             #39 128-131 "Bar" : (Qubit => Unit)
-            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Empty), Span { lo: 123, hi: 133 }))))
+            Error(Type(Error(MissingFunctor(Value(Adj), Value(Empty), Span { lo: 123, hi: 133 }))))
         "##]],
     );
 }
