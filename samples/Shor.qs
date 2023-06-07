@@ -537,11 +537,9 @@ namespace Microsoft.Quantum.Samples.Shor {
 
             within {
                 for i in 0..Length(cs1)-1 {
-                    let op = if cNormalized &&& (1 <<< (i+1)) != 0 {
-                        ApplyAnd
-                    } else {
-                        ApplyOr
-                    };
+                    let op =
+                        cNormalized &&& (1 <<< (i+1)) != 0 ?
+                        ApplyAnd | ApplyOr;
                     op(cs1[i], xNormalized[i+1], qs[i]);
                 }
             } apply {

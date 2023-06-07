@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.Samples.Qrng {
         Reset(q);
 
         // Return the result of the measurement.
-        result
+        return result;
 
         // Note that Qubit `q` is automatically released
         // at the end of the block.
@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.Samples.Qrng {
 
         // Return random number if it is within the requested range
         // Or sample it again if it is outside the range.
-        sample > max ? SampleRandomNumberInRange(max) | sample
+        return sample > max ? SampleRandomNumberInRange(max) | sample;
     }
 
     @EntryPoint()
@@ -42,6 +42,6 @@ namespace Microsoft.Quantum.Samples.Qrng {
         Message($"Sampling a random number between 0 and {max}: ");
 
         // Draw and return random number from 0..max range.
-        SampleRandomNumberInRange(max)
+        return SampleRandomNumberInRange(max);
     }
 }

@@ -89,7 +89,7 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         Reset(target);
 
         // Return true if the received message was One.
-        result == One
+        return result == One;
     }
 
     /// # Summary
@@ -110,13 +110,13 @@ namespace Microsoft.Quantum.Samples.Teleportation {
     /// # Summary
     /// Returns true if qubit is |+⟩ (assumes qubit is either |+⟩ or |−⟩)
     operation MeasureIsPlus(q: Qubit) : Bool {
-        Measure([PauliX], [q]) == Zero
+        return Measure([PauliX], [q]) == Zero;
     }
 
     /// # Summary
     /// Returns true if qubit is |−⟩ (assumes qubit is either |+> or |−⟩)
     operation MeasureIsMinus(q: Qubit) : Bool {
-        Measure([PauliX], [q]) == One
+        return Measure([PauliX], [q]) == One;
     }
 
     /// # Summary
