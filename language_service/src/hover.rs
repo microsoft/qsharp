@@ -1,17 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use crate::qsc_utils::{span_contains, Compilation};
 use qsc_hir::hir::{CallableKind, Ty};
 use qsc_hir::visit::Visitor;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Hover {
     pub contents: String,
     pub span: Span,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Span {
     pub start: u32,
     pub end: u32,
@@ -40,8 +43,8 @@ pub(crate) fn get_hover(
     callable_finder.header.map(|header| Hover {
         contents: header,
         span: Span {
-            start: offset,
-            end: offset + 1,
+            start: callable_finder.start,
+            end: callable_finder.end,
         },
     })
 }
@@ -100,8 +103,8 @@ impl Visitor<'_> for CallableFinder {
             );
 
             self.header = Some(header);
-            self.start = decl.span.lo;
-            self.end = decl.span.hi;
+            self.start = decl.name.span.lo;
+            self.end = decl.name.span.hi;
         }
     }
 }

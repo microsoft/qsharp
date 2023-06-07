@@ -16,7 +16,7 @@ use qsc_hir::{
 use std::collections::HashSet;
 
 // It would have been nice to match these enum values to the ones used by
-// VS Code and Monaco, but unfortunately those two disagree in the exact values.
+// VS Code and Monaco, but unfortunately those two disagree on the values.
 // So we define our own unique enum here to reduce confusion.
 #[derive(Clone, Debug, PartialEq)]
 #[allow(clippy::module_name_repetitions)]

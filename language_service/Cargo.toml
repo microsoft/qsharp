@@ -9,6 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+indoc = { workspace = true }
 log = { workspace = true }
 miette = { workspace = true }
 num-bigint = { workspace = true }

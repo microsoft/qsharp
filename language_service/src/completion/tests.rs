@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{get_completions, CompletionItem, CompletionItemKind};
-use crate::test_utils::{compile_with_fake_stdlib, get_source_and_cursor_offsets};
+use crate::test_utils::{compile_with_fake_stdlib, get_source_and_marker_offsets};
 
 #[test]
 fn in_block_contains_std_functions() {
@@ -55,8 +55,10 @@ fn top_level_contains_namespace() {
     );
 }
 
+/// Asserts that the completion list at the given cursor position contains the expected completions.
+/// The cursor position is indicated by a `↘` marker in the source text.
 fn assert_completions_contain(source_with_cursor: &str, completions: &[CompletionItem]) {
-    let (source, cursor_offset) = get_source_and_cursor_offsets(source_with_cursor);
+    let (source, cursor_offset, _) = get_source_and_marker_offsets(source_with_cursor);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual_completions = get_completions(&compilation, "<source>", cursor_offset[0]);
     for expected_completion in completions.iter() {

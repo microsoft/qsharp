@@ -5,19 +5,28 @@ use crate::qsc_utils::Compilation;
 use qsc::{compile, PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
 
-pub(crate) fn get_source_and_cursor_offsets(source_with_cursor: &str) -> (String, Vec<u32>) {
-    let mut offsets: Vec<u32> = Vec::new();
-    let mut source = source_with_cursor.to_string();
+pub(crate) fn get_source_and_marker_offsets(
+    source_with_markers: &str,
+) -> (String, Vec<u32>, Vec<u32>) {
+    let mut cursor_offsets: Vec<u32> = Vec::new();
+    let mut target_offsets: Vec<u32> = Vec::new();
+    let mut source = source_with_markers.to_string();
+    let markers = &['↘', '◉'];
+
     loop {
-        let cursor_offset = source.find("↘");
-        match cursor_offset {
+        let next_offset = source.find(markers);
+        match next_offset {
             #[allow(clippy::cast_possible_truncation)]
-            Some(offset) => offsets.push(offset as u32),
+            Some(offset) => match source.chars().nth(offset) {
+                Some('↘') => cursor_offsets.push(offset as u32),
+                Some('◉') => target_offsets.push(offset as u32),
+                _ => panic!("Expected to find marker"),
+            },
             None => break,
         };
-        source = source.replacen("↘", "", 1);
+        source = source.replacen(markers, "", 1);
     }
-    (source, offsets)
+    (source, cursor_offsets, target_offsets)
 }
 
 pub(crate) fn compile_with_fake_stdlib(source_name: &str, source_contents: &str) -> Compilation {
