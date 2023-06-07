@@ -173,7 +173,7 @@ fn return_wrong_type() {
             #6 30-32 "()" : Unit
             #10 39-47 "{ true }" : Bool
             #12 41-45 "true" : Bool
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 39, hi: 47 }))))
+            Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 41, hi: 45 }))))
         "##]],
     );
 }
@@ -191,7 +191,7 @@ fn return_semi() {
             #6 30-32 "()" : Unit
             #10 39-45 "{ 4; }" : Unit
             #12 41-42 "4" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 45 }))))
+            Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 41, hi: 43 }))))
         "##]],
     );
 }
@@ -707,7 +707,7 @@ fn let_tuple_arity_error() {
             #11 18-24 "(0, 1)" : (Int, Int)
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
-            Error(Type(Error(Mismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 6, hi: 15 }))))
+            Error(Type(Error(Mismatch(Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Tuple([Prim(Int), Prim(Int)]), Span { lo: 18, hi: 24 }))))
         "##]],
     );
 }
@@ -1117,7 +1117,7 @@ fn ternop_update_udt_unknown_field_name() {
             #36 133-134 "p" : UDT<Item 1>
             #39 138-143 "Third" : ?
             #42 147-148 "3" : Int
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 129, hi: 130 }))))
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 133, hi: 148 }))))
         "##]],
     );
 }
@@ -1154,7 +1154,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #42 163-164 "p" : UDT<Item 1>
             #45 168-173 "Third" : ?
             #48 177-178 "3" : Int
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 159, hi: 160 }))))
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 163, hi: 178 }))))
         "##]],
     );
 }
@@ -1382,7 +1382,7 @@ fn call_controlled_error() {
             #39 163-166 "[1]" : (Int)[]
             #40 164-165 "1" : Int
             #41 168-169 "q" : Qubit
-            Error(Type(Error(Mismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 }))))
+            Error(Type(Error(Mismatch(Prim(Qubit), Prim(Int), Span { lo: 146, hi: 170 }))))
         "##]],
     );
 }
@@ -1556,13 +1556,13 @@ fn return_diverges_stmt_after() {
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #17 61-62 "x" : ?0
-            #19 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #20 65-115 "{\n            return 1;\n            true\n        }" : ?0
+            #17 61-62 "x" : ?3
+            #19 65-115 "{\n            return 1;\n            true\n        }" : ?3
+            #20 65-115 "{\n            return 1;\n            true\n        }" : ?3
             #22 79-87 "return 1" : ?1
             #23 86-87 "1" : Int
             #25 101-105 "true" : Bool
-            #27 125-126 "x" : ?0
+            #27 125-126 "x" : ?3
         "##]],
     );
 }
@@ -1988,12 +1988,12 @@ fn newtype_does_not_match_base_ty() {
         "",
         &expect![[r##"
             #12 56-58 "()" : Unit
-            #16 65-78 "{ NewInt(5) }" : Int
-            #18 67-76 "NewInt(5)" : Int
+            #16 65-78 "{ NewInt(5) }" : UDT<Item 1>
+            #18 67-76 "NewInt(5)" : UDT<Item 1>
             #19 67-73 "NewInt" : (Int -> UDT<Item 1>)
             #22 73-76 "(5)" : Int
             #23 74-75 "5" : Int
-            Error(Type(Error(Mismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Prim(Int), Span { lo: 67, hi: 76 }))))
+            Error(Type(Error(Mismatch(Prim(Int), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 67, hi: 76 }))))
         "##]],
     );
 }
@@ -2011,12 +2011,12 @@ fn newtype_does_not_match_other_newtype() {
         "",
         &expect![[r##"
             #18 84-86 "()" : Unit
-            #22 97-111 "{ NewInt1(5) }" : UDT<Item 2>
-            #24 99-109 "NewInt1(5)" : UDT<Item 2>
+            #22 97-111 "{ NewInt1(5) }" : UDT<Item 1>
+            #24 99-109 "NewInt1(5)" : UDT<Item 1>
             #25 99-106 "NewInt1" : (Int -> UDT<Item 1>)
             #28 106-109 "(5)" : Int
             #29 107-108 "5" : Int
-            Error(Type(Error(Mismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
+            Error(Type(Error(Mismatch(Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 99, hi: 109 }))))
         "##]],
     );
 }
@@ -2083,8 +2083,8 @@ fn newtype_field_invalid() {
             #13 59-68 "(x : Foo)" : UDT<Item 1>
             #14 60-67 "x : Foo" : UDT<Item 1>
             #20 74-106 "{\n        let y = x::Nope;\n    }" : Unit
-            #22 88-89 "y" : ?0
-            #24 92-99 "x::Nope" : ?0
+            #22 88-89 "y" : ?1
+            #24 92-99 "x::Nope" : ?1
             #25 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferTy(1)) }, Span { lo: 92, hi: 99 }))))
         "##]],
@@ -2177,7 +2177,7 @@ fn local_function_error() {
             #23 86-91 "Bar()" : Int
             #24 86-89 "Bar" : (Unit -> Int)
             #27 89-91 "()" : Unit
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 77 }))))
+            Error(Type(Error(Mismatch(Prim(Int), Prim(Double), Span { lo: 72, hi: 75 }))))
         "##]],
     );
 }
@@ -2227,7 +2227,7 @@ fn local_function_last_stmt_is_unit_block() {
             #21 75-77 "()" : Unit
             #25 84-89 "{ 4 }" : Int
             #27 86-87 "4" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 95 }))))
+            Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 63, hi: 89 }))))
         "##]],
     );
 }
@@ -2450,7 +2450,7 @@ fn lambda_invalid_adjoint_before_functors_inferred() {
             #22 80-82 "()" : Unit
             #24 92-102 "Adjoint op" : (Qubit => Unit is Ctl)
             #25 100-102 "op" : (Qubit => Unit is Ctl)
-            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 100, hi: 102 }))))
+            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 92, hi: 102 }))))
         "##]],
     );
 }
