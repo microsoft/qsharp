@@ -3117,3 +3117,59 @@ fn functors_in_arg_bound_to_let_becomes_monotype() {
         "##]],
     );
 }
+
+#[test]
+fn duplicate_callable_decls_inferred_and_ignored() {
+    check(
+        indoc! {"
+            namespace Test {
+                function Foo() : Bool { true }
+                function Foo() : Unit {}
+                function Bar() : Unit {
+                    let val = Foo();
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 33-35 "()" : Unit
+            #10 43-51 "{ true }" : Bool
+            #12 45-49 "true" : Bool
+            #16 68-70 "()" : Unit
+            #20 78-80 "{}" : Unit
+            #24 97-99 "()" : Unit
+            #28 107-139 "{\n        let val = Foo();\n    }" : Unit
+            #30 121-124 "val" : Bool
+            #32 127-132 "Foo()" : Bool
+            #33 127-130 "Foo" : (Unit -> Bool)
+            #36 130-132 "()" : Unit
+            Error(Resolve(Duplicate("Foo", "Test", Span { lo: 65, hi: 68 })))
+        "##]],
+    );
+}
+
+#[test]
+fn duplicate_type_decls_inferred_and_ignored() {
+    check(
+        indoc! {"
+            namespace Test {
+                newtype Foo = Bool;
+                newtype Foo = Unit;
+                function Bar() : Unit {
+                    let val = Foo(true);
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #18 81-83 "()" : Unit
+            #22 91-127 "{\n        let val = Foo(true);\n    }" : Unit
+            #24 105-108 "val" : UDT<Item 1>
+            #26 111-120 "Foo(true)" : UDT<Item 1>
+            #27 111-114 "Foo" : (Bool -> UDT<Item 1>)
+            #30 114-120 "(true)" : Bool
+            #31 115-119 "true" : Bool
+            Error(Resolve(Duplicate("Foo", "Test", Span { lo: 53, hi: 56 })))
+        "##]],
+    );
+}
