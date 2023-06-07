@@ -390,8 +390,8 @@ fn resolve_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    globals.add_local_package(assigner, package);
-    let mut resolver = Resolver::new(globals);
+    let errors = globals.add_local_package(assigner, package);
+    let mut resolver = Resolver::new(globals, errors);
     resolver.with(assigner).visit_package(package);
     resolver.into_names()
 }

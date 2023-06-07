@@ -91,8 +91,8 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     AstAssigner::new().visit_package(&mut package);
     let mut assigner = HirAssigner::new();
     let mut globals = super::GlobalTable::new();
-    globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let errors = globals.add_local_package(&mut assigner, &package);
+    let mut resolver = Resolver::new(globals, errors);
     resolver.with(&mut assigner).visit_package(&package);
     let (names, resolve_errors) = resolver.into_names();
     (package, names, resolve_errors)
@@ -162,6 +162,26 @@ fn global_callable_internal() {
                     item1();
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn global_callable_duplicate_error() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+                operation A() : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+                operation item2() : Unit {}
+            }
+
+            // Duplicate("Foo.A", Span { lo: 57, hi: 58 })
         "#]],
     );
 }
@@ -690,6 +710,26 @@ fn ty_decl() {
                 newtype item1 = Unit;
                 function item2(local14 : item1) : Unit {}
             }
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl_duplicate_error() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = Unit;
+                newtype A = Bool;
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = Unit;
+                newtype item2 = Bool;
+            }
+
+            // Duplicate("Foo.A", Span { lo: 50, hi: 51 })
         "#]],
     );
 }

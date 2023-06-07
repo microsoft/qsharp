@@ -16,7 +16,7 @@ use qsc_hir::{
     hir::{self, ItemId, LocalItemId, PackageId, PrimTy},
 };
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
     rc::Rc,
     vec,
 };
@@ -46,9 +46,6 @@ pub(super) enum Res {
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
-    #[error("`{0}` not found")]
-    NotFound(String, #[label] Span),
-
     #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
     Ambiguous {
         name: String,
@@ -61,6 +58,12 @@ pub(super) enum Error {
         #[label("and also in this namespace")]
         second_open_span: Span,
     },
+
+    #[error("Duplicate delcaration for item `{0}`")]
+    Duplicate(String, #[label] Span),
+
+    #[error("`{0}` not found")]
+    NotFound(String, #[label] Span),
 }
 
 struct Scope {
@@ -133,12 +136,12 @@ pub(super) struct Resolver {
 }
 
 impl Resolver {
-    pub(super) fn new(globals: GlobalTable) -> Self {
+    pub(super) fn new(globals: GlobalTable, errors: Vec<Error>) -> Self {
         Self {
             names: globals.names,
             globals: globals.scope,
             scopes: Vec::new(),
-            errors: Vec::new(),
+            errors,
         }
     }
 
@@ -263,13 +266,13 @@ impl AstVisitor<'_> for With<'_> {
                 .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
-                bind_global_item(
+                self.resolver.errors.append(&mut bind_global_item(
                     &mut self.resolver.names,
                     &mut self.resolver.globals,
                     &namespace.name.name,
                     || intrapackage(self.assigner.next_item()),
                     item,
-                );
+                ));
             }
         }
 
@@ -406,7 +409,12 @@ impl GlobalTable {
         }
     }
 
-    pub(super) fn add_local_package(&mut self, assigner: &mut Assigner, package: &ast::Package) {
+    pub(super) fn add_local_package(
+        &mut self,
+        assigner: &mut Assigner,
+        package: &ast::Package,
+    ) -> Vec<Error> {
+        let mut errors = Vec::new();
         for namespace in package.namespaces.iter() {
             self.names.insert(
                 namespace.name.id,
@@ -417,15 +425,16 @@ impl GlobalTable {
                 .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
-                bind_global_item(
+                errors.append(&mut bind_global_item(
                     &mut self.names,
                     &mut self.scope,
                     &namespace.name.name,
                     || intrapackage(assigner.next_item()),
                     item,
-                );
+                ));
             }
         }
+        errors
     }
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
@@ -488,16 +497,26 @@ fn bind_global_item(
     namespace: &Rc<str>,
     next_id: impl FnOnce() -> ItemId,
     item: &ast::Item,
-) {
+) -> Vec<Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
             let res = Res::Item(next_id());
             names.insert(decl.name.id, res);
-            scope
+            match scope
                 .terms
                 .entry(Rc::clone(namespace))
                 .or_default()
-                .insert(Rc::clone(&decl.name.name), res);
+                .entry(Rc::clone(&decl.name.name))
+            {
+                Entry::Occupied(_) => vec![Error::Duplicate(
+                    format!("{}.{}", namespace, &decl.name.name),
+                    decl.name.span,
+                )],
+                Entry::Vacant(entry) => {
+                    entry.insert(res);
+                    Vec::new()
+                }
+            }
         }
         ast::ItemKind::Ty(name, _) => {
             let res = Res::Item(next_id());
@@ -507,13 +526,23 @@ fn bind_global_item(
                 .entry(Rc::clone(namespace))
                 .or_default()
                 .insert(Rc::clone(&name.name), res);
-            scope
+            match scope
                 .terms
                 .entry(Rc::clone(namespace))
                 .or_default()
-                .insert(Rc::clone(&name.name), res);
+                .entry(Rc::clone(&name.name))
+            {
+                Entry::Occupied(_) => vec![Error::Duplicate(
+                    format!("{}.{}", namespace, &name.name),
+                    name.span,
+                )],
+                Entry::Vacant(entry) => {
+                    entry.insert(res);
+                    Vec::new()
+                }
+            }
         }
-        ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
+        ast::ItemKind::Err | ast::ItemKind::Open(..) => Vec::new(),
     }
 }
 

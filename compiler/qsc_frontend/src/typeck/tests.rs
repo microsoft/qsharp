@@ -84,8 +84,8 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
     let mut assigner = HirAssigner::new();
 
     let mut globals = resolve::GlobalTable::new();
-    globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals);
+    let errors = globals.add_local_package(&mut assigner, &package);
+    let mut resolver = Resolver::new(globals, errors);
     resolver.with(&mut assigner).visit_package(&package);
     let (names, resolve_errors) = resolver.into_names();
 
