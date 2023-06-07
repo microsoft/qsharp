@@ -18,7 +18,7 @@ use std::collections::HashSet;
 // It would have been nice to match these enum values to the ones used by
 // VS Code and Monaco, but unfortunately those two disagree in the exact values.
 // So we define our own unique enum here to reduce confusion.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[allow(clippy::module_name_repetitions)]
 pub enum CompletionItemKind {
     Function,
@@ -33,7 +33,7 @@ pub struct CompletionList {
     pub items: Vec<CompletionItem>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[allow(clippy::module_name_repetitions)]
 pub struct CompletionItem {
     pub label: String,
