@@ -5,9 +5,8 @@
 mod tests;
 
 use crate::qsc_utils::{span_contains, Compilation};
+use qsc::hir::{visit::Visitor, ExprKind, ItemKind, Package, Res};
 use qsc::SourceMap;
-use qsc_hir::hir::{ExprKind, ItemKind, Package, Res};
-use qsc_hir::visit::Visitor;
 
 #[derive(Debug, PartialEq)]
 pub struct Definition {

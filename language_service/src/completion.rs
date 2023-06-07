@@ -5,11 +5,9 @@
 mod tests;
 
 use crate::qsc_utils::{span_contains, Compilation};
-use qsc::hir::ItemKind;
-use qsc_hir::hir::Package;
-use qsc_hir::{
-    hir::{Block, Item},
+use qsc::hir::{
     visit::Visitor,
+    ItemKind, {Block, Item, Package},
 };
 use std::collections::HashSet;
 
