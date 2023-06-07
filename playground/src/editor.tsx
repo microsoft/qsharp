@@ -163,7 +163,7 @@ export function Editor(props: {
   }, [props.shotError]);
 
   useEffect(() => {
-    // Whenever the active tab changes, run check again).
+    // Whenever the active tab changes, run check again.
     checkRef.current();
   }, [props.activeTab]);
 
