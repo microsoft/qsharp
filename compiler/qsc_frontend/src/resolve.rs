@@ -136,12 +136,12 @@ pub(super) struct Resolver {
 }
 
 impl Resolver {
-    pub(super) fn new(globals: GlobalTable, errors: Vec<Error>) -> Self {
+    pub(super) fn new(globals: GlobalTable) -> Self {
         Self {
             names: globals.names,
             globals: globals.scope,
             scopes: Vec::new(),
-            errors,
+            errors: Vec::new(),
         }
     }
 
@@ -266,13 +266,16 @@ impl AstVisitor<'_> for With<'_> {
                 .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
-                self.resolver.errors.append(&mut bind_global_item(
+                match bind_global_item(
                     &mut self.resolver.names,
                     &mut self.resolver.globals,
                     &namespace.name.name,
                     || intrapackage(self.assigner.next_item()),
                     item,
-                ));
+                ) {
+                    Ok(()) => {}
+                    Err(error) => self.resolver.errors.push(error),
+                }
             }
         }
 
@@ -425,13 +428,16 @@ impl GlobalTable {
                 .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
-                errors.append(&mut bind_global_item(
+                match bind_global_item(
                     &mut self.names,
                     &mut self.scope,
                     &namespace.name.name,
                     || intrapackage(assigner.next_item()),
                     item,
-                ));
+                ) {
+                    Ok(()) => {}
+                    Err(error) => errors.push(error),
+                }
             }
         }
         errors
@@ -497,7 +503,7 @@ fn bind_global_item(
     namespace: &Rc<str>,
     next_id: impl FnOnce() -> ItemId,
     item: &ast::Item,
-) -> Vec<Error> {
+) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
             let res = Res::Item(next_id());
@@ -508,13 +514,14 @@ fn bind_global_item(
                 .or_default()
                 .entry(Rc::clone(&decl.name.name))
             {
-                Entry::Occupied(_) => vec![Error::Duplicate(
-                    format!("{}.{}", namespace, &decl.name.name),
+                Entry::Occupied(_) => Err(Error::Duplicate(
+                    decl.name.name.to_string(),
+                    namespace.to_string(),
                     decl.name.span,
-                )],
+                )),
                 Entry::Vacant(entry) => {
                     entry.insert(res);
-                    Vec::new()
+                    Ok(())
                 }
             }
         }
@@ -532,17 +539,18 @@ fn bind_global_item(
                 .or_default()
                 .entry(Rc::clone(&name.name))
             {
-                Entry::Occupied(_) => vec![Error::Duplicate(
-                    format!("{}.{}", namespace, &name.name),
+                Entry::Occupied(_) => Err(Error::Duplicate(
+                    name.name.to_string(),
+                    namespace.to_string(),
                     name.span,
-                )],
+                )),
                 Entry::Vacant(entry) => {
                     entry.insert(res);
-                    Vec::new()
+                    Ok(())
                 }
             }
         }
-        ast::ItemKind::Err | ast::ItemKind::Open(..) => Vec::new(),
+        ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
     }
 }
 

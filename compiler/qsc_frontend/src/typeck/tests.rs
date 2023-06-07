@@ -84,16 +84,17 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
     let mut assigner = HirAssigner::new();
 
     let mut globals = resolve::GlobalTable::new();
-    let errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals, errors);
+    let mut errors = globals.add_local_package(&mut assigner, &package);
+    let mut resolver = Resolver::new(globals);
     resolver.with(&mut assigner).visit_package(&package);
-    let (names, resolve_errors) = resolver.into_names();
+    let (names, mut resolve_errors) = resolver.into_names();
+    errors.append(&mut resolve_errors);
 
     let mut checker = Checker::new(super::GlobalTable::new());
     checker.check_package(&names, &package);
     let (tys, ty_errors) = checker.into_tys();
 
-    let errors = resolve_errors
+    let errors = errors
         .into_iter()
         .map(Into::into)
         .chain(ty_errors.into_iter().map(Into::into))

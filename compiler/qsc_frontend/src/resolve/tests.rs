@@ -91,11 +91,12 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     AstAssigner::new().visit_package(&mut package);
     let mut assigner = HirAssigner::new();
     let mut globals = super::GlobalTable::new();
-    let errors = globals.add_local_package(&mut assigner, &package);
-    let mut resolver = Resolver::new(globals, errors);
+    let mut errors = globals.add_local_package(&mut assigner, &package);
+    let mut resolver = Resolver::new(globals);
     resolver.with(&mut assigner).visit_package(&package);
-    let (names, resolve_errors) = resolver.into_names();
-    (package, names, resolve_errors)
+    let (names, mut resolve_errors) = resolver.into_names();
+    errors.append(&mut resolve_errors);
+    (package, names, errors)
 }
 
 #[test]
@@ -181,7 +182,7 @@ fn global_callable_duplicate_error() {
                 operation item2() : Unit {}
             }
 
-            // Duplicate("Foo.A", Span { lo: 57, hi: 58 })
+            // Duplicate("A", "Foo", Span { lo: 57, hi: 58 })
         "#]],
     );
 }
@@ -729,7 +730,7 @@ fn ty_decl_duplicate_error() {
                 newtype item2 = Bool;
             }
 
-            // Duplicate("Foo.A", Span { lo: 50, hi: 51 })
+            // Duplicate("A", "Foo", Span { lo: 50, hi: 51 })
         "#]],
     );
 }
