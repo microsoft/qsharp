@@ -46,6 +46,7 @@ fn in_namespace_contains_open() {
 fn top_level_contains_namespace() {
     assert_completions_contain(
         r#"
+        namespace Test {}
         ↘
         "#,
         &[CompletionItem {

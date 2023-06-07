@@ -5,9 +5,7 @@
 mod tests;
 
 use crate::qsc_utils::{span_contains, Compilation};
-use enum_iterator::all;
 use qsc::hir::ItemKind;
-use qsc_frontend::parse::Keyword;
 use qsc_hir::hir::Package;
 use qsc_hir::{
     hir::{Block, Item},
@@ -48,25 +46,12 @@ pub(crate) fn get_completions(
     let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
     let offset = compile_unit.sources.map_offset(source_name, offset);
-    let no_compilation = compile_unit.package.items.values().next().is_none();
     let package = &compile_unit.package;
     let std_package = &compilation
         .package_store
         .get(compilation.std_package_id)
         .expect("expected to find std package")
         .package;
-
-    // Determine context
-    let mut context_builder = ContextFinder {
-        offset,
-        context: if no_compilation {
-            Context::NoCompilation
-        } else {
-            Context::TopLevel
-        },
-    };
-    context_builder.visit_package(package);
-    let context = context_builder.context;
 
     // Collect namespaces
     let mut namespace_collector = NamespaceCollector {
@@ -83,14 +68,6 @@ pub(crate) fn get_completions(
     // All callables from std package
     let mut std_callables = callable_names_from_package(std_package);
 
-    // All keywords
-    let mut keywords = all::<Keyword>()
-        .map(|k| CompletionItem {
-            label: k.to_string(),
-            kind: CompletionItemKind::Keyword,
-        })
-        .collect::<Vec<_>>();
-
     // All namespaces
     let mut namespaces = namespace_collector
         .namespaces
@@ -100,6 +77,18 @@ pub(crate) fn get_completions(
             kind: CompletionItemKind::Module,
         })
         .collect::<Vec<_>>();
+
+    // Determine context for the offset
+    let mut context_builder = ContextFinder {
+        offset,
+        context: if compile_unit.package.items.values().next().is_none() {
+            Context::NoCompilation
+        } else {
+            Context::TopLevel
+        },
+    };
+    context_builder.visit_package(package);
+    let context = context_builder.context;
 
     match context {
         Context::Namespace => {
@@ -111,7 +100,6 @@ pub(crate) fn get_completions(
         }
         Context::Block | Context::NoCompilation => {
             // Add everything we know of.
-            res.items.append(&mut keywords);
             res.items.append(&mut std_callables);
             res.items.append(&mut current_callables);
             res.items.append(&mut namespaces);
