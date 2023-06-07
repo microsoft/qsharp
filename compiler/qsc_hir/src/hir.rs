@@ -9,6 +9,7 @@ use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
+    collections::HashMap,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
     result,
@@ -1072,10 +1073,11 @@ pub struct Scheme {
 impl Scheme {
     /// Instantiates this type scheme with the given arguments.
     pub fn instantiate<'a>(
-        &self,
-        arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
+        &'a self,
+        args: impl IntoIterator<Item = (&'a ParamName, GenericArg)>,
     ) -> ArrowTy {
-        instantiate_arrow_ty(arg, &self.ty)
+        let args: HashMap<_, _> = args.into_iter().collect();
+        instantiate_arrow_ty(|name| args.get(name), &self.ty)
     }
 }
 
@@ -1085,7 +1087,7 @@ fn instantiate_ty<'a>(arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
         Ty::Array(item) => Ty::Array(Box::new(instantiate_ty(arg, item))),
         Ty::Arrow(arrow) => Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow))),
         Ty::Param(name) => {
-            if let Some(GenericArg::Ty(arg)) = arg(&ParamName::Symbol((**name).into())) {
+            if let Some(GenericArg::Ty(arg)) = arg(&ParamName::Symbol(Arc::clone(name))) {
                 arg.clone()
             } else {
                 ty.clone()
@@ -1138,7 +1140,7 @@ impl Display for GenericParam {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum ParamName {
     /// A string identifier.
-    Symbol(Rc<str>),
+    Symbol(Arc<str>),
     /// A numeric identifier.
     Id(u32),
 }

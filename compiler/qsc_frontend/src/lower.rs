@@ -217,8 +217,8 @@ impl With<'_> {
         let generics = decl
             .generics
             .iter()
-            .map(|name| hir::GenericParam {
-                name: hir::ParamName::Symbol(Rc::clone(&name.name)),
+            .map(|param| hir::GenericParam {
+                name: hir::ParamName::Symbol((*param.name).into()),
                 kind: hir::ParamKind::Ty,
             })
             .chain(functor_generics)

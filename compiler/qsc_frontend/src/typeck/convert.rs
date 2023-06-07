@@ -141,8 +141,8 @@ pub(super) fn ast_callable_scheme(
     let params = decl
         .generics
         .iter()
-        .map(|i| GenericParam {
-            name: ParamName::Symbol(Rc::clone(&i.name)),
+        .map(|param| GenericParam {
+            name: ParamName::Symbol((*param.name).into()),
             kind: ParamKind::Ty,
         })
         .chain(functor_params)

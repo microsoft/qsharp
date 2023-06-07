@@ -343,25 +343,22 @@ impl Inferrer {
 
     /// Instantiates the type scheme.
     pub(super) fn instantiate(&mut self, scheme: &Scheme, span: Span) -> ArrowTy {
-        let mut args = HashMap::new();
-        for param in &scheme.params {
+        scheme.instantiate(scheme.params.iter().map(|param| {
             let arg = match param.kind {
                 ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),
-                ParamKind::Functor(min) => {
-                    let functors = self.fresh_functor();
+                ParamKind::Functor(expected) => {
+                    let actual = self.fresh_functor();
                     self.constraints.push_back(Constraint::Superset {
-                        expected: min,
-                        actual: functors,
+                        expected,
+                        actual,
                         span,
                     });
-                    GenericArg::Functor(functors)
+                    GenericArg::Functor(actual)
                 }
             };
 
-            args.insert(&param.name, arg);
-        }
-
-        scheme.instantiate(|name| args.get(name))
+            (&param.name, arg)
+        }))
     }
 
     /// Solves for all variables given the accumulated constraints.
