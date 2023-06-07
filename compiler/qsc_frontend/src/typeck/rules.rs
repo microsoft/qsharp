@@ -76,9 +76,10 @@ impl<'a> Context<'a> {
         }
 
         self.return_ty = Some(spec.output);
-        let block = self.infer_block(spec.block).ty;
+        let block = self.infer_block(spec.block);
         if let Some(return_ty) = self.return_ty.take() {
-            self.inferrer.eq(spec.block.span, return_ty.clone(), block);
+            let span = spec.block.stmts.last().map_or(spec.block.span, |s| s.span);
+            self.inferrer.eq(span, return_ty.clone(), block.ty);
         }
     }
 
@@ -130,9 +131,9 @@ impl<'a> Context<'a> {
             StmtKind::Expr(expr) => self.infer_expr(expr),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
-                let expr = self.infer_expr(expr);
-                self.inferrer.eq(pat.span, expr.ty, pat_ty);
-                self.diverge_if(expr.diverges, converge(Ty::UNIT))
+                let expr_ty = self.infer_expr(expr);
+                self.inferrer.eq(expr.span, pat_ty, expr_ty.ty);
+                self.diverge_if(expr_ty.diverges, converge(Ty::UNIT))
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 let pat_ty = self.infer_pat(pat);
