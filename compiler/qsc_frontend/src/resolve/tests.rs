@@ -179,7 +179,7 @@ fn global_callable_duplicate_error() {
         &expect![[r#"
             namespace item0 {
                 function item1() : Unit {}
-                operation A() : Unit {}
+                operation item2() : Unit {}
             }
 
             // Duplicate("A", "Foo", Span { lo: 57, hi: 58 })
@@ -727,7 +727,7 @@ fn ty_decl_duplicate_error() {
         &expect![[r#"
             namespace item0 {
                 newtype item1 = Unit;
-                newtype A = Bool;
+                newtype item2 = Bool;
             }
 
             // Duplicate("A", "Foo", Span { lo: 50, hi: 51 })
@@ -745,7 +745,7 @@ fn ty_decl_duplicate_error_on_built_in_ty() {
         "},
         &expect![[r#"
             namespace item0 {
-                newtype Pauli = Unit;
+                newtype item1 = Unit;
             }
 
             // Duplicate("Pauli", "Microsoft.Quantum.Core", Span { lo: 47, hi: 52 })
