@@ -326,7 +326,7 @@ impl Display for CallableDecl {
         let mut indent = set_indentation(indented(f), 0);
         write!(
             indent,
-            "Callable {} {} ({:?}):",
+            "Callable {} {} ({}):",
             self.id, self.span, self.kind
         )?;
         indent = set_indentation(indent, 1);
@@ -1234,15 +1234,6 @@ pub enum FunctorSetValue {
 }
 
 impl FunctorSetValue {
-    /// True if this set is empty.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        match self {
-            Self::Empty => true,
-            Self::Adj | Self::Ctl | Self::CtlAdj => false,
-        }
-    }
-
     /// True if this set contains the functor.
     #[must_use]
     pub fn contains(&self, functor: &Functor) -> bool {

@@ -14,7 +14,7 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::hir::{self, ItemId, PackageId, Scheme, Ty, Udt};
+use qsc_hir::hir::{self, FunctorSetValue, ItemId, PackageId, Scheme, Ty, Udt};
 use std::{collections::HashMap, vec};
 
 pub(crate) struct GlobalTable {
@@ -135,7 +135,7 @@ impl Checker {
     }
 
     fn check_callable_signature(&mut self, names: &Names, decl: &ast::CallableDecl) {
-        if !convert::ast_callable_functors(decl).is_empty() {
+        if convert::ast_callable_functors(decl) != FunctorSetValue::Empty {
             let output = convert::ty_from_ast(names, &decl.output).0;
             match &output {
                 Ty::Tuple(items) if items.is_empty() => {}

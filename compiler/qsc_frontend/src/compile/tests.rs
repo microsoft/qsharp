@@ -365,7 +365,7 @@ fn insert_core_call() {
                 Namespace (Ident 6 [10-11] "A"): Item 1
             Item 1 [18-41] (Public):
                 Parent: 0
-                Callable 0 [18-41] (Operation):
+                Callable 0 [18-41] (operation):
                     name: Ident 1 [28-31] "Foo"
                     input: Pat 2 [31-33] [Type Unit]: Unit
                     output: Unit

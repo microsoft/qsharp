@@ -116,7 +116,7 @@ fn lift_local_function() {
                     Namespace (Ident 25 [10-11] "A"): Item 1
                 Item 1 [18-118] (Public):
                     Parent: 0
-                    Callable 0 [18-118] (Function):
+                    Callable 0 [18-118] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [31-38] [Type Int]: Bind: Ident 3 [31-32] "x"
                         output: Int
@@ -135,7 +135,7 @@ fn lift_local_function() {
                         ctl-adj: <none>
                 Item 2 [56-93] (Internal):
                     Parent: 1
-                    Callable 8 [56-93] (Function):
+                    Callable 8 [56-93] (function):
                         name: Ident 9 [65-68] "Bar"
                         input: Pat 10 [69-76] [Type Int]: Bind: Ident 11 [69-70] "y"
                         output: Int
@@ -170,7 +170,7 @@ fn lift_local_operation() {
                     Namespace (Ident 24 [10-11] "A"): Item 1
                 Item 1 [18-141] (Public):
                     Parent: 0
-                    Callable 0 [18-141] (Operation):
+                    Callable 0 [18-141] (operation):
                         name: Ident 1 [28-31] "Foo"
                         input: Pat 2 [31-33] [Type Unit]: Unit
                         output: Result
@@ -190,7 +190,7 @@ fn lift_local_operation() {
                         ctl-adj: <none>
                 Item 2 [53-95] (Internal):
                     Parent: 1
-                    Callable 7 [53-95] (Operation):
+                    Callable 7 [53-95] (operation):
                         name: Ident 8 [63-66] "Bar"
                         input: Pat 9 [67-76] [Type Qubit]: Bind: Ident 10 [67-68] "q"
                         output: Result
@@ -223,7 +223,7 @@ fn lift_local_newtype() {
                     Namespace (Ident 17 [10-11] "A"): Item 1
                 Item 1 [18-108] (Public):
                     Parent: 0
-                    Callable 0 [18-108] (Function):
+                    Callable 0 [18-108] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-32] [Type Unit]: Unit
                         output: Int
@@ -267,7 +267,7 @@ fn lambda_function_empty_closure() {
                     Namespace (Ident 26 [10-11] "A"): Item 1
                 Item 1 [18-87] (Public):
                     Parent: 0
-                    Callable 0 [18-87] (Function):
+                    Callable 0 [18-87] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-32] [Type Unit]: Unit
                         output: Int
@@ -286,7 +286,7 @@ fn lambda_function_empty_closure() {
                         ctl-adj: <none>
                 Item 2 [57-67] (Internal):
                     Parent: 1
-                    Callable 16 [57-67] (Function):
+                    Callable 16 [57-67] (function):
                         name: Ident 17 [57-67] "lambda"
                         input: Pat 15 [57-67] [Type (Int,)]: Tuple:
                             Pat 10 [57-58] [Type Int]: Bind: Ident 11 [57-58] "x"
@@ -319,7 +319,7 @@ fn lambda_function_empty_closure_passed() {
                     Namespace (Ident 33 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-61] (Public):
                     Parent: 0
-                    Callable 0 [18-61] (Function):
+                    Callable 0 [18-61] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [31-45] [Type (Int -> Int)]: Bind: Ident 3 [31-32] "f"
                         output: Int
@@ -335,7 +335,7 @@ fn lambda_function_empty_closure_passed() {
                         ctl-adj: <none>
                 Item 2 [66-106] (Public):
                     Parent: 0
-                    Callable 11 [66-106] (Function):
+                    Callable 11 [66-106] (function):
                         name: Ident 12 [75-78] "Bar"
                         input: Pat 13 [78-80] [Type Unit]: Unit
                         output: Int
@@ -351,7 +351,7 @@ fn lambda_function_empty_closure_passed() {
                         ctl-adj: <none>
                 Item 3 [93-103] (Internal):
                     Parent: 2
-                    Callable 27 [93-103] (Function):
+                    Callable 27 [93-103] (function):
                         name: Ident 28 [93-103] "lambda"
                         input: Pat 26 [93-103] [Type (Int,)]: Tuple:
                             Pat 21 [93-94] [Type Int]: Bind: Ident 22 [93-94] "x"
@@ -387,7 +387,7 @@ fn lambda_function_closure() {
                     Namespace (Ident 32 [10-11] "A"): Item 1
                 Item 1 [18-106] (Public):
                     Parent: 0
-                    Callable 0 [18-106] (Function):
+                    Callable 0 [18-106] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-32] [Type Unit]: Unit
                         output: Int
@@ -409,7 +409,7 @@ fn lambda_function_closure() {
                         ctl-adj: <none>
                 Item 2 [76-86] (Internal):
                     Parent: 1
-                    Callable 22 [76-86] (Function):
+                    Callable 22 [76-86] (function):
                         name: Ident 23 [76-86] "lambda"
                         input: Pat 20 [76-86] [Type (Int, Int)]: Tuple:
                             Pat 21 [76-86] [Type Int]: Bind: Ident 19 [76-86] "closed"
@@ -446,7 +446,7 @@ fn lambda_function_closure_repeated_var() {
                     Namespace (Ident 34 [10-11] "A"): Item 1
                 Item 1 [18-110] (Public):
                     Parent: 0
-                    Callable 0 [18-110] (Function):
+                    Callable 0 [18-110] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-32] [Type Unit]: Unit
                         output: Int
@@ -468,7 +468,7 @@ fn lambda_function_closure_repeated_var() {
                         ctl-adj: <none>
                 Item 2 [76-90] (Internal):
                     Parent: 1
-                    Callable 24 [76-90] (Function):
+                    Callable 24 [76-90] (function):
                         name: Ident 25 [76-90] "lambda"
                         input: Pat 22 [76-90] [Type (Int, Int)]: Tuple:
                             Pat 23 [76-90] [Type Int]: Bind: Ident 21 [76-90] "closed"
@@ -507,7 +507,7 @@ fn lambda_function_closure_passed() {
                     Namespace (Ident 39 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-61] (Public):
                     Parent: 0
-                    Callable 0 [18-61] (Function):
+                    Callable 0 [18-61] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [31-45] [Type (Int -> Int)]: Bind: Ident 3 [31-32] "f"
                         output: Int
@@ -523,7 +523,7 @@ fn lambda_function_closure_passed() {
                         ctl-adj: <none>
                 Item 2 [66-137] (Public):
                     Parent: 0
-                    Callable 11 [66-137] (Function):
+                    Callable 11 [66-137] (function):
                         name: Ident 12 [75-78] "Bar"
                         input: Pat 13 [78-80] [Type Unit]: Unit
                         output: Int
@@ -542,7 +542,7 @@ fn lambda_function_closure_passed() {
                         ctl-adj: <none>
                 Item 3 [120-130] (Internal):
                     Parent: 2
-                    Callable 33 [120-130] (Function):
+                    Callable 33 [120-130] (function):
                         name: Ident 34 [120-130] "lambda"
                         input: Pat 31 [120-130] [Type (Int, Int)]: Tuple:
                             Pat 32 [120-130] [Type Int]: Bind: Ident 30 [120-130] "closed"
@@ -582,7 +582,7 @@ fn lambda_function_nested_closure() {
                     Namespace (Ident 68 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-71] (Public):
                     Parent: 0
-                    Callable 0 [18-71] (Function):
+                    Callable 0 [18-71] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [31-52] [Type (Int -> (Int -> Int))]: Bind: Ident 3 [31-32] "f"
                         output: Int
@@ -600,7 +600,7 @@ fn lambda_function_nested_closure() {
                         ctl-adj: <none>
                 Item 2 [76-207] (Public):
                     Parent: 0
-                    Callable 13 [76-207] (Function):
+                    Callable 13 [76-207] (function):
                         name: Ident 14 [85-88] "Bar"
                         input: Pat 15 [88-90] [Type Unit]: Unit
                         output: Int
@@ -619,7 +619,7 @@ fn lambda_function_nested_closure() {
                         ctl-adj: <none>
                 Item 3 [172-190] (Internal):
                     Parent: 2
-                    Callable 53 [172-190] (Function):
+                    Callable 53 [172-190] (function):
                         name: Ident 54 [172-190] "lambda"
                         input: Pat 49 [172-190] [Type (Int, Int, Int, Int)]: Tuple:
                             Pat 50 [172-190] [Type Int]: Bind: Ident 46 [172-190] "closed"
@@ -643,7 +643,7 @@ fn lambda_function_nested_closure() {
                         ctl-adj: <none>
                 Item 4 [130-200] (Internal):
                     Parent: 2
-                    Callable 62 [130-200] (Function):
+                    Callable 62 [130-200] (function):
                         name: Ident 63 [130-200] "lambda"
                         input: Pat 60 [130-200] [Type (Int, Int)]: Tuple:
                             Pat 61 [130-200] [Type Int]: Bind: Ident 59 [130-200] "closed"
@@ -682,7 +682,7 @@ fn lambda_operation_empty_closure() {
                     Namespace (Ident 35 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-101] (Public):
                     Parent: 0
-                    Callable 0 [18-101] (Operation):
+                    Callable 0 [18-101] (operation):
                         name: Ident 1 [28-31] "Foo"
                         input: Pat 2 [32-48] [Type (Qubit => Unit)]: Bind: Ident 3 [32-34] "op"
                         output: Unit
@@ -701,15 +701,15 @@ fn lambda_operation_empty_closure() {
                         ctl-adj: <none>
                 Item 2 [106-147] (Public):
                     Parent: 0
-                    Callable 15 [106-147] (Operation):
+                    Callable 15 [106-147] (operation):
                         name: Ident 16 [116-119] "Bar"
                         input: Pat 17 [119-121] [Type Unit]: Unit
                         output: Result
                         functors: empty set
                         body: SpecDecl 18 [106-147] (Body): Impl:
                             Pat 19 [106-147] [Type Unit]: Elided
-                            Block 20 [131-147] [Type Result]:
-                                Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Result]: Call:
+                            Block 20 [131-147] [Type Unit]:
+                                Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Unit]: Call:
                                     Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
                                     Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                         adj: <none>
@@ -717,7 +717,7 @@ fn lambda_operation_empty_closure() {
                         ctl-adj: <none>
                 Item 3 [137-144] (Internal):
                     Parent: 2
-                    Callable 29 [137-144] (Operation):
+                    Callable 29 [137-144] (operation):
                         name: Ident 30 [137-144] "lambda"
                         input: Pat 28 [137-144] [Type (Qubit,)]: Tuple:
                             Pat 25 [137-138] [Type Qubit]: Bind: Ident 26 [137-138] "q"
@@ -752,7 +752,7 @@ fn lambda_operation_closure() {
                     Namespace (Ident 43 [10-11] "A"): Item 1, Item 2, Item 3
                 Item 1 [18-75] (Public):
                     Parent: 0
-                    Callable 0 [18-75] (Operation):
+                    Callable 0 [18-75] (operation):
                         name: Ident 1 [28-35] "MResetZ"
                         input: Pat 2 [36-45] [Type Qubit]: Bind: Ident 3 [36-37] "q"
                         output: Result
@@ -763,7 +763,7 @@ fn lambda_operation_closure() {
                         ctl-adj: <none>
                 Item 2 [80-130] (Public):
                     Parent: 0
-                    Callable 5 [80-130] (Operation):
+                    Callable 5 [80-130] (operation):
                         name: Ident 6 [90-93] "Foo"
                         input: Pat 7 [94-111] [Type (Unit => Result)]: Bind: Ident 8 [94-96] "op"
                         output: Result
@@ -779,7 +779,7 @@ fn lambda_operation_closure() {
                         ctl-adj: <none>
                 Item 3 [135-222] (Public):
                     Parent: 0
-                    Callable 16 [135-222] (Operation):
+                    Callable 16 [135-222] (operation):
                         name: Ident 17 [145-148] "Bar"
                         input: Pat 18 [148-150] [Type Unit]: Unit
                         output: Result
@@ -798,7 +798,7 @@ fn lambda_operation_closure() {
                         ctl-adj: <none>
                 Item 4 [199-215] (Internal):
                     Parent: 3
-                    Callable 37 [199-215] (Operation):
+                    Callable 37 [199-215] (operation):
                         name: Ident 38 [199-215] "lambda"
                         input: Pat 35 [199-215] [Type (Qubit, Unit)]: Tuple:
                             Pat 36 [199-215] [Type Qubit]: Bind: Ident 34 [199-215] "closed"
@@ -833,7 +833,7 @@ fn lambda_adj() {
                     Namespace (Ident 36 [10-11] "A"): Item 1, Item 2, Item 3
                 Item 1 [18-55] (Public):
                     Parent: 0
-                    Callable 0 [18-55] (Operation):
+                    Callable 0 [18-55] (operation):
                         name: Ident 1 [28-29] "X"
                         input: Pat 2 [30-39] [Type Qubit]: Bind: Ident 3 [30-31] "q"
                         output: Unit
@@ -846,7 +846,7 @@ fn lambda_adj() {
                         ctl-adj: <none>
                 Item 2 [60-106] (Public):
                     Parent: 0
-                    Callable 7 [60-106] (Operation):
+                    Callable 7 [60-106] (operation):
                         name: Ident 8 [70-73] "Foo"
                         input: Pat 9 [74-97] [Type (Qubit => Unit is Adj)]: Bind: Ident 10 [74-76] "op"
                         output: Unit
@@ -859,7 +859,7 @@ fn lambda_adj() {
                         ctl-adj: <none>
                 Item 3 [111-151] (Public):
                     Parent: 0
-                    Callable 14 [111-151] (Operation):
+                    Callable 14 [111-151] (operation):
                         name: Ident 15 [121-124] "Bar"
                         input: Pat 16 [124-126] [Type Unit]: Unit
                         output: Unit
@@ -875,7 +875,7 @@ fn lambda_adj() {
                         ctl-adj: <none>
                 Item 4 [138-147] (Internal):
                     Parent: 3
-                    Callable 30 [138-147] (Operation):
+                    Callable 30 [138-147] (operation):
                         name: Ident 31 [138-147] "lambda"
                         input: Pat 29 [138-147] [Type (Qubit,)]: Tuple:
                             Pat 24 [138-139] [Type Qubit]: Bind: Ident 25 [138-139] "q"
@@ -908,7 +908,7 @@ fn partial_app_one_hole() {
                     Namespace (Ident 48 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-64] (Public):
                     Parent: 0
-                    Callable 0 [18-64] (Function):
+                    Callable 0 [18-64] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-48] [Type (Int, Int)]: Tuple:
                             Pat 3 [31-38] [Type Int]: Bind: Ident 4 [31-32] "x"
@@ -926,7 +926,7 @@ fn partial_app_one_hole() {
                         ctl-adj: <none>
                 Item 2 [69-111] (Public):
                     Parent: 0
-                    Callable 14 [69-111] (Function):
+                    Callable 14 [69-111] (function):
                         name: Ident 15 [78-81] "Bar"
                         input: Pat 16 [81-83] [Type Unit]: Unit
                         output: Unit
@@ -946,7 +946,7 @@ fn partial_app_one_hole() {
                         ctl-adj: <none>
                 Item 3 [99-108] (Internal):
                     Parent: 2
-                    Callable 39 [99-108] (Function):
+                    Callable 39 [99-108] (function):
                         name: Ident 40 [99-108] "lambda"
                         input: Pat 37 [99-108] [Type (Int, Int)]: Tuple:
                             Pat 38 [99-108] [Type Int]: Bind: Ident 36 [99-108] "closed"
@@ -982,7 +982,7 @@ fn partial_app_two_holes() {
                     Namespace (Ident 44 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-64] (Public):
                     Parent: 0
-                    Callable 0 [18-64] (Function):
+                    Callable 0 [18-64] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-48] [Type (Int, Int)]: Tuple:
                             Pat 3 [31-38] [Type Int]: Bind: Ident 4 [31-32] "x"
@@ -1000,7 +1000,7 @@ fn partial_app_two_holes() {
                         ctl-adj: <none>
                 Item 2 [69-111] (Public):
                     Parent: 0
-                    Callable 14 [69-111] (Function):
+                    Callable 14 [69-111] (function):
                         name: Ident 15 [78-81] "Bar"
                         input: Pat 16 [81-83] [Type Unit]: Unit
                         output: Unit
@@ -1017,7 +1017,7 @@ fn partial_app_two_holes() {
                         ctl-adj: <none>
                 Item 3 [99-108] (Internal):
                     Parent: 2
-                    Callable 35 [99-108] (Function):
+                    Callable 35 [99-108] (function):
                         name: Ident 36 [99-108] "lambda"
                         input: Pat 34 [99-108] [Type ((Int, Int),)]: Tuple:
                             Pat 32 [102-108] [Type (Int, Int)]: Tuple:
@@ -1054,7 +1054,7 @@ fn partial_app_nested_tuple() {
                     Namespace (Ident 63 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-95] (Public):
                     Parent: 0
-                    Callable 0 [18-95] (Function):
+                    Callable 0 [18-95] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-87] [Type (Int, (Bool, Double, String), Result)]: Tuple:
                             Pat 3 [31-38] [Type Int]: Bind: Ident 4 [31-32] "a"
@@ -1073,7 +1073,7 @@ fn partial_app_nested_tuple() {
                         ctl-adj: <none>
                 Item 2 [100-155] (Public):
                     Parent: 0
-                    Callable 17 [100-155] (Function):
+                    Callable 17 [100-155] (function):
                         name: Ident 18 [109-112] "Bar"
                         input: Pat 19 [112-114] [Type Unit]: Unit
                         output: Unit
@@ -1093,7 +1093,7 @@ fn partial_app_nested_tuple() {
                         ctl-adj: <none>
                 Item 3 [130-152] (Internal):
                     Parent: 2
-                    Callable 54 [130-152] (Function):
+                    Callable 54 [130-152] (function):
                         name: Ident 55 [130-152] "lambda"
                         input: Pat 52 [130-152] [Type (Double, (Int, (Bool, String), Result))]: Tuple:
                             Pat 53 [130-152] [Type Double]: Bind: Ident 51 [130-152] "closed"
@@ -1138,7 +1138,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                     Namespace (Ident 67 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-95] (Public):
                     Parent: 0
-                    Callable 0 [18-95] (Function):
+                    Callable 0 [18-95] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-87] [Type (Int, (Bool, Double, String), Result)]: Tuple:
                             Pat 3 [31-38] [Type Int]: Bind: Ident 4 [31-32] "a"
@@ -1157,7 +1157,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                         ctl-adj: <none>
                 Item 2 [100-158] (Public):
                     Parent: 0
-                    Callable 17 [100-158] (Function):
+                    Callable 17 [100-158] (function):
                         name: Ident 18 [109-112] "Bar"
                         input: Pat 19 [112-114] [Type Unit]: Unit
                         output: Unit
@@ -1180,7 +1180,7 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                         ctl-adj: <none>
                 Item 3 [130-155] (Internal):
                     Parent: 2
-                    Callable 58 [130-155] (Function):
+                    Callable 58 [130-155] (function):
                         name: Ident 59 [130-155] "lambda"
                         input: Pat 55 [130-155] [Type (Bool, Double, (Int, String, Result))]: Tuple:
                             Pat 56 [130-155] [Type Bool]: Bind: Ident 53 [130-155] "closed"
@@ -1313,7 +1313,7 @@ fn partial_app_unknown_callable() {
                     Namespace (Ident 15 [10-11] "A"): Item 1
                 Item 1 [18-70] (Public):
                     Parent: 0
-                    Callable 0 [18-70] (Function):
+                    Callable 0 [18-70] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-32] [Type Unit]: Unit
                         output: Unit
@@ -1322,8 +1322,8 @@ fn partial_app_unknown_callable() {
                             Pat 4 [18-70] [Type Unit]: Elided
                             Block 5 [38-70] [Type Unit]:
                                 Stmt 6 [40-68]: Local (Immutable):
-                                    Pat 7 [44-45] [Type ?0]: Bind: Ident 8 [44-45] "f"
-                                    Expr 9 [48-67] [Type ?0]: Call:
+                                    Pat 7 [44-45] [Type ?3]: Bind: Ident 8 [44-45] "f"
+                                    Expr 9 [48-67] [Type ?3]: Call:
                                         Expr 10 [48-55] [Type ?]: Var: Err
                                         Expr 11 [55-67] [Type (Bool, ?1, ?2)]: Tuple:
                                             Expr 12 [56-60] [Type Bool]: Lit: Bool(true)
@@ -1350,7 +1350,7 @@ fn partial_app_too_many_args() {
                     Namespace (Ident 24 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-51] (Public):
                     Parent: 0
-                    Callable 0 [18-51] (Function):
+                    Callable 0 [18-51] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [31-38] [Type Int]: Bind: Ident 3 [31-32] "x"
                         output: Int
@@ -1364,7 +1364,7 @@ fn partial_app_too_many_args() {
                         ctl-adj: <none>
                 Item 2 [56-101] (Public):
                     Parent: 0
-                    Callable 9 [56-101] (Function):
+                    Callable 9 [56-101] (function):
                         name: Ident 10 [65-68] "Bar"
                         input: Pat 11 [68-70] [Type Unit]: Unit
                         output: Unit
@@ -1400,10 +1400,10 @@ fn partial_app_bound_to_non_arrow_ty() {
         &expect![[r#"
             Package:
                 Item 0 [0-131] (Public):
-                    Namespace (Ident 28 [10-11] "A"): Item 1, Item 2
+                    Namespace (Ident 48 [10-11] "A"): Item 1, Item 2
                 Item 1 [18-64] (Public):
                     Parent: 0
-                    Callable 0 [18-64] (Function):
+                    Callable 0 [18-64] (function):
                         name: Ident 1 [27-30] "Foo"
                         input: Pat 2 [30-48] [Type (Int, Int)]: Tuple:
                             Pat 3 [31-38] [Type Int]: Bind: Ident 4 [31-32] "x"
@@ -1421,7 +1421,7 @@ fn partial_app_bound_to_non_arrow_ty() {
                         ctl-adj: <none>
                 Item 2 [69-129] (Public):
                     Parent: 0
-                    Callable 14 [69-129] (Function):
+                    Callable 14 [69-129] (function):
                         name: Ident 15 [78-81] "Bar"
                         input: Pat 16 [81-83] [Type Unit]: Unit
                         output: Unit
@@ -1431,11 +1431,31 @@ fn partial_app_bound_to_non_arrow_ty() {
                             Block 19 [89-129] [Type Unit]:
                                 Stmt 20 [99-123]: Local (Immutable):
                                     Pat 21 [103-110] [Type Int]: Bind: Ident 22 [103-104] "f"
-                                    Expr 23 [113-122] [Type Int]: Call:
-                                        Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
-                                        Expr 25 [116-122] [Type (Int, Int)]: Tuple:
-                                            Expr 26 [117-118] [Type Int]: Lit: Int(1)
-                                            Expr 27 [120-121] [Type Int]: Hole
+                                    Expr 23 [113-122] [Type (Int -> Int)]: Expr Block: Block 45 [113-122] [Type (Int -> Int)]:
+                                        Stmt 29 [117-118]: Local (Immutable):
+                                            Pat 28 [117-118] [Type Int]: Bind: Ident 26 [117-118] "arg"
+                                            Expr 25 [117-118] [Type Int]: Lit: Int(1)
+                                        Stmt 46 [113-122]: Expr: Expr 47 [113-122] [Type (Int -> Int)]: Closure([26], 3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 3 [113-122] (Internal):
+                    Parent: 2
+                    Callable 39 [113-122] (function):
+                        name: Ident 40 [113-122] "lambda"
+                        input: Pat 37 [113-122] [Type (Int, Int)]: Tuple:
+                            Pat 38 [113-122] [Type Int]: Bind: Ident 36 [113-122] "closed"
+                            Pat 32 [120-121] [Type Int]: Bind: Ident 31 [120-121] "hole"
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 41 [113-122] (Body): Impl:
+                            Pat 42 [113-122] [Type (Int, Int)]: Elided
+                            Block 43 [113-122] [Type Int]:
+                                Stmt 44 [113-122]: Expr: Expr 35 [113-122] [Type Int]: Call:
+                                    Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
+                                    Expr 34 [116-122] [Type (Int, Int)]: Tuple:
+                                        Expr 27 [117-118] [Type Int]: Var: Local 36
+                                        Expr 33 [120-121] [Type Int]: Var: Local 31
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -1462,7 +1482,7 @@ fn partial_app_hole_as_callee() {
                 Item 1 [18-139] (Public):
                     Parent: 0
                     EntryPoint
-                    Callable 0 [36-139] (Operation):
+                    Callable 0 [36-139] (operation):
                         name: Ident 1 [46-50] "Main"
                         input: Pat 2 [50-52] [Type Unit]: Unit
                         output: (Result)[]
@@ -1471,14 +1491,14 @@ fn partial_app_hole_as_callee() {
                             Pat 4 [36-139] [Type Unit]: Elided
                             Block 5 [64-139] [Type (Result)[]]:
                                 Stmt 6 [74-87]: Local (Immutable):
-                                    Pat 7 [78-79] [Type ?0]: Bind: Ident 8 [78-79] "f"
-                                    Expr 9 [82-86] [Type ?0]: Call:
+                                    Pat 7 [78-79] [Type ?3]: Bind: Ident 8 [78-79] "f"
+                                    Expr 9 [82-86] [Type ?3]: Call:
                                         Expr 10 [82-83] [Type ?1]: Hole
                                         Expr 11 [84-85] [Type ?2]: Hole
                                 Stmt 12 [96-111]: Local (Immutable):
                                     Pat 13 [100-103] [Type Result]: Bind: Ident 14 [100-103] "res"
                                     Expr 15 [106-110] [Type Result]: Call:
-                                        Expr 16 [106-107] [Type ?0]: Var: Local 8
+                                        Expr 16 [106-107] [Type ?3]: Var: Local 8
                                         Expr 17 [108-109] [Type Int]: Lit: Int(4)
                                 Stmt 18 [120-133]: Semi: Expr 19 [120-132] [Type ?6]: Return: Expr 20 [127-132] [Type (Result)[]]: Array:
                                     Expr 21 [128-131] [Type Result]: Var: Local 14
