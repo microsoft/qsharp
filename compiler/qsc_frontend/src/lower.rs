@@ -212,8 +212,17 @@ impl With<'_> {
         let span = decl.span;
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
-        let generics = decl.generics.iter().map(|p| self.lower_ident(p)).collect();
-        let input = self.lower_pat(&decl.input);
+        let mut input = self.lower_pat(&decl.input);
+        let functor_generics = convert::synthesize_functor_params_in_pat(&mut 0, &mut input);
+        let generics = decl
+            .generics
+            .iter()
+            .map(|name| hir::GenericParam {
+                name: hir::ParamName::Symbol(Rc::clone(&name.name)),
+                kind: hir::ParamKind::Ty,
+            })
+            .chain(functor_generics)
+            .collect();
         let output = convert::ty_from_ast(self.names, &decl.output).0;
         let functors = convert::ast_callable_functors(decl);
 

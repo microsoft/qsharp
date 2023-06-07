@@ -60,7 +60,6 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
 
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
     vis.visit_ident(&decl.name);
-    decl.generics.iter().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&decl.input);
     vis.visit_spec_decl(&decl.body);
     decl.adj.iter().for_each(|spec| vis.visit_spec_decl(spec));
