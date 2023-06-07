@@ -91,11 +91,12 @@ fn compile(input: &str) -> (Package, Names, Vec<Error>) {
     AstAssigner::new().visit_package(&mut package);
     let mut assigner = HirAssigner::new();
     let mut globals = super::GlobalTable::new();
-    globals.add_local_package(&mut assigner, &package);
+    let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals);
     resolver.with(&mut assigner).visit_package(&package);
-    let (names, resolve_errors) = resolver.into_names();
-    (package, names, resolve_errors)
+    let (names, mut resolve_errors) = resolver.into_names();
+    errors.append(&mut resolve_errors);
+    (package, names, errors)
 }
 
 #[test]
@@ -162,6 +163,26 @@ fn global_callable_internal() {
                     item1();
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn global_callable_duplicate_error() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+                operation A() : Unit {}
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+                operation item2() : Unit {}
+            }
+
+            // Duplicate("A", "Foo", Span { lo: 57, hi: 58 })
         "#]],
     );
 }
@@ -690,6 +711,44 @@ fn ty_decl() {
                 newtype item1 = Unit;
                 function item2(local14 : item1) : Unit {}
             }
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl_duplicate_error() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype A = Unit;
+                newtype A = Bool;
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = Unit;
+                newtype item2 = Bool;
+            }
+
+            // Duplicate("A", "Foo", Span { lo: 50, hi: 51 })
+        "#]],
+    );
+}
+
+#[test]
+fn ty_decl_duplicate_error_on_built_in_ty() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Core {
+                newtype Pauli = Unit;
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = Unit;
+            }
+
+            // Duplicate("Pauli", "Microsoft.Quantum.Core", Span { lo: 47, hi: 52 })
         "#]],
     );
 }

@@ -390,10 +390,12 @@ fn resolve_all(
         globals.add_external_package(id, &unit.package);
     }
 
-    globals.add_local_package(assigner, package);
+    let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals);
     resolver.with(assigner).visit_package(package);
-    resolver.into_names()
+    let (names, mut resolver_errors) = resolver.into_names();
+    errors.append(&mut resolver_errors);
+    (names, errors)
 }
 
 fn typeck_all(
