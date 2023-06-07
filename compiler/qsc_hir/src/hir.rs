@@ -296,13 +296,13 @@ pub struct CallableDecl {
     pub output: Ty,
     /// The functors supported by the callable.
     pub functors: FunctorSetValue,
-    /// The body of the callable.
+    /// The callable body.
     pub body: SpecDecl,
-    /// The body of the Adjoint specialization.
+    /// The adjoint specialization.
     pub adj: Option<SpecDecl>,
-    /// The body of the Controlled specialization.
+    /// The controlled specialization.
     pub ctl: Option<SpecDecl>,
-    /// The body of the Controlled-Adjoint specialization.
+    /// The controlled adjoint specialization.
     pub ctl_adj: Option<SpecDecl>,
 }
 
@@ -323,7 +323,7 @@ impl CallableDecl {
 }
 
 impl Display for CallableDecl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(
             indent,
@@ -630,7 +630,7 @@ impl Display for ExprKind {
             ExprKind::UpdateField(record, field, replace) => {
                 display_update_field(indent, record, field, replace)?;
             }
-            ExprKind::Var(res, args) => write!(indent, "Var: {res} {args:?}")?,
+            ExprKind::Var(res, args) => display_var(indent, *res, args)?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
         Ok(())
@@ -900,6 +900,22 @@ fn display_update_field(
     Ok(())
 }
 
+fn display_var(mut f: Indented<Formatter>, res: Res, args: &[GenericArg]) -> fmt::Result {
+    if args.is_empty() {
+        write!(f, "Var: {res}")
+    } else {
+        write!(f, "Var:")?;
+        f = set_indentation(f, 1);
+        write!(f, "\nres: {res}")?;
+        write!(f, "\ngenerics:")?;
+        f = set_indentation(f, 2);
+        for arg in args {
+            write!(f, "\n{arg}")?;
+        }
+        Ok(())
+    }
+}
+
 fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) -> fmt::Result {
     write!(indent, "While:")?;
     indent = set_indentation(indent, 1);
@@ -1132,7 +1148,10 @@ pub struct GenericParam {
 
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.name, self.kind)
+        match self.kind {
+            ParamKind::Ty => write!(f, "'{}", self.name),
+            ParamKind::Functor(min) => write!(f, "#{}: {}", self.name, min),
+        }
     }
 }
 
@@ -1163,15 +1182,6 @@ pub enum ParamKind {
     Functor(FunctorSetValue),
 }
 
-impl Display for ParamKind {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            ParamKind::Ty => f.write_str("type"),
-            ParamKind::Functor(min) => write!(f, "functor ({min})"),
-        }
-    }
-}
-
 /// An argument to a generic parameter.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GenericArg {
@@ -1179,6 +1189,15 @@ pub enum GenericArg {
     Ty(Ty),
     /// A functor argument.
     Functor(FunctorSet),
+}
+
+impl Display for GenericArg {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            GenericArg::Ty(ty) => Display::fmt(ty, f),
+            GenericArg::Functor(functors) => Display::fmt(functors, f),
+        }
+    }
 }
 
 /// A type.

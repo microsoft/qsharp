@@ -374,7 +374,7 @@ fn insert_core_call() {
                         Pat 4 [18-41] [Type Unit]: Elided
                         Block 5 [39-41] [Type Unit]:
                             Stmt 7 [0-0]: Semi: Expr 8 [0-0] [Type Qubit]: Call:
-                                Expr 9 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
+                                Expr 9 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
                                 Expr 10 [0-0] [Type Unit]: Unit
                     adj: <none>
                     ctl: <none>

@@ -126,9 +126,9 @@ fn lift_local_function() {
                             Block 6 [46-118] [Type Int]:
                                 Stmt 7 [56-93]: Item: 2
                                 Stmt 19 [102-112]: Expr: Expr 20 [102-112] [Type Int]: Call:
-                                    Expr 21 [102-105] [Type (Int -> Int)]: Var: Item 2 []
+                                    Expr 21 [102-105] [Type (Int -> Int)]: Var: Item 2
                                     Expr 22 [106-111] [Type Int]: BinOp (Add):
-                                        Expr 23 [106-107] [Type Int]: Var: Local 3 []
+                                        Expr 23 [106-107] [Type Int]: Var: Local 3
                                         Expr 24 [110-111] [Type Int]: Lit: Int(2)
                         adj: <none>
                         ctl: <none>
@@ -144,7 +144,7 @@ fn lift_local_function() {
                             Pat 13 [56-93] [Type Int]: Elided
                             Block 14 [84-93] [Type Int]:
                                 Stmt 15 [86-91]: Expr: Expr 16 [86-91] [Type Int]: BinOp (Add):
-                                    Expr 17 [86-87] [Type Int]: Var: Local 11 []
+                                    Expr 17 [86-87] [Type Int]: Var: Local 11
                                     Expr 18 [90-91] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
@@ -183,8 +183,8 @@ fn lift_local_operation() {
                                     Pat 17 [108-109] [Type Qubit]: Bind: Ident 18 [108-109] "q"
                                     QubitInit 19 [112-119] [Type Qubit]: Single
                                 Stmt 20 [129-135]: Expr: Expr 21 [129-135] [Type Result]: Call:
-                                    Expr 22 [129-132] [Type (Qubit => Result)]: Var: Item 2 []
-                                    Expr 23 [133-134] [Type Qubit]: Var: Local 18 []
+                                    Expr 22 [129-132] [Type (Qubit => Result)]: Var: Item 2
+                                    Expr 23 [133-134] [Type Qubit]: Var: Local 18
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -235,10 +235,10 @@ fn lift_local_newtype() {
                                 Stmt 8 [76-91]: Local (Immutable):
                                     Pat 9 [80-81] [Type UDT<Item 2>]: Bind: Ident 10 [80-81] "x"
                                     Expr 11 [84-90] [Type UDT<Item 2>]: Call:
-                                        Expr 12 [84-87] [Type (Int -> UDT<Item 2>)]: Var: Item 2 []
+                                        Expr 12 [84-87] [Type (Int -> UDT<Item 2>)]: Var: Item 2
                                         Expr 13 [88-89] [Type Int]: Lit: Int(5)
                                 Stmt 14 [100-102]: Expr: Expr 15 [100-102] [Type Int]: UnOp (Unwrap):
-                                    Expr 16 [100-101] [Type UDT<Item 2>]: Var: Local 10 []
+                                    Expr 16 [100-101] [Type UDT<Item 2>]: Var: Local 10
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -279,7 +279,7 @@ fn lambda_function_empty_closure() {
                                     Pat 7 [53-54] [Type (Int -> Int)]: Bind: Ident 8 [53-54] "f"
                                     Expr 9 [57-67] [Type (Int -> Int)]: Closure([], 2)
                                 Stmt 22 [77-81]: Expr: Expr 23 [77-81] [Type Int]: Call:
-                                    Expr 24 [77-78] [Type (Int -> Int)]: Var: Local 8 []
+                                    Expr 24 [77-78] [Type (Int -> Int)]: Var: Local 8
                                     Expr 25 [79-80] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
@@ -296,7 +296,7 @@ fn lambda_function_empty_closure() {
                             Pat 19 [57-67] [Type (Int,)]: Elided
                             Block 20 [62-67] [Type Int]:
                                 Stmt 21 [62-67]: Expr: Expr 12 [62-67] [Type Int]: BinOp (Add):
-                                    Expr 13 [62-63] [Type Int]: Var: Local 11 []
+                                    Expr 13 [62-63] [Type Int]: Var: Local 11
                                     Expr 14 [66-67] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
@@ -328,7 +328,7 @@ fn lambda_function_empty_closure_passed() {
                             Pat 5 [18-61] [Type (Int -> Int)]: Elided
                             Block 6 [53-61] [Type Int]:
                                 Stmt 7 [55-59]: Expr: Expr 8 [55-59] [Type Int]: Call:
-                                    Expr 9 [55-56] [Type (Int -> Int)]: Var: Local 3 []
+                                    Expr 9 [55-56] [Type (Int -> Int)]: Var: Local 3
                                     Expr 10 [57-58] [Type Int]: Lit: Int(2)
                         adj: <none>
                         ctl: <none>
@@ -344,7 +344,7 @@ fn lambda_function_empty_closure_passed() {
                             Pat 15 [66-106] [Type Unit]: Elided
                             Block 16 [87-106] [Type Int]:
                                 Stmt 17 [89-104]: Expr: Expr 18 [89-104] [Type Int]: Call:
-                                    Expr 19 [89-92] [Type ((Int -> Int) -> Int)]: Var: Item 1 []
+                                    Expr 19 [89-92] [Type ((Int -> Int) -> Int)]: Var: Item 1
                                     Expr 20 [93-103] [Type (Int -> Int)]: Closure([], 3)
                         adj: <none>
                         ctl: <none>
@@ -361,7 +361,7 @@ fn lambda_function_empty_closure_passed() {
                             Pat 30 [93-103] [Type (Int,)]: Elided
                             Block 31 [98-103] [Type Int]:
                                 Stmt 32 [98-103]: Expr: Expr 23 [98-103] [Type Int]: BinOp (Add):
-                                    Expr 24 [98-99] [Type Int]: Var: Local 22 []
+                                    Expr 24 [98-99] [Type Int]: Var: Local 22
                                     Expr 25 [102-103] [Type Int]: Lit: Int(1)
                         adj: <none>
                         ctl: <none>
@@ -402,7 +402,7 @@ fn lambda_function_closure() {
                                     Pat 11 [72-73] [Type (Int -> Int)]: Bind: Ident 12 [72-73] "f"
                                     Expr 13 [76-86] [Type (Int -> Int)]: Closure([8], 2)
                                 Stmt 28 [96-100]: Expr: Expr 29 [96-100] [Type Int]: Call:
-                                    Expr 30 [96-97] [Type (Int -> Int)]: Var: Local 12 []
+                                    Expr 30 [96-97] [Type (Int -> Int)]: Var: Local 12
                                     Expr 31 [98-99] [Type Int]: Lit: Int(2)
                         adj: <none>
                         ctl: <none>
@@ -420,8 +420,8 @@ fn lambda_function_closure() {
                             Pat 25 [76-86] [Type (Int, Int)]: Elided
                             Block 26 [81-86] [Type Int]:
                                 Stmt 27 [81-86]: Expr: Expr 16 [81-86] [Type Int]: BinOp (Add):
-                                    Expr 17 [81-82] [Type Int]: Var: Local 19 []
-                                    Expr 18 [85-86] [Type Int]: Var: Local 15 []
+                                    Expr 17 [81-82] [Type Int]: Var: Local 19
+                                    Expr 18 [85-86] [Type Int]: Var: Local 15
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -461,7 +461,7 @@ fn lambda_function_closure_repeated_var() {
                                     Pat 11 [72-73] [Type (Int -> Int)]: Bind: Ident 12 [72-73] "f"
                                     Expr 13 [76-90] [Type (Int -> Int)]: Closure([8], 2)
                                 Stmt 30 [100-104]: Expr: Expr 31 [100-104] [Type Int]: Call:
-                                    Expr 32 [100-101] [Type (Int -> Int)]: Var: Local 12 []
+                                    Expr 32 [100-101] [Type (Int -> Int)]: Var: Local 12
                                     Expr 33 [102-103] [Type Int]: Lit: Int(2)
                         adj: <none>
                         ctl: <none>
@@ -480,9 +480,9 @@ fn lambda_function_closure_repeated_var() {
                             Block 28 [81-90] [Type Int]:
                                 Stmt 29 [81-90]: Expr: Expr 16 [81-90] [Type Int]: BinOp (Add):
                                     Expr 17 [81-86] [Type Int]: BinOp (Add):
-                                        Expr 18 [81-82] [Type Int]: Var: Local 21 []
-                                        Expr 19 [85-86] [Type Int]: Var: Local 21 []
-                                    Expr 20 [89-90] [Type Int]: Var: Local 15 []
+                                        Expr 18 [81-82] [Type Int]: Var: Local 21
+                                        Expr 19 [85-86] [Type Int]: Var: Local 21
+                                    Expr 20 [89-90] [Type Int]: Var: Local 15
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -516,7 +516,7 @@ fn lambda_function_closure_passed() {
                             Pat 5 [18-61] [Type (Int -> Int)]: Elided
                             Block 6 [53-61] [Type Int]:
                                 Stmt 7 [55-59]: Expr: Expr 8 [55-59] [Type Int]: Call:
-                                    Expr 9 [55-56] [Type (Int -> Int)]: Var: Local 3 []
+                                    Expr 9 [55-56] [Type (Int -> Int)]: Var: Local 3
                                     Expr 10 [57-58] [Type Int]: Lit: Int(2)
                         adj: <none>
                         ctl: <none>
@@ -535,7 +535,7 @@ fn lambda_function_closure_passed() {
                                     Pat 18 [101-102] [Type Int]: Bind: Ident 19 [101-102] "x"
                                     Expr 20 [105-106] [Type Int]: Lit: Int(5)
                                 Stmt 21 [116-131]: Expr: Expr 22 [116-131] [Type Int]: Call:
-                                    Expr 23 [116-119] [Type ((Int -> Int) -> Int)]: Var: Item 1 []
+                                    Expr 23 [116-119] [Type ((Int -> Int) -> Int)]: Var: Item 1
                                     Expr 24 [120-130] [Type (Int -> Int)]: Closure([19], 3)
                         adj: <none>
                         ctl: <none>
@@ -553,8 +553,8 @@ fn lambda_function_closure_passed() {
                             Pat 36 [120-130] [Type (Int, Int)]: Elided
                             Block 37 [125-130] [Type Int]:
                                 Stmt 38 [125-130]: Expr: Expr 27 [125-130] [Type Int]: BinOp (Add):
-                                    Expr 28 [125-126] [Type Int]: Var: Local 30 []
-                                    Expr 29 [129-130] [Type Int]: Var: Local 26 []
+                                    Expr 28 [125-126] [Type Int]: Var: Local 30
+                                    Expr 29 [129-130] [Type Int]: Var: Local 26
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -592,7 +592,7 @@ fn lambda_function_nested_closure() {
                             Block 6 [60-71] [Type Int]:
                                 Stmt 7 [62-69]: Expr: Expr 8 [62-69] [Type Int]: Call:
                                     Expr 9 [62-66] [Type (Int -> Int)]: Call:
-                                        Expr 10 [62-63] [Type (Int -> (Int -> Int))]: Var: Local 3 []
+                                        Expr 10 [62-63] [Type (Int -> (Int -> Int))]: Var: Local 3
                                         Expr 11 [64-65] [Type Int]: Lit: Int(2)
                                     Expr 12 [67-68] [Type Int]: Lit: Int(3)
                         adj: <none>
@@ -612,7 +612,7 @@ fn lambda_function_nested_closure() {
                                     Pat 20 [111-112] [Type Int]: Bind: Ident 21 [111-112] "a"
                                     Expr 22 [115-116] [Type Int]: Lit: Int(5)
                                 Stmt 23 [126-201]: Expr: Expr 24 [126-201] [Type Int]: Call:
-                                    Expr 25 [126-129] [Type ((Int -> (Int -> Int)) -> Int)]: Var: Item 1 []
+                                    Expr 25 [126-129] [Type ((Int -> (Int -> Int)) -> Int)]: Var: Item 1
                                     Expr 26 [130-200] [Type (Int -> (Int -> Int))]: Closure([21], 4)
                         adj: <none>
                         ctl: <none>
@@ -634,10 +634,10 @@ fn lambda_function_nested_closure() {
                                 Stmt 58 [177-190]: Expr: Expr 39 [177-190] [Type Int]: BinOp (Add):
                                     Expr 40 [177-186] [Type Int]: BinOp (Add):
                                         Expr 41 [177-182] [Type Int]: BinOp (Add):
-                                            Expr 42 [177-178] [Type Int]: Var: Local 46 []
-                                            Expr 43 [181-182] [Type Int]: Var: Local 47 []
-                                        Expr 44 [185-186] [Type Int]: Var: Local 48 []
-                                    Expr 45 [189-190] [Type Int]: Var: Local 38 []
+                                            Expr 42 [177-178] [Type Int]: Var: Local 46
+                                            Expr 43 [181-182] [Type Int]: Var: Local 47
+                                        Expr 44 [185-186] [Type Int]: Var: Local 48
+                                    Expr 45 [189-190] [Type Int]: Var: Local 38
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -685,7 +685,7 @@ fn lambda_operation_empty_closure() {
                     Callable 0 [18-101] (operation):
                         name: Ident 1 [28-31] "Foo"
                         generics:
-                            0: functor (empty set)
+                            #0: empty set
                         input: Pat 2 [32-48] [Type (Qubit => Unit is #0)]: Bind: Ident 3 [32-34] "op"
                         output: Unit
                         functors: empty set
@@ -696,8 +696,8 @@ fn lambda_operation_empty_closure() {
                                     Pat 8 [69-70] [Type Qubit]: Bind: Ident 9 [69-70] "q"
                                     QubitInit 10 [73-80] [Type Qubit]: Single
                                 Stmt 11 [90-95]: Expr: Expr 12 [90-95] [Type Unit]: Call:
-                                    Expr 13 [90-92] [Type (Qubit => Unit)]: Var: Local 3 []
-                                    Expr 14 [93-94] [Type Qubit]: Var: Local 9 []
+                                    Expr 13 [90-92] [Type (Qubit => Unit)]: Var: Local 3
+                                    Expr 14 [93-94] [Type Qubit]: Var: Local 9
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -712,7 +712,10 @@ fn lambda_operation_empty_closure() {
                             Pat 19 [106-147] [Type Unit]: Elided
                             Block 20 [131-147] [Type Unit]:
                                 Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Unit]: Call:
-                                    Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1 [Functor(Value(Empty))]
+                                    Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var:
+                                        res: Item 1
+                                        generics:
+                                            empty set
                                     Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                         adj: <none>
                         ctl: <none>
@@ -768,7 +771,7 @@ fn lambda_operation_closure() {
                     Callable 5 [80-130] (operation):
                         name: Ident 6 [90-93] "Foo"
                         generics:
-                            0: functor (empty set)
+                            #0: empty set
                         input: Pat 7 [94-111] [Type (Unit => Result is #0)]: Bind: Ident 8 [94-96] "op"
                         output: Result
                         functors: empty set
@@ -776,7 +779,7 @@ fn lambda_operation_closure() {
                             Pat 10 [80-130] [Type (Unit => Result is #0)]: Elided
                             Block 11 [122-130] [Type Result]:
                                 Stmt 12 [124-128]: Expr: Expr 13 [124-128] [Type Result]: Call:
-                                    Expr 14 [124-126] [Type (Unit => Result)]: Var: Local 8 []
+                                    Expr 14 [124-126] [Type (Unit => Result)]: Var: Local 8
                                     Expr 15 [126-128] [Type Unit]: Unit
                         adj: <none>
                         ctl: <none>
@@ -795,7 +798,10 @@ fn lambda_operation_closure() {
                                     Pat 23 [174-175] [Type Qubit]: Bind: Ident 24 [174-175] "q"
                                     QubitInit 25 [178-185] [Type Qubit]: Single
                                 Stmt 26 [195-216]: Expr: Expr 27 [195-216] [Type Result]: Call:
-                                    Expr 28 [195-198] [Type ((Unit => Result) => Result)]: Var: Item 2 [Functor(Value(Empty))]
+                                    Expr 28 [195-198] [Type ((Unit => Result) => Result)]: Var:
+                                        res: Item 2
+                                        generics:
+                                            empty set
                                     Expr 29 [199-215] [Type (Unit => Result)]: Closure([24], 4)
                         adj: <none>
                         ctl: <none>
@@ -813,8 +819,8 @@ fn lambda_operation_closure() {
                             Pat 40 [199-215] [Type (Qubit, Unit)]: Elided
                             Block 41 [205-215] [Type Result]:
                                 Stmt 42 [205-215]: Expr: Expr 31 [205-215] [Type Result]: Call:
-                                    Expr 32 [205-212] [Type (Qubit => Result)]: Var: Item 1 []
-                                    Expr 33 [213-214] [Type Qubit]: Var: Local 34 []
+                                    Expr 32 [205-212] [Type (Qubit => Result)]: Var: Item 1
+                                    Expr 33 [213-214] [Type Qubit]: Var: Local 34
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -853,7 +859,7 @@ fn lambda_adj() {
                     Callable 7 [60-106] (operation):
                         name: Ident 8 [70-73] "Foo"
                         generics:
-                            0: functor (Adj)
+                            #0: Adj
                         input: Pat 9 [74-97] [Type (Qubit => Unit is #0)]: Bind: Ident 10 [74-76] "op"
                         output: Unit
                         functors: empty set
@@ -874,7 +880,10 @@ fn lambda_adj() {
                             Pat 18 [111-151] [Type Unit]: Elided
                             Block 19 [132-151] [Type Unit]:
                                 Stmt 20 [134-149]: Semi: Expr 21 [134-148] [Type Unit]: Call:
-                                    Expr 22 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var: Item 2 [Functor(Value(Adj))]
+                                    Expr 22 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var:
+                                        res: Item 2
+                                        generics:
+                                            Adj
                                     Expr 23 [138-147] [Type (Qubit => Unit is Adj)]: Closure([], 4)
                         adj: <none>
                         ctl: <none>
@@ -891,8 +900,8 @@ fn lambda_adj() {
                             Pat 33 [138-147] [Type (Qubit,)]: Elided
                             Block 34 [143-147] [Type Unit]:
                                 Stmt 35 [143-147]: Expr: Expr 26 [143-147] [Type Unit]: Call:
-                                    Expr 27 [143-144] [Type (Qubit => Unit is Adj)]: Var: Item 1 []
-                                    Expr 28 [145-146] [Type Qubit]: Var: Local 25 []
+                                    Expr 27 [143-144] [Type (Qubit => Unit is Adj)]: Var: Item 1
+                                    Expr 28 [145-146] [Type Qubit]: Var: Local 25
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -925,8 +934,8 @@ fn partial_app_one_hole() {
                             Pat 8 [18-64] [Type (Int, Int)]: Elided
                             Block 9 [55-64] [Type Int]:
                                 Stmt 10 [57-62]: Expr: Expr 11 [57-62] [Type Int]: BinOp (Add):
-                                    Expr 12 [57-58] [Type Int]: Var: Local 4 []
-                                    Expr 13 [61-62] [Type Int]: Var: Local 6 []
+                                    Expr 12 [57-58] [Type Int]: Var: Local 4
+                                    Expr 13 [61-62] [Type Int]: Var: Local 6
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -963,10 +972,10 @@ fn partial_app_one_hole() {
                             Pat 42 [99-108] [Type (Int, Int)]: Elided
                             Block 43 [99-108] [Type Int]:
                                 Stmt 44 [99-108]: Expr: Expr 35 [99-108] [Type Int]: Call:
-                                    Expr 24 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1 []
+                                    Expr 24 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
                                     Expr 34 [102-108] [Type (Int, Int)]: Tuple:
-                                        Expr 27 [103-104] [Type Int]: Var: Local 25 []
-                                        Expr 30 [106-107] [Type Int]: Var: Local 36 []
+                                        Expr 27 [103-104] [Type Int]: Var: Local 25
+                                        Expr 30 [106-107] [Type Int]: Var: Local 36
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -999,8 +1008,8 @@ fn partial_app_two_holes() {
                             Pat 8 [18-64] [Type (Int, Int)]: Elided
                             Block 9 [55-64] [Type Int]:
                                 Stmt 10 [57-62]: Expr: Expr 11 [57-62] [Type Int]: BinOp (Add):
-                                    Expr 12 [57-58] [Type Int]: Var: Local 4 []
-                                    Expr 13 [61-62] [Type Int]: Var: Local 6 []
+                                    Expr 12 [57-58] [Type Int]: Var: Local 4
+                                    Expr 13 [61-62] [Type Int]: Var: Local 6
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -1035,10 +1044,10 @@ fn partial_app_two_holes() {
                             Pat 38 [99-108] [Type ((Int, Int),)]: Elided
                             Block 39 [99-108] [Type Int]:
                                 Stmt 40 [99-108]: Expr: Expr 33 [99-108] [Type Int]: Call:
-                                    Expr 24 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1 []
+                                    Expr 24 [99-102] [Type ((Int, Int) -> Int)]: Var: Item 1
                                     Expr 31 [102-108] [Type (Int, Int)]: Tuple:
-                                        Expr 27 [103-104] [Type Int]: Var: Local 25 []
-                                        Expr 30 [106-107] [Type Int]: Var: Local 28 []
+                                        Expr 27 [103-104] [Type Int]: Var: Local 25
+                                        Expr 30 [106-107] [Type Int]: Var: Local 28
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -1115,14 +1124,14 @@ fn partial_app_nested_tuple() {
                             Pat 57 [130-152] [Type (Double, (Int, (Bool, String), Result))]: Elided
                             Block 58 [130-152] [Type Unit]:
                                 Stmt 59 [130-152]: Expr: Expr 50 [130-152] [Type Unit]: Call:
-                                    Expr 27 [130-133] [Type ((Int, (Bool, Double, String), Result) -> Unit)]: Var: Item 1 []
+                                    Expr 27 [130-133] [Type ((Int, (Bool, Double, String), Result) -> Unit)]: Var: Item 1
                                     Expr 48 [133-152] [Type (Int, (Bool, Double, String), Result)]: Tuple:
-                                        Expr 30 [134-135] [Type Int]: Var: Local 28 []
+                                        Expr 30 [134-135] [Type Int]: Var: Local 28
                                         Expr 43 [137-148] [Type (Bool, Double, String)]: Tuple:
-                                            Expr 33 [138-139] [Type Bool]: Var: Local 31 []
-                                            Expr 36 [141-144] [Type Double]: Var: Local 51 []
-                                            Expr 42 [146-147] [Type String]: Var: Local 40 []
-                                        Expr 47 [150-151] [Type Result]: Var: Local 45 []
+                                            Expr 33 [138-139] [Type Bool]: Var: Local 31
+                                            Expr 36 [141-144] [Type Double]: Var: Local 51
+                                            Expr 42 [146-147] [Type String]: Var: Local 40
+                                        Expr 47 [150-151] [Type Result]: Var: Local 45
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -1201,14 +1210,14 @@ fn partial_app_nested_tuple_singleton_unwrap() {
                             Pat 61 [130-155] [Type (Bool, Double, (Int, String, Result))]: Elided
                             Block 62 [130-155] [Type Unit]:
                                 Stmt 63 [130-155]: Expr: Expr 52 [130-155] [Type Unit]: Call:
-                                    Expr 27 [130-133] [Type ((Int, (Bool, Double, String), Result) -> Unit)]: Var: Item 1 []
+                                    Expr 27 [130-133] [Type ((Int, (Bool, Double, String), Result) -> Unit)]: Var: Item 1
                                     Expr 50 [133-155] [Type (Int, (Bool, Double, String), Result)]: Tuple:
-                                        Expr 30 [134-135] [Type Int]: Var: Local 28 []
+                                        Expr 30 [134-135] [Type Int]: Var: Local 28
                                         Expr 46 [137-151] [Type (Bool, Double, String)]: Tuple:
-                                            Expr 33 [138-142] [Type Bool]: Var: Local 53 []
-                                            Expr 39 [144-147] [Type Double]: Var: Local 54 []
-                                            Expr 45 [149-150] [Type String]: Var: Local 43 []
-                                        Expr 49 [153-154] [Type Result]: Var: Local 47 []
+                                            Expr 33 [138-142] [Type Bool]: Var: Local 53
+                                            Expr 39 [144-147] [Type Double]: Var: Local 54
+                                            Expr 45 [149-150] [Type String]: Var: Local 43
+                                        Expr 49 [153-154] [Type Result]: Var: Local 47
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -1330,7 +1339,7 @@ fn partial_app_unknown_callable() {
                                 Stmt 6 [40-68]: Local (Immutable):
                                     Pat 7 [44-45] [Type ?3]: Bind: Ident 8 [44-45] "f"
                                     Expr 9 [48-67] [Type ?3]: Call:
-                                        Expr 10 [48-55] [Type ?]: Var: Err []
+                                        Expr 10 [48-55] [Type ?]: Var: Err
                                         Expr 11 [55-67] [Type (Bool, ?1, ?2)]: Tuple:
                                             Expr 12 [56-60] [Type Bool]: Lit: Bool(true)
                                             Expr 13 [62-63] [Type ?1]: Hole
@@ -1364,7 +1373,7 @@ fn partial_app_too_many_args() {
                         body: SpecDecl 4 [18-51] (Body): Impl:
                             Pat 5 [18-51] [Type Int]: Elided
                             Block 6 [46-51] [Type Int]:
-                                Stmt 7 [48-49]: Expr: Expr 8 [48-49] [Type Int]: Var: Local 3 []
+                                Stmt 7 [48-49]: Expr: Expr 8 [48-49] [Type Int]: Var: Local 3
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -1381,7 +1390,7 @@ fn partial_app_too_many_args() {
                                 Stmt 15 [78-99]: Local (Immutable):
                                     Pat 16 [82-83] [Type Int]: Bind: Ident 17 [82-83] "f"
                                     Expr 18 [86-98] [Type Int]: Call:
-                                        Expr 19 [86-89] [Type (Int -> Int)]: Var: Item 1 []
+                                        Expr 19 [86-89] [Type (Int -> Int)]: Var: Item 1
                                         Expr 20 [89-98] [Type (Int, ?1, ?2)]: Tuple:
                                             Expr 21 [90-91] [Type Int]: Lit: Int(1)
                                             Expr 22 [93-94] [Type ?1]: Hole
@@ -1420,8 +1429,8 @@ fn partial_app_bound_to_non_arrow_ty() {
                             Pat 8 [18-64] [Type (Int, Int)]: Elided
                             Block 9 [55-64] [Type Int]:
                                 Stmt 10 [57-62]: Expr: Expr 11 [57-62] [Type Int]: BinOp (Add):
-                                    Expr 12 [57-58] [Type Int]: Var: Local 4 []
-                                    Expr 13 [61-62] [Type Int]: Var: Local 6 []
+                                    Expr 12 [57-58] [Type Int]: Var: Local 4
+                                    Expr 13 [61-62] [Type Int]: Var: Local 6
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -1458,10 +1467,10 @@ fn partial_app_bound_to_non_arrow_ty() {
                             Pat 42 [113-122] [Type (Int, Int)]: Elided
                             Block 43 [113-122] [Type Int]:
                                 Stmt 44 [113-122]: Expr: Expr 35 [113-122] [Type Int]: Call:
-                                    Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1 []
+                                    Expr 24 [113-116] [Type ((Int, Int) -> Int)]: Var: Item 1
                                     Expr 34 [116-122] [Type (Int, Int)]: Tuple:
-                                        Expr 27 [117-118] [Type Int]: Var: Local 36 []
-                                        Expr 33 [120-121] [Type Int]: Var: Local 31 []
+                                        Expr 27 [117-118] [Type Int]: Var: Local 36
+                                        Expr 33 [120-121] [Type Int]: Var: Local 31
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -1504,10 +1513,10 @@ fn partial_app_hole_as_callee() {
                                 Stmt 12 [96-111]: Local (Immutable):
                                     Pat 13 [100-103] [Type Result]: Bind: Ident 14 [100-103] "res"
                                     Expr 15 [106-110] [Type Result]: Call:
-                                        Expr 16 [106-107] [Type ?3]: Var: Local 8 []
+                                        Expr 16 [106-107] [Type ?3]: Var: Local 8
                                         Expr 17 [108-109] [Type Int]: Lit: Int(4)
                                 Stmt 18 [120-133]: Semi: Expr 19 [120-132] [Type ?6]: Return: Expr 20 [127-132] [Type (Result)[]]: Array:
-                                    Expr 21 [128-131] [Type Result]: Var: Local 14 []
+                                    Expr 21 [128-131] [Type Result]: Var: Local 14
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
