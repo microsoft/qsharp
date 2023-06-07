@@ -66,7 +66,7 @@ pub(crate) fn create_gen_core_ref(core_table: &Table, ns: &str, name: &str, span
     Expr {
         id: NodeId::default(),
         span,
-        ty: term.ty.clone(),
+        ty: Ty::Arrow(term.scheme.ty.clone()), // TODO: Instantiation?
         kind: ExprKind::Var(Res::Item(term.id)),
     }
 }

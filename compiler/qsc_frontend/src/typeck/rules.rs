@@ -12,7 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, ArrowTy, FunctorSet, FunctorSetValue, ItemId, PrimTy, Ty, Udt};
+use qsc_hir::hir::{self, ArrowTy, FunctorSet, FunctorSetValue, ItemId, PrimTy, Scheme, Ty, Udt};
 use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -34,7 +34,7 @@ impl<T> Partial<T> {
 struct Context<'a> {
     names: &'a Names,
     udts: &'a HashMap<ItemId, Udt>,
-    globals: &'a HashMap<ItemId, Ty>,
+    globals: &'a HashMap<ItemId, Scheme>,
     terms: &'a mut IndexMap<NodeId, Ty>,
     return_ty: Option<&'a Ty>,
     typed_holes: Vec<(NodeId, Span)>,
@@ -46,7 +46,7 @@ impl<'a> Context<'a> {
     fn new(
         names: &'a Names,
         udts: &'a HashMap<ItemId, Udt>,
-        globals: &'a HashMap<ItemId, Ty>,
+        globals: &'a HashMap<ItemId, Scheme>,
         terms: &'a mut IndexMap<NodeId, Ty>,
     ) -> Self {
         Self {
@@ -329,16 +329,14 @@ impl<'a> Context<'a> {
             ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
                 Some(Res::Item(item)) => {
-                    let Some(Ty::Arrow(mut arrow)) = self.globals.get(item).cloned() else {
-                        panic!("global item should have arrow type");
-                    };
-                    self.inferrer.freshen_arrow(&mut arrow, expr.span);
-                    converge(Ty::Arrow(arrow))
+                    let scheme = self.globals.get(item).expect("item should have scheme");
+                    let ty = self.inferrer.instantiate(scheme, expr.span);
+                    converge(Ty::Arrow(Box::new(ty)))
                 }
                 Some(&Res::Local(node)) => converge(
                     self.terms
                         .get(node)
-                        .expect("local variable should have inferred type")
+                        .expect("local should have type")
                         .clone(),
                 ),
                 Some(Res::PrimTy(_) | Res::UnitTy) => panic!("expression resolves to type"),
@@ -714,7 +712,7 @@ pub(super) struct SpecImpl<'a> {
 pub(super) fn spec(
     names: &Names,
     udts: &HashMap<ItemId, Udt>,
-    globals: &HashMap<ItemId, Ty>,
+    globals: &HashMap<ItemId, Scheme>,
     terms: &mut IndexMap<NodeId, Ty>,
     spec: SpecImpl,
 ) -> Vec<Error> {
@@ -726,7 +724,7 @@ pub(super) fn spec(
 pub(super) fn expr(
     names: &Names,
     udts: &HashMap<ItemId, Udt>,
-    globals: &HashMap<ItemId, Ty>,
+    globals: &HashMap<ItemId, Scheme>,
     terms: &mut IndexMap<NodeId, Ty>,
     expr: &Expr,
 ) -> Vec<Error> {
@@ -738,7 +736,7 @@ pub(super) fn expr(
 pub(super) fn stmt(
     names: &Names,
     udts: &HashMap<ItemId, Udt>,
-    globals: &HashMap<ItemId, Ty>,
+    globals: &HashMap<ItemId, Scheme>,
     terms: &mut IndexMap<NodeId, Ty>,
     stmt: &Stmt,
 ) -> Vec<Error> {
