@@ -4,13 +4,12 @@
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{
-    ArrowTy, FunctorSet, FunctorSetValue, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res,
-    Scheme, Ty, Udt,
+    ArrowTy, FunctorSet, FunctorSetValue, GenericArg, InferFunctor, InferTy, ItemId, ParamKind,
+    ParamName, PrimField, PrimTy, Res, Scheme, Ty, Udt,
 };
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
     fmt::{self, Debug, Display, Formatter},
-    sync::Arc,
 };
 
 pub(super) struct Solution {
@@ -299,12 +298,6 @@ enum Constraint {
     },
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum FreshenMode {
-    Functors,
-    NoFunctors,
-}
-
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
     next_ty: InferTy,
@@ -350,14 +343,25 @@ impl Inferrer {
 
     /// Instantiates the type scheme.
     pub(super) fn instantiate(&mut self, scheme: &Scheme, span: Span) -> ArrowTy {
-        let mut params = HashMap::new();
+        let mut args = HashMap::new();
         for param in &scheme.params {
-            params.insert((**param).into(), self.fresh_ty());
+            let arg = match param.kind {
+                ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),
+                ParamKind::Functor(min) => {
+                    let functors = self.fresh_functor();
+                    self.constraints.push_back(Constraint::Superset {
+                        expected: min,
+                        actual: functors,
+                        span,
+                    });
+                    GenericArg::Functor(functors)
+                }
+            };
+            args.insert(&param.name, arg);
         }
 
-        let mode = FreshenMode::Functors;
-        let input = instantiate_ty(self, mode, span, &params, &scheme.ty.input);
-        let output = instantiate_ty(self, mode, span, &params, &scheme.ty.output);
+        let input = instantiate_ty(&args, &scheme.ty.input);
+        let output = instantiate_ty(&args, &scheme.ty.output);
         ArrowTy {
             kind: scheme.ty.kind,
             input: Box::new(input),
@@ -594,31 +598,19 @@ impl<'a> Solver<'a> {
     }
 }
 
-fn instantiate_ty(
-    inferrer: &mut Inferrer,
-    mode: FreshenMode,
-    span: Span,
-    params: &HashMap<Arc<str>, Ty>,
-    ty: &Ty,
-) -> Ty {
+fn instantiate_ty(args: &HashMap<&ParamName, GenericArg>, ty: &Ty) -> Ty {
     match ty {
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => ty.clone(),
-        Ty::Array(item) => Ty::Array(Box::new(instantiate_ty(inferrer, mode, span, params, item))),
+        Ty::Array(item) => Ty::Array(Box::new(instantiate_ty(args, item))),
         Ty::Arrow(arrow) => {
-            let new_mode = FreshenMode::NoFunctors;
-            let input = instantiate_ty(inferrer, new_mode, span, params, &arrow.input);
-            let output = instantiate_ty(inferrer, new_mode, span, params, &arrow.output);
-            let functors = if mode == FreshenMode::Functors {
-                let old_functors = arrow
-                    .functors
-                    .expect_value("arrow type should have concrete functors");
-                let new_functors = inferrer.fresh_functor();
-                inferrer.constraints.push_back(Constraint::Superset {
-                    expected: old_functors,
-                    actual: new_functors,
-                    span,
-                });
-                new_functors
+            let input = instantiate_ty(args, &arrow.input);
+            let output = instantiate_ty(args, &arrow.output);
+            let functors = if let FunctorSet::Param(id) = arrow.functors {
+                if let Some(GenericArg::Functor(functors)) = args.get(&ParamName::Id(id)) {
+                    *functors
+                } else {
+                    arrow.functors
+                }
             } else {
                 arrow.functors
             };
@@ -630,14 +622,17 @@ fn instantiate_ty(
                 functors,
             }))
         }
-        Ty::Param(name) => params
-            .get(name)
-            .cloned()
-            .unwrap_or(Ty::Param(Arc::clone(name))),
+        Ty::Param(name) => {
+            if let Some(GenericArg::Ty(arg)) = args.get(&ParamName::Symbol((**name).into())) {
+                arg.clone()
+            } else {
+                ty.clone()
+            }
+        }
         Ty::Tuple(items) => Ty::Tuple(
             items
                 .iter()
-                .map(|item| instantiate_ty(inferrer, mode, span, params, item))
+                .map(|item| instantiate_ty(args, item))
                 .collect(),
         ),
     }

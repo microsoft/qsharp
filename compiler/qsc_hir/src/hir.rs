@@ -288,7 +288,7 @@ pub struct CallableDecl {
     /// The name of the callable.
     pub name: Ident,
     /// The generic parameters to the callable.
-    pub generics: Vec<Ident>,
+    pub generics: Vec<GenericParam>,
     /// The input to the callable.
     pub input: Pat,
     /// The return type of the callable.
@@ -310,7 +310,7 @@ impl CallableDecl {
     #[must_use]
     pub fn scheme(&self) -> Scheme {
         Scheme {
-            params: self.generics.iter().map(|i| Rc::clone(&i.name)).collect(),
+            params: self.generics.clone(),
             ty: Box::new(ArrowTy {
                 kind: self.kind,
                 input: Box::new(self.input.ty.clone()),
@@ -334,8 +334,8 @@ impl Display for CallableDecl {
         if !self.generics.is_empty() {
             write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for t in &self.generics {
-                write!(indent, "\n{t}")?;
+            for param in &self.generics {
+                write!(indent, "\n{param}")?;
             }
             indent = set_indentation(indent, 1);
         }
@@ -1064,9 +1064,56 @@ pub enum Attr {
 /// A type scheme.
 pub struct Scheme {
     /// The generic parameters to the type.
-    pub params: Vec<Rc<str>>,
+    pub params: Vec<GenericParam>,
     /// The arrow type.
     pub ty: Box<ArrowTy>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct GenericParam {
+    pub name: ParamName,
+    pub kind: ParamKind,
+}
+
+impl Display for GenericParam {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}: {}", self.name, self.kind)
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum ParamName {
+    Symbol(Rc<str>),
+    Id(u32),
+}
+
+impl Display for ParamName {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            ParamName::Symbol(symbol) => Display::fmt(symbol, f),
+            ParamName::Id(id) => Display::fmt(id, f),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ParamKind {
+    Ty,
+    Functor(FunctorSetValue),
+}
+
+impl Display for ParamKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            ParamKind::Ty => f.write_str("type"),
+            ParamKind::Functor(min) => write!(f, "functor ({min})"),
+        }
+    }
+}
+
+pub enum GenericArg {
+    Ty(Ty),
+    Functor(FunctorSet),
 }
 
 /// A type.
@@ -1191,6 +1238,7 @@ pub enum PrimTy {
 pub enum FunctorSet {
     /// An evaluated set.
     Value(FunctorSetValue),
+    Param(u32),
     /// A placeholder functor variable used during type inference.
     Infer(InferFunctor),
 }
@@ -1205,7 +1253,7 @@ impl FunctorSet {
     pub fn expect_value(self, msg: &str) -> FunctorSetValue {
         match self {
             Self::Value(value) => value,
-            FunctorSet::Infer(_) => panic!("{msg}"),
+            Self::Param(_) | Self::Infer(_) => panic!("{msg}"),
         }
     }
 }
@@ -1214,6 +1262,7 @@ impl Display for FunctorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::Value(value) => Display::fmt(value, f),
+            Self::Param(param) => write!(f, "#{param}"),
             Self::Infer(infer) => Display::fmt(infer, f),
         }
     }

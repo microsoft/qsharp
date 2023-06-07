@@ -8,7 +8,8 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, ItemId, Scheme, Ty, UdtField,
+    self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, GenericParam, ItemId, ParamKind,
+    ParamName, Scheme, Ty, UdtField,
 };
 use std::rc::Rc;
 
@@ -125,7 +126,8 @@ pub(super) fn ast_callable_scheme(
     decl: &CallableDecl,
 ) -> (Scheme, Vec<MissingTyError>) {
     let kind = callable_kind_from_ast(decl.kind);
-    let (input, mut errors) = ast_pat_ty(names, &decl.input);
+    let (mut input, mut errors) = ast_pat_ty(names, &decl.input);
+    let functor_params = synthesize_functor_params_in_ty(&mut 0, &mut input);
     let (output, output_errors) = ty_from_ast(names, &decl.output);
     errors.extend(output_errors);
     let functors = ast_callable_functors(decl);
@@ -135,11 +137,66 @@ pub(super) fn ast_callable_scheme(
         output: Box::new(output),
         functors: FunctorSet::Value(functors),
     };
+
+    let params = decl
+        .generics
+        .iter()
+        .map(|i| GenericParam {
+            name: ParamName::Symbol(Rc::clone(&i.name)),
+            kind: ParamKind::Ty,
+        })
+        .chain(functor_params)
+        .collect();
     let scheme = Scheme {
-        params: decl.generics.iter().map(|i| Rc::clone(&i.name)).collect(),
+        params,
         ty: Box::new(ty),
     };
+
     (scheme, errors)
+}
+
+fn synthesize_functor_params_in_ty(next_functor: &mut u32, ty: &mut Ty) -> Vec<GenericParam> {
+    match ty {
+        Ty::Array(item) => synthesize_functor_params_in_ty(next_functor, item),
+        Ty::Arrow(arrow) if arrow.kind == hir::CallableKind::Operation => {
+            let functors = arrow
+                .functors
+                .expect_value("type should have concrete functors");
+            let param = GenericParam {
+                name: ParamName::Id(*next_functor),
+                kind: ParamKind::Functor(functors),
+            };
+            arrow.functors = FunctorSet::Param(*next_functor);
+            *next_functor += 1;
+            vec![param]
+        }
+        Ty::Tuple(items) => items
+            .iter_mut()
+            .flat_map(|item| synthesize_functor_params_in_ty(next_functor, item))
+            .collect(),
+        Ty::Arrow(_) | Ty::Infer(_) | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) | Ty::Err => {
+            Vec::new()
+        }
+    }
+}
+
+pub(crate) fn synthesize_functor_params_in_pat(
+    next_functor: &mut u32,
+    pat: &mut hir::Pat,
+) -> Vec<GenericParam> {
+    match &mut pat.kind {
+        hir::PatKind::Discard | hir::PatKind::Bind(_) | hir::PatKind::Elided => {
+            synthesize_functor_params_in_ty(next_functor, &mut pat.ty)
+        }
+        hir::PatKind::Tuple(items) => {
+            let mut params = Vec::new();
+            for item in items.iter_mut() {
+                params.append(&mut synthesize_functor_params_in_pat(next_functor, item));
+            }
+            pat.ty = Ty::Tuple(items.iter().map(|i| i.ty.clone()).collect());
+            params
+        }
+    }
 }
 
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) {
