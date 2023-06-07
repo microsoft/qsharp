@@ -6,6 +6,7 @@ use qsc::{
     compile::{self, Error},
     PackageStore, SourceMap,
 };
+use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
 
 /// Represents an immutable compilation state that can be used
@@ -32,6 +33,6 @@ pub(crate) fn compile_document(source_name: &str, source_contents: &str) -> Comp
     }
 }
 
-pub(crate) fn span_contains(span: qsc_data_structures::span::Span, offset: u32) -> bool {
+pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset < span.hi
 }
