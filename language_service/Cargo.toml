@@ -1,0 +1,21 @@
+[package]
+name = "language_service"
+version = "0.0.0"
+
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+indoc = { workspace = true }
+log = { workspace = true }
+miette = { workspace = true }
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
+qsc = { path = "../compiler/qsc" }
+qsc_hir = { path = "../compiler/qsc_hir" }
+qsc_frontend = { path = "../compiler/qsc_frontend" }
+qsc_data_structures = { path = "../compiler/qsc_data_structures" }
+enum-iterator = { workspace = true }
