@@ -14,12 +14,12 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::hir::{self, ItemId, PackageId, Ty, Udt};
+use qsc_hir::hir::{self, ItemId, PackageId, Scheme, Ty, Udt};
 use std::{collections::HashMap, vec};
 
 pub(crate) struct GlobalTable {
     udts: HashMap<ItemId, Udt>,
-    terms: HashMap<ItemId, Ty>,
+    terms: HashMap<ItemId, Scheme>,
     errors: Vec<Error>,
 }
 
@@ -40,11 +40,11 @@ impl GlobalTable {
             };
 
             match &item.kind {
-                hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.ty()),
+                hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.scheme()),
                 hir::ItemKind::Namespace(..) => None,
                 hir::ItemKind::Ty(_, udt) => {
                     self.udts.insert(item_id, udt.clone());
-                    self.terms.insert(item_id, udt.cons_ty(item_id))
+                    self.terms.insert(item_id, udt.cons_scheme(item_id))
                 }
             };
         }
@@ -52,7 +52,7 @@ impl GlobalTable {
 }
 
 pub(crate) struct Checker {
-    globals: HashMap<ItemId, Ty>,
+    globals: HashMap<ItemId, Scheme>,
     tys: Table,
     errors: Vec<Error>,
 }
@@ -102,11 +102,7 @@ impl Checker {
     }
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
-        self.tys
-            .terms
-            .insert(decl.name.id, convert::ast_callable_ty(names, decl).0);
         self.check_callable_signature(names, decl);
-
         let output = convert::ty_from_ast(names, &decl.output).0;
         match &*decl.body {
             ast::CallableBody::Block(block) => self.check_spec(
@@ -201,14 +197,14 @@ impl Visitor<'_> for ItemCollector<'_> {
                     panic!("callable should have item ID");
                 };
 
-                let (ty, errors) = convert::ast_callable_ty(self.names, decl);
+                let (scheme, errors) = convert::ast_callable_scheme(self.names, decl);
                 for MissingTyError(span) in errors {
                     self.checker
                         .errors
                         .push(Error(ErrorKind::MissingItemTy(span)));
                 }
 
-                self.checker.globals.insert(item, ty);
+                self.checker.globals.insert(item, scheme);
             }
             ast::ItemKind::Ty(name, def) => {
                 let Some(&Res::Item(item)) = self.names.get(name.id) else {

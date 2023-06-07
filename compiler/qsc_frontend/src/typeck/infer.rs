@@ -5,7 +5,7 @@ use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{
     ArrowTy, FunctorSet, FunctorSetValue, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res,
-    Ty, Udt,
+    Scheme, Ty, Udt,
 };
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
@@ -348,13 +348,22 @@ impl Inferrer {
         FunctorSet::Infer(fresh)
     }
 
-    /// Replaces all type parameters with fresh types and creates synthetic functor parameters for
-    /// second-order arrow types.
-    pub(super) fn freshen_arrow(&mut self, arrow: &mut ArrowTy, span: Span) {
-        let mode = FreshenMode::Functors;
+    /// Instantiates the type scheme.
+    pub(super) fn instantiate(&mut self, scheme: &Scheme, span: Span) -> ArrowTy {
         let mut params = HashMap::new();
-        freshen_ty(self, mode, span, &mut params, &mut arrow.input);
-        freshen_ty(self, mode, span, &mut params, &mut arrow.output);
+        for param in &scheme.params {
+            params.insert((**param).into(), self.fresh_ty());
+        }
+
+        let mode = FreshenMode::Functors;
+        let input = instantiate_ty(self, mode, span, &params, &scheme.ty.input);
+        let output = instantiate_ty(self, mode, span, &params, &scheme.ty.output);
+        ArrowTy {
+            kind: scheme.ty.kind,
+            input: Box::new(input),
+            output: Box::new(output),
+            functors: scheme.ty.functors,
+        }
     }
 
     /// Solves for all variables given the accumulated constraints.
@@ -583,22 +592,21 @@ impl<'a> Solver<'a> {
     }
 }
 
-fn freshen_ty(
+fn instantiate_ty(
     inferrer: &mut Inferrer,
     mode: FreshenMode,
     span: Span,
-    params: &mut HashMap<Arc<str>, Ty>,
-    ty: &mut Ty,
-) {
+    params: &HashMap<Arc<str>, Ty>,
+    ty: &Ty,
+) -> Ty {
     match ty {
-        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
-        Ty::Array(item) => freshen_ty(inferrer, mode, span, params, item),
+        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => ty.clone(),
+        Ty::Array(item) => Ty::Array(Box::new(instantiate_ty(inferrer, mode, span, params, item))),
         Ty::Arrow(arrow) => {
             let new_mode = FreshenMode::NoFunctors;
-            freshen_ty(inferrer, new_mode, span, params, &mut arrow.input);
-            freshen_ty(inferrer, new_mode, span, params, &mut arrow.output);
-
-            if mode == FreshenMode::Functors {
+            let input = instantiate_ty(inferrer, new_mode, span, params, &arrow.input);
+            let output = instantiate_ty(inferrer, new_mode, span, params, &arrow.output);
+            let functors = if mode == FreshenMode::Functors {
                 let old_functors = arrow
                     .functors
                     .expect_value("arrow type should have concrete functors");
@@ -608,20 +616,28 @@ fn freshen_ty(
                     actual: new_functors,
                     span,
                 });
-                arrow.functors = new_functors;
-            }
+                new_functors
+            } else {
+                arrow.functors
+            };
+
+            Ty::Arrow(Box::new(ArrowTy {
+                kind: arrow.kind,
+                input: Box::new(input),
+                output: Box::new(output),
+                functors,
+            }))
         }
-        Ty::Param(name) => {
-            *ty = params
-                .entry(Arc::clone(name))
-                .or_insert_with(|| inferrer.fresh_ty())
-                .clone();
-        }
-        Ty::Tuple(items) => {
-            for item in items {
-                freshen_ty(inferrer, mode, span, params, item);
-            }
-        }
+        Ty::Param(name) => params
+            .get(name)
+            .cloned()
+            .unwrap_or(Ty::Param(Arc::clone(name))),
+        Ty::Tuple(items) => Ty::Tuple(
+            items
+                .iter()
+                .map(|item| instantiate_ty(inferrer, mode, span, params, item))
+                .collect(),
+        ),
     }
 }
 

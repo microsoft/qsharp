@@ -306,15 +306,18 @@ pub struct CallableDecl {
 }
 
 impl CallableDecl {
-    /// The type of the callable.
+    /// The type scheme of the callable.
     #[must_use]
-    pub fn ty(&self) -> Ty {
-        Ty::Arrow(Box::new(ArrowTy {
-            kind: self.kind,
-            input: Box::new(self.input.ty.clone()),
-            output: Box::new(self.output.clone()),
-            functors: FunctorSet::Value(self.functors),
-        }))
+    pub fn scheme(&self) -> Scheme {
+        Scheme {
+            params: self.generics.iter().map(|i| Rc::clone(&i.name)).collect(),
+            ty: Box::new(ArrowTy {
+                kind: self.kind,
+                input: Box::new(self.input.ty.clone()),
+                output: Box::new(self.output.clone()),
+                functors: FunctorSet::Value(self.functors),
+            }),
+        }
     }
 }
 
@@ -1058,6 +1061,14 @@ pub enum Attr {
     EntryPoint,
 }
 
+/// A type scheme.
+pub struct Scheme {
+    /// The generic parameters to the type.
+    pub params: Vec<Rc<str>>,
+    /// The arrow type.
+    pub ty: Box<ArrowTy>,
+}
+
 /// A type.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Ty {
@@ -1347,19 +1358,22 @@ pub struct Udt {
 }
 
 impl Udt {
-    /// The type of the constructor for this type definition.
+    /// The type scheme of the constructor for this type definition.
     ///
     /// # Arguments
     ///
     /// * `id` - The ID of the constructed type.
     #[must_use]
-    pub fn cons_ty(&self, id: ItemId) -> Ty {
-        Ty::Arrow(Box::new(ArrowTy {
-            kind: CallableKind::Function,
-            input: Box::new(self.base.clone()),
-            output: Box::new(Ty::Udt(Res::Item(id))),
-            functors: FunctorSet::Value(FunctorSetValue::Empty),
-        }))
+    pub fn cons_scheme(&self, id: ItemId) -> Scheme {
+        Scheme {
+            params: Vec::new(),
+            ty: Box::new(ArrowTy {
+                kind: CallableKind::Function,
+                input: Box::new(self.base.clone()),
+                output: Box::new(Ty::Udt(Res::Item(id))),
+                functors: FunctorSet::Value(FunctorSetValue::Empty),
+            }),
+        }
     }
 
     /// The path to the field with the given name. Returns [None] if this user-defined type does not

@@ -7,7 +7,9 @@ use qsc_ast::ast::{
     SetOp, Spec, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, ItemId, Ty, UdtField};
+use qsc_hir::hir::{
+    self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, ItemId, Scheme, Ty, UdtField,
+};
 use std::rc::Rc;
 
 pub(crate) struct MissingTyError(pub(super) Span);
@@ -58,15 +60,23 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
     }
 }
 
-pub(super) fn ast_ty_def_cons(names: &Names, id: ItemId, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
+pub(super) fn ast_ty_def_cons(
+    names: &Names,
+    id: ItemId,
+    def: &TyDef,
+) -> (Scheme, Vec<MissingTyError>) {
     let (input, errors) = ast_ty_def_base(names, def);
-    let ty = Ty::Arrow(Box::new(ArrowTy {
+    let ty = ArrowTy {
         kind: hir::CallableKind::Function,
         input: Box::new(input),
         output: Box::new(Ty::Udt(hir::Res::Item(id))),
         functors: FunctorSet::Value(FunctorSetValue::Empty),
-    }));
-    (ty, errors)
+    };
+    let scheme = Scheme {
+        params: Vec::new(),
+        ty: Box::new(ty),
+    };
+    (scheme, errors)
 }
 
 pub(super) fn ast_ty_def_base(names: &Names, def: &TyDef) -> (Ty, Vec<MissingTyError>) {
@@ -110,19 +120,26 @@ pub(super) fn ast_ty_def_fields(def: &TyDef) -> Vec<UdtField> {
     }
 }
 
-pub(super) fn ast_callable_ty(names: &Names, decl: &CallableDecl) -> (Ty, Vec<MissingTyError>) {
+pub(super) fn ast_callable_scheme(
+    names: &Names,
+    decl: &CallableDecl,
+) -> (Scheme, Vec<MissingTyError>) {
     let kind = callable_kind_from_ast(decl.kind);
     let (input, mut errors) = ast_pat_ty(names, &decl.input);
     let (output, output_errors) = ty_from_ast(names, &decl.output);
     errors.extend(output_errors);
     let functors = ast_callable_functors(decl);
-    let ty = Ty::Arrow(Box::new(ArrowTy {
+    let ty = ArrowTy {
         kind,
         input: Box::new(input),
         output: Box::new(output),
         functors: FunctorSet::Value(functors),
-    }));
-    (ty, errors)
+    };
+    let scheme = Scheme {
+        params: decl.generics.iter().map(|i| Rc::clone(&i.name)).collect(),
+        ty: Box::new(ty),
+    };
+    (scheme, errors)
 }
 
 pub(crate) fn ast_pat_ty(names: &Names, pat: &Pat) -> (Ty, Vec<MissingTyError>) {
