@@ -33,13 +33,12 @@ pub(crate) fn get_definition(
     };
     definition_finder.visit_package(package);
 
-    match definition_finder.definition {
-        Some((name, offset)) => Some(Definition {
+    definition_finder
+        .definition
+        .map(|(name, offset)| Definition {
             source: name,
             offset,
-        }),
-        None => None,
-    }
+        })
 }
 
 struct DefinitionFinder<'a> {
