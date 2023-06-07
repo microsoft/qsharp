@@ -1069,6 +1069,56 @@ pub struct Scheme {
     pub ty: Box<ArrowTy>,
 }
 
+impl Scheme {
+    /// Instantiates this type scheme with the given arguments.
+    pub fn instantiate<'a>(
+        &self,
+        arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
+    ) -> ArrowTy {
+        instantiate_arrow_ty(arg, &self.ty)
+    }
+}
+
+fn instantiate_ty<'a>(arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy, ty: &Ty) -> Ty {
+    match ty {
+        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => ty.clone(),
+        Ty::Array(item) => Ty::Array(Box::new(instantiate_ty(arg, item))),
+        Ty::Arrow(arrow) => Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow))),
+        Ty::Param(name) => {
+            if let Some(GenericArg::Ty(arg)) = arg(&ParamName::Symbol((**name).into())) {
+                arg.clone()
+            } else {
+                ty.clone()
+            }
+        }
+        Ty::Tuple(items) => Ty::Tuple(items.iter().map(|item| instantiate_ty(arg, item)).collect()),
+    }
+}
+
+fn instantiate_arrow_ty<'a>(
+    arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
+    arrow: &ArrowTy,
+) -> ArrowTy {
+    let input = instantiate_ty(arg, &arrow.input);
+    let output = instantiate_ty(arg, &arrow.output);
+    let functors = if let FunctorSet::Param(id) = arrow.functors {
+        if let Some(GenericArg::Functor(functors)) = arg(&ParamName::Id(id)) {
+            *functors
+        } else {
+            arrow.functors
+        }
+    } else {
+        arrow.functors
+    };
+
+    ArrowTy {
+        kind: arrow.kind,
+        input: Box::new(input),
+        output: Box::new(output),
+        functors,
+    }
+}
+
 /// A generic parameter.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GenericParam {

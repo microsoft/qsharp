@@ -5,7 +5,7 @@ use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{
     ArrowTy, FunctorSet, FunctorSetValue, GenericArg, InferFunctor, InferTy, ItemId, ParamKind,
-    ParamName, PrimField, PrimTy, Res, Scheme, Ty, Udt,
+    PrimField, PrimTy, Res, Scheme, Ty, Udt,
 };
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
@@ -357,17 +357,11 @@ impl Inferrer {
                     GenericArg::Functor(functors)
                 }
             };
+
             args.insert(&param.name, arg);
         }
 
-        let input = instantiate_ty(&args, &scheme.ty.input);
-        let output = instantiate_ty(&args, &scheme.ty.output);
-        ArrowTy {
-            kind: scheme.ty.kind,
-            input: Box::new(input),
-            output: Box::new(output),
-            functors: scheme.ty.functors,
-        }
+        scheme.instantiate(|name| args.get(name))
     }
 
     /// Solves for all variables given the accumulated constraints.
@@ -382,6 +376,7 @@ impl Inferrer {
                 self.constraints.push_front(constraint);
             }
         }
+
         solver.into_solution()
     }
 }
@@ -595,46 +590,6 @@ impl<'a> Solver<'a> {
     fn into_solution(mut self) -> (Solution, Vec<Error>) {
         self.default_functors();
         (self.solution, self.errors)
-    }
-}
-
-fn instantiate_ty(args: &HashMap<&ParamName, GenericArg>, ty: &Ty) -> Ty {
-    match ty {
-        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => ty.clone(),
-        Ty::Array(item) => Ty::Array(Box::new(instantiate_ty(args, item))),
-        Ty::Arrow(arrow) => {
-            let input = instantiate_ty(args, &arrow.input);
-            let output = instantiate_ty(args, &arrow.output);
-            let functors = if let FunctorSet::Param(id) = arrow.functors {
-                if let Some(GenericArg::Functor(functors)) = args.get(&ParamName::Id(id)) {
-                    *functors
-                } else {
-                    arrow.functors
-                }
-            } else {
-                arrow.functors
-            };
-
-            Ty::Arrow(Box::new(ArrowTy {
-                kind: arrow.kind,
-                input: Box::new(input),
-                output: Box::new(output),
-                functors,
-            }))
-        }
-        Ty::Param(name) => {
-            if let Some(GenericArg::Ty(arg)) = args.get(&ParamName::Symbol((**name).into())) {
-                arg.clone()
-            } else {
-                ty.clone()
-            }
-        }
-        Ty::Tuple(items) => Ty::Tuple(
-            items
-                .iter()
-                .map(|item| instantiate_ty(args, item))
-                .collect(),
-        ),
     }
 }
 
