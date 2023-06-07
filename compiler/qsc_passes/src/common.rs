@@ -5,8 +5,8 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     global::Table,
     hir::{
-        Expr, ExprKind, Field, Ident, Mutability, NodeId, Pat, PatKind, PrimField, PrimTy, Res,
-        Stmt, StmtKind, Ty,
+        Expr, ExprKind, Field, GenericArg, Ident, Mutability, NodeId, Pat, PatKind, PrimField,
+        PrimTy, Res, Stmt, StmtKind, Ty,
     },
 };
 use std::rc::Rc;
@@ -59,14 +59,21 @@ impl IdentTemplate {
     }
 }
 
-pub(crate) fn create_gen_core_ref(core_table: &Table, ns: &str, name: &str, span: Span) -> Expr {
-    let term = core_table
-        .resolve_term(ns, name)
-        .unwrap_or_else(|| panic!("Cannot find function `{ns}.{name}`"));
+pub(crate) fn create_gen_core_ref(
+    core: &Table,
+    namespace: &str,
+    name: &str,
+    generics: Vec<GenericArg>,
+    span: Span,
+) -> Expr {
+    let term = core
+        .resolve_term(namespace, name)
+        .expect("term should resolve");
+
     Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Arrow(term.scheme.ty.clone()), // TODO: Instantiation?
-        kind: ExprKind::Var(Res::Item(term.id), Vec::new()),
+        ty: Ty::Arrow(Box::new(term.scheme.instantiate(&generics))),
+        kind: ExprKind::Var(Res::Item(term.id), generics),
     }
 }

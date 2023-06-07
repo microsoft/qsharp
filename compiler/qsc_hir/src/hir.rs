@@ -1088,11 +1088,8 @@ pub struct Scheme {
 
 impl Scheme {
     /// Instantiates this type scheme with the given arguments.
-    pub fn instantiate<'a>(
-        &'a self,
-        args: impl Iterator<Item = (&'a ParamName, &'a GenericArg)>,
-    ) -> ArrowTy {
-        let args: HashMap<_, _> = args.into_iter().collect();
+    pub fn instantiate<'a>(&self, args: impl IntoIterator<Item = &'a GenericArg>) -> ArrowTy {
+        let args: HashMap<_, _> = self.params.iter().map(|p| &p.name).zip(args).collect();
         instantiate_arrow_ty(|name| args.get(name).copied(), &self.ty)
     }
 }

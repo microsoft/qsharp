@@ -235,6 +235,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
                 self.core,
                 "QIR.Runtime",
                 "__quantum__rt__qubit_allocate",
+                Vec::new(),
                 ident.span,
             ),
             None,
@@ -244,7 +245,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
     fn create_array_alloc_stmt(&self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
         create_general_alloc_stmt(
             ident,
-            create_gen_core_ref(self.core, "QIR.Runtime", "AllocateQubitArray", ident.span),
+            create_gen_core_ref(
+                self.core,
+                "QIR.Runtime",
+                "AllocateQubitArray",
+                Vec::new(),
+                ident.span,
+            ),
             Some(array_size),
         )
     }
@@ -255,6 +262,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
                 self.core,
                 "QIR.Runtime",
                 "__quantum__rt__qubit_release",
+                Vec::new(),
                 ident.span,
             ),
             ident,
@@ -263,7 +271,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
 
     fn create_array_dealloc_stmt(&self, ident: &IdentTemplate) -> Stmt {
         create_general_dealloc_stmt(
-            create_gen_core_ref(self.core, "QIR.Runtime", "ReleaseQubitArray", ident.span),
+            create_gen_core_ref(
+                self.core,
+                "QIR.Runtime",
+                "ReleaseQubitArray",
+                Vec::new(),
+                ident.span,
+            ),
             ident,
         )
     }
@@ -383,7 +397,13 @@ fn create_qubit_global_alloc(core: &Table, pat: Pat, qubit_init: QubitInit) -> S
         match qubit_init.kind {
             QubitInitKind::Array(mut expr) => create_qubit_alloc_call_expr(
                 qubit_init.span,
-                create_gen_core_ref(core, "QIR.Runtime", "AllocateQubitArray", qubit_init.span),
+                create_gen_core_ref(
+                    core,
+                    "QIR.Runtime",
+                    "AllocateQubitArray",
+                    Vec::new(),
+                    qubit_init.span,
+                ),
                 Some(take(&mut expr)),
             ),
             QubitInitKind::Single => create_qubit_alloc_call_expr(
@@ -392,6 +412,7 @@ fn create_qubit_global_alloc(core: &Table, pat: Pat, qubit_init: QubitInit) -> S
                     core,
                     "QIR.Runtime",
                     "__quantum__rt__qubit_allocate",
+                    Vec::new(),
                     qubit_init.span,
                 ),
                 None,

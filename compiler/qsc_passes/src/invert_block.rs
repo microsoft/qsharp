@@ -8,8 +8,8 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        BinOp, Block, Expr, ExprKind, Field, Ident, Lit, Mutability, NodeId, Pat, PatKind,
-        PrimField, PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Field, GenericArg, Ident, Lit, Mutability, NodeId, Pat,
+        PatKind, PrimField, PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
@@ -338,6 +338,7 @@ fn make_array_index_range_reverse(core: &Table, arr_id: NodeId, arr_ty: &Ty) -> 
                 core,
                 "Microsoft.Quantum.Core",
                 "Length",
+                vec![GenericArg::Ty(arr_ty.clone())],
                 Span::default(),
             )),
             Box::new(Expr {

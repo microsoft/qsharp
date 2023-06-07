@@ -347,30 +347,24 @@ impl Inferrer {
         scheme: &Scheme,
         span: Span,
     ) -> (ArrowTy, Vec<GenericArg>) {
-        let args: Vec<_> = scheme
+        let args = scheme
             .params
             .iter()
-            .map(|param| {
-                let arg = match param.kind {
-                    ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),
-                    ParamKind::Functor(expected) => {
-                        let actual = self.fresh_functor();
-                        self.constraints.push_back(Constraint::Superset {
-                            expected,
-                            actual,
-                            span,
-                        });
-                        GenericArg::Functor(actual)
-                    }
-                };
-
-                (&param.name, arg)
+            .map(|param| match param.kind {
+                ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),
+                ParamKind::Functor(expected) => {
+                    let actual = self.fresh_functor();
+                    self.constraints.push_back(Constraint::Superset {
+                        expected,
+                        actual,
+                        span,
+                    });
+                    GenericArg::Functor(actual)
+                }
             })
             .collect();
 
-        let ty = scheme.instantiate(args.iter().map(|(name, arg)| (*name, arg)));
-        let args = args.into_iter().map(|(_, arg)| arg).collect();
-        (ty, args)
+        (scheme.instantiate(&args), args)
     }
 
     /// Solves for all variables given the accumulated constraints.

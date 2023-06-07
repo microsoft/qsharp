@@ -1149,7 +1149,10 @@ fn generate_adj_invert_with_array_loop() {
                                         Expr _id_ [0-0] [Type Range]: Range:
                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                 Expr _id_ [0-0] [Type Int]: Call:
-                                                    Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                                    Expr _id_ [0-0] [Type ((Int)[] -> Int)]: Var:
+                                                        res: Item 1 (Package 0)
+                                                        generics:
+                                                            Int
                                                     Expr _id_ [0-0] [Type (Int)[]]: Var: Local 32
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                             Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
@@ -1265,7 +1268,10 @@ fn generate_adj_invert_with_nested_loops() {
                                         Expr _id_ [0-0] [Type Range]: Range:
                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                 Expr _id_ [0-0] [Type Int]: Call:
-                                                    Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                                    Expr _id_ [0-0] [Type ((Int)[] -> Int)]: Var:
+                                                        res: Item 1 (Package 0)
+                                                        generics:
+                                                            Int
                                                     Expr _id_ [0-0] [Type (Int)[]]: Var: Local 55
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                             Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
@@ -1295,7 +1301,10 @@ fn generate_adj_invert_with_nested_loops() {
                                                     Expr _id_ [0-0] [Type Range]: Range:
                                                         Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                             Expr _id_ [0-0] [Type Int]: Call:
-                                                                Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                                                Expr _id_ [0-0] [Type ((Bool)[] -> Int)]: Var:
+                                                                    res: Item 1 (Package 0)
+                                                                    generics:
+                                                                        Bool
                                                                 Expr _id_ [0-0] [Type (Bool)[]]: Var: Local 53
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                         Expr _id_ [0-0] [Type Int]: Lit: Int(-1)

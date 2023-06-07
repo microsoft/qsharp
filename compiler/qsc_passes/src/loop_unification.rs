@@ -9,8 +9,8 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        BinOp, Block, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PrimField, PrimTy, Stmt,
-        StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, GenericArg, Lit, Mutability, NodeId, Pat, PrimField, PrimTy,
+        Stmt, StmtKind, Ty, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
 };
@@ -119,8 +119,14 @@ impl LoopUni<'_> {
         let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
         let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable);
 
-        let len_callee =
-            create_gen_core_ref(self.core, "Microsoft.Quantum.Core", "Length", array_id.span);
+        let Ty::Array(item_ty) = &array_id.ty else { panic!("iterator should have array type"); };
+        let len_callee = create_gen_core_ref(
+            self.core,
+            "Microsoft.Quantum.Core",
+            "Length",
+            vec![GenericArg::Ty((**item_ty).clone())],
+            array_id.span,
+        );
         let len_id = self.gen_ident("len_id", Ty::Prim(PrimTy::Int), iterable_span);
         let len_capture = len_id.gen_id_init(
             Mutability::Immutable,
