@@ -196,11 +196,11 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(cond);
             vis.visit_block(block);
         }
-        ExprKind::Closure(..)
+        ExprKind::Closure(_, _)
         | ExprKind::Err
         | ExprKind::Hole
         | ExprKind::Lit(_)
-        | ExprKind::Var(_) => {}
+        | ExprKind::Var(_, _) => {}
     }
 }
 

@@ -12,7 +12,9 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, ArrowTy, FunctorSet, FunctorSetValue, ItemId, PrimTy, Scheme, Ty, Udt};
+use qsc_hir::hir::{
+    self, ArrowTy, FunctorSet, FunctorSetValue, GenericArg, ItemId, PrimTy, Scheme, Ty, Udt,
+};
 use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -36,6 +38,7 @@ struct Context<'a> {
     udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Scheme>,
     terms: &'a mut IndexMap<NodeId, Ty>,
+    generic_args: &'a mut HashMap<NodeId, Vec<GenericArg>>,
     return_ty: Option<&'a Ty>,
     typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
@@ -48,12 +51,14 @@ impl<'a> Context<'a> {
         udts: &'a HashMap<ItemId, Udt>,
         globals: &'a HashMap<ItemId, Scheme>,
         terms: &'a mut IndexMap<NodeId, Ty>,
+        generic_args: &'a mut HashMap<NodeId, Vec<GenericArg>>,
     ) -> Self {
         Self {
             names,
             udts,
             globals,
             terms,
+            generic_args,
             return_ty: None,
             typed_holes: Vec::new(),
             new: Vec::new(),
@@ -330,7 +335,8 @@ impl<'a> Context<'a> {
                 None => converge(Ty::Err),
                 Some(Res::Item(item)) => {
                     let scheme = self.globals.get(item).expect("item should have scheme");
-                    let ty = self.inferrer.instantiate(scheme, expr.span);
+                    let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
+                    self.generic_args.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }
                 Some(&Res::Local(node)) => converge(
@@ -688,14 +694,28 @@ impl<'a> Context<'a> {
 
     fn solve(self) -> Vec<Error> {
         let (solution, mut errors) = self.inferrer.solve(self.udts);
+
         for id in self.new {
             let ty = self.terms.get_mut(id).expect("node should have type");
             infer::substitute_ty(&solution, ty);
+
+            if let Some(args) = self.generic_args.get_mut(&id) {
+                for arg in args {
+                    match arg {
+                        GenericArg::Ty(ty) => infer::substitute_ty(&solution, ty),
+                        GenericArg::Functor(functors) => {
+                            infer::substitute_functor(&solution, functors);
+                        }
+                    }
+                }
+            }
         }
+
         for (id, span) in self.typed_holes {
             let ty = self.terms.get_mut(id).expect("node should have type");
             errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
+
         errors
     }
 }
@@ -714,9 +734,10 @@ pub(super) fn spec(
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Scheme>,
     terms: &mut IndexMap<NodeId, Ty>,
+    generic_args: &mut HashMap<NodeId, Vec<GenericArg>>,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, udts, globals, terms);
+    let mut context = Context::new(names, udts, globals, terms, generic_args);
     context.infer_spec(spec);
     context.solve()
 }
@@ -726,9 +747,10 @@ pub(super) fn expr(
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Scheme>,
     terms: &mut IndexMap<NodeId, Ty>,
+    generic_args: &mut HashMap<NodeId, Vec<GenericArg>>,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, udts, globals, terms);
+    let mut context = Context::new(names, udts, globals, terms, generic_args);
     context.infer_expr(expr);
     context.solve()
 }
@@ -738,9 +760,10 @@ pub(super) fn stmt(
     udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Scheme>,
     terms: &mut IndexMap<NodeId, Ty>,
+    generic_args: &mut HashMap<NodeId, Vec<GenericArg>>,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, udts, globals, terms);
+    let mut context = Context::new(names, udts, globals, terms, generic_args);
     context.infer_stmt(stmt);
     context.solve()
 }

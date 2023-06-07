@@ -64,6 +64,7 @@ impl Checker {
             tys: Table {
                 udts: globals.udts,
                 terms: IndexMap::new(),
+                generic_args: HashMap::new(),
             },
             errors: globals.errors,
         }
@@ -91,6 +92,7 @@ impl Checker {
                 &self.tys.udts,
                 &self.globals,
                 &mut self.tys.terms,
+                &mut self.tys.generic_args,
                 entry,
             ));
         }
@@ -154,6 +156,7 @@ impl Checker {
             &self.tys.udts,
             &self.globals,
             &mut self.tys.terms,
+            &mut self.tys.generic_args,
             spec,
         ));
     }
@@ -173,6 +176,7 @@ impl Checker {
             &self.tys.udts,
             &self.globals,
             &mut self.tys.terms,
+            &mut self.tys.generic_args,
             stmt,
         ));
     }

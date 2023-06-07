@@ -42,14 +42,14 @@ fn test_single_qubit() {
                                 Stmt _id_ [59-60]: Local (Immutable):
                                     Pat _id_ [59-60] [Type Qubit]: Bind: Ident 8 [59-60] "q"
                                     Expr _id_ [59-60] [Type Qubit]: Call:
-                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [59-60] [Type Unit]: Unit
                                 Stmt 10 [80-90]: Local (Immutable):
                                     Pat 11 [84-85] [Type Int]: Bind: Ident 12 [84-85] "x"
                                     Expr 13 [88-89] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8
+                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -82,14 +82,14 @@ fn test_qubit_array() {
                                 Stmt _id_ [59-60]: Local (Immutable):
                                     Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 8 [59-60] "q"
                                     Expr _id_ [59-60] [Type Qubit]: Call:
-                                        Expr _id_ [59-60] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0)
+                                        Expr _id_ [59-60] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0) []
                                         Expr 10 [69-70] [Type Int]: Lit: Int(3)
                                 Stmt 11 [81-91]: Local (Immutable):
                                     Pat 12 [85-86] [Type Int]: Bind: Ident 13 [85-86] "x"
                                     Expr 14 [89-90] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                    Expr _id_ [59-60] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
-                                    Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 8
+                                    Expr _id_ [59-60] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0) []
+                                    Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 8 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -122,27 +122,27 @@ fn test_qubit_tuple() {
                                 Stmt _id_ [64-71]: Local (Immutable):
                                     Pat _id_ [64-71] [Type Qubit]: Bind: Ident 17 [64-71] "generated_ident_17"
                                     Expr _id_ [64-71] [Type Qubit]: Call:
-                                        Expr _id_ [64-71] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [64-71] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [64-71] [Type Unit]: Unit
                                 Stmt _id_ [73-80]: Local (Immutable):
                                     Pat _id_ [73-80] [Type Qubit]: Bind: Ident 18 [73-80] "generated_ident_18"
                                     Expr _id_ [73-80] [Type Qubit]: Call:
-                                        Expr _id_ [73-80] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [73-80] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [73-80] [Type Unit]: Unit
                                 Stmt _id_ [55-82]: Local (Immutable):
                                     Pat 7 [59-60] [Type (Qubit, Qubit)]: Bind: Ident 8 [59-60] "q"
                                     Expr _id_ [63-81] [Type (Qubit, Qubit)]: Tuple:
-                                        Expr _id_ [64-71] [Type Qubit]: Var: Local 17
-                                        Expr _id_ [73-80] [Type Qubit]: Var: Local 18
+                                        Expr _id_ [64-71] [Type Qubit]: Var: Local 17 []
+                                        Expr _id_ [73-80] [Type Qubit]: Var: Local 18 []
                                 Stmt 12 [91-101]: Local (Immutable):
                                     Pat 13 [95-96] [Type Int]: Bind: Ident 14 [95-96] "x"
                                     Expr 15 [99-100] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [73-80]: Semi: Expr _id_ [73-80] [Type Unit]: Call:
-                                    Expr _id_ [73-80] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [73-80] [Type Qubit]: Var: Local 18
+                                    Expr _id_ [73-80] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [73-80] [Type Qubit]: Var: Local 18 []
                                 Stmt _id_ [64-71]: Semi: Expr _id_ [64-71] [Type Unit]: Call:
-                                    Expr _id_ [64-71] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [64-71] [Type Qubit]: Var: Local 17
+                                    Expr _id_ [64-71] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [64-71] [Type Qubit]: Var: Local 17 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -175,29 +175,29 @@ fn test_multiple_qubits_tuple() {
                                 Stmt _id_ [69-76]: Local (Immutable):
                                     Pat _id_ [69-76] [Type Qubit]: Bind: Ident 21 [69-76] "generated_ident_21"
                                     Expr _id_ [69-76] [Type Qubit]: Call:
-                                        Expr _id_ [69-76] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [69-76] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [69-76] [Type Unit]: Unit
                                 Stmt _id_ [78-86]: Local (Immutable):
                                     Pat _id_ [78-86] [Type (Qubit)[]]: Bind: Ident 22 [78-86] "generated_ident_22"
                                     Expr _id_ [78-86] [Type Qubit]: Call:
-                                        Expr _id_ [78-86] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0)
+                                        Expr _id_ [78-86] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0) []
                                         Expr 15 [84-85] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [55-88]: Local (Immutable):
                                     Pat 7 [59-65] [Type (Qubit, (Qubit)[])]: Tuple:
                                         Pat 8 [60-61] [Type Qubit]: Bind: Ident 9 [60-61] "a"
                                         Pat 10 [63-64] [Type (Qubit)[]]: Bind: Ident 11 [63-64] "b"
                                     Expr _id_ [68-87] [Type (Qubit, (Qubit)[])]: Tuple:
-                                        Expr _id_ [69-76] [Type Qubit]: Var: Local 21
-                                        Expr _id_ [78-86] [Type (Qubit)[]]: Var: Local 22
+                                        Expr _id_ [69-76] [Type Qubit]: Var: Local 21 []
+                                        Expr _id_ [78-86] [Type (Qubit)[]]: Var: Local 22 []
                                 Stmt 16 [97-107]: Local (Immutable):
                                     Pat 17 [101-102] [Type Int]: Bind: Ident 18 [101-102] "x"
                                     Expr 19 [105-106] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [78-86]: Semi: Expr _id_ [78-86] [Type Unit]: Call:
-                                    Expr _id_ [78-86] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
-                                    Expr _id_ [78-86] [Type (Qubit)[]]: Var: Local 22
+                                    Expr _id_ [78-86] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0) []
+                                    Expr _id_ [78-86] [Type (Qubit)[]]: Var: Local 22 []
                                 Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type Unit]: Call:
-                                    Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [69-76] [Type Qubit]: Var: Local 21
+                                    Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [69-76] [Type Qubit]: Var: Local 21 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -235,29 +235,29 @@ fn test_multiple_callables() {
                                 Stmt _id_ [69-76]: Local (Immutable):
                                     Pat _id_ [69-76] [Type Qubit]: Bind: Ident 39 [69-76] "generated_ident_39"
                                     Expr _id_ [69-76] [Type Qubit]: Call:
-                                        Expr _id_ [69-76] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [69-76] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [69-76] [Type Unit]: Unit
                                 Stmt _id_ [78-85]: Local (Immutable):
                                     Pat _id_ [78-85] [Type Qubit]: Bind: Ident 40 [78-85] "generated_ident_40"
                                     Expr _id_ [78-85] [Type Qubit]: Call:
-                                        Expr _id_ [78-85] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [78-85] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [78-85] [Type Unit]: Unit
                                 Stmt _id_ [55-87]: Local (Immutable):
                                     Pat 7 [59-65] [Type (Qubit, Qubit)]: Tuple:
                                         Pat 8 [60-61] [Type Qubit]: Bind: Ident 9 [60-61] "a"
                                         Pat 10 [63-64] [Type Qubit]: Bind: Ident 11 [63-64] "b"
                                     Expr _id_ [68-86] [Type (Qubit, Qubit)]: Tuple:
-                                        Expr _id_ [69-76] [Type Qubit]: Var: Local 39
-                                        Expr _id_ [78-85] [Type Qubit]: Var: Local 40
+                                        Expr _id_ [69-76] [Type Qubit]: Var: Local 39 []
+                                        Expr _id_ [78-85] [Type Qubit]: Var: Local 40 []
                                 Stmt 15 [96-106]: Local (Immutable):
                                     Pat 16 [100-101] [Type Int]: Bind: Ident 17 [100-101] "x"
                                     Expr 18 [104-105] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [78-85]: Semi: Expr _id_ [78-85] [Type Unit]: Call:
-                                    Expr _id_ [78-85] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [78-85] [Type Qubit]: Var: Local 40
+                                    Expr _id_ [78-85] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [78-85] [Type Qubit]: Var: Local 40 []
                                 Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type Unit]: Call:
-                                    Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [69-76] [Type Qubit]: Var: Local 39
+                                    Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [69-76] [Type Qubit]: Var: Local 39 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
@@ -274,29 +274,29 @@ fn test_multiple_callables() {
                                 Stmt _id_ [169-176]: Local (Immutable):
                                     Pat _id_ [169-176] [Type Qubit]: Bind: Ident 41 [169-176] "generated_ident_41"
                                     Expr _id_ [169-176] [Type Qubit]: Call:
-                                        Expr _id_ [169-176] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [169-176] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [169-176] [Type Unit]: Unit
                                 Stmt _id_ [178-185]: Local (Immutable):
                                     Pat _id_ [178-185] [Type Qubit]: Bind: Ident 42 [178-185] "generated_ident_42"
                                     Expr _id_ [178-185] [Type Qubit]: Call:
-                                        Expr _id_ [178-185] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [178-185] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [178-185] [Type Unit]: Unit
                                 Stmt _id_ [155-187]: Local (Immutable):
                                     Pat 26 [159-165] [Type (Qubit, Qubit)]: Tuple:
                                         Pat 27 [160-161] [Type Qubit]: Bind: Ident 28 [160-161] "c"
                                         Pat 29 [163-164] [Type Qubit]: Bind: Ident 30 [163-164] "d"
                                     Expr _id_ [168-186] [Type (Qubit, Qubit)]: Tuple:
-                                        Expr _id_ [169-176] [Type Qubit]: Var: Local 41
-                                        Expr _id_ [178-185] [Type Qubit]: Var: Local 42
+                                        Expr _id_ [169-176] [Type Qubit]: Var: Local 41 []
+                                        Expr _id_ [178-185] [Type Qubit]: Var: Local 42 []
                                 Stmt 34 [196-206]: Local (Immutable):
                                     Pat 35 [200-201] [Type Int]: Bind: Ident 36 [200-201] "x"
                                     Expr 37 [204-205] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [178-185]: Semi: Expr _id_ [178-185] [Type Unit]: Call:
-                                    Expr _id_ [178-185] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [178-185] [Type Qubit]: Var: Local 42
+                                    Expr _id_ [178-185] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [178-185] [Type Qubit]: Var: Local 42 []
                                 Stmt _id_ [169-176]: Semi: Expr _id_ [169-176] [Type Unit]: Call:
-                                    Expr _id_ [169-176] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [169-176] [Type Qubit]: Var: Local 41
+                                    Expr _id_ [169-176] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [169-176] [Type Qubit]: Var: Local 41 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -334,40 +334,40 @@ fn test_qubit_block() {
                                     Stmt _id_ [69-76]: Local (Immutable):
                                         Pat _id_ [69-76] [Type Qubit]: Bind: Ident 33 [69-76] "generated_ident_33"
                                         Expr _id_ [69-76] [Type Qubit]: Call:
-                                            Expr _id_ [69-76] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                            Expr _id_ [69-76] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                             Expr _id_ [69-76] [Type Unit]: Unit
                                     Stmt _id_ [78-85]: Local (Immutable):
                                         Pat _id_ [78-85] [Type Qubit]: Bind: Ident 34 [78-85] "generated_ident_34"
                                         Expr _id_ [78-85] [Type Qubit]: Call:
-                                            Expr _id_ [78-85] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                            Expr _id_ [78-85] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                             Expr _id_ [78-85] [Type Unit]: Unit
                                     Stmt _id_ [55-173]: Local (Immutable):
                                         Pat 7 [59-65] [Type (Qubit, Qubit)]: Tuple:
                                             Pat 8 [60-61] [Type Qubit]: Bind: Ident 9 [60-61] "a"
                                             Pat 10 [63-64] [Type Qubit]: Bind: Ident 11 [63-64] "b"
                                         Expr _id_ [68-86] [Type (Qubit, Qubit)]: Tuple:
-                                            Expr _id_ [69-76] [Type Qubit]: Var: Local 33
-                                            Expr _id_ [78-85] [Type Qubit]: Var: Local 34
+                                            Expr _id_ [69-76] [Type Qubit]: Var: Local 33 []
+                                            Expr _id_ [78-85] [Type Qubit]: Var: Local 34 []
                                     Stmt 16 [101-111]: Local (Immutable):
                                         Pat 17 [105-106] [Type Int]: Bind: Ident 18 [105-106] "x"
                                         Expr 19 [109-110] [Type Int]: Lit: Int(3)
                                     Stmt _id_ [128-129]: Local (Immutable):
                                         Pat _id_ [128-129] [Type Qubit]: Bind: Ident 22 [128-129] "c"
                                         Expr _id_ [128-129] [Type Qubit]: Call:
-                                            Expr _id_ [128-129] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                            Expr _id_ [128-129] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                             Expr _id_ [128-129] [Type Unit]: Unit
                                     Stmt 24 [153-163]: Local (Immutable):
                                         Pat 25 [157-158] [Type Int]: Bind: Ident 26 [157-158] "y"
                                         Expr 27 [161-162] [Type Int]: Lit: Int(3)
                                     Stmt _id_ [128-129]: Semi: Expr _id_ [128-129] [Type Unit]: Call:
-                                        Expr _id_ [128-129] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                        Expr _id_ [128-129] [Type Qubit]: Var: Local 22
+                                        Expr _id_ [128-129] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                        Expr _id_ [128-129] [Type Qubit]: Var: Local 22 []
                                     Stmt _id_ [78-85]: Semi: Expr _id_ [78-85] [Type Unit]: Call:
-                                        Expr _id_ [78-85] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                        Expr _id_ [78-85] [Type Qubit]: Var: Local 34
+                                        Expr _id_ [78-85] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                        Expr _id_ [78-85] [Type Qubit]: Var: Local 34 []
                                     Stmt _id_ [69-76]: Semi: Expr _id_ [69-76] [Type Unit]: Call:
-                                        Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                        Expr _id_ [69-76] [Type Qubit]: Var: Local 33
+                                        Expr _id_ [69-76] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                        Expr _id_ [69-76] [Type Qubit]: Var: Local 33 []
                                 Stmt 28 [182-192]: Local (Immutable):
                                     Pat 29 [186-187] [Type Int]: Bind: Ident 30 [186-187] "z"
                                     Expr 31 [190-191] [Type Int]: Lit: Int(3)
@@ -406,26 +406,26 @@ fn test_qubit_nested_block() {
                                 Stmt _id_ [59-60]: Local (Immutable):
                                     Pat _id_ [59-60] [Type Qubit]: Bind: Ident 8 [59-60] "a"
                                     Expr _id_ [59-60] [Type Qubit]: Call:
-                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [59-60] [Type Unit]: Unit
                                 Stmt _id_ [80-130]: Expr: Expr _id_ [80-130] [Type Unit]: Expr Block: Block 14 [96-130] [Type Unit]:
                                     Stmt _id_ [84-85]: Local (Immutable):
                                         Pat _id_ [84-85] [Type Qubit]: Bind: Ident 12 [84-85] "b"
                                         Expr _id_ [84-85] [Type Qubit]: Call:
-                                            Expr _id_ [84-85] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                            Expr _id_ [84-85] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                             Expr _id_ [84-85] [Type Unit]: Unit
                                     Stmt 15 [110-120]: Local (Immutable):
                                         Pat 16 [114-115] [Type Int]: Bind: Ident 17 [114-115] "x"
                                         Expr 18 [118-119] [Type Int]: Lit: Int(3)
                                     Stmt _id_ [84-85]: Semi: Expr _id_ [84-85] [Type Unit]: Call:
-                                        Expr _id_ [84-85] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                        Expr _id_ [84-85] [Type Qubit]: Var: Local 12
+                                        Expr _id_ [84-85] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                        Expr _id_ [84-85] [Type Qubit]: Var: Local 12 []
                                 Stmt 19 [139-149]: Local (Immutable):
                                     Pat 20 [143-144] [Type Int]: Bind: Ident 21 [143-144] "y"
                                     Expr 22 [147-148] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8
+                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -474,7 +474,7 @@ fn test_qubit_multiple_nested_blocks() {
                                 Stmt _id_ [79-80]: Local (Immutable):
                                     Pat _id_ [79-80] [Type Qubit]: Bind: Ident 12 [79-80] "a"
                                     Expr _id_ [79-80] [Type Qubit]: Call:
-                                        Expr _id_ [79-80] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [79-80] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [79-80] [Type Unit]: Unit
                                 Stmt 14 [100-111]: Local (Immutable):
                                     Pat 15 [104-106] [Type Int]: Bind: Ident 16 [104-106] "x2"
@@ -486,14 +486,14 @@ fn test_qubit_multiple_nested_blocks() {
                                     Stmt _id_ [162-163]: Local (Immutable):
                                         Pat _id_ [162-163] [Type Qubit]: Bind: Ident 27 [162-163] "b"
                                         Expr _id_ [162-163] [Type Qubit]: Call:
-                                            Expr _id_ [162-163] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                            Expr _id_ [162-163] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                             Expr _id_ [162-163] [Type Unit]: Unit
                                     Stmt 29 [187-198]: Local (Immutable):
                                         Pat 30 [191-193] [Type Int]: Bind: Ident 31 [191-193] "y2"
                                         Expr 32 [196-197] [Type Int]: Lit: Int(3)
                                     Stmt _id_ [162-163]: Semi: Expr _id_ [162-163] [Type Unit]: Call:
-                                        Expr _id_ [162-163] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                        Expr _id_ [162-163] [Type Qubit]: Var: Local 27
+                                        Expr _id_ [162-163] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                        Expr _id_ [162-163] [Type Qubit]: Var: Local 27 []
                                 Stmt 33 [217-228]: Local (Immutable):
                                     Pat 34 [221-223] [Type Int]: Bind: Ident 35 [221-223] "x3"
                                     Expr 36 [226-227] [Type Int]: Lit: Int(3)
@@ -504,20 +504,20 @@ fn test_qubit_multiple_nested_blocks() {
                                     Stmt _id_ [279-280]: Local (Immutable):
                                         Pat _id_ [279-280] [Type Qubit]: Bind: Ident 46 [279-280] "c"
                                         Expr _id_ [279-280] [Type Qubit]: Call:
-                                            Expr _id_ [279-280] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                            Expr _id_ [279-280] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                             Expr _id_ [279-280] [Type Unit]: Unit
                                     Stmt 48 [304-315]: Local (Immutable):
                                         Pat 49 [308-310] [Type Int]: Bind: Ident 50 [308-310] "z2"
                                         Expr 51 [313-314] [Type Int]: Lit: Int(3)
                                     Stmt _id_ [279-280]: Semi: Expr _id_ [279-280] [Type Unit]: Call:
-                                        Expr _id_ [279-280] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                        Expr _id_ [279-280] [Type Qubit]: Var: Local 46
+                                        Expr _id_ [279-280] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                        Expr _id_ [279-280] [Type Qubit]: Var: Local 46 []
                                 Stmt 52 [334-345]: Local (Immutable):
                                     Pat 53 [338-340] [Type Int]: Bind: Ident 54 [338-340] "x4"
                                     Expr 55 [343-344] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [79-80]: Semi: Expr _id_ [79-80] [Type Unit]: Call:
-                                    Expr _id_ [79-80] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [79-80] [Type Qubit]: Var: Local 12
+                                    Expr _id_ [79-80] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [79-80] [Type Qubit]: Var: Local 12 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -558,7 +558,7 @@ fn test_early_returns() {
                                 Stmt _id_ [59-60]: Local (Immutable):
                                     Pat _id_ [59-60] [Type Qubit]: Bind: Ident 8 [59-60] "a"
                                     Expr _id_ [59-60] [Type Qubit]: Call:
-                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [59-60] [Type Unit]: Unit
                                 Stmt 10 [80-151]: Expr: Expr 11 [80-151] [Type Unit]: If:
                                     Expr 12 [83-87] [Type Bool]: Lit: Bool(true)
@@ -566,22 +566,22 @@ fn test_early_returns() {
                                         Stmt _id_ [106-107]: Local (Immutable):
                                             Pat _id_ [106-107] [Type Qubit]: Bind: Ident 16 [106-107] "b"
                                             Expr _id_ [106-107] [Type Qubit]: Call:
-                                                Expr _id_ [106-107] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                                Expr _id_ [106-107] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                                 Expr _id_ [106-107] [Type Unit]: Unit
                                         Stmt 18 [131-141]: Semi: Expr _id_ [131-140] [Type ?2]: Expr Block: Block _id_ [131-140] [Type ?2]:
                                             Stmt _id_ [138-140]: Local (Immutable):
                                                 Pat _id_ [138-140] [Type Unit]: Bind: Ident 33 [138-140] "generated_ident_33"
                                                 Expr 20 [138-140] [Type Unit]: Unit
                                             Stmt _id_ [106-107]: Semi: Expr _id_ [106-107] [Type Unit]: Call:
-                                                Expr _id_ [106-107] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                Expr _id_ [106-107] [Type Qubit]: Var: Local 16
+                                                Expr _id_ [106-107] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                                Expr _id_ [106-107] [Type Qubit]: Var: Local 16 []
                                             Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                                Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                Expr _id_ [59-60] [Type Qubit]: Var: Local 8
-                                            Stmt _id_ [131-140]: Semi: Expr _id_ [131-140] [Type ?2]: Return: Expr _id_ [138-140] [Type Unit]: Var: Local 33
+                                                Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                                Expr _id_ [59-60] [Type Qubit]: Var: Local 8 []
+                                            Stmt _id_ [131-140]: Semi: Expr _id_ [131-140] [Type ?2]: Return: Expr _id_ [138-140] [Type Unit]: Var: Local 33 []
                                         Stmt _id_ [106-107]: Semi: Expr _id_ [106-107] [Type Unit]: Call:
-                                            Expr _id_ [106-107] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                            Expr _id_ [106-107] [Type Qubit]: Var: Local 16
+                                            Expr _id_ [106-107] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                            Expr _id_ [106-107] [Type Qubit]: Var: Local 16 []
                                 Stmt _id_ [161-233]: Local (Immutable):
                                     Pat _id_ [161-233] [Type Unit]: Bind: Ident 35 [161-233] "generated_ident_35"
                                     Expr 22 [161-233] [Type Unit]: If:
@@ -590,26 +590,26 @@ fn test_early_returns() {
                                             Stmt _id_ [188-189]: Local (Immutable):
                                                 Pat _id_ [188-189] [Type Qubit]: Bind: Ident 27 [188-189] "c"
                                                 Expr _id_ [188-189] [Type Qubit]: Call:
-                                                    Expr _id_ [188-189] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                                    Expr _id_ [188-189] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                                     Expr _id_ [188-189] [Type Unit]: Unit
                                             Stmt 29 [213-223]: Semi: Expr _id_ [213-222] [Type ?5]: Expr Block: Block _id_ [213-222] [Type ?5]:
                                                 Stmt _id_ [220-222]: Local (Immutable):
                                                     Pat _id_ [220-222] [Type Unit]: Bind: Ident 34 [220-222] "generated_ident_34"
                                                     Expr 31 [220-222] [Type Unit]: Unit
                                                 Stmt _id_ [188-189]: Semi: Expr _id_ [188-189] [Type Unit]: Call:
-                                                    Expr _id_ [188-189] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                    Expr _id_ [188-189] [Type Qubit]: Var: Local 27
+                                                    Expr _id_ [188-189] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                                    Expr _id_ [188-189] [Type Qubit]: Var: Local 27 []
                                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8
-                                                Stmt _id_ [213-222]: Semi: Expr _id_ [213-222] [Type ?5]: Return: Expr _id_ [220-222] [Type Unit]: Var: Local 34
+                                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8 []
+                                                Stmt _id_ [213-222]: Semi: Expr _id_ [213-222] [Type ?5]: Return: Expr _id_ [220-222] [Type Unit]: Var: Local 34 []
                                             Stmt _id_ [188-189]: Semi: Expr _id_ [188-189] [Type Unit]: Call:
-                                                Expr _id_ [188-189] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                Expr _id_ [188-189] [Type Qubit]: Var: Local 27
+                                                Expr _id_ [188-189] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                                Expr _id_ [188-189] [Type Qubit]: Var: Local 27 []
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8
-                                Stmt _id_ [161-233]: Expr: Expr _id_ [161-233] [Type Unit]: Var: Local 35
+                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8 []
+                                Stmt _id_ [161-233]: Expr: Expr _id_ [161-233] [Type Unit]: Var: Local 35 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -646,7 +646,7 @@ fn test_end_exprs() {
                                 Stmt _id_ [59-60]: Local (Immutable):
                                     Pat _id_ [59-60] [Type Qubit]: Bind: Ident 8 [59-60] "a"
                                     Expr _id_ [59-60] [Type Qubit]: Call:
-                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [59-60] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [59-60] [Type Unit]: Unit
                                 Stmt 10 [80-92]: Local (Immutable):
                                     Pat 11 [84-85] [Type Int]: Bind: Ident 12 [84-85] "x"
@@ -658,18 +658,18 @@ fn test_end_exprs() {
                                         Stmt _id_ [127-128]: Local (Immutable):
                                             Pat _id_ [127-128] [Type Qubit]: Bind: Ident 24 [127-128] "b"
                                             Expr _id_ [127-128] [Type Qubit]: Call:
-                                                Expr _id_ [127-128] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                                Expr _id_ [127-128] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                                 Expr _id_ [127-128] [Type Unit]: Unit
                                         Stmt _id_ [152-153]: Local (Immutable):
                                             Pat _id_ [152-153] [Type Int]: Bind: Ident 29 [152-153] "generated_ident_29"
                                             Expr 27 [152-153] [Type Int]: Lit: Int(3)
                                         Stmt _id_ [127-128]: Semi: Expr _id_ [127-128] [Type Unit]: Call:
-                                            Expr _id_ [127-128] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                            Expr _id_ [127-128] [Type Qubit]: Var: Local 24
-                                        Stmt _id_ [152-153]: Expr: Expr _id_ [152-153] [Type Int]: Var: Local 29
+                                            Expr _id_ [127-128] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                            Expr _id_ [127-128] [Type Qubit]: Var: Local 24 []
+                                        Stmt _id_ [152-153]: Expr: Expr _id_ [152-153] [Type Int]: Var: Local 29 []
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8
+                                    Expr _id_ [59-60] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [59-60] [Type Qubit]: Var: Local 8 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -705,26 +705,26 @@ fn test_array_expr() {
                                 Stmt _id_ [59-60]: Local (Immutable):
                                     Pat _id_ [59-60] [Type (Qubit)[]]: Bind: Ident 8 [59-60] "a"
                                     Expr _id_ [59-60] [Type Qubit]: Call:
-                                        Expr _id_ [59-60] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0)
+                                        Expr _id_ [59-60] [Type (Int => (Qubit)[])]: Var: Item 6 (Package 0) []
                                         Expr 10 [69-123] [Type Int]: Expr Block: Block 11 [69-123] [Type Int]:
                                             Stmt _id_ [87-88]: Local (Immutable):
                                                 Pat _id_ [87-88] [Type Qubit]: Bind: Ident 14 [87-88] "b"
                                                 Expr _id_ [87-88] [Type Qubit]: Call:
-                                                    Expr _id_ [87-88] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                                    Expr _id_ [87-88] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                                     Expr _id_ [87-88] [Type Unit]: Unit
                                             Stmt _id_ [112-113]: Local (Immutable):
                                                 Pat _id_ [112-113] [Type Int]: Bind: Ident 23 [112-113] "generated_ident_23"
                                                 Expr 17 [112-113] [Type Int]: Lit: Int(3)
                                             Stmt _id_ [87-88]: Semi: Expr _id_ [87-88] [Type Unit]: Call:
-                                                Expr _id_ [87-88] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                Expr _id_ [87-88] [Type Qubit]: Var: Local 14
-                                            Stmt _id_ [112-113]: Expr: Expr _id_ [112-113] [Type Int]: Var: Local 23
+                                                Expr _id_ [87-88] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                                Expr _id_ [87-88] [Type Qubit]: Var: Local 14 []
+                                            Stmt _id_ [112-113]: Expr: Expr _id_ [112-113] [Type Int]: Var: Local 23 []
                                 Stmt 18 [134-144]: Local (Immutable):
                                     Pat 19 [138-139] [Type Int]: Bind: Ident 20 [138-139] "x"
                                     Expr 21 [142-143] [Type Int]: Lit: Int(3)
                                 Stmt _id_ [59-60]: Semi: Expr _id_ [59-60] [Type Unit]: Call:
-                                    Expr _id_ [59-60] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0)
-                                    Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 8
+                                    Expr _id_ [59-60] [Type ((Qubit)[] => Unit)]: Var: Item 7 (Package 0) []
+                                    Expr _id_ [59-60] [Type (Qubit)[]]: Var: Local 8 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -760,7 +760,7 @@ fn test_rtrn_expr() {
                                 Stmt _id_ [58-59]: Local (Immutable):
                                     Pat _id_ [58-59] [Type Qubit]: Bind: Ident 8 [58-59] "a"
                                     Expr _id_ [58-59] [Type Qubit]: Call:
-                                        Expr _id_ [58-59] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                        Expr _id_ [58-59] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                         Expr _id_ [58-59] [Type Unit]: Unit
                                 Stmt 10 [79-141]: Semi: Expr _id_ [79-140] [Type ?2]: Expr Block: Block _id_ [79-140] [Type ?2]:
                                     Stmt _id_ [86-140]: Local (Immutable):
@@ -769,22 +769,22 @@ fn test_rtrn_expr() {
                                             Stmt _id_ [104-105]: Local (Immutable):
                                                 Pat _id_ [104-105] [Type Qubit]: Bind: Ident 16 [104-105] "b"
                                                 Expr _id_ [104-105] [Type Qubit]: Call:
-                                                    Expr _id_ [104-105] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                                    Expr _id_ [104-105] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                                     Expr _id_ [104-105] [Type Unit]: Unit
                                             Stmt _id_ [129-130]: Local (Immutable):
                                                 Pat _id_ [129-130] [Type Int]: Bind: Ident 22 [129-130] "generated_ident_22"
                                                 Expr 19 [129-130] [Type Int]: Lit: Int(3)
                                             Stmt _id_ [104-105]: Semi: Expr _id_ [104-105] [Type Unit]: Call:
-                                                Expr _id_ [104-105] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                                Expr _id_ [104-105] [Type Qubit]: Var: Local 16
-                                            Stmt _id_ [129-130]: Expr: Expr _id_ [129-130] [Type Int]: Var: Local 22
+                                                Expr _id_ [104-105] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                                Expr _id_ [104-105] [Type Qubit]: Var: Local 16 []
+                                            Stmt _id_ [129-130]: Expr: Expr _id_ [129-130] [Type Int]: Var: Local 22 []
                                     Stmt _id_ [58-59]: Semi: Expr _id_ [58-59] [Type Unit]: Call:
-                                        Expr _id_ [58-59] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                        Expr _id_ [58-59] [Type Qubit]: Var: Local 8
-                                    Stmt _id_ [79-140]: Semi: Expr _id_ [79-140] [Type ?2]: Return: Expr _id_ [86-140] [Type Int]: Var: Local 21
+                                        Expr _id_ [58-59] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                        Expr _id_ [58-59] [Type Qubit]: Var: Local 8 []
+                                    Stmt _id_ [79-140]: Semi: Expr _id_ [79-140] [Type ?2]: Return: Expr _id_ [86-140] [Type Int]: Var: Local 21 []
                                 Stmt _id_ [58-59]: Semi: Expr _id_ [58-59] [Type Unit]: Call:
-                                    Expr _id_ [58-59] [Type (Qubit => Unit)]: Var: Item 5 (Package 0)
-                                    Expr _id_ [58-59] [Type Qubit]: Var: Local 8
+                                    Expr _id_ [58-59] [Type (Qubit => Unit)]: Var: Item 5 (Package 0) []
+                                    Expr _id_ [58-59] [Type Qubit]: Var: Local 8 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -828,7 +828,7 @@ fn test_unrelated_unaffected() {
                                     Stmt 16 [119-129]: Local (Immutable):
                                         Pat 17 [123-124] [Type Int]: Bind: Ident 18 [123-124] "x"
                                         Expr 19 [127-128] [Type Int]: Lit: Int(4)
-                                    Stmt 20 [142-143]: Expr: Expr 21 [142-143] [Type Int]: Var: Local 18
+                                    Stmt 20 [142-143]: Expr: Expr 21 [142-143] [Type Int]: Var: Local 18 []
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],

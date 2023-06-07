@@ -140,7 +140,7 @@ impl<'a> MutVisitor for ConjugateElim<'a> {
                                 id: NodeId::default(),
                                 span: Span::default(),
                                 ty: expr.ty.clone(),
-                                kind: ExprKind::Var(Res::Local(bind_id)),
+                                kind: ExprKind::Var(Res::Local(bind_id), Vec::new()),
                             }),
                         },
                     ],
@@ -203,7 +203,7 @@ struct Usage {
 impl<'a> Visitor<'a> for Usage {
     fn visit_expr(&mut self, expr: &'a Expr) {
         match &expr.kind {
-            ExprKind::Var(Res::Local(id)) => {
+            ExprKind::Var(Res::Local(id), _) => {
                 self.used.insert(*id);
             }
             _ => visit::walk_expr(self, expr),
@@ -232,7 +232,7 @@ impl AssignmentCheck {
     fn check_assign(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Hole => {}
-            ExprKind::Var(Res::Local(id)) => {
+            ExprKind::Var(Res::Local(id), _) => {
                 if self.used.contains(id) {
                     self.errors.push(Error::ApplyAssign(expr.span));
                 }

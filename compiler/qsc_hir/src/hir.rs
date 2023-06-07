@@ -582,8 +582,8 @@ pub enum ExprKind {
     UnOp(UnOp, Box<Expr>),
     /// A record field update.
     UpdateField(Box<Expr>, Field, Box<Expr>),
-    /// A variable.
-    Var(Res),
+    /// A variable and its generic arguments.
+    Var(Res, Vec<GenericArg>),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
     /// An invalid expression.
@@ -630,7 +630,7 @@ impl Display for ExprKind {
             ExprKind::UpdateField(record, field, replace) => {
                 display_update_field(indent, record, field, replace)?;
             }
-            ExprKind::Var(res) => write!(indent, "Var: {res}")?,
+            ExprKind::Var(res, args) => write!(indent, "Var: {res} {args:?}")?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
         Ok(())
@@ -1074,10 +1074,10 @@ impl Scheme {
     /// Instantiates this type scheme with the given arguments.
     pub fn instantiate<'a>(
         &'a self,
-        args: impl IntoIterator<Item = (&'a ParamName, GenericArg)>,
+        args: impl Iterator<Item = (&'a ParamName, &'a GenericArg)>,
     ) -> ArrowTy {
         let args: HashMap<_, _> = args.into_iter().collect();
-        instantiate_arrow_ty(|name| args.get(name), &self.ty)
+        instantiate_arrow_ty(|name| args.get(name).copied(), &self.ty)
     }
 }
 
@@ -1173,6 +1173,7 @@ impl Display for ParamKind {
 }
 
 /// An argument to a generic parameter.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GenericArg {
     /// A type argument.
     Ty(Ty),

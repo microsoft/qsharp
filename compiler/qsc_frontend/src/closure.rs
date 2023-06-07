@@ -45,7 +45,7 @@ impl Visitor<'_> for VarFinder {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Closure(args, _) => self.uses.extend(args.iter().copied()),
-            &ExprKind::Var(Res::Local(id)) => {
+            &ExprKind::Var(Res::Local(id), _) => {
                 self.uses.insert(id);
             }
             _ => visit::walk_expr(self, expr),
@@ -77,7 +77,7 @@ impl MutVisitor for VarReplacer<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
         match &mut expr.kind {
             ExprKind::Closure(args, _) => args.iter_mut().for_each(|arg| self.replace(arg)),
-            ExprKind::Var(Res::Local(id)) => self.replace(id),
+            ExprKind::Var(Res::Local(id), _) => self.replace(id),
             _ => mut_visit::walk_expr(self, expr),
         }
     }
@@ -237,7 +237,7 @@ pub(super) fn partial_app_hole(
         id: assigner.next_node(),
         span,
         ty,
-        kind: ExprKind::Var(Res::Local(local_id)),
+        kind: ExprKind::Var(Res::Local(local_id), Vec::new()),
     };
 
     (var, app)
@@ -256,7 +256,7 @@ pub(super) fn partial_app_given(
         id: assigner.next_node(),
         span,
         ty: arg.ty.clone(),
-        kind: ExprKind::Var(Res::Local(local_id)),
+        kind: ExprKind::Var(Res::Local(local_id), Vec::new()),
     };
 
     let binding_pat = Pat {

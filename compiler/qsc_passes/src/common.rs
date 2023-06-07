@@ -24,7 +24,7 @@ impl IdentTemplate {
             id: NodeId::default(),
             span: self.span,
             ty: self.ty.clone(),
-            kind: ExprKind::Var(Res::Local(self.id)),
+            kind: ExprKind::Var(Res::Local(self.id), Vec::new()),
         }
     }
 
@@ -67,6 +67,6 @@ pub(crate) fn create_gen_core_ref(core_table: &Table, ns: &str, name: &str, span
         id: NodeId::default(),
         span,
         ty: Ty::Arrow(term.scheme.ty.clone()), // TODO: Instantiation?
-        kind: ExprKind::Var(Res::Item(term.id)),
+        kind: ExprKind::Var(Res::Item(term.id), Vec::new()),
     }
 }

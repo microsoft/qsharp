@@ -12,7 +12,7 @@ use self::infer::Class;
 use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{CallableKind, FunctorSet, ItemId, Ty, Udt};
+use qsc_hir::hir::{CallableKind, FunctorSet, GenericArg, ItemId, Ty, Udt};
 use std::{collections::HashMap, fmt::Debug};
 use thiserror::Error;
 
@@ -21,6 +21,7 @@ pub(super) use check::{Checker, GlobalTable};
 pub(super) struct Table {
     pub(super) udts: HashMap<ItemId, Udt>,
     pub(super) terms: IndexMap<NodeId, Ty>,
+    pub(super) generic_args: HashMap<NodeId, Vec<GenericArg>>,
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]

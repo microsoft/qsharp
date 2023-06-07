@@ -218,7 +218,7 @@ fn entry_call_operation() {
 
     let entry = &unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -315,7 +315,7 @@ fn insert_core_call() {
                 id: NodeId::default(),
                 span: Span::default(),
                 ty: Ty::Arrow(allocate.scheme.ty.clone()),
-                kind: ExprKind::Var(Res::Item(allocate.id)),
+                kind: ExprKind::Var(Res::Item(allocate.id), Vec::new()),
             };
 
             let arg = Expr {
@@ -374,7 +374,7 @@ fn insert_core_call() {
                         Pat 4 [18-41] [Type Unit]: Elided
                         Block 5 [39-41] [Type Unit]:
                             Stmt 7 [0-0]: Semi: Expr 8 [0-0] [Type Qubit]: Call:
-                                Expr 9 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                Expr 9 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0) []
                                 Expr 10 [0-0] [Type Unit]: Unit
                     adj: <none>
                     ctl: <none>
@@ -428,7 +428,7 @@ fn package_dependency() {
     let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: Some(package1),
@@ -483,7 +483,7 @@ fn package_dependency_internal() {
     let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(&Res::Err, res);
 }
 

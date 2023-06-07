@@ -475,7 +475,14 @@ impl With<'_> {
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            ast::ExprKind::Path(path) => hir::ExprKind::Var(self.lower_path(path)),
+            ast::ExprKind::Path(path) => {
+                let args = self
+                    .tys
+                    .generic_args
+                    .get(&expr.id)
+                    .map_or(Vec::new(), Clone::clone);
+                hir::ExprKind::Var(self.lower_path(path), args)
+            }
             ast::ExprKind::Range(start, step, end) => hir::ExprKind::Range(
                 start.as_ref().map(|s| Box::new(self.lower_expr(s))),
                 step.as_ref().map(|s| Box::new(self.lower_expr(s))),
