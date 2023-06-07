@@ -736,6 +736,24 @@ fn ty_decl_duplicate_error() {
 }
 
 #[test]
+fn ty_decl_duplicate_error_on_built_in_ty() {
+    check(
+        indoc! {"
+            namespace Microsoft.Quantum.Core {
+                newtype Pauli = Unit;
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype Pauli = Unit;
+            }
+
+            // Duplicate("Pauli", "Microsoft.Quantum.Core", Span { lo: 47, hi: 52 })
+        "#]],
+    );
+}
+
+#[test]
 fn ty_decl_in_ty_decl() {
     check(
         indoc! {"

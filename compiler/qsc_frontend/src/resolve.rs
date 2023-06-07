@@ -526,26 +526,28 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            match scope
-                .terms
-                .entry(Rc::clone(namespace))
-                .or_default()
-                .entry(Rc::clone(&name.name))
-            {
-                Entry::Occupied(_) => Err(Error::Duplicate(
+            match (
+                scope
+                    .terms
+                    .entry(Rc::clone(namespace))
+                    .or_default()
+                    .entry(Rc::clone(&name.name)),
+                scope
+                    .tys
+                    .entry(Rc::clone(namespace))
+                    .or_default()
+                    .entry(Rc::clone(&name.name)),
+            ) {
+                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(Error::Duplicate(
                     name.name.to_string(),
                     namespace.to_string(),
                     name.span,
                 )),
-                Entry::Vacant(entry) => {
+                (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
                     let res = Res::Item(next_id());
-                    entry.insert(res);
+                    term_entry.insert(res);
+                    ty_entry.insert(res);
                     names.insert(name.id, res);
-                    scope
-                        .tys
-                        .entry(Rc::clone(namespace))
-                        .or_default()
-                        .insert(Rc::clone(&name.name), res);
                     Ok(())
                 }
             }
