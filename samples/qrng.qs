@@ -8,13 +8,14 @@ namespace Microsoft.Quantum.Samples.Qrng {
         use q = Qubit();
 
         // Put the qubit into superposition of 0 and 1.
-        // It now has a 50% chance of being measured as 0 or 1.
         H(q);
 
+        // At this point the qubit q has 50% chance of being measured
+        // as 0 and 50% chance of being measured as 1.
         // Measure the qubit value, but don't look at the result yet.
         let result = M(q);
 
-        // Reset qubit to Zero state.          
+        // Reset qubit to Zero state.
         Reset(q);
 
         // Return the result of the measurement.
