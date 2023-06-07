@@ -1069,9 +1069,12 @@ pub struct Scheme {
     pub ty: Box<ArrowTy>,
 }
 
+/// A generic parameter.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GenericParam {
+    /// The parameter name.
     pub name: ParamName,
+    /// The parameter kind.
     pub kind: ParamKind,
 }
 
@@ -1081,9 +1084,12 @@ impl Display for GenericParam {
     }
 }
 
+/// A generic parameter name.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum ParamName {
+    /// A string identifier.
     Symbol(Rc<str>),
+    /// A numeric identifier.
     Id(u32),
 }
 
@@ -1096,9 +1102,12 @@ impl Display for ParamName {
     }
 }
 
+/// The kind of a generic parameter.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParamKind {
+    /// A type parameter.
     Ty,
+    /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
 }
 
@@ -1111,8 +1120,11 @@ impl Display for ParamKind {
     }
 }
 
+/// An argument to a generic parameter.
 pub enum GenericArg {
+    /// A type argument.
     Ty(Ty),
+    /// A functor argument.
     Functor(FunctorSet),
 }
 
@@ -1238,6 +1250,7 @@ pub enum PrimTy {
 pub enum FunctorSet {
     /// An evaluated set.
     Value(FunctorSetValue),
+    /// A functor parameter.
     Param(u32),
     /// A placeholder functor variable used during type inference.
     Infer(InferFunctor),
