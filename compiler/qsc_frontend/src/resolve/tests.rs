@@ -179,7 +179,7 @@ fn global_callable_duplicate_error() {
         &expect![[r#"
             namespace item0 {
                 function item1() : Unit {}
-                operation item2() : Unit {}
+                operation A() : Unit {}
             }
 
             // Duplicate("A", "Foo", Span { lo: 57, hi: 58 })
@@ -727,7 +727,7 @@ fn ty_decl_duplicate_error() {
         &expect![[r#"
             namespace item0 {
                 newtype item1 = Unit;
-                newtype item2 = Bool;
+                newtype A = Bool;
             }
 
             // Duplicate("A", "Foo", Span { lo: 50, hi: 51 })

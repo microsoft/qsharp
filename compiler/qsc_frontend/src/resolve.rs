@@ -506,8 +506,6 @@ fn bind_global_item(
 ) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
-            let res = Res::Item(next_id());
-            names.insert(decl.name.id, res);
             match scope
                 .terms
                 .entry(Rc::clone(namespace))
@@ -520,19 +518,14 @@ fn bind_global_item(
                     decl.name.span,
                 )),
                 Entry::Vacant(entry) => {
+                    let res = Res::Item(next_id());
                     entry.insert(res);
+                    names.insert(decl.name.id, res);
                     Ok(())
                 }
             }
         }
         ast::ItemKind::Ty(name, _) => {
-            let res = Res::Item(next_id());
-            names.insert(name.id, res);
-            scope
-                .tys
-                .entry(Rc::clone(namespace))
-                .or_default()
-                .insert(Rc::clone(&name.name), res);
             match scope
                 .terms
                 .entry(Rc::clone(namespace))
@@ -545,7 +538,14 @@ fn bind_global_item(
                     name.span,
                 )),
                 Entry::Vacant(entry) => {
+                    let res = Res::Item(next_id());
                     entry.insert(res);
+                    names.insert(name.id, res);
+                    scope
+                        .tys
+                        .entry(Rc::clone(namespace))
+                        .or_default()
+                        .insert(Rc::clone(&name.name), res);
                     Ok(())
                 }
             }
