@@ -1,12 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use crate::qsc_utils::{span_contains, Compilation};
 use qsc::SourceMap;
 use qsc_hir::hir::{ExprKind, ItemKind, Package, Res};
 use qsc_hir::visit::Visitor;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Definition {
     pub source: String,
     pub offset: u32,

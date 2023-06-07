@@ -7,6 +7,8 @@ pub mod completion;
 pub mod definition;
 pub mod hover;
 mod qsc_utils;
+#[cfg(test)]
+mod test_utils;
 
 use crate::{
     completion::CompletionList, definition::Definition, hover::Hover, qsc_utils::compile_document,
