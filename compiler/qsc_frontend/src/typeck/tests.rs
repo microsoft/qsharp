@@ -2754,7 +2754,7 @@ fn functors_in_arg_superset_of_adj() {
 }
 
 #[test]
-fn functors_in_arg_subset_of_ctladj() {
+fn functors_in_arg_subset_of_ctl_adj() {
     check(
         "",
         "{
@@ -2834,7 +2834,7 @@ fn functors_in_arg_nested_arrow_superset_of_adj() {
 }
 
 #[test]
-fn functors_in_arg_nested_arrow_sub_of_adj() {
+fn functors_in_arg_nested_arrow_subset_of_adj() {
     check(
         "",
         "{
@@ -2997,7 +2997,48 @@ fn functors_in_array_mixed() {
 }
 
 #[test]
-fn functors_in_array_mixed_lambda() {
+fn functors_in_array_mixed_lambda_all_empty() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let ops = [Foo, q => Bar(q), q => Baz(q)];
+        }",
+        &expect![[r##"
+            #1 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, q => Bar(q), q => Baz(q)];\n        }" : Unit
+            #2 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, q => Bar(q), q => Baz(q)];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #14 44-46 "{}" : Unit
+            #19 72-83 "(q : Qubit)" : Qubit
+            #20 73-82 "q : Qubit" : Qubit
+            #27 96-98 "{}" : Unit
+            #32 124-135 "(q : Qubit)" : Qubit
+            #33 125-134 "q : Qubit" : Qubit
+            #42 154-156 "{}" : Unit
+            #44 173-176 "ops" : ((Qubit => Unit))[]
+            #46 179-210 "[Foo, q => Bar(q), q => Baz(q)]" : ((Qubit => Unit))[]
+            #47 180-183 "Foo" : (Qubit => Unit)
+            #50 185-196 "q => Bar(q)" : (Qubit => Unit)
+            #51 185-186 "q" : Qubit
+            #53 190-196 "Bar(q)" : Unit
+            #54 190-193 "Bar" : (Qubit => Unit is Adj)
+            #57 193-196 "(q)" : Qubit
+            #58 194-195 "q" : Qubit
+            #61 198-209 "q => Baz(q)" : (Qubit => Unit)
+            #62 198-199 "q" : Qubit
+            #64 203-209 "Baz(q)" : Unit
+            #65 203-206 "Baz" : (Qubit => Unit is Adj + Ctl)
+            #68 206-209 "(q)" : Qubit
+            #69 207-208 "q" : Qubit
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_mixed_lambda_all_ctl_adj() {
     check(
         "",
         "{

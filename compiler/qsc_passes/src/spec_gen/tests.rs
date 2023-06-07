@@ -1851,3 +1851,187 @@ fn lambda_adj_calls_non_adj() {
         "#]],
     );
 }
+
+#[test]
+fn op_array_forget_functors_with_lambdas() {
+    check(
+        "
+            namespace A {
+                operation Foo(q : Qubit) : () {}
+                operation Bar(q : Qubit) : () is Adj {}
+                operation Baz(q : Qubit) : () is Adj + Ctl {}
+                operation Main() : () {
+                    let ops = [Foo, q => Bar(q), q => Baz(q)];
+                }
+            }
+        ",
+        &expect![[r#"
+            Package:
+                Item 0 [13-328] (Public):
+                    Namespace (Ident 58 [23-24] "A"): Item 1, Item 2, Item 3, Item 4
+                Item 1 [43-75] (Public):
+                    Parent: 0
+                    Callable 0 [43-75] (Operation):
+                        name: Ident 1 [53-56] "Foo"
+                        input: Pat 2 [57-66] [Type Qubit]: Bind: Ident 3 [57-58] "q"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [43-75] (Body): Impl:
+                            Pat 5 [43-75] [Type Qubit]: Elided
+                            Block 6 [73-75]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [92-131] (Public):
+                    Parent: 0
+                    Callable 7 [92-131] (Operation):
+                        name: Ident 8 [102-105] "Bar"
+                        input: Pat 9 [106-115] [Type Qubit]: Bind: Ident 10 [106-107] "q"
+                        output: Unit
+                        functors: Adj
+                        body: SpecDecl 11 [92-131] (Body): Impl:
+                            Pat 12 [92-131] [Type Qubit]: Elided
+                            Block 13 [129-131]: <empty>
+                        adj: SpecDecl _id_ [92-131] (Adj): Impl:
+                            Pat _id_ [92-131] [Type Qubit]: Elided
+                            Block 13 [129-131]: <empty>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 3 [148-193] (Public):
+                    Parent: 0
+                    Callable 14 [148-193] (Operation):
+                        name: Ident 15 [158-161] "Baz"
+                        input: Pat 16 [162-171] [Type Qubit]: Bind: Ident 17 [162-163] "q"
+                        output: Unit
+                        functors: Adj + Ctl
+                        body: SpecDecl 18 [148-193] (Body): Impl:
+                            Pat 19 [148-193] [Type Qubit]: Elided
+                            Block 20 [191-193]: <empty>
+                        adj: SpecDecl _id_ [148-193] (Adj): Impl:
+                            Pat _id_ [148-193] [Type Qubit]: Elided
+                            Block 20 [191-193]: <empty>
+                        ctl: SpecDecl _id_ [148-193] (Ctl): Impl:
+                            Pat _id_ [148-193] [Type ((Qubit)[], Qubit)]: Tuple:
+                                Pat _id_ [148-193] [Type (Qubit)[]]: Bind: Ident 59 [148-193] "ctls"
+                                Pat _id_ [148-193] [Type Qubit]: Elided
+                            Block 20 [191-193]: <empty>
+                        ctl-adj: SpecDecl _id_ [148-193] (CtlAdj): Impl:
+                            Pat _id_ [148-193] [Type ((Qubit)[], Qubit)]: Tuple:
+                                Pat _id_ [148-193] [Type (Qubit)[]]: Bind: Ident 60 [148-193] "ctls"
+                                Pat _id_ [148-193] [Type Qubit]: Elided
+                            Block 20 [191-193]: <empty>
+                Item 4 [210-314] (Public):
+                    Parent: 0
+                    Callable 21 [210-314] (Operation):
+                        name: Ident 22 [220-224] "Main"
+                        input: Pat 23 [224-226] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 24 [210-314] (Body): Impl:
+                            Pat 25 [210-314] [Type Unit]: Elided
+                            Block 26 [232-314] [Type Unit]:
+                                Stmt 27 [254-296]: Local (Immutable):
+                                    Pat 28 [258-261] [Type ((Qubit => Unit))[]]: Bind: Ident 29 [258-261] "ops"
+                                    Expr 30 [264-295] [Type ((Qubit => Unit))[]]: Array:
+                                        Expr 31 [265-268] [Type (Qubit => Unit)]: Var: Item 1
+                                        Expr 32 [270-281] [Type (Qubit => Unit)]: Closure([], 5)
+                                        Expr 45 [283-294] [Type (Qubit => Unit)]: Closure([], 6)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 5 [270-281] (Internal):
+                    Parent: 4
+                    Callable 39 [270-281] (Operation):
+                        name: Ident 40 [270-281] "lambda"
+                        input: Pat 38 [270-281] [Type (Qubit,)]: Tuple:
+                            Pat 33 [270-271] [Type Qubit]: Bind: Ident 34 [270-271] "q"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 41 [275-281] (Body): Impl:
+                            Pat 42 [270-281] [Type (Qubit,)]: Elided
+                            Block 43 [275-281] [Type Unit]:
+                                Stmt 44 [275-281]: Expr: Expr 35 [275-281] [Type Unit]: Call:
+                                    Expr 36 [275-278] [Type (Qubit => Unit is Adj)]: Var: Item 2
+                                    Expr 37 [279-280] [Type Qubit]: Var: Local 34
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 6 [283-294] (Internal):
+                    Parent: 4
+                    Callable 52 [283-294] (Operation):
+                        name: Ident 53 [283-294] "lambda"
+                        input: Pat 51 [283-294] [Type (Qubit,)]: Tuple:
+                            Pat 46 [283-284] [Type Qubit]: Bind: Ident 47 [283-284] "q"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 54 [288-294] (Body): Impl:
+                            Pat 55 [283-294] [Type (Qubit,)]: Elided
+                            Block 56 [288-294] [Type Unit]:
+                                Stmt 57 [288-294]: Expr: Expr 48 [288-294] [Type Unit]: Call:
+                                    Expr 49 [288-291] [Type (Qubit => Unit is Adj + Ctl)]: Var: Item 3
+                                    Expr 50 [292-293] [Type Qubit]: Var: Local 47
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn op_array_unsupported_functors_with_lambdas() {
+    check(
+        "
+            namespace A {
+                operation Foo(q : Qubit) : () {}
+                operation Bar(q : Qubit) : () is Adj {}
+                operation Baz(q : Qubit) : () is Adj + Ctl {}
+                operation Main() : () {
+                    let ops = [q => Foo(q), q => Bar(q), Baz];
+                }
+            }
+        ",
+        &expect![[r#"
+            [
+                CtlGen(
+                    MissingCtlFunctor(
+                        Span {
+                            lo: 270,
+                            hi: 273,
+                        },
+                    ),
+                ),
+                AdjGen(
+                    MissingAdjFunctor(
+                        Span {
+                            lo: 270,
+                            hi: 273,
+                        },
+                    ),
+                ),
+                CtlGen(
+                    MissingCtlFunctor(
+                        Span {
+                            lo: 270,
+                            hi: 273,
+                        },
+                    ),
+                ),
+                CtlGen(
+                    MissingCtlFunctor(
+                        Span {
+                            lo: 283,
+                            hi: 286,
+                        },
+                    ),
+                ),
+                CtlGen(
+                    MissingCtlFunctor(
+                        Span {
+                            lo: 283,
+                            hi: 286,
+                        },
+                    ),
+                ),
+            ]
+        "#]],
+    );
+}
