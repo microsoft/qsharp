@@ -66,7 +66,7 @@ fn generate_ctl() {
                     Namespace (Ident 24 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-119] (Public):
                     Parent: 0
-                    Callable 0 [21-119] (Operation):
+                    Callable 0 [21-119] (operation):
                         name: Ident 1 [31-32] "A"
                         input: Pat 2 [33-42] [Type Qubit]: Bind: Ident 3 [33-34] "q"
                         output: Unit
@@ -83,7 +83,7 @@ fn generate_ctl() {
                         ctl-adj: <none>
                 Item 2 [124-182] (Public):
                     Parent: 0
-                    Callable 13 [124-182] (Operation):
+                    Callable 13 [124-182] (operation):
                         name: Ident 14 [134-135] "B"
                         input: Pat 15 [136-145] [Type Qubit]: Bind: Ident 16 [136-137] "q"
                         output: Unit
@@ -133,7 +133,7 @@ fn generate_ctl_auto() {
                     Namespace (Ident 25 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-119] (Public):
                     Parent: 0
-                    Callable 0 [21-119] (Operation):
+                    Callable 0 [21-119] (operation):
                         name: Ident 1 [31-32] "A"
                         input: Pat 2 [33-42] [Type Qubit]: Bind: Ident 3 [33-34] "q"
                         output: Unit
@@ -150,7 +150,7 @@ fn generate_ctl_auto() {
                         ctl-adj: <none>
                 Item 2 [124-240] (Public):
                     Parent: 0
-                    Callable 13 [124-240] (Operation):
+                    Callable 13 [124-240] (operation):
                         name: Ident 14 [134-135] "B"
                         input: Pat 15 [136-145] [Type Qubit]: Bind: Ident 16 [136-137] "q"
                         output: Unit
@@ -203,7 +203,7 @@ fn generate_ctladj_distrib() {
                     Namespace (Ident 35 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-148] (Public):
                     Parent: 0
-                    Callable 0 [21-148] (Operation):
+                    Callable 0 [21-148] (operation):
                         name: Ident 1 [31-32] "A"
                         input: Pat 2 [33-42] [Type Qubit]: Bind: Ident 3 [33-34] "q"
                         output: Unit
@@ -226,7 +226,7 @@ fn generate_ctladj_distrib() {
                             Block 9 [106-108]: <empty>
                 Item 2 [153-308] (Public):
                     Parent: 0
-                    Callable 16 [153-308] (Operation):
+                    Callable 16 [153-308] (operation):
                         name: Ident 17 [163-164] "B"
                         input: Pat 18 [165-174] [Type Qubit]: Bind: Ident 19 [165-166] "q"
                         output: Unit
@@ -295,7 +295,7 @@ fn generate_ctl_skip_conjugate_apply_block() {
                     Namespace (Ident 32 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-119] (Public):
                     Parent: 0
-                    Callable 0 [21-119] (Operation):
+                    Callable 0 [21-119] (operation):
                         name: Ident 1 [31-32] "A"
                         input: Pat 2 [33-42] [Type Qubit]: Bind: Ident 3 [33-34] "q"
                         output: Unit
@@ -312,7 +312,7 @@ fn generate_ctl_skip_conjugate_apply_block() {
                         ctl-adj: <none>
                 Item 2 [124-257] (Public):
                     Parent: 0
-                    Callable 13 [124-257] (Operation):
+                    Callable 13 [124-257] (operation):
                         name: Ident 14 [134-135] "B"
                         input: Pat 15 [136-145] [Type Qubit]: Bind: Ident 16 [136-137] "q"
                         output: Unit
@@ -397,7 +397,7 @@ fn generate_ctl_with_function_calls() {
                     Namespace (Ident 26 [10-14] "test"): Item 1, Item 2, Item 3
                 Item 1 [21-45] (Public):
                     Parent: 0
-                    Callable 0 [21-45] (Function):
+                    Callable 0 [21-45] (function):
                         name: Ident 1 [30-33] "Foo"
                         input: Pat 2 [33-35] [Type Unit]: Unit
                         output: Unit
@@ -410,7 +410,7 @@ fn generate_ctl_with_function_calls() {
                         ctl-adj: <none>
                 Item 2 [50-80] (Public):
                     Parent: 0
-                    Callable 6 [50-80] (Operation):
+                    Callable 6 [50-80] (operation):
                         name: Ident 7 [60-61] "A"
                         input: Pat 8 [61-63] [Type Unit]: Unit
                         output: Unit
@@ -427,7 +427,7 @@ fn generate_ctl_with_function_calls() {
                         ctl-adj: <none>
                 Item 3 [85-148] (Public):
                     Parent: 0
-                    Callable 12 [85-148] (Operation):
+                    Callable 12 [85-148] (operation):
                         name: Ident 13 [95-96] "B"
                         input: Pat 14 [96-98] [Type Unit]: Unit
                         output: Unit
@@ -478,7 +478,7 @@ fn generate_adj_self() {
                     Namespace (Ident 23 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -493,7 +493,7 @@ fn generate_adj_self() {
                         ctl-adj: <none>
                 Item 2 [67-166] (Public):
                     Parent: 0
-                    Callable 7 [67-166] (Operation):
+                    Callable 7 [67-166] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -539,7 +539,7 @@ fn generate_ctladj_self() {
                     Namespace (Ident 23 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-68] (Public):
                     Parent: 0
-                    Callable 0 [21-68] (Operation):
+                    Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -562,7 +562,7 @@ fn generate_ctladj_self() {
                             Block 6 [66-68]: <empty>
                 Item 2 [73-178] (Public):
                     Parent: 0
-                    Callable 7 [73-178] (Operation):
+                    Callable 7 [73-178] (operation):
                         name: Ident 8 [83-84] "A"
                         input: Pat 9 [85-94] [Type Qubit]: Bind: Ident 10 [85-86] "q"
                         output: Unit
@@ -640,7 +640,7 @@ fn generate_adj_invert() {
                     Namespace (Ident 22 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -655,7 +655,7 @@ fn generate_adj_invert() {
                         ctl-adj: <none>
                 Item 2 [67-139] (Public):
                     Parent: 0
-                    Callable 7 [67-139] (Operation):
+                    Callable 7 [67-139] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -706,7 +706,7 @@ fn generate_adj_auto() {
                     Namespace (Ident 23 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -721,7 +721,7 @@ fn generate_adj_auto() {
                         ctl-adj: <none>
                 Item 2 [67-198] (Public):
                     Parent: 0
-                    Callable 7 [67-198] (Operation):
+                    Callable 7 [67-198] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -775,7 +775,7 @@ fn generate_adj_invert_skips_within_block() {
                     Namespace (Ident 34 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -790,7 +790,7 @@ fn generate_adj_invert_skips_within_block() {
                         ctl-adj: <none>
                 Item 2 [67-236] (Public):
                     Parent: 0
-                    Callable 7 [67-236] (Operation):
+                    Callable 7 [67-236] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -859,7 +859,7 @@ fn generate_adj_invert_with_if_exprs() {
                     Namespace (Ident 64 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -874,7 +874,7 @@ fn generate_adj_invert_with_if_exprs() {
                         ctl-adj: <none>
                 Item 2 [67-266] (Public):
                     Parent: 0
-                    Callable 7 [67-266] (Operation):
+                    Callable 7 [67-266] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -989,7 +989,7 @@ fn generate_adj_invert_with_range_loop() {
                     Namespace (Ident 30 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -1004,7 +1004,7 @@ fn generate_adj_invert_with_range_loop() {
                         ctl-adj: <none>
                 Item 2 [67-181] (Public):
                     Parent: 0
-                    Callable 7 [67-181] (Operation):
+                    Callable 7 [67-181] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -1098,7 +1098,7 @@ fn generate_adj_invert_with_array_loop() {
                     Namespace (Ident 31 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -1113,7 +1113,7 @@ fn generate_adj_invert_with_array_loop() {
                         ctl-adj: <none>
                 Item 2 [67-188] (Public):
                     Parent: 0
-                    Callable 7 [67-188] (Operation):
+                    Callable 7 [67-188] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -1198,7 +1198,7 @@ fn generate_adj_invert_with_nested_loops() {
                     Namespace (Ident 52 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-62] (Public):
                     Parent: 0
-                    Callable 0 [21-62] (Operation):
+                    Callable 0 [21-62] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -1213,7 +1213,7 @@ fn generate_adj_invert_with_nested_loops() {
                         ctl-adj: <none>
                 Item 2 [67-318] (Public):
                     Parent: 0
-                    Callable 7 [67-318] (Operation):
+                    Callable 7 [67-318] (operation):
                         name: Ident 8 [77-78] "A"
                         input: Pat 9 [79-88] [Type Qubit]: Bind: Ident 10 [79-80] "q"
                         output: Unit
@@ -1340,7 +1340,7 @@ fn generate_ctladj_distribute() {
                     Namespace (Ident 22 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-68] (Public):
                     Parent: 0
-                    Callable 0 [21-68] (Operation):
+                    Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -1363,7 +1363,7 @@ fn generate_ctladj_distribute() {
                             Block 6 [66-68]: <empty>
                 Item 2 [73-156] (Public):
                     Parent: 0
-                    Callable 7 [73-156] (Operation):
+                    Callable 7 [73-156] (operation):
                         name: Ident 8 [83-84] "A"
                         input: Pat 9 [85-94] [Type Qubit]: Bind: Ident 10 [85-86] "q"
                         output: Unit
@@ -1445,7 +1445,7 @@ fn generate_ctladj_auto_to_distribute() {
                     Namespace (Ident 23 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-68] (Public):
                     Parent: 0
-                    Callable 0 [21-68] (Operation):
+                    Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -1468,7 +1468,7 @@ fn generate_ctladj_auto_to_distribute() {
                             Block 6 [66-68]: <empty>
                 Item 2 [73-189] (Public):
                     Parent: 0
-                    Callable 7 [73-189] (Operation):
+                    Callable 7 [73-189] (operation):
                         name: Ident 8 [83-84] "A"
                         input: Pat 9 [85-94] [Type Qubit]: Bind: Ident 10 [85-86] "q"
                         output: Unit
@@ -1551,7 +1551,7 @@ fn generate_ctladj_auto_to_invert() {
                     Namespace (Ident 43 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-68] (Public):
                     Parent: 0
-                    Callable 0 [21-68] (Operation):
+                    Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -1574,7 +1574,7 @@ fn generate_ctladj_auto_to_invert() {
                             Block 6 [66-68]: <empty>
                 Item 2 [73-270] (Public):
                     Parent: 0
-                    Callable 7 [73-270] (Operation):
+                    Callable 7 [73-270] (operation):
                         name: Ident 8 [83-84] "A"
                         input: Pat 9 [85-94] [Type Qubit]: Bind: Ident 10 [85-86] "q"
                         output: Unit
@@ -1656,7 +1656,7 @@ fn generate_ctladj_invert() {
                     Namespace (Ident 23 [10-14] "test"): Item 1, Item 2
                 Item 1 [21-68] (Public):
                     Parent: 0
-                    Callable 0 [21-68] (Operation):
+                    Callable 0 [21-68] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-44] [Type Int]: Bind: Ident 3 [33-38] "input"
                         output: Unit
@@ -1679,7 +1679,7 @@ fn generate_ctladj_invert() {
                             Block 6 [66-68]: <empty>
                 Item 2 [73-191] (Public):
                     Parent: 0
-                    Callable 7 [73-191] (Operation):
+                    Callable 7 [73-191] (operation):
                         name: Ident 8 [83-84] "A"
                         input: Pat 9 [85-94] [Type Qubit]: Bind: Ident 10 [85-86] "q"
                         output: Unit
@@ -1759,7 +1759,7 @@ fn lambda_adj_calls_adj() {
                     Namespace (Ident 36 [10-11] "A"): Item 1, Item 2, Item 3
                 Item 1 [18-55] (Public):
                     Parent: 0
-                    Callable 0 [18-55] (Operation):
+                    Callable 0 [18-55] (operation):
                         name: Ident 1 [28-29] "X"
                         input: Pat 2 [30-39] [Type Qubit]: Bind: Ident 3 [30-31] "q"
                         output: Unit
@@ -1774,7 +1774,7 @@ fn lambda_adj_calls_adj() {
                         ctl-adj: <none>
                 Item 2 [60-106] (Public):
                     Parent: 0
-                    Callable 7 [60-106] (Operation):
+                    Callable 7 [60-106] (operation):
                         name: Ident 8 [70-73] "Foo"
                         input: Pat 9 [74-97] [Type (Qubit => Unit is Adj)]: Bind: Ident 10 [74-76] "op"
                         output: Unit
@@ -1787,7 +1787,7 @@ fn lambda_adj_calls_adj() {
                         ctl-adj: <none>
                 Item 3 [111-151] (Public):
                     Parent: 0
-                    Callable 14 [111-151] (Operation):
+                    Callable 14 [111-151] (operation):
                         name: Ident 15 [121-124] "Bar"
                         input: Pat 16 [124-126] [Type Unit]: Unit
                         output: Unit
@@ -1803,7 +1803,7 @@ fn lambda_adj_calls_adj() {
                         ctl-adj: <none>
                 Item 4 [138-147] (Internal):
                     Parent: 3
-                    Callable 30 [138-147] (Operation):
+                    Callable 30 [138-147] (operation):
                         name: Ident 31 [138-147] "lambda"
                         input: Pat 29 [138-147] [Type (Qubit,)]: Tuple:
                             Pat 24 [138-139] [Type Qubit]: Bind: Ident 25 [138-139] "q"
@@ -1871,7 +1871,7 @@ fn op_array_forget_functors_with_lambdas() {
                     Namespace (Ident 58 [23-24] "A"): Item 1, Item 2, Item 3, Item 4
                 Item 1 [43-75] (Public):
                     Parent: 0
-                    Callable 0 [43-75] (Operation):
+                    Callable 0 [43-75] (operation):
                         name: Ident 1 [53-56] "Foo"
                         input: Pat 2 [57-66] [Type Qubit]: Bind: Ident 3 [57-58] "q"
                         output: Unit
@@ -1884,7 +1884,7 @@ fn op_array_forget_functors_with_lambdas() {
                         ctl-adj: <none>
                 Item 2 [92-131] (Public):
                     Parent: 0
-                    Callable 7 [92-131] (Operation):
+                    Callable 7 [92-131] (operation):
                         name: Ident 8 [102-105] "Bar"
                         input: Pat 9 [106-115] [Type Qubit]: Bind: Ident 10 [106-107] "q"
                         output: Unit
@@ -1899,7 +1899,7 @@ fn op_array_forget_functors_with_lambdas() {
                         ctl-adj: <none>
                 Item 3 [148-193] (Public):
                     Parent: 0
-                    Callable 14 [148-193] (Operation):
+                    Callable 14 [148-193] (operation):
                         name: Ident 15 [158-161] "Baz"
                         input: Pat 16 [162-171] [Type Qubit]: Bind: Ident 17 [162-163] "q"
                         output: Unit
@@ -1922,7 +1922,7 @@ fn op_array_forget_functors_with_lambdas() {
                             Block 20 [191-193]: <empty>
                 Item 4 [210-314] (Public):
                     Parent: 0
-                    Callable 21 [210-314] (Operation):
+                    Callable 21 [210-314] (operation):
                         name: Ident 22 [220-224] "Main"
                         input: Pat 23 [224-226] [Type Unit]: Unit
                         output: Unit
@@ -1941,7 +1941,7 @@ fn op_array_forget_functors_with_lambdas() {
                         ctl-adj: <none>
                 Item 5 [270-281] (Internal):
                     Parent: 4
-                    Callable 39 [270-281] (Operation):
+                    Callable 39 [270-281] (operation):
                         name: Ident 40 [270-281] "lambda"
                         input: Pat 38 [270-281] [Type (Qubit,)]: Tuple:
                             Pat 33 [270-271] [Type Qubit]: Bind: Ident 34 [270-271] "q"
@@ -1958,7 +1958,7 @@ fn op_array_forget_functors_with_lambdas() {
                         ctl-adj: <none>
                 Item 6 [283-294] (Internal):
                     Parent: 4
-                    Callable 52 [283-294] (Operation):
+                    Callable 52 [283-294] (operation):
                         name: Ident 53 [283-294] "lambda"
                         input: Pat 51 [283-294] [Type (Qubit,)]: Tuple:
                             Pat 46 [283-284] [Type Qubit]: Bind: Ident 47 [283-284] "q"

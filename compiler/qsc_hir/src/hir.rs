@@ -322,7 +322,7 @@ impl Display for CallableDecl {
         let mut indent = set_indentation(indented(f), 0);
         write!(
             indent,
-            "Callable {} {} ({:?}):",
+            "Callable {} {} ({}):",
             self.id, self.span, self.kind
         )?;
         indent = set_indentation(indent, 1);
