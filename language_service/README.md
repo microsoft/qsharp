@@ -1,7 +1,7 @@
-# Q# Language service
+# Q# Language Service
 
 This crate contains the implementation of Q# editor features such as
-auto-complete, go to definition and hover.
+auto-complete, go-to-definition and hover.
 
 The interface for the language service is based on the
 [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specifications/specification-current),
