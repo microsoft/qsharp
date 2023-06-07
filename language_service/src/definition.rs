@@ -19,7 +19,7 @@ pub(crate) fn get_definition(
     compilation: &Compilation,
     source_name: &str,
     offset: u32,
-) -> Definition {
+) -> Option<Definition> {
     let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
     let offset = compile_unit.sources.map_offset(source_name, offset);
@@ -34,14 +34,11 @@ pub(crate) fn get_definition(
     definition_finder.visit_package(package);
 
     match definition_finder.definition {
-        Some((name, offset)) => Definition {
+        Some((name, offset)) => Some(Definition {
             source: name,
             offset,
-        },
-        None => Definition {
-            source: String::new(),
-            offset: 0,
-        },
+        }),
+        None => None,
     }
 }
 

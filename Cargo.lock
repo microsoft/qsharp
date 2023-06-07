@@ -479,6 +479,7 @@ name = "language_service"
 version = "0.0.0"
 dependencies = [
  "enum-iterator",
+ "indoc 2.0.0",
  "log",
  "miette",
  "num-bigint",

@@ -101,7 +101,7 @@ impl<'a> LanguageService<'a> {
     }
 
     #[must_use]
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Definition {
+    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Definition> {
         trace!("get_definition: uri: {uri:?}, offset: {offset:?}");
         let res = definition::get_definition(
             &self

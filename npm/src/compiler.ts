@@ -42,7 +42,7 @@ export interface ICompiler {
     documentUri: string,
     code: string,
     offset: number
-  ): Promise<IDefinition>;
+  ): Promise<IDefinition | null>;
   run(code: string, expr: string, shots: number): Promise<void>;
   runKata(user_code: string, verify_code: string): Promise<boolean>;
   onstatechange: ((state: CompilerState) => void) | null;
@@ -134,20 +134,42 @@ export class Compiler implements ICompiler {
     return this.languageService.get_completions(documentUri, convertedOffset);
   }
 
-  async getHover(documentUri: string, code: string, offset: number) {
+  async getHover(
+    documentUri: string,
+    code: string,
+    offset: number
+  ): Promise<IHover | null> {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
-    return this.languageService.get_hover(documentUri, convertedOffset);
+    const result = this.languageService.get_hover(
+      documentUri,
+      convertedOffset
+    ) as IHover | null;
+    if (result) {
+      const mappedSpan = mapUtf8UnitsToUtf16Units(
+        [result.span.start, result.span.end],
+        code
+      );
+      result.span.start = mappedSpan[0];
+      result.span.end = mappedSpan[1];
+    }
+    return result;
   }
 
-  async getDefinition(documentUri: string, code: string, offset: number) {
+  async getDefinition(
+    documentUri: string,
+    code: string,
+    offset: number
+  ): Promise<IDefinition | null> {
     const convertedOffset = mapUtf16UnitsToUtf8Units([offset], code)[offset];
     const result = this.languageService.get_definition(
       documentUri,
       convertedOffset
-    );
-    result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
-      result.offset
-    ];
+    ) as IDefinition | null;
+    if (result) {
+      result.offset = mapUtf8UnitsToUtf16Units([result.offset], code)[
+        result.offset
+      ];
+    }
     return result;
   }
 

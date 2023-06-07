@@ -90,10 +90,13 @@ impl LanguageService {
 
     pub fn get_definition(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {
         let definition = self.0.get_definition(uri, offset);
-        Ok(serde_wasm_bindgen::to_value(&Definition {
-            source: definition.source,
-            offset: definition.offset,
-        })?)
+        Ok(match definition {
+            Some(definition) => serde_wasm_bindgen::to_value(&Definition {
+                source: definition.source,
+                offset: definition.offset,
+            })?,
+            None => JsValue::NULL,
+        })
     }
 
     pub fn get_hover(&self, uri: &str, offset: u32) -> Result<JsValue, JsValue> {

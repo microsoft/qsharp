@@ -21,7 +21,7 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
       document.getText(),
       document.offsetAt(position)
     );
-
+    if (!definition) return null;
     const uri = vscode.Uri.parse(definition.source);
     // We have to do this to map the position :(
     const definitionPosition = (

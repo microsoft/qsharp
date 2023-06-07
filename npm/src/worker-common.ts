@@ -415,7 +415,7 @@ type CompilerRespMsg =
     }
   | {
       type: "getDefinition-result";
-      result: IDefinition;
+      result: IDefinition | null;
     }
   | { type: "run-result"; result: void }
   | { type: "runKata-result"; result: boolean }

@@ -28,9 +28,13 @@ fn assert_definition(source_with_markers: &str) {
         get_source_and_marker_offsets(source_with_markers);
     let compilation = compile_with_fake_stdlib("<source>", &source);
     let actual_definition = get_definition(&compilation, "<source>", cursor_offsets[0]);
-    let expected_definition = Definition {
-        source: "<source>".to_string(),
-        offset: target_offsets[0],
+    let expected_definition = if target_offsets.is_empty() {
+        None
+    } else {
+        Some(Definition {
+            source: "<source>".to_string(),
+            offset: target_offsets[0],
+        })
     };
     assert_eq!(&expected_definition, &actual_definition);
 }
