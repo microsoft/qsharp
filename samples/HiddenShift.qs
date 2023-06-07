@@ -1,6 +1,6 @@
 namespace Microsoft.Quantum.Samples.HiddenShift {
     open Microsoft.Quantum.Measurement;
-    //open Microsoft.Quantum.Arrays;  // ForEach
+    open Microsoft.Quantum.Arrays;  // ForEach
     open Microsoft.Quantum.Convert; // ResultArrayAsInt
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arithmetic;
@@ -84,9 +84,8 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
             Ufstar(qubits);
         }
 
-        // `ForEach` measures the n qubits and resets them to zero
-        // so that they can be safely returned at the end of the
-        // using-block.
+        // Measure the n qubits and resets them to zero so that they
+        // can be safely returned at the end of the block.
         return ForEach(MResetZ, qubits);
     }
 
@@ -197,15 +196,6 @@ namespace Microsoft.Quantum.Samples.HiddenShift {
             Message($"Measured hidden shift {shift} successfully!");
         }
         
-    }
-
-    // TODO: Remove this when library function is implemented.
-    operation ForEach<'T, 'U> (action : ('T => 'U), array : 'T[]) : 'U[] {
-        mutable retval = [];
-        for idx in 0..Length(array) - 1 {
-            set retval += [action(array[idx])];
-        }
-        return retval;
     }
 
 }
