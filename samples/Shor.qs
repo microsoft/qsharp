@@ -537,8 +537,12 @@ namespace Microsoft.Quantum.Samples.Shor {
 
             within {
                 for i in 0..Length(cs1)-1 {
-                    ((cNormalized &&& 2^(i+1)) != 0 ? ApplyAnd | ApplyOr)
-                        (cs1[i], xNormalized[i+1], qs[i]);
+                    let op = if cNormalized &&& (1 <<< (i+1)) != 0 {
+                        ApplyAnd
+                    } else {
+                        ApplyOr
+                    };
+                    op(cs1[i], xNormalized[i+1], qs[i]);
                 }
             } apply {
                 CNOT(Tail(qs), target);

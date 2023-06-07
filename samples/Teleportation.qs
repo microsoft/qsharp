@@ -81,14 +81,15 @@ namespace Microsoft.Quantum.Samples.Teleportation {
         // Use the operation we defined above.
         Teleport(msg, target);
 
-        // Check what message was received.
-        let result = (M(target) == One);
+        // Measure the received message.
+        let result = M(target);
         
         // Reset qubits to Zero state before releasing
         Reset(msg);
         Reset(target);
 
-        return result;
+        // Return true if the received message was One.
+        result == One
     }
 
     /// # Summary
@@ -164,7 +165,11 @@ namespace Microsoft.Quantum.Samples.Teleportation {
             let sent = DrawRandomInt(0, 1) == 1;
             let received = TeleportClassicalMessage(sent);
             Message($"Round {idxRun}: Sent {sent}, got {received}.");
-            Message(sent==received ? "Teleportation successful!" | "");
+            if (sent == received) {
+                Message("Teleportation successful!");
+            } else {
+                fail "Teleportation failed!";
+            }
         }
         for idxRun in 1 .. 10 {
             TeleportRandomMessage();
