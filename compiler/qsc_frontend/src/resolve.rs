@@ -59,8 +59,8 @@ pub(super) enum Error {
         second_open_span: Span,
     },
 
-    #[error("Duplicate delcaration for item `{0}`")]
-    Duplicate(String, #[label] Span),
+    #[error("duplicate declaration of `{0}` in namespace `{1}`")]
+    Duplicate(String, String, #[label] Span),
 
     #[error("`{0}` not found")]
     NotFound(String, #[label] Span),
