@@ -80,6 +80,7 @@ export function Kata(props: {
               }
               key={item.id}
               setHir={() => ({})}
+              activeTab="results-tab"
             ></Editor>
             <OutputTabs
               key={item.id + "-results"}
@@ -87,6 +88,8 @@ export function Kata(props: {
               showPanel={false}
               kataMode={true}
               hir=""
+              activeTab="results-tab"
+              setActiveTab={() => undefined}
             ></OutputTabs>
           </div>
         );

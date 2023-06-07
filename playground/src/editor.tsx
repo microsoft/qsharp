@@ -57,6 +57,11 @@ export function Editor(props: {
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
   const editorDiv = useRef<HTMLDivElement>(null);
 
+  // Maintain a ref to the latest check function, as it closes over a bunch of stuff
+  const checkRef = useRef(async () => {
+    return;
+  });
+
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
   const [errors, setErrors] = useState<{ location: string; msg: string[] }[]>(
@@ -83,7 +88,7 @@ export function Editor(props: {
     setErrors(errList);
   }
 
-  async function onCheck() {
+  checkRef.current = async function onCheck() {
     const code = editor.current?.getValue();
     if (code == null) return;
     const diags = await props.compiler.checkCode(code);
@@ -93,7 +98,7 @@ export function Editor(props: {
     errMarks.current.checkDiags = diags;
     markErrors();
     setHasCheckErrors(diags.length > 0);
-  }
+  };
 
   async function onRun() {
     const code = editor.current?.getValue();
@@ -127,6 +132,7 @@ export function Editor(props: {
     editor.current = newEditor;
     const srcModel = monaco.editor.createModel(props.code, "qsharp");
     newEditor.setModel(srcModel);
+    srcModel.onDidChangeContent(() => checkRef.current());
 
     function onResize() {
       newEditor.layout();
@@ -144,12 +150,6 @@ export function Editor(props: {
   useEffect(() => {
     const theEditor = editor.current;
     if (!theEditor) return;
-    theEditor.getModel()?.onDidChangeContent(onCheck);
-  }, [props.compiler]);
-
-  useEffect(() => {
-    const theEditor = editor.current;
-    if (!theEditor) return;
 
     theEditor.getModel()?.setValue(props.code);
     theEditor.revealLineNearTop(1);
@@ -161,6 +161,11 @@ export function Editor(props: {
     errMarks.current.shotDiags = props.shotError ? [props.shotError] : [];
     markErrors();
   }, [props.shotError]);
+
+  useEffect(() => {
+    // Whenever the active tab changes, run check again).
+    checkRef.current();
+  }, [props.activeTab]);
 
   // On reset, reload the initial code
   function onReset() {

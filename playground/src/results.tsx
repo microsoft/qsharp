@@ -6,7 +6,7 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Histogram } from "./histo.js";
 import { StateTable } from "./state.js";
-import { ActiveTab } from "./tabs.js";
+import { ActiveTab } from "./main.js";
 
 function resultToLabel(result: string | VSDiagnostic): string {
   if (typeof result !== "string") return "ERROR";
