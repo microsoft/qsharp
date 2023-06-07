@@ -173,7 +173,7 @@ fn return_wrong_type() {
             #6 30-32 "()" : Unit
             #10 39-47 "{ true }" : Bool
             #12 41-45 "true" : Bool
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 39, hi: 47 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 41, hi: 45 }))))
         "##]],
     );
 }
@@ -191,7 +191,7 @@ fn return_semi() {
             #6 30-32 "()" : Unit
             #10 39-45 "{ 4; }" : Unit
             #12 41-42 "4" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 45 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 41, hi: 43 }))))
         "##]],
     );
 }
@@ -307,7 +307,7 @@ fn add_wrong_types() {
             #13 42-43 "1" : Int
             #14 46-49 "[2]" : (Int)[]
             #15 47-48 "2" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Array(Prim(Int)), Span { lo: 42, hi: 49 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Array(Prim(Int)), Span { lo: 42, hi: 49 }))))
         "##]],
     );
 }
@@ -328,7 +328,7 @@ fn int_as_double_error() {
             #17 103-140 "Microsoft.Quantum.Convert.IntAsDouble" : (Int -> Double)
             #21 140-147 "(false)" : Bool
             #22 141-146 "false" : Bool
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 103, hi: 147 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 103, hi: 147 }))))
         "##]],
     );
 }
@@ -352,7 +352,7 @@ fn length_type_error() {
             #23 106-107 "1" : Int
             #24 109-110 "2" : Int
             #25 112-113 "3" : Int
-            Error(Type(Error(Mismatch(Array(Infer(InferTy(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 98, hi: 115 }))))
+            Error(Type(Error(TyMismatch(Array(Infer(InferTy(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 98, hi: 115 }))))
         "##]],
     );
 }
@@ -382,7 +382,7 @@ fn single_arg_for_tuple() {
             #30 138-140 "Ry" : ((Double, Qubit) => Unit is Adj + Ctl)
             #33 140-143 "(q)" : Qubit
             #34 141-142 "q" : Qubit
-            Error(Type(Error(Mismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 138, hi: 143 }))))
+            Error(Type(Error(TyMismatch(Tuple([Prim(Double), Prim(Qubit)]), Prim(Qubit), Span { lo: 138, hi: 143 }))))
         "##]],
     );
 }
@@ -413,7 +413,7 @@ fn array_repeat_error() {
             #1 0-16 "[4, size = true]" : (Int)[]
             #2 1-2 "4" : Int
             #3 11-15 "true" : Bool
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 11, hi: 15 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 11, hi: 15 }))))
         "##]],
     );
 }
@@ -438,7 +438,7 @@ fn assignop_error() {
             #9 33-34 "x" : Bool
             #12 38-39 "1" : Int
             #14 45-46 "x" : Bool
-            Error(Type(Error(Mismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 }))))
+            Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 }))))
             Error(Type(Error(MissingClass(Add(Prim(Bool)), Span { lo: 33, hi: 34 }))))
         "##]],
     );
@@ -455,7 +455,7 @@ fn binop_add_invalid() {
             #3 1-2 "1" : Int
             #4 4-5 "3" : Int
             #5 9-12 "5.4" : Double
-            Error(Type(Error(Mismatch(Tuple([Prim(Int), Prim(Int)]), Prim(Double), Span { lo: 0, hi: 12 }))))
+            Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int)]), Prim(Double), Span { lo: 0, hi: 12 }))))
             Error(Type(Error(MissingClass(Add(Tuple([Prim(Int), Prim(Int)])), Span { lo: 0, hi: 6 }))))
         "##]],
     );
@@ -470,7 +470,7 @@ fn binop_add_mismatch() {
             #1 0-7 "1 + 5.4" : Int
             #2 0-1 "1" : Int
             #3 4-7 "5.4" : Double
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Double), Span { lo: 0, hi: 7 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Double), Span { lo: 0, hi: 7 }))))
         "##]],
     );
 }
@@ -498,7 +498,7 @@ fn binop_andb_mismatch() {
             #1 0-10 "28 &&& 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Type(Error(Mismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
         "##]],
     );
 }
@@ -521,7 +521,7 @@ fn binop_equal_callable() {
             #19 73-89 "Test.A == Test.B" : Bool
             #20 73-79 "Test.A" : (Unit -> Unit)
             #24 83-89 "Test.B" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Eq(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 73, hi: 79 }))))
+            Error(Type(Error(MissingClass(Eq(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 73, hi: 79 }))))
         "##]],
     );
 }
@@ -542,7 +542,7 @@ fn binop_equal_tuple_arity_mismatch() {
             #8 17-18 "2" : Int
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
-            Error(Type(Error(Mismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 }))))
         "##]],
     );
 }
@@ -562,7 +562,7 @@ fn binop_equal_tuple_type_mismatch() {
             #7 14-15 "1" : Int
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 }))))
         "##]],
     );
 }
@@ -576,7 +576,7 @@ fn binop_eq_mismatch() {
             #1 0-9 "18L == 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
-            Error(Type(Error(Mismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 }))))
+            Error(Type(Error(TyMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 }))))
         "##]],
     );
 }
@@ -590,7 +590,7 @@ fn binop_neq_mismatch() {
             #1 0-9 "18L != 18" : Bool
             #2 0-3 "18L" : BigInt
             #3 7-9 "18" : Int
-            Error(Type(Error(Mismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 }))))
+            Error(Type(Error(TyMismatch(Prim(BigInt), Prim(Int), Span { lo: 0, hi: 9 }))))
         "##]],
     );
 }
@@ -610,7 +610,7 @@ fn binop_neq_tuple_type_mismatch() {
             #7 14-15 "1" : Int
             #8 17-21 "Zero" : Result
             #9 23-24 "3" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Result), Span { lo: 0, hi: 25 }))))
         "##]],
     );
 }
@@ -631,7 +631,7 @@ fn binop_neq_tuple_arity_mismatch() {
             #8 17-18 "2" : Int
             #9 20-21 "3" : Int
             #10 23-24 "4" : Int
-            Error(Type(Error(Mismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 }))))
+            Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 0, hi: 25 }))))
         "##]],
     );
 }
@@ -659,7 +659,7 @@ fn binop_orb_mismatch() {
             #1 0-10 "28 ||| 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Type(Error(Mismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
         "##]],
     );
 }
@@ -687,7 +687,7 @@ fn binop_xorb_mismatch() {
             #1 0-10 "28 ^^^ 54L" : Int
             #2 0-2 "28" : Int
             #3 7-10 "54L" : BigInt
-            Error(Type(Error(Mismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(BigInt), Span { lo: 0, hi: 10 }))))
         "##]],
     );
 }
@@ -707,7 +707,7 @@ fn let_tuple_arity_error() {
             #11 18-24 "(0, 1)" : (Int, Int)
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
-            Error(Type(Error(Mismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 6, hi: 15 }))))
+            Error(Type(Error(TyMismatch(Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Tuple([Prim(Int), Prim(Int)]), Span { lo: 18, hi: 24 }))))
         "##]],
     );
 }
@@ -741,7 +741,7 @@ fn set_tuple_arity_error() {
             #23 52-53 "2" : Int
             #24 55-56 "3" : Int
             #26 63-64 "x" : Int
-            Error(Type(Error(Mismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 }))))
+            Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int)]), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 39, hi: 45 }))))
         "##]],
     );
 }
@@ -757,7 +757,7 @@ fn qubit_array_length_error() {
             #4 6-7 "q" : (Qubit)[]
             #6 10-22 "Qubit[false]" : (Qubit)[]
             #7 16-21 "false" : Bool
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 16, hi: 21 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 16, hi: 21 }))))
         "##]],
     );
 }
@@ -778,7 +778,7 @@ fn qubit_tuple_arity_error() {
             #11 23-24 "3" : Int
             #12 27-34 "Qubit()" : Qubit
             #13 36-43 "Qubit()" : Qubit
-            Error(Type(Error(Mismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1))]), Span { lo: 6, hi: 13 }))))
+            Error(Type(Error(TyMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1))]), Span { lo: 6, hi: 13 }))))
         "##]],
     );
 }
@@ -810,7 +810,7 @@ fn if_cond_error() {
             #1 0-7 "if 4 {}" : Unit
             #2 3-4 "4" : Int
             #3 5-7 "{}" : Unit
-            Error(Type(Error(Mismatch(Prim(Bool), Prim(Int), Span { lo: 3, hi: 4 }))))
+            Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 3, hi: 4 }))))
         "##]],
     );
 }
@@ -825,7 +825,7 @@ fn if_no_else_must_be_unit() {
             #2 3-7 "true" : Bool
             #3 8-13 "{ 4 }" : Int
             #5 10-11 "4" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 0, hi: 13 }))))
         "##]],
     );
 }
@@ -919,7 +919,7 @@ fn ternop_cond_error() {
             #2 0-1 "7" : Int
             #3 4-5 "1" : Int
             #4 8-9 "0" : Int
-            Error(Type(Error(Mismatch(Prim(Bool), Prim(Int), Span { lo: 0, hi: 1 }))))
+            Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 0, hi: 1 }))))
         "##]],
     );
 }
@@ -1117,7 +1117,7 @@ fn ternop_update_udt_unknown_field_name() {
             #36 133-134 "p" : UDT<Item 1>
             #39 138-143 "Third" : ?
             #42 147-148 "3" : Int
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 129, hi: 130 }))))
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 133, hi: 148 }))))
         "##]],
     );
 }
@@ -1154,7 +1154,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #42 163-164 "p" : UDT<Item 1>
             #45 168-173 "Third" : ?
             #48 177-178 "3" : Int
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 159, hi: 160 }))))
+            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 163, hi: 178 }))))
         "##]],
     );
 }
@@ -1180,7 +1180,7 @@ fn unop_not_int() {
         &expect![[r##"
             #1 0-5 "not 0" : Int
             #2 4-5 "0" : Int
-            Error(Type(Error(Mismatch(Prim(Bool), Prim(Int), Span { lo: 4, hi: 5 }))))
+            Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 4, hi: 5 }))))
         "##]],
     );
 }
@@ -1220,7 +1220,7 @@ fn while_cond_error() {
             #1 0-13 "while Zero {}" : Unit
             #2 6-10 "Zero" : Result
             #3 11-13 "{}" : Unit
-            Error(Type(Error(Mismatch(Prim(Bool), Prim(Result), Span { lo: 6, hi: 10 }))))
+            Error(Type(Error(TyMismatch(Prim(Bool), Prim(Result), Span { lo: 6, hi: 10 }))))
         "##]],
     );
 }
@@ -1382,7 +1382,7 @@ fn call_controlled_error() {
             #39 163-166 "[1]" : (Int)[]
             #40 164-165 "1" : Int
             #41 168-169 "q" : Qubit
-            Error(Type(Error(Mismatch(Prim(Qubit), Prim(Int), Span { lo: 157, hi: 162 }))))
+            Error(Type(Error(TyMismatch(Prim(Qubit), Prim(Int), Span { lo: 146, hi: 170 }))))
         "##]],
     );
 }
@@ -1400,7 +1400,7 @@ fn adj_requires_unit_return() {
             #6 31-33 "()" : Unit
             #11 47-52 "{ 1 }" : Int
             #13 49-50 "1" : Int
-            Error(Type(Error(Mismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
+            Error(Type(Error(TyMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
 }
@@ -1418,7 +1418,7 @@ fn ctl_requires_unit_return() {
             #6 31-33 "()" : Unit
             #11 47-52 "{ 1 }" : Int
             #13 49-50 "1" : Int
-            Error(Type(Error(Mismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
+            Error(Type(Error(TyMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
 }
@@ -1436,7 +1436,7 @@ fn adj_ctl_requires_unit_return() {
             #6 31-33 "()" : Unit
             #13 53-58 "{ 1 }" : Int
             #15 55-56 "1" : Int
-            Error(Type(Error(Mismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
+            Error(Type(Error(TyMismatch(Tuple([]), Prim(Int), Span { lo: 36, hi: 39 }))))
         "##]],
     );
 }
@@ -1455,7 +1455,7 @@ fn adj_non_adj() {
             #9 46-48 "{}" : Unit
             #10 51-64 "Adjoint A.Foo" : (Unit => Unit is Ctl)
             #11 59-64 "A.Foo" : (Unit => Unit is Ctl)
-            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 59, hi: 64 }))))
+            Error(Type(Error(MissingFunctor(Value(Adj), Value(Ctl), Span { lo: 59, hi: 64 }))))
         "##]],
     );
 }
@@ -1474,7 +1474,7 @@ fn ctl_non_ctl() {
             #9 46-48 "{}" : Unit
             #10 51-67 "Controlled A.Foo" : (((Qubit)[], Unit) => Unit is Adj)
             #11 62-67 "A.Foo" : (Unit => Unit is Adj)
-            Error(Type(Error(MissingFunctor(Ctl, Adj, Span { lo: 62, hi: 67 }))))
+            Error(Type(Error(MissingFunctor(Value(Ctl), Value(Adj), Span { lo: 62, hi: 67 }))))
         "##]],
     );
 }
@@ -1556,13 +1556,13 @@ fn return_diverges_stmt_after() {
             #6 30-40 "(x : Bool)" : Bool
             #7 31-39 "x : Bool" : Bool
             #15 47-132 "{\n        let x = {\n            return 1;\n            true\n        };\n        x\n    }" : Int
-            #17 61-62 "x" : ?0
-            #19 65-115 "{\n            return 1;\n            true\n        }" : ?0
-            #20 65-115 "{\n            return 1;\n            true\n        }" : ?0
+            #17 61-62 "x" : ?3
+            #19 65-115 "{\n            return 1;\n            true\n        }" : ?3
+            #20 65-115 "{\n            return 1;\n            true\n        }" : ?3
             #22 79-87 "return 1" : ?1
             #23 86-87 "1" : Int
             #25 101-105 "true" : Bool
-            #27 125-126 "x" : ?0
+            #27 125-126 "x" : ?3
         "##]],
     );
 }
@@ -1584,7 +1584,7 @@ fn return_mismatch() {
             #15 47-75 "{\n        return true;\n    }" : Int
             #17 57-68 "return true" : ?0
             #18 64-68 "true" : Bool
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Bool), Span { lo: 64, hi: 68 }))))
         "##]],
     );
 }
@@ -1835,7 +1835,7 @@ fn interpolate_function() {
             #8 38-40 "{}" : Unit
             #9 43-53 "$\"{A.Foo}\"" : String
             #10 46-51 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 46, hi: 51 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 46, hi: 51 }))))
         "##]],
     );
 }
@@ -1854,7 +1854,7 @@ fn interpolate_operation() {
             #8 39-41 "{}" : Unit
             #9 44-54 "$\"{A.Foo}\"" : String
             #10 47-52 "A.Foo" : (Unit => Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 47, hi: 52 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 47, hi: 52 }))))
         "##]],
     );
 }
@@ -1893,7 +1893,7 @@ fn interpolate_function_array() {
             #16 73-87 "[A.Foo, A.Bar]" : ((Unit -> Unit))[]
             #17 74-79 "A.Foo" : (Unit -> Unit)
             #21 81-86 "A.Bar" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 73, hi: 87 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 73, hi: 87 }))))
         "##]],
     );
 }
@@ -1928,7 +1928,7 @@ fn interpolate_int_function_tuple() {
             #10 46-56 "(1, A.Foo)" : (Int, (Unit -> Unit))
             #11 47-48 "1" : Int
             #12 50-55 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Empty })), Span { lo: 46, hi: 56 }))))
+            Error(Type(Error(MissingClass(Show(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 46, hi: 56 }))))
         "##]],
     );
 }
@@ -1971,7 +1971,7 @@ fn newtype_cons_wrong_input() {
             #19 70-76 "NewInt" : (Int -> UDT<Item 1>)
             #22 76-81 "(5.0)" : Double
             #23 77-80 "5.0" : Double
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 81 }))))
         "##]],
     );
 }
@@ -1988,12 +1988,12 @@ fn newtype_does_not_match_base_ty() {
         "",
         &expect![[r##"
             #12 56-58 "()" : Unit
-            #16 65-78 "{ NewInt(5) }" : Int
-            #18 67-76 "NewInt(5)" : Int
+            #16 65-78 "{ NewInt(5) }" : UDT<Item 1>
+            #18 67-76 "NewInt(5)" : UDT<Item 1>
             #19 67-73 "NewInt" : (Int -> UDT<Item 1>)
             #22 73-76 "(5)" : Int
             #23 74-75 "5" : Int
-            Error(Type(Error(Mismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Prim(Int), Span { lo: 67, hi: 76 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 67, hi: 76 }))))
         "##]],
     );
 }
@@ -2011,12 +2011,12 @@ fn newtype_does_not_match_other_newtype() {
         "",
         &expect![[r##"
             #18 84-86 "()" : Unit
-            #22 97-111 "{ NewInt1(5) }" : UDT<Item 2>
-            #24 99-109 "NewInt1(5)" : UDT<Item 2>
+            #22 97-111 "{ NewInt1(5) }" : UDT<Item 1>
+            #24 99-109 "NewInt1(5)" : UDT<Item 1>
             #25 99-106 "NewInt1" : (Int -> UDT<Item 1>)
             #28 106-109 "(5)" : Int
             #29 107-108 "5" : Int
-            Error(Type(Error(Mismatch(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Span { lo: 99, hi: 109 }))))
+            Error(Type(Error(TyMismatch(Udt(Item(ItemId { package: None, item: LocalItemId(2) })), Udt(Item(ItemId { package: None, item: LocalItemId(1) })), Span { lo: 99, hi: 109 }))))
         "##]],
     );
 }
@@ -2083,8 +2083,8 @@ fn newtype_field_invalid() {
             #13 59-68 "(x : Foo)" : UDT<Item 1>
             #14 60-67 "x : Foo" : UDT<Item 1>
             #20 74-106 "{\n        let y = x::Nope;\n    }" : Unit
-            #22 88-89 "y" : ?0
-            #24 92-99 "x::Nope" : ?0
+            #22 88-89 "y" : ?1
+            #24 92-99 "x::Nope" : ?1
             #25 92-93 "x" : UDT<Item 1>
             Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferTy(1)) }, Span { lo: 92, hi: 99 }))))
         "##]],
@@ -2177,7 +2177,7 @@ fn local_function_error() {
             #23 86-91 "Bar()" : Int
             #24 86-89 "Bar" : (Unit -> Int)
             #27 89-91 "()" : Unit
-            Error(Type(Error(Mismatch(Prim(Int), Prim(Double), Span { lo: 70, hi: 77 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Prim(Double), Span { lo: 72, hi: 75 }))))
         "##]],
     );
 }
@@ -2227,7 +2227,7 @@ fn local_function_last_stmt_is_unit_block() {
             #21 75-77 "()" : Unit
             #25 84-89 "{ 4 }" : Int
             #27 86-87 "4" : Int
-            Error(Type(Error(Mismatch(Prim(Int), Tuple([]), Span { lo: 39, hi: 95 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Tuple([]), Span { lo: 63, hi: 89 }))))
         "##]],
     );
 }
@@ -2299,7 +2299,7 @@ fn infinite() {
             #22 86-89 "[x]" : (?0)[]
             #23 87-88 "x" : ?0
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
-            Error(Type(Error(Mismatch(Infer(InferTy(0)), Array(Infer(InferTy(0))), Span { lo: 86, hi: 89 }))))
+            Error(Type(Error(TyMismatch(Infer(InferTy(0)), Array(Infer(InferTy(0))), Span { lo: 86, hi: 89 }))))
         "##]],
     );
 }
@@ -2450,13 +2450,13 @@ fn lambda_invalid_adjoint_before_functors_inferred() {
             #22 80-82 "()" : Unit
             #24 92-102 "Adjoint op" : (Qubit => Unit is Ctl)
             #25 100-102 "op" : (Qubit => Unit is Ctl)
-            Error(Type(Error(MissingFunctor(Adj, Ctl, Span { lo: 100, hi: 102 }))))
+            Error(Type(Error(MissingFunctor(Value(Adj), Value(Ctl), Span { lo: 92, hi: 102 }))))
         "##]],
     );
 }
 
 #[test]
-fn lambda_first_use_functors_inferred() {
+fn lambda_multiple_uses_functors_inferred() {
     check(
         indoc! {"
             namespace A {
@@ -2480,22 +2480,21 @@ fn lambda_first_use_functors_inferred() {
             #32 130-132 "{}" : Unit
             #36 150-152 "()" : Unit
             #38 158-271 "{\n        let op = q => ();\n        TakeAdj(op);\n        TakeAdjCtl(op);\n        let opCtl = Controlled op;\n    }" : Unit
-            #40 172-174 "op" : (Qubit => Unit is Adj)
-            #42 177-184 "q => ()" : (Qubit => Unit is Adj)
+            #40 172-174 "op" : (Qubit => Unit is Adj + Ctl)
+            #42 177-184 "q => ()" : (Qubit => Unit is Adj + Ctl)
             #43 177-178 "q" : Qubit
             #45 182-184 "()" : Unit
             #47 194-205 "TakeAdj(op)" : Unit
-            #48 194-201 "TakeAdj" : ((Qubit => Unit is Adj) => Unit)
-            #51 201-205 "(op)" : (Qubit => Unit is Adj)
-            #52 202-204 "op" : (Qubit => Unit is Adj)
+            #48 194-201 "TakeAdj" : ((Qubit => Unit is Adj + Ctl) => Unit)
+            #51 201-205 "(op)" : (Qubit => Unit is Adj + Ctl)
+            #52 202-204 "op" : (Qubit => Unit is Adj + Ctl)
             #56 215-229 "TakeAdjCtl(op)" : Unit
             #57 215-225 "TakeAdjCtl" : ((Qubit => Unit is Adj + Ctl) => Unit)
-            #60 225-229 "(op)" : (Qubit => Unit is Adj)
-            #61 226-228 "op" : (Qubit => Unit is Adj)
-            #65 243-248 "opCtl" : (((Qubit)[], Qubit) => Unit is Adj)
-            #67 251-264 "Controlled op" : (((Qubit)[], Qubit) => Unit is Adj)
-            #68 262-264 "op" : (Qubit => Unit is Adj)
-            Error(Type(Error(MissingFunctor(Ctl, Adj, Span { lo: 262, hi: 264 }))))
+            #60 225-229 "(op)" : (Qubit => Unit is Adj + Ctl)
+            #61 226-228 "op" : (Qubit => Unit is Adj + Ctl)
+            #65 243-248 "opCtl" : (((Qubit)[], Qubit) => Unit is Adj + Ctl)
+            #67 251-264 "Controlled op" : (((Qubit)[], Qubit) => Unit is Adj + Ctl)
+            #68 262-264 "op" : (Qubit => Unit is Adj + Ctl)
         "##]],
     );
 }
@@ -2668,7 +2667,7 @@ fn partial_app_too_many_args() {
             #29 56-57 "1" : Int
             #30 59-60 "_" : ?1
             #31 62-63 "_" : ?2
-            Error(Type(Error(Mismatch(Prim(Int), Tuple([Prim(Int), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 52, hi: 64 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Tuple([Prim(Int), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 52, hi: 64 }))))
         "##]],
     );
 }
@@ -2698,6 +2697,422 @@ fn typed_hole_error_ambiguous_type() {
             #3 1-4 "(3)" : Int
             #4 2-3 "3" : Int
             Error(Type(Error(TyHole(Infer(InferTy(0)), Span { lo: 0, hi: 1 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_superset_of_empty() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => ()) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-137 "{\n            operation Foo(op : Qubit => ()) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-137 "{\n            operation Foo(op : Qubit => ()) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-45 "(op : Qubit => ())" : (Qubit => Unit)
+            #8 28-44 "op : Qubit => ()" : (Qubit => Unit)
+            #16 51-53 "{}" : Unit
+            #21 79-90 "(q : Qubit)" : Qubit
+            #22 80-89 "q : Qubit" : Qubit
+            #29 103-105 "{}" : Unit
+            #31 118-126 "Foo(Bar)" : Unit
+            #32 118-121 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #35 121-126 "(Bar)" : (Qubit => Unit is Adj)
+            #36 122-125 "Bar" : (Qubit => Unit is Adj)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_superset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj) : () {}
+            operation Bar(q : Qubit) : () is Adj + Ctl {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-150 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-150 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #8 28-51 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #17 58-60 "{}" : Unit
+            #22 86-97 "(q : Qubit)" : Qubit
+            #23 87-96 "q : Qubit" : Qubit
+            #32 116-118 "{}" : Unit
+            #34 131-139 "Foo(Bar)" : Unit
+            #35 131-134 "Foo" : ((Qubit => Unit is Adj + Ctl) => Unit)
+            #38 134-139 "(Bar)" : (Qubit => Unit is Adj + Ctl)
+            #39 135-138 "Bar" : (Qubit => Unit is Adj + Ctl)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_subset_of_ctl_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj + Ctl) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-150 "{\n            operation Foo(op : Qubit => () is Adj + Ctl) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-150 "{\n            operation Foo(op : Qubit => () is Adj + Ctl) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-58 "(op : Qubit => () is Adj + Ctl)" : (Qubit => Unit is Adj + Ctl)
+            #8 28-57 "op : Qubit => () is Adj + Ctl" : (Qubit => Unit is Adj + Ctl)
+            #19 64-66 "{}" : Unit
+            #24 92-103 "(q : Qubit)" : Qubit
+            #25 93-102 "q : Qubit" : Qubit
+            #32 116-118 "{}" : Unit
+            #34 131-139 "Foo(Bar)" : Unit
+            #35 131-134 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #38 134-139 "(Bar)" : (Qubit => Unit is Adj)
+            #39 135-138 "Bar" : (Qubit => Unit is Adj)
+            Error(Type(Error(MissingFunctor(Value(CtlAdj), Value(Adj), Span { lo: 131, hi: 139 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_eq_to_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-144 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-144 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #8 28-51 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #17 58-60 "{}" : Unit
+            #22 86-97 "(q : Qubit)" : Qubit
+            #23 87-96 "q : Qubit" : Qubit
+            #30 110-112 "{}" : Unit
+            #32 125-133 "Foo(Bar)" : Unit
+            #33 125-128 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #36 128-133 "(Bar)" : (Qubit => Unit is Adj)
+            #37 129-132 "Bar" : (Qubit => Unit is Adj)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_nested_arrow_superset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : (Qubit => () is Adj) => ()) : () {}
+            operation Bar(op : Qubit => () is Adj + Ctl) : () {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-165 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj + Ctl) : () {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-165 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj + Ctl) : () {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
+            #8 28-59 "op : (Qubit => () is Adj) => ()" : ((Qubit => Unit is Adj) => Unit)
+            #20 66-68 "{}" : Unit
+            #25 94-125 "(op : Qubit => () is Adj + Ctl)" : (Qubit => Unit is Adj + Ctl)
+            #26 95-124 "op : Qubit => () is Adj + Ctl" : (Qubit => Unit is Adj + Ctl)
+            #37 131-133 "{}" : Unit
+            #39 146-154 "Foo(Bar)" : Unit
+            #40 146-149 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
+            #43 149-154 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
+            #44 150-153 "Bar" : ((Qubit => Unit is Adj) => Unit)
+            Error(Type(Error(MissingFunctor(Value(CtlAdj), Value(Adj), Span { lo: 146, hi: 154 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_nested_arrow_subset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : (Qubit => () is Adj) => ()) : () {}
+            operation Bar(op : Qubit => ()) : () {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-152 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => ()) : () {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-152 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => ()) : () {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
+            #8 28-59 "op : (Qubit => () is Adj) => ()" : ((Qubit => Unit is Adj) => Unit)
+            #20 66-68 "{}" : Unit
+            #25 94-112 "(op : Qubit => ())" : (Qubit => Unit)
+            #26 95-111 "op : Qubit => ()" : (Qubit => Unit)
+            #34 118-120 "{}" : Unit
+            #36 133-141 "Foo(Bar)" : Unit
+            #37 133-136 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
+            #40 136-141 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
+            #41 137-140 "Bar" : ((Qubit => Unit is Adj) => Unit)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_nested_arrow_eq_to_adj() {
+    check(
+        "",
+        "{
+            operation Foo(op : (Qubit => () is Adj) => ()) : () {}
+            operation Bar(op : Qubit => () is Adj) : () {}
+            Foo(Bar);
+        }",
+        &expect![[r##"
+            #1 0-159 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj) : () {}\n            Foo(Bar);\n        }" : Unit
+            #2 0-159 "{\n            operation Foo(op : (Qubit => () is Adj) => ()) : () {}\n            operation Bar(op : Qubit => () is Adj) : () {}\n            Foo(Bar);\n        }" : Unit
+            #7 27-60 "(op : (Qubit => () is Adj) => ())" : ((Qubit => Unit is Adj) => Unit)
+            #8 28-59 "op : (Qubit => () is Adj) => ()" : ((Qubit => Unit is Adj) => Unit)
+            #20 66-68 "{}" : Unit
+            #25 94-119 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #26 95-118 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #35 125-127 "{}" : Unit
+            #37 140-148 "Foo(Bar)" : Unit
+            #38 140-143 "Foo" : (((Qubit => Unit is Adj) => Unit) => Unit)
+            #41 143-148 "(Bar)" : ((Qubit => Unit is Adj) => Unit)
+            #42 144-147 "Bar" : ((Qubit => Unit is Adj) => Unit)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_array_superset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(ops : (Qubit => () is Adj)[]) : () {}
+            operation Bar(q : Qubit) : () is Adj + Ctl {}
+            Foo([Bar]);
+        }",
+        &expect![[r##"
+            #1 0-157 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo([Bar]);\n        }" : Unit
+            #2 0-157 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () is Adj + Ctl {}\n            Foo([Bar]);\n        }" : Unit
+            #7 27-57 "(ops : (Qubit => () is Adj)[])" : ((Qubit => Unit is Adj))[]
+            #8 28-56 "ops : (Qubit => () is Adj)[]" : ((Qubit => Unit is Adj))[]
+            #19 63-65 "{}" : Unit
+            #24 91-102 "(q : Qubit)" : Qubit
+            #25 92-101 "q : Qubit" : Qubit
+            #34 121-123 "{}" : Unit
+            #36 136-146 "Foo([Bar])" : Unit
+            #37 136-139 "Foo" : (((Qubit => Unit is Adj + Ctl))[] => Unit)
+            #40 139-146 "([Bar])" : ((Qubit => Unit is Adj + Ctl))[]
+            #41 140-145 "[Bar]" : ((Qubit => Unit is Adj + Ctl))[]
+            #42 141-144 "Bar" : (Qubit => Unit is Adj + Ctl)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_array_subset_of_adj() {
+    check(
+        "",
+        "{
+            operation Foo(ops : (Qubit => () is Adj)[]) : () {}
+            operation Bar(q : Qubit) : () {}
+            Foo([Bar]);
+        }",
+        &expect![[r##"
+            #1 0-144 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () {}\n            Foo([Bar]);\n        }" : Unit
+            #2 0-144 "{\n            operation Foo(ops : (Qubit => () is Adj)[]) : () {}\n            operation Bar(q : Qubit) : () {}\n            Foo([Bar]);\n        }" : Unit
+            #7 27-57 "(ops : (Qubit => () is Adj)[])" : ((Qubit => Unit is Adj))[]
+            #8 28-56 "ops : (Qubit => () is Adj)[]" : ((Qubit => Unit is Adj))[]
+            #19 63-65 "{}" : Unit
+            #24 91-102 "(q : Qubit)" : Qubit
+            #25 92-101 "q : Qubit" : Qubit
+            #31 108-110 "{}" : Unit
+            #33 123-133 "Foo([Bar])" : Unit
+            #34 123-126 "Foo" : (((Qubit => Unit))[] => Unit)
+            #37 126-133 "([Bar])" : ((Qubit => Unit))[]
+            #38 127-132 "[Bar]" : ((Qubit => Unit))[]
+            #39 128-131 "Bar" : (Qubit => Unit)
+            Error(Type(Error(MissingFunctor(Value(Adj), Value(Empty), Span { lo: 123, hi: 133 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_all_same() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () is Adj {}
+            let ops = [Foo, Foo, Foo];
+        }",
+        &expect![[r##"
+            #1 0-102 "{\n            operation Foo(q : Qubit) : () is Adj {}\n            let ops = [Foo, Foo, Foo];\n        }" : Unit
+            #2 0-102 "{\n            operation Foo(q : Qubit) : () is Adj {}\n            let ops = [Foo, Foo, Foo];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #15 51-53 "{}" : Unit
+            #17 70-73 "ops" : ((Qubit => Unit is Adj))[]
+            #19 76-91 "[Foo, Foo, Foo]" : ((Qubit => Unit is Adj))[]
+            #20 77-80 "Foo" : (Qubit => Unit is Adj)
+            #23 82-85 "Foo" : (Qubit => Unit is Adj)
+            #26 87-90 "Foo" : (Qubit => Unit is Adj)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_mixed() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let ops = [Foo, Bar, Baz];
+        }",
+        &expect![[r##"
+            #1 0-205 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, Bar, Baz];\n        }" : Unit
+            #2 0-205 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, Bar, Baz];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #14 44-46 "{}" : Unit
+            #19 72-83 "(q : Qubit)" : Qubit
+            #20 73-82 "q : Qubit" : Qubit
+            #27 96-98 "{}" : Unit
+            #32 124-135 "(q : Qubit)" : Qubit
+            #33 125-134 "q : Qubit" : Qubit
+            #42 154-156 "{}" : Unit
+            #44 173-176 "ops" : ((Qubit => Unit))[]
+            #46 179-194 "[Foo, Bar, Baz]" : ((Qubit => Unit))[]
+            #47 180-183 "Foo" : (Qubit => Unit)
+            #50 185-188 "Bar" : (Qubit => Unit is Adj)
+            #53 190-193 "Baz" : (Qubit => Unit is Adj + Ctl)
+            Error(Type(Error(FunctorMismatch(Value(Empty), Value(Adj), Span { lo: 185, hi: 188 }))))
+            Error(Type(Error(FunctorMismatch(Value(Empty), Value(CtlAdj), Span { lo: 190, hi: 193 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_mixed_lambda_all_empty() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let ops = [Foo, q => Bar(q), q => Baz(q)];
+        }",
+        &expect![[r##"
+            #1 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, q => Bar(q), q => Baz(q)];\n        }" : Unit
+            #2 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [Foo, q => Bar(q), q => Baz(q)];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #14 44-46 "{}" : Unit
+            #19 72-83 "(q : Qubit)" : Qubit
+            #20 73-82 "q : Qubit" : Qubit
+            #27 96-98 "{}" : Unit
+            #32 124-135 "(q : Qubit)" : Qubit
+            #33 125-134 "q : Qubit" : Qubit
+            #42 154-156 "{}" : Unit
+            #44 173-176 "ops" : ((Qubit => Unit))[]
+            #46 179-210 "[Foo, q => Bar(q), q => Baz(q)]" : ((Qubit => Unit))[]
+            #47 180-183 "Foo" : (Qubit => Unit)
+            #50 185-196 "q => Bar(q)" : (Qubit => Unit)
+            #51 185-186 "q" : Qubit
+            #53 190-196 "Bar(q)" : Unit
+            #54 190-193 "Bar" : (Qubit => Unit is Adj)
+            #57 193-196 "(q)" : Qubit
+            #58 194-195 "q" : Qubit
+            #61 198-209 "q => Baz(q)" : (Qubit => Unit)
+            #62 198-199 "q" : Qubit
+            #64 203-209 "Baz(q)" : Unit
+            #65 203-206 "Baz" : (Qubit => Unit is Adj + Ctl)
+            #68 206-209 "(q)" : Qubit
+            #69 207-208 "q" : Qubit
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_array_mixed_lambda_all_ctl_adj() {
+    check(
+        "",
+        "{
+            operation Foo(q : Qubit) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let ops = [q => Foo(q), q => Bar(q), Baz];
+        }",
+        &expect![[r##"
+            #1 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [q => Foo(q), q => Bar(q), Baz];\n        }" : Unit
+            #2 0-221 "{\n            operation Foo(q : Qubit) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let ops = [q => Foo(q), q => Bar(q), Baz];\n        }" : Unit
+            #7 27-38 "(q : Qubit)" : Qubit
+            #8 28-37 "q : Qubit" : Qubit
+            #14 44-46 "{}" : Unit
+            #19 72-83 "(q : Qubit)" : Qubit
+            #20 73-82 "q : Qubit" : Qubit
+            #27 96-98 "{}" : Unit
+            #32 124-135 "(q : Qubit)" : Qubit
+            #33 125-134 "q : Qubit" : Qubit
+            #42 154-156 "{}" : Unit
+            #44 173-176 "ops" : ((Qubit => Unit is Adj + Ctl))[]
+            #46 179-210 "[q => Foo(q), q => Bar(q), Baz]" : ((Qubit => Unit is Adj + Ctl))[]
+            #47 180-191 "q => Foo(q)" : (Qubit => Unit is Adj + Ctl)
+            #48 180-181 "q" : Qubit
+            #50 185-191 "Foo(q)" : Unit
+            #51 185-188 "Foo" : (Qubit => Unit)
+            #54 188-191 "(q)" : Qubit
+            #55 189-190 "q" : Qubit
+            #58 193-204 "q => Bar(q)" : (Qubit => Unit is Adj + Ctl)
+            #59 193-194 "q" : Qubit
+            #61 198-204 "Bar(q)" : Unit
+            #62 198-201 "Bar" : (Qubit => Unit is Adj)
+            #65 201-204 "(q)" : Qubit
+            #66 202-203 "q" : Qubit
+            #69 206-209 "Baz" : (Qubit => Unit is Adj + Ctl)
+        "##]],
+    );
+}
+
+#[test]
+fn functors_in_arg_bound_to_let_becomes_monotype() {
+    check(
+        "",
+        "{
+            operation Foo(op : Qubit => () is Adj) : () {}
+            operation Bar(q : Qubit) : () is Adj {}
+            operation Baz(q : Qubit) : () is Adj + Ctl {}
+            let foo = Foo;
+            foo(Bar);
+            foo(Baz);
+        }",
+        &expect![[r##"
+            #1 0-251 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let foo = Foo;\n            foo(Bar);\n            foo(Baz);\n        }" : Unit
+            #2 0-251 "{\n            operation Foo(op : Qubit => () is Adj) : () {}\n            operation Bar(q : Qubit) : () is Adj {}\n            operation Baz(q : Qubit) : () is Adj + Ctl {}\n            let foo = Foo;\n            foo(Bar);\n            foo(Baz);\n        }" : Unit
+            #7 27-52 "(op : Qubit => () is Adj)" : (Qubit => Unit is Adj)
+            #8 28-51 "op : Qubit => () is Adj" : (Qubit => Unit is Adj)
+            #17 58-60 "{}" : Unit
+            #22 86-97 "(q : Qubit)" : Qubit
+            #23 87-96 "q : Qubit" : Qubit
+            #30 110-112 "{}" : Unit
+            #35 138-149 "(q : Qubit)" : Qubit
+            #36 139-148 "q : Qubit" : Qubit
+            #45 168-170 "{}" : Unit
+            #47 187-190 "foo" : ((Qubit => Unit is Adj) => Unit)
+            #49 193-196 "Foo" : ((Qubit => Unit is Adj) => Unit)
+            #53 210-218 "foo(Bar)" : Unit
+            #54 210-213 "foo" : ((Qubit => Unit is Adj) => Unit)
+            #57 213-218 "(Bar)" : (Qubit => Unit is Adj)
+            #58 214-217 "Bar" : (Qubit => Unit is Adj)
+            #62 232-240 "foo(Baz)" : Unit
+            #63 232-235 "foo" : ((Qubit => Unit is Adj) => Unit)
+            #66 235-240 "(Baz)" : (Qubit => Unit is Adj + Ctl)
+            #67 236-239 "Baz" : (Qubit => Unit is Adj + Ctl)
+            Error(Type(Error(FunctorMismatch(Value(Adj), Value(CtlAdj), Span { lo: 232, hi: 240 }))))
         "##]],
     );
 }

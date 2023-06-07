@@ -9,7 +9,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: 1.69
+  RUST_TOOLCHAIN_VERSION: "1.70"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:

@@ -451,9 +451,11 @@ impl With<'_> {
             ),
             ast::ExprKind::Lambda(kind, input, body) => {
                 let functors = if let hir::Ty::Arrow(arrow) = &ty {
-                    arrow.functors
+                    arrow
+                        .functors
+                        .expect_value("lambda type should have concrete functors")
                 } else {
-                    hir::FunctorSet::Empty
+                    hir::FunctorSetValue::Empty
                 };
                 let lambda = Lambda {
                     kind: lower_callable_kind(*kind),

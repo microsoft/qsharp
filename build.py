@@ -30,6 +30,9 @@ parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly f
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
+parser.add_argument(
+    "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
+)
 
 parser.add_argument(
     "--debug", action="store_true", help="Create a debug build (default is release)"
@@ -61,6 +64,7 @@ build_all = (
     and not args.npm
     and not args.play
     and not args.vscode
+    and not args.jupyterlab
 )
 build_cli = build_all or args.cli
 build_pip = build_all or args.pip
@@ -68,8 +72,11 @@ build_wasm = build_all or args.wasm
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
+build_jupyterlab = build_all or args.jupyterlab
 
-npm_install_needed = build_npm or build_play or build_vscode
+# JavaScript projects and eslint, prettier depend on npm_install
+# However the JupyterLab extension uses yarn in a separate workspace
+npm_install_needed = build_npm or build_play or build_vscode or args.check
 npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
 
 build_type = "debug" if args.debug else "release"
@@ -80,47 +87,58 @@ wasm_src = os.path.join(root_dir, "wasm")
 wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
 npm_src = os.path.join(root_dir, "npm")
 play_src = os.path.join(root_dir, "playground")
-pip_dir = os.path.join(root_dir, "pip")
+pip_src = os.path.join(root_dir, "pip")
 wheels_dir = os.path.join(root_dir, "target", "wheels")
 vscode_src = os.path.join(root_dir, "vscode")
+jupyterlab_src = os.path.join(root_dir, "jupyterlab")
 
 if npm_install_needed:
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
 
-    # The projects that require npm are also the ones we want to check (which depends on npm also)
-    if args.check:
-        print("Running eslint, prettier, and tsc checks")
-        subprocess.run([npm_cmd, "run", "check"], check=True, text=True, cwd=root_dir)
+if args.check:
+    print("Running eslint and prettier checks")
+    subprocess.run([npm_cmd, "run", "check"], check=True, text=True, cwd=root_dir)
 
-# If we're going to check the Rust code, do this before we try to compile it
-if args.check and (build_wasm or build_cli):
-    print("Running the cargo fmt and clippy checks")
-    subprocess.run(
-        ["cargo", "fmt", "--all", "--", "--check"], check=True, text=True, cwd=root_dir
-    )
-    subprocess.run(
-        ["cargo", "clippy", "--all-targets", "--all-features", "--", "-D", "warnings"],
-        check=True,
-        text=True,
-        cwd=root_dir,
-    )
+    if build_wasm or build_cli:
+        # If we're going to check the Rust code, do this before we try to compile it
+        print("Running the cargo fmt and clippy checks")
+        subprocess.run(
+            ["cargo", "fmt", "--all", "--", "--check"],
+            check=True,
+            text=True,
+            cwd=root_dir,
+        )
+        subprocess.run(
+            [
+                "cargo",
+                "clippy",
+                "--all-targets",
+                "--all-features",
+                "--",
+                "-D",
+                "warnings",
+            ],
+            check=True,
+            text=True,
+            cwd=root_dir,
+        )
 
 if build_cli:
     print("Building the command line compiler")
     cargo_build_args = ["cargo", "build"]
     if build_type == "release":
         cargo_build_args.append("--release")
-    result = subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
+    subprocess.run(cargo_build_args, check=True, text=True, cwd=root_dir)
 
     if run_tests:
+        print("Running tests for the command line compiler")
         cargo_test_args = ["cargo", "test"]
         if build_type == "release":
             cargo_test_args.append("--release")
-        result = subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
+        subprocess.run(cargo_test_args, check=True, text=True, cwd=root_dir)
 
 if build_pip:
     print("Building the pip package")
-
     # Check if in a virtual environment
     if (
         os.environ.get("VIRTUAL_ENV") is None
@@ -129,7 +147,7 @@ if build_pip:
     ):
         print("Not in a virtual python environment")
 
-        venv_dir = os.path.join(pip_dir, ".venv")
+        venv_dir = os.path.join(pip_src, ".venv")
         # Create virtual environment under repo root
         if not os.path.exists(venv_dir):
             print(f"Creating a virtual environment under {venv_dir}")
@@ -151,13 +169,13 @@ if build_pip:
         "wheel",
         "--wheel-dir",
         wheels_dir,
-        pip_dir,
+        pip_src,
     ]
-    result = subprocess.run(pip_build_args, check=True, text=True, cwd=pip_dir)
+    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src)
 
     if run_tests:
-        pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_dir)
+        print("Running tests for the pip package")
+
         pip_install_args = [
             python_bin,
             "-m",
@@ -166,9 +184,11 @@ if build_pip:
             "-r",
             "test_requirements.txt",
         ]
-        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_dir)
+        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
+        pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
         pytest_args = [python_bin, "-m", "pytest"]
-        result = subprocess.run(pytest_args, check=True, text=True, cwd=pip_dir)
+        subprocess.run(pytest_args, check=True, text=True, cwd=pip_src)
 
 if build_wasm:
     print("Building the wasm crate")
@@ -209,18 +229,73 @@ if build_npm:
             shutil.copy2(fullpath, os.path.join(lib_dir, filename))
 
     npm_args = [npm_cmd, "run", "build"]
-    result = subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
+    subprocess.run(npm_args, check=True, text=True, cwd=npm_src)
 
     if run_tests:
+        print("Running tests for the npm package")
         npm_test_args = ["node", "--test"]
-        result = subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
+        subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
 
 if build_play:
     print("Building the playground")
     play_args = [npm_cmd, "run", "build"]
-    result = subprocess.run(play_args, check=True, text=True, cwd=play_src)
+    subprocess.run(play_args, check=True, text=True, cwd=play_src)
 
 if build_vscode:
     print("Building the VS Code extension")
     vscode_args = [npm_cmd, "run", "build"]
-    result = subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+    subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+
+if build_jupyterlab:
+    print("Building the JupyterLab extension")
+
+    # Check if in a virtual environment
+    if (
+        os.environ.get("VIRTUAL_ENV") is None
+        and os.environ.get("CONDA_PREFIX") is None
+        and os.environ.get("CI") is None
+    ):
+        print("Not in a virtual python environment")
+
+        venv_dir = os.path.join(jupyterlab_src, ".venv")
+        # Create virtual environment under repo root
+        if not os.path.exists(venv_dir):
+            print(f"Creating a virtual environment under {venv_dir}")
+            venv.main([venv_dir])
+
+        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
+        python_bin = os.path.join(venv_dir, "bin", "python")
+        if not os.path.exists(python_bin):
+            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
+        print(f"Using python from {python_bin}")
+    else:
+        # Already in a virtual environment, use current Python
+        python_bin = sys.executable
+
+    pip_build_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "wheel",
+        "--wheel-dir",
+        wheels_dir,
+        jupyterlab_src,
+    ]
+    subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
+
+    if run_tests:
+        print("Running tests for the JupyterLab extension")
+
+        pip_install_args = [
+            python_bin,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            "test_requirements.txt",
+        ]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
+        pip_install_args = [python_bin, "-m", "pip", "install", "-e", "."]
+        subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
+        pytest_args = [python_bin, "-m", "pytest"]
+        subprocess.run(pytest_args, check=True, text=True, cwd=jupyterlab_src)

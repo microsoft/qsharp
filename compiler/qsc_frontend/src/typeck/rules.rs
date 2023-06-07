@@ -12,7 +12,7 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{self, ArrowTy, FunctorSet, ItemId, PrimTy, Ty, Udt};
+use qsc_hir::hir::{self, ArrowTy, FunctorSet, FunctorSetValue, ItemId, PrimTy, Ty, Udt};
 use std::{collections::HashMap, convert::identity};
 
 /// An inferred partial term has a type, but may be the result of a diverging (non-terminating)
@@ -76,9 +76,10 @@ impl<'a> Context<'a> {
         }
 
         self.return_ty = Some(spec.output);
-        let block = self.infer_block(spec.block).ty;
+        let block = self.infer_block(spec.block);
         if let Some(return_ty) = self.return_ty.take() {
-            self.inferrer.eq(spec.block.span, return_ty.clone(), block);
+            let span = spec.block.stmts.last().map_or(spec.block.span, |s| s.span);
+            self.inferrer.eq(span, return_ty.clone(), block.ty);
         }
     }
 
@@ -89,9 +90,11 @@ impl<'a> Context<'a> {
                 kind: convert::callable_kind_from_ast(*kind),
                 input: Box::new(self.infer_ty(input)),
                 output: Box::new(self.infer_ty(output)),
-                functors: functors.as_ref().map_or(FunctorSet::Empty, |f| {
-                    convert::eval_functor_expr(f.as_ref())
-                }),
+                functors: FunctorSet::Value(
+                    functors.as_ref().map_or(FunctorSetValue::Empty, |f| {
+                        convert::eval_functor_expr(f.as_ref())
+                    }),
+                ),
             })),
             TyKind::Hole => self.inferrer.fresh_ty(),
             TyKind::Paren(inner) => self.infer_ty(inner),
@@ -128,9 +131,9 @@ impl<'a> Context<'a> {
             StmtKind::Expr(expr) => self.infer_expr(expr),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);
-                let expr = self.infer_expr(expr);
-                self.inferrer.eq(pat.span, expr.ty, pat_ty);
-                self.diverge_if(expr.diverges, converge(Ty::UNIT))
+                let expr_ty = self.infer_expr(expr);
+                self.inferrer.eq(expr.span, pat_ty, expr_ty.ty);
+                self.diverge_if(expr_ty.diverges, converge(Ty::UNIT))
             }
             StmtKind::Qubit(_, pat, init, block) => {
                 let pat_ty = self.infer_pat(pat);
@@ -326,13 +329,11 @@ impl<'a> Context<'a> {
             ExprKind::Path(path) => match self.names.get(path.id) {
                 None => converge(Ty::Err),
                 Some(Res::Item(item)) => {
-                    let mut ty = self
-                        .globals
-                        .get(item)
-                        .expect("global item should have type")
-                        .clone();
-                    self.inferrer.freshen(&mut ty);
-                    converge(ty)
+                    let Some(Ty::Arrow(mut arrow)) = self.globals.get(item).cloned() else {
+                        panic!("global item should have arrow type");
+                    };
+                    self.inferrer.freshen_arrow(&mut arrow, expr.span);
+                    converge(Ty::Arrow(arrow))
                 }
                 Some(&Res::Local(node)) => converge(
                     self.terms
@@ -688,10 +689,10 @@ impl<'a> Context<'a> {
     }
 
     fn solve(self) -> Vec<Error> {
-        let (substs, mut errors) = self.inferrer.solve(self.udts);
+        let (solution, mut errors) = self.inferrer.solve(self.udts);
         for id in self.new {
             let ty = self.terms.get_mut(id).expect("node should have type");
-            infer::substitute_ty(&substs, ty);
+            infer::substitute_ty(&solution, ty);
         }
         for (id, span) in self.typed_holes {
             let ty = self.terms.get_mut(id).expect("node should have type");
