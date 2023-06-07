@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use log::{error, Log};
+use log::{error, LevelFilter, Log};
 use miette::{Diagnostic, Severity};
 use qsc::compile;
 use serde::{Deserialize, Serialize};
@@ -34,6 +34,14 @@ pub struct LanguageService(language_service::LanguageService<'static>);
 impl LanguageService {
     #[wasm_bindgen(constructor)]
     pub fn new(diagnostics_callback: &js_sys::Function, logger: &js_sys::Function) -> Self {
+        log::set_boxed_logger(Box::new(Logger(logger.clone())))
+            .expect("setting logger should succeed");
+        log::set_max_level(LevelFilter::Trace);
+
+        panic::set_hook(Box::new(|info: &panic::PanicInfo| {
+            error!("{}", info);
+        }));
+
         let diagnostics_callback = diagnostics_callback.clone();
         let inner = language_service::LanguageService::new(
             move |uri: &str, version: u32, errors: &[compile::Error]| {
@@ -49,14 +57,6 @@ impl LanguageService {
                     .expect("callback should succeed");
             },
         );
-
-        log::set_boxed_logger(Box::new(Logger(logger.clone())))
-            .expect("setting logger should succeed");
-
-        panic::set_hook(Box::new(|info: &panic::PanicInfo| {
-            error!("{}", info);
-        }));
-
         LanguageService(inner)
     }
 
