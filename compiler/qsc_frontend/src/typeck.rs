@@ -68,7 +68,7 @@ enum ErrorKind {
     #[error("type {0} cannot be converted into a string")]
     MissingClassShow(Ty, #[label] Span),
     #[error("type {0} cannot be unwrapped")]
-    #[diagnostic(help("only types created with `newtype` support unwrap"))]
+    #[diagnostic(help("only newtypes support unwrap"))]
     MissingClassUnwrap(Ty, #[label] Span),
     #[error("expected superset of {0}, found {1}")]
     MissingFunctor(FunctorSet, FunctorSet, #[label] Span),
