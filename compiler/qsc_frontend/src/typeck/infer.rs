@@ -871,17 +871,13 @@ fn check_has_field(
                 ),
                 None => (
                     Vec::new(),
-                    vec![Error(ErrorKind::MissingClassHasField(
-                        record, name, item, span,
-                    ))],
+                    vec![Error(ErrorKind::MissingClassHasField(record, name, span))],
                 ),
             }
         }
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClassHasField(
-                record, name, item, span,
-            ))],
+            vec![Error(ErrorKind::MissingClassHasField(record, name, span))],
         ),
     }
 }

@@ -1118,7 +1118,7 @@ fn ternop_update_udt_unknown_field_name() {
             #36 133-134 "p" : UDT<Item 1>
             #39 138-143 "Third" : ?
             #42 147-148 "3" : Int
-            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Prim(Int), Span { lo: 133, hi: 148 }))))
+            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 133, hi: 148 }))))
         "##]],
     );
 }
@@ -1155,7 +1155,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #42 163-164 "p" : UDT<Item 1>
             #45 168-173 "Third" : ?
             #48 177-178 "3" : Int
-            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Prim(Int), Span { lo: 163, hi: 178 }))))
+            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 163, hi: 178 }))))
         "##]],
     );
 }
@@ -1607,7 +1607,7 @@ fn array_unknown_field_error() {
             #16 50-73 "{\n        x::Size\n    }" : Int
             #18 60-67 "x::Size" : Int
             #19 60-61 "x" : (Qubit)[]
-            Error(Type(Error(MissingClassHasField(Array(Prim(Qubit)), "Size", Infer(InferTy(0)), Span { lo: 60, hi: 67 }))))
+            Error(Type(Error(MissingClassHasField(Array(Prim(Qubit)), "Size", Span { lo: 60, hi: 67 }))))
         "##]],
     );
 }
@@ -1649,7 +1649,7 @@ fn range_to_field_start() {
             #3 1-8 "...2..8" : RangeTo
             #4 4-5 "2" : Int
             #5 7-8 "8" : Int
-            Error(Type(Error(MissingClassHasField(Prim(RangeTo), "Start", Infer(InferTy(0)), Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeTo), "Start", Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -1725,7 +1725,7 @@ fn range_from_field_end() {
             #3 1-8 "0..2..." : RangeFrom
             #4 1-2 "0" : Int
             #5 4-5 "2" : Int
-            Error(Type(Error(MissingClassHasField(Prim(RangeFrom), "End", Infer(InferTy(0)), Span { lo: 0, hi: 14 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeFrom), "End", Span { lo: 0, hi: 14 }))))
         "##]],
     );
 }
@@ -1738,7 +1738,7 @@ fn range_full_field_start() {
         &expect![[r##"
             #1 0-10 "...::Start" : ?0
             #2 0-3 "..." : RangeFull
-            Error(Type(Error(MissingClassHasField(Prim(RangeFull), "Start", Infer(InferTy(0)), Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeFull), "Start", Span { lo: 0, hi: 10 }))))
         "##]],
     );
 }
@@ -1777,7 +1777,7 @@ fn range_full_field_end() {
         &expect![[r##"
             #1 0-8 "...::End" : ?0
             #2 0-3 "..." : RangeFull
-            Error(Type(Error(MissingClassHasField(Prim(RangeFull), "End", Infer(InferTy(0)), Span { lo: 0, hi: 8 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeFull), "End", Span { lo: 0, hi: 8 }))))
         "##]],
     );
 }
@@ -2087,7 +2087,7 @@ fn newtype_field_invalid() {
             #22 88-89 "y" : ?1
             #24 92-99 "x::Nope" : ?1
             #25 92-93 "x" : UDT<Item 1>
-            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Nope", Infer(InferTy(1)), Span { lo: 92, hi: 99 }))))
+            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Nope", Span { lo: 92, hi: 99 }))))
         "##]],
     );
 }

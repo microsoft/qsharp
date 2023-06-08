@@ -35,41 +35,40 @@ enum ErrorKind {
     CallableMismatch(CallableKind, CallableKind, #[label] Span),
     #[error("expected {0}, found {1}")]
     FunctorMismatch(FunctorSet, FunctorSet, #[label] Span),
-    #[error("type {0} does not support add or concatenate")]
-    #[diagnostic(help("only numeric types BigInt, Double, and Int support addition, and only strings and arrays support concatenation"))]
+    #[error("type {0} does not support the plus operator")]
+    #[diagnostic(help("only Array, BigInt, Double, Int and String support the plus operator"))]
     MissingClassAdd(Ty, #[label] Span),
     #[error("type {0} does not support Adjoint functor")]
     MissingClassAdj(Ty, #[label] Span),
-    #[error("expected callable type, found {0}")]
-    #[diagnostic(help(
-        "only operations, functions, or newtype constructors can be used as a callable"
-    ))]
+    #[error("type {0} is not callable")]
+    #[diagnostic(help("only operations, functions, or newtype constructors can be called"))]
     MissingClassCall(Ty, #[label] Span),
     #[error("type {0} does not support Controlled functor")]
     MissingClassCtl(Ty, #[label] Span),
-    #[error("type {0} does not support equality comparison")]
-    #[diagnostic(help("only BigInt, Bool, Double, Int, Qubit, Range, Result, String, Paulis, and Tuples of matching types support equiality comparison"))]
+    #[error("type {0} does not support equality")]
     MissingClassEq(Ty, #[label] Span),
-    #[error("exponentiation not supported for type {0}")]
+    #[error("type {0} does not support exponentiation")]
     MissingClassExp(Ty, #[label] Span),
-    #[error("type {0} does not have a field `{1}` of type {2}")]
-    MissingClassHasField(Ty, String, Ty, #[label] Span),
-    #[error("type {0} does not support indexing with type {1}")]
-    #[diagnostic(help("only array types can be indexed, using Int or Range"))]
+    #[error("type {0} does not have a field `{1}`")]
+    MissingClassHasField(Ty, String, #[label] Span),
+    #[error("type {0} cannot be indexed by type {1}")]
+    #[diagnostic(help(
+        "only array types can be indexed, and only Int or Range types can be used as the index"
+    ))]
     MissingClassHasIndex(Ty, Ty, #[label] Span),
-    #[error("type {0} is not an integral type")]
-    #[diagnostic(help("only BigInt or Int can be used as an integral type"))]
+    #[error("type {0} is not an integer")]
+    #[diagnostic(help("only BigInt or Int are integers"))]
     MissingClassIntegral(Ty, #[label] Span),
     #[error("type {0} is not iterable")]
     #[diagnostic(help("only arrays and ranges are iterable"))]
     MissingClassIterable(Ty, #[label] Span),
-    #[error("type {0} is not a numeric type")]
-    #[diagnostic(help("only BigInt, Double, or Int can be used as a numeric type"))]
+    #[error("type {0} is not a number")]
+    #[diagnostic(help("only BigInt, Double, or Int are numbers"))]
     MissingClassNum(Ty, #[label] Span),
-    #[error("type {0} cannot convert to string")]
+    #[error("type {0} cannot be converted into a string")]
     MissingClassShow(Ty, #[label] Span),
     #[error("type {0} cannot be unwrapped")]
-    #[diagnostic(help("only newtype tuples support unwrap"))]
+    #[diagnostic(help("only types created with `newtype` support unwrap"))]
     MissingClassUnwrap(Ty, #[label] Span),
     #[error("expected superset of {0}, found {1}")]
     MissingFunctor(FunctorSet, FunctorSet, #[label] Span),
