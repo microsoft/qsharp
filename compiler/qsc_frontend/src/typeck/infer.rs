@@ -364,7 +364,11 @@ impl Inferrer {
             })
             .collect();
 
-        (scheme.instantiate(&args), args)
+        let ty = scheme
+            .instantiate(&args)
+            .expect("scheme should instantiate with fresh arguments");
+
+        (ty, args)
     }
 
     /// Solves for all variables given the accumulated constraints.

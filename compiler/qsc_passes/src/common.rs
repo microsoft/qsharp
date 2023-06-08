@@ -70,10 +70,15 @@ pub(crate) fn create_gen_core_ref(
         .resolve_term(namespace, name)
         .expect("term should resolve");
 
+    let ty = term
+        .scheme
+        .instantiate(&generics)
+        .expect("generic arguments should match type scheme");
+
     Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Arrow(Box::new(term.scheme.instantiate(&generics))),
+        ty: Ty::Arrow(Box::new(ty)),
         kind: ExprKind::Var(Res::Item(term.id), generics),
     }
 }

@@ -1088,50 +1088,80 @@ pub struct Scheme {
 
 impl Scheme {
     /// Instantiates this type scheme with the given arguments.
-    pub fn instantiate<'a>(&self, args: impl IntoIterator<Item = &'a GenericArg>) -> ArrowTy {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the given arguments do not match the scheme parameters.
+    pub fn instantiate<'a>(
+        &self,
+        args: impl IntoIterator<Item = &'a GenericArg>,
+    ) -> result::Result<ArrowTy, InstantiationError> {
         let args: HashMap<_, _> = self.params.iter().map(|p| &p.name).zip(args).collect();
-        instantiate_arrow_ty(|name| args.get(name).copied(), &self.ty)
+        if args.len() == self.params.len() {
+            instantiate_arrow_ty(|name| args.get(name).copied(), &self.ty)
+        } else {
+            Err(InstantiationError::Arity)
+        }
     }
 }
 
-fn instantiate_ty<'a>(arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy, ty: &Ty) -> Ty {
+/// A type scheme instantiation error.
+#[derive(Debug)]
+pub enum InstantiationError {
+    /// The number of generic arguments does not match the number of generic parameters.
+    Arity,
+    /// A generic argument does not match the kind of its corresponding generic parameter.
+    Kind(ParamName),
+}
+
+fn instantiate_ty<'a>(
+    arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
+    ty: &Ty,
+) -> result::Result<Ty, InstantiationError> {
     match ty {
-        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => ty.clone(),
-        Ty::Array(item) => Ty::Array(Box::new(instantiate_ty(arg, item))),
-        Ty::Arrow(arrow) => Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow))),
-        Ty::Param(name) => {
-            if let Some(GenericArg::Ty(arg)) = arg(&ParamName::Symbol(Arc::clone(name))) {
-                arg.clone()
-            } else {
-                ty.clone()
+        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => Ok(ty.clone()),
+        Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
+        Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
+        Ty::Param(param) => {
+            let name = ParamName::Symbol(Arc::clone(param));
+            match arg(&name) {
+                Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
+                Some(_) => Err(InstantiationError::Kind(name)),
+                None => Ok(ty.clone()),
             }
         }
-        Ty::Tuple(items) => Ty::Tuple(items.iter().map(|item| instantiate_ty(arg, item)).collect()),
+        Ty::Tuple(items) => Ok(Ty::Tuple(
+            items
+                .iter()
+                .map(|item| instantiate_ty(arg, item))
+                .collect::<result::Result<_, _>>()?,
+        )),
     }
 }
 
 fn instantiate_arrow_ty<'a>(
     arg: impl Fn(&ParamName) -> Option<&'a GenericArg> + Copy,
     arrow: &ArrowTy,
-) -> ArrowTy {
-    let input = instantiate_ty(arg, &arrow.input);
-    let output = instantiate_ty(arg, &arrow.output);
+) -> result::Result<ArrowTy, InstantiationError> {
+    let input = instantiate_ty(arg, &arrow.input)?;
+    let output = instantiate_ty(arg, &arrow.output)?;
     let functors = if let FunctorSet::Param(id) = arrow.functors {
-        if let Some(GenericArg::Functor(functors)) = arg(&ParamName::Id(id)) {
-            *functors
-        } else {
-            arrow.functors
+        let name = ParamName::Id(id);
+        match arg(&name) {
+            Some(GenericArg::Functor(functor_arg)) => *functor_arg,
+            Some(_) => return Err(InstantiationError::Kind(name)),
+            None => arrow.functors,
         }
     } else {
         arrow.functors
     };
 
-    ArrowTy {
+    Ok(ArrowTy {
         kind: arrow.kind,
         input: Box::new(input),
         output: Box::new(output),
         functors,
-    }
+    })
 }
 
 /// A generic parameter.
