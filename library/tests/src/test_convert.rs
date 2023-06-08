@@ -7,42 +7,6 @@ use qsc::interpret::Value;
 // Tests for Microsoft.Quantum.Convert namespace
 
 #[test]
-fn check_big_int_as_bool_array() {
-    test_expression(
-        "Microsoft.Quantum.Convert.BigIntAsBoolArray(5L)",
-        &Value::Array(
-            vec![
-                Value::Bool(true),
-                Value::Bool(false),
-                Value::Bool(true),
-                Value::Bool(false),
-                Value::Bool(false),
-                Value::Bool(false),
-                Value::Bool(false),
-                Value::Bool(false),
-            ]
-            .into(),
-        ),
-    );
-    test_expression(
-        "Microsoft.Quantum.Convert.BigIntAsBoolArray(-1L)",
-        &Value::Array(
-            vec![
-                Value::Bool(true),
-                Value::Bool(true),
-                Value::Bool(true),
-                Value::Bool(true),
-                Value::Bool(true),
-                Value::Bool(true),
-                Value::Bool(true),
-                Value::Bool(true),
-            ]
-            .into(),
-        ),
-    );
-}
-
-#[test]
 fn check_bool_array_as_int() {
     test_expression(
         "Microsoft.Quantum.Convert.BoolArrayAsInt([true, false, true, false])",

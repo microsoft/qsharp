@@ -1006,12 +1006,11 @@ namespace Microsoft.Quantum.Arrays {
     /// ```
     function SequenceL (from : BigInt, to : BigInt) : BigInt[] {
         Fact(to >= from, "`to` must be larger than `from`");
-        Fact(to - from <= 0x07FFFFFFFFFFFFFFEL, $"difference between `to` and `from` is too large");
-
-        let delta = BoolArrayAsInt(BigIntAsBoolArray(to - from));
         mutable array = [];
-        for step in 0 .. delta {
-            set array += [from + IntAsBigInt(step)];
+        mutable current = from;
+        while current <= to {
+            set array += [current];
+            set current += 1L;
         }
 
         array
