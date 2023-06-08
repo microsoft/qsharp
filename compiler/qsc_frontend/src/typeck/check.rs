@@ -53,7 +53,7 @@ impl GlobalTable {
 
 pub(crate) struct Checker {
     globals: HashMap<ItemId, Scheme>,
-    tys: Table,
+    table: Table,
     errors: Vec<Error>,
 }
 
@@ -61,21 +61,21 @@ impl Checker {
     pub(crate) fn new(globals: GlobalTable) -> Self {
         Checker {
             globals: globals.terms,
-            tys: Table {
+            table: Table {
                 udts: globals.udts,
                 terms: IndexMap::new(),
-                generic_args: HashMap::new(),
+                generics: IndexMap::new(),
             },
             errors: globals.errors,
         }
     }
 
-    pub(crate) fn tys(&self) -> &Table {
-        &self.tys
+    pub(crate) fn table(&self) -> &Table {
+        &self.table
     }
 
-    pub(crate) fn into_tys(self) -> (Table, Vec<Error>) {
-        (self.tys, self.errors)
+    pub(crate) fn into_table(self) -> (Table, Vec<Error>) {
+        (self.table, self.errors)
     }
 
     pub(crate) fn drain_errors(&mut self) -> vec::Drain<Error> {
@@ -89,10 +89,8 @@ impl Checker {
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 names,
-                &self.tys.udts,
                 &self.globals,
-                &mut self.tys.terms,
-                &mut self.tys.generic_args,
+                &mut self.table,
                 entry,
             ));
         }
@@ -153,10 +151,8 @@ impl Checker {
     fn check_spec(&mut self, names: &Names, spec: SpecImpl) {
         self.errors.append(&mut rules::spec(
             names,
-            &self.tys.udts,
             &self.globals,
-            &mut self.tys.terms,
-            &mut self.tys.generic_args,
+            &mut self.table,
             spec,
         ));
     }
@@ -173,10 +169,8 @@ impl Checker {
         // https://github.com/microsoft/qsharp/issues/205
         self.errors.append(&mut rules::stmt(
             names,
-            &self.tys.udts,
             &self.globals,
-            &mut self.tys.terms,
-            &mut self.tys.generic_args,
+            &mut self.table,
             stmt,
         ));
     }
@@ -225,7 +219,7 @@ impl Visitor<'_> for ItemCollector<'_> {
                 );
 
                 let fields = convert::ast_ty_def_fields(def);
-                self.checker.tys.udts.insert(item, Udt { base, fields });
+                self.checker.table.udts.insert(item, Udt { base, fields });
                 self.checker.globals.insert(item, cons);
             }
             _ => {}

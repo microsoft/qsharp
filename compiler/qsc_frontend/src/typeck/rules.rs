@@ -4,16 +4,16 @@
 use super::{
     convert,
     infer::{self, ArgTy, Class, Inferrer},
-    Error,
+    Error, Table,
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
     self, BinOp, Block, Expr, ExprKind, Functor, Lit, NodeId, Pat, PatKind, QubitInit,
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
-use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, ArrowTy, FunctorSet, FunctorSetValue, GenericArg, ItemId, PrimTy, Scheme, Ty, Udt,
+    self, ArrowTy, FunctorSet, FunctorSetValue, GenericArg, ItemId, PrimTy, Scheme, Ty,
 };
 use std::{collections::HashMap, convert::identity};
 
@@ -35,10 +35,8 @@ impl<T> Partial<T> {
 
 struct Context<'a> {
     names: &'a Names,
-    udts: &'a HashMap<ItemId, Udt>,
     globals: &'a HashMap<ItemId, Scheme>,
-    terms: &'a mut IndexMap<NodeId, Ty>,
-    generic_args: &'a mut HashMap<NodeId, Vec<GenericArg>>,
+    table: &'a mut Table,
     return_ty: Option<&'a Ty>,
     typed_holes: Vec<(NodeId, Span)>,
     new: Vec<NodeId>,
@@ -46,19 +44,11 @@ struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    fn new(
-        names: &'a Names,
-        udts: &'a HashMap<ItemId, Udt>,
-        globals: &'a HashMap<ItemId, Scheme>,
-        terms: &'a mut IndexMap<NodeId, Ty>,
-        generic_args: &'a mut HashMap<NodeId, Vec<GenericArg>>,
-    ) -> Self {
+    fn new(names: &'a Names, globals: &'a HashMap<ItemId, Scheme>, table: &'a mut Table) -> Self {
         Self {
             names,
-            udts,
             globals,
-            terms,
-            generic_args,
+            table,
             return_ty: None,
             typed_holes: Vec::new(),
             new: Vec::new(),
@@ -336,11 +326,12 @@ impl<'a> Context<'a> {
                 Some(Res::Item(item)) => {
                     let scheme = self.globals.get(item).expect("item should have scheme");
                     let (ty, args) = self.inferrer.instantiate(scheme, expr.span);
-                    self.generic_args.insert(expr.id, args);
+                    self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }
                 Some(&Res::Local(node)) => converge(
-                    self.terms
+                    self.table
+                        .terms
                         .get(node)
                         .expect("local should have type")
                         .clone(),
@@ -689,17 +680,17 @@ impl<'a> Context<'a> {
 
     fn record(&mut self, id: NodeId, ty: Ty) {
         self.new.push(id);
-        self.terms.insert(id, ty);
+        self.table.terms.insert(id, ty);
     }
 
     fn solve(self) -> Vec<Error> {
-        let (solution, mut errors) = self.inferrer.solve(self.udts);
+        let (solution, mut errors) = self.inferrer.solve(&self.table.udts);
 
         for id in self.new {
-            let ty = self.terms.get_mut(id).expect("node should have type");
+            let ty = self.table.terms.get_mut(id).expect("node should have type");
             infer::substitute_ty(&solution, ty);
 
-            if let Some(args) = self.generic_args.get_mut(&id) {
+            if let Some(args) = self.table.generics.get_mut(id) {
                 for arg in args {
                     match arg {
                         GenericArg::Ty(ty) => infer::substitute_ty(&solution, ty),
@@ -712,7 +703,7 @@ impl<'a> Context<'a> {
         }
 
         for (id, span) in self.typed_holes {
-            let ty = self.terms.get_mut(id).expect("node should have type");
+            let ty = self.table.terms.get_mut(id).expect("node should have type");
             errors.push(Error(super::ErrorKind::TyHole(ty.clone(), span)));
         }
 
@@ -731,39 +722,33 @@ pub(super) struct SpecImpl<'a> {
 
 pub(super) fn spec(
     names: &Names,
-    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Scheme>,
-    terms: &mut IndexMap<NodeId, Ty>,
-    generic_args: &mut HashMap<NodeId, Vec<GenericArg>>,
+    table: &mut Table,
     spec: SpecImpl,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, udts, globals, terms, generic_args);
+    let mut context = Context::new(names, globals, table);
     context.infer_spec(spec);
     context.solve()
 }
 
 pub(super) fn expr(
     names: &Names,
-    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Scheme>,
-    terms: &mut IndexMap<NodeId, Ty>,
-    generic_args: &mut HashMap<NodeId, Vec<GenericArg>>,
+    table: &mut Table,
     expr: &Expr,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, udts, globals, terms, generic_args);
+    let mut context = Context::new(names, globals, table);
     context.infer_expr(expr);
     context.solve()
 }
 
 pub(super) fn stmt(
     names: &Names,
-    udts: &HashMap<ItemId, Udt>,
     globals: &HashMap<ItemId, Scheme>,
-    terms: &mut IndexMap<NodeId, Ty>,
-    generic_args: &mut HashMap<NodeId, Vec<GenericArg>>,
+    table: &mut Table,
     stmt: &Stmt,
 ) -> Vec<Error> {
-    let mut context = Context::new(names, udts, globals, terms, generic_args);
+    let mut context = Context::new(names, globals, table);
     context.infer_stmt(stmt);
     context.solve()
 }

@@ -21,7 +21,7 @@ pub(super) use check::{Checker, GlobalTable};
 pub(super) struct Table {
     pub(super) udts: HashMap<ItemId, Udt>,
     pub(super) terms: IndexMap<NodeId, Ty>,
-    pub(super) generic_args: HashMap<NodeId, Vec<GenericArg>>,
+    pub(super) generics: IndexMap<NodeId, Vec<GenericArg>>,
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]

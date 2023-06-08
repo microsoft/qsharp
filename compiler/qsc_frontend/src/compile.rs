@@ -416,7 +416,7 @@ fn typeck_all(
 
     let mut checker = Checker::new(globals);
     checker.check_package(names, package);
-    checker.into_tys()
+    checker.into_table()
 }
 
 fn append_parse_errors(errors: &mut Vec<parse::Error>, offset: u32, other: Vec<parse::Error>) {

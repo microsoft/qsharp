@@ -478,8 +478,8 @@ impl With<'_> {
             ast::ExprKind::Path(path) => {
                 let args = self
                     .tys
-                    .generic_args
-                    .get(&expr.id)
+                    .generics
+                    .get(expr.id)
                     .map_or(Vec::new(), Clone::clone);
                 hir::ExprKind::Var(self.lower_path(path), args)
             }

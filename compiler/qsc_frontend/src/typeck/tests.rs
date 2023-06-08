@@ -91,7 +91,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 
     let mut checker = Checker::new(super::GlobalTable::new());
     checker.check_package(&names, &package);
-    let (tys, ty_errors) = checker.into_tys();
+    let (tys, ty_errors) = checker.into_table();
 
     let errors = resolve_errors
         .into_iter()
