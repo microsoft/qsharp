@@ -3,6 +3,7 @@ members = [
     "compiler/qsc",
     "compiler/qsc_ast",
     "compiler/qsc_codegen",
+    "compiler/qsc_llvm",
     "compiler/qsc_data_structures",
     "compiler/qsc_eval",
     "compiler/qsc_frontend",

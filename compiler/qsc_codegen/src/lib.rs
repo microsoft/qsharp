@@ -3,18 +3,54 @@
 
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 
+use qsc_frontend::compile::CompileUnit;
+use qsc_hir::{
+    hir::Package,
+    mut_visit::{self, MutVisitor},
+};
+use qsc_llvm::function::Function;
+use qsc_llvm::BasicBlock;
+use qsc_llvm::Name;
+use qsc_llvm::{types::Builder, Module};
+
 #[must_use]
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub fn emit_qir(unit: &mut CompileUnit /*, std: Option<&mut CompileUnit>*/) -> String {
+    // todo: impl visitor for types builder instead of using this
+    let types = Builder::new().build();
+    let mut g = QirGenerator {
+        module: Module {
+            name: "ll_module".to_string(),
+            source_file_name: String::new(),
+            data_layout: None,
+            target_triple: None,
+            functions: vec![],
+            func_declarations: vec![],
+            global_vars: vec![],
+            global_aliases: vec![],
+            inline_assembly: String::new(),
+            types,
+        },
+    };
+    g.visit_package(&mut unit.package);
+    format!("{}", g.module)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+struct QirGenerator {
+    module: Module,
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl MutVisitor for QirGenerator {
+    fn visit_package(&mut self, package: &mut Package) {
+        mut_visit::walk_package(self, package);
+    }
+
+    fn visit_callable_decl(&mut self, decl: &mut qsc_hir::hir::CallableDecl) {
+        let mut func = Function::new(decl.name.name.to_string());
+        func.return_type = self.module.types.void();
+        let bb = BasicBlock::new(Name::Name(Box::new("entry".to_string())));
+        func.basic_blocks.push(bb);
+        self.module.functions.push(func);
+
+        mut_visit::walk_callable_decl(self, decl);
     }
 }
