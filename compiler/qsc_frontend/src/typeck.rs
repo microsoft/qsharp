@@ -41,7 +41,7 @@ enum ErrorKind {
     #[error("type {0} does not support the adjoint functor")]
     MissingClassAdj(Ty, #[label] Span),
     #[error("type {0} is not callable")]
-    #[diagnostic(help("only operations, functions, or newtype constructors can be called"))]
+    #[diagnostic(help("only operations, functions, and newtype constructors can be called"))]
     MissingClassCall(Ty, #[label] Span),
     #[error("type {0} does not support the controlled functor")]
     MissingClassCtl(Ty, #[label] Span),
@@ -53,17 +53,17 @@ enum ErrorKind {
     MissingClassHasField(Ty, String, #[label] Span),
     #[error("type {0} cannot be indexed by type {1}")]
     #[diagnostic(help(
-        "only array types can be indexed, and only Int or Range can be used as the index"
+        "only array types can be indexed, and only Int and Range can be used as the index"
     ))]
     MissingClassHasIndex(Ty, Ty, #[label] Span),
     #[error("type {0} is not an integer")]
-    #[diagnostic(help("only BigInt or Int are integers"))]
+    #[diagnostic(help("only BigInt and Int are integers"))]
     MissingClassIntegral(Ty, #[label] Span),
     #[error("type {0} is not iterable")]
     #[diagnostic(help("only arrays and ranges are iterable"))]
     MissingClassIterable(Ty, #[label] Span),
     #[error("type {0} is not a number")]
-    #[diagnostic(help("only BigInt, Double, or Int are numbers"))]
+    #[diagnostic(help("only BigInt, Double, and Int are numbers"))]
     MissingClassNum(Ty, #[label] Span),
     #[error("type {0} cannot be converted into a string")]
     MissingClassShow(Ty, #[label] Span),
