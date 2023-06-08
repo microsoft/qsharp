@@ -7,9 +7,12 @@ use qsc_ast::ast::{
     SetOp, Spec, TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{
-    self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, GenericParam, ItemId, ParamId,
-    ParamKind, ParamName, Scheme, Ty, UdtField,
+use qsc_hir::{
+    hir::{self, FieldPath, ItemId},
+    ty::{
+        Arrow, FunctorSet, FunctorSetValue, GenericParam, ParamId, ParamKind, ParamName, Scheme,
+        Ty, UdtField,
+    },
 };
 use std::rc::Rc;
 
@@ -28,7 +31,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             let functors = functors
                 .as_ref()
                 .map_or(FunctorSetValue::Empty, |f| eval_functor_expr(f.as_ref()));
-            let ty = Ty::Arrow(Box::new(ArrowTy {
+            let ty = Ty::Arrow(Box::new(Arrow {
                 kind: callable_kind_from_ast(*kind),
                 input: Box::new(input),
                 output: Box::new(output),
@@ -67,7 +70,7 @@ pub(super) fn ast_ty_def_cons(
     def: &TyDef,
 ) -> (Scheme, Vec<MissingTyError>) {
     let (input, errors) = ast_ty_def_base(names, def);
-    let ty = ArrowTy {
+    let ty = Arrow {
         kind: hir::CallableKind::Function,
         input: Box::new(input),
         output: Box::new(Ty::Udt(hir::Res::Item(id))),
@@ -128,7 +131,7 @@ pub(super) fn ast_callable_scheme(
     let (output, output_errors) = ty_from_ast(names, &decl.output);
     errors.extend(output_errors);
     let functors = ast_callable_functors(decl);
-    let ty = ArrowTy {
+    let ty = Arrow {
         kind,
         input: Box::new(input),
         output: Box::new(output),

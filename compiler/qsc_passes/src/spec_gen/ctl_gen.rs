@@ -4,8 +4,9 @@
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{ArrowTy, CallableKind, Expr, ExprKind, Functor, NodeId, PrimTy, Res, Ty, UnOp},
+    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, Res, UnOp},
     mut_visit::{walk_expr, MutVisitor},
+    ty::{Arrow, Prim, Ty},
 };
 use thiserror::Error;
 
@@ -33,10 +34,10 @@ impl MutVisitor for CtlDistrib {
 
                         if functors.contains(&Functor::Ctl) {
                             op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
-                            op.ty = Ty::Arrow(Box::new(ArrowTy {
+                            op.ty = Ty::Arrow(Box::new(Arrow {
                                 kind: CallableKind::Operation,
                                 input: Box::new(Ty::Tuple(vec![
-                                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                                    Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                                     Ty::clone(&arrow.input),
                                 ])),
                                 output: arrow.output.clone(),
@@ -47,13 +48,13 @@ impl MutVisitor for CtlDistrib {
                                 Expr {
                                     id: NodeId::default(),
                                     span: args.span,
-                                    ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                                    ty: Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                                     kind: ExprKind::Var(self.ctls, Vec::new()),
                                 },
                                 Expr::clone(args),
                             ]);
                             args.ty = Ty::Tuple(vec![
-                                Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                                Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                                 Ty::clone(&args.ty),
                             ]);
                         } else {

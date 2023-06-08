@@ -12,7 +12,10 @@ use self::infer::Class;
 use miette::Diagnostic;
 use qsc_ast::ast::NodeId;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{CallableKind, FunctorSet, GenericArg, ItemId, Ty, Udt};
+use qsc_hir::{
+    hir::{CallableKind, ItemId},
+    ty::{FunctorSet, GenericArg, Ty, Udt},
+};
 use std::{collections::HashMap, fmt::Debug};
 use thiserror::Error;
 

@@ -14,9 +14,10 @@ use qsc_hir::{
     global::Table,
     hir::{
         Block, CallableDecl, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind, Res, Stmt,
-        StmtKind, Ty,
+        StmtKind,
     },
     mut_visit::{self, MutVisitor},
+    ty::Ty,
     visit::{self, Visitor},
 };
 use thiserror::Error;

@@ -5,10 +5,11 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        ArrowTy, Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSetValue, Ident,
-        Mutability, NodeId, Pat, PatKind, Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
+        Block, CallableDecl, CallableKind, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind,
+        Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind,
     },
     mut_visit::{self, MutVisitor},
+    ty::{Arrow, FunctorSetValue, Ty},
     visit::{self, Visitor},
 };
 use std::{
@@ -172,7 +173,7 @@ pub(super) fn partial_app_block(
     callee: Expr,
     arg: Expr,
     app: PartialApp,
-    arrow: ArrowTy,
+    arrow: Arrow,
     span: Span,
 ) -> Block {
     let call = Expr {

@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::hir::{Item, ItemId, ItemKind, Package, PackageId, Scheme, Visibility};
+use crate::{
+    hir::{Item, ItemId, ItemKind, Package, PackageId, Visibility},
+    ty::Scheme,
+};
 use qsc_data_structures::index_map;
 use std::{collections::HashMap, rc::Rc};
 

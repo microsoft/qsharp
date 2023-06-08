@@ -8,10 +8,11 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        BinOp, Block, Expr, ExprKind, Field, GenericArg, Ident, Lit, Mutability, NodeId, Pat,
-        PatKind, PrimField, PrimTy, Res, Stmt, StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Field, Ident, Lit, Mutability, NodeId, Pat, PatKind,
+        PrimField, Res, Stmt, StmtKind, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
+    ty::{GenericArg, Prim, Ty},
 };
 
 use crate::{
@@ -88,7 +89,7 @@ impl<'a> BlockInverter<'a> {
             stmts: Vec::new(),
         };
         match &iterable.ty {
-            Ty::Prim(PrimTy::Range) => self.reverse_range_loop(&mut wrapper, iterable, pat, block),
+            Ty::Prim(Prim::Range) => self.reverse_range_loop(&mut wrapper, iterable, pat, block),
 
             Ty::Array(arr_ty) => {
                 self.reverse_array_loop(
@@ -145,7 +146,7 @@ impl<'a> BlockInverter<'a> {
         let index_pat = Pat {
             id: NodeId::default(),
             span: Span::default(),
-            ty: Ty::Prim(PrimTy::Int),
+            ty: Ty::Prim(Prim::Int),
             kind: PatKind::Bind(Ident {
                 id: index_id,
                 span: Span::default(),
@@ -174,7 +175,7 @@ impl<'a> BlockInverter<'a> {
                         Box::new(Expr {
                             id: NodeId::default(),
                             span: Span::default(),
-                            ty: Ty::Prim(PrimTy::Int),
+                            ty: Ty::Prim(Prim::Int),
                             kind: ExprKind::Var(Res::Local(index_id), Vec::new()),
                         }),
                     ),
@@ -223,7 +224,7 @@ impl<'a> BlockInverter<'a> {
                 Pat {
                     id: NodeId::default(),
                     span: Span::default(),
-                    ty: Ty::Prim(PrimTy::Range),
+                    ty: Ty::Prim(Prim::Range),
                     kind: PatKind::Bind(Ident {
                         id: new_range_id,
                         span: Span::default(),
@@ -261,26 +262,26 @@ fn make_range_reverse_expr(range_id: NodeId) -> Expr {
     let new_start = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Int),
+        ty: Ty::Prim(Prim::Int),
         kind: ExprKind::BinOp(
             BinOp::Add,
             Box::new(start.clone()),
             Box::new(Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Prim(PrimTy::Int),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::BinOp(
                     BinOp::Mul,
                     Box::new(Expr {
                         id: NodeId::default(),
                         span: Span::default(),
-                        ty: Ty::Prim(PrimTy::Int),
+                        ty: Ty::Prim(Prim::Int),
                         kind: ExprKind::BinOp(
                             BinOp::Div,
                             Box::new(Expr {
                                 id: NodeId::default(),
                                 span: Span::default(),
-                                ty: Ty::Prim(PrimTy::Int),
+                                ty: Ty::Prim(Prim::Int),
                                 kind: ExprKind::BinOp(
                                     BinOp::Sub,
                                     Box::new(end),
@@ -298,7 +299,7 @@ fn make_range_reverse_expr(range_id: NodeId) -> Expr {
     let new_step = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Int),
+        ty: Ty::Prim(Prim::Int),
         kind: ExprKind::UnOp(UnOp::Neg, Box::new(step)),
     });
     let new_end = Box::new(start);
@@ -306,7 +307,7 @@ fn make_range_reverse_expr(range_id: NodeId) -> Expr {
     Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Range),
+        ty: Ty::Prim(Prim::Range),
         kind: ExprKind::Range(Some(new_start), Some(new_step), Some(new_end)),
     }
 }
@@ -315,12 +316,12 @@ fn make_range_field(range_id: NodeId, field: PrimField) -> Expr {
     Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Int),
+        ty: Ty::Prim(Prim::Int),
         kind: ExprKind::Field(
             Box::new(Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Prim(PrimTy::Range),
+                ty: Ty::Prim(Prim::Range),
                 kind: ExprKind::Var(Res::Local(range_id), Vec::new()),
             }),
             Field::Prim(field),
@@ -332,7 +333,7 @@ fn make_array_index_range_reverse(core: &Table, arr_id: NodeId, arr_ty: &Ty) -> 
     let len = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Int),
+        ty: Ty::Prim(Prim::Int),
         kind: ExprKind::Call(
             Box::new(create_gen_core_ref(
                 core,
@@ -352,14 +353,14 @@ fn make_array_index_range_reverse(core: &Table, arr_id: NodeId, arr_ty: &Ty) -> 
     let start = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Int),
+        ty: Ty::Prim(Prim::Int),
         kind: ExprKind::BinOp(
             BinOp::Sub,
             len,
             Box::new(Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Prim(PrimTy::Int),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Lit(Lit::Int(1)),
             }),
         ),
@@ -367,19 +368,19 @@ fn make_array_index_range_reverse(core: &Table, arr_id: NodeId, arr_ty: &Ty) -> 
     let step = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Int),
+        ty: Ty::Prim(Prim::Int),
         kind: ExprKind::Lit(Lit::Int(-1)),
     });
     let end = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Int),
+        ty: Ty::Prim(Prim::Int),
         kind: ExprKind::Lit(Lit::Int(0)),
     });
     Expr {
         id: NodeId::default(),
         span: Span::default(),
-        ty: Ty::Prim(PrimTy::Range),
+        ty: Ty::Prim(Prim::Range),
         kind: ExprKind::Range(Some(start), Some(step), Some(end)),
     }
 }

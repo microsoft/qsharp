@@ -7,9 +7,8 @@ mod tests;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{
-        CallableDecl, CallableKind, Expr, ExprKind, FunctorSetValue, Package, Stmt, StmtKind, Ty,
-    },
+    hir::{CallableDecl, CallableKind, Expr, ExprKind, Package, Stmt, StmtKind},
+    ty::{FunctorSetValue, Ty},
     visit::{self, Visitor},
 };
 use thiserror::Error;

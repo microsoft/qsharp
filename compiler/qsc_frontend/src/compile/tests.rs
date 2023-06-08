@@ -9,10 +9,11 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     global,
     hir::{
-        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy, Res, SpecBody,
-        Stmt, StmtKind, Ty,
+        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, Res, SpecBody, Stmt,
+        StmtKind,
     },
     mut_visit::MutVisitor,
+    ty::{Prim, Ty},
 };
 
 fn error_span(error: &Error) -> Span {
@@ -259,7 +260,7 @@ fn replace_node() {
             *expr = Expr {
                 id: NodeId::default(),
                 span: expr.span,
-                ty: Ty::Prim(PrimTy::Int),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Lit(Lit::Int(2)),
             };
         }
@@ -330,7 +331,7 @@ fn insert_core_call() {
             let call = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Prim(PrimTy::Qubit),
+                ty: Ty::Prim(Prim::Qubit),
                 kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
             };
 

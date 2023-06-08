@@ -12,8 +12,9 @@ use qsc_ast::ast::{
     QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
 };
 use qsc_data_structures::span::Span;
-use qsc_hir::hir::{
-    self, ArrowTy, FunctorSet, FunctorSetValue, GenericArg, ItemId, PrimTy, Scheme, Ty,
+use qsc_hir::{
+    hir::{self, ItemId},
+    ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Prim, Scheme, Ty},
 };
 use std::{collections::HashMap, convert::identity};
 
@@ -62,7 +63,7 @@ impl<'a> Context<'a> {
             let expected = match spec.spec {
                 Spec::Body | Spec::Adj => callable_input,
                 Spec::Ctl | Spec::CtlAdj => Ty::Tuple(vec![
-                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                    Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                     callable_input,
                 ]),
             };
@@ -81,7 +82,7 @@ impl<'a> Context<'a> {
     fn infer_ty(&mut self, ty: &ast::Ty) -> Ty {
         match &*ty.kind {
             TyKind::Array(item) => Ty::Array(Box::new(self.infer_ty(item))),
-            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(Box::new(ArrowTy {
+            TyKind::Arrow(kind, input, output, functors) => Ty::Arrow(Box::new(Arrow {
                 kind: convert::callable_kind_from_ast(*kind),
                 input: Box::new(self.infer_ty(input)),
                 output: Box::new(self.infer_ty(output)),
@@ -173,7 +174,7 @@ impl<'a> Context<'a> {
                 let item = self.infer_expr(item);
                 let size_span = size.span;
                 let size = self.infer_expr(size);
-                self.inferrer.eq(size_span, Ty::Prim(PrimTy::Int), size.ty);
+                self.inferrer.eq(size_span, Ty::Prim(Prim::Int), size.ty);
                 self.diverge_if(
                     item.diverges || size.diverges,
                     converge(Ty::Array(Box::new(item.ty))),
@@ -224,7 +225,7 @@ impl<'a> Context<'a> {
             ExprKind::Fail(message) => {
                 let message_ty = self.infer_expr(message).ty;
                 self.inferrer
-                    .eq(message.span, Ty::Prim(PrimTy::String), message_ty);
+                    .eq(message.span, Ty::Prim(Prim::String), message_ty);
                 self.diverge()
             }
             ExprKind::Field(record, name) => {
@@ -257,7 +258,7 @@ impl<'a> Context<'a> {
             ExprKind::If(cond, if_true, if_false) => {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
-                self.inferrer.eq(cond_span, Ty::Prim(PrimTy::Bool), cond.ty);
+                self.inferrer.eq(cond_span, Ty::Prim(Prim::Bool), cond.ty);
                 let if_true = self.infer_block(if_true);
                 let if_false = if_false
                     .as_ref()
@@ -299,12 +300,12 @@ impl<'a> Context<'a> {
                     }
                 }
 
-                self.diverge_if(diverges, converge(Ty::Prim(PrimTy::String)))
+                self.diverge_if(diverges, converge(Ty::Prim(Prim::String)))
             }
             ExprKind::Lambda(kind, input, body) => {
                 let input = self.infer_pat(input);
                 let body = self.infer_expr(body).ty;
-                converge(Ty::Arrow(Box::new(ArrowTy {
+                converge(Ty::Arrow(Box::new(Arrow {
                     kind: convert::callable_kind_from_ast(*kind),
                     input: Box::new(input),
                     output: Box::new(body),
@@ -312,13 +313,13 @@ impl<'a> Context<'a> {
                 })))
             }
             ExprKind::Lit(lit) => match lit.as_ref() {
-                Lit::BigInt(_) => converge(Ty::Prim(PrimTy::BigInt)),
-                Lit::Bool(_) => converge(Ty::Prim(PrimTy::Bool)),
-                Lit::Double(_) => converge(Ty::Prim(PrimTy::Double)),
-                Lit::Int(_) => converge(Ty::Prim(PrimTy::Int)),
-                Lit::Pauli(_) => converge(Ty::Prim(PrimTy::Pauli)),
-                Lit::Result(_) => converge(Ty::Prim(PrimTy::Result)),
-                Lit::String(_) => converge(Ty::Prim(PrimTy::String)),
+                Lit::BigInt(_) => converge(Ty::Prim(Prim::BigInt)),
+                Lit::Bool(_) => converge(Ty::Prim(Prim::Bool)),
+                Lit::Double(_) => converge(Ty::Prim(Prim::Double)),
+                Lit::Int(_) => converge(Ty::Prim(Prim::Int)),
+                Lit::Pauli(_) => converge(Ty::Prim(Prim::Pauli)),
+                Lit::Result(_) => converge(Ty::Prim(Prim::Result)),
+                Lit::String(_) => converge(Ty::Prim(Prim::String)),
             },
             ExprKind::Paren(expr) => self.infer_expr(expr),
             ExprKind::Path(path) => match self.names.get(path.id) {
@@ -344,17 +345,17 @@ impl<'a> Context<'a> {
                     let span = expr.span;
                     let expr = self.infer_expr(expr);
                     diverges = diverges || expr.diverges;
-                    self.inferrer.eq(span, Ty::Prim(PrimTy::Int), expr.ty);
+                    self.inferrer.eq(span, Ty::Prim(Prim::Int), expr.ty);
                 }
 
                 let ty = if start.is_none() && end.is_none() {
-                    PrimTy::RangeFull
+                    Prim::RangeFull
                 } else if start.is_none() {
-                    PrimTy::RangeTo
+                    Prim::RangeTo
                 } else if end.is_none() {
-                    PrimTy::RangeFrom
+                    Prim::RangeFrom
                 } else {
-                    PrimTy::Range
+                    Prim::Range
                 };
 
                 self.diverge_if(diverges, converge(Ty::Prim(ty)))
@@ -363,8 +364,7 @@ impl<'a> Context<'a> {
                 let body = self.infer_block(body);
                 let until_span = until.span;
                 let until = self.infer_expr(until);
-                self.inferrer
-                    .eq(until_span, Ty::Prim(PrimTy::Bool), until.ty);
+                self.inferrer.eq(until_span, Ty::Prim(Prim::Bool), until.ty);
                 let fixup_diverges = fixup
                     .as_ref()
                     .map_or(false, |f| self.infer_block(f).diverges);
@@ -383,7 +383,7 @@ impl<'a> Context<'a> {
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
-                self.inferrer.eq(cond_span, Ty::Prim(PrimTy::Bool), cond.ty);
+                self.inferrer.eq(cond_span, Ty::Prim(Prim::Bool), cond.ty);
                 let if_true = self.infer_expr(if_true);
                 let if_false = self.infer_expr(if_false);
                 self.inferrer.eq(expr.span, if_true.ty.clone(), if_false.ty);
@@ -412,7 +412,7 @@ impl<'a> Context<'a> {
             ExprKind::While(cond, body) => {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
-                self.inferrer.eq(cond_span, Ty::Prim(PrimTy::Bool), cond.ty);
+                self.inferrer.eq(cond_span, Ty::Prim(Prim::Bool), cond.ty);
                 let body = self.infer_block(body);
                 self.diverge_if(cond.diverges || body.diverges, converge(Ty::UNIT))
             }
@@ -487,7 +487,7 @@ impl<'a> Context<'a> {
             }
             UnOp::NotL => {
                 self.inferrer
-                    .eq(span, Ty::Prim(PrimTy::Bool), operand.ty.clone());
+                    .eq(span, Ty::Prim(Prim::Bool), operand.ty.clone());
                 operand
             }
             UnOp::Unwrap => {
@@ -517,13 +517,13 @@ impl<'a> Context<'a> {
             BinOp::AndL | BinOp::OrL => {
                 self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
                 self.inferrer
-                    .eq(lhs_span, Ty::Prim(PrimTy::Bool), lhs.ty.clone());
+                    .eq(lhs_span, Ty::Prim(Prim::Bool), lhs.ty.clone());
                 lhs
             }
             BinOp::Eq | BinOp::Neq => {
                 self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Eq(lhs.ty));
-                converge(Ty::Prim(PrimTy::Bool))
+                converge(Ty::Prim(Prim::Bool))
             }
             BinOp::Add => {
                 self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
@@ -533,7 +533,7 @@ impl<'a> Context<'a> {
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
                 self.inferrer.class(lhs_span, Class::Num(lhs.ty));
-                converge(Ty::Prim(PrimTy::Bool))
+                converge(Ty::Prim(Prim::Bool))
             }
             BinOp::AndB | BinOp::OrB | BinOp::XorB => {
                 self.inferrer.eq(span, lhs.ty.clone(), rhs.ty);
@@ -559,7 +559,7 @@ impl<'a> Context<'a> {
             BinOp::Shl | BinOp::Shr => {
                 self.inferrer
                     .class(lhs_span, Class::Integral(lhs.ty.clone()));
-                self.inferrer.eq(rhs_span, Ty::Prim(PrimTy::Int), rhs.ty);
+                self.inferrer.eq(rhs_span, Ty::Prim(Prim::Int), rhs.ty);
                 lhs
             }
         };
@@ -630,14 +630,14 @@ impl<'a> Context<'a> {
                 let length_span = length.span;
                 let length = self.infer_expr(length);
                 self.inferrer
-                    .eq(length_span, Ty::Prim(PrimTy::Int), length.ty);
+                    .eq(length_span, Ty::Prim(Prim::Int), length.ty);
                 self.diverge_if(
                     length.diverges,
-                    converge(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)))),
+                    converge(Ty::Array(Box::new(Ty::Prim(Prim::Qubit)))),
                 )
             }
             QubitInitKind::Paren(inner) => self.infer_qubit_init(inner),
-            QubitInitKind::Single => converge(Ty::Prim(PrimTy::Qubit)),
+            QubitInitKind::Single => converge(Ty::Prim(Prim::Qubit)),
             QubitInitKind::Tuple(items) => {
                 let mut diverges = false;
                 let mut tys = Vec::new();

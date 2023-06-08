@@ -16,6 +16,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
     mut_visit::MutVisitor,
+    ty::{Arrow, FunctorSetValue, GenericParam, ParamId, ParamKind, ParamName, Ty},
 };
 use std::{clone::Clone, rc::Rc, vec};
 use thiserror::Error;
@@ -41,7 +42,7 @@ enum ItemScope {
 
 pub(super) struct Lowerer {
     nodes: IndexMap<ast::NodeId, hir::NodeId>,
-    locals: IndexMap<hir::NodeId, hir::Ty>,
+    locals: IndexMap<hir::NodeId, Ty>,
     parent: Option<LocalItemId>,
     items: Vec<hir::Item>,
     errors: Vec<Error>,
@@ -214,13 +215,13 @@ impl With<'_> {
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
         let functor_generics =
-            convert::synthesize_functor_params_in_pat(&mut hir::ParamId::default(), &mut input);
+            convert::synthesize_functor_params_in_pat(&mut ParamId::default(), &mut input);
         let generics = decl
             .generics
             .iter()
-            .map(|param| hir::GenericParam {
-                name: hir::ParamName::Symbol((*param.name).into()),
-                kind: hir::ParamKind::Ty,
+            .map(|param| GenericParam {
+                name: ParamName::Symbol((*param.name).into()),
+                kind: ParamKind::Ty,
             })
             .chain(functor_generics)
             .collect();
@@ -329,11 +330,7 @@ impl With<'_> {
         hir::Block {
             id: self.lower_id(block.id),
             span: block.span,
-            ty: self
-                .tys
-                .terms
-                .get(block.id)
-                .map_or(hir::Ty::Err, Clone::clone),
+            ty: self.tys.terms.get(block.id).map_or(Ty::Err, Clone::clone),
             stmts: block
                 .stmts
                 .iter()
@@ -381,11 +378,7 @@ impl With<'_> {
         }
 
         let id = self.lower_id(expr.id);
-        let ty = self
-            .tys
-            .terms
-            .get(expr.id)
-            .map_or(hir::Ty::Err, Clone::clone);
+        let ty = self.tys.terms.get(expr.id).map_or(Ty::Err, Clone::clone);
 
         let kind = match &*expr.kind {
             ast::ExprKind::Array(items) => {
@@ -425,7 +418,7 @@ impl With<'_> {
             ),
             ast::ExprKind::Block(block) => hir::ExprKind::Block(self.lower_block(block)),
             ast::ExprKind::Call(callee, arg) => match &ty {
-                hir::Ty::Arrow(arrow) if is_partial_app(arg) => hir::ExprKind::Block(
+                Ty::Arrow(arrow) if is_partial_app(arg) => hir::ExprKind::Block(
                     self.lower_partial_app(callee, arg, (**arrow).clone(), expr.span),
                 ),
                 _ => hir::ExprKind::Call(
@@ -459,12 +452,12 @@ impl With<'_> {
                 Box::new(self.lower_expr(index)),
             ),
             ast::ExprKind::Lambda(kind, input, body) => {
-                let functors = if let hir::Ty::Arrow(arrow) = &ty {
+                let functors = if let Ty::Arrow(arrow) = &ty {
                     arrow
                         .functors
                         .expect_value("lambda type should have concrete functors")
                 } else {
-                    hir::FunctorSetValue::Empty
+                    FunctorSetValue::Empty
                 };
                 let lambda = Lambda {
                     kind: lower_callable_kind(*kind),
@@ -547,7 +540,7 @@ impl With<'_> {
         &mut self,
         callee: &ast::Expr,
         arg: &ast::Expr,
-        arrow: hir::ArrowTy,
+        arrow: Arrow,
         span: Span,
     ) -> hir::Block {
         let callee = self.lower_expr(callee);
@@ -565,11 +558,7 @@ impl With<'_> {
     fn lower_partial_arg(&mut self, arg: &ast::Expr) -> (hir::Expr, PartialApp) {
         match arg.kind.as_ref() {
             ast::ExprKind::Hole => {
-                let ty = self
-                    .tys
-                    .terms
-                    .get(arg.id)
-                    .map_or(hir::Ty::Err, Clone::clone);
+                let ty = self.tys.terms.get(arg.id).map_or(Ty::Err, Clone::clone);
                 closure::partial_app_hole(self.assigner, &mut self.lowerer.locals, ty, arg.span)
             }
             ast::ExprKind::Paren(inner) => self.lower_partial_arg(inner),
@@ -603,8 +592,8 @@ impl With<'_> {
         hir::ExprKind::Closure(args, id)
     }
 
-    fn lower_field(&mut self, record_ty: &hir::Ty, name: &str) -> hir::Field {
-        if let hir::Ty::Udt(hir::Res::Item(id)) = record_ty {
+    fn lower_field(&mut self, record_ty: &Ty, name: &str) -> hir::Field {
+        if let Ty::Udt(hir::Res::Item(id)) = record_ty {
             self.tys
                 .udts
                 .get(id)
@@ -664,12 +653,7 @@ impl With<'_> {
         }
 
         let id = self.lower_id(init.id);
-        let ty = self
-            .tys
-            .terms
-            .get(init.id)
-            .map_or(hir::Ty::Err, Clone::clone);
-
+        let ty = self.tys.terms.get(init.id).map_or(Ty::Err, Clone::clone);
         let kind = match &*init.kind {
             ast::QubitInitKind::Array(length) => {
                 hir::QubitInitKind::Array(Box::new(self.lower_expr(length)))

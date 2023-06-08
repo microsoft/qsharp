@@ -5,9 +5,10 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     global::Table,
     hir::{
-        Expr, ExprKind, Field, GenericArg, Ident, Mutability, NodeId, Pat, PatKind, PrimField,
-        PrimTy, Res, Stmt, StmtKind, Ty,
+        Expr, ExprKind, Field, Ident, Mutability, NodeId, Pat, PatKind, PrimField, Res, Stmt,
+        StmtKind,
     },
+    ty::{GenericArg, Prim, Ty},
 };
 use std::rc::Rc;
 
@@ -45,7 +46,7 @@ impl IdentTemplate {
         Expr {
             id: NodeId::default(),
             span: self.span,
-            ty: Ty::Prim(PrimTy::Int),
+            ty: Ty::Prim(Prim::Int),
             kind: ExprKind::Field(Box::new(self.gen_local_ref()), Field::Prim(field)),
         }
     }

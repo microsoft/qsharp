@@ -17,10 +17,11 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, CallableDecl, CallableKind, Functor, Ident, NodeId, Pat, PatKind, PrimTy, Res, Spec,
-        SpecBody, SpecDecl, SpecGen, Ty,
+        Block, CallableDecl, CallableKind, Functor, Ident, NodeId, Pat, PatKind, Res, Spec,
+        SpecBody, SpecDecl, SpecGen,
     },
     mut_visit::MutVisitor,
+    ty::{Prim, Ty},
 };
 use std::option::Option;
 use thiserror::Error;
@@ -179,14 +180,14 @@ impl<'a> SpecImplPass<'a> {
                 id: NodeId::default(),
                 span: spec_decl.span,
                 ty: Ty::Tuple(vec![
-                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                    Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                     input_ty.clone(),
                 ]),
                 kind: PatKind::Tuple(vec![
                     Pat {
                         id: NodeId::default(),
                         span: spec_decl.span,
-                        ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                        ty: Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                         kind: PatKind::Bind(Ident {
                             id: ctls_id,
                             span: spec_decl.span,

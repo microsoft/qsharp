@@ -9,10 +9,11 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, Expr, ExprKind, Mutability, NodeId, Pat, PatKind, PrimTy, QubitInit, QubitInitKind,
-        Stmt, StmtKind, Ty,
+        Block, Expr, ExprKind, Mutability, NodeId, Pat, PatKind, QubitInit, QubitInitKind, Stmt,
+        StmtKind,
     },
     mut_visit::{walk_expr, walk_stmt, MutVisitor},
+    ty::{Prim, Ty},
 };
 use std::{mem::take, rc::Rc};
 
@@ -152,13 +153,12 @@ impl<'a> ReplaceQubitAllocation<'a> {
     ) -> (Expr, Vec<(IdentTemplate, Option<Expr>)>) {
         match init.kind {
             QubitInitKind::Array(size) => {
-                let gen_id =
-                    self.gen_ident(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))), init.span);
+                let gen_id = self.gen_ident(Ty::Array(Box::new(Ty::Prim(Prim::Qubit))), init.span);
                 let expr = gen_id.gen_local_ref();
                 (expr, vec![(gen_id, Some(*size))])
             }
             QubitInitKind::Single => {
-                let gen_id = self.gen_ident(Ty::Prim(PrimTy::Qubit), init.span);
+                let gen_id = self.gen_ident(Ty::Prim(Prim::Qubit), init.span);
                 let expr = gen_id.gen_local_ref();
                 (expr, vec![(gen_id, None)])
             }
@@ -452,7 +452,7 @@ fn create_qubit_alloc_call_expr(span: Span, call_expr: Expr, array_size: Option<
     Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Prim(PrimTy::Qubit),
+        ty: Ty::Prim(Prim::Qubit),
         kind: ExprKind::Call(
             Box::new(call_expr),
             Box::new(array_size.unwrap_or(Expr {

@@ -14,7 +14,10 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::hir::{self, FunctorSetValue, ItemId, PackageId, Scheme, Ty, Udt};
+use qsc_hir::{
+    hir::{self, ItemId, PackageId},
+    ty::{FunctorSetValue, Scheme, Ty, Udt},
+};
 use std::{collections::HashMap, vec};
 
 pub(crate) struct GlobalTable {
