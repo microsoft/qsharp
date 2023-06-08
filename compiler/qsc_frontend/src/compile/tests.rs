@@ -309,12 +309,14 @@ fn insert_core_call() {
                 .core
                 .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
-            assert!(allocate.scheme.params.is_empty());
-
+            let allocate_ty = allocate
+                .scheme
+                .instantiate([])
+                .expect("qubit allocation scheme should instantiate");
             let callee = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Arrow(allocate.scheme.ty.clone()),
+                ty: Ty::Arrow(Box::new(allocate_ty)),
                 kind: ExprKind::Var(Res::Item(allocate.id), Vec::new()),
             };
 

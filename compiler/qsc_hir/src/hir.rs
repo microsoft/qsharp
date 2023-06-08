@@ -1080,13 +1080,23 @@ pub enum Attr {
 
 /// A type scheme.
 pub struct Scheme {
-    /// The generic parameters to the type.
-    pub params: Vec<GenericParam>,
-    /// The arrow type.
-    pub ty: Box<ArrowTy>,
+    params: Vec<GenericParam>,
+    ty: Box<ArrowTy>,
 }
 
 impl Scheme {
+    /// Creates a new type scheme.
+    #[must_use]
+    pub fn new(params: Vec<GenericParam>, ty: Box<ArrowTy>) -> Self {
+        Self { params, ty }
+    }
+
+    /// The generic parameters to the type.
+    #[must_use]
+    pub fn params(&self) -> &[GenericParam] {
+        &self.params
+    }
+
     /// Instantiates this type scheme with the given arguments.
     ///
     /// # Errors

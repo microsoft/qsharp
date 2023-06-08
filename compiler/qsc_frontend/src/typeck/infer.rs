@@ -348,7 +348,7 @@ impl Inferrer {
         span: Span,
     ) -> (ArrowTy, Vec<GenericArg>) {
         let args = scheme
-            .params
+            .params()
             .iter()
             .map(|param| match param.kind {
                 ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),

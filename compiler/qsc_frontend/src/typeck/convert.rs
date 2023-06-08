@@ -73,10 +73,7 @@ pub(super) fn ast_ty_def_cons(
         output: Box::new(Ty::Udt(hir::Res::Item(id))),
         functors: FunctorSet::Value(FunctorSetValue::Empty),
     };
-    let scheme = Scheme {
-        params: Vec::new(),
-        ty: Box::new(ty),
-    };
+    let scheme = Scheme::new(Vec::new(), Box::new(ty));
     (scheme, errors)
 }
 
@@ -147,10 +144,7 @@ pub(super) fn ast_callable_scheme(
         })
         .chain(functor_params)
         .collect();
-    let scheme = Scheme {
-        params,
-        ty: Box::new(ty),
-    };
+    let scheme = Scheme::new(params, Box::new(ty));
 
     (scheme, errors)
 }
