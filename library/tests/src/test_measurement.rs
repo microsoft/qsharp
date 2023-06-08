@@ -11,8 +11,27 @@ use qsc::interpret::Value;
 fn check_measure_all_z() {
     test_expression(
         indoc! {r#"{
-            use register = Qubit[3];
+            use register = Qubit[2];
+            let result = Microsoft.Quantum.Measurement.MeasureAllZ(register);
+            ResetAll(register);
+            result
+        }"#},
+        &Value::Result(false),
+    );
+    test_expression(
+        indoc! {r#"{
+            use register = Qubit[2];
             Microsoft.Quantum.Arrays.ForEach(X, register);
+            let result = Microsoft.Quantum.Measurement.MeasureAllZ(register);
+            ResetAll(register);
+            result
+        }"#},
+        &Value::Result(false),
+    );
+    test_expression(
+        indoc! {r#"{
+            use register = Qubit[2];
+            X(register[0]);
             let result = Microsoft.Quantum.Measurement.MeasureAllZ(register);
             ResetAll(register);
             result
@@ -21,22 +40,13 @@ fn check_measure_all_z() {
     );
     test_expression(
         indoc! {r#"{
-            use register = Qubit[3];
+            use register = Qubit[2];
             X(register[1]);
             let result = Microsoft.Quantum.Measurement.MeasureAllZ(register);
             ResetAll(register);
             result
         }"#},
         &Value::Result(true),
-    );
-    test_expression(
-        indoc! {r#"{
-            use register = Qubit[3];
-            let result = Microsoft.Quantum.Measurement.MeasureAllZ(register);
-            ResetAll(register);
-            result
-        }"#},
-        &Value::Result(false),
     );
 }
 
