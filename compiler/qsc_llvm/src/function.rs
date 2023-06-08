@@ -3,7 +3,7 @@
 
 use crate::debugloc::{DebugLoc, HasDebugLoc};
 use crate::module::{Comdat, DLLStorageClass, Linkage, Visibility};
-use crate::types::{TypeRef, Typed, Types};
+use crate::types::{TypeRef, Types};
 use crate::{BasicBlock, ConstantRef, Name};
 use std::fmt::{Display, Formatter, Result};
 
@@ -30,17 +30,6 @@ pub struct Function {
     /// Personalities are used for exception handling. See [LLVM 14 docs on Personality Function](https://releases.llvm.org/14.0.0/docs/LangRef.html#personalityfn)
     pub personality_function: Option<ConstantRef>,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: Vec<(String, MetadataRef<MetadataNode>)>,
-}
-
-impl Typed for Function {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        types.func_type(
-            self.return_type.clone(),
-            self.parameters.iter().map(|p| types.type_of(p)).collect(),
-            self.is_var_arg,
-        )
-    }
 }
 
 impl HasDebugLoc for Function {
@@ -136,12 +125,6 @@ pub struct Parameter {
     pub name: Name,
     pub ty: TypeRef,
     pub attributes: Vec<ParameterAttribute>,
-}
-
-impl Typed for Parameter {
-    fn get_type(&self, _types: &Types) -> TypeRef {
-        self.ty.clone()
-    }
 }
 
 /// See [LLVM 14 docs on Calling Conventions](https://releases.llvm.org/14.0.0/docs/LangRef.html#callingconv)

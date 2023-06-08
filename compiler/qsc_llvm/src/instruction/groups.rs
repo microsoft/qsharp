@@ -1,8 +1,7 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{HasResult, Instruction, Name, Operand, TypeRef, Typed};
-use crate::types::Types;
+use super::{HasResult, Instruction, Name, Operand};
 use std::convert::TryFrom;
 
 /// Just the `BinaryOps`.  This ends up being better than a `&dyn `[`BinaryOp`](../trait.BinaryOp.html) for various reasons.
@@ -151,103 +150,6 @@ impl TryFrom<Instruction> for UnaryOp {
         }
     }
 }
-
-impl Typed for BinaryOp {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match self {
-            BinaryOp::Add(i) => types.type_of(i),
-            BinaryOp::Sub(i) => types.type_of(i),
-            BinaryOp::Mul(i) => types.type_of(i),
-            BinaryOp::UDiv(i) => types.type_of(i),
-            BinaryOp::SDiv(i) => types.type_of(i),
-            BinaryOp::URem(i) => types.type_of(i),
-            BinaryOp::SRem(i) => types.type_of(i),
-            BinaryOp::And(i) => types.type_of(i),
-            BinaryOp::Or(i) => types.type_of(i),
-            BinaryOp::Xor(i) => types.type_of(i),
-            BinaryOp::Shl(i) => types.type_of(i),
-            BinaryOp::LShr(i) => types.type_of(i),
-            BinaryOp::AShr(i) => types.type_of(i),
-            BinaryOp::FAdd(i) => types.type_of(i),
-            BinaryOp::FSub(i) => types.type_of(i),
-            BinaryOp::FMul(i) => types.type_of(i),
-            BinaryOp::FDiv(i) => types.type_of(i),
-            BinaryOp::FRem(i) => types.type_of(i),
-        }
-    }
-}
-
-impl Typed for UnaryOp {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match self {
-            UnaryOp::AddrSpaceCast(i) => types.type_of(i),
-            UnaryOp::BitCast(i) => types.type_of(i),
-            UnaryOp::FNeg(i) => types.type_of(i),
-            UnaryOp::FPExt(i) => types.type_of(i),
-            UnaryOp::FPToSI(i) => types.type_of(i),
-            UnaryOp::FPToUI(i) => types.type_of(i),
-            UnaryOp::FPTrunc(i) => types.type_of(i),
-            UnaryOp::Freeze(i) => types.type_of(i),
-            UnaryOp::IntToPtr(i) => types.type_of(i),
-            UnaryOp::PtrToInt(i) => types.type_of(i),
-            UnaryOp::SExt(i) => types.type_of(i),
-            UnaryOp::SIToFP(i) => types.type_of(i),
-            UnaryOp::Trunc(i) => types.type_of(i),
-            UnaryOp::UIToFP(i) => types.type_of(i),
-            UnaryOp::ZExt(i) => types.type_of(i),
-        }
-    }
-}
-
-/* --TODO not yet implemented: metadata
-impl HasMetadata for BinaryOp {
-    fn get_metadata(&self) -> &InstructionMetadata {
-        match self {
-            BinaryOp::Add(i) => i.get_metadata(),
-            BinaryOp::Sub(i) => i.get_metadata(),
-            BinaryOp::Mul(i) => i.get_metadata(),
-            BinaryOp::UDiv(i) => i.get_metadata(),
-            BinaryOp::SDiv(i) => i.get_metadata(),
-            BinaryOp::URem(i) => i.get_metadata(),
-            BinaryOp::SRem(i) => i.get_metadata(),
-            BinaryOp::And(i) => i.get_metadata(),
-            BinaryOp::Or(i) => i.get_metadata(),
-            BinaryOp::Xor(i) => i.get_metadata(),
-            BinaryOp::Shl(i) => i.get_metadata(),
-            BinaryOp::LShr(i) => i.get_metadata(),
-            BinaryOp::AShr(i) => i.get_metadata(),
-            BinaryOp::FAdd(i) => i.get_metadata(),
-            BinaryOp::FSub(i) => i.get_metadata(),
-            BinaryOp::FMul(i) => i.get_metadata(),
-            BinaryOp::FDiv(i) => i.get_metadata(),
-            BinaryOp::FRem(i) => i.get_metadata(),
-        }
-    }
-}
-
-impl HasMetadata for UnaryOp {
-    fn get_metadata(&self) -> &InstructionMetadata {
-        match self {
-            UnaryOp::AddrSpaceCast(i) => i.get_metadata(),
-            UnaryOp::BitCast(i) => i.get_metadata(),
-            UnaryOp::FNeg(i) => i.get_metadata(),
-            UnaryOp::FPExt(i) => i.get_metadata(),
-            UnaryOp::FPToSI(i) => i.get_metadata(),
-            UnaryOp::FPToUI(i) => i.get_metadata(),
-            UnaryOp::FPTrunc(i) => i.get_metadata(),
-            #[cfg(feature="llvm-10-or-greater")]
-            UnaryOp::Freeze(i) => i.get_metadata(),
-            UnaryOp::IntToPtr(i) => i.get_metadata(),
-            UnaryOp::PtrToInt(i) => i.get_metadata(),
-            UnaryOp::SExt(i) => i.get_metadata(),
-            UnaryOp::SIToFP(i) => i.get_metadata(),
-            UnaryOp::Trunc(i) => i.get_metadata(),
-            UnaryOp::UIToFP(i) => i.get_metadata(),
-            UnaryOp::ZExt(i) => i.get_metadata(),
-        }
-    }
-}
-*/
 
 impl HasResult for BinaryOp {
     fn get_result(&self) -> &Name {

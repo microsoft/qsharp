@@ -4,7 +4,7 @@
 use crate::constant::ConstantRef;
 use crate::debugloc::{DebugLoc, HasDebugLoc};
 use crate::function::{Attribute, Declaration, Function, GroupID};
-use crate::types::{FPType, Type, TypeRef, Typed, Types};
+use crate::types::{FPType, Type, TypeRef, Types};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 
@@ -29,12 +29,8 @@ pub struct Module {
     pub global_vars: Vec<GlobalVariable>,
     /// See [LLVM 14 docs on Global Aliases](https://releases.llvm.org/14.0.0/docs/LangRef.html#aliases)
     pub global_aliases: Vec<GlobalAlias>,
-    // --TODO not yet implemented-- pub function_attribute_groups: Vec<FunctionAttributeGroup>,
     /// See [LLVM 14 docs on Module-Level Inline Assembly](https://releases.llvm.org/14.0.0/docs/LangRef.html#moduleasm)
     pub inline_assembly: String,
-    // --TODO not yet implemented-- pub metadata_nodes: Vec<(MetadataNodeID, MetadataNode)>,
-    // --TODO not yet implemented-- pub named_metadatas: Vec<NamedMetadata>,
-    // --TODO not yet implemented-- pub comdats: Vec<Comdat>,
     /// Holds a reference to all of the `Type`s used in the `Module`, and
     /// facilitates lookups so you can get a `TypeRef` to the `Type` you want.
     pub types: Types,
@@ -67,11 +63,6 @@ impl fmt::Display for Module {
 }
 
 impl Module {
-    /// Get the type of anything that is `Typed`.
-    pub fn type_of<T: Typed + ?Sized>(&self, t: &T) -> TypeRef {
-        self.types.type_of(t)
-    }
-
     /// Get the `Function` having the given `name` (if any).
     /// Note that functions are named with `String`s and not `Name`s.
     ///
@@ -127,13 +118,6 @@ pub struct GlobalVariable {
     pub comdat: Option<Comdat>, // llvm-hs-pure has Option<String> for some reason
     pub alignment: u32,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: Vec<(String, MetadataRef<MetadataNode>)>,
-}
-
-impl Typed for GlobalVariable {
-    fn get_type(&self, _types: &Types) -> TypeRef {
-        self.ty.clone()
-    }
 }
 
 impl HasDebugLoc for GlobalVariable {
@@ -172,12 +156,6 @@ pub struct GlobalAlias {
     pub dll_storage_class: DLLStorageClass,
     pub thread_local_mode: ThreadLocalMode,
     pub unnamed_addr: Option<UnnamedAddr>,
-}
-
-impl Typed for GlobalAlias {
-    fn get_type(&self, _types: &Types) -> TypeRef {
-        self.ty.clone()
-    }
 }
 
 impl fmt::Display for GlobalAlias {
@@ -289,15 +267,6 @@ pub struct FunctionAttributeGroup {
     pub group_id: GroupID,
     pub attrs: Vec<Attribute>,
 }
-
-/* --TODO not yet implemented: metadata
-/// See [LLVM 14 docs on Named Metadata](https://releases.llvm.org/14.0.0/docs/LangRef.html#named-metadata)
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct NamedMetadata {
-    pub name: String,
-    pub node_ids: Vec<MetadataNodeID>,
-}
-*/
 
 /// See [LLVM 14 docs on Comdats](https://releases.llvm.org/14.0.0/docs/LangRef.html#langref-comdats)
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -450,7 +419,7 @@ impl Alignments {
                     Type::FPType(fpt) => Self::fpt_size(*fpt),
                     ty => panic!("Didn't expect a vector with element type {ty:?}"),
                 };
-                self.vec_alignment(element_size_bits * (*num_elements as u32))
+                self.vec_alignment(element_size_bits * *num_elements)
             }
             Type::FPType(fpt) => self.fp_alignment(*fpt),
             Type::StructType { .. } | Type::NamedStructType { .. } | Type::ArrayType { .. } => {

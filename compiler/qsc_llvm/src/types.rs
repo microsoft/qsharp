@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use crate::module::AddrSpace;
-use either::Either;
 use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -39,7 +38,7 @@ pub enum Type {
     /// See [LLVM 14 docs on Vector Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#vector-type)
     VectorType {
         element_type: TypeRef,
-        num_elements: usize,
+        num_elements: u32,
         scalable: bool,
     },
     /// Struct and Array types (but not vector types) are "aggregate types" and cannot be produced by
@@ -217,42 +216,6 @@ impl TypeRef {
     /// External users should get `TypeRefs` only from the `Types` or `TypesBuilder` objects.
     fn new(ty: Type) -> Self {
         Self(Arc::new(ty))
-    }
-}
-
-/// The `Typed` trait is used for anything that has a [`Type`](enum.Type.html).
-pub trait Typed {
-    fn get_type(&self, types: &Types) -> TypeRef;
-}
-
-impl Typed for TypeRef {
-    fn get_type(&self, _types: &Types) -> TypeRef {
-        self.clone()
-    }
-}
-
-impl Typed for Type {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        types.get_for_type(self)
-    }
-}
-
-impl Typed for FPType {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        types.fp(*self)
-    }
-}
-
-impl<A, B> Typed for Either<A, B>
-where
-    A: Typed,
-    B: Typed,
-{
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match self {
-            Either::Left(x) => types.type_of(x),
-            Either::Right(y) => types.type_of(y),
-        }
     }
 }
 
@@ -439,17 +402,17 @@ impl Builder {
     pub fn vector_of(
         &mut self,
         element_type: TypeRef,
-        num_elements: usize,
+        num_elements: u32,
         scalable: bool,
     ) -> TypeRef {
-        self.vec_types
-            .lookup_or_insert((element_type.clone(), num_elements, scalable), || {
-                Type::VectorType {
-                    element_type,
-                    num_elements,
-                    scalable,
-                }
-            })
+        self.vec_types.lookup_or_insert(
+            (element_type.clone(), num_elements as usize, scalable),
+            || Type::VectorType {
+                element_type,
+                num_elements,
+                scalable,
+            },
+        )
     }
 
     /// Get an array type
@@ -596,11 +559,6 @@ pub struct Types {
 }
 
 impl Types {
-    /// Get the type of anything that is `Typed`
-    pub fn type_of<T: Typed + ?Sized>(&self, t: &T) -> TypeRef {
-        t.get_type(self)
-    }
-
     /// Get the void type
     #[must_use]
     pub fn void(&self) -> TypeRef {
@@ -705,9 +663,9 @@ impl Types {
 
     /// Get a vector type
     #[must_use]
-    pub fn vector_of(&self, element_type: TypeRef, num_elements: usize, scalable: bool) -> TypeRef {
+    pub fn vector_of(&self, element_type: TypeRef, num_elements: u32, scalable: bool) -> TypeRef {
         self.vec_types
-            .lookup(&(element_type.clone(), num_elements, scalable))
+            .lookup(&(element_type.clone(), num_elements as usize, scalable))
             .unwrap_or_else(|| {
                 TypeRef::new(Type::VectorType {
                     element_type,

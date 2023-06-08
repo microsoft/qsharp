@@ -890,8 +890,6 @@ dependencies = [
 name = "qsc_llvm"
 version = "0.0.0"
 dependencies = [
- "either",
- "log",
  "qsc_hir",
 ]
 

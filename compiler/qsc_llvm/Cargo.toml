@@ -10,5 +10,3 @@ license.workspace = true
 
 [dependencies]
 qsc_hir = { path = "../qsc_hir" }
-either = "1.8.1"
-log = "0.4.17"

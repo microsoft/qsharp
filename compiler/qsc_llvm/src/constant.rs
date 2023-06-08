@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::predicates::{FPPredicate, IntPredicate};
-use crate::types::{FPType, NamedStructDef, Type, TypeRef, Typed, Types};
+use crate::types::{Type, TypeRef};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::ops::Deref;
@@ -51,9 +51,6 @@ pub enum Constant {
     Undef(TypeRef),
     /// See [LLVM 14 docs on Poison Values](https://releases.llvm.org/14.0.0/docs/LangRef.html#undefined-values)
     Poison(TypeRef),
-    /// The address of the given (non-entry) [`BasicBlock`](../struct.BasicBlock.html). See [LLVM 14 docs on Addresses of Basic Blocks](https://releases.llvm.org/14.0.0/docs/LangRef.html#addresses-of-basic-blocks).
-    /// `BlockAddress` needs more fields, but the necessary getter functions are apparently not exposed in the LLVM C API (only the C++ API)
-    BlockAddress, // --TODO ideally we want BlockAddress { function: Name, block: Name },
     /// Global variable or function
     GlobalReference {
         /// Globals' names must be strings
@@ -128,27 +125,13 @@ pub enum Constant {
 #[derive(PartialEq, Clone, Debug)]
 #[allow(non_camel_case_types)]
 pub enum Float {
-    Half,   // TODO perhaps Half(u16)
-    BFloat, // TODO perhaps BFloat(u16)
+    Half,
+    BFloat,
     Single(f32),
     Double(f64),
-    Quadruple, // TODO perhaps Quadruple(u128)
-    X86_FP80,  // TODO perhaps X86_FP80((u16, u64)) with the most-significant bits on the left
-    PPC_FP128, // TODO perhaps PPC_FP128((u64, u64)) with the most-significant bits on the left
-}
-
-impl Typed for Float {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        types.fp(match self {
-            Float::Half => FPType::Half,
-            Float::BFloat => FPType::BFloat,
-            Float::Single(_) => FPType::Single,
-            Float::Double(_) => FPType::Double,
-            Float::Quadruple => FPType::FP128,
-            Float::X86_FP80 => FPType::X86_FP80,
-            Float::PPC_FP128 => FPType::PPC_FP128,
-        })
-    }
+    Quadruple,
+    X86_FP80,
+    PPC_FP128,
 }
 
 impl Display for Float {
@@ -161,77 +144,6 @@ impl Display for Float {
             Float::Quadruple => write!(f, "quadruple"),
             Float::X86_FP80 => write!(f, "x86_fp80"),
             Float::PPC_FP128 => write!(f, "ppc_fp128"),
-        }
-    }
-}
-
-impl Typed for Constant {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match self {
-            Constant::Int { bits, .. } => types.int(*bits),
-            Constant::Float(f) => types.type_of(f),
-            Constant::Undef(t)
-            | Constant::Null(t)
-            | Constant::AggregateZero(t)
-            | Constant::Poison(t) => t.clone(),
-            Constant::Struct {
-                values, is_packed, ..
-            } => types.struct_of(
-                values.iter().map(|v| types.type_of(v)).collect(),
-                *is_packed,
-            ),
-            Constant::Array {
-                element_type,
-                elements,
-            } => types.array_of(element_type.clone(), elements.len()),
-            Constant::Vector(v) => types.vector_of(
-                types.type_of(&v[0]),
-                v.len(),
-                false, // I don't think it's possible (at least as of LLVM 11) to have a constant of scalable vector type?
-            ),
-            Constant::BlockAddress { .. } => types.label_type(),
-            Constant::GlobalReference { ty, .. } => types.pointer_to(ty.clone()),
-            Constant::TokenNone => types.token_type(),
-            Constant::Add(a) => types.type_of(a),
-            Constant::Sub(s) => types.type_of(s),
-            Constant::Mul(m) => types.type_of(m),
-            Constant::UDiv(d) => types.type_of(d),
-            Constant::SDiv(d) => types.type_of(d),
-            Constant::URem(r) => types.type_of(r),
-            Constant::SRem(r) => types.type_of(r),
-            Constant::And(a) => types.type_of(a),
-            Constant::Or(o) => types.type_of(o),
-            Constant::Xor(x) => types.type_of(x),
-            Constant::Shl(s) => types.type_of(s),
-            Constant::LShr(l) => types.type_of(l),
-            Constant::AShr(a) => types.type_of(a),
-            Constant::FAdd(f) => types.type_of(f),
-            Constant::FSub(f) => types.type_of(f),
-            Constant::FMul(f) => types.type_of(f),
-            Constant::FDiv(f) => types.type_of(f),
-            Constant::FRem(f) => types.type_of(f),
-            Constant::ExtractElement(e) => types.type_of(e),
-            Constant::InsertElement(i) => types.type_of(i),
-            Constant::ShuffleVector(s) => types.type_of(s),
-            Constant::ExtractValue(e) => types.type_of(e),
-            Constant::InsertValue(i) => types.type_of(i),
-            Constant::GetElementPtr(g) => types.type_of(g),
-            Constant::Trunc(t) => types.type_of(t),
-            Constant::ZExt(z) => types.type_of(z),
-            Constant::SExt(s) => types.type_of(s),
-            Constant::FPTrunc(f) => types.type_of(f),
-            Constant::FPExt(f) => types.type_of(f),
-            Constant::FPToUI(f) => types.type_of(f),
-            Constant::FPToSI(f) => types.type_of(f),
-            Constant::UIToFP(u) => types.type_of(u),
-            Constant::SIToFP(s) => types.type_of(s),
-            Constant::PtrToInt(p) => types.type_of(p),
-            Constant::IntToPtr(i) => types.type_of(i),
-            Constant::BitCast(b) => types.type_of(b),
-            Constant::AddrSpaceCast(a) => types.type_of(a),
-            Constant::ICmp(i) => types.type_of(i),
-            Constant::FCmp(f) => types.type_of(f),
-            Constant::Select(s) => types.type_of(s),
         }
     }
 }
@@ -294,7 +206,6 @@ impl Display for Constant {
             }
             Constant::Undef(ty) => write!(f, "{ty} undef"),
             Constant::Poison(ty) => write!(f, "{ty} poison"),
-            Constant::BlockAddress => write!(f, "blockaddr"),
             Constant::GlobalReference { name, ty } => {
                 match ty.as_ref() {
                     Type::FuncType { .. } => {
@@ -378,12 +289,6 @@ impl Deref for ConstantRef {
     }
 }
 
-impl Typed for ConstantRef {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        self.as_ref().get_type(types)
-    }
-}
-
 impl Display for ConstantRef {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.0)
@@ -432,83 +337,11 @@ macro_rules! impl_constexpr {
 }
 
 // impls which are shared by all UnaryOps.
-// If possible, prefer `unop_explicitly_typed!`, which provides additional impls
 macro_rules! impl_unop {
-    ($expr:ty) => {
+    ($expr:ty, $dispname:expr) => {
         impl ConstUnaryOp for $expr {
             fn get_operand(&self) -> ConstantRef {
                 self.operand.clone()
-            }
-        }
-    };
-}
-
-// impls which are shared by all BinaryOps.
-// If possible, prefer `binop_same_type!` or `binop_left_type!`, which
-// provide additional impls
-macro_rules! impl_binop {
-    ($expr:ty, $dispname:expr) => {
-        impl ConstBinaryOp for $expr {
-            fn get_operand0(&self) -> ConstantRef {
-                self.operand0.clone()
-            }
-            fn get_operand1(&self) -> ConstantRef {
-                self.operand1.clone()
-            }
-        }
-    };
-}
-
-// Use on binops where the result type is the same as both operand types
-// (and the Display impl doesn't need to show any more information other than the operands)
-macro_rules! binop_same_type {
-    ($expr:ty, $dispname:expr) => {
-        impl_binop!($expr, $dispname);
-
-        impl Typed for $expr {
-            fn get_type(&self, types: &Types) -> TypeRef {
-                let t = types.type_of(&self.get_operand0());
-                debug_assert_eq!(t, types.type_of(&self.get_operand1()));
-                t
-            }
-        }
-
-        impl Display for $expr {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{} ({}, {})", $dispname, &self.operand0, &self.operand1)
-            }
-        }
-    };
-}
-
-// Use on binops where the result type is the same as the first operand type
-// (and the Display impl doesn't need to show any more information other than the operands)
-macro_rules! binop_left_type {
-    ($expr:ty, $dispname:expr) => {
-        impl_binop!($expr, $dispname);
-
-        impl Typed for $expr {
-            fn get_type(&self, types: &Types) -> TypeRef {
-                types.type_of(&self.get_operand0())
-            }
-        }
-
-        impl Display for $expr {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{} ({}, {})", $dispname, &self.operand0, &self.operand1)
-            }
-        }
-    };
-}
-
-// Use on unops with a 'to_type' field which indicates the result type
-macro_rules! unop_explicitly_typed {
-    ($expr:ty, $dispname:expr) => {
-        impl_unop!($expr);
-
-        impl Typed for $expr {
-            fn get_type(&self, _types: &Types) -> TypeRef {
-                self.to_type.clone()
             }
         }
 
@@ -526,6 +359,26 @@ macro_rules! unop_explicitly_typed {
     };
 }
 
+// impls which are shared by all BinaryOps.
+macro_rules! impl_binop {
+    ($expr:ty, $dispname:expr) => {
+        impl ConstBinaryOp for $expr {
+            fn get_operand0(&self) -> ConstantRef {
+                self.operand0.clone()
+            }
+            fn get_operand1(&self) -> ConstantRef {
+                self.operand1.clone()
+            }
+        }
+
+        impl Display for $expr {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{} ({}, {})", $dispname, &self.operand0, &self.operand1)
+            }
+        }
+    };
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct Add {
     pub operand0: ConstantRef,
@@ -535,7 +388,7 @@ pub struct Add {
 }
 
 impl_constexpr!(Add, Add);
-binop_same_type!(Add, "add");
+impl_binop!(Add, "add");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Sub {
@@ -546,7 +399,7 @@ pub struct Sub {
 }
 
 impl_constexpr!(Sub, Sub);
-binop_same_type!(Sub, "sub");
+impl_binop!(Sub, "sub");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Mul {
@@ -557,7 +410,7 @@ pub struct Mul {
 }
 
 impl_constexpr!(Mul, Mul);
-binop_same_type!(Mul, "mul");
+impl_binop!(Mul, "mul");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct UDiv {
@@ -567,7 +420,7 @@ pub struct UDiv {
 }
 
 impl_constexpr!(UDiv, UDiv);
-binop_same_type!(UDiv, "udiv");
+impl_binop!(UDiv, "udiv");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct SDiv {
@@ -577,7 +430,7 @@ pub struct SDiv {
 }
 
 impl_constexpr!(SDiv, SDiv);
-binop_same_type!(SDiv, "sdiv");
+impl_binop!(SDiv, "sdiv");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct URem {
@@ -586,7 +439,7 @@ pub struct URem {
 }
 
 impl_constexpr!(URem, URem);
-binop_same_type!(URem, "urem");
+impl_binop!(URem, "urem");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct SRem {
@@ -595,7 +448,7 @@ pub struct SRem {
 }
 
 impl_constexpr!(SRem, SRem);
-binop_same_type!(SRem, "srem");
+impl_binop!(SRem, "srem");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct And {
@@ -604,7 +457,7 @@ pub struct And {
 }
 
 impl_constexpr!(And, And);
-binop_same_type!(And, "and");
+impl_binop!(And, "and");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Or {
@@ -613,7 +466,7 @@ pub struct Or {
 }
 
 impl_constexpr!(Or, Or);
-binop_same_type!(Or, "or");
+impl_binop!(Or, "or");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Xor {
@@ -622,7 +475,7 @@ pub struct Xor {
 }
 
 impl_constexpr!(Xor, Xor);
-binop_same_type!(Xor, "xor");
+impl_binop!(Xor, "xor");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Shl {
@@ -633,7 +486,7 @@ pub struct Shl {
 }
 
 impl_constexpr!(Shl, Shl);
-binop_left_type!(Shl, "shl");
+impl_binop!(Shl, "shl");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct LShr {
@@ -643,7 +496,7 @@ pub struct LShr {
 }
 
 impl_constexpr!(LShr, LShr);
-binop_left_type!(LShr, "lshr");
+impl_binop!(LShr, "lshr");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct AShr {
@@ -653,7 +506,7 @@ pub struct AShr {
 }
 
 impl_constexpr!(AShr, AShr);
-binop_left_type!(AShr, "ashr");
+impl_binop!(AShr, "ashr");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FAdd {
@@ -662,7 +515,7 @@ pub struct FAdd {
 }
 
 impl_constexpr!(FAdd, FAdd);
-binop_same_type!(FAdd, "fadd");
+impl_binop!(FAdd, "fadd");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FSub {
@@ -671,7 +524,7 @@ pub struct FSub {
 }
 
 impl_constexpr!(FSub, FSub);
-binop_same_type!(FSub, "fsub");
+impl_binop!(FSub, "fsub");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FMul {
@@ -680,7 +533,7 @@ pub struct FMul {
 }
 
 impl_constexpr!(FMul, FMul);
-binop_same_type!(FMul, "fmul");
+impl_binop!(FMul, "fmul");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FDiv {
@@ -689,7 +542,7 @@ pub struct FDiv {
 }
 
 impl_constexpr!(FDiv, FDiv);
-binop_same_type!(FDiv, "fdiv");
+impl_binop!(FDiv, "fdiv");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FRem {
@@ -698,7 +551,7 @@ pub struct FRem {
 }
 
 impl_constexpr!(FRem, FRem);
-binop_same_type!(FRem, "frem");
+impl_binop!(FRem, "frem");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ExtractElement {
@@ -707,15 +560,6 @@ pub struct ExtractElement {
 }
 
 impl_constexpr!(ExtractElement, ExtractElement);
-
-impl Typed for ExtractElement {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match types.type_of(&self.vector).as_ref() {
-            Type::VectorType { element_type, .. } => element_type.clone(),
-            ty => panic!("Expected an ExtractElement vector to be VectorType, got {ty:?}"),
-        }
-    }
-}
 
 impl Display for ExtractElement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -731,12 +575,6 @@ pub struct InsertElement {
 }
 
 impl_constexpr!(InsertElement, InsertElement);
-
-impl Typed for InsertElement {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        types.type_of(&self.vector)
-    }
-}
 
 impl Display for InsertElement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -756,23 +594,13 @@ pub struct ShuffleVector {
 }
 
 impl_constexpr!(ShuffleVector, ShuffleVector);
-impl_binop!(ShuffleVector, "shufflevector");
 
-impl Typed for ShuffleVector {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        let ty = types.type_of(&self.operand0);
-        debug_assert_eq!(ty, types.type_of(&self.operand1));
-        match ty.as_ref() {
-            Type::VectorType { element_type, .. } => match types.type_of(&self.mask).as_ref() {
-                Type::VectorType {
-                    num_elements,
-                    scalable,
-                    ..
-                } => types.vector_of(element_type.clone(), *num_elements, *scalable),
-                ty => panic!("Expected a ShuffleVector mask to be VectorType, got {ty:?}"),
-            },
-            _ => panic!("Expected a ShuffleVector operand to be VectorType, got {ty:?}"),
-        }
+impl ConstBinaryOp for ShuffleVector {
+    fn get_operand0(&self) -> ConstantRef {
+        self.operand0.clone()
+    }
+    fn get_operand1(&self) -> ConstantRef {
+        self.operand1.clone()
     }
 }
 
@@ -794,31 +622,6 @@ pub struct ExtractValue {
 
 impl_constexpr!(ExtractValue, ExtractValue);
 
-impl Typed for ExtractValue {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        ev_type(types.type_of(&self.aggregate), self.indices.iter().copied())
-    }
-}
-
-fn ev_type(cur_type: TypeRef, mut indices: impl Iterator<Item = u32>) -> TypeRef {
-    match indices.next() {
-        None => cur_type,
-        Some(index) => match cur_type.as_ref() {
-            Type::ArrayType { element_type, .. } => ev_type(element_type.clone(), indices),
-            Type::StructType { element_types, .. } => ev_type(
-                element_types
-                    .get(index as usize)
-                    .expect("ExtractValue index out of range")
-                    .clone(),
-                indices,
-            ),
-            _ => panic!(
-                "ExtractValue from something that's not ArrayType or StructType; its type is {cur_type:?}"
-            ),
-        },
-    }
-}
-
 impl Display for ExtractValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "extractvalue ({}", &self.aggregate)?;
@@ -839,12 +642,6 @@ pub struct InsertValue {
 
 impl_constexpr!(InsertValue, InsertValue);
 
-impl Typed for InsertValue {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        types.type_of(&self.aggregate)
-    }
-}
-
 impl Display for InsertValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "insertvalue ({}, {}", &self.aggregate, &self.element)?;
@@ -864,52 +661,6 @@ pub struct GetElementPtr {
 }
 
 impl_constexpr!(GetElementPtr, GetElementPtr);
-
-impl Typed for GetElementPtr {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        gep_type(types.type_of(&self.address), self.indices.iter(), types)
-    }
-}
-
-fn gep_type<'c>(
-    cur_type: TypeRef,
-    mut indices: impl Iterator<Item = &'c ConstantRef>,
-    types: &Types,
-) -> TypeRef {
-    match indices.next() {
-        None => types.pointer_to(cur_type), // iterator is done
-        Some(index) => match cur_type.as_ref() {
-            Type::PointerType { pointee_type, .. } => gep_type(pointee_type.clone(), indices, types),
-            Type::VectorType { element_type, .. } | Type::ArrayType { element_type, .. } => gep_type(element_type.clone(), indices, types),
-            Type::StructType { element_types, .. } => {
-                if let Constant::Int { value, .. } = index.as_ref() {
-                    gep_type(
-                        element_types.get(*value as usize).cloned().expect("GEP index out of range"),
-                        indices,
-                        types,
-                    )
-                } else {
-                    panic!("Expected GEP index on a constant struct to be a Constant::Int; got {index:?}")
-                }
-            },
-            Type::NamedStructType { name } => match types.named_struct_def(name) {
-                None => panic!("Named struct with no definition (struct name {name:?})"),
-                Some(NamedStructDef::Opaque) => panic!("GEP on an opaque struct type"),
-                Some(NamedStructDef::Defined(ty)) => match ty.as_ref() {
-                    Type::StructType { element_types, .. } => {
-                        if let Constant::Int { value, .. } = index.as_ref() {
-                            gep_type(element_types.get(*value as usize).cloned().expect("GEP index out of range"), indices, types)
-                        } else {
-                            panic!("Expected GEP index on a struct to be a Constant::Int; got {index:?}")
-                        }
-                    },
-                    ty => panic!("Expected NamedStructDef inner type to be a StructType; got {ty:?}"),
-                },
-            }
-            _ => panic!("Expected GEP base type to be a PointerType, VectorType, ArrayType, StructType, or NamedStructType; got {cur_type:?}"),
-        },
-    }
-}
 
 impl Display for GetElementPtr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -934,7 +685,7 @@ pub struct Trunc {
 }
 
 impl_constexpr!(Trunc, Trunc);
-unop_explicitly_typed!(Trunc, "trunc");
+impl_unop!(Trunc, "trunc");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ZExt {
@@ -943,7 +694,7 @@ pub struct ZExt {
 }
 
 impl_constexpr!(ZExt, ZExt);
-unop_explicitly_typed!(ZExt, "zext");
+impl_unop!(ZExt, "zext");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct SExt {
@@ -952,7 +703,7 @@ pub struct SExt {
 }
 
 impl_constexpr!(SExt, SExt);
-unop_explicitly_typed!(SExt, "sext");
+impl_unop!(SExt, "sext");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FPTrunc {
@@ -961,7 +712,7 @@ pub struct FPTrunc {
 }
 
 impl_constexpr!(FPTrunc, FPTrunc);
-unop_explicitly_typed!(FPTrunc, "fptrunc");
+impl_unop!(FPTrunc, "fptrunc");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FPExt {
@@ -970,7 +721,7 @@ pub struct FPExt {
 }
 
 impl_constexpr!(FPExt, FPExt);
-unop_explicitly_typed!(FPExt, "fpext");
+impl_unop!(FPExt, "fpext");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FPToUI {
@@ -979,7 +730,7 @@ pub struct FPToUI {
 }
 
 impl_constexpr!(FPToUI, FPToUI);
-unop_explicitly_typed!(FPToUI, "fptoui");
+impl_unop!(FPToUI, "fptoui");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct FPToSI {
@@ -988,7 +739,7 @@ pub struct FPToSI {
 }
 
 impl_constexpr!(FPToSI, FPToSI);
-unop_explicitly_typed!(FPToSI, "fptosi");
+impl_unop!(FPToSI, "fptosi");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct UIToFP {
@@ -997,7 +748,7 @@ pub struct UIToFP {
 }
 
 impl_constexpr!(UIToFP, UIToFP);
-unop_explicitly_typed!(UIToFP, "uitofp");
+impl_unop!(UIToFP, "uitofp");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct SIToFP {
@@ -1006,7 +757,7 @@ pub struct SIToFP {
 }
 
 impl_constexpr!(SIToFP, SIToFP);
-unop_explicitly_typed!(SIToFP, "sitofp");
+impl_unop!(SIToFP, "sitofp");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct PtrToInt {
@@ -1015,7 +766,7 @@ pub struct PtrToInt {
 }
 
 impl_constexpr!(PtrToInt, PtrToInt);
-unop_explicitly_typed!(PtrToInt, "ptrtoint");
+impl_unop!(PtrToInt, "ptrtoint");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct IntToPtr {
@@ -1024,7 +775,7 @@ pub struct IntToPtr {
 }
 
 impl_constexpr!(IntToPtr, IntToPtr);
-unop_explicitly_typed!(IntToPtr, "inttoptr");
+impl_unop!(IntToPtr, "inttoptr");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct BitCast {
@@ -1033,7 +784,7 @@ pub struct BitCast {
 }
 
 impl_constexpr!(BitCast, BitCast);
-unop_explicitly_typed!(BitCast, "bitcast");
+impl_unop!(BitCast, "bitcast");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct AddrSpaceCast {
@@ -1042,7 +793,7 @@ pub struct AddrSpaceCast {
 }
 
 impl_constexpr!(AddrSpaceCast, AddrSpaceCast);
-unop_explicitly_typed!(AddrSpaceCast, "addrspacecast");
+impl_unop!(AddrSpaceCast, "addrspacecast");
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ICmp {
@@ -1052,20 +803,12 @@ pub struct ICmp {
 }
 
 impl_constexpr!(ICmp, ICmp);
-impl_binop!(ICmp, "icmp");
-
-impl Typed for ICmp {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        let ty = types.type_of(&self.operand0);
-        debug_assert_eq!(ty, types.type_of(&self.operand1));
-        match ty.as_ref() {
-            Type::VectorType {
-                num_elements,
-                scalable,
-                ..
-            } => types.vector_of(types.bool(), *num_elements, *scalable),
-            _ => types.bool(),
-        }
+impl ConstBinaryOp for ICmp {
+    fn get_operand0(&self) -> ConstantRef {
+        self.operand0.clone()
+    }
+    fn get_operand1(&self) -> ConstantRef {
+        self.operand1.clone()
     }
 }
 
@@ -1087,20 +830,12 @@ pub struct FCmp {
 }
 
 impl_constexpr!(FCmp, FCmp);
-impl_binop!(FCmp, "fcmp");
-
-impl Typed for FCmp {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        let ty = types.type_of(&self.operand0);
-        debug_assert_eq!(ty, types.type_of(&self.operand1));
-        match ty.as_ref() {
-            Type::VectorType {
-                num_elements,
-                scalable,
-                ..
-            } => types.vector_of(types.bool(), *num_elements, *scalable),
-            _ => types.bool(),
-        }
+impl ConstBinaryOp for FCmp {
+    fn get_operand0(&self) -> ConstantRef {
+        self.operand0.clone()
+    }
+    fn get_operand1(&self) -> ConstantRef {
+        self.operand1.clone()
     }
 }
 
@@ -1122,14 +857,6 @@ pub struct Select {
 }
 
 impl_constexpr!(Select, Select);
-
-impl Typed for Select {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        let t = types.type_of(&self.true_value);
-        debug_assert_eq!(t, types.type_of(&self.false_value));
-        t
-    }
-}
 
 impl Display for Select {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

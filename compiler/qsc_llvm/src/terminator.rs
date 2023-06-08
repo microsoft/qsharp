@@ -2,10 +2,8 @@
 // Licensed under the MIT License.
 use crate::debugloc::{DebugLoc, HasDebugLoc};
 use crate::function::{Attribute, CallingConvention, ParameterAttribute};
-use crate::instruction::{HasResult, InlineAssembly};
-use crate::types::{Typed, Types};
-use crate::{ConstantRef, Name, Operand, Type, TypeRef};
-use either::Either;
+use crate::instruction::HasResult;
+use crate::{ConstantRef, Name, Operand};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 
@@ -27,30 +25,6 @@ pub enum Terminator {
     CallBr(CallBr),
 }
 
-/// The [`Type`](../enum.Type.html) of a `Terminator` is its result type.
-/// For most terminators, this is `VoidType`.
-/// For instance, a [`Ret`](struct.Ret.html) instruction has void type even if
-/// the function returns a non-void value; we do not store the result of a `Ret`
-/// instruction using something like `%3 = ret i32 %2`.
-/// See [LLVM 14 docs on Terminator Instructions](https://releases.llvm.org/14.0.0/docs/LangRef.html#terminator-instructions)
-impl Typed for Terminator {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match self {
-            Terminator::Ret(t) => types.type_of(t),
-            Terminator::Br(t) => types.type_of(t),
-            Terminator::CondBr(t) => types.type_of(t),
-            Terminator::Switch(t) => types.type_of(t),
-            Terminator::IndirectBr(t) => types.type_of(t),
-            Terminator::Invoke(t) => types.type_of(t),
-            Terminator::Resume(t) => types.type_of(t),
-            Terminator::Unreachable(t) => types.type_of(t),
-            Terminator::CleanupRet(t) => types.type_of(t),
-            Terminator::CatchRet(t) => types.type_of(t),
-            Terminator::CatchSwitch(t) => types.type_of(t),
-            Terminator::CallBr(t) => types.type_of(t),
-        }
-    }
-}
 impl HasDebugLoc for Terminator {
     fn get_debug_loc(&self) -> &Option<DebugLoc> {
         match self {
@@ -88,28 +62,6 @@ impl Display for Terminator {
         }
     }
 }
-
-/* --TODO not yet implemented: metadata
-impl Terminator {
-    pub fn get_metadata(&self) -> &InstructionMetadata {
-        match self {
-            Terminator::Ret(t) => &t.metadata,
-            Terminator::Br(t) => &t.metadata,
-            Terminator::CondBr(t) => &t.metadata,
-            Terminator::Switch(t) => &t.metadata,
-            Terminator::IndirectBr(t) => &t.metadata,
-            Terminator::Invoke(t) => &t.metadata,
-            Terminator::Resume(t) => &t.metadata,
-            Terminator::Unreachable(t) => &t.metadata,
-            Terminator::CleanupRet(t) => &t.metadata,
-            Terminator::CatchRet(t) => &t.metadata,
-            Terminator::CatchSwitch(t) => &t.metadata,
-            #[cfg(feature="llvm-9-or-greater")]
-            Terminator::CallBr(t) => &t.metadata,
-        }
-    }
-}
-*/
 
 impl Terminator {
     /// Get the result (destination) of the `Terminator`, or `None` if the
@@ -157,14 +109,6 @@ macro_rules! impl_term {
                 &self.debugloc
             }
         }
-
-        /* --TODO not yet implemented: metadata
-        impl HasMetadata for $term {
-            fn get_metadata(&self) -> &InstructionMetadata {
-                &self.metadata
-            }
-        }
-        */
     };
 }
 
@@ -178,27 +122,15 @@ macro_rules! impl_hasresult {
     };
 }
 
-macro_rules! void_typed {
-    ($term:ty) => {
-        impl Typed for $term {
-            fn get_type(&self, types: &Types) -> TypeRef {
-                types.void()
-            }
-        }
-    };
-}
-
 /// See [LLVM 14 docs on the 'ret' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#ret-instruction)
 #[derive(PartialEq, Clone, Debug)]
 pub struct Ret {
     /// The value being returned, or `None` if returning void.
     pub return_operand: Option<Operand>,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(Ret, Ret);
-void_typed!(Ret); // technically the instruction has void type, even though the function may not
 
 impl Display for Ret {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -225,11 +157,9 @@ pub struct Br {
     /// The [`Name`](../enum.Name.html) of the [`BasicBlock`](../struct.BasicBlock.html) destination.
     pub dest: Name,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(Br, Br);
-void_typed!(Br);
 
 impl Display for Br {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -253,11 +183,9 @@ pub struct CondBr {
     /// The [`Name`](../enum.Name.html) of the [`BasicBlock`](../struct.BasicBlock.html) destination if the `condition` is false.
     pub false_dest: Name,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(CondBr, CondBr);
-void_typed!(CondBr);
 
 impl Display for CondBr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -280,11 +208,9 @@ pub struct Switch {
     pub dests: Vec<(ConstantRef, Name)>,
     pub default_dest: Name,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(Switch, Switch);
-void_typed!(Switch);
 
 impl Display for Switch {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -315,11 +241,9 @@ pub struct IndirectBr {
     /// `IndirectBr` cannot be used to jump between functions.
     pub possible_dests: Vec<Name>,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(IndirectBr, IndirectBr);
-void_typed!(IndirectBr);
 
 impl Display for IndirectBr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -346,7 +270,7 @@ impl Display for IndirectBr {
 /// See [LLVM 14 docs on the 'invoke' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#invoke-instruction)
 #[derive(PartialEq, Clone, Debug)]
 pub struct Invoke {
-    pub function: Either<InlineAssembly, Operand>,
+    pub function: Operand,
     pub arguments: Vec<(Operand, Vec<ParameterAttribute>)>,
     pub return_attributes: Vec<ParameterAttribute>,
     pub result: Name, // The name of the variable that will get the result of the call (if the callee returns with 'ret')
@@ -355,37 +279,16 @@ pub struct Invoke {
     pub function_attributes: Vec<Attribute>, // llvm-hs has the equivalent of Vec<Either<GroupID, FunctionAttribute>>, but I'm not sure how the GroupID option comes up
     pub calling_convention: CallingConvention,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(Invoke, Invoke);
 impl_hasresult!(Invoke);
 
-impl Typed for Invoke {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match types.type_of(&self.function).as_ref() {
-            Type::PointerType { pointee_type, .. } => match pointee_type.as_ref() {
-                Type::FuncType { result_type, .. } => result_type.clone(),
-                ty => panic!("Expected Invoke's function argument to be of type pointer-to-function, got pointer-to-{ty:?}"),
-            },
-            ty => panic!("Expected Invoke's function argument to be of type pointer-to-function, got {ty:?}"),
-        }
-    }
-}
-
 impl Display for Invoke {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Like with `Call`, we choose not to include all the detailed
         // information available in the `Invoke` struct in this `Display` impl
-        write!(
-            f,
-            "{} = invoke {}(",
-            &self.result,
-            match &self.function {
-                Either::Left(_) => "<inline assembly>".into(),
-                Either::Right(op) => format!("{op}"),
-            }
-        )?;
+        write!(f, "{} = invoke {}(", &self.result, &self.function)?;
         for (i, (arg, _)) in self.arguments.iter().enumerate() {
             if i == self.arguments.len() - 1 {
                 write!(f, "{arg}")?;
@@ -410,11 +313,9 @@ impl Display for Invoke {
 pub struct Resume {
     pub operand: Operand,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(Resume, Resume);
-void_typed!(Resume);
 
 impl Display for Resume {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -430,11 +331,9 @@ impl Display for Resume {
 #[derive(PartialEq, Clone, Debug)]
 pub struct Unreachable {
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(Unreachable, Unreachable);
-void_typed!(Unreachable);
 
 impl Display for Unreachable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -453,11 +352,9 @@ pub struct CleanupRet {
     /// `None` here indicates 'unwind to caller'
     pub unwind_dest: Option<Name>,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(CleanupRet, CleanupRet);
-void_typed!(CleanupRet);
 
 impl Display for CleanupRet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -483,11 +380,9 @@ pub struct CatchRet {
     pub catch_pad: Operand,
     pub successor: Name,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(CatchRet, CatchRet);
-void_typed!(CatchRet);
 
 impl Display for CatchRet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -513,18 +408,10 @@ pub struct CatchSwitch {
     pub default_unwind_dest: Option<Name>,
     pub result: Name,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 
 impl_term!(CatchSwitch, CatchSwitch);
 impl_hasresult!(CatchSwitch);
-
-impl Typed for CatchSwitch {
-    fn get_type(&self, _types: &Types) -> TypeRef {
-        unimplemented!("Typed for CatchSwitch")
-        // It's clear that there is a result of this instruction, but the documentation doesn't appear to clearly describe what its type is
-    }
-}
 
 impl Display for CatchSwitch {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -559,7 +446,7 @@ impl Display for CatchSwitch {
 /// See [LLVM 14 docs on the 'callbr' instruction](https://releases.llvm.org/14.0.0/docs/LangRef.html#callbr-instruction)
 #[derive(PartialEq, Clone, Debug)]
 pub struct CallBr {
-    pub function: Either<InlineAssembly, Operand>,
+    pub function: Operand,
     pub arguments: Vec<(Operand, Vec<ParameterAttribute>)>,
     pub return_attributes: Vec<ParameterAttribute>,
     pub result: Name, // The name of the variable that will get the result of the call (if the callee returns with 'ret')
@@ -569,34 +456,15 @@ pub struct CallBr {
     pub function_attributes: Vec<Attribute>,
     pub calling_convention: CallingConvention,
     pub debugloc: Option<DebugLoc>,
-    // --TODO not yet implemented-- pub metadata: InstructionMetadata,
 }
 impl_term!(CallBr, CallBr);
 impl_hasresult!(CallBr);
-impl Typed for CallBr {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match types.type_of(&self.function).as_ref() {
-            Type::FuncType { result_type, .. } => result_type.clone(),
-            ty => panic!(
-                "Expected the function argument of a CallBr to have type FuncType; got {ty:?}"
-            ),
-        }
-    }
-}
 impl Display for CallBr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Like with `Call` and `Invoke, we choose not to include all the
         // detailed information available in the `CallBr` struct in this
         // `Display` impl
-        write!(
-            f,
-            "{} = callbr {}(",
-            &self.result,
-            match &self.function {
-                Either::Left(_) => "<inline assembly>".into(),
-                Either::Right(op) => format!("{op}"),
-            }
-        )?;
+        write!(f, "{} = callbr {}(", &self.result, &self.function)?;
         for (i, (arg, _)) in self.arguments.iter().enumerate() {
             if i == self.arguments.len() - 1 {
                 write!(f, "{arg}")?;

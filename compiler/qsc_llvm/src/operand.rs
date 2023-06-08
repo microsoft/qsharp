@@ -1,30 +1,16 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::types::{TypeRef, Typed, Types};
+use crate::types::TypeRef;
 use crate::{Constant, ConstantRef, Name};
 use std::fmt::{self, Display};
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Operand {
     /// e.g., `i32 %foo`
-    LocalOperand {
-        name: Name,
-        ty: TypeRef,
-    },
+    LocalOperand { name: Name, ty: TypeRef },
     /// includes [`GlobalReference`](../constant/enum.Constant.html#variant.GlobalReference) for things like `@foo`
     ConstantOperand(ConstantRef),
-    MetadataOperand, // --TODO not yet implemented-- MetadataOperand(Box<Metadata>),
-}
-
-impl Typed for Operand {
-    fn get_type(&self, types: &Types) -> TypeRef {
-        match self {
-            Operand::LocalOperand { ty, .. } => ty.clone(),
-            Operand::ConstantOperand(c) => types.type_of(c),
-            Operand::MetadataOperand => types.metadata_type(),
-        }
-    }
 }
 
 impl Operand {
@@ -44,7 +30,7 @@ impl Operand {
     pub fn as_constant(&self) -> Option<&Constant> {
         match self {
             Operand::ConstantOperand(cref) => Some(cref),
-            _ => None,
+            Operand::LocalOperand { .. } => None,
         }
     }
 }
@@ -54,7 +40,6 @@ impl Display for Operand {
         match self {
             Operand::LocalOperand { name, ty } => write!(f, "{ty} {name}"),
             Operand::ConstantOperand(cref) => write!(f, "{}", &cref),
-            Operand::MetadataOperand => write!(f, "<metadata>"),
         }
     }
 }
