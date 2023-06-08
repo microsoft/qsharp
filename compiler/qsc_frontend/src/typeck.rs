@@ -35,15 +35,15 @@ enum ErrorKind {
     CallableMismatch(CallableKind, CallableKind, #[label] Span),
     #[error("expected {0}, found {1}")]
     FunctorMismatch(FunctorSet, FunctorSet, #[label] Span),
-    #[error("type {0} does not support the plus operator")]
-    #[diagnostic(help("only Array, BigInt, Double, Int and String support the plus operator"))]
+    #[error("type {0} does not support plus")]
+    #[diagnostic(help("only arrays, BigInt, Double, Int and String support plus"))]
     MissingClassAdd(Ty, #[label] Span),
-    #[error("type {0} does not support Adjoint functor")]
+    #[error("type {0} does not support the adjoint functor")]
     MissingClassAdj(Ty, #[label] Span),
     #[error("type {0} is not callable")]
     #[diagnostic(help("only operations, functions, or newtype constructors can be called"))]
     MissingClassCall(Ty, #[label] Span),
-    #[error("type {0} does not support Controlled functor")]
+    #[error("type {0} does not support the controlled functor")]
     MissingClassCtl(Ty, #[label] Span),
     #[error("type {0} does not support equality")]
     MissingClassEq(Ty, #[label] Span),
@@ -53,7 +53,7 @@ enum ErrorKind {
     MissingClassHasField(Ty, String, #[label] Span),
     #[error("type {0} cannot be indexed by type {1}")]
     #[diagnostic(help(
-        "only array types can be indexed, and only Int or Range types can be used as the index"
+        "only array types can be indexed, and only Int or Range can be used as the index"
     ))]
     MissingClassHasIndex(Ty, Ty, #[label] Span),
     #[error("type {0} is not an integer")]

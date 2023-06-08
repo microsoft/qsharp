@@ -9,7 +9,7 @@ use qsc_hir::hir::{
 };
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
-    fmt::{self, Debug, Display, Formatter},
+    fmt::Debug,
 };
 
 pub(super) struct Solution {
@@ -168,28 +168,6 @@ impl Class {
             ),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, wrapper, base, span),
-        }
-    }
-}
-
-impl Display for Class {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Class::Add(ty) => write!(f, "Add<{ty}>"),
-            Class::Adj(ty) => write!(f, "Adj<{ty}>"),
-            Class::Call { callee, .. } => write!(f, "Call<{callee}>"),
-            Class::Ctl { op, .. } => write!(f, "Ctl<{op}>"),
-            Class::Eq(ty) => write!(f, "Eq<{ty}>"),
-            Class::Exp { base, .. } => write!(f, "Exp<{base}>"),
-            Class::HasField { record, name, .. } => write!(f, "HasField<{record}, {name}>"),
-            Class::HasIndex {
-                container, index, ..
-            } => write!(f, "HasIndex<{container}, {index}>"),
-            Class::Integral(ty) => write!(f, "Integral<{ty}>"),
-            Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
-            Class::Num(ty) => write!(f, "Num<{ty}>"),
-            Class::Show(ty) => write!(f, "Show<{ty}>"),
-            Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
     }
 }
