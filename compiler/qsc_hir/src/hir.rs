@@ -1146,8 +1146,8 @@ pub struct GenericParam {
 impl Display for GenericParam {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.kind {
-            ParamKind::Ty => write!(f, "'{}", self.name),
-            ParamKind::Functor(min) => write!(f, "#{}: {}", self.name, min),
+            ParamKind::Ty => write!(f, "{}: type", self.name),
+            ParamKind::Functor(min) => write!(f, "{}: functor ({min})", self.name),
         }
     }
 }
@@ -1158,7 +1158,7 @@ pub enum ParamName {
     /// A string identifier.
     Symbol(Arc<str>),
     /// A numeric identifier.
-    Id(u32),
+    Id(ParamId),
 }
 
 impl Display for ParamName {
@@ -1177,6 +1177,24 @@ pub enum ParamKind {
     Ty,
     /// A functor parameter with a lower bound.
     Functor(FunctorSetValue),
+}
+
+/// A generic parameter ID.
+#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq)]
+pub struct ParamId(u32);
+
+impl ParamId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for ParamId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
 }
 
 /// An argument to a generic parameter.
@@ -1320,7 +1338,7 @@ pub enum FunctorSet {
     /// An evaluated set.
     Value(FunctorSetValue),
     /// A functor parameter.
-    Param(u32),
+    Param(ParamId),
     /// A placeholder functor variable used during type inference.
     Infer(InferFunctor),
 }
@@ -1344,7 +1362,7 @@ impl Display for FunctorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::Value(value) => Display::fmt(value, f),
-            Self::Param(param) => write!(f, "#{param}"),
+            Self::Param(param) => Display::fmt(param, f),
             Self::Infer(infer) => Display::fmt(infer, f),
         }
     }

@@ -8,8 +8,8 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
-    self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, GenericParam, ItemId, ParamKind,
-    ParamName, Scheme, Ty, UdtField,
+    self, ArrowTy, FieldPath, FunctorSet, FunctorSetValue, GenericParam, ItemId, ParamId,
+    ParamKind, ParamName, Scheme, Ty, UdtField,
 };
 use std::rc::Rc;
 
@@ -127,7 +127,7 @@ pub(super) fn ast_callable_scheme(
 ) -> (Scheme, Vec<MissingTyError>) {
     let kind = callable_kind_from_ast(decl.kind);
     let (mut input, mut errors) = ast_pat_ty(names, &decl.input);
-    let functor_params = synthesize_functor_params_in_ty(&mut 0, &mut input);
+    let functor_params = synthesize_functor_params_in_ty(&mut ParamId::default(), &mut input);
     let (output, output_errors) = ty_from_ast(names, &decl.output);
     errors.extend(output_errors);
     let functors = ast_callable_functors(decl);
@@ -155,7 +155,7 @@ pub(super) fn ast_callable_scheme(
     (scheme, errors)
 }
 
-fn synthesize_functor_params_in_ty(next_functor: &mut u32, ty: &mut Ty) -> Vec<GenericParam> {
+fn synthesize_functor_params_in_ty(next_functor: &mut ParamId, ty: &mut Ty) -> Vec<GenericParam> {
     match ty {
         Ty::Array(item) => synthesize_functor_params_in_ty(next_functor, item),
         Ty::Arrow(arrow) if arrow.kind == hir::CallableKind::Operation => {
@@ -167,7 +167,7 @@ fn synthesize_functor_params_in_ty(next_functor: &mut u32, ty: &mut Ty) -> Vec<G
                 kind: ParamKind::Functor(functors),
             };
             arrow.functors = FunctorSet::Param(*next_functor);
-            *next_functor += 1;
+            *next_functor = next_functor.successor();
             vec![param]
         }
         Ty::Tuple(items) => items
@@ -181,7 +181,7 @@ fn synthesize_functor_params_in_ty(next_functor: &mut u32, ty: &mut Ty) -> Vec<G
 }
 
 pub(crate) fn synthesize_functor_params_in_pat(
-    next_functor: &mut u32,
+    next_functor: &mut ParamId,
     pat: &mut hir::Pat,
 ) -> Vec<GenericParam> {
     match &mut pat.kind {

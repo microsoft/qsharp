@@ -1786,12 +1786,12 @@ fn lambda_adj_calls_adj() {
                     Callable 7 [60-106] (operation):
                         name: Ident 8 [70-73] "Foo"
                         generics:
-                            #0: Adj
-                        input: Pat 9 [74-97] [Type (Qubit => Unit is #0)]: Bind: Ident 10 [74-76] "op"
+                            0: functor (Adj)
+                        input: Pat 9 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 10 [74-76] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 11 [60-106] (Body): Impl:
-                            Pat 12 [60-106] [Type (Qubit => Unit is #0)]: Elided
+                            Pat 12 [60-106] [Type (Qubit => Unit is 0)]: Elided
                             Block 13 [104-106]: <empty>
                         adj: <none>
                         ctl: <none>

@@ -213,7 +213,8 @@ impl With<'_> {
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
-        let functor_generics = convert::synthesize_functor_params_in_pat(&mut 0, &mut input);
+        let functor_generics =
+            convert::synthesize_functor_params_in_pat(&mut hir::ParamId::default(), &mut input);
         let generics = decl
             .generics
             .iter()
