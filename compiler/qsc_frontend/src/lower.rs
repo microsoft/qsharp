@@ -16,7 +16,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, GenericParam, ParamId, ParamKind, ParamName, Ty},
+    ty::{Arrow, FunctorSetValue, Ty},
 };
 use std::{clone::Clone, rc::Rc, vec};
 use thiserror::Error;
@@ -210,34 +210,23 @@ impl With<'_> {
 
     pub(super) fn lower_callable_decl(&mut self, decl: &ast::CallableDecl) -> hir::CallableDecl {
         let id = self.lower_id(decl.id);
-        let span = decl.span;
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
-        let functor_generics =
-            convert::synthesize_functor_params_in_pat(&mut ParamId::default(), &mut input);
-        let generics = decl
-            .generics
-            .iter()
-            .map(|param| GenericParam {
-                name: ParamName::Symbol((*param.name).into()),
-                kind: ParamKind::Ty,
-            })
-            .chain(functor_generics)
-            .collect();
         let output = convert::ty_from_ast(self.names, &decl.output).0;
+        let generics = convert::synthesize_callable_generics(&decl.generics, &mut input);
         let functors = convert::ast_callable_functors(decl);
 
         let (body, adj, ctl, ctl_adj) = match decl.body.as_ref() {
             ast::CallableBody::Block(block) => {
                 let body = hir::SpecDecl {
                     id: self.assigner.next_node(),
-                    span,
+                    span: decl.span,
                     spec: hir::Spec::Body,
                     body: hir::SpecBody::Impl(
                         hir::Pat {
                             id: self.assigner.next_node(),
-                            span,
+                            span: decl.span,
                             ty: input.ty.clone(),
                             kind: hir::PatKind::Elided,
                         },
@@ -248,10 +237,10 @@ impl With<'_> {
             }
             ast::CallableBody::Specs(specs) => {
                 let body = self.find_spec(specs, ast::Spec::Body).unwrap_or_else(|| {
-                    self.lowerer.errors.push(Error::MissingBody(span));
+                    self.lowerer.errors.push(Error::MissingBody(decl.span));
                     hir::SpecDecl {
                         id: self.assigner.next_node(),
-                        span,
+                        span: decl.span,
                         spec: hir::Spec::Body,
                         body: hir::SpecBody::Gen(hir::SpecGen::Auto),
                     }
@@ -265,7 +254,7 @@ impl With<'_> {
 
         hir::CallableDecl {
             id,
-            span,
+            span: decl.span,
             kind,
             name,
             generics,
