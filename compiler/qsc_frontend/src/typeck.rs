@@ -48,7 +48,7 @@ enum ErrorKind {
     #[error("type {0} does not support Controlled functor")]
     MissingClassCtl(Ty, #[label] Span),
     #[error("type {0} does not support equality comparison")]
-    #[diagnostic(help("only BigInt, Bool, Double, Int, Qubit, Range, Result, String, Paulis, and Tuples of matching types support equiality comparison."))]
+    #[diagnostic(help("only BigInt, Bool, Double, Int, Qubit, Range, Result, String, Paulis, and Tuples of matching types support equiality comparison"))]
     MissingClassEq(Ty, #[label] Span),
     #[error("exponentiation not supported for type {0}")]
     MissingClassExp(Ty, #[label] Span),
