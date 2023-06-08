@@ -17,10 +17,12 @@ import {
 
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
-import { Results } from "./results.js";
+import { OutputTabs } from "./tabs.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
 import { compressedBase64ToCode } from "./utils.js";
+
+export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
 
 // Configure any logging as early as possible
 const logLevelUri = new URLSearchParams(window.location.search).get("logLevel");
@@ -58,6 +60,9 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined
   );
+
+  const [hir, setHir] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
   const onRestartCompiler = () => {
     compiler.terminate();
@@ -117,12 +122,17 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showShots={true}
             showExpr={true}
             shotError={shotError}
+            setHir={setHir}
+            activeTab={activeTab}
           ></Editor>
-          <Results
+          <OutputTabs
             evtTarget={evtTarget}
             showPanel={true}
             onShotError={onShotError}
-          ></Results>
+            hir={hir}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          ></OutputTabs>
         </>
       ) : (
         <Katas
