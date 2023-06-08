@@ -3,13 +3,13 @@
 
 pub mod groups;
 
-use crate::constant::ConstantRef;
-use crate::debugloc::{DebugLoc, HasDebugLoc};
-use crate::function::{Attribute, CallingConvention, ParameterAttribute};
-use crate::name::Name;
-use crate::operand::Operand;
-use crate::types::TypeRef;
-use crate::{
+use super::constant::ConstantRef;
+use super::debugloc::{DebugLoc, HasDebugLoc};
+use super::function::{Attribute, ParameterAttribute};
+use super::name::Name;
+use super::operand::Operand;
+use super::types::TypeRef;
+use super::{
     predicates::{FPPredicate, IntPredicate},
     Constant,
 };
@@ -1483,7 +1483,6 @@ pub struct Call {
     pub dest: Option<Name>, // will be None if the `function` returns void
     pub function_attributes: Vec<Attribute>, // llvm-hs has the equivalent of Vec<Either<GroupID, FunctionAttribute>>, but I'm not sure how the GroupID option comes up
     pub is_tail_call: bool, // llvm-hs has the more sophisticated structure Option<TailCallKind>, but the LLVM C API just gives us true/false
-    pub calling_convention: CallingConvention,
     pub debugloc: Option<DebugLoc>,
 }
 

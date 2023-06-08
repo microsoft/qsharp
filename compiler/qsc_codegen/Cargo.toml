@@ -11,4 +11,3 @@ license.workspace = true
 [dependencies]
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_hir = { path = "../qsc_hir" }
-qsc_llvm = { path = "../qsc_llvm" }

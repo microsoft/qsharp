@@ -1,8 +1,8 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::types::TypeRef;
-use crate::{Constant, ConstantRef, Name};
+use super::types::TypeRef;
+use super::{Constant, ConstantRef, Name};
 use std::fmt::{self, Display};
 
 #[derive(PartialEq, Clone, Debug)]

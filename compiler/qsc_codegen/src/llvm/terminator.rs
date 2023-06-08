@@ -1,9 +1,9 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-use crate::debugloc::{DebugLoc, HasDebugLoc};
-use crate::function::{Attribute, CallingConvention, ParameterAttribute};
-use crate::instruction::HasResult;
-use crate::{ConstantRef, Name, Operand};
+use super::debugloc::{DebugLoc, HasDebugLoc};
+use super::function::{Attribute, ParameterAttribute};
+use super::instruction::HasResult;
+use super::{ConstantRef, Name, Operand};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 
@@ -277,7 +277,6 @@ pub struct Invoke {
     pub return_label: Name, // Should be the name of a basic block. If the callee returns normally (i.e., with 'ret'), control flow resumes here.
     pub exception_label: Name, // Should be the name of a basic block. If the callee returns with 'resume' or another exception-handling mechanism, control flow resumes here.
     pub function_attributes: Vec<Attribute>, // llvm-hs has the equivalent of Vec<Either<GroupID, FunctionAttribute>>, but I'm not sure how the GroupID option comes up
-    pub calling_convention: CallingConvention,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -454,7 +453,6 @@ pub struct CallBr {
     /// `other_labels` should be `Vec<Name>`, but it appears there is no way to get this information with the LLVM C API (as opposed to the C++ API)
     pub other_labels: (), //Vec<Name>, // Should be names of basic blocks. The callee may use an inline-asm 'goto' to resume control flow at one of these places.
     pub function_attributes: Vec<Attribute>,
-    pub calling_convention: CallingConvention,
     pub debugloc: Option<DebugLoc>,
 }
 impl_term!(CallBr, CallBr);

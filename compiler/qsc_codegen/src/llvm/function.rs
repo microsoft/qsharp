@@ -1,10 +1,10 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::debugloc::{DebugLoc, HasDebugLoc};
-use crate::module::{Comdat, DLLStorageClass, Linkage, Visibility};
-use crate::types::{TypeRef, Types};
-use crate::{BasicBlock, ConstantRef, Name};
+use super::debugloc::{DebugLoc, HasDebugLoc};
+use super::module::{Comdat, DLLStorageClass, Linkage, Visibility};
+use super::types::{TypeRef, Types};
+use super::{BasicBlock, ConstantRef, Name};
 use std::fmt::{Display, Formatter, Result};
 
 /// See [LLVM 14 docs on Functions](https://releases.llvm.org/14.0.0/docs/LangRef.html#functions)
@@ -20,7 +20,6 @@ pub struct Function {
     pub linkage: Linkage,
     pub visibility: Visibility,
     pub dll_storage_class: DLLStorageClass, // llvm-hs-pure has Option<DLLStorageClass>, but the llvm_sys api doesn't look like it can fail
-    pub calling_convention: CallingConvention,
     pub section: Option<String>,
     pub comdat: Option<Comdat>, // llvm-hs-pure has Option<String>, I'm not sure why
     pub alignment: u32,
@@ -58,7 +57,6 @@ impl Function {
             linkage: Linkage::Private,
             visibility: Visibility::Default,
             dll_storage_class: DLLStorageClass::Default,
-            calling_convention: CallingConvention::C,
             section: None,
             comdat: None,
             alignment: 4,
@@ -94,7 +92,6 @@ pub struct Declaration {
     pub linkage: Linkage,
     pub visibility: Visibility,
     pub dll_storage_class: DLLStorageClass,
-    pub calling_convention: CallingConvention,
     pub alignment: u32,
     /// See [LLVM 14 docs on Garbage Collector Strategy Names](https://releases.llvm.org/14.0.0/docs/LangRef.html#gc)
     pub garbage_collector_name: Option<String>,
@@ -125,57 +122,6 @@ pub struct Parameter {
     pub name: Name,
     pub ty: TypeRef,
     pub attributes: Vec<ParameterAttribute>,
-}
-
-/// See [LLVM 14 docs on Calling Conventions](https://releases.llvm.org/14.0.0/docs/LangRef.html#callingconv)
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-#[allow(non_camel_case_types)]
-pub enum CallingConvention {
-    C,
-    Fast,
-    Cold,
-    GHC,
-    HiPE,
-    WebKit_JS,
-    AnyReg,
-    PreserveMost,
-    PreserveAll,
-    Swift,
-    CXX_FastTLS,
-    X86_StdCall,
-    X86_FastCall,
-    X86_RegCall,
-    X86_ThisCall,
-    X86_VectorCall,
-    X86_Intr,
-    X86_64_SysV,
-    ARM_APCS,
-    ARM_AAPCS,
-    ARM_AAPCS_VFP,
-    MSP430_INTR,
-    MSP430_Builtin,
-    PTX_Kernel,
-    PTX_Device,
-    SPIR_FUNC,
-    SPIR_KERNEL,
-    Intel_OCL_BI,
-    Win64,
-    HHVM,
-    HHVM_C,
-    AVR_Intr,
-    AVR_Signal,
-    AVR_Builtin,
-    AMDGPU_CS,
-    AMDGPU_ES,
-    AMDGPU_GS,
-    AMDGPU_HS,
-    AMDGPU_LS,
-    AMDGPU_PS,
-    AMDGPU_VS,
-    AMDGPU_Kernel,
-    /// This is used if LLVM returns a calling convention not in `LLVMCallConv`.
-    /// E.g., perhaps a calling convention was added to LLVM and this enum hasn't been updated yet.
-    Numbered(u32),
 }
 
 /// See [LLVM 14 docs on Function Attributes](https://releases.llvm.org/14.0.0/docs/LangRef.html#fnattrs)

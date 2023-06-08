@@ -1,33 +1,21 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 /// Many LLVM objects have a `Name`, which is either a string name, or just a
 /// sequential numbering (e.g. `%3`).
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Hash)]
 pub enum Name {
     /// has a string name
-    // with `Box`, the enum `Name` has size 16 bytes, vs with a `String`
-    // directly, the enum `Name` has size 32 bytes. This has implications also
-    // for the size of other important structures, such as `Operand`.
-    // `Name::Name` should be the less common case, so the `Box` shouldn't hurt
-    // much, and we'll have much better memory consumption and maybe better
-    // cache performance.
-    Name(Box<String>),
+    Name(Rc<str>),
     /// doesn't have a string name and was given this sequential number
     Number(usize),
 }
 
-impl From<String> for Name {
-    fn from(s: String) -> Self {
-        Name::Name(Box::new(s))
-    }
-}
-
 impl From<&str> for Name {
     fn from(s: &str) -> Self {
-        Name::Name(Box::new(s.into()))
+        Name::Name(s.into())
     }
 }
 

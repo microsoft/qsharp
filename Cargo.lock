@@ -832,7 +832,6 @@ version = "0.0.0"
 dependencies = [
  "qsc_frontend",
  "qsc_hir",
- "qsc_llvm",
 ]
 
 [[package]]
@@ -884,13 +883,6 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
-]
-
-[[package]]
-name = "qsc_llvm"
-version = "0.0.0"
-dependencies = [
- "qsc_hir",
 ]
 
 [[package]]

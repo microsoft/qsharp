@@ -1,8 +1,8 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::predicates::{FPPredicate, IntPredicate};
-use crate::types::{Type, TypeRef};
+use super::predicates::{FPPredicate, IntPredicate};
+use super::types::{Type, TypeRef};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::ops::Deref;
@@ -208,7 +208,7 @@ impl Display for Constant {
             Constant::Poison(ty) => write!(f, "{ty} poison"),
             Constant::GlobalReference { name, ty } => {
                 match ty.as_ref() {
-                    Type::FuncType { .. } => {
+                    Type::Func { .. } => {
                         // function types: just write the name, not the type
                         write!(f, "@{name}")
                     }

@@ -1,7 +1,7 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::module::AddrSpace;
+use super::module::AddrSpace;
 use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -15,20 +15,18 @@ use std::sync::Arc;
 #[allow(non_camel_case_types)]
 pub enum Type {
     /// See [LLVM 14 docs on Void Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#void-type)
-    VoidType,
+    Void,
     /// See [LLVM 14 docs on Integer Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#integer-type)
-    IntegerType {
-        bits: u32,
-    },
+    Integer { bits: u32 },
     /// See [LLVM 14 docs on Pointer Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#pointer-type)
-    PointerType {
+    Pointer {
         pointee_type: TypeRef,
         addr_space: AddrSpace,
     },
     /// See [LLVM 14 docs on Floating-Point Types](https://releases.llvm.org/14.0.0/docs/LangRef.html#floating-point-types)
-    FPType(FPType),
+    Fp(FPType),
     /// See [LLVM 14 docs on Function Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#function-type)
-    FuncType {
+    Func {
         result_type: TypeRef,
         param_types: Vec<TypeRef>,
         is_var_arg: bool,
@@ -36,7 +34,7 @@ pub enum Type {
     /// Vector types (along with integer, FP, pointer, X86_MMX, and X86_AMX types) are "first class types",
     /// which means they can be produced by instructions (see [LLVM 14 docs on First Class Types](https://releases.llvm.org/14.0.0/docs/LangRef.html#first-class-types)).
     /// See [LLVM 14 docs on Vector Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#vector-type)
-    VectorType {
+    Vector {
         element_type: TypeRef,
         num_elements: u32,
         scalable: bool,
@@ -44,45 +42,40 @@ pub enum Type {
     /// Struct and Array types (but not vector types) are "aggregate types" and cannot be produced by
     /// a single instruction (see [LLVM 14 docs on Aggregate Types](https://releases.llvm.org/14.0.0/docs/LangRef.html#aggregate-types)).
     /// See [LLVM 14 docs on Array Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#array-type)
-    ArrayType {
+    Array {
         element_type: TypeRef,
         num_elements: usize,
     },
     /// The `StructType` variant is used for a "literal" (i.e., anonymous) structure type.
     /// See [LLVM 14 docs on Structure Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#structure-type)
-    StructType {
+    Struct {
         element_types: Vec<TypeRef>,
         is_packed: bool,
     },
     /// Named structure types. Note that these may be self-referential (i.e., recursive).
     /// See [LLVM 14 docs on Structure Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#structure-type)
     /// To get the actual definition of a named structure type, use `module.types.named_struct_def()`.
-    NamedStructType {
+    NamedStruct {
         /// Name of the struct type
         name: String, // llvm-hs-pure has Name rather than String
     },
-    /// See [LLVM 14 docs on X86_MMX Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#x86-mmx-type)
-    X86_MMXType,
-    // As of this writing, although X86_AMX type definitely exists in LLVM 12+,
-    // it doesn't appear to be documented in the LangRef
-    X86_AMXType,
     /// See [LLVM 14 docs on Metadata Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#metadata-type)
-    MetadataType,
+    Metadata,
     /// `LabelType` is the type of [`BasicBlock`](../struct.BasicBlock.html) labels.
     /// See [LLVM 14 docs on Label Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#label-type)
-    LabelType,
+    Label,
     /// See [LLVM 14 docs on Token Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#token-type)
-    TokenType,
+    Token,
 }
 
 impl Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Type::VoidType => write!(f, "void"),
-            Type::IntegerType { bits } => write!(f, "i{bits}"),
-            Type::PointerType { pointee_type, .. } => write!(f, "{pointee_type}*"),
-            Type::FPType(fpt) => write!(f, "{fpt}"),
-            Type::FuncType {
+            Type::Void => write!(f, "void"),
+            Type::Integer { bits } => write!(f, "i{bits}"),
+            Type::Pointer { pointee_type, .. } => write!(f, "{pointee_type}*"),
+            Type::Fp(fpt) => write!(f, "{fpt}"),
+            Type::Func {
                 result_type,
                 param_types,
                 is_var_arg,
@@ -101,7 +94,7 @@ impl Display for Type {
                 write!(f, ")")?;
                 Ok(())
             }
-            Type::VectorType {
+            Type::Vector {
                 element_type,
                 num_elements,
                 scalable,
@@ -112,11 +105,11 @@ impl Display for Type {
                     write!(f, "<{num_elements} x {element_type}>")
                 }
             }
-            Type::ArrayType {
+            Type::Array {
                 element_type,
                 num_elements,
             } => write!(f, "[{num_elements} x {element_type}]"),
-            Type::StructType {
+            Type::Struct {
                 element_types,
                 is_packed,
             } => {
@@ -137,12 +130,10 @@ impl Display for Type {
                 }
                 Ok(())
             }
-            Type::NamedStructType { name } => write!(f, "%{name}"),
-            Type::X86_MMXType => write!(f, "x86_mmx"),
-            Type::X86_AMXType => write!(f, "x86_amx"),
-            Type::MetadataType => write!(f, "metadata"),
-            Type::LabelType => write!(f, "label"),
-            Type::TokenType => write!(f, "token"),
+            Type::NamedStruct { name } => write!(f, "%{name}"),
+            Type::Metadata => write!(f, "metadata"),
+            Type::Label => write!(f, "label"),
+            Type::Token => write!(f, "token"),
         }
     }
 }
@@ -162,7 +153,7 @@ pub enum FPType {
 
 impl From<FPType> for Type {
     fn from(fpt: FPType) -> Type {
-        Type::FPType(fpt)
+        Type::Fp(fpt)
     }
 }
 
@@ -243,10 +234,6 @@ pub struct Builder {
     named_struct_types: TypeCache<String>,
     /// Map of struct name to the corresponding `NamedStructDef`
     named_struct_defs: HashMap<String, NamedStructDef>,
-    /// `TypeRef` to `Type::X86_MMXType`
-    x86_mmx_type: TypeRef,
-    /// `TypeRef` to `Type::X86_AMXType`
-    x86_amx_type: TypeRef,
     /// `TypeRef` to `Type::MetadataType`
     metadata_type: TypeRef,
     /// `TypeRef` to `Type::LabelType`
@@ -265,7 +252,7 @@ impl Builder {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            void_type: TypeRef::new(Type::VoidType),
+            void_type: TypeRef::new(Type::Void),
             int_types: TypeCache::new(),
             pointer_types: TypeCache::new(),
             fp_types: TypeCache::new(),
@@ -275,11 +262,9 @@ impl Builder {
             struct_types: TypeCache::new(),
             named_struct_types: TypeCache::new(),
             named_struct_defs: HashMap::new(),
-            x86_mmx_type: TypeRef::new(Type::X86_MMXType),
-            x86_amx_type: TypeRef::new(Type::X86_AMXType),
-            metadata_type: TypeRef::new(Type::MetadataType),
-            label_type: TypeRef::new(Type::LabelType),
-            token_type: TypeRef::new(Type::TokenType),
+            metadata_type: TypeRef::new(Type::Metadata),
+            label_type: TypeRef::new(Type::Label),
+            token_type: TypeRef::new(Type::Token),
         }
     }
 
@@ -299,8 +284,6 @@ impl Builder {
             struct_types: self.struct_types,
             named_struct_types: self.named_struct_types,
             named_struct_defs: self.named_struct_defs,
-            x86_mmx_type: self.x86_mmx_type,
-            x86_amx_type: self.x86_amx_type,
             metadata_type: self.metadata_type,
             label_type: self.label_type,
             token_type: self.token_type,
@@ -320,7 +303,7 @@ impl Builder {
     /// Get the integer type of the specified size (in bits)
     pub fn int(&mut self, bits: u32) -> TypeRef {
         self.int_types
-            .lookup_or_insert(bits, || Type::IntegerType { bits })
+            .lookup_or_insert(bits, || Type::Integer { bits })
     }
 
     /// Get the boolean type (`i1`)
@@ -360,7 +343,7 @@ impl Builder {
         addr_space: AddrSpace,
     ) -> TypeRef {
         self.pointer_types
-            .lookup_or_insert((pointee_type.clone(), addr_space), || Type::PointerType {
+            .lookup_or_insert((pointee_type.clone(), addr_space), || Type::Pointer {
                 pointee_type,
                 addr_space,
             })
@@ -368,7 +351,7 @@ impl Builder {
 
     /// Get a floating-point type
     pub fn fp(&mut self, fpt: FPType) -> TypeRef {
-        self.fp_types.lookup_or_insert(fpt, || Type::FPType(fpt))
+        self.fp_types.lookup_or_insert(fpt, || Type::Fp(fpt))
     }
 
     /// Get the single-precision floating-point type
@@ -390,7 +373,7 @@ impl Builder {
     ) -> TypeRef {
         self.func_types.lookup_or_insert(
             (result_type.clone(), param_types.clone(), is_var_arg),
-            || Type::FuncType {
+            || Type::Func {
                 result_type,
                 param_types,
                 is_var_arg,
@@ -407,7 +390,7 @@ impl Builder {
     ) -> TypeRef {
         self.vec_types.lookup_or_insert(
             (element_type.clone(), num_elements as usize, scalable),
-            || Type::VectorType {
+            || Type::Vector {
                 element_type,
                 num_elements,
                 scalable,
@@ -418,7 +401,7 @@ impl Builder {
     /// Get an array type
     pub fn array_of(&mut self, element_type: TypeRef, num_elements: usize) -> TypeRef {
         self.arr_types
-            .lookup_or_insert((element_type.clone(), num_elements), || Type::ArrayType {
+            .lookup_or_insert((element_type.clone(), num_elements), || Type::Array {
                 element_type,
                 num_elements,
             })
@@ -427,7 +410,7 @@ impl Builder {
     /// Get a struct type
     pub fn struct_of(&mut self, element_types: Vec<TypeRef>, is_packed: bool) -> TypeRef {
         self.struct_types
-            .lookup_or_insert((element_types.clone(), is_packed), || Type::StructType {
+            .lookup_or_insert((element_types.clone(), is_packed), || Type::Struct {
                 element_types,
                 is_packed,
             })
@@ -440,7 +423,7 @@ impl Builder {
     /// use `named_struct_def()`.
     pub fn named_struct(&mut self, name: String) -> TypeRef {
         self.named_struct_types
-            .lookup_or_insert(name.clone(), || Type::NamedStructType { name })
+            .lookup_or_insert(name.clone(), || Type::NamedStruct { name })
     }
 
     /// Get the `NamedStructDef` for the struct with the given `name`.
@@ -469,18 +452,6 @@ impl Builder {
                 ventry.insert(def);
             }
         }
-    }
-
-    /// Get the `X86_MMX` type
-    #[must_use]
-    pub fn x86_mmx(&self) -> TypeRef {
-        self.x86_mmx_type.clone()
-    }
-
-    /// Get the `X86_AMX` type
-    #[must_use]
-    pub fn x86_amx(&self) -> TypeRef {
-        self.x86_amx_type.clone()
     }
 
     /// Get the metadata type
@@ -546,10 +517,6 @@ pub struct Types {
     named_struct_types: TypeCache<String>,
     /// Map of struct name to the corresponding `NamedStructDef`
     named_struct_defs: HashMap<String, NamedStructDef>,
-    /// `TypeRef` to `Type::X86_MMXType`
-    x86_mmx_type: TypeRef,
-    /// `TypeRef` to `Type::X86_AMXType`
-    x86_amx_type: TypeRef,
     /// `TypeRef` to `Type::MetadataType`
     metadata_type: TypeRef,
     /// `TypeRef` to `Type::LabelType`
@@ -570,7 +537,7 @@ impl Types {
     pub fn int(&self, bits: u32) -> TypeRef {
         self.int_types
             .lookup(&bits)
-            .unwrap_or_else(|| TypeRef::new(Type::IntegerType { bits }))
+            .unwrap_or_else(|| TypeRef::new(Type::Integer { bits }))
     }
 
     /// Get the boolean type (`i1`)
@@ -615,7 +582,7 @@ impl Types {
         self.pointer_types
             .lookup(&(pointee_type.clone(), addr_space))
             .unwrap_or_else(|| {
-                TypeRef::new(Type::PointerType {
+                TypeRef::new(Type::Pointer {
                     pointee_type,
                     addr_space,
                 })
@@ -627,7 +594,7 @@ impl Types {
     pub fn fp(&self, fpt: FPType) -> TypeRef {
         self.fp_types
             .lookup(&fpt)
-            .unwrap_or_else(|| TypeRef::new(Type::FPType(fpt)))
+            .unwrap_or_else(|| TypeRef::new(Type::Fp(fpt)))
     }
 
     /// Get the single-precision floating-point type
@@ -653,7 +620,7 @@ impl Types {
         self.func_types
             .lookup(&(result_type.clone(), param_types.clone(), is_var_arg))
             .unwrap_or_else(|| {
-                TypeRef::new(Type::FuncType {
+                TypeRef::new(Type::Func {
                     result_type,
                     param_types,
                     is_var_arg,
@@ -667,7 +634,7 @@ impl Types {
         self.vec_types
             .lookup(&(element_type.clone(), num_elements as usize, scalable))
             .unwrap_or_else(|| {
-                TypeRef::new(Type::VectorType {
+                TypeRef::new(Type::Vector {
                     element_type,
                     num_elements,
                     scalable,
@@ -681,7 +648,7 @@ impl Types {
         self.arr_types
             .lookup(&(element_type.clone(), num_elements))
             .unwrap_or_else(|| {
-                TypeRef::new(Type::ArrayType {
+                TypeRef::new(Type::Array {
                     element_type,
                     num_elements,
                 })
@@ -694,7 +661,7 @@ impl Types {
         self.struct_types
             .lookup(&(element_types.clone(), is_packed))
             .unwrap_or_else(|| {
-                TypeRef::new(Type::StructType {
+                TypeRef::new(Type::Struct {
                     element_types,
                     is_packed,
                 })
@@ -710,7 +677,7 @@ impl Types {
     pub fn named_struct(&self, name: &str) -> TypeRef {
         self.named_struct_types
             .lookup(name)
-            .unwrap_or_else(|| TypeRef::new(Type::NamedStructType { name: name.into() }))
+            .unwrap_or_else(|| TypeRef::new(Type::NamedStruct { name: name.into() }))
     }
 
     /// Get the `NamedStructDef` for the struct with the given `name`, or
@@ -751,18 +718,6 @@ impl Types {
         self.named_struct_defs.remove(name).is_some()
     }
 
-    /// Get the `X86_MMX` type
-    #[must_use]
-    pub fn x86_mmx(&self) -> TypeRef {
-        self.x86_mmx_type.clone()
-    }
-
-    /// Get the `X86_AMX` type
-    #[must_use]
-    pub fn x86_amx(&self) -> TypeRef {
-        self.x86_amx_type.clone()
-    }
-
     /// Get the metadata type
     #[must_use]
     pub fn metadata_type(&self) -> TypeRef {
@@ -785,37 +740,35 @@ impl Types {
     #[must_use]
     pub fn get_for_type(&self, ty: &Type) -> TypeRef {
         match ty {
-            Type::VoidType => self.void(),
-            Type::IntegerType { bits } => self.int(*bits),
-            Type::PointerType {
+            Type::Void => self.void(),
+            Type::Integer { bits } => self.int(*bits),
+            Type::Pointer {
                 pointee_type,
                 addr_space,
             } => self.pointer_in_addr_space(pointee_type.clone(), *addr_space),
-            Type::FPType(fpt) => self.fp(*fpt),
-            Type::FuncType {
+            Type::Fp(fpt) => self.fp(*fpt),
+            Type::Func {
                 result_type,
                 param_types,
                 is_var_arg,
             } => self.func_type(result_type.clone(), param_types.clone(), *is_var_arg),
-            Type::VectorType {
+            Type::Vector {
                 element_type,
                 num_elements,
                 scalable,
             } => self.vector_of(element_type.clone(), *num_elements, *scalable),
-            Type::ArrayType {
+            Type::Array {
                 element_type,
                 num_elements,
             } => self.array_of(element_type.clone(), *num_elements),
-            Type::StructType {
+            Type::Struct {
                 element_types,
                 is_packed,
             } => self.struct_of(element_types.clone(), *is_packed),
-            Type::NamedStructType { name } => self.named_struct(name),
-            Type::X86_MMXType => self.x86_mmx(),
-            Type::X86_AMXType => self.x86_amx(),
-            Type::MetadataType => self.metadata_type(),
-            Type::LabelType => self.label_type(),
-            Type::TokenType => self.token_type(),
+            Type::NamedStruct { name } => self.named_struct(name),
+            Type::Metadata => self.metadata_type(),
+            Type::Label => self.label_type(),
+            Type::Token => self.token_type(),
         }
     }
 }
