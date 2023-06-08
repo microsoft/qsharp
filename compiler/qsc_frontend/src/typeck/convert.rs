@@ -154,41 +154,41 @@ pub(crate) fn synthesize_callable_generics(
     params
 }
 
-fn synthesize_functor_params(next_functor: &mut ParamId, ty: &mut Ty) -> Vec<GenericParam> {
+fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<GenericParam> {
     match ty {
-        Ty::Array(item) => synthesize_functor_params(next_functor, item),
+        Ty::Array(item) => synthesize_functor_params(next_param, item),
         Ty::Arrow(arrow) => match arrow.functors {
             FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
                 let param = GenericParam {
-                    name: ParamName::Id(*next_functor),
+                    name: ParamName::Id(*next_param),
                     kind: ParamKind::Functor(functors),
                 };
-                arrow.functors = FunctorSet::Param(*next_functor);
-                *next_functor = next_functor.successor();
+                arrow.functors = FunctorSet::Param(*next_param);
+                *next_param = next_param.successor();
                 vec![param]
             }
             _ => Vec::new(),
         },
         Ty::Tuple(items) => items
             .iter_mut()
-            .flat_map(|item| synthesize_functor_params(next_functor, item))
+            .flat_map(|item| synthesize_functor_params(next_param, item))
             .collect(),
         Ty::Infer(_) | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) | Ty::Err => Vec::new(),
     }
 }
 
 fn synthesize_functor_params_in_pat(
-    next_functor: &mut ParamId,
+    next_param: &mut ParamId,
     pat: &mut hir::Pat,
 ) -> Vec<GenericParam> {
     match &mut pat.kind {
         hir::PatKind::Discard | hir::PatKind::Bind(_) | hir::PatKind::Elided => {
-            synthesize_functor_params(next_functor, &mut pat.ty)
+            synthesize_functor_params(next_param, &mut pat.ty)
         }
         hir::PatKind::Tuple(items) => {
             let mut params = Vec::new();
             for item in items.iter_mut() {
-                params.append(&mut synthesize_functor_params_in_pat(next_functor, item));
+                params.append(&mut synthesize_functor_params_in_pat(next_param, item));
             }
             if !params.is_empty() {
                 pat.ty = Ty::Tuple(items.iter().map(|i| i.ty.clone()).collect());
