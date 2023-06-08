@@ -7,14 +7,45 @@ use qsc::interpret::Value;
 // Tests for Microsoft.Quantum.Convert namespace
 
 #[test]
+fn check_big_int_as_bool_array() {
+    test_expression(
+        "Microsoft.Quantum.Convert.BigIntAsBoolArray(5L)",
+        &Value::Array(
+            vec![
+                Value::Bool(true),
+                Value::Bool(false),
+                Value::Bool(true),
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+                Value::Bool(false),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Convert.BigIntAsBoolArray(-1L)",
+        &Value::Array(
+            vec![
+                Value::Bool(true),
+                Value::Bool(true),
+                Value::Bool(true),
+                Value::Bool(true),
+                Value::Bool(true),
+                Value::Bool(true),
+                Value::Bool(true),
+                Value::Bool(true),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
 fn check_bool_array_as_int() {
     test_expression(
-        {
-            "{
-            let b = [true, false, true, false];
-            return Microsoft.Quantum.Convert.BoolArrayAsInt(b);
-        }"
-        },
+        "Microsoft.Quantum.Convert.BoolArrayAsInt([true, false, true, false])",
         &Value::Int(0b0101),
     );
 }
@@ -22,11 +53,7 @@ fn check_bool_array_as_int() {
 #[test]
 fn check_int_as_bool_array() {
     test_expression(
-        {
-            "{
-            return Microsoft.Quantum.Convert.IntAsBoolArray(5,4);
-        }"
-        },
+        "Microsoft.Quantum.Convert.IntAsBoolArray(5,4)",
         &Value::Array(
             vec![
                 Value::Bool(true),
@@ -42,12 +69,7 @@ fn check_int_as_bool_array() {
 #[test]
 fn check_result_array_as_int() {
     test_expression(
-        {
-            "{
-            let b = [One, Zero, One, Zero];
-            return Microsoft.Quantum.Convert.ResultArrayAsInt(b);
-        }"
-        },
+        "Microsoft.Quantum.Convert.ResultArrayAsInt([One, Zero, One, Zero])",
         &Value::Int(0b0101),
     );
 }
@@ -55,12 +77,7 @@ fn check_result_array_as_int() {
 #[test]
 fn check_result_array_as_bool_array() {
     test_expression(
-        {
-            "{
-            let r = [One, Zero, One, Zero];
-            return Microsoft.Quantum.Convert.ResultArrayAsBoolArray(r);
-        }"
-        },
+        "Microsoft.Quantum.Convert.ResultArrayAsBoolArray([One, Zero, One, Zero])",
         &Value::Array(
             vec![
                 Value::Bool(true),
@@ -76,12 +93,7 @@ fn check_result_array_as_bool_array() {
 #[test]
 fn check_bool_array_as_result_array() {
     test_expression(
-        {
-            "{
-            let b = [true, false, true, false];
-            return Microsoft.Quantum.Convert.BoolArrayAsResultArray(b);
-        }"
-        },
+        "Microsoft.Quantum.Convert.BoolArrayAsResultArray([true, false, true, false])",
         &Value::Array(
             vec![
                 Value::Result(true),

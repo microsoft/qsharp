@@ -6,16 +6,62 @@ namespace Microsoft.Quantum.Convert {
 
     /// # Summary
     /// Converts a given integer to an equivalent double-precision floating-point number.
-    function IntAsDouble(a : Int) : Double {
+    function IntAsDouble(number : Int) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Converts a given integer to an equivalent big integer.
-    function IntAsBigInt(a : Int) : BigInt {
+    function IntAsBigInt(number : Int) : BigInt {
         body intrinsic;
     }
 
+    /// # Summary
+    /// Converts a given Big Integer to an array of Booleans.
+    /// The first element of the array is the least significant bit of the big integer.
+    function BigIntAsBoolArray(number : BigInt) : Bool[] {
+        // To use two's complement, little endian representation of the integer, we fisrt need to track if the input
+        // is a negative number. If so, flip it back to positive and start tracking a carry bit.
+        let isNegative = number < 0L;
+        mutable carry = isNegative;
+        mutable currentValue = isNegative ? -number | number;
+
+        mutable array = [];
+        while currentValue != 0L {
+            let newBit = currentValue % 2L == 1L;
+            if isNegative {
+                // For negative numbers we must invert the calculated bit, so treat "true" as "0"
+                // and "false" as "1". This means when the carry bit is set, we want to record the
+                // calculated new bit and set the carry to the opposite, otherwise record the opposite
+                // of the calculate bit.
+                if carry {
+                    set array += [newBit];
+                    set carry = not newBit;
+                }
+                else {
+                    set array += [not newBit];
+                }
+            }
+            else {
+                // For positive numbers just accumulate the calculated bits into the array.
+                set array += [newBit];
+            }
+
+            set currentValue /= 2L;
+        }
+
+        // Pad to the next higher byte size (8) if the number of bits is not a non-zero multiple of 8 or
+        // if the last bit does not agree with the sign bit.
+        let byteSize = 8;
+        let numberOfBits = Length(array);
+        let numberOfRemainingBits = numberOfBits % byteSize;
+        if numberOfBits == 0 or numberOfRemainingBits != 0 or array[numberOfBits - 1] != isNegative {
+            let padSize = byteSize - numberOfRemainingBits;
+            set array += Repeated(isNegative, padSize);
+        }
+        
+        array
+    }
 
     /// # Summary
     /// Produces a non-negative integer from a string of bits in little endian format.

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Arrays {
+    open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
 
@@ -978,6 +979,41 @@ namespace Microsoft.Quantum.Arrays {
         for index in from .. to {
             set array += [index];
         }
+        array
+    }
+
+    /// # Summary
+    /// Get an array of integers in a given interval.
+    ///
+    /// # Input
+    /// ## from
+    /// An inclusive start index of the interval.
+    /// ## to
+    /// An inclusive end index of the interval that is not smaller than `from`.
+    ///
+    /// # Output
+    /// An array containing the sequence of numbers `from`, `from + 1`, ...,
+    /// `to`.
+    ///
+    /// # Remarks
+    /// The difference between `from` and `to` must fit into an `Int` value.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// let arr1 = SequenceL(0L, 3L); // [0L, 1L, 2L, 3L]
+    /// let arr2 = SequenceL(23L, 29L); // [23L, 24L, 25L, 26L, 27L, 28L, 29L]
+    /// let arr3 = SequenceL(-5L, -2L); // [-5L, -4L, -3L, -2L]
+    /// ```
+    function SequenceL (from : BigInt, to : BigInt) : BigInt[] {
+        Fact(to >= from, "`to` must be larger than `from`");
+        Fact(to - from <= 0x07FFFFFFFFFFFFFFEL, $"difference between `to` and `from` is too large");
+
+        let delta = BoolArrayAsInt(BigIntAsBoolArray(to - from));
+        mutable array = [];
+        for step in 0 .. delta {
+            set array += [from + IntAsBigInt(step)];
+        }
+
         array
     }
 
