@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{attr, item, namespaces, spec_decl};
-use crate::parse::tests::{check, check_vec};
+use crate::tests::{check, check_vec};
 use expect_test::expect;
 
 #[test]
@@ -57,13 +57,15 @@ fn spec_gen_missing_semi() {
         "body intrinsic",
         &expect![[r#"
             Err(
-                Token(
-                    Semi,
-                    Eof,
-                    Span {
-                        lo: 14,
-                        hi: 14,
-                    },
+                Error(
+                    Token(
+                        Semi,
+                        Eof,
+                        Span {
+                            lo: 14,
+                            hi: 14,
+                        },
+                    ),
                 ),
             )
         "#]],
@@ -77,15 +79,17 @@ fn spec_invalid_gen() {
         "adjoint foo;",
         &expect![[r#"
             Err(
-                Token(
-                    Open(
-                        Brace,
+                Error(
+                    Token(
+                        Open(
+                            Brace,
+                        ),
+                        Semi,
+                        Span {
+                            lo: 11,
+                            hi: 12,
+                        },
                     ),
-                    Semi,
-                    Span {
-                        lo: 11,
-                        hi: 12,
-                    },
                 ),
             )
         "#]],
@@ -157,13 +161,15 @@ fn ty_def_invalid_field_name() {
         "newtype Foo = Bar.Baz : Int[];",
         &expect![[r#"
             Err(
-                Convert(
-                    "identifier",
-                    "type",
-                    Span {
-                        lo: 14,
-                        hi: 21,
-                    },
+                Error(
+                    Convert(
+                        "identifier",
+                        "type",
+                        Span {
+                            lo: 14,
+                            hi: 21,
+                        },
+                    ),
                 ),
             )
         "#]],
@@ -494,15 +500,17 @@ fn function_missing_output_ty() {
         "function Foo() { body intrinsic; }",
         &expect![[r#"
             Err(
-                Token(
-                    Colon,
-                    Open(
-                        Brace,
+                Error(
+                    Token(
+                        Colon,
+                        Open(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 15,
+                            hi: 16,
+                        },
                     ),
-                    Span {
-                        lo: 15,
-                        hi: 16,
-                    },
                 ),
             )
         "#]],

@@ -4,7 +4,6 @@
 use crate::{
     compile::PackageStore,
     lower::{self, Lowerer},
-    parse,
     resolve::{self, Resolver},
     typeck::{self, Checker},
 };
@@ -25,7 +24,7 @@ pub struct Error(ErrorKind);
 #[diagnostic(transparent)]
 enum ErrorKind {
     #[error("syntax error")]
-    Parse(#[from] parse::Error),
+    Parse(#[from] qsc_parse::Error),
     #[error("name error")]
     Resolve(#[from] resolve::Error),
     #[error("type error")]
@@ -74,7 +73,7 @@ impl Compiler {
     }
 
     pub fn compile_fragments(&mut self, input: &str) -> Vec<Fragment> {
-        let (fragments, errors) = parse::fragments(input);
+        let (fragments, errors) = qsc_parse::fragments(input);
         if !errors.is_empty() {
             return vec![Fragment::Error(
                 errors
@@ -90,12 +89,12 @@ impl Compiler {
             .collect()
     }
 
-    fn compile_fragment(&mut self, fragment: parse::Fragment) -> Vec<Fragment> {
+    fn compile_fragment(&mut self, fragment: qsc_parse::Fragment) -> Vec<Fragment> {
         let fragment = match fragment {
-            parse::Fragment::Namespace(namespace) => {
+            qsc_parse::Fragment::Namespace(namespace) => {
                 self.compile_namespace(namespace).err().map(Fragment::Error)
             }
-            parse::Fragment::Stmt(stmt) => self.compile_stmt(*stmt),
+            qsc_parse::Fragment::Stmt(stmt) => self.compile_stmt(*stmt),
         };
 
         if matches!(fragment, Some(Fragment::Error(..))) {

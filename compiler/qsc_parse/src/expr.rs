@@ -13,8 +13,12 @@ use super::{
     scan::Scanner,
     stmt, Error, Result,
 };
-use crate::lex::{
-    ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token, TokenKind,
+use crate::{
+    lex::{
+        ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
+        TokenKind,
+    },
+    ErrorKind,
 };
 use num_bigint::BigInt;
 use num_traits::Num;
@@ -200,7 +204,11 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
     } else if let Some(p) = opt(s, path)? {
         Ok(Box::new(ExprKind::Path(p)))
     } else {
-        Err(Error::Rule("expression", s.peek().kind, s.peek().span))
+        Err(Error(ErrorKind::Rule(
+            "expression",
+            s.peek().kind,
+            s.peek().span,
+        )))
     }?;
 
     Ok(Box::new(Expr {
@@ -248,11 +256,11 @@ fn expr_set(s: &mut Scanner) -> Result<Box<ExprKind>> {
         let rhs = expr(s)?;
         Ok(Box::new(ExprKind::AssignOp(closed_bin_op(op), lhs, rhs)))
     } else {
-        Err(Error::Rule(
+        Err(Error(ErrorKind::Rule(
             "assignment operator",
             s.peek().kind,
             s.peek().span,
-        ))
+        )))
     }
 }
 
@@ -307,7 +315,10 @@ fn expr_range_prefix(s: &mut Scanner) -> Result<Box<ExprKind>> {
 fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     let token = s.peek();
     let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
-        token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
+        token.kind
+    else {
+        return Err(Error(ErrorKind::Rule("interpolated string", token.kind, token.span)));
+    };
 
     let mut components = Vec::new();
     let lit = shorten(2, 1, s.read());
@@ -321,7 +332,10 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
 
         let token = s.peek();
         let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
-            token.kind else { return Err(Error::Rule("interpolated string", token.kind, token.span)); };
+            token.kind
+        else {
+            return Err(Error(ErrorKind::Rule("interpolated string", token.kind, token.span)));
+        };
 
         let lit = shorten(1, 1, s.read());
         if !lit.is_empty() {
@@ -366,20 +380,20 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
             let lexeme = &lexeme[offset..lexeme.len() - 1]; // Slice off prefix and suffix.
             let value = BigInt::from_str_radix(lexeme, radix.into())
-                .map_err(|_| Error::Lit("big-integer", token.span))?;
+                .map_err(|_| Error(ErrorKind::Lit("big-integer", token.span)))?;
             Ok(Some(Lit::BigInt(Box::new(value))))
         }
         TokenKind::Float => {
             let lexeme = lexeme.replace('_', "");
             let value = lexeme
                 .parse()
-                .map_err(|_| Error::Lit("floating-point", token.span))?;
+                .map_err(|_| Error(ErrorKind::Lit("floating-point", token.span)))?;
             Ok(Some(Lit::Double(value)))
         }
         TokenKind::Int(radix) => {
             let offset = if radix == Radix::Decimal { 0 } else { 2 };
             let value = lit_int(&lexeme[offset..], radix.into())
-                .ok_or(Error::Lit("integer", token.span))?;
+                .ok_or(Error(ErrorKind::Lit("integer", token.span)))?;
             Ok(Some(Lit::Int(value)))
         }
         TokenKind::String(StringToken::Normal) => {
@@ -392,7 +406,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                 let index: u32 = index.try_into().expect("index should fit into u32");
                 let lo = token.span.lo + index + 2;
                 let span = Span { lo, hi: lo + 1 };
-                Error::Escape(ch, span)
+                Error(ErrorKind::Escape(ch, span))
             })?;
             Ok(Some(Lit::String(string.into())))
         }
@@ -667,7 +681,11 @@ fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
                 .collect::<Result<_>>()?;
             Ok(PatKind::Tuple(pats))
         }
-        _ => Err(Error::Convert("pattern", "expression", expr.span)),
+        _ => Err(Error(ErrorKind::Convert(
+            "pattern",
+            "expression",
+            expr.span,
+        ))),
     }?);
 
     Ok(Box::new(Pat {
