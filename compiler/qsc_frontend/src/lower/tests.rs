@@ -1457,3 +1457,56 @@ fn partial_app_hole_as_callee() {
                         ctl-adj: <none>"#]],
     );
 }
+
+#[test]
+fn invalid_elided() {
+    check_errors(
+        indoc! {r#"
+            namespace input {
+                operation Foo() : Unit {
+                    let ... = 3;
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidElidedPat(
+                    Span {
+                        lo: 59,
+                        hi: 62,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn invalid_spec_pat() {
+    check_errors(
+        indoc! {r#"
+            namespace input {
+                operation Foo() : Unit is Ctl {
+                    body bar {}
+                    controlled (foo, bar) {}
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidSpecPat(
+                    Span {
+                        lo: 67,
+                        hi: 70,
+                    },
+                ),
+                InvalidSpecPat(
+                    Span {
+                        lo: 93,
+                        hi: 103,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
