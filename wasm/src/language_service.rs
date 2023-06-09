@@ -28,7 +28,7 @@ impl Log for Logger {
 }
 
 #[wasm_bindgen]
-pub struct LanguageService(language_service::LanguageService<'static>);
+pub struct LanguageService(qsls::LanguageService<'static>);
 
 #[wasm_bindgen]
 impl LanguageService {
@@ -43,7 +43,7 @@ impl LanguageService {
         }));
 
         let diagnostics_callback = diagnostics_callback.clone();
-        let inner = language_service::LanguageService::new(
+        let inner = qsls::LanguageService::new(
             move |uri: &str, version: u32, errors: &[compile::Error]| {
                 let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
                 diagnostics_callback
@@ -77,10 +77,10 @@ impl LanguageService {
                 .map(|i| CompletionItem {
                     label: i.label,
                     kind: (match i.kind {
-                        language_service::completion::CompletionItemKind::Function => "function",
-                        language_service::completion::CompletionItemKind::Module => "module",
-                        language_service::completion::CompletionItemKind::Keyword => "keyword",
-                        language_service::completion::CompletionItemKind::Issue => "issue",
+                        qsls::completion::CompletionItemKind::Function => "function",
+                        qsls::completion::CompletionItemKind::Module => "module",
+                        qsls::completion::CompletionItemKind::Keyword => "keyword",
+                        qsls::completion::CompletionItemKind::Issue => "issue",
                     })
                     .to_string(),
                 })

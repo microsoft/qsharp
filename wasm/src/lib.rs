@@ -6,12 +6,14 @@ use katas::{run_kata, KATA_ENTRY};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
+    compile,
     interpret::{
         output::{self, Receiver},
         stateless,
     },
-    SourceMap,
+    PackageStore, SourceMap,
 };
+use qsc_hir::hir::PackageId;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
@@ -150,6 +152,25 @@ pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
     Ok(serde_wasm_bindgen::to_value(&hir)?)
 }
 
+fn compile(code: &str) -> (qsc::hir::Package, Vec<VSDiagnostic>) {
+    thread_local! {
+        static STORE_STD: (PackageStore, PackageId) = {
+            let mut store = PackageStore::new(compile::core());
+            let std = store.insert(compile::std(&store));
+            (store, std)
+        };
+    }
+
+    STORE_STD.with(|(store, std)| {
+        let sources = SourceMap::new([("code".into(), code.into())], None);
+        let (unit, errors) = compile::compile(store, &[*std], sources);
+        (
+            unit.package,
+            errors.into_iter().map(|error| (&error).into()).collect(),
+        )
+    })
+}
+
 #[wasm_bindgen]
 pub fn run(
     code: &str,
@@ -224,7 +245,7 @@ mod test {
         let code = "namespace input { operation Foo(a) : Unit {} }";
         let mut error_callback_called = false;
         {
-            let mut lang_serv = language_service::LanguageService::new(
+            let mut lang_serv = qsls::LanguageService::new(
                 |_: &str, _: u32, diagnostics: &[Error]| {
                     error_callback_called = true;
                     assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
