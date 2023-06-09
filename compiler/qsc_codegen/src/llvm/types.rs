@@ -1,6 +1,8 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use qsc_hir::hir::{PrimTy, Ty};
+
 use super::module::AddrSpace;
 use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
@@ -268,32 +270,34 @@ impl Builder {
         }
     }
 
-    /// Consumes the `TypesBuilder`, producing a `Types`.
-    /// This should be done when no new types are expected to be added;
-    /// and it allows type lookups without &mut self.
+    /// Get the LLVM type corresponding to the given HIR type
     #[must_use]
-    pub fn build(self) -> Types {
-        Types {
-            void_type: self.void_type,
-            int_types: self.int_types,
-            pointer_types: self.pointer_types,
-            fp_types: self.fp_types,
-            func_types: self.func_types,
-            vec_types: self.vec_types,
-            arr_types: self.arr_types,
-            struct_types: self.struct_types,
-            named_struct_types: self.named_struct_types,
-            named_struct_defs: self.named_struct_defs,
-            metadata_type: self.metadata_type,
-            label_type: self.label_type,
-            token_type: self.token_type,
+    pub fn map_ty(&mut self, ty: &Ty) -> TypeRef {
+        match ty {
+            Ty::Array(_) => todo!(),
+            Ty::Arrow(_) => todo!(),
+            Ty::Infer(_) => todo!(),
+            Ty::Param(_) => todo!(),
+            Ty::Prim(prim) => match prim {
+                PrimTy::BigInt => todo!(),
+                PrimTy::Bool => self.bool(),
+                PrimTy::Double => todo!(),
+                PrimTy::Int => self.i64(),
+                PrimTy::Pauli => self.int(2),
+                PrimTy::Qubit => todo!(),
+                PrimTy::Range => todo!(),
+                PrimTy::RangeTo => todo!(),
+                PrimTy::RangeFrom => todo!(),
+                PrimTy::RangeFull => todo!(),
+                PrimTy::Result => todo!(),
+                PrimTy::String => todo!(),
+            },
+            Ty::Tuple(_) => todo!(),
+            Ty::Udt(_) => todo!(),
+            Ty::Err => todo!(),
         }
     }
-}
 
-// some of these methods might not currently be used, that's fine
-#[allow(dead_code)]
-impl Builder {
     /// Get the void type
     #[must_use]
     pub fn void(&self) -> TypeRef {
@@ -479,308 +483,6 @@ pub enum NamedStructDef {
     Opaque,
     /// A struct type with a definition. The `TypeRef` here is guaranteed to be to a `StructType` variant.
     Defined(TypeRef),
-}
-
-/// Holds a reference to all of the `Type`s used in the `Module`, and facilitates
-/// lookups so you can get a `TypeRef` to the `Type` you want.
-//
-// Unlike `TypesBuilder`, this is intended to be immutable, and performs type
-// lookups without &mut self.
-// It should be created from `TypesBuilder::build()`, and once it is built,
-// it should contain all types ever used in the `Module`.
-//
-// That said, if you happen to want a type which wasn't encountered when parsing
-// the `Module` (e.g., a pointer to some type in the `Module`, even if the
-// `Module` doesn't itself create pointers to that type), it will still
-// construct that `Type` and give you a `TypeRef`; you'll just be the sole owner
-// of that `Type` object.
-#[derive(Clone)]
-pub struct Types {
-    /// `TypeRef` to `Type::VoidType`
-    void_type: TypeRef,
-    /// Map of integer size to `Type::IntegerType` of that size
-    int_types: TypeCache<u32>,
-    /// Map of (pointee type, address space) to the corresponding `Type::PointerType`
-    pointer_types: TypeCache<(TypeRef, AddrSpace)>,
-    /// Map of `FPType` to the corresponding `Type::FPType`
-    fp_types: TypeCache<FPType>,
-    /// Map of `(result_type, param_types, is_var_arg)` to the corresponding `Type::FunctionType`
-    func_types: TypeCache<(TypeRef, Vec<TypeRef>, bool)>,
-    /// Map of (element type, #elements, scalable) to the corresponding `Type::VectorType`.
-    /// For LLVM 10 and lower, `scalable` is always `false`.
-    vec_types: TypeCache<(TypeRef, usize, bool)>,
-    /// Map of (element type, #elements) to the corresponding `Type::ArrayType`
-    arr_types: TypeCache<(TypeRef, usize)>,
-    /// Map of `(element_types, is_packed)` to the corresponding `Type::StructType`
-    struct_types: TypeCache<(Vec<TypeRef>, bool)>,
-    /// Map of struct name to the corresponding `Type::NamedStructType`
-    named_struct_types: TypeCache<String>,
-    /// Map of struct name to the corresponding `NamedStructDef`
-    named_struct_defs: HashMap<String, NamedStructDef>,
-    /// `TypeRef` to `Type::MetadataType`
-    metadata_type: TypeRef,
-    /// `TypeRef` to `Type::LabelType`
-    label_type: TypeRef,
-    /// `TypeRef` to `Type::TokenType`
-    token_type: TypeRef,
-}
-
-impl Types {
-    /// Get the void type
-    #[must_use]
-    pub fn void(&self) -> TypeRef {
-        self.void_type.clone()
-    }
-
-    /// Get the integer type of the specified size (in bits)
-    #[must_use]
-    pub fn int(&self, bits: u32) -> TypeRef {
-        self.int_types
-            .lookup(&bits)
-            .unwrap_or_else(|| TypeRef::new(Type::Integer { bits }))
-    }
-
-    /// Get the boolean type (`i1`)
-    #[must_use]
-    pub fn bool(&self) -> TypeRef {
-        self.int(1)
-    }
-
-    /// Get the 8-bit integer type
-    #[must_use]
-    pub fn i8(&self) -> TypeRef {
-        self.int(8)
-    }
-
-    /// Get the 16-bit integer type
-    #[must_use]
-    pub fn i16(&self) -> TypeRef {
-        self.int(16)
-    }
-
-    /// Get the 32-bit integer type
-    #[must_use]
-    pub fn i32(&self) -> TypeRef {
-        self.int(32)
-    }
-
-    /// Get the 64-bit integer type
-    #[must_use]
-    pub fn i64(&self) -> TypeRef {
-        self.int(64)
-    }
-
-    /// Get a pointer type in the default address space (`0`)
-    #[must_use]
-    pub fn pointer_to(&self, pointee_type: TypeRef) -> TypeRef {
-        self.pointer_in_addr_space(pointee_type, 0)
-    }
-
-    /// Get a pointer type in the specified address space
-    #[must_use]
-    pub fn pointer_in_addr_space(&self, pointee_type: TypeRef, addr_space: AddrSpace) -> TypeRef {
-        self.pointer_types
-            .lookup(&(pointee_type.clone(), addr_space))
-            .unwrap_or_else(|| {
-                TypeRef::new(Type::Pointer {
-                    pointee_type,
-                    addr_space,
-                })
-            })
-    }
-
-    /// Get a floating-point type
-    #[must_use]
-    pub fn fp(&self, fpt: FPType) -> TypeRef {
-        self.fp_types
-            .lookup(&fpt)
-            .unwrap_or_else(|| TypeRef::new(Type::Fp(fpt)))
-    }
-
-    /// Get the single-precision floating-point type
-    #[must_use]
-    pub fn single(&self) -> TypeRef {
-        self.fp(FPType::Single)
-    }
-
-    /// Get the double-precision floating-point type
-    #[must_use]
-    pub fn double(&self) -> TypeRef {
-        self.fp(FPType::Double)
-    }
-
-    /// Get a function type
-    #[must_use]
-    pub fn func_type(
-        &self,
-        result_type: TypeRef,
-        param_types: Vec<TypeRef>,
-        is_var_arg: bool,
-    ) -> TypeRef {
-        self.func_types
-            .lookup(&(result_type.clone(), param_types.clone(), is_var_arg))
-            .unwrap_or_else(|| {
-                TypeRef::new(Type::Func {
-                    result_type,
-                    param_types,
-                    is_var_arg,
-                })
-            })
-    }
-
-    /// Get a vector type
-    #[must_use]
-    pub fn vector_of(&self, element_type: TypeRef, num_elements: u32, scalable: bool) -> TypeRef {
-        self.vec_types
-            .lookup(&(element_type.clone(), num_elements as usize, scalable))
-            .unwrap_or_else(|| {
-                TypeRef::new(Type::Vector {
-                    element_type,
-                    num_elements,
-                    scalable,
-                })
-            })
-    }
-
-    /// Get an array type
-    #[must_use]
-    pub fn array_of(&self, element_type: TypeRef, num_elements: usize) -> TypeRef {
-        self.arr_types
-            .lookup(&(element_type.clone(), num_elements))
-            .unwrap_or_else(|| {
-                TypeRef::new(Type::Array {
-                    element_type,
-                    num_elements,
-                })
-            })
-    }
-
-    /// Get a struct type
-    #[must_use]
-    pub fn struct_of(&self, element_types: Vec<TypeRef>, is_packed: bool) -> TypeRef {
-        self.struct_types
-            .lookup(&(element_types.clone(), is_packed))
-            .unwrap_or_else(|| {
-                TypeRef::new(Type::Struct {
-                    element_types,
-                    is_packed,
-                })
-            })
-    }
-
-    /// Get the `TypeRef` for the struct with the given `name`.
-    ///
-    /// Note that this gives a `NamedStructType`.
-    /// To get the actual _definition_ of a named struct (the `NamedStructDef`),
-    /// use `named_struct_def()`.
-    #[must_use]
-    pub fn named_struct(&self, name: &str) -> TypeRef {
-        self.named_struct_types
-            .lookup(name)
-            .unwrap_or_else(|| TypeRef::new(Type::NamedStruct { name: name.into() }))
-    }
-
-    /// Get the `NamedStructDef` for the struct with the given `name`, or
-    /// `None` if there is no struct by that name.
-    ///
-    /// Note that this gives a `NamedStructDef`.
-    /// To get the `NamedStructType` for a `name`, use `named_struct()`.
-    #[must_use]
-    pub fn named_struct_def(&self, name: &str) -> Option<&NamedStructDef> {
-        self.named_struct_defs.get(name)
-    }
-
-    /// Get the names of all the named structs
-    pub fn all_struct_names(&self) -> impl Iterator<Item = &String> {
-        self.named_struct_defs.keys()
-    }
-
-    /// Add the given `NamedStructDef` as the definition of the struct with the given `name`.
-    ///
-    /// # Panics
-    /// This function panics if that name already had a definition.
-    pub fn add_named_struct_def(&mut self, name: String, def: NamedStructDef) {
-        match self.named_struct_defs.entry(name) {
-            Entry::Occupied(_) => {
-                panic!("Trying to redefine named struct");
-            }
-            Entry::Vacant(ventry) => {
-                ventry.insert(def);
-            }
-        }
-    }
-
-    /// Remove the definition of the struct with the given `name`.
-    ///
-    /// Returns `true` if the definition was removed, or `false` if no definition
-    /// existed.
-    pub fn remove_named_struct_def(&mut self, name: &str) -> bool {
-        self.named_struct_defs.remove(name).is_some()
-    }
-
-    /// Get the metadata type
-    #[must_use]
-    pub fn metadata_type(&self) -> TypeRef {
-        self.metadata_type.clone()
-    }
-
-    /// Get the label type
-    #[must_use]
-    pub fn label_type(&self) -> TypeRef {
-        self.label_type.clone()
-    }
-
-    /// Get the token type
-    #[must_use]
-    pub fn token_type(&self) -> TypeRef {
-        self.token_type.clone()
-    }
-
-    /// Get a `TypeRef` for the given `Type`
-    #[must_use]
-    pub fn get_for_type(&self, ty: &Type) -> TypeRef {
-        match ty {
-            Type::Void => self.void(),
-            Type::Integer { bits } => self.int(*bits),
-            Type::Pointer {
-                pointee_type,
-                addr_space,
-            } => self.pointer_in_addr_space(pointee_type.clone(), *addr_space),
-            Type::Fp(fpt) => self.fp(*fpt),
-            Type::Func {
-                result_type,
-                param_types,
-                is_var_arg,
-            } => self.func_type(result_type.clone(), param_types.clone(), *is_var_arg),
-            Type::Vector {
-                element_type,
-                num_elements,
-                scalable,
-            } => self.vector_of(element_type.clone(), *num_elements, *scalable),
-            Type::Array {
-                element_type,
-                num_elements,
-            } => self.array_of(element_type.clone(), *num_elements),
-            Type::Struct {
-                element_types,
-                is_packed,
-            } => self.struct_of(element_types.clone(), *is_packed),
-            Type::NamedStruct { name } => self.named_struct(name),
-            Type::Metadata => self.metadata_type(),
-            Type::Label => self.label_type(),
-            Type::Token => self.token_type(),
-        }
-    }
-}
-
-impl Types {
-    /// Get a blank `Types` containing essentially no types.
-    /// This function is intended only for use in testing;
-    /// it's probably not useful otherwise.
-    #[must_use]
-    pub fn blank_for_testing() -> Self {
-        Builder::new().build()
-    }
 }
 
 #[derive(Clone, Debug)]

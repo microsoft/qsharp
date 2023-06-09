@@ -4,7 +4,7 @@
 use super::constant::ConstantRef;
 use super::debugloc::{DebugLoc, HasDebugLoc};
 use super::function::{Attribute, Declaration, Function, GroupID};
-use super::types::{TypeRef, Types};
+use super::types::{Builder, TypeRef};
 use std::fmt;
 
 /// See [LLVM 14 docs on Module Structure](https://releases.llvm.org/14.0.0/docs/LangRef.html#module-structure)
@@ -26,7 +26,7 @@ pub struct Module {
     pub global_aliases: Vec<GlobalAlias>,
     /// Holds a reference to all of the `Type`s used in the `Module`, and
     /// facilitates lookups so you can get a `TypeRef` to the `Type` you want.
-    pub types: Types,
+    pub ty_builder: Builder,
 }
 
 impl fmt::Display for Module {
@@ -97,13 +97,8 @@ pub struct GlobalVariable {
     pub is_constant: bool,
     pub ty: TypeRef,
     pub addr_space: AddrSpace,
-    pub dll_storage_class: DLLStorageClass,
-    pub thread_local_mode: ThreadLocalMode,
     pub unnamed_addr: Option<UnnamedAddr>,
     pub initializer: Option<ConstantRef>,
-    pub section: Option<String>,
-    pub comdat: Option<Comdat>, // llvm-hs-pure has Option<String> for some reason
-    pub alignment: u32,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -140,8 +135,6 @@ pub struct GlobalAlias {
     pub visibility: Visibility,
     pub ty: TypeRef,
     pub addr_space: AddrSpace,
-    pub dll_storage_class: DLLStorageClass,
-    pub thread_local_mode: ThreadLocalMode,
     pub unnamed_addr: Option<UnnamedAddr>,
 }
 
@@ -227,24 +220,6 @@ impl fmt::Display for Visibility {
     }
 }
 
-/// See [LLVM 14 docs on DLL Storage Classes](https://releases.llvm.org/14.0.0/docs/LangRef.html#dllstorageclass)
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum DLLStorageClass {
-    Default,
-    Import,
-    Export,
-}
-
-/// See [LLVM 14 docs on Thread Local Storage Models](https://releases.llvm.org/14.0.0/docs/LangRef.html#thread-local-storage-models)
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum ThreadLocalMode {
-    NotThreadLocal,
-    GeneralDynamic,
-    LocalDynamic,
-    InitialExec,
-    LocalExec,
-}
-
 /// For discussion of address spaces, see [LLVM 14 docs on Pointer Type](https://releases.llvm.org/14.0.0/docs/LangRef.html#pointer-type)
 pub type AddrSpace = u32;
 
@@ -253,20 +228,4 @@ pub type AddrSpace = u32;
 pub struct FunctionAttributeGroup {
     pub group_id: GroupID,
     pub attrs: Vec<Attribute>,
-}
-
-/// See [LLVM 14 docs on Comdats](https://releases.llvm.org/14.0.0/docs/LangRef.html#langref-comdats)
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Comdat {
-    pub name: String,
-    pub selection_kind: SelectionKind,
-}
-
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum SelectionKind {
-    Any,
-    ExactMatch,
-    Largest,
-    NoDuplicates,
-    SameSize,
 }

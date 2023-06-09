@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use super::debugloc::{DebugLoc, HasDebugLoc};
-use super::module::{Comdat, DLLStorageClass, Linkage, Visibility};
-use super::types::{TypeRef, Types};
-use super::{BasicBlock, ConstantRef, Name};
+use super::module::{Linkage, Visibility};
+use super::types::TypeRef;
+use super::{BasicBlock, Name};
 use std::fmt::{Display, Formatter, Result};
 
 /// See [LLVM 14 docs on Functions](https://releases.llvm.org/14.0.0/docs/LangRef.html#functions)
@@ -19,15 +19,6 @@ pub struct Function {
     pub return_attributes: Vec<ParameterAttribute>,
     pub linkage: Linkage,
     pub visibility: Visibility,
-    pub dll_storage_class: DLLStorageClass, // llvm-hs-pure has Option<DLLStorageClass>, but the llvm_sys api doesn't look like it can fail
-    pub section: Option<String>,
-    pub comdat: Option<Comdat>, // llvm-hs-pure has Option<String>, I'm not sure why
-    pub alignment: u32,
-    /// See [LLVM 14 docs on Garbage Collector Strategy Names](https://releases.llvm.org/14.0.0/docs/LangRef.html#gc)
-    pub garbage_collector_name: Option<String>,
-    // pub prefix: Option<ConstantRef>,  // appears to not be exposed in the LLVM C API, only the C++ API
-    /// Personalities are used for exception handling. See [LLVM 14 docs on Personality Function](https://releases.llvm.org/14.0.0/docs/LangRef.html#personalityfn)
-    pub personality_function: Option<ConstantRef>,
     pub debugloc: Option<DebugLoc>,
 }
 
@@ -43,38 +34,17 @@ impl Function {
     pub fn get_bb_by_name(&self, name: &Name) -> Option<&BasicBlock> {
         self.basic_blocks.iter().find(|bb| &bb.name == name)
     }
-
-    /// A Function instance as empty as possible, using defaults
-    pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            parameters: vec![],
-            is_var_arg: false,
-            return_type: Types::blank_for_testing().void(),
-            basic_blocks: vec![],
-            function_attributes: vec![],
-            return_attributes: vec![],
-            linkage: Linkage::Private,
-            visibility: Visibility::Default,
-            dll_storage_class: DLLStorageClass::Default,
-            section: None,
-            comdat: None,
-            alignment: 4,
-            garbage_collector_name: None,
-            personality_function: None,
-            debugloc: None,
-        }
-    }
 }
 
 impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        writeln!(f, "define @{}...{{", self.name)?;
+        writeln!(f, "define {} @{}...{{", self.return_type, self.name)?;
         for bb in &self.basic_blocks {
             writeln!(f, "{}:", bb.name)?;
             for i in &bb.instrs {
-                writeln!(f, "{i}")?;
+                writeln!(f, "  {i}")?;
             }
+            writeln!(f, "  {}", bb.term)?;
         }
 
         writeln!(f, "}}")
@@ -91,10 +61,6 @@ pub struct Declaration {
     pub return_attributes: Vec<ParameterAttribute>,
     pub linkage: Linkage,
     pub visibility: Visibility,
-    pub dll_storage_class: DLLStorageClass,
-    pub alignment: u32,
-    /// See [LLVM 14 docs on Garbage Collector Strategy Names](https://releases.llvm.org/14.0.0/docs/LangRef.html#gc)
-    pub garbage_collector_name: Option<String>,
     pub debugloc: Option<DebugLoc>,
 }
 
