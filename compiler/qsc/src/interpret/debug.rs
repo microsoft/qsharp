@@ -68,8 +68,8 @@ fn get_item_parent(store: &PackageStore, id: GlobalId) -> Option<Item> {
 fn get_item_file_name(store: &PackageStore, id: GlobalId) -> Option<String> {
     store.get(id.package).and_then(|unit| {
         let item = unit.package.items.get(id.item)?;
-        let source = unit.sources.find_offset(item.span.lo);
-        Some(source.name.to_string())
+        let source = unit.sources.find_by_offset(item.span.lo);
+        source.map(|s| s.name.to_string())
     })
 }
 
