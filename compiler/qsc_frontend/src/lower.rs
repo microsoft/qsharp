@@ -31,6 +31,10 @@ pub(super) enum Error {
     MissingBody(#[label] Span),
     #[error("duplicate specialization")]
     DuplicateSpec(#[label] Span),
+    #[error("invalid use of elided pattern")]
+    InvalidElidedPat(#[label] Span),
+    #[error("invalid pattern for specialization declaration")]
+    InvalidSpecPat(#[label] Span),
 }
 
 #[derive(Clone, Copy)]
@@ -224,15 +228,7 @@ impl With<'_> {
                 id: self.assigner.next_node(),
                 span,
                 spec: hir::Spec::Body,
-                body: hir::SpecBody::Impl(
-                    hir::Pat {
-                        id: self.assigner.next_node(),
-                        span,
-                        ty: input.ty.clone(),
-                        kind: hir::PatKind::Elided,
-                    },
-                    self.lower_block(block),
-                ),
+                body: hir::SpecBody::Impl(None, self.lower_block(block)),
             },
             ast::CallableBody::Specs(specs) => {
                 let body = self
@@ -310,10 +306,28 @@ impl With<'_> {
                     ast::SpecGen::Slf => hir::SpecGen::Slf,
                 }),
                 ast::SpecBody::Impl(input, block) => {
-                    hir::SpecBody::Impl(self.lower_pat(input), self.lower_block(block))
+                    hir::SpecBody::Impl(self.lower_spec_decl_pat(input), self.lower_block(block))
                 }
             },
         }
+    }
+
+    fn lower_spec_decl_pat(&mut self, pat: &ast::Pat) -> Option<hir::Pat> {
+        if let ast::PatKind::Paren(inner) = &*pat.kind {
+            return self.lower_spec_decl_pat(inner);
+        }
+
+        match &*pat.kind {
+            ast::PatKind::Elided => return None,
+            ast::PatKind::Tuple(items)
+                if items.len() == 2 && *items[1].kind == ast::PatKind::Elided =>
+            {
+                return Some(self.lower_pat(&items[0]));
+            }
+            _ => self.lowerer.errors.push(Error::InvalidSpecPat(pat.span)),
+        };
+
+        None
     }
 
     fn lower_block(&mut self, block: &ast::Block) -> hir::Block {
@@ -627,7 +641,10 @@ impl With<'_> {
                 hir::PatKind::Bind(name)
             }
             ast::PatKind::Discard(_) => hir::PatKind::Discard,
-            ast::PatKind::Elided => hir::PatKind::Elided,
+            ast::PatKind::Elided => {
+                self.lowerer.errors.push(Error::InvalidElidedPat(pat.span));
+                hir::PatKind::Discard
+            }
             ast::PatKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
             ast::PatKind::Tuple(items) => {
                 hir::PatKind::Tuple(items.iter().map(|i| self.lower_pat(i)).collect())

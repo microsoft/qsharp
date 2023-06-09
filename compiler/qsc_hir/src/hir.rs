@@ -384,7 +384,7 @@ pub enum SpecBody {
     /// The strategy to use to automatically generate the specialization.
     Gen(SpecGen),
     /// A manual implementation of the specialization.
-    Impl(Pat, Block),
+    Impl(Option<Pat>, Block),
 }
 
 impl Display for SpecBody {
@@ -395,7 +395,9 @@ impl Display for SpecBody {
             SpecBody::Impl(p, b) => {
                 write!(indent, "Impl:")?;
                 indent = set_indentation(indent, 1);
-                write!(indent, "\n{p}")?;
+                if let Some(p) = p {
+                    write!(indent, "\n{p}")?;
+                }
                 write!(indent, "\n{b}")?;
             }
         }
@@ -942,8 +944,6 @@ pub enum PatKind {
     Bind(Ident),
     /// A discarded binding, `_`.
     Discard,
-    /// An elided pattern, `...`, used by specializations.
-    Elided,
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }
@@ -956,7 +956,6 @@ impl Display for PatKind {
                 write!(indent, "Bind: {id}")?;
             }
             PatKind::Discard => write!(indent, "Discard")?,
-            PatKind::Elided => write!(indent, "Elided")?,
             PatKind::Tuple(ps) => {
                 if ps.is_empty() {
                     write!(indent, "Unit")?;

@@ -990,7 +990,6 @@ fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) {
             };
         }
         PatKind::Discard => {}
-        PatKind::Elided => panic!("elision used in binding"),
         PatKind::Tuple(tup) => {
             let val_tup = val.unwrap_tuple();
             for (pat, val) in tup.iter().zip(val_tup.iter()) {
@@ -1038,40 +1037,42 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
 fn bind_args_for_spec(
     env: &mut Env,
     decl_pat: &Pat,
-    spec_pat: &Pat,
+    spec_pat: &Option<Pat>,
     args_val: Value,
     ctl_count: u8,
 ) {
-    match &spec_pat.kind {
-        PatKind::Bind(_) | PatKind::Discard => {
-            panic!("spec pattern should be elided or elided tuple, found bind/discard")
-        }
-        PatKind::Elided => bind_value(env, decl_pat, args_val, Mutability::Immutable),
-        PatKind::Tuple(pats) => {
-            assert_eq!(pats.len(), 2, "spec pattern tuple should have 2 elements");
-            assert!(
-                ctl_count > 0,
-                "spec pattern tuple used without controlled functor"
-            );
-
-            let mut tup = args_val;
-            let mut ctls = vec![];
-            for _ in 0..ctl_count {
-                let [c, rest] = &*tup.unwrap_tuple() else {
-                    panic!("tuple should be arity 2");
-                };
-                ctls.extend_from_slice(&c.clone().unwrap_array());
-                tup = rest.clone();
+    match spec_pat {
+        Some(spec_pat) => match &spec_pat.kind {
+            PatKind::Bind(_) | PatKind::Discard => {
+                panic!("spec pattern should be elided or elided tuple, found bind/discard")
             }
+            PatKind::Tuple(pats) => {
+                assert_eq!(pats.len(), 2, "spec pattern tuple should have 2 elements");
+                assert!(
+                    ctl_count > 0,
+                    "spec pattern tuple used without controlled functor"
+                );
 
-            bind_value(
-                env,
-                &pats[0],
-                Value::Array(ctls.into()),
-                Mutability::Immutable,
-            );
-            bind_value(env, decl_pat, tup, Mutability::Immutable);
-        }
+                let mut tup = args_val;
+                let mut ctls = vec![];
+                for _ in 0..ctl_count {
+                    let [c, rest] = &*tup.unwrap_tuple() else {
+                        panic!("tuple should be arity 2");
+                    };
+                    ctls.extend_from_slice(&c.clone().unwrap_array());
+                    tup = rest.clone();
+                }
+
+                bind_value(
+                    env,
+                    &pats[0],
+                    Value::Array(ctls.into()),
+                    Mutability::Immutable,
+                );
+                bind_value(env, decl_pat, tup, Mutability::Immutable);
+            }
+        },
+        None => bind_value(env, decl_pat, args_val, Mutability::Immutable),
     }
 }
 

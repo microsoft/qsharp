@@ -74,7 +74,7 @@ pub fn walk_spec_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a SpecDecl) {
     match &decl.body {
         SpecBody::Gen(_) => {}
         SpecBody::Impl(pat, block) => {
-            vis.visit_pat(pat);
+            pat.iter().for_each(|pat| vis.visit_pat(pat));
             vis.visit_block(block);
         }
     }
@@ -189,7 +189,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
 pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {
     match &pat.kind {
         PatKind::Bind(name) => vis.visit_ident(name),
-        PatKind::Discard | PatKind::Elided => {}
+        PatKind::Discard => {}
         PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(p)),
     }
 }

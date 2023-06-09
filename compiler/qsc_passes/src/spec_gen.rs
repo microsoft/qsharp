@@ -160,7 +160,7 @@ struct SpecImplPass<'a> {
 }
 
 impl<'a> SpecImplPass<'a> {
-    fn ctl_distrib(&mut self, input_ty: Ty, spec_decl: &mut SpecDecl, block: &Block) {
+    fn ctl_distrib(&mut self, spec_decl: &mut SpecDecl, block: &Block) {
         let ctls_id = self.assigner.next_node();
 
         // Clone the reference block and use the pass to update the calls inside.
@@ -175,43 +175,21 @@ impl<'a> SpecImplPass<'a> {
 
         // Update the specialization body to reflect the generated block.
         spec_decl.body = SpecBody::Impl(
-            Pat {
+            Some(Pat {
                 id: NodeId::default(),
                 span: spec_decl.span,
-                ty: Ty::Tuple(vec![
-                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                    input_ty.clone(),
-                ]),
-                kind: PatKind::Tuple(vec![
-                    Pat {
-                        id: NodeId::default(),
-                        span: spec_decl.span,
-                        ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                        kind: PatKind::Bind(Ident {
-                            id: ctls_id,
-                            span: spec_decl.span,
-                            name: "ctls".into(),
-                        }),
-                    },
-                    Pat {
-                        id: NodeId::default(),
-                        span: spec_decl.span,
-                        ty: input_ty,
-                        kind: PatKind::Elided,
-                    },
-                ]),
-            },
+                ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                kind: PatKind::Bind(Ident {
+                    id: ctls_id,
+                    span: spec_decl.span,
+                    name: "ctls".into(),
+                }),
+            }),
             ctl_block,
         );
     }
 
-    fn adj_invert(
-        &mut self,
-        input_ty: Ty,
-        spec_decl: &mut SpecDecl,
-        block: &Block,
-        ctls_pat: Option<&Pat>,
-    ) {
+    fn adj_invert(&mut self, spec_decl: &mut SpecDecl, block: &Block, ctls_pat: Option<Pat>) {
         // Clone the reference block and use the pass to update the calls inside.
         let mut adj_block = block.clone();
         if let Err(invert_errors) = adj_invert_block(self.core, self.assigner, &mut adj_block) {
@@ -229,19 +207,7 @@ impl<'a> SpecImplPass<'a> {
             .extend(distrib.errors.into_iter().map(Error::AdjGen));
 
         // Update the specialization body to reflect the generated block.
-        spec_decl.body = SpecBody::Impl(
-            if let Some(pat) = ctls_pat {
-                pat.clone()
-            } else {
-                Pat {
-                    id: NodeId::default(),
-                    ty: input_ty,
-                    span: spec_decl.span,
-                    kind: PatKind::Elided,
-                }
-            },
-            adj_block,
-        );
+        spec_decl.body = SpecBody::Impl(ctls_pat, adj_block);
     }
 }
 
@@ -268,7 +234,7 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             if ctl.body == SpecBody::Gen(SpecGen::Distribute)
                 || ctl.body == SpecBody::Gen(SpecGen::Auto)
             {
-                self.ctl_distrib(decl.input.ty.clone(), ctl, body_block);
+                self.ctl_distrib(ctl, body_block);
             }
         };
 
@@ -278,7 +244,7 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             } else if adj.body == SpecBody::Gen(SpecGen::Invert)
                 || adj.body == SpecBody::Gen(SpecGen::Auto)
             {
-                self.adj_invert(decl.input.ty.clone(), adj, body_block, None);
+                self.adj_invert(adj, body_block, None);
             }
         }
 
@@ -286,13 +252,13 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             match &ctladj.body {
                 SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
                     if let SpecBody::Impl(_, adj_block) = &adj.body {
-                        self.ctl_distrib(decl.input.ty.clone(), ctladj, adj_block);
+                        self.ctl_distrib(ctladj, adj_block);
                     }
                 }
                 SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),
                 SpecBody::Gen(SpecGen::Invert) => {
                     if let SpecBody::Impl(pat, ctl_block) = &ctl.body {
-                        self.adj_invert(decl.input.ty.clone(), ctladj, ctl_block, Some(pat));
+                        self.adj_invert(ctladj, ctl_block, pat.clone());
                     }
                 }
                 _ => {}
