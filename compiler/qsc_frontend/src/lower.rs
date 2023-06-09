@@ -227,7 +227,6 @@ impl With<'_> {
             ast::CallableBody::Block(block) => hir::SpecDecl {
                 id: self.assigner.next_node(),
                 span,
-                spec: hir::Spec::Body,
                 body: hir::SpecBody::Impl(None, self.lower_block(block)),
             },
             ast::CallableBody::Specs(specs) => {
@@ -238,7 +237,6 @@ impl With<'_> {
                         hir::SpecDecl {
                             id: self.assigner.next_node(),
                             span,
-                            spec: hir::Spec::Body,
                             body: hir::SpecBody::Gen(hir::SpecGen::Auto),
                         }
                     });
@@ -291,12 +289,6 @@ impl With<'_> {
         hir::SpecDecl {
             id: self.lower_id(decl.id),
             span: decl.span,
-            spec: match decl.spec {
-                ast::Spec::Body => hir::Spec::Body,
-                ast::Spec::Adj => hir::Spec::Adj,
-                ast::Spec::Ctl => hir::Spec::Ctl,
-                ast::Spec::CtlAdj => hir::Spec::CtlAdj,
-            },
             body: match &decl.body {
                 ast::SpecBody::Gen(gen) => hir::SpecBody::Gen(match gen {
                     ast::SpecGen::Auto => hir::SpecGen::Auto,

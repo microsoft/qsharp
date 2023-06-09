@@ -6,7 +6,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{
         ArrowTy, Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSetValue, Ident,
-        Mutability, NodeId, Pat, PatKind, Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
+        Mutability, NodeId, Pat, PatKind, Res, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
     },
     mut_visit::{self, MutVisitor},
     visit::{self, Visitor},
@@ -137,7 +137,6 @@ pub(super) fn lift(
         body: SpecDecl {
             id: assigner.next_node(),
             span: lambda.body.span,
-            spec: Spec::Body,
             body: SpecBody::Impl(
                 None,
                 Block {

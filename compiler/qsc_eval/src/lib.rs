@@ -20,13 +20,13 @@ use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
-    NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody, SpecGen, Stmt, StmtKind,
+    NodeId, PackageId, Pat, PatKind, PrimField, Res, SpecBody, SpecGen, Stmt, StmtKind,
     StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
     convert::AsRef,
-    fmt::Write,
+    fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
     ptr::null_mut,
@@ -56,7 +56,7 @@ pub enum Error {
     IntTooLarge(i64, #[label("this value is too large")] Span),
 
     #[error("missing specialization: {0}")]
-    MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
+    MissingSpec(String, #[label("callable has no {0} specialization")] Span),
 
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
@@ -84,6 +84,29 @@ pub enum Error {
 
     #[error("program failed: {0}")]
     UserFail(String, #[label("explicit fail")] Span),
+}
+
+/// A specialization that may be implemented for an operation.
+enum Spec {
+    /// The default specialization.
+    Body,
+    /// The adjoint specialization.
+    Adj,
+    /// The controlled specialization.
+    Ctl,
+    /// The controlled adjoint specialization.
+    CtlAdj,
+}
+
+impl Display for Spec {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Spec::Body => f.write_str("body"),
+            Spec::Adj => f.write_str("adjoint"),
+            Spec::Ctl => f.write_str("controlled"),
+            Spec::CtlAdj => f.write_str("controlled adjoint"),
+        }
+    }
 }
 
 /// Evaluates the given statement with the given context.
@@ -780,7 +803,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Spec::Ctl => callee.ctl.as_ref(),
             Spec::CtlAdj => callee.ctladj.as_ref(),
         }
-        .ok_or(Error::MissingSpec(spec, callee_span))?
+        .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?
         .body;
         match block_body {
             SpecBody::Impl(input, body_block) => {
@@ -794,7 +817,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.push_val(val);
                 Ok(())
             }
-            SpecBody::Gen(_) => Err(Error::MissingSpec(spec, callee_span)),
+            SpecBody::Gen(_) => Err(Error::MissingSpec(spec.to_string(), callee_span)),
         }
     }
 

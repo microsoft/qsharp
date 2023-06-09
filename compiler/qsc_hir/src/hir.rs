@@ -362,19 +362,13 @@ pub struct SpecDecl {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// Which specialization is being declared.
-    pub spec: Spec,
     /// The body of the specialization.
     pub body: SpecBody,
 }
 
 impl Display for SpecDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "SpecDecl {} {} ({:?}): {}",
-            self.id, self.span, self.spec, self.body
-        )
+        write!(f, "SpecDecl {} {}: {}", self.id, self.span, self.body)
     }
 }
 
@@ -1576,30 +1570,6 @@ impl Display for Functor {
         match self {
             Functor::Adj => f.write_str("Adj"),
             Functor::Ctl => f.write_str("Ctl"),
-        }
-    }
-}
-
-/// A specialization that may be implemented for an operation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Spec {
-    /// The default specialization.
-    Body,
-    /// The adjoint specialization.
-    Adj,
-    /// The controlled specialization.
-    Ctl,
-    /// The controlled adjoint specialization.
-    CtlAdj,
-}
-
-impl Display for Spec {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Spec::Body => f.write_str("body"),
-            Spec::Adj => f.write_str("adjoint"),
-            Spec::Ctl => f.write_str("controlled"),
-            Spec::CtlAdj => f.write_str("controlled adjoint"),
         }
     }
 }

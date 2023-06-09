@@ -17,7 +17,7 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, CallableDecl, CallableKind, Functor, Ident, NodeId, Pat, PatKind, PrimTy, Res, Spec,
+        Block, CallableDecl, CallableKind, Functor, Ident, NodeId, Pat, PatKind, PrimTy, Res,
         SpecBody, SpecDecl, SpecGen, Ty,
     },
     mut_visit::MutVisitor,
@@ -86,7 +86,6 @@ impl MutVisitor for SpecPlacePass {
             decl.adj = Some(SpecDecl {
                 id: NodeId::default(),
                 span: decl.span,
-                spec: Spec::Adj,
                 body: SpecBody::Gen(SpecGen::Invert),
             });
         }
@@ -95,7 +94,6 @@ impl MutVisitor for SpecPlacePass {
             decl.ctl = Some(SpecDecl {
                 id: NodeId::default(),
                 span: decl.span,
-                spec: Spec::Ctl,
                 body: SpecBody::Gen(SpecGen::Distribute),
             });
         }
@@ -118,7 +116,6 @@ impl MutVisitor for SpecPlacePass {
             decl.ctladj = Some(SpecDecl {
                 id: NodeId::default(),
                 span: decl.span,
-                spec: Spec::CtlAdj,
                 body: SpecBody::Gen(gen),
             });
         }
