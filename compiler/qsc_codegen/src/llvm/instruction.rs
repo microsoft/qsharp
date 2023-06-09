@@ -1,8 +1,6 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod groups;
-
 use super::constant::ConstantRef;
 use super::debugloc::{DebugLoc, HasDebugLoc};
 use super::function::{Attribute, ParameterAttribute};
@@ -276,61 +274,6 @@ pub trait BinaryOp: HasResult {
     fn get_operand1(&self) -> &Operand;
 }
 
-impl Instruction {
-    /// Determine if the `Instruction` is one of the ones in
-    /// [`groups::BinaryOp`](groups/enum.BinaryOp.html), without actually using
-    /// `try_into()` (which would consume it)
-    #[must_use]
-    pub fn is_binary_op(&self) -> bool {
-        matches!(
-            self,
-            Instruction::Add(_)
-                | Instruction::Sub(_)
-                | Instruction::Mul(_)
-                | Instruction::UDiv(_)
-                | Instruction::SDiv(_)
-                | Instruction::URem(_)
-                | Instruction::SRem(_)
-                | Instruction::And(_)
-                | Instruction::Or(_)
-                | Instruction::Xor(_)
-                | Instruction::Shl(_)
-                | Instruction::LShr(_)
-                | Instruction::AShr(_)
-                | Instruction::FAdd(_)
-                | Instruction::FSub(_)
-                | Instruction::FMul(_)
-                | Instruction::FDiv(_)
-                | Instruction::FRem(_)
-        )
-    }
-
-    /// Determine if the `Instruction` is one of the ones in
-    /// [`groups::UnaryOp`](groups/enum.UnaryOp.html), without actually using
-    /// `try_into()` (which would consume it)
-    #[must_use]
-    pub fn is_unary_op(&self) -> bool {
-        matches!(
-            self,
-            Instruction::AddrSpaceCast(_)
-                | Instruction::BitCast(_)
-                | Instruction::FNeg(_)
-                | Instruction::FPExt(_)
-                | Instruction::FPToSI(_)
-                | Instruction::FPToUI(_)
-                | Instruction::FPTrunc(_)
-                | Instruction::Freeze(_)
-                | Instruction::IntToPtr(_)
-                | Instruction::PtrToInt(_)
-                | Instruction::SExt(_)
-                | Instruction::SIToFP(_)
-                | Instruction::Trunc(_)
-                | Instruction::UIToFP(_)
-                | Instruction::ZExt(_)
-        )
-    }
-}
-
 impl Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -453,22 +396,6 @@ macro_rules! impl_binop {
             }
             fn get_operand1(&self) -> &Operand {
                 &self.operand1
-            }
-        }
-
-        impl From<$inst> for groups::BinaryOp {
-            fn from(inst: $inst) -> Self {
-                groups::BinaryOp::$id(inst)
-            }
-        }
-
-        impl TryFrom<groups::BinaryOp> for $inst {
-            type Error = &'static str;
-            fn try_from(bo: groups::BinaryOp) -> Result<Self, Self::Error> {
-                match bo {
-                    groups::BinaryOp::$id(i) => Ok(i),
-                    _ => Err("BinaryOp is not of requested type"),
-                }
             }
         }
 
