@@ -79,7 +79,7 @@ fn main() -> miette::Result<ExitCode> {
         Ok(ExitCode::SUCCESS)
     } else {
         for error in errors {
-            if let Some(source) = unit.sources.find_diagnostic(&error) {
+            if let Some(source) = unit.sources.find_by_diagnostic(&error) {
                 eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
             } else {
                 eprintln!("{:?}", Report::new(error));

@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::qsc_utils::{span_contains, Compilation};
+use crate::qsc_utils::{map_offset, span_contains, Compilation};
 use qsc::hir::{
     visit::Visitor,
     ItemKind, {Block, Item, Package},
@@ -43,7 +43,7 @@ pub(crate) fn get_completions(
 ) -> CompletionList {
     let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
-    let offset = compile_unit.sources.map_offset(source_name, offset);
+    let offset = map_offset(&compile_unit.sources, source_name, offset);
     let package = &compile_unit.package;
     let std_package = &compilation
         .package_store

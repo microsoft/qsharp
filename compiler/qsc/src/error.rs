@@ -35,7 +35,7 @@ impl<S, E> WithSource<S, E> {
 
 impl<E: Diagnostic> WithSource<Source, E> {
     pub fn from_map(sources: &SourceMap, error: E, stack_trace: Option<String>) -> Self {
-        let source = sources.find_diagnostic(&error).cloned();
+        let source = sources.find_by_diagnostic(&error).cloned();
         Self {
             source,
             error,
