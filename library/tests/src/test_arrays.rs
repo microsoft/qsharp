@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::test_expression;
+use num_bigint::BigInt;
 use qsc::interpret::Value;
 
 // Tests for Microsoft.Quantum.Arrays namespace
@@ -563,6 +564,46 @@ fn check_sequence_i() {
     test_expression(
         "Microsoft.Quantum.Arrays.SequenceI(0, 3)",
         &Value::Array(vec![Value::Int(0), Value::Int(1), Value::Int(2), Value::Int(3)].into()),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.SequenceI(-5, -2)",
+        &Value::Array(
+            vec![
+                Value::Int(-5),
+                Value::Int(-4),
+                Value::Int(-3),
+                Value::Int(-2),
+            ]
+            .into(),
+        ),
+    );
+}
+
+#[test]
+fn check_sequence_l() {
+    test_expression(
+        "Microsoft.Quantum.Arrays.SequenceL(0L, 3L)",
+        &Value::Array(
+            vec![
+                Value::BigInt(BigInt::from(0)),
+                Value::BigInt(BigInt::from(1)),
+                Value::BigInt(BigInt::from(2)),
+                Value::BigInt(BigInt::from(3)),
+            ]
+            .into(),
+        ),
+    );
+    test_expression(
+        "Microsoft.Quantum.Arrays.SequenceL(-5L, -2L)",
+        &Value::Array(
+            vec![
+                Value::BigInt(BigInt::from(-5)),
+                Value::BigInt(BigInt::from(-4)),
+                Value::BigInt(BigInt::from(-3)),
+                Value::BigInt(BigInt::from(-2)),
+            ]
+            .into(),
+        ),
     );
 }
 
