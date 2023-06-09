@@ -103,6 +103,9 @@ export function createWorkerProxy(
           uri: curr.args[0],
         };
         break;
+      case "getHir":
+        msg = { type: "getHir", code: curr.args[0] };
+        break;
       case "getCompletions":
         msg = {
           type: "getCompletions",
@@ -202,6 +205,7 @@ export function createWorkerProxy(
       case "getCompletions-result":
       case "getHover-result":
       case "getDefinition-result":
+      case "getHir-result":
       case "run-result":
       case "runKata-result":
         curr.resolve(msg.result);
@@ -239,6 +243,9 @@ export function createWorkerProxy(
     },
     getDefinition(documentUri, code, offset) {
       return queueRequest("getDefinition", [documentUri, code, offset]);
+    },
+    getHir(code) {
+      return queueRequest("getHir", [code]);
     },
     run(code, expr, shots) {
       return queueRequest("run", [code, expr, shots]);
@@ -339,6 +346,11 @@ export function handleMessageInWorker(
             logIntercepter({ type: "closeDocument-result", result: undefined })
           );
         break;
+      case "getHir":
+        compiler
+          .getHir(data.code)
+          .then((result) => logIntercepter({ type: "getHir-result", result }));
+        break;
       case "getCompletions":
         compiler
           .getCompletions(data.documentUri, data.code, data.offset)
@@ -402,6 +414,7 @@ export type CompilerReqMsg =
     }
   | { type: "getHover"; documentUri: string; code: string; offset: number }
   | { type: "getDefinition"; documentUri: string; code: string; offset: number }
+  | { type: "getHir"; code: string }
   | { type: "run"; code: string; expr: string; shots: number }
   | { type: "runKata"; user_code: string; verify_code: string };
 
@@ -417,6 +430,7 @@ type CompilerRespMsg =
       type: "getDefinition-result";
       result: IDefinition | null;
     }
+  | { type: "getHir-result"; result: string }
   | { type: "run-result"; result: void }
   | { type: "runKata-result"; result: boolean }
   | { type: "error-result"; result: any }; // eslint-disable-line @typescript-eslint/no-explicit-any

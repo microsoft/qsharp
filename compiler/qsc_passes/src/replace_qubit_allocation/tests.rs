@@ -31,7 +31,7 @@ fn test_single_qubit() {
                     Namespace (Ident 14 [10-15] "input"): Item 1
                 Item 1 [22-96] (Public):
                     Parent: 0
-                    Callable 0 [22-96] (Operation):
+                    Callable 0 [22-96] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -71,7 +71,7 @@ fn test_qubit_array() {
                     Namespace (Ident 15 [10-15] "input"): Item 1
                 Item 1 [22-97] (Public):
                     Parent: 0
-                    Callable 0 [22-97] (Operation):
+                    Callable 0 [22-97] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -111,7 +111,7 @@ fn test_qubit_tuple() {
                     Namespace (Ident 16 [10-15] "input"): Item 1
                 Item 1 [22-107] (Public):
                     Parent: 0
-                    Callable 0 [22-107] (Operation):
+                    Callable 0 [22-107] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -164,7 +164,7 @@ fn test_multiple_qubits_tuple() {
                     Namespace (Ident 20 [10-15] "input"): Item 1
                 Item 1 [22-113] (Public):
                     Parent: 0
-                    Callable 0 [22-113] (Operation):
+                    Callable 0 [22-113] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -224,7 +224,7 @@ fn test_multiple_callables() {
                     Namespace (Ident 38 [10-15] "input"): Item 1, Item 2
                 Item 1 [22-112] (Public):
                     Parent: 0
-                    Callable 0 [22-112] (Operation):
+                    Callable 0 [22-112] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -263,7 +263,7 @@ fn test_multiple_callables() {
                         ctl-adj: <none>
                 Item 2 [122-212] (Public):
                     Parent: 0
-                    Callable 19 [122-212] (Operation):
+                    Callable 19 [122-212] (operation):
                         name: Ident 20 [132-135] "Bar"
                         input: Pat 21 [135-137] [Type Unit]: Unit
                         output: Unit
@@ -322,7 +322,7 @@ fn test_qubit_block() {
                     Namespace (Ident 32 [10-15] "input"): Item 1
                 Item 1 [22-198] (Public):
                     Parent: 0
-                    Callable 0 [22-198] (Operation):
+                    Callable 0 [22-198] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -395,7 +395,7 @@ fn test_qubit_nested_block() {
                     Namespace (Ident 23 [10-15] "input"): Item 1
                 Item 1 [22-155] (Public):
                     Parent: 0
-                    Callable 0 [22-155] (Operation):
+                    Callable 0 [22-155] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -460,7 +460,7 @@ fn test_qubit_multiple_nested_blocks() {
                     Namespace (Ident 56 [10-15] "input"): Item 1
                 Item 1 [22-351] (Public):
                     Parent: 0
-                    Callable 0 [22-351] (Operation):
+                    Callable 0 [22-351] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -547,7 +547,7 @@ fn test_early_returns() {
                     Namespace (Ident 32 [10-15] "input"): Item 1
                 Item 1 [22-239] (Public):
                     Parent: 0
-                    Callable 0 [22-239] (Operation):
+                    Callable 0 [22-239] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -635,7 +635,7 @@ fn test_end_exprs() {
                     Namespace (Ident 28 [10-15] "input"): Item 1
                 Item 1 [22-170] (Public):
                     Parent: 0
-                    Callable 0 [22-170] (Operation):
+                    Callable 0 [22-170] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -694,7 +694,7 @@ fn test_array_expr() {
                     Namespace (Ident 22 [10-15] "input"): Item 1
                 Item 1 [22-150] (Public):
                     Parent: 0
-                    Callable 0 [22-150] (Operation):
+                    Callable 0 [22-150] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -749,7 +749,7 @@ fn test_rtrn_expr() {
                     Namespace (Ident 20 [10-15] "input"): Item 1
                 Item 1 [22-147] (Public):
                     Parent: 0
-                    Callable 0 [22-147] (Operation):
+                    Callable 0 [22-147] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Int
@@ -812,7 +812,7 @@ fn test_unrelated_unaffected() {
                     Namespace (Ident 22 [10-15] "input"): Item 1
                 Item 1 [22-159] (Public):
                     Parent: 0
-                    Callable 0 [22-159] (Operation):
+                    Callable 0 [22-159] (operation):
                         name: Ident 1 [32-35] "Foo"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Int

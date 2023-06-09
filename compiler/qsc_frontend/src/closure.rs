@@ -5,8 +5,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        ArrowTy, Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSet, Ident, Mutability,
-        NodeId, Pat, PatKind, Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
+        ArrowTy, Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSetValue, Ident,
+        Mutability, NodeId, Pat, PatKind, Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
     },
     mut_visit::{self, MutVisitor},
     visit::{self, Visitor},
@@ -18,7 +18,7 @@ use std::{
 
 pub(super) struct Lambda {
     pub(super) kind: CallableKind,
-    pub(super) functors: FunctorSet,
+    pub(super) functors: FunctorSetValue,
     pub(super) input: Pat,
     pub(super) body: Expr,
 }
@@ -184,7 +184,9 @@ pub(super) fn partial_app_block(
     };
     let lambda = Lambda {
         kind: arrow.kind,
-        functors: arrow.functors,
+        functors: arrow
+            .functors
+            .expect_value("lambda type should have concrete functors"),
         input: app.input,
         body: call,
     };

@@ -147,6 +147,7 @@ body {
   display: flex;
   height: 32px;
 }
+
 .results-labels > div {
   margin-right: 40px;
   text-align: left;
@@ -154,7 +155,7 @@ body {
   cursor: pointer;
 }
 
-.results-active-tab {
+.active-tab {
   font-size: 1.1rem;
   font-weight: 600;
   text-decoration: underline;
@@ -338,6 +339,14 @@ body {
   font-weight: 300;
   font-size: 1.1rem;
   margin-bottom: 16px;
+}
+
+.hir-output {
+  height: 40vh;
+  min-height: 400px;
+  width: 100%;
+  resize: none;
+  white-space: pre;
 }
 
 .kata-override {

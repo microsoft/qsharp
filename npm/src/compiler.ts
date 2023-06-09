@@ -43,6 +43,7 @@ export interface ICompiler {
     code: string,
     offset: number
   ): Promise<IDefinition | null>;
+  getHir(code: string): Promise<string>;
   run(code: string, expr: string, shots: number): Promise<void>;
   runKata(user_code: string, verify_code: string): Promise<boolean>;
   onstatechange: ((state: CompilerState) => void) | null;
@@ -171,6 +172,10 @@ export class Compiler implements ICompiler {
       ];
     }
     return result;
+  }
+
+  async getHir(code: string): Promise<string> {
+    return this.wasm.get_hir(code);
   }
 
   async run(code: string, expr: string, shots: number): Promise<void> {

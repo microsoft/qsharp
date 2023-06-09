@@ -26,40 +26,43 @@ impl MutVisitor for CtlDistrib {
         match &mut expr.kind {
             ExprKind::Call(op, args) => {
                 match &op.ty {
-                    Ty::Arrow(arrow)
-                        if arrow.kind == CallableKind::Operation
-                            && arrow.functors.contains(&Functor::Ctl) == Some(true) =>
-                    {
-                        op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
-                        op.ty = Ty::Arrow(Box::new(ArrowTy {
-                            kind: CallableKind::Operation,
-                            input: Box::new(Ty::Tuple(vec![
-                                Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                                Ty::clone(&arrow.input),
-                            ])),
-                            output: arrow.output.clone(),
-                            functors: arrow.functors,
-                        }));
-
-                        args.kind = ExprKind::Tuple(vec![
-                            Expr {
-                                id: NodeId::default(),
-                                span: args.span,
-                                ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                                kind: ExprKind::Var(self.ctls),
-                            },
-                            Expr::clone(args),
-                        ]);
-                        args.ty = Ty::Tuple(vec![
-                            Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
-                            Ty::clone(&args.ty),
-                        ]);
-                    }
                     Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation => {
-                        self.errors.push(Error::MissingCtlFunctor(op.span));
+                        let functors = arrow
+                            .functors
+                            .expect_value("arrow type should have concrete functors");
+
+                        if functors.contains(&Functor::Ctl) {
+                            op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
+                            op.ty = Ty::Arrow(Box::new(ArrowTy {
+                                kind: CallableKind::Operation,
+                                input: Box::new(Ty::Tuple(vec![
+                                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                                    Ty::clone(&arrow.input),
+                                ])),
+                                output: arrow.output.clone(),
+                                functors: arrow.functors,
+                            }));
+
+                            args.kind = ExprKind::Tuple(vec![
+                                Expr {
+                                    id: NodeId::default(),
+                                    span: args.span,
+                                    ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                                    kind: ExprKind::Var(self.ctls),
+                                },
+                                Expr::clone(args),
+                            ]);
+                            args.ty = Ty::Tuple(vec![
+                                Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                                Ty::clone(&args.ty),
+                            ]);
+                        } else {
+                            self.errors.push(Error::MissingCtlFunctor(op.span));
+                        }
                     }
                     _ => {}
                 }
+
                 walk_expr(self, expr);
             }
             ExprKind::Conjugate(_, apply) => {

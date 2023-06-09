@@ -30,22 +30,25 @@ impl MutVisitor for AdjDistrib {
         match &mut expr.kind {
             ExprKind::Call(op, _) => {
                 match &op.ty {
-                    Ty::Arrow(arrow)
-                        if arrow.kind == CallableKind::Operation
-                            && arrow.functors.contains(&Functor::Adj) == Some(true) =>
-                    {
-                        *op = Box::new(Expr {
-                            id: NodeId::default(),
-                            span: op.span,
-                            ty: op.ty.clone(),
-                            kind: ExprKind::UnOp(UnOp::Functor(Functor::Adj), op.clone()),
-                        });
-                    }
                     Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation => {
-                        self.errors.push(Error::MissingAdjFunctor(op.span));
+                        let functors = arrow
+                            .functors
+                            .expect_value("arrow type should have concrete functors");
+
+                        if functors.contains(&Functor::Adj) {
+                            *op = Box::new(Expr {
+                                id: NodeId::default(),
+                                span: op.span,
+                                ty: op.ty.clone(),
+                                kind: ExprKind::UnOp(UnOp::Functor(Functor::Adj), op.clone()),
+                            });
+                        } else {
+                            self.errors.push(Error::MissingAdjFunctor(op.span));
+                        }
                     }
                     _ => {}
                 }
+
                 walk_expr(self, expr);
             }
             ExprKind::Conjugate(_, apply) => {

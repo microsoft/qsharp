@@ -5,7 +5,10 @@
 mod tests;
 
 use super::{keyword::Keyword, scan::Scanner, ty::ty, Error, Parser, Result};
-use crate::lex::{Delim, TokenKind};
+use crate::{
+    lex::{Delim, TokenKind},
+    ErrorKind,
+};
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
 use qsc_data_structures::span::Span;
 use std::{cell::RefCell, str::FromStr};
@@ -57,7 +60,11 @@ pub(super) fn comment(s: &mut Scanner) -> Result<String> {
         s.advance();
         Ok(comment.to_string())
     } else {
-        Err(Error::Rule("comment", s.peek().kind, s.peek().span))
+        Err(Error(ErrorKind::Rule(
+            "comment",
+            s.peek().kind,
+            s.peek().span,
+        )))
     }
 }
 
@@ -66,7 +73,7 @@ pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
         s.advance();
         Ok(())
     } else {
-        Err(Error::Token(kind, s.peek().kind, s.peek().span))
+        Err(Error(ErrorKind::Token(kind, s.peek().kind, s.peek().span)))
     }
 }
 
@@ -75,15 +82,23 @@ pub(super) fn keyword(s: &mut Scanner, kw: Keyword) -> Result<()> {
         s.advance();
         Ok(())
     } else {
-        Err(Error::Keyword(kw, s.peek().kind, s.peek().span))
+        Err(Error(ErrorKind::Keyword(kw, s.peek().kind, s.peek().span)))
     }
 }
 
 pub(super) fn ident(s: &mut Scanner) -> Result<Box<Ident>> {
     if s.peek().kind != TokenKind::Ident {
-        return Err(Error::Rule("identifier", s.peek().kind, s.peek().span));
+        return Err(Error(ErrorKind::Rule(
+            "identifier",
+            s.peek().kind,
+            s.peek().span,
+        )));
     } else if let Ok(kw) = Keyword::from_str(s.read()) {
-        return Err(Error::RuleKeyword("identifier", kw, s.peek().span));
+        return Err(Error(ErrorKind::RuleKeyword(
+            "identifier",
+            kw,
+            s.peek().span,
+        )));
     }
 
     let span = s.peek().span;
@@ -230,10 +245,10 @@ fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String
 }
 
 fn map_rule_name(name: &'static str, error: Error) -> Error {
-    match error {
-        Error::Rule(_, found, span) => Error::Rule(name, found, span),
-        Error::RuleKeyword(_, keyword, span) => Error::RuleKeyword(name, keyword, span),
-        Error::Convert(_, found, span) => Error::Convert(name, found, span),
-        _ => error,
-    }
+    Error(match error.0 {
+        ErrorKind::Rule(_, found, span) => ErrorKind::Rule(name, found, span),
+        ErrorKind::RuleKeyword(_, keyword, span) => ErrorKind::RuleKeyword(name, keyword, span),
+        ErrorKind::Convert(_, found, span) => ErrorKind::Convert(name, found, span),
+        kind => kind,
+    })
 }

@@ -12,6 +12,7 @@ import {
   log,
 } from "qsharp";
 import { codeToCompressedBase64 } from "./utils.js";
+import { ActiveTab } from "./main.js";
 
 type ErrCollection = {
   checkDiags: VSDiagnostic[];
@@ -49,10 +50,17 @@ export function Editor(props: {
   shotError?: VSDiagnostic;
   showExpr: boolean;
   showShots: boolean;
+  setHir: (hir: string) => void;
+  activeTab: ActiveTab;
 }) {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
   const editorDiv = useRef<HTMLDivElement>(null);
+
+  // Maintain a ref to the latest check function, as it closes over a bunch of stuff
+  const checkRef = useRef(async () => {
+    return;
+  });
 
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
@@ -85,6 +93,10 @@ export function Editor(props: {
     const code = editor.current?.getValue();
     if (code == null) throw new Error("Why is code null?");
 
+    if (props.activeTab === "hir-tab") {
+      props.setHir(await props.compiler.getHir(code));
+    }
+
     const model = editor.current?.getModel();
     if (model) {
       await props.compiler.updateDocument(
@@ -98,7 +110,7 @@ export function Editor(props: {
   function onCheck(results: VSDiagnostic[]) {
     errMarks.current.checkDiags = results;
     markErrors();
-    setHasCheckErrors(results.length > 0);
+    setHasCheckErrors(diags.length > 0);
   }
 
   async function onRun() {
@@ -232,6 +244,7 @@ export function Editor(props: {
     editor.current = newEditor;
     const srcModel = monaco.editor.createModel(props.code, "qsharp");
     newEditor.setModel(srcModel);
+    srcModel.onDidChangeContent(() => checkRef.current());
 
     function onResize() {
       newEditor.layout();
@@ -269,6 +282,11 @@ export function Editor(props: {
     errMarks.current.shotDiags = props.shotError ? [props.shotError] : [];
     markErrors();
   }, [props.shotError]);
+
+  useEffect(() => {
+    // Whenever the active tab changes, run check again.
+    checkRef.current();
+  }, [props.activeTab]);
 
   // On reset, reload the initial code
   function onReset() {

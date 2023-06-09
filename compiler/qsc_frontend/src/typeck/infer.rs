@@ -4,11 +4,12 @@
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::hir::{
-    ArrowTy, Functor, FunctorSet, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res, Ty, Udt,
+    ArrowTy, FunctorSet, FunctorSetValue, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res,
+    Ty, Udt,
 };
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    fmt::{self, Debug, Display, Formatter},
+    collections::{hash_map::Entry, HashMap, VecDeque},
+    fmt::Debug,
 };
 
 pub(super) struct Solution {
@@ -133,12 +134,16 @@ impl Class {
     fn check(self, udts: &HashMap<ItemId, Udt>, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         match self {
             Class::Add(ty) if check_add(&ty) => (Vec::new(), Vec::new()),
+            Class::Add(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassAdd(ty, span))],
+            ),
             Class::Adj(ty) => check_adj(ty, span),
             Class::Call {
                 callee,
                 input,
                 output,
-            } => check_call(callee, input, output, span),
+            } => check_call(callee, &input, output, span),
             Class::Ctl { op, with_ctls } => check_ctl(op, with_ctls, span),
             Class::Eq(ty) => check_eq(ty, span),
             Class::Exp { base, power } => check_exp(base, power, span),
@@ -151,35 +156,18 @@ impl Class {
                 item,
             } => check_has_index(container, index, item, span),
             Class::Integral(ty) if check_integral(&ty) => (Vec::new(), Vec::new()),
+            Class::Integral(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassIntegral(ty, span))],
+            ),
             Class::Iterable { container, item } => check_iterable(container, item, span),
             Class::Num(ty) if check_num(&ty) => (Vec::new(), Vec::new()),
+            Class::Num(ty) => (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassNum(ty, span))],
+            ),
             Class::Show(ty) => check_show(ty, span),
             Class::Unwrap { wrapper, base } => check_unwrap(udts, wrapper, base, span),
-            Class::Add(_) | Class::Integral(_) | Class::Num(_) => {
-                (Vec::new(), vec![Error(ErrorKind::MissingClass(self, span))])
-            }
-        }
-    }
-}
-
-impl Display for Class {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Class::Add(ty) => write!(f, "Add<{ty}>"),
-            Class::Adj(ty) => write!(f, "Adj<{ty}>"),
-            Class::Call { callee, .. } => write!(f, "Call<{callee}>"),
-            Class::Ctl { op, .. } => write!(f, "Ctl<{op}>"),
-            Class::Eq(ty) => write!(f, "Eq<{ty}>"),
-            Class::Exp { base, .. } => write!(f, "Exp<{base}>"),
-            Class::HasField { record, name, .. } => write!(f, "HasField<{record}, {name}>"),
-            Class::HasIndex {
-                container, index, ..
-            } => write!(f, "HasIndex<{container}, {index}>"),
-            Class::Integral(ty) => write!(f, "Integral<{ty}>"),
-            Class::Iterable { container, .. } => write!(f, "Iterable<{container}>"),
-            Class::Num(ty) => write!(f, "Num<{ty}>"),
-            Class::Show(ty) => write!(f, "Show<{ty}>"),
-            Class::Unwrap { wrapper, .. } => write!(f, "Unwrap<{wrapper}>"),
         }
     }
 }
@@ -227,7 +215,7 @@ impl ArgTy {
             (Self::Tuple(args), Ty::Tuple(params)) => {
                 let mut errors = Vec::new();
                 if args.len() != params.len() {
-                    errors.push(Error(ErrorKind::Mismatch(
+                    errors.push(Error(ErrorKind::TyMismatch(
                         Ty::Tuple(params.clone()),
                         self.to_ty(),
                         span,
@@ -256,7 +244,7 @@ impl ArgTy {
             (Self::Tuple(_), _) => App {
                 holes: Vec::new(),
                 constraints: Vec::new(),
-                errors: vec![Error(ErrorKind::Mismatch(
+                errors: vec![Error(ErrorKind::TyMismatch(
                     param.clone(),
                     self.to_ty(),
                     span,
@@ -290,7 +278,17 @@ enum Constraint {
         actual: Ty,
         span: Span,
     },
-    Functor(Functor, FunctorSet, Span),
+    Superset {
+        expected: FunctorSetValue,
+        actual: FunctorSet,
+        span: Span,
+    },
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum FreshenMode {
+    Functors,
+    NoFunctors,
 }
 
 pub(super) struct Inferrer {
@@ -336,31 +334,13 @@ impl Inferrer {
         FunctorSet::Infer(fresh)
     }
 
-    /// Replaces all type parameters with fresh types.
-    pub(super) fn freshen(&mut self, ty: &mut Ty) {
-        fn freshen(solver: &mut Inferrer, params: &mut HashMap<String, Ty>, ty: &mut Ty) {
-            match ty {
-                Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
-                Ty::Array(item) => freshen(solver, params, item),
-                Ty::Arrow(arrow) => {
-                    freshen(solver, params, &mut arrow.input);
-                    freshen(solver, params, &mut arrow.output);
-                }
-                Ty::Param(name) => {
-                    *ty = params
-                        .entry(name.clone())
-                        .or_insert_with(|| solver.fresh_ty())
-                        .clone();
-                }
-                Ty::Tuple(items) => {
-                    for item in items {
-                        freshen(solver, params, item);
-                    }
-                }
-            }
-        }
-
-        freshen(self, &mut HashMap::new(), ty);
+    /// Replaces all type parameters with fresh types and creates synthetic functor parameters for
+    /// second-order arrow types.
+    pub(super) fn freshen_arrow(&mut self, arrow: &mut ArrowTy, span: Span) {
+        let mode = FreshenMode::Functors;
+        let mut params = HashMap::new();
+        freshen_ty(self, mode, span, &mut params, &mut arrow.input);
+        freshen_ty(self, mode, span, &mut params, &mut arrow.output);
     }
 
     /// Solves for all variables given the accumulated constraints.
@@ -369,7 +349,7 @@ impl Inferrer {
         // However, if an unsolved variable is the result of a divergent expression, it may be OK to
         // leave it or substitute it with a concrete uninhabited type.
         // https://github.com/microsoft/qsharp/issues/152
-        let mut solver = Solver::new(udts);
+        let mut solver = Solver::new(udts, self.next_functor);
         while let Some(constraint) = self.constraints.pop_front() {
             for constraint in solver.constrain(constraint).into_iter().rev() {
                 self.constraints.push_front(constraint);
@@ -381,16 +361,18 @@ impl Inferrer {
 
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
+    functor_end: InferFunctor,
     solution: Solution,
     pending_tys: HashMap<InferTy, Vec<Class>>,
-    pending_functors: HashMap<InferFunctor, HashSet<Functor>>,
+    pending_functors: HashMap<InferFunctor, FunctorSetValue>,
     errors: Vec<Error>,
 }
 
 impl<'a> Solver<'a> {
-    fn new(udts: &'a HashMap<ItemId, Udt>) -> Self {
+    fn new(udts: &'a HashMap<ItemId, Udt>, functor_end: InferFunctor) -> Self {
         Self {
             udts,
+            functor_end,
             solution: Solution {
                 tys: IndexMap::new(),
                 functors: IndexMap::new(),
@@ -409,8 +391,12 @@ impl<'a> Solver<'a> {
                 actual,
                 span,
             } => self.eq(expected, actual, span),
-            Constraint::Functor(functor, functors, span) => {
-                self.functor(functor, functors, span);
+            Constraint::Superset {
+                expected,
+                actual,
+                span,
+            } => {
+                self.superset(expected, actual, span);
                 Vec::new()
             }
         }
@@ -448,21 +434,27 @@ impl<'a> Solver<'a> {
         self.unify(&expected, &actual, span)
     }
 
-    fn functor(&mut self, functor: Functor, mut functors: FunctorSet, span: Span) {
-        substitute_functor(&self.solution, &mut functors);
-        match (functor, functors) {
-            (_, FunctorSet::CtlAdj)
-            | (Functor::Adj, FunctorSet::Adj)
-            | (Functor::Ctl, FunctorSet::Ctl) => {}
-            (_, FunctorSet::Infer(infer)) => {
-                self.pending_functors
-                    .entry(infer)
-                    .or_default()
-                    .insert(functor);
-            }
-            _ => self
-                .errors
-                .push(Error(ErrorKind::MissingFunctor(functor, functors, span))),
+    fn superset(&mut self, expected: FunctorSetValue, mut actual: FunctorSet, span: Span) {
+        substitute_functor(&self.solution, &mut actual);
+        match (expected, actual) {
+            (_, FunctorSet::Value(FunctorSetValue::CtlAdj))
+            | (FunctorSetValue::Empty, _)
+            | (FunctorSetValue::Adj, FunctorSet::Value(FunctorSetValue::Adj))
+            | (FunctorSetValue::Ctl, FunctorSet::Value(FunctorSetValue::Ctl)) => {}
+            (expected, FunctorSet::Infer(infer)) => match self.pending_functors.entry(infer) {
+                Entry::Occupied(mut entry) => {
+                    let functors = entry.get_mut();
+                    *functors = functors.union(&expected);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(expected);
+                }
+            },
+            (expected, actual) => self.errors.push(Error(ErrorKind::MissingFunctor(
+                FunctorSet::Value(expected),
+                actual,
+                span,
+            ))),
         }
     }
 
@@ -475,22 +467,28 @@ impl<'a> Solver<'a> {
             (Ty::Array(item1), Ty::Array(item2)) => self.unify(item1, item2, span),
             (Ty::Arrow(arrow1), Ty::Arrow(arrow2)) => {
                 if arrow1.kind != arrow2.kind {
-                    self.errors
-                        .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                    self.errors.push(Error(ErrorKind::CallableMismatch(
+                        arrow1.kind,
+                        arrow2.kind,
+                        span,
+                    )));
                 }
 
                 let mut constraints = self.unify(&arrow1.input, &arrow2.input, span);
                 constraints.append(&mut self.unify(&arrow1.output, &arrow2.output, span));
 
                 match (arrow1.functors, arrow2.functors) {
+                    (FunctorSet::Value(value1), FunctorSet::Value(value2)) if value1 == value2 => {}
                     (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
                     (FunctorSet::Infer(infer), functors) | (functors, FunctorSet::Infer(infer)) => {
                         constraints.append(&mut self.bind_functor(infer, functors, span));
                     }
                     _ => {
-                        // TODO: We ignore incompatible functors for now, even though this is
-                        // unsound. This should be fixed later.
-                        // https://github.com/microsoft/qsharp/issues/150
+                        self.errors.push(Error(ErrorKind::FunctorMismatch(
+                            arrow1.functors,
+                            arrow2.functors,
+                            span,
+                        )));
                     }
                 }
 
@@ -505,7 +503,7 @@ impl<'a> Solver<'a> {
             (Ty::Tuple(items1), Ty::Tuple(items2)) => {
                 if items1.len() != items2.len() {
                     self.errors
-                        .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                        .push(Error(ErrorKind::TyMismatch(ty1.clone(), ty2.clone(), span)));
                 }
 
                 items1
@@ -517,7 +515,7 @@ impl<'a> Solver<'a> {
             (Ty::Udt(res1), Ty::Udt(res2)) if res1 == res2 => Vec::new(),
             _ => {
                 self.errors
-                    .push(Error(ErrorKind::Mismatch(ty1.clone(), ty2.clone(), span)));
+                    .push(Error(ErrorKind::TyMismatch(ty1.clone(), ty2.clone(), span)));
                 Vec::new()
             }
         }
@@ -544,16 +542,74 @@ impl<'a> Solver<'a> {
         self.solution.functors.insert(infer, functors);
         self.pending_functors
             .remove(&infer)
-            .map_or(Vec::new(), |pending| {
-                pending
-                    .into_iter()
-                    .map(|functor| Constraint::Functor(functor, functors, span))
-                    .collect()
+            .map_or(Vec::new(), |expected| {
+                vec![Constraint::Superset {
+                    expected,
+                    actual: functors,
+                    span,
+                }]
             })
     }
 
-    fn into_solution(self) -> (Solution, Vec<Error>) {
+    fn default_functors(&mut self) {
+        let mut functor = InferFunctor::default();
+        while functor < self.functor_end {
+            if !self.solution.functors.contains_key(functor) {
+                let value = self.pending_functors.remove(&functor).unwrap_or_default();
+                self.solution
+                    .functors
+                    .insert(functor, FunctorSet::Value(value));
+            }
+
+            functor = functor.successor();
+        }
+    }
+
+    fn into_solution(mut self) -> (Solution, Vec<Error>) {
+        self.default_functors();
         (self.solution, self.errors)
+    }
+}
+
+fn freshen_ty(
+    inferrer: &mut Inferrer,
+    mode: FreshenMode,
+    span: Span,
+    params: &mut HashMap<String, Ty>,
+    ty: &mut Ty,
+) {
+    match ty {
+        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
+        Ty::Array(item) => freshen_ty(inferrer, mode, span, params, item),
+        Ty::Arrow(arrow) => {
+            let new_mode = FreshenMode::NoFunctors;
+            freshen_ty(inferrer, new_mode, span, params, &mut arrow.input);
+            freshen_ty(inferrer, new_mode, span, params, &mut arrow.output);
+
+            if mode == FreshenMode::Functors {
+                let old_functors = arrow
+                    .functors
+                    .expect_value("arrow type should have concrete functors");
+                let new_functors = inferrer.fresh_functor();
+                inferrer.constraints.push_back(Constraint::Superset {
+                    expected: old_functors,
+                    actual: new_functors,
+                    span,
+                });
+                arrow.functors = new_functors;
+            }
+        }
+        Ty::Param(name) => {
+            *ty = params
+                .entry(name.clone())
+                .or_insert_with(|| inferrer.fresh_ty())
+                .clone();
+        }
+        Ty::Tuple(items) => {
+            for item in items {
+                freshen_ty(inferrer, mode, span, params, item);
+            }
+        }
     }
 }
 
@@ -589,6 +645,7 @@ fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
     if let &mut FunctorSet::Infer(infer) = functors {
         if let Some(&new_functors) = solution.functors.get(infer) {
             *functors = new_functors;
+            substitute_functor(solution, functors);
         }
     }
 }
@@ -625,24 +682,24 @@ fn check_add(ty: &Ty) -> bool {
 fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Arrow(arrow) => (
-            vec![Constraint::Functor(Functor::Adj, arrow.functors, span)],
+            vec![Constraint::Superset {
+                expected: FunctorSetValue::Adj,
+                actual: arrow.functors,
+                span,
+            }],
             Vec::new(),
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClass(Class::Adj(ty), span))],
+            vec![Error(ErrorKind::MissingClassAdj(ty, span))],
         ),
     }
 }
 
-fn check_call(callee: Ty, input: ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
+fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     let Ty::Arrow(arrow) = callee else {
-        return (Vec::new(), vec![Error(ErrorKind::MissingClass(
-            Class::Call {
-                callee,
-                input,
-                output,
-            },
+        return (Vec::new(), vec![Error(ErrorKind::MissingClassCall(
+            callee,
             span,
         ))]);
     };
@@ -678,8 +735,8 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     let Ty::Arrow(arrow) = op else {
         return (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClass(
-                Class::Ctl { op, with_ctls },
+            vec![Error(ErrorKind::MissingClassCtl(
+                op,
                 span,
             ))],
         );
@@ -689,7 +746,11 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
     let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *arrow.input]));
     (
         vec![
-            Constraint::Functor(Functor::Ctl, arrow.functors, span),
+            Constraint::Superset {
+                expected: FunctorSetValue::Ctl,
+                actual: arrow.functors,
+                span,
+            },
             Constraint::Eq {
                 expected: Ty::Arrow(Box::new(ArrowTy {
                     kind: arrow.kind,
@@ -726,10 +787,7 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
                 .collect(),
             Vec::new(),
         ),
-        _ => (
-            Vec::new(),
-            vec![Error(ErrorKind::MissingClass(Class::Eq(ty), span))],
-        ),
+        _ => (Vec::new(), vec![Error(ErrorKind::MissingClassEq(ty, span))]),
     }
 }
 
@@ -753,10 +811,7 @@ fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClass(
-                Class::Exp { base, power },
-                span,
-            ))],
+            vec![Error(ErrorKind::MissingClassExp(base, span))],
         ),
     }
 }
@@ -794,19 +849,13 @@ fn check_has_field(
                 ),
                 None => (
                     Vec::new(),
-                    vec![Error(ErrorKind::MissingClass(
-                        Class::HasField { record, name, item },
-                        span,
-                    ))],
+                    vec![Error(ErrorKind::MissingClassHasField(record, name, span))],
                 ),
             }
         }
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClass(
-                Class::HasField { record, name, item },
-                span,
-            ))],
+            vec![Error(ErrorKind::MissingClassHasField(record, name, span))],
         ),
     }
 }
@@ -839,13 +888,8 @@ fn check_has_index(
         ),
         (container, index) => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClass(
-                Class::HasIndex {
-                    container,
-                    index,
-                    item,
-                },
-                span,
+            vec![Error(ErrorKind::MissingClassHasIndex(
+                container, index, span,
             ))],
         ),
     }
@@ -875,10 +919,7 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClass(
-                Class::Iterable { container, item },
-                span,
-            ))],
+            vec![Error(ErrorKind::MissingClassIterable(container, span))],
         ),
     }
 }
@@ -903,7 +944,7 @@ fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
         ),
         _ => (
             Vec::new(),
-            vec![Error(ErrorKind::MissingClass(Class::Show(ty), span))],
+            vec![Error(ErrorKind::MissingClassShow(ty, span))],
         ),
     }
 }
@@ -929,9 +970,6 @@ fn check_unwrap(
 
     (
         Vec::new(),
-        vec![Error(ErrorKind::MissingClass(
-            Class::Unwrap { wrapper, base },
-            span,
-        ))],
+        vec![Error(ErrorKind::MissingClassUnwrap(wrapper, span))],
     )
 }

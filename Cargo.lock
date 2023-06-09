@@ -893,6 +893,7 @@ dependencies = [
  "qsc_ast",
  "qsc_data_structures",
  "qsc_hir",
+ "qsc_parse",
  "thiserror",
 ]
 
@@ -903,6 +904,20 @@ dependencies = [
  "indenter",
  "num-bigint",
  "qsc_data_structures",
+]
+
+[[package]]
+name = "qsc_parse"
+version = "0.0.0"
+dependencies = [
+ "enum-iterator",
+ "expect-test",
+ "miette",
+ "num-bigint",
+ "num-traits",
+ "qsc_ast",
+ "qsc_data_structures",
+ "thiserror",
 ]
 
 [[package]]

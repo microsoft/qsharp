@@ -11,7 +11,10 @@ use super::{
     scan::Scanner,
     top, Error, Result,
 };
-use crate::lex::{Delim, TokenKind};
+use crate::{
+    lex::{Delim, TokenKind},
+    ErrorKind,
+};
 use qsc_ast::ast::{
     Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
@@ -63,7 +66,11 @@ fn var_binding(s: &mut Scanner) -> Result<Box<StmtKind>> {
         Ok(Mutability::Mutable)
     } else {
         let token = s.peek();
-        Err(Error::Rule("variable binding", token.kind, token.span))
+        Err(Error(ErrorKind::Rule(
+            "variable binding",
+            token.kind,
+            token.span,
+        )))
     }?;
 
     let lhs = pat(s)?;
@@ -79,7 +86,11 @@ fn qubit_binding(s: &mut Scanner) -> Result<Box<StmtKind>> {
     } else if keyword(s, Keyword::Borrow).is_ok() {
         Ok(QubitSource::Dirty)
     } else {
-        Err(Error::Rule("qubit binding", s.peek().kind, s.peek().span))
+        Err(Error(ErrorKind::Rule(
+            "qubit binding",
+            s.peek().kind,
+            s.peek().span,
+        )))
     }?;
 
     let lhs = pat(s)?;
@@ -97,7 +108,11 @@ fn qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
     let lo = s.peek().span.lo;
     let kind = if let Ok(name) = ident(s) {
         if name.name.as_ref() != "Qubit" {
-            Err(Error::Convert("qubit initializer", "identifier", name.span))
+            Err(Error(ErrorKind::Convert(
+                "qubit initializer",
+                "identifier",
+                name.span,
+            )))
         } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
             token(s, TokenKind::Close(Delim::Paren))?;
             Ok(QubitInitKind::Single)
@@ -107,7 +122,11 @@ fn qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
             Ok(QubitInitKind::Array(size))
         } else {
             let token = s.peek();
-            Err(Error::Rule("qubit suffix", token.kind, token.span))
+            Err(Error(ErrorKind::Rule(
+                "qubit suffix",
+                token.kind,
+                token.span,
+            )))
         }
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (inits, final_sep) = seq(s, qubit_init)?;
@@ -115,7 +134,11 @@ fn qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
         Ok(final_sep.reify(inits, QubitInitKind::Paren, QubitInitKind::Tuple))
     } else {
         let token = s.peek();
-        Err(Error::Rule("qubit initializer", token.kind, token.span))
+        Err(Error(ErrorKind::Rule(
+            "qubit initializer",
+            token.kind,
+            token.span,
+        )))
     }?;
 
     Ok(Box::new(QubitInit {
@@ -133,7 +156,7 @@ fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
                 lo: stmt.span.hi,
                 hi: stmt.span.hi,
             };
-            return Err(Error::MissingSemi(span));
+            return Err(Error(ErrorKind::MissingSemi(span)));
         }
     }
 

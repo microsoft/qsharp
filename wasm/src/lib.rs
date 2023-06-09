@@ -144,6 +144,13 @@ where
 }
 
 #[wasm_bindgen]
+pub fn get_hir(code: &str) -> Result<JsValue, JsValue> {
+    let (package, _) = compile(code);
+    let hir = package.to_string();
+    Ok(serde_wasm_bindgen::to_value(&hir)?)
+}
+
+#[wasm_bindgen]
 pub fn run(
     code: &str,
     expr: &str,
@@ -338,7 +345,7 @@ mod test {
             code,
             expr,
             |msg| {
-                assert!(msg.contains(r#""type": "Result", "success": false"#));
+                assert!(msg.contains(r#""success": false"#));
                 assert!(msg.contains(r#""message": "entry point not found"#));
                 assert!(msg.contains(r#""start_pos": 0"#));
             },

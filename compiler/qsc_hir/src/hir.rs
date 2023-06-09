@@ -295,7 +295,7 @@ pub struct CallableDecl {
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
-    pub functors: FunctorSet,
+    pub functors: FunctorSetValue,
     /// The body of the callable.
     pub body: SpecDecl,
     /// The body of the Adjoint specialization.
@@ -314,7 +314,7 @@ impl CallableDecl {
             kind: self.kind,
             input: Box::new(self.input.ty.clone()),
             output: Box::new(self.output.clone()),
-            functors: self.functors,
+            functors: FunctorSet::Value(self.functors),
         }))
     }
 }
@@ -324,7 +324,7 @@ impl Display for CallableDecl {
         let mut indent = set_indentation(indented(f), 0);
         write!(
             indent,
-            "Callable {} {} ({:?}):",
+            "Callable {} {} ({}):",
             self.id, self.span, self.kind
         )?;
         indent = set_indentation(indent, 1);
@@ -1139,7 +1139,7 @@ impl Display for ArrowTy {
             CallableKind::Operation => "=>",
         };
         write!(f, "({} {arrow} {}", self.input, self.output)?;
-        if self.functors.is_empty() != Some(true) {
+        if self.functors != FunctorSet::Value(FunctorSetValue::Empty) {
             f.write_str(" is ")?;
             Display::fmt(&self.functors, f)?;
         }
@@ -1179,70 +1179,23 @@ pub enum PrimTy {
 /// A set of functors.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FunctorSet {
-    /// The empty set.
-    Empty,
-    /// The singleton adjoint set.
-    Adj,
-    /// The singleton controlled set.
-    Ctl,
-    /// The set of controlled and adjoint.
-    CtlAdj,
+    /// An evaluated set.
+    Value(FunctorSetValue),
     /// A placeholder functor variable used during type inference.
     Infer(InferFunctor),
 }
 
 impl FunctorSet {
-    /// Whether the set is empty, or [None] if unknown.
+    /// Returns the contained value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this set is not a value.
     #[must_use]
-    pub fn is_empty(&self) -> Option<bool> {
+    pub fn expect_value(self, msg: &str) -> FunctorSetValue {
         match self {
-            Self::Empty => Some(true),
-            Self::Adj | Self::Ctl | Self::CtlAdj => Some(false),
-            Self::Infer(_) => None,
-        }
-    }
-
-    /// Whether the set contains the functor, or [None] if unknown.
-    #[must_use]
-    pub fn contains(&self, functor: &Functor) -> Option<bool> {
-        match self {
-            Self::Empty => Some(false),
-            Self::Adj => Some(matches!(functor, Functor::Adj)),
-            Self::Ctl => Some(matches!(functor, Functor::Ctl)),
-            Self::CtlAdj => Some(matches!(functor, Functor::Adj | Functor::Ctl)),
-            Self::Infer(_) => None,
-        }
-    }
-
-    /// The intersection of this set and another set, or [None] if unknown.
-    #[must_use]
-    pub fn intersect(&self, other: &FunctorSet) -> Option<FunctorSet> {
-        match (self, other) {
-            (Self::Empty, _)
-            | (_, Self::Empty)
-            | (Self::Adj, Self::Ctl)
-            | (Self::Ctl, Self::Adj) => Some(Self::Empty),
-            (Self::Adj, Self::Adj) => Some(Self::Adj),
-            (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
-            (Self::CtlAdj, &set) | (&set, Self::CtlAdj) => Some(set),
-            (&Self::Infer(i1), &Self::Infer(i2)) if i1 == i2 => Some(Self::Infer(i1)),
-            (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
-        }
-    }
-
-    /// The union of this set and another set, or [None] if unknown.
-    #[must_use]
-    pub fn union(&self, other: &FunctorSet) -> Option<FunctorSet> {
-        match (self, other) {
-            (Self::Empty, &set) | (&set, Self::Empty) => Some(set),
-            (Self::Adj, Self::Adj) => Some(Self::Adj),
-            (Self::Ctl, Self::Ctl) => Some(Self::Ctl),
-            (Self::CtlAdj, _)
-            | (_, Self::CtlAdj)
-            | (Self::Adj, Self::Ctl)
-            | (Self::Ctl, Self::Adj) => Some(Self::CtlAdj),
-            (&Self::Infer(i1), &Self::Infer(i2)) if i1 == i2 => Some(Self::Infer(i1)),
-            (Self::Infer(_), _) | (_, Self::Infer(_)) => None,
+            Self::Value(value) => value,
+            FunctorSet::Infer(_) => panic!("{msg}"),
         }
     }
 }
@@ -1250,11 +1203,74 @@ impl FunctorSet {
 impl Display for FunctorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
+            Self::Value(value) => Display::fmt(value, f),
+            Self::Infer(infer) => Display::fmt(infer, f),
+        }
+    }
+}
+
+/// The value of a functor set.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum FunctorSetValue {
+    /// The empty set.
+    #[default]
+    Empty,
+    /// The singleton adjoint set.
+    Adj,
+    /// The singleton controlled set.
+    Ctl,
+    /// The set of controlled and adjoint.
+    CtlAdj,
+}
+
+impl FunctorSetValue {
+    /// True if this set contains the functor.
+    #[must_use]
+    pub fn contains(&self, functor: &Functor) -> bool {
+        match self {
+            Self::Empty => false,
+            Self::Adj => matches!(functor, Functor::Adj),
+            Self::Ctl => matches!(functor, Functor::Ctl),
+            Self::CtlAdj => matches!(functor, Functor::Adj | Functor::Ctl),
+        }
+    }
+
+    /// The intersection of this set and another set.
+    #[must_use]
+    pub fn intersect(&self, other: &Self) -> Self {
+        match (self, other) {
+            (Self::Empty, _)
+            | (_, Self::Empty)
+            | (Self::Adj, Self::Ctl)
+            | (Self::Ctl, Self::Adj) => Self::Empty,
+            (Self::Adj, Self::Adj) => Self::Adj,
+            (Self::Ctl, Self::Ctl) => Self::Ctl,
+            (Self::CtlAdj, &set) | (&set, Self::CtlAdj) => set,
+        }
+    }
+
+    /// The union of this set and another set.
+    #[must_use]
+    pub fn union(&self, other: &Self) -> Self {
+        match (self, other) {
+            (Self::Empty, &set) | (&set, Self::Empty) => set,
+            (Self::Adj, Self::Adj) => Self::Adj,
+            (Self::Ctl, Self::Ctl) => Self::Ctl,
+            (Self::CtlAdj, _)
+            | (_, Self::CtlAdj)
+            | (Self::Adj, Self::Ctl)
+            | (Self::Ctl, Self::Adj) => Self::CtlAdj,
+        }
+    }
+}
+
+impl Display for FunctorSetValue {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
             Self::Empty => f.write_str("empty set"),
             Self::Adj => f.write_str("Adj"),
             Self::Ctl => f.write_str("Ctl"),
             Self::CtlAdj => f.write_str("Adj + Ctl"),
-            Self::Infer(infer) => Display::fmt(infer, f),
         }
     }
 }
@@ -1290,7 +1306,7 @@ impl From<InferTy> for usize {
 }
 
 /// A placeholder functor variable used during type inference.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct InferFunctor(usize);
 
 impl InferFunctor {
@@ -1334,7 +1350,7 @@ impl Udt {
             kind: CallableKind::Function,
             input: Box::new(self.base.clone()),
             output: Box::new(Ty::Udt(Res::Item(id))),
-            functors: FunctorSet::Empty,
+            functors: FunctorSet::Value(FunctorSetValue::Empty),
         }))
     }
 
@@ -1466,6 +1482,15 @@ pub enum CallableKind {
     Function,
     /// An operation.
     Operation,
+}
+
+impl Display for CallableKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            CallableKind::Function => f.write_str("function"),
+            CallableKind::Operation => f.write_str("operation"),
+        }
+    }
 }
 
 /// The mutability of a binding.
