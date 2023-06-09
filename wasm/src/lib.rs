@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use katas::{run_kata, KATA_ENTRY};
+use katas::{run_kata, EXERCISE_ENTRY};
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -399,7 +399,7 @@ fn run_kata_exercise_internal(
             ("kata".into(), kata_implementation.into()),
             ("verifier".into(), verification_source.into()),
         ],
-        Some(KATA_ENTRY.into()),
+        Some(EXERCISE_ENTRY.into()),
     );
 
     run_kata(sources, &mut CallbackReceiver { event_cb })

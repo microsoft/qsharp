@@ -7,7 +7,7 @@ namespace Kata {
         CNOT(qs[0], qs[1]);
     }
 
-    operation Verify() : Bool {
+    operation VerifyExercise() : Bool {
         let task = BellState;
         let taskRef = BellStateReference;
 

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{EXAMPLE_ENTRY, KATA_ENTRY};
+use crate::{EXAMPLE_ENTRY, EXERCISE_ENTRY};
 use qsc::{
     interpret::{output::CursorReceiver, stateless},
     SourceMap,
@@ -57,7 +57,7 @@ fn run_kata(kata: &str, verifier: &str) -> Result<bool, Vec<stateless::Error>> {
             ("kata".into(), kata.into()),
             ("verifier".into(), verifier.into()),
         ],
-        Some(KATA_ENTRY.into()),
+        Some(EXERCISE_ENTRY.into()),
     );
 
     let mut cursor = Cursor::new(Vec::new());

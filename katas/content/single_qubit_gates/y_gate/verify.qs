@@ -6,7 +6,7 @@ namespace Kata {
         Y(q);
     }
 
-    operation Verify() : Bool {
+    operation VerifyExercise() : Bool {
         let task = ApplyY;
         let taskRef = ApplyYReference;
 

@@ -8,7 +8,7 @@ namespace Kata {
         Y(q);
     }
 
-    operation Verify() : Bool {
+    operation VerifyExercise() : Bool {
         let task = GlobalPhaseI;
         let taskRef = GlobalPhaseIReference;
 
