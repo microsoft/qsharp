@@ -58,14 +58,6 @@ pub(crate) fn get_completions(
     namespace_collector.visit_package(package);
     namespace_collector.visit_package(std_package);
 
-    let mut res = CompletionList { items: Vec::new() };
-
-    // Callables from the current document
-    let mut current_callables = callable_names_from_package(package);
-
-    // All callables from std package
-    let mut std_callables = callable_names_from_package(std_package);
-
     // All namespaces
     let mut namespaces = namespace_collector
         .namespaces
@@ -88,26 +80,29 @@ pub(crate) fn get_completions(
     context_builder.visit_package(package);
     let context = context_builder.context;
 
+    let mut items = Vec::new();
     match context {
         Context::Namespace => {
-            res.items.push(CompletionItem {
+            items.push(CompletionItem {
                 label: "open".to_string(),
                 kind: CompletionItemKind::Keyword,
             });
-            res.items.append(&mut namespaces);
+            items.append(&mut namespaces);
         }
         Context::Block | Context::NoCompilation => {
             // Add everything we know of.
-            res.items.append(&mut std_callables);
-            res.items.append(&mut current_callables);
-            res.items.append(&mut namespaces);
+            // All callables from std package
+            items.append(&mut callable_names_from_package(std_package));
+            // Callables from the current document
+            items.append(&mut callable_names_from_package(package));
+            items.append(&mut namespaces);
         }
-        Context::TopLevel | Context::NotSignificant => res.items.push(CompletionItem {
+        Context::TopLevel | Context::NotSignificant => items.push(CompletionItem {
             label: "namespace".to_string(),
             kind: CompletionItemKind::Keyword,
         }),
     }
-    res
+    CompletionList { items }
 }
 
 struct NamespaceCollector {
