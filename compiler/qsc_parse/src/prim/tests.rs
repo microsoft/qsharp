@@ -4,11 +4,9 @@
 use super::{ident, opt, pat, path, seq};
 use crate::{
     lex::{ClosedBinOp, TokenKind},
-    parse::{
-        scan::Scanner,
-        tests::{check, check_opt, check_seq},
-        Error, Keyword,
-    },
+    scan::Scanner,
+    tests::{check, check_opt, check_seq},
+    Error, Keyword,
 };
 use expect_test::expect;
 use qsc_data_structures::span::Span;

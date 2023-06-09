@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{Error, Names, Res};
-use crate::{parse, resolve::Resolver};
+use crate::resolve::Resolver;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
@@ -80,7 +80,7 @@ fn resolve_names(input: &str) -> String {
 }
 
 fn compile(input: &str) -> (Package, Names, Vec<Error>) {
-    let (namespaces, parse_errors) = parse::namespaces(input);
+    let (namespaces, parse_errors) = qsc_parse::namespaces(input);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),

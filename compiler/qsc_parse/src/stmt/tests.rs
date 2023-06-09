@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{block, stmt};
-use crate::parse::tests::check;
+use crate::tests::check;
 use expect_test::expect;
 
 #[test]

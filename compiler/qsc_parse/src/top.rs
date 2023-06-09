@@ -20,7 +20,7 @@ use qsc_ast::ast::{
     Visibility, VisibilityKind,
 };
 
-pub(crate) enum Fragment {
+pub enum Fragment {
     Namespace(Namespace),
     Stmt(Box<Stmt>),
 }

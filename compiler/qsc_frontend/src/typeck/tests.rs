@@ -3,7 +3,6 @@
 
 use crate::{
     compile::{self, Offsetter},
-    parse,
     resolve::{self, Resolver},
     typeck::Checker,
 };
@@ -105,13 +104,13 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 }
 
 fn parse(input: &str, entry_expr: &str) -> Package {
-    let (namespaces, errors) = parse::namespaces(input);
+    let (namespaces, errors) = qsc_parse::namespaces(input);
     assert!(errors.is_empty(), "parsing input failed: {errors:#?}");
 
     let entry = if entry_expr.is_empty() {
         None
     } else {
-        let (mut entry, errors) = parse::expr(entry_expr);
+        let (mut entry, errors) = qsc_parse::expr(entry_expr);
         let offset = input
             .len()
             .try_into()

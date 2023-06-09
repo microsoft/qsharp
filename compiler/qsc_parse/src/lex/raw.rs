@@ -33,7 +33,7 @@ pub(super) struct Token {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum TokenKind {
+pub enum TokenKind {
     Comment,
     Ident,
     Number(Number),
@@ -61,7 +61,7 @@ impl Display for TokenKind {
 
 /// A single-character operator token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum Single {
+pub enum Single {
     /// `&`
     Amp,
     /// `'`
@@ -142,14 +142,14 @@ impl Display for Single {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum Number {
+pub enum Number {
     BigInt(Radix),
     Float,
     Int(Radix),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum StringToken {
+pub enum StringToken {
     Normal { terminated: bool },
     Interpolated(InterpolatedStart, Option<InterpolatedEnding>),
 }

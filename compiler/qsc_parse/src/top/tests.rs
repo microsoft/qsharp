@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{attr, item, namespaces, spec_decl};
-use crate::parse::tests::{check, check_vec};
+use crate::tests::{check, check_vec};
 use expect_test::expect;
 
 #[test]

@@ -7,6 +7,7 @@
 
 mod expr;
 mod keyword;
+mod lex;
 mod prim;
 mod scan;
 mod stmt;
@@ -15,7 +16,8 @@ mod tests;
 mod top;
 mod ty;
 
-use crate::lex::{self, TokenKind};
+use keyword::Keyword;
+use lex::TokenKind;
 use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Namespace};
 use qsc_data_structures::span::Span;
@@ -23,11 +25,10 @@ use scan::Scanner;
 use std::result;
 use thiserror::Error;
 
-pub(super) use keyword::Keyword;
-pub(super) use top::Fragment;
+pub use top::Fragment;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
-pub(super) enum Error {
+pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),
@@ -50,7 +51,7 @@ pub(super) enum Error {
 }
 
 impl Error {
-    pub(super) fn with_offset(self, offset: u32) -> Self {
+    pub fn with_offset(self, offset: u32) -> Self {
         match self {
             Self::Lex(error) => Self::Lex(error.with_offset(offset)),
             Self::Lit(name, span) => Self::Lit(name, span + offset),
@@ -67,13 +68,13 @@ impl Error {
     }
 }
 
-pub(super) type Result<T> = result::Result<T, Error>;
+type Result<T> = result::Result<T, Error>;
 
 trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
 
 impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
-pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
+pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match top::namespaces(&mut scanner) {
         Ok(namespaces) => (namespaces, scanner.errors()),
@@ -85,7 +86,7 @@ pub(super) fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     }
 }
 
-pub(super) fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
+pub fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match top::fragments(&mut scanner) {
         Ok(fragments) => (fragments, scanner.errors()),
@@ -97,7 +98,7 @@ pub(super) fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
     }
 }
 
-pub(super) fn expr(input: &str) -> (Box<Expr>, Vec<Error>) {
+pub fn expr(input: &str) -> (Box<Expr>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match expr::expr(&mut scanner) {
         Ok(expr) => (expr, scanner.errors()),

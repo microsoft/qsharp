@@ -34,7 +34,7 @@ pub(crate) struct Token {
 }
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
-pub(crate) enum Error {
+pub enum Error {
     #[error("expected `{0}` to complete {1}, found {2}")]
     Incomplete(raw::Single, TokenKind, raw::TokenKind, #[label] Span),
 
@@ -65,7 +65,7 @@ impl Error {
 
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum TokenKind {
+pub enum TokenKind {
     /// `'`
     Apos,
     /// `@`
@@ -198,7 +198,7 @@ impl From<Number> for TokenKind {
 /// the domain of the first operand is closed under this operation. These are candidates for
 /// compound assignment operators, like `+=`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum ClosedBinOp {
+pub enum ClosedBinOp {
     /// `&&&`
     AmpAmpAmp,
     /// `and`
@@ -248,7 +248,7 @@ impl Display for ClosedBinOp {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum StringToken {
+pub enum StringToken {
     Normal,
     Interpolated(InterpolatedStart, InterpolatedEnding),
 }
