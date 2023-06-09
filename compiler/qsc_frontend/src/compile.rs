@@ -6,7 +6,6 @@ mod tests;
 
 use crate::{
     lower::{self, Lowerer},
-    parse,
     resolve::{self, Names, Resolver},
     typeck::{self, Checker},
 };
@@ -136,7 +135,7 @@ pub struct Error(pub(super) ErrorKind);
 #[diagnostic(transparent)]
 pub(super) enum ErrorKind {
     #[error("syntax error")]
-    Parse(#[from] parse::Error),
+    Parse(#[from] qsc_parse::Error),
     #[error("name error")]
     Resolve(#[from] resolve::Error),
     #[error("type error")]
@@ -339,11 +338,11 @@ pub fn std(store: &PackageStore) -> CompileUnit {
     unit
 }
 
-fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
+fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {
-        let (source_namespaces, source_errors) = parse::namespaces(&source.contents);
+        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(namespace);
@@ -357,7 +356,7 @@ fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<parse::Error>) {
         .as_ref()
         .filter(|source| !source.contents.is_empty())
         .map(|source| {
-            let (mut entry, entry_errors) = parse::expr(&source.contents);
+            let (mut entry, entry_errors) = qsc_parse::expr(&source.contents);
             Offsetter(source.offset).visit_expr(&mut entry);
             append_parse_errors(&mut errors, source.offset, entry_errors);
             entry
@@ -421,7 +420,11 @@ fn typeck_all(
     checker.into_tys()
 }
 
-fn append_parse_errors(errors: &mut Vec<parse::Error>, offset: u32, other: Vec<parse::Error>) {
+fn append_parse_errors(
+    errors: &mut Vec<qsc_parse::Error>,
+    offset: u32,
+    other: Vec<qsc_parse::Error>,
+) {
     for error in other {
         errors.push(error.with_offset(offset));
     }
