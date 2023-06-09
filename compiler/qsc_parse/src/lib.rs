@@ -28,7 +28,18 @@ use thiserror::Error;
 pub use top::Fragment;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
-pub enum Error {
+#[error(transparent)]
+#[diagnostic(transparent)]
+pub struct Error(ErrorKind);
+
+impl Error {
+    pub fn with_offset(self, offset: u32) -> Self {
+        Self(self.0.with_offset(offset))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
+enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Lex(lex::Error),
@@ -50,8 +61,8 @@ pub enum Error {
     MissingSemi(#[label] Span),
 }
 
-impl Error {
-    pub fn with_offset(self, offset: u32) -> Self {
+impl ErrorKind {
+    fn with_offset(self, offset: u32) -> Self {
         match self {
             Self::Lex(error) => Self::Lex(error.with_offset(offset)),
             Self::Lit(name, span) => Self::Lit(name, span + offset),

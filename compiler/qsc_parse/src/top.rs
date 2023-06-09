@@ -13,7 +13,10 @@ use super::{
     ty::{self, ty},
     Error, Result,
 };
-use crate::lex::{Delim, TokenKind};
+use crate::{
+    lex::{Delim, TokenKind},
+    ErrorKind,
+};
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
     NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, Ty, TyDef, TyDefKind, TyKind,
@@ -71,7 +74,7 @@ pub(super) fn item(s: &mut Scanner) -> Result<Box<Item>> {
     } else if let Some(callable) = opt(s, callable_decl)? {
         Ok(Box::new(ItemKind::Callable(callable)))
     } else {
-        Err(Error::Rule("item", s.peek().kind, s.peek().span))
+        Err(Error(ErrorKind::Rule("item", s.peek().kind, s.peek().span)))
     }?;
 
     Ok(Box::new(Item {
@@ -153,7 +156,7 @@ fn ty_def(s: &mut Scanner) -> Result<Box<TyDef>> {
 
 fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     let TyKind::Path(path) = *ty.kind else {
-        return Err(Error::Convert("identifier", "type", ty.span));
+        return Err(Error(ErrorKind::Convert("identifier", "type", ty.span)));
     };
     if let Path {
         namespace: None,
@@ -163,7 +166,7 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     {
         Ok(name)
     } else {
-        Err(Error::Convert("identifier", "type", ty.span))
+        Err(Error(ErrorKind::Convert("identifier", "type", ty.span)))
     }
 }
 
@@ -175,7 +178,11 @@ fn callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         Ok(CallableKind::Operation)
     } else {
         let token = s.peek();
-        Err(Error::Rule("callable declaration", token.kind, token.span))
+        Err(Error(ErrorKind::Rule(
+            "callable declaration",
+            token.kind,
+            token.span,
+        )))
     }?;
 
     let name = ident(s)?;
@@ -241,7 +248,11 @@ fn spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
             Ok(Spec::Ctl)
         }
     } else {
-        Err(Error::Rule("specialization", s.peek().kind, s.peek().span))
+        Err(Error(ErrorKind::Rule(
+            "specialization",
+            s.peek().kind,
+            s.peek().span,
+        )))
     }?;
 
     let body = if let Some(gen) = opt(s, spec_gen)? {
@@ -271,10 +282,10 @@ fn spec_gen(s: &mut Scanner) -> Result<SpecGen> {
     } else if keyword(s, Keyword::Slf).is_ok() {
         Ok(SpecGen::Slf)
     } else {
-        Err(Error::Rule(
+        Err(Error(ErrorKind::Rule(
             "specialization generator",
             s.peek().kind,
             s.peek().span,
-        ))
+        )))
     }
 }

@@ -10,7 +10,7 @@ pub(super) use cooked::{ClosedBinOp, Error, Lexer, StringToken, Token, TokenKind
 
 /// A delimiter token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum Delim {
+pub(super) enum Delim {
     /// `{` or `}`
     Brace,
     /// `[` or `]`
@@ -20,7 +20,7 @@ pub enum Delim {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum Radix {
+pub(super) enum Radix {
     Binary,
     Octal,
     Decimal,
@@ -39,13 +39,13 @@ impl From<Radix> for u32 {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum InterpolatedStart {
+pub(super) enum InterpolatedStart {
     DollarQuote,
     RBrace,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum InterpolatedEnding {
+pub(super) enum InterpolatedEnding {
     Quote,
     LBrace,
 }
