@@ -400,7 +400,7 @@ fn array_index_error() {
             #4 4-5 "2" : Int
             #5 7-8 "3" : Int
             #6 10-15 "false" : Bool
-            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Infer(InferTyId(0)) }, Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClassHasIndex(Array(Prim(Int)), Prim(Bool), Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -440,7 +440,7 @@ fn assignop_error() {
             #12 38-39 "1" : Int
             #14 45-46 "x" : Bool
             Error(Type(Error(TyMismatch(Prim(Bool), Prim(Int), Span { lo: 29, hi: 39 }))))
-            Error(Type(Error(MissingClass(Add(Prim(Bool)), Span { lo: 33, hi: 34 }))))
+            Error(Type(Error(MissingClassAdd(Prim(Bool), Span { lo: 33, hi: 34 }))))
         "##]],
     );
 }
@@ -457,7 +457,7 @@ fn binop_add_invalid() {
             #4 4-5 "3" : Int
             #5 9-12 "5.4" : Double
             Error(Type(Error(TyMismatch(Tuple([Prim(Int), Prim(Int)]), Prim(Double), Span { lo: 0, hi: 12 }))))
-            Error(Type(Error(MissingClass(Add(Tuple([Prim(Int), Prim(Int)])), Span { lo: 0, hi: 6 }))))
+            Error(Type(Error(MissingClassAdd(Tuple([Prim(Int), Prim(Int)]), Span { lo: 0, hi: 6 }))))
         "##]],
     );
 }
@@ -485,7 +485,7 @@ fn binop_andb_invalid() {
             #1 0-11 "2.8 &&& 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -522,7 +522,7 @@ fn binop_equal_callable() {
             #19 73-89 "Test.A == Test.B" : Bool
             #20 73-79 "Test.A" : (Unit -> Unit)
             #24 83-89 "Test.B" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Eq(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 73, hi: 79 }))))
+            Error(Type(Error(MissingClassEq(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 79 }))))
         "##]],
     );
 }
@@ -646,7 +646,7 @@ fn binop_orb_invalid() {
             #1 0-11 "2.8 ||| 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -674,7 +674,7 @@ fn binop_xorb_invalid() {
             #1 0-11 "2.8 ^^^ 5.4" : Double
             #2 0-3 "2.8" : Double
             #3 8-11 "5.4" : Double
-            Error(Type(Error(MissingClass(Integral(Prim(Double)), Span { lo: 0, hi: 3 }))))
+            Error(Type(Error(MissingClassIntegral(Prim(Double), Span { lo: 0, hi: 3 }))))
         "##]],
     );
 }
@@ -797,7 +797,7 @@ fn for_loop_not_iterable() {
             #6 13-17 "true" : Bool
             #7 19-22 "One" : Result
             #8 24-26 "{}" : Unit
-            Error(Type(Error(MissingClass(Iterable { container: Tuple([Prim(Int), Prim(Bool), Prim(Result)]), item: Infer(InferTyId(0)) }, Span { lo: 9, hi: 23 }))))
+            Error(Type(Error(MissingClassIterable(Tuple([Prim(Int), Prim(Bool), Prim(Result)]), Span { lo: 9, hi: 23 }))))
         "##]],
     );
 }
@@ -938,7 +938,7 @@ fn ternop_update_invalid_container() {
             #5 7-8 "3" : Int
             #6 13-14 "2" : Int
             #7 18-19 "4" : Int
-            Error(Type(Error(MissingClass(HasIndex { container: Tuple([Prim(Int), Prim(Int), Prim(Int)]), index: Prim(Int), item: Prim(Int) }, Span { lo: 0, hi: 19 }))))
+            Error(Type(Error(MissingClassHasIndex(Tuple([Prim(Int), Prim(Int), Prim(Int)]), Prim(Int), Span { lo: 0, hi: 19 }))))
         "##]],
     );
 }
@@ -956,7 +956,7 @@ fn ternop_update_invalid_index() {
             #5 7-8 "3" : Int
             #6 13-18 "false" : Bool
             #7 22-23 "4" : Int
-            Error(Type(Error(MissingClass(HasIndex { container: Array(Prim(Int)), index: Prim(Bool), item: Prim(Int) }, Span { lo: 0, hi: 23 }))))
+            Error(Type(Error(MissingClassHasIndex(Array(Prim(Int)), Prim(Bool), Span { lo: 0, hi: 23 }))))
         "##]],
     );
 }
@@ -1118,7 +1118,7 @@ fn ternop_update_udt_unknown_field_name() {
             #36 133-134 "p" : UDT<Item 1>
             #39 138-143 "Third" : ?
             #42 147-148 "3" : Int
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 133, hi: 148 }))))
+            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 133, hi: 148 }))))
         "##]],
     );
 }
@@ -1155,7 +1155,7 @@ fn ternop_update_udt_unknown_field_name_known_global() {
             #42 163-164 "p" : UDT<Item 1>
             #45 168-173 "Third" : ?
             #48 177-178 "3" : Int
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Third", item: Prim(Int) }, Span { lo: 163, hi: 178 }))))
+            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Third", Span { lo: 163, hi: 178 }))))
         "##]],
     );
 }
@@ -1168,7 +1168,7 @@ fn unop_bitwise_not_bool() {
         &expect![[r##"
             #1 0-8 "~~~false" : Bool
             #2 3-8 "false" : Bool
-            Error(Type(Error(MissingClass(Num(Prim(Bool)), Span { lo: 3, hi: 8 }))))
+            Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 3, hi: 8 }))))
         "##]],
     );
 }
@@ -1194,7 +1194,7 @@ fn unop_neg_bool() {
         &expect![[r##"
             #1 0-6 "-false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 }))))
+            Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 1, hi: 6 }))))
         "##]],
     );
 }
@@ -1207,7 +1207,7 @@ fn unop_pos_bool() {
         &expect![[r##"
             #1 0-6 "+false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClass(Num(Prim(Bool)), Span { lo: 1, hi: 6 }))))
+            Error(Type(Error(MissingClassNum(Prim(Bool), Span { lo: 1, hi: 6 }))))
         "##]],
     );
 }
@@ -1607,7 +1607,7 @@ fn array_unknown_field_error() {
             #16 50-73 "{\n        x::Size\n    }" : Int
             #18 60-67 "x::Size" : Int
             #19 60-61 "x" : (Qubit)[]
-            Error(Type(Error(MissingClass(HasField { record: Array(Prim(Qubit)), name: "Size", item: Infer(InferTyId(0)) }, Span { lo: 60, hi: 67 }))))
+            Error(Type(Error(MissingClassHasField(Array(Prim(Qubit)), "Size", Span { lo: 60, hi: 67 }))))
         "##]],
     );
 }
@@ -1649,7 +1649,7 @@ fn range_to_field_start() {
             #3 1-8 "...2..8" : RangeTo
             #4 4-5 "2" : Int
             #5 7-8 "8" : Int
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeTo), name: "Start", item: Infer(InferTyId(0)) }, Span { lo: 0, hi: 16 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeTo), "Start", Span { lo: 0, hi: 16 }))))
         "##]],
     );
 }
@@ -1725,7 +1725,7 @@ fn range_from_field_end() {
             #3 1-8 "0..2..." : RangeFrom
             #4 1-2 "0" : Int
             #5 4-5 "2" : Int
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFrom), name: "End", item: Infer(InferTyId(0)) }, Span { lo: 0, hi: 14 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeFrom), "End", Span { lo: 0, hi: 14 }))))
         "##]],
     );
 }
@@ -1738,7 +1738,7 @@ fn range_full_field_start() {
         &expect![[r##"
             #1 0-10 "...::Start" : ?0
             #2 0-3 "..." : RangeFull
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "Start", item: Infer(InferTyId(0)) }, Span { lo: 0, hi: 10 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeFull), "Start", Span { lo: 0, hi: 10 }))))
         "##]],
     );
 }
@@ -1777,7 +1777,7 @@ fn range_full_field_end() {
         &expect![[r##"
             #1 0-8 "...::End" : ?0
             #2 0-3 "..." : RangeFull
-            Error(Type(Error(MissingClass(HasField { record: Prim(RangeFull), name: "End", item: Infer(InferTyId(0)) }, Span { lo: 0, hi: 8 }))))
+            Error(Type(Error(MissingClassHasField(Prim(RangeFull), "End", Span { lo: 0, hi: 8 }))))
         "##]],
     );
 }
@@ -1836,7 +1836,7 @@ fn interpolate_function() {
             #8 38-40 "{}" : Unit
             #9 43-53 "$\"{A.Foo}\"" : String
             #10 46-51 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 46, hi: 51 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 51 }))))
         "##]],
     );
 }
@@ -1855,7 +1855,7 @@ fn interpolate_operation() {
             #8 39-41 "{}" : Unit
             #9 44-54 "$\"{A.Foo}\"" : String
             #10 47-52 "A.Foo" : (Unit => Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Arrow { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 47, hi: 52 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 47, hi: 52 }))))
         "##]],
     );
 }
@@ -1894,7 +1894,7 @@ fn interpolate_function_array() {
             #16 73-87 "[A.Foo, A.Bar]" : ((Unit -> Unit))[]
             #17 74-79 "A.Foo" : (Unit -> Unit)
             #21 81-86 "A.Bar" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 73, hi: 87 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 87 }))))
         "##]],
     );
 }
@@ -1929,7 +1929,7 @@ fn interpolate_int_function_tuple() {
             #10 46-56 "(1, A.Foo)" : (Int, (Unit -> Unit))
             #11 47-48 "1" : Int
             #12 50-55 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClass(Show(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) })), Span { lo: 46, hi: 56 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 56 }))))
         "##]],
     );
 }
@@ -2087,7 +2087,7 @@ fn newtype_field_invalid() {
             #22 88-89 "y" : ?1
             #24 92-99 "x::Nope" : ?1
             #25 92-93 "x" : UDT<Item 1>
-            Error(Type(Error(MissingClass(HasField { record: Udt(Item(ItemId { package: None, item: LocalItemId(1) })), name: "Nope", item: Infer(InferTyId(1)) }, Span { lo: 92, hi: 99 }))))
+            Error(Type(Error(MissingClassHasField(Udt(Item(ItemId { package: None, item: LocalItemId(1) })), "Nope", Span { lo: 92, hi: 99 }))))
         "##]],
     );
 }
