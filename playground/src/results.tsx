@@ -6,6 +6,7 @@ import { useEffect, useState } from "preact/hooks";
 
 import { Histogram } from "./histo.js";
 import { StateTable } from "./state.js";
+import { ActiveTab } from "./main.js";
 
 function resultToLabel(result: string | VSDiagnostic): string {
   if (typeof result !== "string") return "ERROR";
@@ -52,11 +53,11 @@ function resultIsSame(a: ShotResult, b: ShotResult): boolean {
   return true;
 }
 
-export function Results(props: {
+export function ResultsTab(props: {
   evtTarget: QscEventTarget;
-  showPanel: boolean;
   onShotError?: (err?: VSDiagnostic) => void;
   kataMode?: boolean;
+  activeTab: ActiveTab;
 }) {
   const [resultState, setResultState] = useState<ResultsState>(newRunState());
 
@@ -211,15 +212,8 @@ export function Results(props: {
     if (currIndex < countForFilter - 1) moveToIndex(currIndex + 1, filterValue);
   }
 
-  return (
-    <div class="results-column">
-      {props.showPanel ? (
-        <div class="results-labels">
-          <div class="results-active-tab">RESULTS</div>
-          <div>AST</div>
-          <div>LOGS</div>
-        </div>
-      ) : null}
+  return props.activeTab === "results-tab" ? (
+    <div>
       {!resultState.shotCount ? null : (
         <>
           {resultState.buckets.size > 1 ? (
@@ -255,5 +249,5 @@ export function Results(props: {
         </>
       )}
     </div>
-  );
+  ) : null;
 }

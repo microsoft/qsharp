@@ -7,6 +7,27 @@ namespace Microsoft.Quantum.Measurement {
     open QIR.Intrinsic;
 
     /// # Summary
+    /// Jointly measures a register of qubits in the Pauli Z basis.
+    ///
+    /// # Description
+    /// Measures a register of qubits in the $Z \otimes Z \otimes \cdots \otimes Z$
+    /// basis, representing the parity of the entire register.
+    ///
+    /// # Input
+    /// ## register
+    /// The register to be measured.
+    ///
+    /// # Output
+    /// The result of measuring $Z \otimes Z \otimes \cdots \otimes Z$.
+    ///
+    /// # Remarks
+    /// This operation does not reset the measured qubits to the |0⟩ state, 
+    /// leaving them in the state that corresponds to the measurement result.
+    operation MeasureAllZ (register : Qubit[]) : Result {
+        Measure(Repeated(PauliZ, Length(register)), register)
+    }
+
+    /// # Summary
     /// Measures each qubit in a given array in the standard basis.
     /// # Input
     /// ## targets

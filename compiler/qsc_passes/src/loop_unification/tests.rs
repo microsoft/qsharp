@@ -41,7 +41,7 @@ fn convert_for_array() {
                     Namespace (Ident 17 [10-14] "test"): Item 1
                 Item 1 [21-131] (Public):
                     Parent: 0
-                    Callable 0 [21-131] (Operation):
+                    Callable 0 [21-131] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
@@ -102,7 +102,7 @@ fn convert_for_array_deconstruct() {
                     Namespace (Ident 20 [10-14] "test"): Item 1
                 Item 1 [21-146] (Public):
                     Parent: 0
-                    Callable 0 [21-146] (Operation):
+                    Callable 0 [21-146] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-57] [Type ((Int, Double))[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
@@ -165,7 +165,7 @@ fn convert_for_slice() {
                     Namespace (Ident 23 [10-14] "test"): Item 1
                 Item 1 [21-141] (Public):
                     Parent: 0
-                    Callable 0 [21-141] (Operation):
+                    Callable 0 [21-141] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [36-47] [Type (Int)[]]: Bind: Ident 3 [36-39] "arr"
                         output: Unit
@@ -232,7 +232,7 @@ fn convert_for_range() {
                     Namespace (Ident 18 [10-14] "test"): Item 1
                 Item 1 [21-121] (Public):
                     Parent: 0
-                    Callable 0 [21-121] (Operation):
+                    Callable 0 [21-121] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -313,7 +313,7 @@ fn convert_for_reverse_range() {
                     Namespace (Ident 20 [10-14] "test"): Item 1
                 Item 1 [21-125] (Public):
                     Parent: 0
-                    Callable 0 [21-125] (Operation):
+                    Callable 0 [21-125] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -395,7 +395,7 @@ fn convert_repeat() {
                     Namespace (Ident 14 [10-14] "test"): Item 1
                 Item 1 [21-126] (Public):
                     Parent: 0
-                    Callable 0 [21-126] (Operation):
+                    Callable 0 [21-126] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -445,7 +445,7 @@ fn convert_repeat_fixup() {
                     Namespace (Ident 19 [10-14] "test"): Item 1
                 Item 1 [21-180] (Public):
                     Parent: 0
-                    Callable 0 [21-180] (Operation):
+                    Callable 0 [21-180] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
@@ -512,7 +512,7 @@ fn convert_repeat_nested() {
                     Namespace (Ident 44 [10-14] "test"): Item 1
                 Item 1 [21-401] (Public):
                     Parent: 0
-                    Callable 0 [21-401] (Operation):
+                    Callable 0 [21-401] (operation):
                         name: Ident 1 [31-35] "Main"
                         input: Pat 2 [35-37] [Type Unit]: Unit
                         output: Unit
