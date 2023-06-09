@@ -33,6 +33,7 @@ impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "; ModuleID = '<{}>'", self.name)?;
         writeln!(f)?;
+        writeln!(f, "{}", self.ty_builder)?;
         for global_var in &self.global_vars {
             writeln!(f, "{global_var}")?;
         }

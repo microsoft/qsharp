@@ -250,6 +250,15 @@ impl Default for Builder {
     }
 }
 
+impl Display for Builder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (name, def) in &self.named_struct_defs {
+            writeln!(f, "%{name} = type {def}")?;
+        }
+        Ok(())
+    }
+}
+
 impl Builder {
     #[must_use]
     pub fn new() -> Self {
@@ -281,20 +290,21 @@ impl Builder {
             Ty::Prim(prim) => match prim {
                 PrimTy::BigInt => todo!(),
                 PrimTy::Bool => self.bool(),
-                PrimTy::Double => todo!(),
+                PrimTy::Double => self.fp(FPType::Double),
                 PrimTy::Int => self.i64(),
                 PrimTy::Pauli => self.int(2),
-                PrimTy::Qubit => todo!(),
+                PrimTy::Qubit => self.qubit(),
                 PrimTy::Range => todo!(),
                 PrimTy::RangeTo => todo!(),
                 PrimTy::RangeFrom => todo!(),
                 PrimTy::RangeFull => todo!(),
-                PrimTy::Result => todo!(),
+                PrimTy::Result => self.result(),
                 PrimTy::String => todo!(),
             },
+            Ty::Tuple(tup) if tup.is_empty() => self.void(),
             Ty::Tuple(_) => todo!(),
             Ty::Udt(_) => todo!(),
-            Ty::Err => todo!(),
+            Ty::Err => panic!("error types should not be present during code generation"),
         }
     }
 
@@ -302,6 +312,20 @@ impl Builder {
     #[must_use]
     pub fn void(&self) -> TypeRef {
         self.void_type.clone()
+    }
+
+    /// Get the opaque Qubit type
+    #[must_use]
+    pub fn qubit(&mut self) -> TypeRef {
+        let qubit_ty = self.named_struct("Qubit".to_string());
+        self.pointer_to(qubit_ty)
+    }
+
+    /// Get the opaque Result type
+    #[must_use]
+    pub fn result(&mut self) -> TypeRef {
+        let result_ty = self.named_struct("Result".to_string());
+        self.pointer_to(result_ty)
     }
 
     /// Get the integer type of the specified size (in bits)
@@ -483,6 +507,16 @@ pub enum NamedStructDef {
     Opaque,
     /// A struct type with a definition. The `TypeRef` here is guaranteed to be to a `StructType` variant.
     Defined(TypeRef),
+}
+
+impl Display for NamedStructDef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NamedStructDef::Opaque => write!(f, "opaque")?,
+            NamedStructDef::Defined(ty) => write!(f, "{ty}")?,
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug)]

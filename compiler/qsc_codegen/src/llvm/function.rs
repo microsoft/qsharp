@@ -38,9 +38,28 @@ impl Function {
 
 impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        writeln!(f, "define {} @{}...{{", self.return_type, self.name)?;
+        write!(
+            f,
+            "define {} {} @{}(",
+            self.linkage, self.return_type, self.name
+        )?;
+        if let Some((last, most)) = self.parameters.split_last() {
+            for param in most {
+                write!(f, "{param}")?;
+                write!(f, ", ")?;
+            }
+            write!(f, "{last}")?;
+        }
+        writeln!(f, ") {{")?;
         for bb in &self.basic_blocks {
-            writeln!(f, "{}:", bb.name)?;
+            writeln!(
+                f,
+                "{}:",
+                match &bb.name {
+                    Name::Name(name) => name.to_string(),
+                    Name::Number(num) => num.to_string(),
+                }
+            )?;
             for i in &bb.instrs {
                 writeln!(f, "  {i}")?;
             }
@@ -66,28 +85,33 @@ pub struct Declaration {
 
 impl Display for Declaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        /*
-         define [linkage] [PreemptionSpecifier] [visibility] [DLLStorageClass]
-            [cconv] [ret attrs]
-            <ResultType> @<FunctionName> ([argument list])
-            [(unnamed_addr|local_unnamed_addr)] [AddrSpace] [fn Attrs]
-            [section "name"] [partition "name"] [comdat [($name)]] [align N]
-            [gc] [prefix Constant] [prologue Constant] [personality Constant]
-            (!name !N)* { ... }
-        */
-        writeln!(
-            f,
-            "define {} {} {} @{}...",
-            self.linkage, self.visibility, self.return_type, self.name
-        )
+        write!(f, "define {} @{}(", self.return_type, self.name)?;
+        if let Some((last, most)) = self.parameters.split_last() {
+            for param in most {
+                write!(f, "{param}")?;
+                write!(f, ", ")?;
+            }
+            write!(f, "{last}")?;
+        }
+        writeln!(f, ")")
     }
 }
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Parameter {
-    pub name: Name,
+    pub name: Option<Name>,
     pub ty: TypeRef,
     pub attributes: Vec<ParameterAttribute>,
+}
+
+impl Display for Parameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.ty)?;
+        if let Some(name) = &self.name {
+            write!(f, " {name}")?;
+        }
+        Ok(())
+    }
 }
 
 /// See [LLVM 14 docs on Function Attributes](https://releases.llvm.org/14.0.0/docs/LangRef.html#fnattrs)
