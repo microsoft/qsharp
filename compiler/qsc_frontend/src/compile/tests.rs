@@ -9,10 +9,11 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     global,
     hir::{
-        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy, Res, SpecBody,
-        Stmt, StmtKind, Ty,
+        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, Res, SpecBody, Stmt,
+        StmtKind,
     },
     mut_visit::MutVisitor,
+    ty::{Prim, Ty},
 };
 
 fn error_span(error: &Error) -> Span {
@@ -218,7 +219,7 @@ fn entry_call_operation() {
 
     let entry = &unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -259,7 +260,7 @@ fn replace_node() {
             *expr = Expr {
                 id: NodeId::default(),
                 span: expr.span,
-                ty: Ty::Prim(PrimTy::Int),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Lit(Lit::Int(2)),
             };
         }
@@ -309,12 +310,15 @@ fn insert_core_call() {
                 .core
                 .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
-
+            let allocate_ty = allocate
+                .scheme
+                .instantiate([])
+                .expect("qubit allocation scheme should instantiate");
             let callee = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: allocate.ty.clone(),
-                kind: ExprKind::Var(Res::Item(allocate.id)),
+                ty: Ty::Arrow(Box::new(allocate_ty)),
+                kind: ExprKind::Var(Res::Item(allocate.id), Vec::new()),
             };
 
             let arg = Expr {
@@ -327,7 +331,7 @@ fn insert_core_call() {
             let call = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Prim(PrimTy::Qubit),
+                ty: Ty::Prim(Prim::Qubit),
                 kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
             };
 
@@ -427,7 +431,7 @@ fn package_dependency() {
     let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: Some(package1),
@@ -482,7 +486,7 @@ fn package_dependency_internal() {
     let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(&Res::Err, res);
 }
 

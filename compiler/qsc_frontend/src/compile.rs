@@ -417,7 +417,7 @@ fn typeck_all(
 
     let mut checker = Checker::new(globals);
     checker.check_package(names, package);
-    checker.into_tys()
+    checker.into_table()
 }
 
 fn append_parse_errors(

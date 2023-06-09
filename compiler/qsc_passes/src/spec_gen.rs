@@ -17,10 +17,11 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, CallableDecl, CallableKind, Functor, Ident, NodeId, Pat, PatKind, PrimTy, Res, Spec,
-        SpecBody, SpecDecl, SpecGen, Ty,
+        Block, CallableDecl, CallableKind, Functor, Ident, NodeId, Pat, PatKind, Res, Spec,
+        SpecBody, SpecDecl, SpecGen,
     },
     mut_visit::MutVisitor,
+    ty::{Prim, Ty},
 };
 use std::option::Option;
 use thiserror::Error;
@@ -104,10 +105,10 @@ impl MutVisitor for SpecPlacePass {
             matches!(&decl.adj, Some(s) if matches!(&s.body, SpecBody::Impl(..)));
         let has_explicit_ctl =
             matches!(&decl.ctl, Some(s) if matches!(&s.body, SpecBody::Impl(..)));
-        let has_explicit_ctladj =
-            matches!(&decl.ctladj, Some(s) if !matches!(&s.body, SpecBody::Gen(SpecGen::Auto)));
+        let has_explicit_ctl_adj =
+            matches!(&decl.ctl_adj, Some(s) if !matches!(&s.body, SpecBody::Gen(SpecGen::Auto)));
 
-        if is_adj && is_ctl && !has_explicit_ctladj {
+        if is_adj && is_ctl && !has_explicit_ctl_adj {
             let gen = if is_self_adjoint(decl) {
                 SpecGen::Slf
             } else if has_explicit_ctl && !has_explicit_adj {
@@ -115,7 +116,7 @@ impl MutVisitor for SpecPlacePass {
             } else {
                 SpecGen::Distribute
             };
-            decl.ctladj = Some(SpecDecl {
+            decl.ctl_adj = Some(SpecDecl {
                 id: NodeId::default(),
                 span: decl.span,
                 spec: Spec::CtlAdj,
@@ -179,14 +180,14 @@ impl<'a> SpecImplPass<'a> {
                 id: NodeId::default(),
                 span: spec_decl.span,
                 ty: Ty::Tuple(vec![
-                    Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                    Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                     input_ty.clone(),
                 ]),
                 kind: PatKind::Tuple(vec![
                     Pat {
                         id: NodeId::default(),
                         span: spec_decl.span,
-                        ty: Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))),
+                        ty: Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
                         kind: PatKind::Bind(Ident {
                             id: ctls_id,
                             span: spec_decl.span,
@@ -255,10 +256,10 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
         let body = &decl.body;
         let adj = &mut decl.adj;
         let ctl = &mut decl.ctl;
-        let ctladj = &mut decl.ctladj;
+        let ctl_adj = &mut decl.ctl_adj;
 
         let SpecBody::Impl(_, body_block) = &body.body else {
-                if body.body == SpecBody::Gen(SpecGen::Intrinsic) && [adj, ctl, ctladj].into_iter().any(|x| Option::is_some(x)) {
+                if body.body == SpecBody::Gen(SpecGen::Intrinsic) && [adj, ctl, ctl_adj].into_iter().any(|x| Option::is_some(x)) {
                     self.errors.push(Error::MissingBody(body.span));
                 }
                 return;
@@ -282,17 +283,17 @@ impl<'a> MutVisitor for SpecImplPass<'a> {
             }
         }
 
-        if let (Some(ctladj), Some(adj), Some(ctl)) = (ctladj.as_mut(), &adj, &ctl) {
-            match &ctladj.body {
+        if let (Some(ctl_adj), Some(adj), Some(ctl)) = (ctl_adj.as_mut(), &adj, &ctl) {
+            match &ctl_adj.body {
                 SpecBody::Gen(SpecGen::Auto | SpecGen::Distribute) => {
                     if let SpecBody::Impl(_, adj_block) = &adj.body {
-                        self.ctl_distrib(decl.input.ty.clone(), ctladj, adj_block);
+                        self.ctl_distrib(decl.input.ty.clone(), ctl_adj, adj_block);
                     }
                 }
-                SpecBody::Gen(SpecGen::Slf) => ctladj.body = ctl.body.clone(),
+                SpecBody::Gen(SpecGen::Slf) => ctl_adj.body = ctl.body.clone(),
                 SpecBody::Gen(SpecGen::Invert) => {
                     if let SpecBody::Impl(pat, ctl_block) = &ctl.body {
-                        self.adj_invert(decl.input.ty.clone(), ctladj, ctl_block, Some(pat));
+                        self.adj_invert(decl.input.ty.clone(), ctl_adj, ctl_block, Some(pat));
                     }
                 }
                 _ => {}

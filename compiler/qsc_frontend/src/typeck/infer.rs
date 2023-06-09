@@ -3,9 +3,12 @@
 
 use super::{Error, ErrorKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::hir::{
-    ArrowTy, FunctorSet, FunctorSetValue, InferFunctor, InferTy, ItemId, PrimField, PrimTy, Res,
-    Ty, Udt,
+use qsc_hir::{
+    hir::{ItemId, PrimField, Res},
+    ty::{
+        Arrow, FunctorSet, FunctorSetValue, GenericArg, InferFunctorId, InferTyId, ParamKind, Prim,
+        Scheme, Ty, Udt,
+    },
 };
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
@@ -13,8 +16,8 @@ use std::{
 };
 
 pub(super) struct Solution {
-    tys: IndexMap<InferTy, Ty>,
-    functors: IndexMap<InferFunctor, FunctorSet>,
+    tys: IndexMap<InferTyId, Ty>,
+    functors: IndexMap<InferFunctorId, FunctorSet>,
 }
 
 #[derive(Clone, Debug)]
@@ -285,24 +288,18 @@ enum Constraint {
     },
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum FreshenMode {
-    Functors,
-    NoFunctors,
-}
-
 pub(super) struct Inferrer {
     constraints: VecDeque<Constraint>,
-    next_ty: InferTy,
-    next_functor: InferFunctor,
+    next_ty: InferTyId,
+    next_functor: InferFunctorId,
 }
 
 impl Inferrer {
     pub(super) fn new() -> Self {
         Self {
             constraints: VecDeque::new(),
-            next_ty: InferTy::default(),
-            next_functor: InferFunctor::default(),
+            next_ty: InferTyId::default(),
+            next_functor: InferFunctorId::default(),
         }
     }
 
@@ -334,13 +331,30 @@ impl Inferrer {
         FunctorSet::Infer(fresh)
     }
 
-    /// Replaces all type parameters with fresh types and creates synthetic functor parameters for
-    /// second-order arrow types.
-    pub(super) fn freshen_arrow(&mut self, arrow: &mut ArrowTy, span: Span) {
-        let mode = FreshenMode::Functors;
-        let mut params = HashMap::new();
-        freshen_ty(self, mode, span, &mut params, &mut arrow.input);
-        freshen_ty(self, mode, span, &mut params, &mut arrow.output);
+    /// Instantiates the type scheme.
+    pub(super) fn instantiate(&mut self, scheme: &Scheme, span: Span) -> (Arrow, Vec<GenericArg>) {
+        let args = scheme
+            .params()
+            .iter()
+            .map(|param| match param.kind {
+                ParamKind::Ty => GenericArg::Ty(self.fresh_ty()),
+                ParamKind::Functor(expected) => {
+                    let actual = self.fresh_functor();
+                    self.constraints.push_back(Constraint::Superset {
+                        expected,
+                        actual,
+                        span,
+                    });
+                    GenericArg::Functor(actual)
+                }
+            })
+            .collect();
+
+        let ty = scheme
+            .instantiate(&args)
+            .expect("scheme should instantiate with fresh arguments");
+
+        (ty, args)
     }
 
     /// Solves for all variables given the accumulated constraints.
@@ -355,21 +369,22 @@ impl Inferrer {
                 self.constraints.push_front(constraint);
             }
         }
+
         solver.into_solution()
     }
 }
 
 struct Solver<'a> {
     udts: &'a HashMap<ItemId, Udt>,
-    functor_end: InferFunctor,
+    functor_end: InferFunctorId,
     solution: Solution,
-    pending_tys: HashMap<InferTy, Vec<Class>>,
-    pending_functors: HashMap<InferFunctor, FunctorSetValue>,
+    pending_tys: HashMap<InferTyId, Vec<Class>>,
+    pending_functors: HashMap<InferFunctorId, FunctorSetValue>,
     errors: Vec<Error>,
 }
 
 impl<'a> Solver<'a> {
-    fn new(udts: &'a HashMap<ItemId, Udt>, functor_end: InferFunctor) -> Self {
+    fn new(udts: &'a HashMap<ItemId, Udt>, functor_end: InferFunctorId) -> Self {
         Self {
             udts,
             functor_end,
@@ -521,7 +536,7 @@ impl<'a> Solver<'a> {
         }
     }
 
-    fn bind_ty(&mut self, infer: InferTy, ty: Ty, span: Span) -> Vec<Constraint> {
+    fn bind_ty(&mut self, infer: InferTyId, ty: Ty, span: Span) -> Vec<Constraint> {
         self.solution.tys.insert(infer, ty);
         self.pending_tys
             .remove(&infer)
@@ -535,7 +550,7 @@ impl<'a> Solver<'a> {
 
     fn bind_functor(
         &mut self,
-        infer: InferFunctor,
+        infer: InferFunctorId,
         functors: FunctorSet,
         span: Span,
     ) -> Vec<Constraint> {
@@ -552,7 +567,7 @@ impl<'a> Solver<'a> {
     }
 
     fn default_functors(&mut self) {
-        let mut functor = InferFunctor::default();
+        let mut functor = InferFunctorId::default();
         while functor < self.functor_end {
             if !self.solution.functors.contains_key(functor) {
                 let value = self.pending_functors.remove(&functor).unwrap_or_default();
@@ -568,48 +583,6 @@ impl<'a> Solver<'a> {
     fn into_solution(mut self) -> (Solution, Vec<Error>) {
         self.default_functors();
         (self.solution, self.errors)
-    }
-}
-
-fn freshen_ty(
-    inferrer: &mut Inferrer,
-    mode: FreshenMode,
-    span: Span,
-    params: &mut HashMap<String, Ty>,
-    ty: &mut Ty,
-) {
-    match ty {
-        Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_) => {}
-        Ty::Array(item) => freshen_ty(inferrer, mode, span, params, item),
-        Ty::Arrow(arrow) => {
-            let new_mode = FreshenMode::NoFunctors;
-            freshen_ty(inferrer, new_mode, span, params, &mut arrow.input);
-            freshen_ty(inferrer, new_mode, span, params, &mut arrow.output);
-
-            if mode == FreshenMode::Functors {
-                let old_functors = arrow
-                    .functors
-                    .expect_value("arrow type should have concrete functors");
-                let new_functors = inferrer.fresh_functor();
-                inferrer.constraints.push_back(Constraint::Superset {
-                    expected: old_functors,
-                    actual: new_functors,
-                    span,
-                });
-                arrow.functors = new_functors;
-            }
-        }
-        Ty::Param(name) => {
-            *ty = params
-                .entry(name.clone())
-                .or_insert_with(|| inferrer.fresh_ty())
-                .clone();
-        }
-        Ty::Tuple(items) => {
-            for item in items {
-                freshen_ty(inferrer, mode, span, params, item);
-            }
-        }
     }
 }
 
@@ -641,7 +614,7 @@ fn substituted_ty(solution: &Solution, mut ty: Ty) -> Ty {
     ty
 }
 
-fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
+pub(super) fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
     if let &mut FunctorSet::Infer(infer) = functors {
         if let Some(&new_functors) = solution.functors.get(infer) {
             *functors = new_functors;
@@ -650,7 +623,7 @@ fn substitute_functor(solution: &Solution, functors: &mut FunctorSet) {
     }
 }
 
-fn unknown_ty(tys: &IndexMap<InferTy, Ty>, ty: &Ty) -> Option<InferTy> {
+fn unknown_ty(tys: &IndexMap<InferTyId, Ty>, ty: &Ty) -> Option<InferTyId> {
     match ty {
         &Ty::Infer(infer) => match tys.get(infer) {
             None => Some(infer),
@@ -660,7 +633,7 @@ fn unknown_ty(tys: &IndexMap<InferTy, Ty>, ty: &Ty) -> Option<InferTy> {
     }
 }
 
-fn contains_infer_ty(id: InferTy, ty: &Ty) -> bool {
+fn contains_infer_ty(id: InferTyId, ty: &Ty) -> bool {
     match ty {
         Ty::Err | Ty::Param(_) | Ty::Prim(_) | Ty::Udt(_) => false,
         Ty::Array(item) => contains_infer_ty(id, item),
@@ -675,7 +648,7 @@ fn contains_infer_ty(id: InferTy, ty: &Ty) -> bool {
 fn check_add(ty: &Ty) -> bool {
     matches!(
         ty,
-        Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int | PrimTy::String) | Ty::Array(_)
+        Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int | Prim::String) | Ty::Array(_)
     )
 }
 
@@ -706,14 +679,14 @@ fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constra
 
     let mut app = input.apply(&arrow.input, span);
     let expected = if app.holes.len() > 1 {
-        Ty::Arrow(Box::new(ArrowTy {
+        Ty::Arrow(Box::new(Arrow {
             kind: arrow.kind,
             input: Box::new(Ty::Tuple(app.holes)),
             output: arrow.output,
             functors: arrow.functors,
         }))
     } else if let Some(hole) = app.holes.pop() {
-        Ty::Arrow(Box::new(ArrowTy {
+        Ty::Arrow(Box::new(Arrow {
             kind: arrow.kind,
             input: Box::new(hole),
             output: arrow.output,
@@ -742,7 +715,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
         );
     };
 
-    let qubit_array = Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit)));
+    let qubit_array = Ty::Array(Box::new(Ty::Prim(Prim::Qubit)));
     let ctl_input = Box::new(Ty::Tuple(vec![qubit_array, *arrow.input]));
     (
         vec![
@@ -752,7 +725,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
                 span,
             },
             Constraint::Eq {
-                expected: Ty::Arrow(Box::new(ArrowTy {
+                expected: Ty::Arrow(Box::new(Arrow {
                     kind: arrow.kind,
                     input: ctl_input,
                     output: arrow.output,
@@ -769,15 +742,15 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
 fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match ty {
         Ty::Prim(
-            PrimTy::BigInt
-            | PrimTy::Bool
-            | PrimTy::Double
-            | PrimTy::Int
-            | PrimTy::Qubit
-            | PrimTy::Range
-            | PrimTy::Result
-            | PrimTy::String
-            | PrimTy::Pauli,
+            Prim::BigInt
+            | Prim::Bool
+            | Prim::Double
+            | Prim::Int
+            | Prim::Qubit
+            | Prim::Range
+            | Prim::Result
+            | Prim::String
+            | Prim::Pauli,
         ) => (Vec::new(), Vec::new()),
         Ty::Array(item) => (vec![Constraint::Class(Class::Eq(*item), span)], Vec::new()),
         Ty::Tuple(items) => (
@@ -793,15 +766,15 @@ fn check_eq(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 
 fn check_exp(base: Ty, power: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match base {
-        Ty::Prim(PrimTy::BigInt) => (
+        Ty::Prim(Prim::BigInt) => (
             vec![Constraint::Eq {
-                expected: Ty::Prim(PrimTy::Int),
+                expected: Ty::Prim(Prim::Int),
                 actual: power,
                 span,
             }],
             Vec::new(),
         ),
-        Ty::Prim(PrimTy::Double | PrimTy::Int) => (
+        Ty::Prim(Prim::Double | Prim::Int) => (
             vec![Constraint::Eq {
                 expected: base,
                 actual: power,
@@ -824,15 +797,15 @@ fn check_has_field(
     span: Span,
 ) -> (Vec<Constraint>, Vec<Error>) {
     match (name.parse(), &record) {
-        (Ok(PrimField::Start), Ty::Prim(PrimTy::Range | PrimTy::RangeFrom))
+        (Ok(PrimField::Start), Ty::Prim(Prim::Range | Prim::RangeFrom))
         | (
             Ok(PrimField::Step),
-            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+            Ty::Prim(Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull),
         )
-        | (Ok(PrimField::End), Ty::Prim(PrimTy::Range | PrimTy::RangeTo)) => (
+        | (Ok(PrimField::End), Ty::Prim(Prim::Range | Prim::RangeTo)) => (
             vec![Constraint::Eq {
                 expected: item,
-                actual: Ty::Prim(PrimTy::Int),
+                actual: Ty::Prim(Prim::Int),
                 span,
             }],
             Vec::new(),
@@ -867,7 +840,7 @@ fn check_has_index(
     span: Span,
 ) -> (Vec<Constraint>, Vec<Error>) {
     match (container, index) {
-        (Ty::Array(container_item), Ty::Prim(PrimTy::Int)) => (
+        (Ty::Array(container_item), Ty::Prim(Prim::Int)) => (
             vec![Constraint::Eq {
                 expected: *container_item,
                 actual: item,
@@ -877,7 +850,7 @@ fn check_has_index(
         ),
         (
             container @ Ty::Array(_),
-            Ty::Prim(PrimTy::Range | PrimTy::RangeFrom | PrimTy::RangeTo | PrimTy::RangeFull),
+            Ty::Prim(Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull),
         ) => (
             vec![Constraint::Eq {
                 expected: container,
@@ -896,14 +869,14 @@ fn check_has_index(
 }
 
 fn check_integral(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Int))
+    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Int))
 }
 
 fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
     match container {
-        Ty::Prim(PrimTy::Range) => (
+        Ty::Prim(Prim::Range) => (
             vec![Constraint::Eq {
-                expected: Ty::Prim(PrimTy::Int),
+                expected: Ty::Prim(Prim::Int),
                 actual: item,
                 span,
             }],
@@ -925,7 +898,7 @@ fn check_iterable(container: Ty, item: Ty, span: Span) -> (Vec<Constraint>, Vec<
 }
 
 fn check_num(ty: &Ty) -> bool {
-    matches!(ty, Ty::Prim(PrimTy::BigInt | PrimTy::Double | PrimTy::Int))
+    matches!(ty, Ty::Prim(Prim::BigInt | Prim::Double | Prim::Int))
 }
 
 fn check_show(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {

@@ -424,7 +424,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             ExprKind::UpdateField(record, field, replace) => {
                 self.cont_update_field(record, field, replace);
             }
-            ExprKind::Var(res) => {
+            ExprKind::Var(res, _) => {
                 self.push_val(resolve_binding(self.env, self.package, *res, expr.span)?);
             }
             ExprKind::While(cond_expr, block) => self.cont_while(cond_expr, block),
@@ -778,7 +778,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Spec::Body => Some(&callee.body),
             Spec::Adj => callee.adj.as_ref(),
             Spec::Ctl => callee.ctl.as_ref(),
-            Spec::CtlAdj => callee.ctladj.as_ref(),
+            Spec::CtlAdj => callee.ctl_adj.as_ref(),
         }
         .ok_or(Error::MissingSpec(spec, callee_span))?
         .body;
@@ -1018,7 +1018,7 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
 fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
     match (&lhs.kind, rhs) {
         (ExprKind::Hole, _) => {}
-        (&ExprKind::Var(Res::Local(node)), rhs) => match env.get_mut(node) {
+        (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
             Some(var) if var.is_mutable() => {
                 var.value = rhs;
             }

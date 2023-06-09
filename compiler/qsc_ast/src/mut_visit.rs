@@ -135,7 +135,7 @@ pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
 pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_span(&mut decl.span);
     vis.visit_ident(&mut decl.name);
-    decl.ty_params.iter_mut().for_each(|p| vis.visit_ident(p));
+    decl.generics.iter_mut().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&mut decl.input);
     vis.visit_ty(&mut decl.output);
     decl.functors
