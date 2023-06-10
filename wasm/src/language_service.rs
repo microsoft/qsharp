@@ -5,7 +5,7 @@ use log::{error, LevelFilter, Log};
 use miette::{Diagnostic, Severity};
 use qsc::compile;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Write, iter, panic};
+use std::{fmt::Write, iter, panic, sync::OnceLock};
 use wasm_bindgen::prelude::*;
 
 struct Logger(js_sys::Function);
@@ -30,13 +30,17 @@ impl Log for Logger {
 #[wasm_bindgen]
 pub struct LanguageService(qsls::LanguageService<'static>);
 
+static LOGGER_SET: OnceLock<bool> = OnceLock::new();
+
 #[wasm_bindgen]
 impl LanguageService {
     #[wasm_bindgen(constructor)]
     pub fn new(diagnostics_callback: &js_sys::Function, logger: &js_sys::Function) -> Self {
-        log::set_boxed_logger(Box::new(Logger(logger.clone())))
-            .expect("setting logger should succeed");
-        log::set_max_level(LevelFilter::Trace);
+        if LOGGER_SET.set(true).is_ok() {
+            log::set_boxed_logger(Box::new(Logger(logger.clone())))
+                .expect("setting logger should succeed");
+            log::set_max_level(LevelFilter::Trace);
+        }
 
         panic::set_hook(Box::new(|info: &panic::PanicInfo| {
             error!("{}", info);
@@ -46,7 +50,7 @@ impl LanguageService {
         let inner = qsls::LanguageService::new(
             move |uri: &str, version: u32, errors: &[compile::Error]| {
                 let diags = errors.iter().map(VSDiagnostic::from).collect::<Vec<_>>();
-                diagnostics_callback
+                let _ = diagnostics_callback
                     .call3(
                         &JsValue::NULL,
                         &wasm_bindgen::JsValue::from(uri),

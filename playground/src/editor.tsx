@@ -88,7 +88,7 @@ export function Editor(props: {
     setErrors(errList);
   }
 
-  async function updateCode() {
+  checkRef.current = async function updateCode() {
     // This should get called on initial load and on every document update.
     const code = editor.current?.getValue();
     if (code == null) throw new Error("Why is code null?");
@@ -105,12 +105,12 @@ export function Editor(props: {
         code
       );
     }
-  }
+  };
 
   function onCheck(results: VSDiagnostic[]) {
     errMarks.current.checkDiags = results;
     markErrors();
-    setHasCheckErrors(diags.length > 0);
+    setHasCheckErrors(results.length > 0);
   }
 
   async function onRun() {
@@ -263,10 +263,12 @@ export function Editor(props: {
     props.evtTarget.addEventListener("diagnostics", (evt) =>
       onCheck(evt.detail.diagnostics)
     );
-    const theEditor = editor.current;
-    if (!theEditor) return;
-    theEditor.getModel()?.onDidChangeContent(updateCode);
   }, [props.compiler]);
+
+  useEffect(() => {
+    // Whenever the active tab changes, run check again.
+    checkRef.current();
+  }, [props.activeTab]);
 
   useEffect(() => {
     const theEditor = editor.current;
