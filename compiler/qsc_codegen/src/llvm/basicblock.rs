@@ -1,6 +1,8 @@
 // Portions copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::fmt::{Display, Formatter, Result};
+
 use super::instruction::Instruction;
 use super::name::Name;
 use super::terminator::Terminator;
@@ -25,5 +27,22 @@ impl BasicBlock {
             instrs: vec![],
             term: Terminator::Unreachable(Unreachable { debugloc: None }),
         }
+    }
+}
+
+impl Display for BasicBlock {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        writeln!(
+            f,
+            "{}:",
+            match &self.name {
+                Name::Name(name) => name.to_string(),
+                Name::Number(num) => num.to_string(),
+            }
+        )?;
+        for i in &self.instrs {
+            writeln!(f, "  {i}")?;
+        }
+        writeln!(f, "  {}", self.term)
     }
 }

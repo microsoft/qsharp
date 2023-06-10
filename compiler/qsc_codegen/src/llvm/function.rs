@@ -52,18 +52,7 @@ impl Display for Function {
         }
         writeln!(f, ") {{")?;
         for bb in &self.basic_blocks {
-            writeln!(
-                f,
-                "{}:",
-                match &bb.name {
-                    Name::Name(name) => name.to_string(),
-                    Name::Number(num) => num.to_string(),
-                }
-            )?;
-            for i in &bb.instrs {
-                writeln!(f, "  {i}")?;
-            }
-            writeln!(f, "  {}", bb.term)?;
+            writeln!(f, "{bb}")?;
         }
 
         writeln!(f, "}}")
@@ -85,7 +74,7 @@ pub struct Declaration {
 
 impl Display for Declaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "define {} @{}(", self.return_type, self.name)?;
+        write!(f, "declare {} @{}(", self.return_type, self.name)?;
         if let Some((last, most)) = self.parameters.split_last() {
             for param in most {
                 write!(f, "{param}")?;

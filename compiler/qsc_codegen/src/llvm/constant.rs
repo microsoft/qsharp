@@ -273,7 +273,7 @@ impl Display for Constant {
 // a single (immutable) `Module`.
 #[derive(PartialEq, Clone, Debug)]
 #[allow(clippy::module_name_repetitions)]
-pub struct ConstantRef(Arc<Constant>);
+pub struct ConstantRef(pub Arc<Constant>);
 
 impl AsRef<Constant> for ConstantRef {
     fn as_ref(&self) -> &Constant {
