@@ -88,10 +88,10 @@ impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match top::namespaces(&mut scanner) {
-        Ok(namespaces) => (namespaces, scanner.errors()),
-        Err(err) => {
-            let mut errors = scanner.errors();
-            errors.push(err);
+        Ok(namespaces) => (namespaces, scanner.into_errors()),
+        Err(error) => {
+            let mut errors = scanner.into_errors();
+            errors.push(error);
             (Vec::new(), errors)
         }
     }
@@ -100,10 +100,10 @@ pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
 pub fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match top::fragments(&mut scanner) {
-        Ok(fragments) => (fragments, scanner.errors()),
-        Err(err) => {
-            let mut errors = scanner.errors();
-            errors.push(err);
+        Ok(fragments) => (fragments, scanner.into_errors()),
+        Err(error) => {
+            let mut errors = scanner.into_errors();
+            errors.push(error);
             (Vec::new(), errors)
         }
     }
@@ -112,10 +112,10 @@ pub fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
 pub fn expr(input: &str) -> (Box<Expr>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match expr::expr(&mut scanner) {
-        Ok(expr) => (expr, scanner.errors()),
-        Err(err) => {
-            let mut errors = scanner.errors();
-            errors.push(err);
+        Ok(expr) => (expr, scanner.into_errors()),
+        Err(error) => {
+            let mut errors = scanner.into_errors();
+            errors.push(error);
             (Box::default(), errors)
         }
     }

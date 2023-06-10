@@ -9,12 +9,13 @@ use super::{
     keyword::Keyword,
     prim::{dot_ident, ident, keyword, many, opt, pat, seq, token},
     scan::Scanner,
-    stmt::{self, stmt},
+    stmt,
     ty::{self, ty},
     Error, Result,
 };
 use crate::{
     lex::{Delim, TokenKind},
+    prim::barrier,
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -44,7 +45,7 @@ fn fragment(s: &mut Scanner) -> Result<Fragment> {
     if let Some(namespace) = opt(s, namespace)? {
         Ok(Fragment::Namespace(namespace))
     } else {
-        stmt(s).map(Fragment::Stmt)
+        stmt::parse(s).map(Fragment::Stmt)
     }
 }
 
@@ -220,19 +221,21 @@ fn callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
 fn callable_body(s: &mut Scanner) -> Result<CallableBody> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let specs = many(s, spec_decl)?;
-    if specs.is_empty() {
-        let stmts = many(s, stmt)?;
-        token(s, TokenKind::Close(Delim::Brace))?;
-        Ok(CallableBody::Block(Box::new(Block {
-            id: NodeId::default(),
-            span: s.span(lo),
-            stmts: stmts.into_boxed_slice(),
-        })))
-    } else {
-        token(s, TokenKind::Close(Delim::Brace))?;
-        Ok(CallableBody::Specs(specs.into_boxed_slice()))
-    }
+    barrier(s, TokenKind::Close(Delim::Brace), |s| {
+        let specs = many(s, spec_decl)?;
+        if specs.is_empty() {
+            let stmts = stmt::parse_many(s)?;
+            token(s, TokenKind::Close(Delim::Brace))?;
+            Ok(CallableBody::Block(Box::new(Block {
+                id: NodeId::default(),
+                span: s.span(lo),
+                stmts: stmts.into_boxed_slice(),
+            })))
+        } else {
+            token(s, TokenKind::Close(Delim::Brace))?;
+            Ok(CallableBody::Specs(specs.into_boxed_slice()))
+        }
+    })
 }
 
 fn spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
@@ -259,7 +262,7 @@ fn spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
         token(s, TokenKind::Semi)?;
         SpecBody::Gen(gen)
     } else {
-        SpecBody::Impl(pat(s)?, stmt::block(s)?)
+        SpecBody::Impl(pat(s)?, stmt::parse_block(s)?)
     };
 
     Ok(Box::new(SpecDecl {

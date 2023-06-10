@@ -147,6 +147,7 @@ impl<'a> Context<'a> {
                 let expr = self.infer_expr(expr);
                 self.diverge_if(expr.diverges, converge(Ty::UNIT))
             }
+            StmtKind::Err => converge(Ty::Err),
         };
 
         self.record(stmt.id, ty.ty.clone());

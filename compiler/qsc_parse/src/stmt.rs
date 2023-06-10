@@ -13,6 +13,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
+    prim::{barrier, recovering},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -20,10 +21,41 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::span::Span;
 
-pub(super) fn block(s: &mut Scanner) -> Result<Box<Block>> {
+pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
+    let lo = s.peek().span.lo;
+    let kind = if token(s, TokenKind::Semi).is_ok() {
+        Box::new(StmtKind::Empty)
+    } else if let Some(item) = opt(s, top::item)? {
+        Box::new(StmtKind::Item(item))
+    } else if let Some(local) = opt(s, parse_local)? {
+        local
+    } else if let Some(qubit) = opt(s, parse_qubit)? {
+        qubit
+    } else {
+        let e = expr_stmt(s)?;
+        if token(s, TokenKind::Semi).is_ok() {
+            Box::new(StmtKind::Semi(e))
+        } else {
+            Box::new(StmtKind::Expr(e))
+        }
+    };
+
+    Ok(Box::new(Stmt {
+        id: NodeId::default(),
+        span: s.span(lo),
+        kind,
+    }))
+}
+
+#[allow(clippy::vec_box)]
+pub(super) fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Stmt>>> {
+    many(s, |s| recovering(s, default, TokenKind::Semi, parse))
+}
+
+pub(super) fn parse_block(s: &mut Scanner) -> Result<Box<Block>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let stmts = many(s, stmt)?;
+    let stmts = barrier(s, TokenKind::Close(Delim::Brace), parse_many)?;
     check_semis(&stmts)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Box::new(Block {
@@ -33,45 +65,27 @@ pub(super) fn block(s: &mut Scanner) -> Result<Box<Block>> {
     }))
 }
 
-pub(super) fn stmt(s: &mut Scanner) -> Result<Box<Stmt>> {
-    let lo = s.peek().span.lo;
-    let kind = if token(s, TokenKind::Semi).is_ok() {
-        Ok(Box::new(StmtKind::Empty))
-    } else if let Some(item) = opt(s, top::item)? {
-        Ok(Box::new(StmtKind::Item(item)))
-    } else if let Some(var) = opt(s, var_binding)? {
-        Ok(var)
-    } else if let Some(qubit) = opt(s, qubit_binding)? {
-        Ok(qubit)
-    } else {
-        let e = expr_stmt(s)?;
-        if token(s, TokenKind::Semi).is_ok() {
-            Ok(Box::new(StmtKind::Semi(e)))
-        } else {
-            Ok(Box::new(StmtKind::Expr(e)))
-        }
-    }?;
-
-    Ok(Box::new(Stmt {
+fn default(span: Span) -> Box<Stmt> {
+    Box::new(Stmt {
         id: NodeId::default(),
-        span: s.span(lo),
-        kind,
-    }))
+        span,
+        kind: Box::new(StmtKind::Err),
+    })
 }
 
-fn var_binding(s: &mut Scanner) -> Result<Box<StmtKind>> {
+fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let mutability = if keyword(s, Keyword::Let).is_ok() {
-        Ok(Mutability::Immutable)
+        Mutability::Immutable
     } else if keyword(s, Keyword::Mutable).is_ok() {
-        Ok(Mutability::Mutable)
+        Mutability::Mutable
     } else {
         let token = s.peek();
-        Err(Error(ErrorKind::Rule(
+        return Err(Error(ErrorKind::Rule(
             "variable binding",
             token.kind,
             token.span,
-        )))
-    }?;
+        )));
+    };
 
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
@@ -80,66 +94,66 @@ fn var_binding(s: &mut Scanner) -> Result<Box<StmtKind>> {
     Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
 
-fn qubit_binding(s: &mut Scanner) -> Result<Box<StmtKind>> {
+fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let source = if keyword(s, Keyword::Use).is_ok() {
-        Ok(QubitSource::Fresh)
+        QubitSource::Fresh
     } else if keyword(s, Keyword::Borrow).is_ok() {
-        Ok(QubitSource::Dirty)
+        QubitSource::Dirty
     } else {
-        Err(Error(ErrorKind::Rule(
+        return Err(Error(ErrorKind::Rule(
             "qubit binding",
             s.peek().kind,
             s.peek().span,
-        )))
-    }?;
+        )));
+    };
 
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
-    let rhs = qubit_init(s)?;
-    let scope = opt(s, block)?;
-    if scope.is_none() {
+    let rhs = parse_qubit_init(s)?;
+    let block = opt(s, parse_block)?;
+    if block.is_none() {
         token(s, TokenKind::Semi)?;
     }
 
-    Ok(Box::new(StmtKind::Qubit(source, lhs, rhs, scope)))
+    Ok(Box::new(StmtKind::Qubit(source, lhs, rhs, block)))
 }
 
-fn qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
+fn parse_qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
     let lo = s.peek().span.lo;
     let kind = if let Ok(name) = ident(s) {
         if name.name.as_ref() != "Qubit" {
-            Err(Error(ErrorKind::Convert(
+            return Err(Error(ErrorKind::Convert(
                 "qubit initializer",
                 "identifier",
                 name.span,
-            )))
+            )));
         } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
             token(s, TokenKind::Close(Delim::Paren))?;
-            Ok(QubitInitKind::Single)
+            QubitInitKind::Single
         } else if token(s, TokenKind::Open(Delim::Bracket)).is_ok() {
             let size = expr(s)?;
             token(s, TokenKind::Close(Delim::Bracket))?;
-            Ok(QubitInitKind::Array(size))
+            QubitInitKind::Array(size)
         } else {
             let token = s.peek();
-            Err(Error(ErrorKind::Rule(
+            return Err(Error(ErrorKind::Rule(
                 "qubit suffix",
                 token.kind,
                 token.span,
-            )))
+            )));
         }
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
-        let (inits, final_sep) = seq(s, qubit_init)?;
+        let (inits, final_sep) = seq(s, parse_qubit_init)?;
         token(s, TokenKind::Close(Delim::Paren))?;
-        Ok(final_sep.reify(inits, QubitInitKind::Paren, QubitInitKind::Tuple))
+        final_sep.reify(inits, QubitInitKind::Paren, QubitInitKind::Tuple)
     } else {
         let token = s.peek();
-        Err(Error(ErrorKind::Rule(
+        return Err(Error(ErrorKind::Rule(
             "qubit initializer",
             token.kind,
             token.span,
-        )))
-    }?;
+        )));
+    };
 
     Ok(Box::new(QubitInit {
         id: NodeId::default(),

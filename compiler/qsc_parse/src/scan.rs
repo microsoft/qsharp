@@ -8,9 +8,13 @@ use crate::{
 };
 use qsc_data_structures::span::Span;
 
+#[derive(Debug)]
+pub(super) struct NoBarrierError;
+
 pub(super) struct Scanner<'a> {
     input: &'a str,
     tokens: Lexer<'a>,
+    barriers: Vec<TokenKind>,
     errors: Vec<Error>,
     peek: Token,
     offset: u32,
@@ -23,6 +27,7 @@ impl<'a> Scanner<'a> {
         Self {
             input,
             tokens,
+            barriers: Vec::new(),
             errors: errors
                 .into_iter()
                 .map(|e| Error(ErrorKind::Lex(e)))
@@ -40,6 +45,13 @@ impl<'a> Scanner<'a> {
         &self.input[self.peek.span]
     }
 
+    pub(super) fn span(&self, from: u32) -> Span {
+        Span {
+            lo: from,
+            hi: self.offset,
+        }
+    }
+
     pub(super) fn advance(&mut self) {
         if self.peek.kind != TokenKind::Eof {
             self.offset = self.peek.span.hi;
@@ -50,14 +62,36 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(super) fn span(&self, from: u32) -> Span {
-        Span {
-            lo: from,
-            hi: self.offset,
+    pub(super) fn push_barrier(&mut self, token: TokenKind) {
+        self.barriers.push(token);
+    }
+
+    pub(super) fn pop_barrier(&mut self) -> Result<(), NoBarrierError> {
+        match self.barriers.pop() {
+            Some(_) => Ok(()),
+            None => Err(NoBarrierError),
         }
     }
 
-    pub(super) fn errors(self) -> Vec<Error> {
+    pub(super) fn recover(&mut self, token: TokenKind) -> bool {
+        loop {
+            let peek = self.peek.kind;
+            if peek == token {
+                self.advance();
+                return true;
+            } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| peek == b) {
+                return false;
+            } else {
+                self.advance();
+            }
+        }
+    }
+
+    pub(super) fn push_error(&mut self, error: Error) {
+        self.errors.push(error);
+    }
+
+    pub(super) fn into_errors(self) -> Vec<Error> {
         self.errors
     }
 }

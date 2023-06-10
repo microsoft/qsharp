@@ -166,7 +166,7 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
         let vars = pat(s)?;
         keyword(s, Keyword::In)?;
         let iter = expr(s)?;
-        let body = stmt::block(s)?;
+        let body = stmt::parse_block(s)?;
         Ok(Box::new(ExprKind::For(vars, iter, body)))
     } else if keyword(s, Keyword::If).is_ok() {
         expr_if(s)
@@ -175,11 +175,11 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
             components.into_boxed_slice(),
         )))
     } else if keyword(s, Keyword::Repeat).is_ok() {
-        let body = stmt::block(s)?;
+        let body = stmt::parse_block(s)?;
         keyword(s, Keyword::Until)?;
         let cond = expr(s)?;
         let fixup = if keyword(s, Keyword::Fixup).is_ok() {
-            Some(stmt::block(s)?)
+            Some(stmt::parse_block(s)?)
         } else {
             None
         };
@@ -189,15 +189,15 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
     } else if keyword(s, Keyword::Set).is_ok() {
         expr_set(s)
     } else if keyword(s, Keyword::While).is_ok() {
-        Ok(Box::new(ExprKind::While(expr(s)?, stmt::block(s)?)))
+        Ok(Box::new(ExprKind::While(expr(s)?, stmt::parse_block(s)?)))
     } else if keyword(s, Keyword::Within).is_ok() {
-        let outer = stmt::block(s)?;
+        let outer = stmt::parse_block(s)?;
         keyword(s, Keyword::Apply)?;
-        let inner = stmt::block(s)?;
+        let inner = stmt::parse_block(s)?;
         Ok(Box::new(ExprKind::Conjugate(outer, inner)))
     } else if let Some(a) = opt(s, expr_array)? {
         Ok(a)
-    } else if let Some(b) = opt(s, stmt::block)? {
+    } else if let Some(b) = opt(s, stmt::parse_block)? {
         Ok(Box::new(ExprKind::Block(b)))
     } else if let Some(l) = lit(s)? {
         Ok(Box::new(ExprKind::Lit(Box::new(l))))
@@ -220,13 +220,13 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
 
 fn expr_if(s: &mut Scanner) -> Result<Box<ExprKind>> {
     let cond = expr(s)?;
-    let body = stmt::block(s)?;
+    let body = stmt::parse_block(s)?;
     let lo = s.peek().span.lo;
 
     let otherwise = if keyword(s, Keyword::Elif).is_ok() {
         Some(expr_if(s)?)
     } else if keyword(s, Keyword::Else).is_ok() {
-        Some(Box::new(ExprKind::Block(stmt::block(s)?)))
+        Some(Box::new(ExprKind::Block(stmt::parse_block(s)?)))
     } else {
         None
     }

@@ -158,8 +158,8 @@ pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>
     let offset = s.peek().span.lo;
     match p(s) {
         Ok(x) => Ok(Some(x)),
-        Err(_) if offset == s.peek().span.lo => Ok(None),
-        Err(err) => Err(err),
+        Err(error) if advanced(s, offset) => Err(error),
+        Err(_) => Ok(None),
     }
 }
 
@@ -184,6 +184,34 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, 
         }
     }
     Ok((xs, final_sep))
+}
+
+pub(super) fn recovering<T>(
+    s: &mut Scanner,
+    default: impl FnOnce(Span) -> T,
+    token: TokenKind,
+    mut p: impl Parser<T>,
+) -> Result<T> {
+    let offset = s.peek().span.lo;
+    match p(s) {
+        Ok(value) => Ok(value),
+        Err(error) if advanced(s, offset) && s.recover(token) => {
+            s.push_error(error);
+            Ok(default(s.span(offset)))
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) fn barrier<T>(s: &mut Scanner, token: TokenKind, mut p: impl Parser<T>) -> Result<T> {
+    s.push_barrier(token);
+    let result = p(s);
+    s.pop_barrier().expect("barrier should be popped");
+    result
+}
+
+fn advanced(s: &Scanner, from: u32) -> bool {
+    s.peek().span.lo > from
 }
 
 fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {

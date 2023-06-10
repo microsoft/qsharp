@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{block, stmt};
+use super::{parse, parse_block};
 use crate::tests::check;
 use expect_test::expect;
 
 #[test]
 fn empty_stmt() {
-    check(stmt, ";", &expect!["Stmt _id_ [0-1]: Empty"]);
+    check(parse, ";", &expect!["Stmt _id_ [0-1]: Empty"]);
 }
 
 #[test]
 fn let_stmt() {
     check(
-        stmt,
+        parse,
         "let x = 2;",
         &expect![[r#"
             Stmt _id_ [0-10]: Local (Immutable):
@@ -26,7 +26,7 @@ fn let_stmt() {
 #[test]
 fn let_pat_match() {
     check(
-        stmt,
+        parse,
         "let (x, (y, z)) = foo;",
         &expect![[r#"
             Stmt _id_ [0-22]: Local (Immutable):
@@ -45,7 +45,7 @@ fn let_pat_match() {
 #[test]
 fn mutable_stmt() {
     check(
-        stmt,
+        parse,
         "mutable x = 2;",
         &expect![[r#"
             Stmt _id_ [0-14]: Local (Mutable):
@@ -58,7 +58,7 @@ fn mutable_stmt() {
 #[test]
 fn use_stmt() {
     check(
-        stmt,
+        parse,
         "use q = Qubit();",
         &expect![[r#"
             Stmt _id_ [0-16]: Qubit (Fresh)
@@ -71,7 +71,7 @@ fn use_stmt() {
 #[test]
 fn use_qubit_array() {
     check(
-        stmt,
+        parse,
         "use qs = Qubit[5];",
         &expect![[r#"
             Stmt _id_ [0-18]: Qubit (Fresh)
@@ -85,7 +85,7 @@ fn use_qubit_array() {
 #[test]
 fn use_pat_match() {
     check(
-        stmt,
+        parse,
         "use (q1, q2) = (Qubit(), Qubit());",
         &expect![[r#"
             Stmt _id_ [0-34]: Qubit (Fresh)
@@ -103,7 +103,7 @@ fn use_pat_match() {
 #[test]
 fn use_paren() {
     check(
-        stmt,
+        parse,
         "use q = (Qubit());",
         &expect![[r#"
             Stmt _id_ [0-18]: Qubit (Fresh)
@@ -117,7 +117,7 @@ fn use_paren() {
 #[test]
 fn use_single_tuple() {
     check(
-        stmt,
+        parse,
         "use (q,) = (Qubit(),);",
         &expect![[r#"
             Stmt _id_ [0-22]: Qubit (Fresh)
@@ -132,7 +132,7 @@ fn use_single_tuple() {
 #[test]
 fn use_invalid_init() {
     check(
-        stmt,
+        parse,
         "use q = Qutrit();",
         &expect![[r#"
             Err(
@@ -154,7 +154,7 @@ fn use_invalid_init() {
 #[test]
 fn borrow_stmt() {
     check(
-        stmt,
+        parse,
         "borrow q = Qubit();",
         &expect![[r#"
             Stmt _id_ [0-19]: Qubit (Dirty)
@@ -167,7 +167,7 @@ fn borrow_stmt() {
 #[test]
 fn let_in_block() {
     check(
-        block,
+        parse_block,
         "{ let x = 2; x }",
         &expect![[r#"
             Block _id_ [0-16]:
@@ -182,7 +182,7 @@ fn let_in_block() {
 #[test]
 fn exprs_in_block() {
     check(
-        block,
+        parse_block,
         "{ x; y; z }",
         &expect![[r#"
             Block _id_ [0-11]:
@@ -195,7 +195,7 @@ fn exprs_in_block() {
 #[test]
 fn trailing_semi_expr() {
     check(
-        block,
+        parse_block,
         "{ x; y; z; }",
         &expect![[r#"
             Block _id_ [0-12]:
@@ -208,7 +208,7 @@ fn trailing_semi_expr() {
 #[test]
 fn stmt_missing_semi() {
     check(
-        stmt,
+        parse,
         "let x = 2",
         &expect![[r#"
             Err(
@@ -230,7 +230,7 @@ fn stmt_missing_semi() {
 #[test]
 fn if_followed_by() {
     check(
-        block,
+        parse_block,
         "{ if c { x } return x; }",
         &expect![[r#"
             Block _id_ [0-24]:
@@ -245,7 +245,7 @@ fn if_followed_by() {
 #[test]
 fn let_if() {
     check(
-        block,
+        parse_block,
         "{ let x = if c { true } else { false }; x }",
         &expect![[r#"
             Block _id_ [0-43]:
@@ -264,13 +264,13 @@ fn let_if() {
 
 #[test]
 fn empty_block() {
-    check(block, "{}", &expect!["Block _id_ [0-2]: <empty>"]);
+    check(parse_block, "{}", &expect!["Block _id_ [0-2]: <empty>"]);
 }
 
 #[test]
 fn two_stmts() {
     check(
-        block,
+        parse_block,
         "{ let x = 1; x }",
         &expect![[r#"
             Block _id_ [0-16]:
@@ -285,7 +285,7 @@ fn two_stmts() {
 #[test]
 fn two_empty_stmts() {
     check(
-        block,
+        parse_block,
         "{ ;; }",
         &expect![[r#"
             Block _id_ [0-6]:
@@ -297,7 +297,7 @@ fn two_empty_stmts() {
 #[test]
 fn empty_stmt_after_expr() {
     check(
-        block,
+        parse_block,
         "{ x;; }",
         &expect![[r#"
             Block _id_ [0-7]:
@@ -309,7 +309,7 @@ fn empty_stmt_after_expr() {
 #[test]
 fn call_block_no_parens() {
     check(
-        block,
+        parse_block,
         "{ { let a = b; a }(c, d) }",
         &expect![[r#"
             Block _id_ [0-26]:
@@ -328,7 +328,7 @@ fn call_block_no_parens() {
 #[test]
 fn call_block_parens() {
     check(
-        block,
+        parse_block,
         "{ ({ let a = b; a })(c, d) }",
         &expect![[r#"
             Block _id_ [0-28]:
@@ -348,7 +348,7 @@ fn call_block_parens() {
 #[test]
 fn if_stmt_plus() {
     check(
-        block,
+        parse_block,
         "{ if x { 1 } else { 2 } + 3 }",
         &expect![[r#"
             Block _id_ [0-29]:
@@ -366,7 +366,7 @@ fn if_stmt_plus() {
 #[test]
 fn if_expr_plus() {
     check(
-        block,
+        parse_block,
         "{ let y = if x { 1 } else { 2 } + 3; }",
         &expect![[r#"
             Block _id_ [0-38]:
@@ -387,7 +387,7 @@ fn if_expr_plus() {
 #[test]
 fn if_semi_if() {
     check(
-        block,
+        parse_block,
         "{ if x { f(); }; if y { g(); } }",
         &expect![[r#"
             Block _id_ [0-32]:
@@ -409,7 +409,7 @@ fn if_semi_if() {
 #[test]
 fn if_no_semi_if() {
     check(
-        block,
+        parse_block,
         "{ if x { f(); } if y { g(); } }",
         &expect![[r#"
             Block _id_ [0-31]:
@@ -431,7 +431,7 @@ fn if_no_semi_if() {
 #[test]
 fn call_semi_call() {
     check(
-        block,
+        parse_block,
         "{ f(x); g(y) }",
         &expect![[r#"
             Block _id_ [0-14]:
@@ -447,7 +447,7 @@ fn call_semi_call() {
 #[test]
 fn call_no_semi_call() {
     check(
-        block,
+        parse_block,
         "{ f(x) g(y) }",
         &expect![[r#"
             Err(
@@ -467,7 +467,7 @@ fn call_no_semi_call() {
 #[test]
 fn expr_plus_if_semi() {
     check(
-        block,
+        parse_block,
         "{ 1 + if true { 2 } else { 3 }; f(x) }",
         &expect![[r#"
             Block _id_ [0-38]:
@@ -488,7 +488,7 @@ fn expr_plus_if_semi() {
 #[test]
 fn expr_plus_if_no_semi() {
     check(
-        block,
+        parse_block,
         "{ 1 + if true { 2 } else { 3 } f(x) }",
         &expect![[r#"
             Err(
@@ -502,5 +502,17 @@ fn expr_plus_if_no_semi() {
                 ),
             )
         "#]],
+    );
+}
+
+#[test]
+fn recover_in_block() {
+    check(
+        parse_block,
+        "{ let x = 1 +; x }",
+        &expect![[r#"
+            Block _id_ [0-18]:
+                Stmt _id_ [2-14]: Err
+                Stmt _id_ [15-16]: Expr: Expr _id_ [15-16]: Path: Path _id_ [15-16] (Ident _id_ [15-16] "x")"#]],
     );
 }
