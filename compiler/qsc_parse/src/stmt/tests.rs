@@ -516,3 +516,19 @@ fn recover_in_block() {
                 Stmt _id_ [15-16]: Expr: Expr _id_ [15-16]: Path: Path _id_ [15-16] (Ident _id_ [15-16] "x")"#]],
     );
 }
+
+#[test]
+fn recover_in_nested_block() {
+    check(
+        parse_block,
+        "{ let x = { 1 + }; x }",
+        &expect![[r#"
+            Block _id_ [0-22]:
+                Stmt _id_ [2-18]: Local (Immutable):
+                    Pat _id_ [6-7]: Bind:
+                        Ident _id_ [6-7] "x"
+                    Expr _id_ [10-17]: Expr Block: Block _id_ [10-17]:
+                        Stmt _id_ [12-15]: Err
+                Stmt _id_ [19-20]: Expr: Expr _id_ [19-20]: Path: Path _id_ [19-20] (Ident _id_ [19-20] "x")"#]],
+    );
+}

@@ -195,8 +195,9 @@ pub(super) fn recovering<T>(
     let offset = s.peek().span.lo;
     match p(s) {
         Ok(value) => Ok(value),
-        Err(error) if advanced(s, offset) && s.recover(token) => {
+        Err(error) if advanced(s, offset) => {
             s.push_error(error);
+            s.recover(token);
             Ok(default(s.span(offset)))
         }
         Err(error) => Err(error),

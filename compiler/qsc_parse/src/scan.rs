@@ -73,14 +73,14 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(super) fn recover(&mut self, token: TokenKind) -> bool {
+    pub(super) fn recover(&mut self, token: TokenKind) {
         loop {
             let peek = self.peek.kind;
             if peek == token {
                 self.advance();
-                return true;
+                break;
             } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| peek == b) {
-                return false;
+                break;
             } else {
                 self.advance();
             }
