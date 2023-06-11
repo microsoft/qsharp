@@ -93,12 +93,9 @@ impl Scheme {
     /// # Errors
     ///
     /// Returns an error if the given arguments do not match the scheme parameters.
-    pub fn instantiate<'a>(
-        &self,
-        args: impl IntoIterator<Item = &'a GenericArg>,
-    ) -> Result<Arrow, InstantiationError> {
-        let args: HashMap<_, _> = self.params.iter().map(|p| &p.name).zip(args).collect();
+    pub fn instantiate(&self, args: &[GenericArg]) -> Result<Arrow, InstantiationError> {
         if args.len() == self.params.len() {
+            let args: HashMap<_, _> = self.params.iter().map(|p| &p.name).zip(args).collect();
             instantiate_arrow_ty(|name| args.get(name).copied(), &self.ty)
         } else {
             Err(InstantiationError::Arity)

@@ -3172,3 +3172,17 @@ fn duplicate_type_decls_inferred_and_ignored() {
         "##]],
     );
 }
+
+#[test]
+fn instantiate_duplicate_ty_param_names() {
+    check(
+        "namespace Test { function Foo<'T, 'T>() : () { let f = Foo; } }",
+        "",
+        &expect![[r##"
+            #8 37-39 "()" : Unit
+            #10 45-61 "{ let f = Foo; }" : Unit
+            #12 51-52 "f" : (Unit -> Unit)
+            #14 55-58 "Foo" : (Unit -> Unit)
+        "##]],
+    );
+}
