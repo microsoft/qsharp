@@ -201,7 +201,8 @@ impl Visitor<'_> for QirGenerator {
     fn visit_stmt(&mut self, stmt: &Stmt) {
         match &stmt.kind {
             StmtKind::Expr(expr) => self.visit_expr(expr),
-            StmtKind::Item(_) | StmtKind::Local(_, _, _) | StmtKind::Qubit(_, _, _, _) => {}
+            StmtKind::Item(_) | StmtKind::Local(_, _, _) => {}
+            StmtKind::Qubit(_, _, _, _) => panic!("qubit statment should be eliminated by passes"),
             StmtKind::Semi(expr) => {
                 self.visit_expr(expr);
                 self.operand.take();
