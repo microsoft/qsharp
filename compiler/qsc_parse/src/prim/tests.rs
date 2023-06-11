@@ -3,10 +3,11 @@
 
 use super::{ident, opt, pat, path, seq};
 use crate::{
+    keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
     scan::Scanner,
     tests::{check, check_opt, check_seq},
-    Error, ErrorKind, Keyword,
+    Error, ErrorKind,
 };
 use expect_test::expect;
 use qsc_data_structures::span::Span;
@@ -71,7 +72,7 @@ fn ident_keyword() {
             Keyword::Or => {
                 ErrorKind::Rule("identifier", TokenKind::ClosedBinOp(ClosedBinOp::Or), span)
             }
-            _ => ErrorKind::RuleKeyword("identifier", keyword, span),
+            _ => ErrorKind::Rule("identifier", TokenKind::Keyword(keyword), span),
         });
 
         assert_eq!(actual, Err(expected), "{keyword}");

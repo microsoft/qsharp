@@ -8,7 +8,7 @@ use super::{
     expr::{self, expr, expr_stmt},
     item,
     keyword::Keyword,
-    prim::{ident, keyword, many, opt, pat, seq, token},
+    prim::{ident, many, opt, pat, seq, token},
     scan::Scanner,
     Error, Result,
 };
@@ -75,9 +75,9 @@ fn default(span: Span) -> Box<Stmt> {
 }
 
 fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
-    let mutability = if keyword(s, Keyword::Let).is_ok() {
+    let mutability = if token(s, TokenKind::Keyword(Keyword::Let)).is_ok() {
         Mutability::Immutable
-    } else if keyword(s, Keyword::Mutable).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Mutable)).is_ok() {
         Mutability::Mutable
     } else {
         let token = s.peek();
@@ -96,9 +96,9 @@ fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
 }
 
 fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
-    let source = if keyword(s, Keyword::Use).is_ok() {
+    let source = if token(s, TokenKind::Keyword(Keyword::Use)).is_ok() {
         QubitSource::Fresh
-    } else if keyword(s, Keyword::Borrow).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Borrow)).is_ok() {
         QubitSource::Dirty
     } else {
         return Err(Error(ErrorKind::Rule(

@@ -11,7 +11,6 @@ use crate::{
 };
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
 use qsc_data_structures::span::Span;
-use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum FinalSep {
@@ -43,38 +42,19 @@ pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
     }
 }
 
-pub(super) fn keyword(s: &mut Scanner, kw: Keyword) -> Result<()> {
-    if s.peek().kind == TokenKind::Ident && s.read() == kw.as_str() {
-        s.advance();
-        Ok(())
-    } else {
-        Err(Error(ErrorKind::Keyword(kw, s.peek().kind, s.peek().span)))
-    }
-}
-
 pub(super) fn ident(s: &mut Scanner) -> Result<Box<Ident>> {
-    if s.peek().kind != TokenKind::Ident {
-        return Err(Error(ErrorKind::Rule(
-            "identifier",
-            s.peek().kind,
-            s.peek().span,
-        )));
-    } else if let Ok(kw) = Keyword::from_str(s.read()) {
-        return Err(Error(ErrorKind::RuleKeyword(
-            "identifier",
-            kw,
-            s.peek().span,
-        )));
+    let peek = s.peek();
+    if peek.kind == TokenKind::Ident {
+        let name = s.read().into();
+        s.advance();
+        Ok(Box::new(Ident {
+            id: NodeId::default(),
+            span: peek.span,
+            name,
+        }))
+    } else {
+        Err(Error(ErrorKind::Rule("identifier", peek.kind, peek.span)))
     }
-
-    let span = s.peek().span;
-    let name = s.read().into();
-    s.advance();
-    Ok(Box::new(Ident {
-        id: NodeId::default(),
-        span,
-        name,
-    }))
 }
 
 pub(super) fn dot_ident(s: &mut Scanner) -> Result<Box<Ident>> {
@@ -124,7 +104,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Box<Path>> {
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Box<Pat>> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, Keyword::Underscore).is_ok() {
+    let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(Box::new(ty(s)?))
         } else {
@@ -230,7 +210,6 @@ fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String
 fn map_rule_name(name: &'static str, error: Error) -> Error {
     Error(match error.0 {
         ErrorKind::Rule(_, found, span) => ErrorKind::Rule(name, found, span),
-        ErrorKind::RuleKeyword(_, keyword, span) => ErrorKind::RuleKeyword(name, keyword, span),
         ErrorKind::Convert(_, found, span) => ErrorKind::Convert(name, found, span),
         kind => kind,
     })

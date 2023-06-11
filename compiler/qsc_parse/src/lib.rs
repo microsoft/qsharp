@@ -16,7 +16,6 @@ mod stmt;
 mod tests;
 mod ty;
 
-use keyword::Keyword;
 use lex::TokenKind;
 use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Namespace};
@@ -49,12 +48,8 @@ enum ErrorKind {
     Escape(char, #[label] Span),
     #[error("expected {0}, found {1}")]
     Token(TokenKind, TokenKind, #[label] Span),
-    #[error("expected keyword `{0}`, found {1}")]
-    Keyword(Keyword, TokenKind, #[label] Span),
     #[error("expected {0}, found {1}")]
     Rule(&'static str, TokenKind, #[label] Span),
-    #[error("expected {0}, found keyword `{1}`")]
-    RuleKeyword(&'static str, Keyword, #[label] Span),
     #[error("expected {0}, found {1}")]
     Convert(&'static str, &'static str, #[label] Span),
     #[error("expected statement to end with a semicolon")]
@@ -68,11 +63,7 @@ impl ErrorKind {
             Self::Lit(name, span) => Self::Lit(name, span + offset),
             Self::Escape(ch, span) => Self::Escape(ch, span + offset),
             Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
-            Self::Keyword(keyword, token, span) => Self::Keyword(keyword, token, span + offset),
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
-            Self::RuleKeyword(name, keyword, span) => {
-                Self::RuleKeyword(name, keyword, span + offset)
-            }
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
         }

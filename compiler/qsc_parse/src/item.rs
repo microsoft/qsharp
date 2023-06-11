@@ -7,7 +7,7 @@ mod tests;
 use super::{
     expr::expr,
     keyword::Keyword,
-    prim::{dot_ident, ident, keyword, many, opt, pat, seq, token},
+    prim::{dot_ident, ident, many, opt, pat, seq, token},
     scan::Scanner,
     stmt,
     ty::{self, ty},
@@ -74,7 +74,7 @@ fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
 
 fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
-    keyword(s, Keyword::Namespace)?;
+    token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = many(s, parse)?;
@@ -102,7 +102,7 @@ fn parse_attr(s: &mut Scanner) -> Result<Box<Attr>> {
 
 fn parse_visibility(s: &mut Scanner) -> Result<Visibility> {
     let lo = s.peek().span.lo;
-    keyword(s, Keyword::Internal)?;
+    token(s, TokenKind::Keyword(Keyword::Internal))?;
     Ok(Visibility {
         id: NodeId::default(),
         span: s.span(lo),
@@ -111,9 +111,9 @@ fn parse_visibility(s: &mut Scanner) -> Result<Visibility> {
 }
 
 fn parse_open(s: &mut Scanner) -> Result<Box<ItemKind>> {
-    keyword(s, Keyword::Open)?;
+    token(s, TokenKind::Keyword(Keyword::Open))?;
     let name = dot_ident(s)?;
-    let alias = if keyword(s, Keyword::As).is_ok() {
+    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(dot_ident(s)?)
     } else {
         None
@@ -123,7 +123,7 @@ fn parse_open(s: &mut Scanner) -> Result<Box<ItemKind>> {
 }
 
 fn parse_newtype(s: &mut Scanner) -> Result<Box<ItemKind>> {
-    keyword(s, Keyword::Newtype)?;
+    token(s, TokenKind::Keyword(Keyword::Newtype))?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
     let def = parse_ty_def(s)?;
@@ -173,9 +173,9 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
 
 fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, Keyword::Function).is_ok() {
+    let kind = if token(s, TokenKind::Keyword(Keyword::Function)).is_ok() {
         CallableKind::Function
-    } else if keyword(s, Keyword::Operation).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Operation)).is_ok() {
         CallableKind::Operation
     } else {
         let token = s.peek();
@@ -198,7 +198,7 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     let input = pat(s)?;
     token(s, TokenKind::Colon)?;
     let output = ty(s)?;
-    let functors = if keyword(s, Keyword::Is).is_ok() {
+    let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
         Some(Box::new(ty::functor_expr(s)?))
     } else {
         None
@@ -240,12 +240,12 @@ fn parse_callable_body(s: &mut Scanner) -> Result<CallableBody> {
 
 fn parse_spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
     let lo = s.peek().span.lo;
-    let spec = if keyword(s, Keyword::Body).is_ok() {
+    let spec = if token(s, TokenKind::Keyword(Keyword::Body)).is_ok() {
         Spec::Body
-    } else if keyword(s, Keyword::Adjoint).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Adjoint)).is_ok() {
         Spec::Adj
-    } else if keyword(s, Keyword::Controlled).is_ok() {
-        if keyword(s, Keyword::Adjoint).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Controlled)).is_ok() {
+        if token(s, TokenKind::Keyword(Keyword::Adjoint)).is_ok() {
             Spec::CtlAdj
         } else {
             Spec::Ctl
@@ -274,15 +274,15 @@ fn parse_spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
 }
 
 fn parse_spec_gen(s: &mut Scanner) -> Result<SpecGen> {
-    if keyword(s, Keyword::Auto).is_ok() {
+    if token(s, TokenKind::Keyword(Keyword::Auto)).is_ok() {
         Ok(SpecGen::Auto)
-    } else if keyword(s, Keyword::Distribute).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Distribute)).is_ok() {
         Ok(SpecGen::Distribute)
-    } else if keyword(s, Keyword::Intrinsic).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Intrinsic)).is_ok() {
         Ok(SpecGen::Intrinsic)
-    } else if keyword(s, Keyword::Invert).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Invert)).is_ok() {
         Ok(SpecGen::Invert)
-    } else if keyword(s, Keyword::Slf).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Slf)).is_ok() {
         Ok(SpecGen::Slf)
     } else {
         Err(Error(ErrorKind::Rule(
