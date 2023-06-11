@@ -169,7 +169,7 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, 
 pub(super) fn recovering<T>(
     s: &mut Scanner,
     default: impl FnOnce(Span) -> T,
-    token: TokenKind,
+    tokens: &[TokenKind],
     mut p: impl Parser<T>,
 ) -> Result<T> {
     let offset = s.peek().span.lo;
@@ -177,15 +177,19 @@ pub(super) fn recovering<T>(
         Ok(value) => Ok(value),
         Err(error) if advanced(s, offset) => {
             s.push_error(error);
-            s.recover(token);
+            s.recover(tokens);
             Ok(default(s.span(offset)))
         }
         Err(error) => Err(error),
     }
 }
 
-pub(super) fn barrier<T>(s: &mut Scanner, token: TokenKind, mut p: impl Parser<T>) -> Result<T> {
-    s.push_barrier(token);
+pub(super) fn barrier<'a, T>(
+    s: &mut Scanner<'a>,
+    tokens: &'a [TokenKind],
+    mut p: impl Parser<T>,
+) -> Result<T> {
+    s.push_barrier(tokens);
     let result = p(s);
     s.pop_barrier().expect("barrier should be popped");
     result

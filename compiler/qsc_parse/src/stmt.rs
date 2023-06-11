@@ -50,13 +50,13 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
 
 #[allow(clippy::vec_box)]
 pub(super) fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Stmt>>> {
-    many(s, |s| recovering(s, default, TokenKind::Semi, parse))
+    many(s, |s| recovering(s, default, &[TokenKind::Semi], parse))
 }
 
 pub(super) fn parse_block(s: &mut Scanner) -> Result<Box<Block>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let stmts = barrier(s, TokenKind::Close(Delim::Brace), parse_many)?;
+    let stmts = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     check_semis(&stmts)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Box::new(Block {

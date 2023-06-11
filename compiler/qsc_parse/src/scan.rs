@@ -14,7 +14,7 @@ pub(super) struct NoBarrierError;
 pub(super) struct Scanner<'a> {
     input: &'a str,
     tokens: Lexer<'a>,
-    barriers: Vec<TokenKind>,
+    barriers: Vec<&'a [TokenKind]>,
     errors: Vec<Error>,
     peek: Token,
     offset: u32,
@@ -62,8 +62,8 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(super) fn push_barrier(&mut self, token: TokenKind) {
-        self.barriers.push(token);
+    pub(super) fn push_barrier(&mut self, tokens: &'a [TokenKind]) {
+        self.barriers.push(tokens);
     }
 
     pub(super) fn pop_barrier(&mut self) -> Result<(), NoBarrierError> {
@@ -73,13 +73,18 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(super) fn recover(&mut self, token: TokenKind) {
+    pub(super) fn recover(&mut self, tokens: &[TokenKind]) {
         loop {
             let peek = self.peek.kind;
-            if peek == token {
+            if tokens.iter().any(|&token| peek == token) {
                 self.advance();
                 break;
-            } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| peek == b) {
+            } else if peek == TokenKind::Eof
+                || self
+                    .barriers
+                    .iter()
+                    .any(|tokens| tokens.iter().any(|&token| peek == token))
+            {
                 break;
             } else {
                 self.advance();

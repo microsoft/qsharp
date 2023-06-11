@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    prim::barrier,
+    prim::{barrier, recovering},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -23,6 +23,7 @@ use qsc_ast::ast::{
     NodeId, Path, Spec, SpecBody, SpecDecl, SpecGen, Stmt, Ty, TyDef, TyDefKind, TyKind,
     Visibility, VisibilityKind,
 };
+use qsc_data_structures::span::Span;
 
 pub enum Fragment {
     Namespace(Namespace),
@@ -52,6 +53,34 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
     }))
 }
 
+#[allow(clippy::vec_box)]
+fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Item>>> {
+    const BARRIER_TOKENS: &[TokenKind] = &[
+        TokenKind::At,
+        TokenKind::Keyword(Keyword::Internal),
+        TokenKind::Keyword(Keyword::Open),
+        TokenKind::Keyword(Keyword::Newtype),
+        TokenKind::Keyword(Keyword::Operation),
+        TokenKind::Keyword(Keyword::Function),
+    ];
+
+    const RECOVERY_TOKENS: &[TokenKind] = &[TokenKind::Semi, TokenKind::Close(Delim::Brace)];
+
+    barrier(s, BARRIER_TOKENS, |s| {
+        many(s, |s| recovering(s, default, RECOVERY_TOKENS, parse))
+    })
+}
+
+fn default(span: Span) -> Box<Item> {
+    Box::new(Item {
+        id: NodeId::default(),
+        span,
+        attrs: Vec::new().into_boxed_slice(),
+        visibility: None,
+        kind: Box::new(ItemKind::Err),
+    })
+}
+
 pub(super) fn parse_namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
     let namespaces = many(s, parse_namespace)?;
     token(s, TokenKind::Eof)?;
@@ -77,7 +106,7 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = many(s, parse)?;
+    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
         id: NodeId::default(),
@@ -221,7 +250,7 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
 fn parse_callable_body(s: &mut Scanner) -> Result<CallableBody> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
-    barrier(s, TokenKind::Close(Delim::Brace), |s| {
+    barrier(s, &[TokenKind::Close(Delim::Brace)], |s| {
         let specs = many(s, parse_spec_decl)?;
         if specs.is_empty() {
             let stmts = stmt::parse_many(s)?;
