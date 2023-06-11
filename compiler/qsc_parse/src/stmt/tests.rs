@@ -532,3 +532,26 @@ fn recover_in_nested_block() {
                 Stmt _id_ [19-20]: Expr: Expr _id_ [19-20]: Path: Path _id_ [19-20] (Ident _id_ [19-20] "x")"#]],
     );
 }
+
+#[test]
+fn recover_statements_before_and_after() {
+    check(
+        parse_block,
+        "{
+            let x = 2 + 2;
+            let y = Foo(x
+            let z = x * 3;
+            z
+        }",
+        &expect![[r#"
+            Block _id_ [0-105]:
+                Stmt _id_ [14-28]: Local (Immutable):
+                    Pat _id_ [18-19]: Bind:
+                        Ident _id_ [18-19] "x"
+                    Expr _id_ [22-27]: BinOp (Add):
+                        Expr _id_ [22-23]: Lit: Int(2)
+                        Expr _id_ [26-27]: Lit: Int(2)
+                Stmt _id_ [41-81]: Err
+                Stmt _id_ [94-95]: Expr: Expr _id_ [94-95]: Path: Path _id_ [94-95] (Ident _id_ [94-95] "z")"#]],
+    );
+}

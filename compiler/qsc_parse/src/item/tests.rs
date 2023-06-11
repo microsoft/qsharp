@@ -739,3 +739,68 @@ fn two_callable_items() {
                         body: Block: Block _id_ [58-60]: <empty>"#]],
     );
 }
+
+#[test]
+fn recover_callable_item() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            function Foo() : Int { 5 }
+            function Bar() { 10 }
+            operation Baz() : Double { 2.0 }
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-141] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-52]:
+                    Callable _id_ [26-52] (Function):
+                        name: Ident _id_ [35-38] "Foo"
+                        input: Pat _id_ [38-40]: Unit
+                        output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
+                        body: Block: Block _id_ [47-52]:
+                            Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(5)
+                Item _id_ [65-86]:
+                    Err
+                Item _id_ [99-131]:
+                    Callable _id_ [99-131] (Operation):
+                        name: Ident _id_ [109-112] "Baz"
+                        input: Pat _id_ [112-114]: Unit
+                        output: Type _id_ [117-123]: Path: Path _id_ [117-123] (Ident _id_ [117-123] "Double")
+                        body: Block: Block _id_ [124-131]:
+                            Stmt _id_ [126-129]: Expr: Expr _id_ [126-129]: Lit: Double(2)"#]],
+    );
+}
+
+#[test]
+fn recover_unclosed_callable_item() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            function Foo() : Int {",
+        &expect![[r#"
+            Namespace _id_ [0-48] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-48]:
+                    Callable _id_ [26-48] (Function):
+                        name: Ident _id_ [35-38] "Foo"
+                        input: Pat _id_ [38-40]: Unit
+                        output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
+                        body: Block: Block _id_ [47-48]: <empty>"#]],
+    );
+}
+
+#[test]
+fn recover_unclosed_namespace() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            function Foo() : Int { 2 }",
+        &expect![[r#"
+            Namespace _id_ [0-52] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-52]:
+                    Callable _id_ [26-52] (Function):
+                        name: Ident _id_ [35-38] "Foo"
+                        input: Pat _id_ [38-40]: Unit
+                        output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
+                        body: Block: Block _id_ [47-52]:
+                            Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(2)"#]],
+    );
+}
