@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering},
+    prim::{barrier, recovering, recovering_token},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -58,7 +58,7 @@ pub(super) fn parse_block(s: &mut Scanner) -> Result<Box<Block>> {
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     check_semis(&stmts)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
+    recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Box::new(Block {
         id: NodeId::default(),
         span: s.span(lo),

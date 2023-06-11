@@ -33,12 +33,12 @@ impl FinalSep {
     }
 }
 
-pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
-    if s.peek().kind == kind {
+pub(super) fn token(s: &mut Scanner, t: TokenKind) -> Result<()> {
+    if s.peek().kind == t {
         s.advance();
         Ok(())
     } else {
-        Err(Error(ErrorKind::Token(kind, s.peek().kind, s.peek().span)))
+        Err(Error(ErrorKind::Token(t, s.peek().kind, s.peek().span)))
     }
 }
 
@@ -181,6 +181,17 @@ pub(super) fn recovering<T>(
             Ok(default(s.span(offset)))
         }
         Err(error) => Err(error),
+    }
+}
+
+pub(super) fn recovering_token(s: &mut Scanner, t: TokenKind) -> Result<()> {
+    match token(s, t) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            s.push_error(error);
+            s.recover(&[t]);
+            Ok(())
+        }
     }
 }
 

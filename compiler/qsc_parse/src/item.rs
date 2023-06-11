@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering},
+    prim::{barrier, recovering, recovering_token},
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -83,13 +83,13 @@ fn default(span: Span) -> Box<Item> {
 
 pub(super) fn parse_namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
     let namespaces = many(s, parse_namespace)?;
-    token(s, TokenKind::Eof)?;
+    recovering_token(s, TokenKind::Eof)?;
     Ok(namespaces)
 }
 
 pub(super) fn parse_fragments(s: &mut Scanner) -> Result<Vec<Fragment>> {
     let fragments = many(s, parse_fragment)?;
-    token(s, TokenKind::Eof)?;
+    recovering_token(s, TokenKind::Eof)?;
     Ok(fragments)
 }
 
@@ -107,7 +107,7 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
+    recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
@@ -254,14 +254,14 @@ fn parse_callable_body(s: &mut Scanner) -> Result<CallableBody> {
         let specs = many(s, parse_spec_decl)?;
         if specs.is_empty() {
             let stmts = stmt::parse_many(s)?;
-            token(s, TokenKind::Close(Delim::Brace))?;
+            recovering_token(s, TokenKind::Close(Delim::Brace))?;
             Ok(CallableBody::Block(Box::new(Block {
                 id: NodeId::default(),
                 span: s.span(lo),
                 stmts: stmts.into_boxed_slice(),
             })))
         } else {
-            token(s, TokenKind::Close(Delim::Brace))?;
+            recovering_token(s, TokenKind::Close(Delim::Brace))?;
             Ok(CallableBody::Specs(specs.into_boxed_slice()))
         }
     })
