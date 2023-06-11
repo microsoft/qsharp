@@ -6,6 +6,7 @@
 //! unique identifiers by a later stage.
 
 mod expr;
+mod item;
 mod keyword;
 mod lex;
 mod prim;
@@ -13,7 +14,6 @@ mod scan;
 mod stmt;
 #[cfg(test)]
 mod tests;
-mod top;
 mod ty;
 
 use keyword::Keyword;
@@ -25,7 +25,7 @@ use scan::Scanner;
 use std::result;
 use thiserror::Error;
 
-pub use top::Fragment;
+pub use item::Fragment;
 
 #[derive(Clone, Copy, Debug, Diagnostic, Eq, Error, PartialEq)]
 #[error(transparent)]
@@ -87,7 +87,7 @@ impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
 pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match top::namespaces(&mut scanner) {
+    match item::parse_namespaces(&mut scanner) {
         Ok(namespaces) => (namespaces, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();
@@ -99,7 +99,7 @@ pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
 
 pub fn fragments(input: &str) -> (Vec<Fragment>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match top::fragments(&mut scanner) {
+    match item::parse_fragments(&mut scanner) {
         Ok(fragments) => (fragments, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();

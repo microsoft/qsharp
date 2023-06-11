@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{attr, item, namespaces, spec_decl};
+use super::{parse, parse_attr, parse_namespaces, parse_spec_decl};
 use crate::tests::{check, check_vec};
 use expect_test::expect;
 
 #[test]
 fn body_intrinsic() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "body intrinsic;",
         &expect!["SpecDecl _id_ [0-15] (Body): Gen: Intrinsic"],
     );
@@ -17,7 +17,7 @@ fn body_intrinsic() {
 #[test]
 fn adjoint_self() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "adjoint self;",
         &expect!["SpecDecl _id_ [0-13] (Adj): Gen: Slf"],
     );
@@ -26,7 +26,7 @@ fn adjoint_self() {
 #[test]
 fn adjoint_invert() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "adjoint invert;",
         &expect!["SpecDecl _id_ [0-15] (Adj): Gen: Invert"],
     );
@@ -35,7 +35,7 @@ fn adjoint_invert() {
 #[test]
 fn controlled_distribute() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "controlled distribute;",
         &expect!["SpecDecl _id_ [0-22] (Ctl): Gen: Distribute"],
     );
@@ -44,7 +44,7 @@ fn controlled_distribute() {
 #[test]
 fn controlled_adjoint_auto() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "controlled adjoint auto;",
         &expect!["SpecDecl _id_ [0-24] (CtlAdj): Gen: Auto"],
     );
@@ -53,7 +53,7 @@ fn controlled_adjoint_auto() {
 #[test]
 fn spec_gen_missing_semi() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "body intrinsic",
         &expect![[r#"
             Err(
@@ -75,7 +75,7 @@ fn spec_gen_missing_semi() {
 #[test]
 fn spec_invalid_gen() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "adjoint foo;",
         &expect![[r#"
             Err(
@@ -99,7 +99,7 @@ fn spec_invalid_gen() {
 #[test]
 fn open_no_alias() {
     check(
-        item,
+        parse,
         "open Foo.Bar.Baz;",
         &expect![[r#"
             Item _id_ [0-17]:
@@ -110,7 +110,7 @@ fn open_no_alias() {
 #[test]
 fn open_alias() {
     check(
-        item,
+        parse,
         "open Foo.Bar.Baz as Baz;",
         &expect![[r#"
             Item _id_ [0-24]:
@@ -121,7 +121,7 @@ fn open_alias() {
 #[test]
 fn open_alias_dot() {
     check(
-        item,
+        parse,
         "open Foo.Bar.Baz as Bar.Baz;",
         &expect![[r#"
             Item _id_ [0-28]:
@@ -132,7 +132,7 @@ fn open_alias_dot() {
 #[test]
 fn ty_decl() {
     check(
-        item,
+        parse,
         "newtype Foo = Unit;",
         &expect![[r#"
             Item _id_ [0-19]:
@@ -144,7 +144,7 @@ fn ty_decl() {
 #[test]
 fn ty_decl_field_name() {
     check(
-        item,
+        parse,
         "newtype Foo = Bar : Int;",
         &expect![[r#"
             Item _id_ [0-24]:
@@ -157,7 +157,7 @@ fn ty_decl_field_name() {
 #[test]
 fn ty_def_invalid_field_name() {
     check(
-        item,
+        parse,
         "newtype Foo = Bar.Baz : Int[];",
         &expect![[r#"
             Err(
@@ -179,7 +179,7 @@ fn ty_def_invalid_field_name() {
 #[test]
 fn ty_def_tuple() {
     check(
-        item,
+        parse,
         "newtype Foo = (Int, Int);",
         &expect![[r#"
             Item _id_ [0-25]:
@@ -194,7 +194,7 @@ fn ty_def_tuple() {
 #[test]
 fn ty_def_tuple_one_named() {
     check(
-        item,
+        parse,
         "newtype Foo = (X : Int, Int);",
         &expect![[r#"
             Item _id_ [0-29]:
@@ -210,7 +210,7 @@ fn ty_def_tuple_one_named() {
 #[test]
 fn ty_def_tuple_both_named() {
     check(
-        item,
+        parse,
         "newtype Foo = (X : Int, Y : Int);",
         &expect![[r#"
             Item _id_ [0-33]:
@@ -227,7 +227,7 @@ fn ty_def_tuple_both_named() {
 #[test]
 fn ty_def_nested_tuple() {
     check(
-        item,
+        parse,
         "newtype Foo = ((X : Int, Y : Int), Z : Int);",
         &expect![[r#"
             Item _id_ [0-44]:
@@ -248,7 +248,7 @@ fn ty_def_nested_tuple() {
 #[test]
 fn ty_def_tuple_with_name() {
     check(
-        item,
+        parse,
         "newtype Foo = Pair : (Int, Int);",
         &expect![[r#"
             Item _id_ [0-32]:
@@ -263,7 +263,7 @@ fn ty_def_tuple_with_name() {
 #[test]
 fn function_decl() {
     check(
-        item,
+        parse,
         "function Foo() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-41]:
@@ -279,7 +279,7 @@ fn function_decl() {
 #[test]
 fn operation_decl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-42]:
@@ -295,7 +295,7 @@ fn operation_decl() {
 #[test]
 fn function_one_param() {
     check(
-        item,
+        parse,
         "function Foo(x : Int) : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-48]:
@@ -314,7 +314,7 @@ fn function_one_param() {
 #[test]
 fn function_two_params() {
     check(
-        item,
+        parse,
         "function Foo(x : Int, y : Int) : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-57]:
@@ -336,7 +336,7 @@ fn function_two_params() {
 #[test]
 fn function_one_ty_param() {
     check(
-        item,
+        parse,
         "function Foo<'T>() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-45]:
@@ -354,7 +354,7 @@ fn function_one_ty_param() {
 #[test]
 fn function_two_ty_params() {
     check(
-        item,
+        parse,
         "function Foo<'T, 'U>() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-49]:
@@ -373,7 +373,7 @@ fn function_two_ty_params() {
 #[test]
 fn function_single_impl() {
     check(
-        item,
+        parse,
         "function Foo(x : Int) : Int { let y = x; y }",
         &expect![[r#"
             Item _id_ [0-44]:
@@ -396,7 +396,7 @@ fn function_single_impl() {
 #[test]
 fn operation_body_impl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body (...) { x } }",
         &expect![[r#"
             Item _id_ [0-43]:
@@ -416,7 +416,7 @@ fn operation_body_impl() {
 #[test]
 fn operation_body_ctl_impl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body (...) { x } controlled (cs, ...) { y } }",
         &expect![[r#"
             Item _id_ [0-70]:
@@ -443,7 +443,7 @@ fn operation_body_ctl_impl() {
 #[test]
 fn operation_impl_and_gen() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body (...) { x } adjoint self; }",
         &expect![[r#"
             Item _id_ [0-57]:
@@ -464,7 +464,7 @@ fn operation_impl_and_gen() {
 #[test]
 fn operation_is_adj() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit is Adj {}",
         &expect![[r#"
             Item _id_ [0-32]:
@@ -480,7 +480,7 @@ fn operation_is_adj() {
 #[test]
 fn operation_is_adj_ctl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit is Adj + Ctl {}",
         &expect![[r#"
             Item _id_ [0-38]:
@@ -496,7 +496,7 @@ fn operation_is_adj_ctl() {
 #[test]
 fn function_missing_output_ty() {
     check(
-        item,
+        parse,
         "function Foo() { body intrinsic; }",
         &expect![[r#"
             Err(
@@ -520,7 +520,7 @@ fn function_missing_output_ty() {
 #[test]
 fn internal_ty() {
     check(
-        item,
+        parse,
         "internal newtype Foo = Unit;",
         &expect![[r#"
             Item _id_ [0-28]:
@@ -533,7 +533,7 @@ fn internal_ty() {
 #[test]
 fn internal_function() {
     check(
-        item,
+        parse,
         "internal function Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-33]:
@@ -549,7 +549,7 @@ fn internal_function() {
 #[test]
 fn internal_operation() {
     check(
-        item,
+        parse,
         "internal operation Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-34]:
@@ -565,7 +565,7 @@ fn internal_operation() {
 #[test]
 fn attr_no_args() {
     check(
-        attr,
+        parse_attr,
         "@Foo()",
         &expect![[r#"
             Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
@@ -576,7 +576,7 @@ fn attr_no_args() {
 #[test]
 fn attr_single_arg() {
     check(
-        attr,
+        parse_attr,
         "@Foo(123)",
         &expect![[r#"
             Attr _id_ [0-9] (Ident _id_ [1-4] "Foo"):
@@ -587,7 +587,7 @@ fn attr_single_arg() {
 #[test]
 fn attr_two_args() {
     check(
-        attr,
+        parse_attr,
         "@Foo(123, \"bar\")",
         &expect![[r#"
             Attr _id_ [0-16] (Ident _id_ [1-4] "Foo"):
@@ -600,7 +600,7 @@ fn attr_two_args() {
 #[test]
 fn open_attr() {
     check(
-        item,
+        parse,
         "@Foo() open Bar;",
         &expect![[r#"
             Item _id_ [0-16]:
@@ -613,7 +613,7 @@ fn open_attr() {
 #[test]
 fn newtype_attr() {
     check(
-        item,
+        parse,
         "@Foo() newtype Bar = Unit;",
         &expect![[r#"
             Item _id_ [0-26]:
@@ -627,7 +627,7 @@ fn newtype_attr() {
 #[test]
 fn operation_one_attr() {
     check(
-        item,
+        parse,
         "@Foo() operation Bar() : Unit {}",
         &expect![[r#"
             Item _id_ [0-32]:
@@ -644,7 +644,7 @@ fn operation_one_attr() {
 #[test]
 fn operation_two_attrs() {
     check(
-        item,
+        parse,
         "@Foo() @Bar() operation Baz() : Unit {}",
         &expect![[r#"
             Item _id_ [0-39]:
@@ -663,7 +663,7 @@ fn operation_two_attrs() {
 #[test]
 fn namespace_function() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { function Foo() : Unit { body intrinsic; } }",
         &expect![[r#"
             Namespace _id_ [0-57] (Ident _id_ [10-11] "A"):
@@ -680,7 +680,7 @@ fn namespace_function() {
 #[test]
 fn two_namespaces() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A {} namespace B {}",
         &expect![[r#"
             Namespace _id_ [0-14] (Ident _id_ [10-11] "A"):,
@@ -691,7 +691,7 @@ fn two_namespaces() {
 #[test]
 fn two_open_items() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { open B; open C; }",
         &expect![[r#"
             Namespace _id_ [0-31] (Ident _id_ [10-11] "A"):
@@ -705,7 +705,7 @@ fn two_open_items() {
 #[test]
 fn two_ty_items() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { newtype B = Unit; newtype C = Unit; }",
         &expect![[r#"
             Namespace _id_ [0-51] (Ident _id_ [10-11] "A"):
@@ -721,7 +721,7 @@ fn two_ty_items() {
 #[test]
 fn two_callable_items() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { operation B() : Unit {} function C() : Unit {} }",
         &expect![[r#"
             Namespace _id_ [0-62] (Ident _id_ [10-11] "A"):

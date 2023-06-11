@@ -6,10 +6,11 @@ mod tests;
 
 use super::{
     expr::{self, expr, expr_stmt},
+    item,
     keyword::Keyword,
     prim::{ident, keyword, many, opt, pat, seq, token},
     scan::Scanner,
-    top, Error, Result,
+    Error, Result,
 };
 use crate::{
     lex::{Delim, TokenKind},
@@ -25,7 +26,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Semi).is_ok() {
         Box::new(StmtKind::Empty)
-    } else if let Some(item) = opt(s, top::item)? {
+    } else if let Some(item) = opt(s, item::parse)? {
         Box::new(StmtKind::Item(item))
     } else if let Some(local) = opt(s, parse_local)? {
         local
