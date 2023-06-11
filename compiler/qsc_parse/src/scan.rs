@@ -62,10 +62,13 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    /// Pushes a recovery barrier. While the barrier is active, recovery will never advance past any
+    /// of the barrier tokens, unless it is explicitly listed as a recovery token.
     pub(super) fn push_barrier(&mut self, tokens: &'a [TokenKind]) {
         self.barriers.push(tokens);
     }
 
+    /// Pops the most recently pushed active barrier.
     pub(super) fn pop_barrier(&mut self) -> Result<(), NoBarrierError> {
         match self.barriers.pop() {
             Some(_) => Ok(()),
@@ -73,18 +76,16 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    /// Tries to recover from a parse error by advancing tokens until any of the given recovery
+    /// tokens, or a barrier token, is found. If a recovery token is found, it is consumed. If a
+    /// barrier token is found first, it is not consumed.
     pub(super) fn recover(&mut self, tokens: &[TokenKind]) {
         loop {
             let peek = self.peek.kind;
-            if tokens.iter().any(|&token| peek == token) {
+            if contains(peek, tokens) {
                 self.advance();
                 break;
-            } else if peek == TokenKind::Eof
-                || self
-                    .barriers
-                    .iter()
-                    .any(|tokens| tokens.iter().any(|&token| peek == token))
-            {
+            } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
                 break;
             } else {
                 self.advance();
@@ -125,4 +126,8 @@ fn next_ok<T, E>(iter: impl Iterator<Item = Result<T, E>>) -> (Option<T>, Vec<E>
     }
 
     (None, errors)
+}
+
+fn contains<'a>(token: TokenKind, tokens: impl IntoIterator<Item = &'a TokenKind>) -> bool {
+    tokens.into_iter().any(|&t| t == token)
 }
