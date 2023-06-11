@@ -312,7 +312,7 @@ fn insert_core_call() {
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme
-                .instantiate([])
+                .instantiate(&[])
                 .expect("qubit allocation scheme should instantiate");
             let callee = Expr {
                 id: NodeId::default(),
