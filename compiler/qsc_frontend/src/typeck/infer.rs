@@ -333,7 +333,7 @@ impl Inferrer {
 
     /// Instantiates the type scheme.
     pub(super) fn instantiate(&mut self, scheme: &Scheme, span: Span) -> (Arrow, Vec<GenericArg>) {
-        let args = scheme
+        let args: Vec<_> = scheme
             .params()
             .iter()
             .map(|param| match param.kind {
