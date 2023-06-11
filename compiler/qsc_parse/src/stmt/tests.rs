@@ -135,16 +135,14 @@ fn use_invalid_init() {
         parse,
         "use q = Qutrit();",
         &expect![[r#"
-            Err(
-                Error(
-                    Convert(
-                        "qubit initializer",
-                        "identifier",
-                        Span {
-                            lo: 8,
-                            hi: 14,
-                        },
-                    ),
+            Error(
+                Convert(
+                    "qubit initializer",
+                    "identifier",
+                    Span {
+                        lo: 8,
+                        hi: 14,
+                    },
                 ),
             )
         "#]],
@@ -211,16 +209,14 @@ fn stmt_missing_semi() {
         parse,
         "let x = 2",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Semi,
-                        Eof,
-                        Span {
-                            lo: 9,
-                            hi: 9,
-                        },
-                    ),
+            Error(
+                Token(
+                    Semi,
+                    Eof,
+                    Span {
+                        lo: 9,
+                        hi: 9,
+                    },
                 ),
             )
         "#]],
@@ -450,14 +446,12 @@ fn call_no_semi_call() {
         parse_block,
         "{ f(x) g(y) }",
         &expect![[r#"
-            Err(
-                Error(
-                    MissingSemi(
-                        Span {
-                            lo: 6,
-                            hi: 6,
-                        },
-                    ),
+            Error(
+                MissingSemi(
+                    Span {
+                        lo: 6,
+                        hi: 6,
+                    },
                 ),
             )
         "#]],
@@ -491,14 +485,12 @@ fn expr_plus_if_no_semi() {
         parse_block,
         "{ 1 + if true { 2 } else { 3 } f(x) }",
         &expect![[r#"
-            Err(
-                Error(
-                    MissingSemi(
-                        Span {
-                            lo: 30,
-                            hi: 30,
-                        },
-                    ),
+            Error(
+                MissingSemi(
+                    Span {
+                        lo: 30,
+                        hi: 30,
+                    },
                 ),
             )
         "#]],
@@ -513,7 +505,20 @@ fn recover_in_block() {
         &expect![[r#"
             Block _id_ [0-18]:
                 Stmt _id_ [2-14]: Err
-                Stmt _id_ [15-16]: Expr: Expr _id_ [15-16]: Path: Path _id_ [15-16] (Ident _id_ [15-16] "x")"#]],
+                Stmt _id_ [15-16]: Expr: Expr _id_ [15-16]: Path: Path _id_ [15-16] (Ident _id_ [15-16] "x")
+
+            [
+                Error(
+                    Rule(
+                        "expression",
+                        Semi,
+                        Span {
+                            lo: 13,
+                            hi: 14,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -529,7 +534,22 @@ fn recover_in_nested_block() {
                         Ident _id_ [6-7] "x"
                     Expr _id_ [10-17]: Expr Block: Block _id_ [10-17]:
                         Stmt _id_ [12-15]: Err
-                Stmt _id_ [19-20]: Expr: Expr _id_ [19-20]: Path: Path _id_ [19-20] (Ident _id_ [19-20] "x")"#]],
+                Stmt _id_ [19-20]: Expr: Expr _id_ [19-20]: Path: Path _id_ [19-20] (Ident _id_ [19-20] "x")
+
+            [
+                Error(
+                    Rule(
+                        "expression",
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 16,
+                            hi: 17,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -552,6 +572,23 @@ fn recover_statements_before_and_after() {
                         Expr _id_ [22-23]: Lit: Int(2)
                         Expr _id_ [26-27]: Lit: Int(2)
                 Stmt _id_ [41-81]: Err
-                Stmt _id_ [94-95]: Expr: Expr _id_ [94-95]: Path: Path _id_ [94-95] (Ident _id_ [94-95] "z")"#]],
+                Stmt _id_ [94-95]: Expr: Expr _id_ [94-95]: Path: Path _id_ [94-95] (Ident _id_ [94-95] "z")
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Paren,
+                        ),
+                        Keyword(
+                            Let,
+                        ),
+                        Span {
+                            lo: 67,
+                            hi: 70,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }

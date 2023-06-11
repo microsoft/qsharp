@@ -56,16 +56,14 @@ fn spec_gen_missing_semi() {
         parse_spec_decl,
         "body intrinsic",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Semi,
-                        Eof,
-                        Span {
-                            lo: 14,
-                            hi: 14,
-                        },
-                    ),
+            Error(
+                Token(
+                    Semi,
+                    Eof,
+                    Span {
+                        lo: 14,
+                        hi: 14,
+                    },
                 ),
             )
         "#]],
@@ -78,18 +76,16 @@ fn spec_invalid_gen() {
         parse_spec_decl,
         "adjoint foo;",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Open(
-                            Brace,
-                        ),
-                        Semi,
-                        Span {
-                            lo: 11,
-                            hi: 12,
-                        },
+            Error(
+                Token(
+                    Open(
+                        Brace,
                     ),
+                    Semi,
+                    Span {
+                        lo: 11,
+                        hi: 12,
+                    },
                 ),
             )
         "#]],
@@ -160,16 +156,14 @@ fn ty_def_invalid_field_name() {
         parse,
         "newtype Foo = Bar.Baz : Int[];",
         &expect![[r#"
-            Err(
-                Error(
-                    Convert(
-                        "identifier",
-                        "type",
-                        Span {
-                            lo: 14,
-                            hi: 21,
-                        },
-                    ),
+            Error(
+                Convert(
+                    "identifier",
+                    "type",
+                    Span {
+                        lo: 14,
+                        hi: 21,
+                    },
                 ),
             )
         "#]],
@@ -499,18 +493,16 @@ fn function_missing_output_ty() {
         parse,
         "function Foo() { body intrinsic; }",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Colon,
-                        Open(
-                            Brace,
-                        ),
-                        Span {
-                            lo: 15,
-                            hi: 16,
-                        },
+            Error(
+                Token(
+                    Colon,
+                    Open(
+                        Brace,
                     ),
+                    Span {
+                        lo: 15,
+                        hi: 16,
+                    },
                 ),
             )
         "#]],
@@ -766,7 +758,22 @@ fn recover_callable_item() {
                         input: Pat _id_ [112-114]: Unit
                         output: Type _id_ [117-123]: Path: Path _id_ [117-123] (Ident _id_ [117-123] "Double")
                         body: Block: Block _id_ [124-131]:
-                            Stmt _id_ [126-129]: Expr: Expr _id_ [126-129]: Lit: Double(2)"#]],
+                            Stmt _id_ [126-129]: Expr: Expr _id_ [126-129]: Lit: Double(2)
+
+            [
+                Error(
+                    Token(
+                        Colon,
+                        Open(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 80,
+                            hi: 81,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -783,7 +790,34 @@ fn recover_unclosed_callable_item() {
                         name: Ident _id_ [35-38] "Foo"
                         input: Pat _id_ [38-40]: Unit
                         output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
-                        body: Block: Block _id_ [47-48]: <empty>"#]],
+                        body: Block: Block _id_ [47-48]: <empty>
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 48,
+                            hi: 48,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 48,
+                            hi: 48,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -801,6 +835,21 @@ fn recover_unclosed_namespace() {
                         input: Pat _id_ [38-40]: Unit
                         output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
                         body: Block: Block _id_ [47-52]:
-                            Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(2)"#]],
+                            Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(2)
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 52,
+                            hi: 52,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
