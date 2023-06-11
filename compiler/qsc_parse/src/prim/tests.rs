@@ -266,11 +266,7 @@ fn opt_succeed() {
 
 #[test]
 fn opt_fail_no_consume() {
-    check_opt(
-        |s| opt(s, path),
-        "123",
-        &expect!["None"],
-    );
+    check_opt(|s| opt(s, path), "123", &expect!["None"]);
 }
 
 #[test]
