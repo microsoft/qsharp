@@ -99,7 +99,9 @@ fn comment() {
         &expect![[r#"
             [
                 Token {
-                    kind: Comment,
+                    kind: Comment(
+                        Normal,
+                    ),
                     offset: 0,
                 },
                 Token {
@@ -109,6 +111,56 @@ fn comment() {
                 Token {
                     kind: Ident,
                     offset: 10,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn doc_comment() {
+    check(
+        "///comment\nx",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Comment(
+                        Doc,
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 10,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 11,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn comment_four_slashes() {
+    check(
+        "////comment\nx",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Comment(
+                        Normal,
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 11,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 12,
                 },
             ]
         "#]],

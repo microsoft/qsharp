@@ -47,6 +47,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::WSlash => Some("w/".to_string()),
         TokenKind::WSlashEq => Some("w/=".to_string()),
         TokenKind::BigInt(_)
+        | TokenKind::DocComment
         | TokenKind::Eof
         | TokenKind::Float
         | TokenKind::Ident
@@ -1587,6 +1588,75 @@ fn unknown() {
                             hi: 2,
                         },
                     ),
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn comment() {
+    check(
+        "//comment\nx",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 10,
+                            hi: 11,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn doc_comment() {
+    check(
+        "///comment\nx",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: DocComment,
+                        span: Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 11,
+                            hi: 12,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn comment_four_slashes() {
+    check(
+        "////comment\nx",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Ident,
+                        span: Span {
+                            lo: 12,
+                            hi: 13,
+                        },
+                    },
                 ),
             ]
         "#]],
