@@ -7,6 +7,6 @@ namespace Kata {
     }
 
     operation VerifyExercise() : Bool {
-        VerifyQubitUnitary(ApplyY, ApplyYReference)
+        VerifySingleQubitUnitary(ApplyY, ApplyYReference)
     }
 }

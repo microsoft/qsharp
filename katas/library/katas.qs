@@ -5,7 +5,9 @@ namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
 
-    operation VerifyQubitUnitary(unitary : (Qubit => Unit is Adj + Ctl), reference : (Qubit => Unit is Adj + Ctl))
+
+
+    operation VerifySingleQubitUnitary(unitary : (Qubit => Unit is Adj + Ctl), reference : (Qubit => Unit is Adj + Ctl))
     : Bool {
         mutable isCorrect = false;
 

@@ -9,6 +9,6 @@ namespace Kata {
     }
 
     operation VerifyExercise() : Bool {
-        VerifyQubitUnitary(GlobalPhaseI, GlobalPhaseIReference)
+        VerifySingleQubitUnitary(GlobalPhaseI, GlobalPhaseIReference)
     }
 }
