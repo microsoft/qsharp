@@ -9,6 +9,18 @@ namespace Kata {
     }
 
     operation VerifyExercise() : Bool {
-        VerifyMultiQubitUnitary(BellState, BellStateReference)
+        let op = BellState;
+        let reference = BellStateReference;
+        let isCorrect = VerifyMultiQubitOperation(op, reference);
+
+        // Output different feedback to the user depending on whether the exercise was correct.
+        use target = Qubit[2];
+        if isCorrect {
+            ShowEffectOnQuantumState(target, op);
+        } else {
+            ShowQuantumStateComparison(target, op, reference);
+        }
+
+        isCorrect
     }
 }
