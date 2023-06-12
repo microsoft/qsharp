@@ -182,7 +182,7 @@ fn synthesize_functor_params_in_pat(
     pat: &mut hir::Pat,
 ) -> Vec<GenericParam> {
     match &mut pat.kind {
-        hir::PatKind::Discard | hir::PatKind::Bind(_) | hir::PatKind::Elided => {
+        hir::PatKind::Discard | hir::PatKind::Bind(_) => {
             synthesize_functor_params(next_param, &mut pat.ty)
         }
         hir::PatKind::Tuple(items) => {
