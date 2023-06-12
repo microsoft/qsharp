@@ -93,7 +93,8 @@ pub(super) fn item(s: &mut Scanner) -> Result<Box<Item>> {
 
 fn doc(s: &mut Scanner) -> Result<String> {
     if s.peek().kind == TokenKind::DocComment {
-        let content = shorten(3, 0, s.read());
+        let prefix_len = if s.read().starts_with("/// ") { 4 } else { 3 };
+        let content = shorten(prefix_len, 0, s.read());
         s.advance();
         Ok(content.to_string())
     } else {
