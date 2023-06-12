@@ -366,19 +366,13 @@ pub struct SpecDecl {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// Which specialization is being declared.
-    pub spec: Spec,
     /// The body of the specialization.
     pub body: SpecBody,
 }
 
 impl Display for SpecDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "SpecDecl {} {} ({:?}): {}",
-            self.id, self.span, self.spec, self.body
-        )
+        write!(f, "SpecDecl {} {}: {}", self.id, self.span, self.body)
     }
 }
 
@@ -388,7 +382,7 @@ pub enum SpecBody {
     /// The strategy to use to automatically generate the specialization.
     Gen(SpecGen),
     /// A manual implementation of the specialization.
-    Impl(Pat, Block),
+    Impl(Option<Pat>, Block),
 }
 
 impl Display for SpecBody {
@@ -399,7 +393,9 @@ impl Display for SpecBody {
             SpecBody::Impl(p, b) => {
                 write!(indent, "Impl:")?;
                 indent = set_indentation(indent, 1);
-                write!(indent, "\n{p}")?;
+                if let Some(p) = p {
+                    write!(indent, "\n{p}")?;
+                }
                 write!(indent, "\n{b}")?;
             }
         }
@@ -962,8 +958,6 @@ pub enum PatKind {
     Bind(Ident),
     /// A discarded binding, `_`.
     Discard,
-    /// An elided pattern, `...`, used by specializations.
-    Elided,
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }
@@ -976,7 +970,6 @@ impl Display for PatKind {
                 write!(indent, "Bind: {id}")?;
             }
             PatKind::Discard => write!(indent, "Discard")?,
-            PatKind::Elided => write!(indent, "Elided")?,
             PatKind::Tuple(ps) => {
                 if ps.is_empty() {
                     write!(indent, "Unit")?;
@@ -1242,30 +1235,6 @@ impl Display for Functor {
         match self {
             Functor::Adj => f.write_str("Adj"),
             Functor::Ctl => f.write_str("Ctl"),
-        }
-    }
-}
-
-/// A specialization that may be implemented for an operation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Spec {
-    /// The default specialization.
-    Body,
-    /// The adjoint specialization.
-    Adj,
-    /// The controlled specialization.
-    Ctl,
-    /// The controlled adjoint specialization.
-    CtlAdj,
-}
-
-impl Display for Spec {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Spec::Body => f.write_str("body"),
-            Spec::Adj => f.write_str("adjoint"),
-            Spec::Ctl => f.write_str("controlled"),
-            Spec::CtlAdj => f.write_str("controlled adjoint"),
         }
     }
 }
