@@ -3,10 +3,11 @@
 
 use super::{ident, opt, pat, path, seq};
 use crate::{
+    keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
     scan::Scanner,
     tests::{check, check_opt, check_seq},
-    Error, ErrorKind, Keyword,
+    Error, ErrorKind,
 };
 use expect_test::expect;
 use qsc_data_structures::span::Span;
@@ -32,18 +33,16 @@ fn ident_num_prefix() {
         ident,
         "2foo",
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "identifier",
-                        Int(
-                            Decimal,
-                        ),
-                        Span {
-                            lo: 0,
-                            hi: 1,
-                        },
+            Error(
+                Rule(
+                    "identifier",
+                    Int(
+                        Decimal,
                     ),
+                    Span {
+                        lo: 0,
+                        hi: 1,
+                    },
                 ),
             )
         "#]],
@@ -71,7 +70,7 @@ fn ident_keyword() {
             Keyword::Or => {
                 ErrorKind::Rule("identifier", TokenKind::ClosedBinOp(ClosedBinOp::Or), span)
             }
-            _ => ErrorKind::RuleKeyword("identifier", keyword, span),
+            _ => ErrorKind::Rule("identifier", TokenKind::Keyword(keyword), span),
         });
 
         assert_eq!(actual, Err(expected), "{keyword}");
@@ -111,16 +110,14 @@ fn path_trailing_dot() {
         path,
         "Foo.Bar.",
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "identifier",
-                        Eof,
-                        Span {
-                            lo: 8,
-                            hi: 8,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "identifier",
+                    Eof,
+                    Span {
+                        lo: 8,
+                        hi: 8,
+                    },
                 ),
             )
         "#]],
@@ -224,16 +221,14 @@ fn pat_invalid() {
         pat,
         "@",
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "pattern",
-                        At,
-                        Span {
-                            lo: 0,
-                            hi: 1,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "pattern",
+                    At,
+                    Span {
+                        lo: 0,
+                        hi: 1,
+                    },
                 ),
             )
         "#]],
@@ -246,16 +241,14 @@ fn pat_missing_ty() {
         pat,
         "foo :",
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "type",
-                        Eof,
-                        Span {
-                            lo: 5,
-                            hi: 5,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "type",
+                    Eof,
+                    Span {
+                        lo: 5,
+                        hi: 5,
+                    },
                 ),
             )
         "#]],
@@ -273,15 +266,7 @@ fn opt_succeed() {
 
 #[test]
 fn opt_fail_no_consume() {
-    check_opt(
-        |s| opt(s, path),
-        "123",
-        &expect![[r#"
-            Ok(
-                None,
-            )
-        "#]],
-    );
+    check_opt(|s| opt(s, path), "123", &expect!["None"]);
 }
 
 #[test]
@@ -290,19 +275,30 @@ fn opt_fail_consume() {
         |s| opt(s, path),
         "Foo.#",
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "identifier",
-                        Eof,
-                        Span {
-                            lo: 5,
-                            hi: 5,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "identifier",
+                    Eof,
+                    Span {
+                        lo: 5,
+                        hi: 5,
+                    },
                 ),
             )
-        "#]],
+
+            [
+                Error(
+                    Lex(
+                        Unknown(
+                            '#',
+                            Span {
+                                lo: 4,
+                                hi: 5,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -357,16 +353,14 @@ fn seq_fail_consume() {
         |s| seq(s, path),
         "foo, bar.",
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "identifier",
-                        Eof,
-                        Span {
-                            lo: 9,
-                            hi: 9,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "identifier",
+                    Eof,
+                    Span {
+                        lo: 9,
+                        hi: 9,
+                    },
                 ),
             )
         "#]],

@@ -11,7 +11,6 @@ use crate::{
 };
 use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
 use qsc_data_structures::span::Span;
-use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum FinalSep {
@@ -34,47 +33,28 @@ impl FinalSep {
     }
 }
 
-pub(super) fn token(s: &mut Scanner, kind: TokenKind) -> Result<()> {
-    if s.peek().kind == kind {
+pub(super) fn token(s: &mut Scanner, t: TokenKind) -> Result<()> {
+    if s.peek().kind == t {
         s.advance();
         Ok(())
     } else {
-        Err(Error(ErrorKind::Token(kind, s.peek().kind, s.peek().span)))
-    }
-}
-
-pub(super) fn keyword(s: &mut Scanner, kw: Keyword) -> Result<()> {
-    if s.peek().kind == TokenKind::Ident && s.read() == kw.as_str() {
-        s.advance();
-        Ok(())
-    } else {
-        Err(Error(ErrorKind::Keyword(kw, s.peek().kind, s.peek().span)))
+        Err(Error(ErrorKind::Token(t, s.peek().kind, s.peek().span)))
     }
 }
 
 pub(super) fn ident(s: &mut Scanner) -> Result<Box<Ident>> {
-    if s.peek().kind != TokenKind::Ident {
-        return Err(Error(ErrorKind::Rule(
-            "identifier",
-            s.peek().kind,
-            s.peek().span,
-        )));
-    } else if let Ok(kw) = Keyword::from_str(s.read()) {
-        return Err(Error(ErrorKind::RuleKeyword(
-            "identifier",
-            kw,
-            s.peek().span,
-        )));
+    let peek = s.peek();
+    if peek.kind == TokenKind::Ident {
+        let name = s.read().into();
+        s.advance();
+        Ok(Box::new(Ident {
+            id: NodeId::default(),
+            span: peek.span,
+            name,
+        }))
+    } else {
+        Err(Error(ErrorKind::Rule("identifier", peek.kind, peek.span)))
     }
-
-    let span = s.peek().span;
-    let name = s.read().into();
-    s.advance();
-    Ok(Box::new(Ident {
-        id: NodeId::default(),
-        span,
-        name,
-    }))
 }
 
 pub(super) fn dot_ident(s: &mut Scanner) -> Result<Box<Ident>> {
@@ -124,7 +104,7 @@ pub(super) fn path(s: &mut Scanner) -> Result<Box<Path>> {
 
 pub(super) fn pat(s: &mut Scanner) -> Result<Box<Pat>> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, Keyword::Underscore).is_ok() {
+    let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         let ty = if token(s, TokenKind::Colon).is_ok() {
             Some(Box::new(ty(s)?))
         } else {
@@ -158,8 +138,8 @@ pub(super) fn opt<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<Option<T>
     let offset = s.peek().span.lo;
     match p(s) {
         Ok(x) => Ok(Some(x)),
-        Err(_) if offset == s.peek().span.lo => Ok(None),
-        Err(err) => Err(err),
+        Err(error) if advanced(s, offset) => Err(error),
+        Err(_) => Ok(None),
     }
 }
 
@@ -186,6 +166,50 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, 
     Ok((xs, final_sep))
 }
 
+pub(super) fn recovering<T>(
+    s: &mut Scanner,
+    default: impl FnOnce(Span) -> T,
+    tokens: &[TokenKind],
+    mut p: impl Parser<T>,
+) -> Result<T> {
+    let offset = s.peek().span.lo;
+    match p(s) {
+        Ok(value) => Ok(value),
+        Err(error) if advanced(s, offset) => {
+            s.push_error(error);
+            s.recover(tokens);
+            Ok(default(s.span(offset)))
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) fn recovering_token(s: &mut Scanner, t: TokenKind) -> Result<()> {
+    match token(s, t) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            s.push_error(error);
+            s.recover(&[t]);
+            Ok(())
+        }
+    }
+}
+
+pub(super) fn barrier<'a, T>(
+    s: &mut Scanner<'a>,
+    tokens: &'a [TokenKind],
+    mut p: impl Parser<T>,
+) -> Result<T> {
+    s.push_barrier(tokens);
+    let result = p(s);
+    s.pop_barrier().expect("barrier should be popped");
+    result
+}
+
+fn advanced(s: &Scanner, from: u32) -> bool {
+    s.peek().span.lo > from
+}
+
 fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
     let mut string = String::new();
     if let Some(s) = strings.next() {
@@ -201,7 +225,6 @@ fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String
 fn map_rule_name(name: &'static str, error: Error) -> Error {
     Error(match error.0 {
         ErrorKind::Rule(_, found, span) => ErrorKind::Rule(name, found, span),
-        ErrorKind::RuleKeyword(_, keyword, span) => ErrorKind::RuleKeyword(name, keyword, span),
         ErrorKind::Convert(_, found, span) => ErrorKind::Convert(name, found, span),
         kind => kind,
     })

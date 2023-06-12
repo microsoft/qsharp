@@ -121,7 +121,7 @@ pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
 
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
     vis.visit_ident(&decl.name);
-    decl.ty_params.iter().for_each(|p| vis.visit_ident(p));
+    decl.generics.iter().for_each(|p| vis.visit_ident(p));
     vis.visit_pat(&decl.input);
     vis.visit_ty(&decl.output);
     decl.functors.iter().for_each(|f| vis.visit_functor_expr(f));
@@ -174,7 +174,7 @@ pub fn walk_block<'a>(vis: &mut impl Visitor<'a>, block: &'a Block) {
 
 pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, stmt: &'a Stmt) {
     match &*stmt.kind {
-        StmtKind::Empty => {}
+        StmtKind::Empty | StmtKind::Err => {}
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => vis.visit_expr(expr),
         StmtKind::Item(item) => vis.visit_item(item),
         StmtKind::Local(_, pat, value) => {

@@ -5,6 +5,7 @@
 
 #![warn(missing_docs)]
 
+use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -286,39 +287,42 @@ pub struct CallableDecl {
     pub kind: CallableKind,
     /// The name of the callable.
     pub name: Ident,
-    /// The type parameters to the callable.
-    pub ty_params: Vec<Ident>,
+    /// The generic parameters to the callable.
+    pub generics: Vec<GenericParam>,
     /// The input to the callable.
     pub input: Pat,
     /// The return type of the callable.
     pub output: Ty,
     /// The functors supported by the callable.
     pub functors: FunctorSetValue,
-    /// The body of the callable.
+    /// The callable body.
     pub body: SpecDecl,
-    /// The body of the Adjoint specialization.
+    /// The adjoint specialization.
     pub adj: Option<SpecDecl>,
-    /// The body of the Controlled specialization.
+    /// The controlled specialization.
     pub ctl: Option<SpecDecl>,
-    /// The body of the Controlled-Adjoint specialization.
-    pub ctladj: Option<SpecDecl>,
+    /// The controlled adjoint specialization.
+    pub ctl_adj: Option<SpecDecl>,
 }
 
 impl CallableDecl {
-    /// The type of the callable.
+    /// The type scheme of the callable.
     #[must_use]
-    pub fn ty(&self) -> Ty {
-        Ty::Arrow(Box::new(ArrowTy {
-            kind: self.kind,
-            input: Box::new(self.input.ty.clone()),
-            output: Box::new(self.output.clone()),
-            functors: FunctorSet::Value(self.functors),
-        }))
+    pub fn scheme(&self) -> Scheme {
+        Scheme::new(
+            self.generics.clone(),
+            Box::new(Arrow {
+                kind: self.kind,
+                input: Box::new(self.input.ty.clone()),
+                output: Box::new(self.output.clone()),
+                functors: FunctorSet::Value(self.functors),
+            }),
+        )
     }
 }
 
 impl Display for CallableDecl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(
             indent,
@@ -327,11 +331,11 @@ impl Display for CallableDecl {
         )?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
-        if !self.ty_params.is_empty() {
-            write!(indent, "\ntype params:")?;
+        if !self.generics.is_empty() {
+            write!(indent, "\ngenerics:")?;
             indent = set_indentation(indent, 2);
-            for t in &self.ty_params {
-                write!(indent, "\n{t}")?;
+            for param in &self.generics {
+                write!(indent, "\n{param}")?;
             }
             indent = set_indentation(indent, 1);
         }
@@ -347,7 +351,7 @@ impl Display for CallableDecl {
             Some(spec) => write!(indent, "\nctl: {spec}")?,
             None => write!(indent, "\nctl: <none>")?,
         }
-        match &self.ctladj {
+        match &self.ctl_adj {
             Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
             None => write!(indent, "\nctl-adj: <none>")?,
         }
@@ -362,19 +366,13 @@ pub struct SpecDecl {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// Which specialization is being declared.
-    pub spec: Spec,
     /// The body of the specialization.
     pub body: SpecBody,
 }
 
 impl Display for SpecDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "SpecDecl {} {} ({:?}): {}",
-            self.id, self.span, self.spec, self.body
-        )
+        write!(f, "SpecDecl {} {}: {}", self.id, self.span, self.body)
     }
 }
 
@@ -384,7 +382,7 @@ pub enum SpecBody {
     /// The strategy to use to automatically generate the specialization.
     Gen(SpecGen),
     /// A manual implementation of the specialization.
-    Impl(Pat, Block),
+    Impl(Option<Pat>, Block),
 }
 
 impl Display for SpecBody {
@@ -395,7 +393,9 @@ impl Display for SpecBody {
             SpecBody::Impl(p, b) => {
                 write!(indent, "Impl:")?;
                 indent = set_indentation(indent, 1);
-                write!(indent, "\n{p}")?;
+                if let Some(p) = p {
+                    write!(indent, "\n{p}")?;
+                }
                 write!(indent, "\n{b}")?;
             }
         }
@@ -577,8 +577,8 @@ pub enum ExprKind {
     UnOp(UnOp, Box<Expr>),
     /// A record field update.
     UpdateField(Box<Expr>, Field, Box<Expr>),
-    /// A variable.
-    Var(Res),
+    /// A variable and its generic arguments.
+    Var(Res, Vec<GenericArg>),
     /// A while loop: `while a { ... }`.
     While(Box<Expr>, Block),
     /// An invalid expression.
@@ -625,7 +625,7 @@ impl Display for ExprKind {
             ExprKind::UpdateField(record, field, replace) => {
                 display_update_field(indent, record, field, replace)?;
             }
-            ExprKind::Var(res) => write!(indent, "Var: {res}")?,
+            ExprKind::Var(res, args) => display_var(indent, *res, args)?,
             ExprKind::While(cond, block) => display_while(indent, cond, block)?,
         }
         Ok(())
@@ -895,6 +895,22 @@ fn display_update_field(
     Ok(())
 }
 
+fn display_var(mut f: Indented<Formatter>, res: Res, args: &[GenericArg]) -> fmt::Result {
+    if args.is_empty() {
+        write!(f, "Var: {res}")
+    } else {
+        write!(f, "Var:")?;
+        f = set_indentation(f, 1);
+        write!(f, "\nres: {res}")?;
+        write!(f, "\ngenerics:")?;
+        f = set_indentation(f, 2);
+        for arg in args {
+            write!(f, "\n{arg}")?;
+        }
+        Ok(())
+    }
+}
+
 fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) -> fmt::Result {
     write!(indent, "While:")?;
     indent = set_indentation(indent, 1);
@@ -942,8 +958,6 @@ pub enum PatKind {
     Bind(Ident),
     /// A discarded binding, `_`.
     Discard,
-    /// An elided pattern, `...`, used by specializations.
-    Elided,
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Pat>),
 }
@@ -956,7 +970,6 @@ impl Display for PatKind {
                 write!(indent, "Bind: {id}")?;
             }
             PatKind::Discard => write!(indent, "Discard")?,
-            PatKind::Elided => write!(indent, "Elided")?,
             PatKind::Tuple(ps) => {
                 if ps.is_empty() {
                     write!(indent, "Unit")?;
@@ -1057,362 +1070,7 @@ pub enum Attr {
     EntryPoint,
 }
 
-/// A type.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub enum Ty {
-    /// An array type.
-    Array(Box<Ty>),
-    /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(Box<ArrowTy>),
-    /// A placeholder type variable used during type inference.
-    Infer(InferTy),
-    /// A type parameter.
-    Param(String),
-    /// A primitive type.
-    Prim(PrimTy),
-    /// A tuple type.
-    Tuple(Vec<Ty>),
-    /// A user-defined type.
-    Udt(Res),
-    /// An invalid type.
-    #[default]
-    Err,
-}
-
-impl Ty {
-    /// The unit type.
-    pub const UNIT: Self = Self::Tuple(Vec::new());
-}
-
-impl Display for Ty {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Ty::Array(item) => write!(f, "({item})[]"),
-            Ty::Arrow(arrow) => Display::fmt(arrow, f),
-            Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(name) => write!(f, "'{name}"),
-            Ty::Prim(prim) => Debug::fmt(prim, f),
-            Ty::Tuple(items) => {
-                if items.is_empty() {
-                    f.write_str("Unit")
-                } else {
-                    f.write_str("(")?;
-                    if let Some((first, rest)) = items.split_first() {
-                        Display::fmt(first, f)?;
-                        if rest.is_empty() {
-                            f.write_str(",")?;
-                        } else {
-                            for item in rest {
-                                f.write_str(", ")?;
-                                Display::fmt(item, f)?;
-                            }
-                        }
-                    }
-                    f.write_str(")")
-                }
-            }
-            Ty::Udt(res) => write!(f, "UDT<{res}>"),
-            Ty::Err => f.write_str("?"),
-        }
-    }
-}
-
-/// An arrow type: `->` for a function or `=>` for an operation.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ArrowTy {
-    /// Whether the callable is a function or an operation.
-    pub kind: CallableKind,
-    /// The input type to the callable.
-    pub input: Box<Ty>,
-    /// The output type from the callable.
-    pub output: Box<Ty>,
-    /// The functors supported by the callable.
-    pub functors: FunctorSet,
-}
-
-impl Display for ArrowTy {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let arrow = match self.kind {
-            CallableKind::Function => "->",
-            CallableKind::Operation => "=>",
-        };
-        write!(f, "({} {arrow} {}", self.input, self.output)?;
-        if self.functors != FunctorSet::Value(FunctorSetValue::Empty) {
-            f.write_str(" is ")?;
-            Display::fmt(&self.functors, f)?;
-        }
-        f.write_char(')')
-    }
-}
-
-/// A primitive type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum PrimTy {
-    /// The big integer type.
-    BigInt,
-    /// The boolean type.
-    Bool,
-    /// The floating-point type.
-    Double,
-    /// The integer type.
-    Int,
-    /// The Pauli operator type.
-    Pauli,
-    /// The qubit type.
-    Qubit,
-    /// The range type.
-    Range,
-    /// The range type without a lower bound.
-    RangeTo,
-    /// The range type without an upper bound.
-    RangeFrom,
-    /// The range type without lower and upper bounds.
-    RangeFull,
-    /// The measurement result type.
-    Result,
-    /// The string type.
-    String,
-}
-
-/// A set of functors.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum FunctorSet {
-    /// An evaluated set.
-    Value(FunctorSetValue),
-    /// A placeholder functor variable used during type inference.
-    Infer(InferFunctor),
-}
-
-impl FunctorSet {
-    /// Returns the contained value.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this set is not a value.
-    #[must_use]
-    pub fn expect_value(self, msg: &str) -> FunctorSetValue {
-        match self {
-            Self::Value(value) => value,
-            FunctorSet::Infer(_) => panic!("{msg}"),
-        }
-    }
-}
-
-impl Display for FunctorSet {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::Value(value) => Display::fmt(value, f),
-            Self::Infer(infer) => Display::fmt(infer, f),
-        }
-    }
-}
-
-/// The value of a functor set.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum FunctorSetValue {
-    /// The empty set.
-    #[default]
-    Empty,
-    /// The singleton adjoint set.
-    Adj,
-    /// The singleton controlled set.
-    Ctl,
-    /// The set of controlled and adjoint.
-    CtlAdj,
-}
-
-impl FunctorSetValue {
-    /// True if this set contains the functor.
-    #[must_use]
-    pub fn contains(&self, functor: &Functor) -> bool {
-        match self {
-            Self::Empty => false,
-            Self::Adj => matches!(functor, Functor::Adj),
-            Self::Ctl => matches!(functor, Functor::Ctl),
-            Self::CtlAdj => matches!(functor, Functor::Adj | Functor::Ctl),
-        }
-    }
-
-    /// The intersection of this set and another set.
-    #[must_use]
-    pub fn intersect(&self, other: &Self) -> Self {
-        match (self, other) {
-            (Self::Empty, _)
-            | (_, Self::Empty)
-            | (Self::Adj, Self::Ctl)
-            | (Self::Ctl, Self::Adj) => Self::Empty,
-            (Self::Adj, Self::Adj) => Self::Adj,
-            (Self::Ctl, Self::Ctl) => Self::Ctl,
-            (Self::CtlAdj, &set) | (&set, Self::CtlAdj) => set,
-        }
-    }
-
-    /// The union of this set and another set.
-    #[must_use]
-    pub fn union(&self, other: &Self) -> Self {
-        match (self, other) {
-            (Self::Empty, &set) | (&set, Self::Empty) => set,
-            (Self::Adj, Self::Adj) => Self::Adj,
-            (Self::Ctl, Self::Ctl) => Self::Ctl,
-            (Self::CtlAdj, _)
-            | (_, Self::CtlAdj)
-            | (Self::Adj, Self::Ctl)
-            | (Self::Ctl, Self::Adj) => Self::CtlAdj,
-        }
-    }
-}
-
-impl Display for FunctorSetValue {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::Empty => f.write_str("empty set"),
-            Self::Adj => f.write_str("Adj"),
-            Self::Ctl => f.write_str("Ctl"),
-            Self::CtlAdj => f.write_str("Adj + Ctl"),
-        }
-    }
-}
-
-/// A placeholder type variable used during type inference.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct InferTy(usize);
-
-impl InferTy {
-    /// The successor of this ID.
-    #[must_use]
-    pub fn successor(self) -> Self {
-        Self(self.0 + 1)
-    }
-}
-
-impl Display for InferTy {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "?{}", self.0)
-    }
-}
-
-impl From<usize> for InferTy {
-    fn from(value: usize) -> Self {
-        InferTy(value)
-    }
-}
-
-impl From<InferTy> for usize {
-    fn from(value: InferTy) -> Self {
-        value.0
-    }
-}
-
-/// A placeholder functor variable used during type inference.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct InferFunctor(usize);
-
-impl InferFunctor {
-    /// The successor of this ID.
-    #[must_use]
-    pub fn successor(self) -> Self {
-        Self(self.0 + 1)
-    }
-}
-
-impl Display for InferFunctor {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "f?{}", self.0)
-    }
-}
-
-impl From<InferFunctor> for usize {
-    fn from(value: InferFunctor) -> Self {
-        value.0
-    }
-}
-
-/// A user-defined type.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Udt {
-    /// The basis type used as the definition of the user-defined type.
-    pub base: Ty,
-    /// The named fields of the user-defined type.
-    pub fields: Vec<UdtField>,
-}
-
-impl Udt {
-    /// The type of the constructor for this type definition.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The ID of the constructed type.
-    #[must_use]
-    pub fn cons_ty(&self, id: ItemId) -> Ty {
-        Ty::Arrow(Box::new(ArrowTy {
-            kind: CallableKind::Function,
-            input: Box::new(self.base.clone()),
-            output: Box::new(Ty::Udt(Res::Item(id))),
-            functors: FunctorSet::Value(FunctorSetValue::Empty),
-        }))
-    }
-
-    /// The path to the field with the given name. Returns [None] if this user-defined type does not
-    /// have a field with the given name.
-    #[must_use]
-    pub fn field_path(&self, name: &str) -> Option<&FieldPath> {
-        for field in &self.fields {
-            if field.name.as_ref() == name {
-                return Some(&field.path);
-            }
-        }
-
-        None
-    }
-
-    /// The type of the field at the given path. Returns [None] if the path is not valid for this
-    /// user-defined type.
-    #[must_use]
-    pub fn field_ty(&self, path: &FieldPath) -> Option<&Ty> {
-        let mut ty = &self.base;
-        for &index in &path.indices {
-            let Ty::Tuple(items) = ty else { return None; };
-            ty = &items[index];
-        }
-        Some(ty)
-    }
-
-    /// The type of the field with the given name. Returns [None] if this user-defined type does not
-    /// have a field with the given name.
-    #[must_use]
-    pub fn field_ty_by_name(&self, name: &str) -> Option<&Ty> {
-        let path = self.field_path(name)?;
-        self.field_ty(path)
-    }
-}
-
-impl Display for Udt {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        indent.write_str("Udt:")?;
-        indent = set_indentation(indent, 1);
-        write!(indent, "\nbase: {}", self.base)?;
-        indent.write_str("\nfields:")?;
-
-        indent = set_indentation(indent, 2);
-        for field in &self.fields {
-            write!(indent, "\n{}: {:?}", field.name, field.path.indices)?;
-        }
-
-        Ok(())
-    }
-}
-
-/// A named field in a user-defined type.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UdtField {
-    /// The field name.
-    pub name: Rc<str>,
-    /// The field path.
-    pub path: FieldPath,
-}
-
-/// A field for a type.
+/// A field.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Field {
     /// A field path.
@@ -1577,30 +1235,6 @@ impl Display for Functor {
         match self {
             Functor::Adj => f.write_str("Adj"),
             Functor::Ctl => f.write_str("Ctl"),
-        }
-    }
-}
-
-/// A specialization that may be implemented for an operation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Spec {
-    /// The default specialization.
-    Body,
-    /// The adjoint specialization.
-    Adj,
-    /// The controlled specialization.
-    Ctl,
-    /// The controlled adjoint specialization.
-    CtlAdj,
-}
-
-impl Display for Spec {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            Spec::Body => f.write_str("body"),
-            Spec::Adj => f.write_str("adjoint"),
-            Spec::Ctl => f.write_str("controlled"),
-            Spec::CtlAdj => f.write_str("controlled adjoint"),
         }
     }
 }

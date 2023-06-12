@@ -7,6 +7,7 @@ __pycache__/
 compiler/
 jupyterlab/.pytest_cache/
 jupyterlab/lib/
+jupyterlab/.venv/
 jupyterlab/qsharp_jupyterlab/labextension/
 library/
 npm/dist/

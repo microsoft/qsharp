@@ -7,7 +7,8 @@ mod tests;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{Block, CallableKind, Expr, ExprKind, NodeId, StmtKind, Ty},
+    hir::{Block, CallableKind, Expr, ExprKind, NodeId, StmtKind},
+    ty::Ty,
     visit::{walk_expr, Visitor},
 };
 use std::collections::HashSet;

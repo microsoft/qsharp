@@ -9,10 +9,11 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     global,
     hir::{
-        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, PrimTy, Res, SpecBody,
-        Stmt, StmtKind, Ty,
+        Block, Expr, ExprKind, ItemId, ItemKind, Lit, LocalItemId, NodeId, Res, SpecBody, Stmt,
+        StmtKind,
     },
     mut_visit::MutVisitor,
+    ty::{Prim, Ty},
 };
 
 fn error_span(error: &Error) -> Span {
@@ -35,7 +36,9 @@ fn error_span(error: &Error) -> Span {
 
 fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a str, Span) {
     let span = error_span(error);
-    let source = sources.find_offset(span.lo);
+    let source = sources
+        .find_by_offset(span.lo)
+        .expect("offset should match at least one source");
     (
         &source.name,
         Span {
@@ -218,7 +221,7 @@ fn entry_call_operation() {
 
     let entry = &unit.package.entry.expect("package should have entry");
     let ExprKind::Call(callee, _) = &entry.kind else { panic!("entry should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: None,
@@ -259,7 +262,7 @@ fn replace_node() {
             *expr = Expr {
                 id: NodeId::default(),
                 span: expr.span,
-                ty: Ty::Prim(PrimTy::Int),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Lit(Lit::Int(2)),
             };
         }
@@ -292,8 +295,8 @@ fn replace_node() {
         .kind else { panic!("item should be a callable"); };
     let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     expect![[r#"
-        Block 5 [39-56] [Type Int]:
-            Stmt 6 [49-50]: Expr: Expr 9 [49-50] [Type Int]: Lit: Int(2)"#]]
+        Block 4 [39-56] [Type Int]:
+            Stmt 5 [49-50]: Expr: Expr 8 [49-50] [Type Int]: Lit: Int(2)"#]]
     .assert_eq(&block.to_string());
 }
 
@@ -309,12 +312,15 @@ fn insert_core_call() {
                 .core
                 .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
-
+            let allocate_ty = allocate
+                .scheme
+                .instantiate(&[])
+                .expect("qubit allocation scheme should instantiate");
             let callee = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: allocate.ty.clone(),
-                kind: ExprKind::Var(Res::Item(allocate.id)),
+                ty: Ty::Arrow(Box::new(allocate_ty)),
+                kind: ExprKind::Var(Res::Item(allocate.id), Vec::new()),
             };
 
             let arg = Expr {
@@ -327,7 +333,7 @@ fn insert_core_call() {
             let call = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Prim(PrimTy::Qubit),
+                ty: Ty::Prim(Prim::Qubit),
                 kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
             };
 
@@ -361,7 +367,7 @@ fn insert_core_call() {
     expect![[r#"
         Package:
             Item 0 [0-43] (Public):
-                Namespace (Ident 6 [10-11] "A"): Item 1
+                Namespace (Ident 5 [10-11] "A"): Item 1
             Item 1 [18-41] (Public):
                 Parent: 0
                 Callable 0 [18-41] (operation):
@@ -369,12 +375,11 @@ fn insert_core_call() {
                     input: Pat 2 [31-33] [Type Unit]: Unit
                     output: Unit
                     functors: empty set
-                    body: SpecDecl 3 [18-41] (Body): Impl:
-                        Pat 4 [18-41] [Type Unit]: Elided
-                        Block 5 [39-41] [Type Unit]:
-                            Stmt 7 [0-0]: Semi: Expr 8 [0-0] [Type Qubit]: Call:
-                                Expr 9 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
-                                Expr 10 [0-0] [Type Unit]: Unit
+                    body: SpecDecl 3 [18-41]: Impl:
+                        Block 4 [39-41] [Type Unit]:
+                            Stmt 6 [0-0]: Semi: Expr 7 [0-0] [Type Qubit]: Call:
+                                Expr 8 [0-0] [Type (Unit => Qubit)]: Var: Item 4 (Package 0)
+                                Expr 9 [0-0] [Type Unit]: Unit
                     adj: <none>
                     ctl: <none>
                     ctl-adj: <none>"#]]
@@ -427,7 +432,7 @@ fn package_dependency() {
     let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(
         &Res::Item(ItemId {
             package: Some(package1),
@@ -482,7 +487,7 @@ fn package_dependency_internal() {
     let SpecBody::Impl(_, block) = &callable.body.body else { panic!("callable body have a block") };
     let StmtKind::Expr(expr) = &block.stmts[0].kind else { panic!("statement should be an expression") };
     let ExprKind::Call(callee, _) = &expr.kind else { panic!("expression should be a call") };
-    let ExprKind::Var(res) = &callee.kind else { panic!("callee should be a variable") };
+    let ExprKind::Var(res, _) = &callee.kind else { panic!("callee should be a variable") };
     assert_eq!(&Res::Err, res);
 }
 

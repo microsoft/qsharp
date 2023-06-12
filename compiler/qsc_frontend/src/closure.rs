@@ -5,10 +5,11 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     hir::{
-        ArrowTy, Block, CallableDecl, CallableKind, Expr, ExprKind, FunctorSetValue, Ident,
-        Mutability, NodeId, Pat, PatKind, Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind, Ty,
+        Block, CallableDecl, CallableKind, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind,
+        Res, SpecBody, SpecDecl, Stmt, StmtKind,
     },
     mut_visit::{self, MutVisitor},
+    ty::{Arrow, FunctorSetValue, Ty},
     visit::{self, Visitor},
 };
 use std::{
@@ -45,7 +46,7 @@ impl Visitor<'_> for VarFinder {
     fn visit_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Closure(args, _) => self.uses.extend(args.iter().copied()),
-            &ExprKind::Var(Res::Local(id)) => {
+            &ExprKind::Var(Res::Local(id), _) => {
                 self.uses.insert(id);
             }
             _ => visit::walk_expr(self, expr),
@@ -77,7 +78,7 @@ impl MutVisitor for VarReplacer<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
         match &mut expr.kind {
             ExprKind::Closure(args, _) => args.iter_mut().for_each(|arg| self.replace(arg)),
-            ExprKind::Var(Res::Local(id)) => self.replace(id),
+            ExprKind::Var(Res::Local(id), _) => self.replace(id),
             _ => mut_visit::walk_expr(self, expr),
         }
     }
@@ -121,8 +122,6 @@ pub(super) fn lift(
     let mut input = closure_input(substituted_vars, lambda.input, span);
     assigner.visit_pat(&mut input);
 
-    let input_ty = input.ty.clone();
-
     let callable = CallableDecl {
         id: assigner.next_node(),
         span,
@@ -132,21 +131,15 @@ pub(super) fn lift(
             span,
             name: "lambda".into(),
         },
-        ty_params: Vec::new(),
+        generics: Vec::new(),
         input,
         output: lambda.body.ty.clone(),
         functors: lambda.functors,
         body: SpecDecl {
             id: assigner.next_node(),
             span: lambda.body.span,
-            spec: Spec::Body,
             body: SpecBody::Impl(
-                Pat {
-                    id: assigner.next_node(),
-                    span,
-                    ty: input_ty,
-                    kind: PatKind::Elided,
-                },
+                None,
                 Block {
                     id: assigner.next_node(),
                     span: lambda.body.span,
@@ -161,7 +154,7 @@ pub(super) fn lift(
         },
         adj: None,
         ctl: None,
-        ctladj: None,
+        ctl_adj: None,
     };
 
     (free_vars, callable)
@@ -172,7 +165,7 @@ pub(super) fn partial_app_block(
     callee: Expr,
     arg: Expr,
     app: PartialApp,
-    arrow: ArrowTy,
+    arrow: Arrow,
     span: Span,
 ) -> Block {
     let call = Expr {
@@ -237,7 +230,7 @@ pub(super) fn partial_app_hole(
         id: assigner.next_node(),
         span,
         ty,
-        kind: ExprKind::Var(Res::Local(local_id)),
+        kind: ExprKind::Var(Res::Local(local_id), Vec::new()),
     };
 
     (var, app)
@@ -256,7 +249,7 @@ pub(super) fn partial_app_given(
         id: assigner.next_node(),
         span,
         ty: arg.ty.clone(),
-        kind: ExprKind::Var(Res::Local(local_id)),
+        kind: ExprKind::Var(Res::Local(local_id), Vec::new()),
     };
 
     let binding_pat = Pat {

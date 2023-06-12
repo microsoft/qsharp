@@ -15,7 +15,7 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use qsc_hir::{assigner::Assigner as HirAssigner, hir::Ty};
+use qsc_hir::{assigner::Assigner as HirAssigner, ty::Ty};
 use std::fmt::Write;
 
 struct TyCollector<'a> {
@@ -91,7 +91,7 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 
     let mut checker = Checker::new(super::GlobalTable::new());
     checker.check_package(&names, &package);
-    let (tys, ty_errors) = checker.into_tys();
+    let (tys, ty_errors) = checker.into_table();
 
     let errors = errors
         .into_iter()
@@ -352,7 +352,7 @@ fn length_type_error() {
             #23 106-107 "1" : Int
             #24 109-110 "2" : Int
             #25 112-113 "3" : Int
-            Error(Type(Error(TyMismatch(Array(Infer(InferTy(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 98, hi: 115 }))))
+            Error(Type(Error(TyMismatch(Array(Infer(InferTyId(0))), Tuple([Prim(Int), Prim(Int), Prim(Int)]), Span { lo: 98, hi: 115 }))))
         "##]],
     );
 }
@@ -521,7 +521,7 @@ fn binop_equal_callable() {
             #19 73-89 "Test.A == Test.B" : Bool
             #20 73-79 "Test.A" : (Unit -> Unit)
             #24 83-89 "Test.B" : (Unit -> Unit)
-            Error(Type(Error(MissingClassEq(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 79 }))))
+            Error(Type(Error(MissingClassEq(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 79 }))))
         "##]],
     );
 }
@@ -707,7 +707,7 @@ fn let_tuple_arity_error() {
             #11 18-24 "(0, 1)" : (Int, Int)
             #12 19-20 "0" : Int
             #13 22-23 "1" : Int
-            Error(Type(Error(TyMismatch(Tuple([Infer(InferTy(0)), Infer(InferTy(1)), Infer(InferTy(2))]), Tuple([Prim(Int), Prim(Int)]), Span { lo: 18, hi: 24 }))))
+            Error(Type(Error(TyMismatch(Tuple([Infer(InferTyId(0)), Infer(InferTyId(1)), Infer(InferTyId(2))]), Tuple([Prim(Int), Prim(Int)]), Span { lo: 18, hi: 24 }))))
         "##]],
     );
 }
@@ -778,7 +778,7 @@ fn qubit_tuple_arity_error() {
             #11 23-24 "3" : Int
             #12 27-34 "Qubit()" : Qubit
             #13 36-43 "Qubit()" : Qubit
-            Error(Type(Error(TyMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTy(0)), Infer(InferTy(1))]), Span { lo: 6, hi: 13 }))))
+            Error(Type(Error(TyMismatch(Tuple([Array(Prim(Qubit)), Prim(Qubit), Prim(Qubit)]), Tuple([Infer(InferTyId(0)), Infer(InferTyId(1))]), Span { lo: 6, hi: 13 }))))
         "##]],
     );
 }
@@ -1835,7 +1835,7 @@ fn interpolate_function() {
             #8 38-40 "{}" : Unit
             #9 43-53 "$\"{A.Foo}\"" : String
             #10 46-51 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClassShow(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 51 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 51 }))))
         "##]],
     );
 }
@@ -1854,7 +1854,7 @@ fn interpolate_operation() {
             #8 39-41 "{}" : Unit
             #9 44-54 "$\"{A.Foo}\"" : String
             #10 47-52 "A.Foo" : (Unit => Unit)
-            Error(Type(Error(MissingClassShow(Arrow(ArrowTy { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 47, hi: 52 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Operation, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 47, hi: 52 }))))
         "##]],
     );
 }
@@ -1893,7 +1893,7 @@ fn interpolate_function_array() {
             #16 73-87 "[A.Foo, A.Bar]" : ((Unit -> Unit))[]
             #17 74-79 "A.Foo" : (Unit -> Unit)
             #21 81-86 "A.Bar" : (Unit -> Unit)
-            Error(Type(Error(MissingClassShow(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 87 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 73, hi: 87 }))))
         "##]],
     );
 }
@@ -1928,7 +1928,7 @@ fn interpolate_int_function_tuple() {
             #10 46-56 "(1, A.Foo)" : (Int, (Unit -> Unit))
             #11 47-48 "1" : Int
             #12 50-55 "A.Foo" : (Unit -> Unit)
-            Error(Type(Error(MissingClassShow(Arrow(ArrowTy { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 56 }))))
+            Error(Type(Error(MissingClassShow(Arrow(Arrow { kind: Function, input: Tuple([]), output: Tuple([]), functors: Value(Empty) }), Span { lo: 46, hi: 56 }))))
         "##]],
     );
 }
@@ -2299,7 +2299,7 @@ fn infinite() {
             #22 86-89 "[x]" : (?0)[]
             #23 87-88 "x" : ?0
             Error(Resolve(NotFound("invalid", Span { lo: 56, hi: 63 })))
-            Error(Type(Error(TyMismatch(Infer(InferTy(0)), Array(Infer(InferTy(0))), Span { lo: 86, hi: 89 }))))
+            Error(Type(Error(TyMismatch(Infer(InferTyId(0)), Array(Infer(InferTyId(0))), Span { lo: 86, hi: 89 }))))
         "##]],
     );
 }
@@ -2667,7 +2667,7 @@ fn partial_app_too_many_args() {
             #29 56-57 "1" : Int
             #30 59-60 "_" : ?1
             #31 62-63 "_" : ?2
-            Error(Type(Error(TyMismatch(Prim(Int), Tuple([Prim(Int), Infer(InferTy(1)), Infer(InferTy(2))]), Span { lo: 52, hi: 64 }))))
+            Error(Type(Error(TyMismatch(Prim(Int), Tuple([Prim(Int), Infer(InferTyId(1)), Infer(InferTyId(2))]), Span { lo: 52, hi: 64 }))))
         "##]],
     );
 }
@@ -2696,7 +2696,7 @@ fn typed_hole_error_ambiguous_type() {
             #2 0-1 "_" : ?0
             #3 1-4 "(3)" : Int
             #4 2-3 "3" : Int
-            Error(Type(Error(TyHole(Infer(InferTy(0)), Span { lo: 0, hi: 1 }))))
+            Error(Type(Error(TyHole(Infer(InferTyId(0)), Span { lo: 0, hi: 1 }))))
         "##]],
     );
 }
@@ -3169,6 +3169,20 @@ fn duplicate_type_decls_inferred_and_ignored() {
             #30 114-120 "(true)" : Bool
             #31 115-119 "true" : Bool
             Error(Resolve(Duplicate("Foo", "Test", Span { lo: 53, hi: 56 })))
+        "##]],
+    );
+}
+
+#[test]
+fn instantiate_duplicate_ty_param_names() {
+    check(
+        "namespace Test { function Foo<'T, 'T>() : () { let f = Foo; } }",
+        "",
+        &expect![[r##"
+            #8 37-39 "()" : Unit
+            #10 45-61 "{ let f = Foo; }" : Unit
+            #12 51-52 "f" : (Unit -> Unit)
+            #14 55-58 "Foo" : (Unit -> Unit)
         "##]],
     );
 }

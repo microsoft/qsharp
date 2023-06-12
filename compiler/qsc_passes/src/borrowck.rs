@@ -42,7 +42,7 @@ impl Checker {
             PatKind::Bind(ident) => {
                 self.mutable.insert(ident.id);
             }
-            PatKind::Discard | PatKind::Elided => {}
+            PatKind::Discard => {}
             PatKind::Tuple(tup) => {
                 for pat in tup {
                     self.track_pat(pat);
@@ -54,7 +54,7 @@ impl Checker {
     fn verify_assignment(&mut self, lhs: &Expr) {
         match &lhs.kind {
             ExprKind::Hole => {}
-            ExprKind::Var(Res::Local(id)) => {
+            ExprKind::Var(Res::Local(id), _) => {
                 if !self.mutable.contains(id) {
                     self.errors.push(Error::Mutability(lhs.span));
                 }

@@ -12,3 +12,5 @@ pub use qsc_frontend::compile::{PackageStore, SourceMap};
 pub mod hir {
     pub use qsc_hir::{hir::*, *};
 }
+
+pub use qsc_data_structures::span::Span;

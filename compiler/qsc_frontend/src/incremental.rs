@@ -124,7 +124,7 @@ impl Compiler {
             .with(
                 &mut self.hir_assigner,
                 self.resolver.names(),
-                self.checker.tys(),
+                self.checker.table(),
             )
             .lower_namespace(&namespace);
 
@@ -147,7 +147,7 @@ impl Compiler {
             .with(
                 &mut self.hir_assigner,
                 self.resolver.names(),
-                self.checker.tys(),
+                self.checker.table(),
             )
             .lower_stmt(&stmt)
             .map(Fragment::Stmt);

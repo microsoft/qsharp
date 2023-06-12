@@ -8,9 +8,13 @@ use crate::{
 };
 use qsc_data_structures::span::Span;
 
+#[derive(Debug)]
+pub(super) struct NoBarrierError;
+
 pub(super) struct Scanner<'a> {
     input: &'a str,
     tokens: Lexer<'a>,
+    barriers: Vec<&'a [TokenKind]>,
     errors: Vec<Error>,
     peek: Token,
     offset: u32,
@@ -23,6 +27,7 @@ impl<'a> Scanner<'a> {
         Self {
             input,
             tokens,
+            barriers: Vec::new(),
             errors: errors
                 .into_iter()
                 .map(|e| Error(ErrorKind::Lex(e)))
@@ -40,6 +45,13 @@ impl<'a> Scanner<'a> {
         &self.input[self.peek.span]
     }
 
+    pub(super) fn span(&self, from: u32) -> Span {
+        Span {
+            lo: from,
+            hi: self.offset,
+        }
+    }
+
     pub(super) fn advance(&mut self) {
         if self.peek.kind != TokenKind::Eof {
             self.offset = self.peek.span.hi;
@@ -50,14 +62,42 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(super) fn span(&self, from: u32) -> Span {
-        Span {
-            lo: from,
-            hi: self.offset,
+    /// Pushes a recovery barrier. While the barrier is active, recovery will never advance past any
+    /// of the barrier tokens, unless it is explicitly listed as a recovery token.
+    pub(super) fn push_barrier(&mut self, tokens: &'a [TokenKind]) {
+        self.barriers.push(tokens);
+    }
+
+    /// Pops the most recently pushed active barrier.
+    pub(super) fn pop_barrier(&mut self) -> Result<(), NoBarrierError> {
+        match self.barriers.pop() {
+            Some(_) => Ok(()),
+            None => Err(NoBarrierError),
         }
     }
 
-    pub(super) fn errors(self) -> Vec<Error> {
+    /// Tries to recover from a parse error by advancing tokens until any of the given recovery
+    /// tokens, or a barrier token, is found. If a recovery token is found, it is consumed. If a
+    /// barrier token is found first, it is not consumed.
+    pub(super) fn recover(&mut self, tokens: &[TokenKind]) {
+        loop {
+            let peek = self.peek.kind;
+            if contains(peek, tokens) {
+                self.advance();
+                break;
+            } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
+                break;
+            } else {
+                self.advance();
+            }
+        }
+    }
+
+    pub(super) fn push_error(&mut self, error: Error) {
+        self.errors.push(error);
+    }
+
+    pub(super) fn into_errors(self) -> Vec<Error> {
         self.errors
     }
 }
@@ -86,4 +126,8 @@ fn next_ok<T, E>(iter: impl Iterator<Item = Result<T, E>>) -> (Option<T>, Vec<E>
     }
 
     (None, errors)
+}
+
+fn contains<'a>(token: TokenKind, tokens: impl IntoIterator<Item = &'a TokenKind>) -> bool {
+    tokens.into_iter().any(|&t| t == token)
 }
