@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
-use qsc::hir::{visit::Visitor, ExprKind, ItemKind, Package, Res};
+use qsc::hir::{visit::walk_expr, visit::Visitor, Expr, ExprKind, ItemKind, Package, Res};
 use qsc::SourceMap;
 
 #[derive(Debug, PartialEq)]
@@ -19,14 +19,13 @@ pub(crate) fn get_definition(
     source_name: &str,
     offset: u32,
 ) -> Option<Definition> {
-    let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compile_unit.sources, source_name, offset);
-    let package = &compile_unit.package;
+    let offset = map_offset(&compilation.source_map, source_name, offset);
+    let package = &compilation.package;
 
     let mut definition_finder = DefinitionFinder {
         package,
-        source_map: &compile_unit.sources,
+        source_map: &compilation.source_map,
         offset,
         definition: None,
     };
@@ -48,7 +47,7 @@ struct DefinitionFinder<'a> {
 }
 
 impl<'a> Visitor<'_> for DefinitionFinder<'a> {
-    fn visit_expr(&mut self, expr: &qsc_hir::hir::Expr) {
+    fn visit_expr(&mut self, expr: &Expr) {
         if span_contains(expr.span, self.offset) {
             if let ExprKind::Var(res) = expr.kind {
                 let item = match res {
@@ -78,6 +77,6 @@ impl<'a> Visitor<'_> for DefinitionFinder<'a> {
                 }
             }
         }
-        qsc_hir::visit::walk_expr(self, expr);
+        walk_expr(self, expr);
     }
 }
