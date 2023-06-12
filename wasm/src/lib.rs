@@ -15,6 +15,7 @@ use qsc::{
     PackageStore, SourceMap,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
@@ -317,10 +318,8 @@ where
     }
 
     fn message(&mut self, msg: &str) -> Result<(), output::Error> {
-        let mut msg_str = String::new();
-        write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
-            .expect("Writing to a string should succeed");
-        (self.event_cb)(&msg_str);
+        let msg_json = json!({"type": "Message", "message": msg});
+        (self.event_cb)(&msg_json.to_string());
         Ok(())
     }
 }
