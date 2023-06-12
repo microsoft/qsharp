@@ -605,7 +605,6 @@ impl Display for Stmt {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum StmtKind {
     /// An empty statement.
-    #[default]
     Empty,
     /// An expression without a trailing semicolon.
     Expr(Box<Expr>),
@@ -617,6 +616,9 @@ pub enum StmtKind {
     Qubit(QubitSource, Box<Pat>, Box<QubitInit>, Option<Box<Block>>),
     /// An expression with a trailing semicolon.
     Semi(Box<Expr>),
+    /// An invalid statement.
+    #[default]
+    Err,
 }
 
 impl Display for StmtKind {
@@ -642,6 +644,7 @@ impl Display for StmtKind {
                 }
             }
             StmtKind::Semi(e) => write!(indent, "Semi: {e}")?,
+            StmtKind::Err => indent.write_str("Err")?,
         }
         Ok(())
     }

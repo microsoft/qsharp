@@ -13,7 +13,7 @@ use crate::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{ident, keyword, opt, pat, path, seq, shorten, token},
+    prim::{ident, opt, pat, path, seq, shorten, token},
     scan::Scanner,
     stmt, Error, ErrorKind, Result,
 };
@@ -155,46 +155,46 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
         )))
     } else if token(s, TokenKind::DotDotDot).is_ok() {
         expr_range_prefix(s)
-    } else if keyword(s, Keyword::Underscore).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         Ok(Box::new(ExprKind::Hole))
-    } else if keyword(s, Keyword::Fail).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Fail)).is_ok() {
         Ok(Box::new(ExprKind::Fail(expr(s)?)))
-    } else if keyword(s, Keyword::For).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::For)).is_ok() {
         let vars = pat(s)?;
-        keyword(s, Keyword::In)?;
+        token(s, TokenKind::Keyword(Keyword::In))?;
         let iter = expr(s)?;
-        let body = stmt::block(s)?;
+        let body = stmt::parse_block(s)?;
         Ok(Box::new(ExprKind::For(vars, iter, body)))
-    } else if keyword(s, Keyword::If).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::If)).is_ok() {
         expr_if(s)
     } else if let Some(components) = opt(s, expr_interpolate)? {
         Ok(Box::new(ExprKind::Interpolate(
             components.into_boxed_slice(),
         )))
-    } else if keyword(s, Keyword::Repeat).is_ok() {
-        let body = stmt::block(s)?;
-        keyword(s, Keyword::Until)?;
+    } else if token(s, TokenKind::Keyword(Keyword::Repeat)).is_ok() {
+        let body = stmt::parse_block(s)?;
+        token(s, TokenKind::Keyword(Keyword::Until))?;
         let cond = expr(s)?;
-        let fixup = if keyword(s, Keyword::Fixup).is_ok() {
-            Some(stmt::block(s)?)
+        let fixup = if token(s, TokenKind::Keyword(Keyword::Fixup)).is_ok() {
+            Some(stmt::parse_block(s)?)
         } else {
             None
         };
         Ok(Box::new(ExprKind::Repeat(body, cond, fixup)))
-    } else if keyword(s, Keyword::Return).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Return)).is_ok() {
         Ok(Box::new(ExprKind::Return(expr(s)?)))
-    } else if keyword(s, Keyword::Set).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Set)).is_ok() {
         expr_set(s)
-    } else if keyword(s, Keyword::While).is_ok() {
-        Ok(Box::new(ExprKind::While(expr(s)?, stmt::block(s)?)))
-    } else if keyword(s, Keyword::Within).is_ok() {
-        let outer = stmt::block(s)?;
-        keyword(s, Keyword::Apply)?;
-        let inner = stmt::block(s)?;
+    } else if token(s, TokenKind::Keyword(Keyword::While)).is_ok() {
+        Ok(Box::new(ExprKind::While(expr(s)?, stmt::parse_block(s)?)))
+    } else if token(s, TokenKind::Keyword(Keyword::Within)).is_ok() {
+        let outer = stmt::parse_block(s)?;
+        token(s, TokenKind::Keyword(Keyword::Apply))?;
+        let inner = stmt::parse_block(s)?;
         Ok(Box::new(ExprKind::Conjugate(outer, inner)))
     } else if let Some(a) = opt(s, expr_array)? {
         Ok(a)
-    } else if let Some(b) = opt(s, stmt::block)? {
+    } else if let Some(b) = opt(s, stmt::parse_block)? {
         Ok(Box::new(ExprKind::Block(b)))
     } else if let Some(l) = lit(s)? {
         Ok(Box::new(ExprKind::Lit(Box::new(l))))
@@ -217,13 +217,13 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
 
 fn expr_if(s: &mut Scanner) -> Result<Box<ExprKind>> {
     let cond = expr(s)?;
-    let body = stmt::block(s)?;
+    let body = stmt::parse_block(s)?;
     let lo = s.peek().span.lo;
 
-    let otherwise = if keyword(s, Keyword::Elif).is_ok() {
+    let otherwise = if token(s, TokenKind::Keyword(Keyword::Elif)).is_ok() {
         Some(expr_if(s)?)
-    } else if keyword(s, Keyword::Else).is_ok() {
-        Some(Box::new(ExprKind::Block(stmt::block(s)?)))
+    } else if token(s, TokenKind::Keyword(Keyword::Else)).is_ok() {
+        Some(Box::new(ExprKind::Block(stmt::parse_block(s)?)))
     } else {
         None
     }
@@ -354,14 +354,7 @@ fn lit(s: &mut Scanner) -> Result<Option<Lit>> {
             s.advance();
             Ok(Some(lit))
         }
-        Ok(None) if token.kind != TokenKind::Ident => Ok(None),
-        Ok(None) => match lit_keyword(lexeme) {
-            Some(lit) => {
-                s.advance();
-                Ok(Some(lit))
-            }
-            None => Ok(None),
-        },
+        Ok(None) => Ok(None),
         Err(err) => {
             s.advance();
             Err(err)
@@ -407,6 +400,14 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
             })?;
             Ok(Some(Lit::String(string.into())))
         }
+        TokenKind::Keyword(Keyword::True) => Ok(Some(Lit::Bool(true))),
+        TokenKind::Keyword(Keyword::Zero) => Ok(Some(Lit::Result(ast::Result::Zero))),
+        TokenKind::Keyword(Keyword::One) => Ok(Some(Lit::Result(ast::Result::One))),
+        TokenKind::Keyword(Keyword::PauliZ) => Ok(Some(Lit::Pauli(Pauli::Z))),
+        TokenKind::Keyword(Keyword::False) => Ok(Some(Lit::Bool(false))),
+        TokenKind::Keyword(Keyword::PauliX) => Ok(Some(Lit::Pauli(Pauli::X))),
+        TokenKind::Keyword(Keyword::PauliI) => Ok(Some(Lit::Pauli(Pauli::I))),
+        TokenKind::Keyword(Keyword::PauliY) => Ok(Some(Lit::Pauli(Pauli::Y))),
         _ => Ok(None),
     }
 }
@@ -421,22 +422,6 @@ fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
             Some((value + place * digit, place * multiplier))
         })
         .map(|(Wrapping(value), _)| value)
-}
-
-#[allow(clippy::inline_always)]
-#[inline(always)]
-fn lit_keyword(lexeme: &str) -> Option<Lit> {
-    match lexeme {
-        "true" => Some(Lit::Bool(true)),
-        "Zero" => Some(Lit::Result(ast::Result::Zero)),
-        "One" => Some(Lit::Result(ast::Result::One)),
-        "PauliZ" => Some(Lit::Pauli(Pauli::Z)),
-        "false" => Some(Lit::Bool(false)),
-        "PauliX" => Some(Lit::Pauli(Pauli::X)),
-        "PauliI" => Some(Lit::Pauli(Pauli::I)),
-        "PauliY" => Some(Lit::Pauli(Pauli::Y)),
-        _ => None,
-    }
 }
 
 fn prefix_op(name: OpName) -> Option<PrefixOp> {

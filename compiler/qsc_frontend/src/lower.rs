@@ -339,7 +339,7 @@ impl With<'_> {
     pub(super) fn lower_stmt(&mut self, stmt: &ast::Stmt) -> Option<hir::Stmt> {
         let id = self.lower_id(stmt.id);
         let kind = match &*stmt.kind {
-            ast::StmtKind::Empty => return None,
+            ast::StmtKind::Empty | ast::StmtKind::Err => return None,
             ast::StmtKind::Expr(expr) => hir::StmtKind::Expr(self.lower_expr(expr)),
             ast::StmtKind::Item(item) => {
                 hir::StmtKind::Item(self.lower_item(ItemScope::Local, item)?)

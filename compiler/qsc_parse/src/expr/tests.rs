@@ -119,16 +119,14 @@ fn lit_double_leading_dot() {
         expr,
         ".23",
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "expression",
-                        Dot,
-                        Span {
-                            lo: 0,
-                            hi: 1,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "expression",
+                    Dot,
+                    Span {
+                        lo: 0,
+                        hi: 1,
+                    },
                 ),
             )
         "#]],
@@ -160,15 +158,13 @@ fn lit_double_trailing_exp_0() {
         expr,
         "0e",
         &expect![[r#"
-            Err(
-                Error(
-                    Lit(
-                        "floating-point",
-                        Span {
-                            lo: 0,
-                            hi: 2,
-                        },
-                    ),
+            Error(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
                 ),
             )
         "#]],
@@ -181,15 +177,13 @@ fn lit_double_trailing_exp_1() {
         expr,
         "1e",
         &expect![[r#"
-            Err(
-                Error(
-                    Lit(
-                        "floating-point",
-                        Span {
-                            lo: 0,
-                            hi: 2,
-                        },
-                    ),
+            Error(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
                 ),
             )
         "#]],
@@ -202,15 +196,13 @@ fn lit_double_trailing_dot_trailing_exp() {
         expr,
         "1.e",
         &expect![[r#"
-            Err(
-                Error(
-                    Lit(
-                        "floating-point",
-                        Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    ),
+            Error(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 3,
+                    },
                 ),
             )
         "#]],
@@ -223,15 +215,13 @@ fn lit_double_dot_trailing_exp() {
         expr,
         "1.2e",
         &expect![[r#"
-            Err(
-                Error(
-                    Lit(
-                        "floating-point",
-                        Span {
-                            lo: 0,
-                            hi: 4,
-                        },
-                    ),
+            Error(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 4,
+                    },
                 ),
             )
         "#]],
@@ -244,15 +234,13 @@ fn lit_double_trailing_exp_dot() {
         expr,
         "1e.",
         &expect![[r#"
-            Err(
-                Error(
-                    Lit(
-                        "floating-point",
-                        Span {
-                            lo: 0,
-                            hi: 2,
-                        },
-                    ),
+            Error(
+                Lit(
+                    "floating-point",
+                    Span {
+                        lo: 0,
+                        hi: 2,
+                    },
                 ),
             )
         "#]],
@@ -324,15 +312,13 @@ fn lit_string_unknown_escape() {
         expr,
         r#""\x""#,
         &expect![[r#"
-            Err(
-                Error(
-                    Escape(
-                        'x',
-                        Span {
-                            lo: 2,
-                            hi: 3,
-                        },
-                    ),
+            Error(
+                Escape(
+                    'x',
+                    Span {
+                        lo: 2,
+                        hi: 3,
+                    },
                 ),
             )
         "#]],
@@ -345,19 +331,29 @@ fn lit_string_unmatched_quote() {
         expr,
         r#""Uh oh.."#,
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "expression",
-                        Eof,
-                        Span {
-                            lo: 8,
-                            hi: 8,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 8,
+                        hi: 8,
+                    },
                 ),
             )
-        "#]],
+
+            [
+                Error(
+                    Lex(
+                        UnterminatedString(
+                            Span {
+                                lo: 0,
+                                hi: 0,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -947,18 +943,16 @@ fn array_repeat_no_items() {
         expr,
         "[size = 3]",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Close(
-                            Bracket,
-                        ),
-                        Eq,
-                        Span {
-                            lo: 6,
-                            hi: 7,
-                        },
+            Error(
+                Token(
+                    Close(
+                        Bracket,
                     ),
+                    Eq,
+                    Span {
+                        lo: 6,
+                        hi: 7,
+                    },
                 ),
             )
         "#]],
@@ -971,18 +965,16 @@ fn array_repeat_two_items() {
         expr,
         "[1, 2, size = 3]",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Close(
-                            Bracket,
-                        ),
-                        Eq,
-                        Span {
-                            lo: 12,
-                            hi: 13,
-                        },
+            Error(
+                Token(
+                    Close(
+                        Bracket,
                     ),
+                    Eq,
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
                 ),
             )
         "#]],
@@ -1895,16 +1887,14 @@ fn lambda_invalid_input() {
         expr,
         "x + 1 -> x",
         &expect![[r#"
-            Err(
-                Error(
-                    Convert(
-                        "pattern",
-                        "expression",
-                        Span {
-                            lo: 0,
-                            hi: 5,
-                        },
-                    ),
+            Error(
+                Convert(
+                    "pattern",
+                    "expression",
+                    Span {
+                        lo: 0,
+                        hi: 5,
+                    },
                 ),
             )
         "#]],
@@ -1917,16 +1907,14 @@ fn lambda_invalid_tuple_input() {
         expr,
         "(x, y + 1) -> x + y",
         &expect![[r#"
-            Err(
-                Error(
-                    Convert(
-                        "pattern",
-                        "expression",
-                        Span {
-                            lo: 4,
-                            hi: 9,
-                        },
-                    ),
+            Error(
+                Convert(
+                    "pattern",
+                    "expression",
+                    Span {
+                        lo: 4,
+                        hi: 9,
+                    },
                 ),
             )
         "#]],
@@ -1939,19 +1927,29 @@ fn interpolated_string_missing_ending() {
         expr,
         r#"$"string"#,
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "expression",
-                        Eof,
-                        Span {
-                            lo: 8,
-                            hi: 8,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 8,
+                        hi: 8,
+                    },
                 ),
             )
-        "#]],
+
+            [
+                Error(
+                    Lex(
+                        UnterminatedString(
+                            Span {
+                                lo: 0,
+                                hi: 0,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -1994,16 +1992,14 @@ fn interpolated_string_unclosed_brace() {
         expr,
         r#"$"{"#,
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "expression",
-                        Eof,
-                        Span {
-                            lo: 3,
-                            hi: 3,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 3,
+                        hi: 3,
+                    },
                 ),
             )
         "#]],
@@ -2016,19 +2012,29 @@ fn interpolated_string_unclosed_brace_quote() {
         expr,
         r#"$"{""#,
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "expression",
-                        Eof,
-                        Span {
-                            lo: 4,
-                            hi: 4,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 4,
+                        hi: 4,
+                    },
                 ),
             )
-        "#]],
+
+            [
+                Error(
+                    Lex(
+                        UnterminatedString(
+                            Span {
+                                lo: 3,
+                                hi: 3,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -2038,19 +2044,29 @@ fn interpolated_string_unopened_brace() {
         expr,
         r#"$"}"#,
         &expect![[r#"
-            Err(
-                Error(
-                    Rule(
-                        "expression",
-                        Eof,
-                        Span {
-                            lo: 3,
-                            hi: 3,
-                        },
-                    ),
+            Error(
+                Rule(
+                    "expression",
+                    Eof,
+                    Span {
+                        lo: 3,
+                        hi: 3,
+                    },
                 ),
             )
-        "#]],
+
+            [
+                Error(
+                    Lex(
+                        UnterminatedString(
+                            Span {
+                                lo: 0,
+                                hi: 0,
+                            },
+                        ),
+                    ),
+                ),
+            ]"#]],
     );
 }
 

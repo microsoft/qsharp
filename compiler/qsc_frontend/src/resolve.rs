@@ -350,7 +350,10 @@ impl AstVisitor<'_> for With<'_> {
                     self.visit_block(block);
                 }
             }
-            ast::StmtKind::Empty | ast::StmtKind::Expr(_) | ast::StmtKind::Semi(_) => {
+            ast::StmtKind::Empty
+            | ast::StmtKind::Expr(_)
+            | ast::StmtKind::Semi(_)
+            | ast::StmtKind::Err => {
                 ast_visit::walk_stmt(self, stmt);
             }
         }
