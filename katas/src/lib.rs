@@ -26,7 +26,12 @@ pub fn run_kata(
     sources: SourceMap,
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
-    let context = stateless::Context::new(true, sources)?;
+    let mut all_sources = sources;
+    all_sources.add([(
+        "katas.qs".into(),
+        include_str!("../library/katas.qs").into(),
+    )]);
+    let context = stateless::Context::new(true, all_sources)?;
     context.eval(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success

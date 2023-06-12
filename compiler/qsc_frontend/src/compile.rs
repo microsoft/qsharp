@@ -66,6 +66,17 @@ impl SourceMap {
         }
     }
 
+    pub fn add(&mut self, sources: impl IntoIterator<Item = (SourceName, SourceContents)>) {
+        for (name, contents) in sources {
+            let offset = next_offset(&self.sources);
+            self.sources.push(Source {
+                name,
+                contents,
+                offset,
+            });
+        }
+    }
+
     #[must_use]
     pub fn find_offset(&self, offset: u32) -> &Source {
         self.sources
