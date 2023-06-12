@@ -342,7 +342,7 @@ fn function_one_ty_param() {
             Item _id_ [0-45]:
                 Callable _id_ [0-45] (Function):
                     name: Ident _id_ [9-12] "Foo"
-                    type params:
+                    generics:
                         Ident _id_ [14-15] "T"
                     input: Pat _id_ [16-18]: Unit
                     output: Type _id_ [21-25]: Path: Path _id_ [21-25] (Ident _id_ [21-25] "Unit")
@@ -360,7 +360,7 @@ fn function_two_ty_params() {
             Item _id_ [0-49]:
                 Callable _id_ [0-49] (Function):
                     name: Ident _id_ [9-12] "Foo"
-                    type params:
+                    generics:
                         Ident _id_ [14-15] "T"
                         Ident _id_ [18-19] "U"
                     input: Pat _id_ [20-22]: Unit

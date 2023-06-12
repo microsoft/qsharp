@@ -663,7 +663,9 @@ fn lambda_operation_empty_closure() {
                     Parent: 0
                     Callable 0 [18-101] (operation):
                         name: Ident 1 [28-31] "Foo"
-                        input: Pat 2 [32-48] [Type (Qubit => Unit)]: Bind: Ident 3 [32-34] "op"
+                        generics:
+                            0: functor (empty set)
+                        input: Pat 2 [32-48] [Type (Qubit => Unit is 0)]: Bind: Ident 3 [32-34] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [18-101]: Impl:
@@ -687,7 +689,10 @@ fn lambda_operation_empty_closure() {
                         body: SpecDecl 17 [106-147]: Impl:
                             Block 18 [131-147] [Type Unit]:
                                 Stmt 19 [133-145]: Expr: Expr 20 [133-145] [Type Unit]: Call:
-                                    Expr 21 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
+                                    Expr 21 [133-136] [Type ((Qubit => Unit) => Unit)]: Var:
+                                        res: Item 1
+                                        generics:
+                                            empty set
                                     Expr 22 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                         adj: <none>
                         ctl: <none>
@@ -741,7 +746,9 @@ fn lambda_operation_closure() {
                     Parent: 0
                     Callable 5 [80-130] (operation):
                         name: Ident 6 [90-93] "Foo"
-                        input: Pat 7 [94-111] [Type (Unit => Result)]: Bind: Ident 8 [94-96] "op"
+                        generics:
+                            0: functor (empty set)
+                        input: Pat 7 [94-111] [Type (Unit => Result is 0)]: Bind: Ident 8 [94-96] "op"
                         output: Result
                         functors: empty set
                         body: SpecDecl 9 [80-130]: Impl:
@@ -765,7 +772,10 @@ fn lambda_operation_closure() {
                                     Pat 21 [174-175] [Type Qubit]: Bind: Ident 22 [174-175] "q"
                                     QubitInit 23 [178-185] [Type Qubit]: Single
                                 Stmt 24 [195-216]: Expr: Expr 25 [195-216] [Type Result]: Call:
-                                    Expr 26 [195-198] [Type ((Unit => Result) => Result)]: Var: Item 2
+                                    Expr 26 [195-198] [Type ((Unit => Result) => Result)]: Var:
+                                        res: Item 2
+                                        generics:
+                                            empty set
                                     Expr 27 [199-215] [Type (Unit => Result)]: Closure([22], 4)
                         adj: <none>
                         ctl: <none>
@@ -820,7 +830,9 @@ fn lambda_adj() {
                     Parent: 0
                     Callable 6 [60-106] (operation):
                         name: Ident 7 [70-73] "Foo"
-                        input: Pat 8 [74-97] [Type (Qubit => Unit is Adj)]: Bind: Ident 9 [74-76] "op"
+                        generics:
+                            0: functor (Adj)
+                        input: Pat 8 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 9 [74-76] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 10 [60-106]: Impl:
@@ -838,7 +850,10 @@ fn lambda_adj() {
                         body: SpecDecl 15 [111-151]: Impl:
                             Block 16 [132-151] [Type Unit]:
                                 Stmt 17 [134-149]: Semi: Expr 18 [134-148] [Type Unit]: Call:
-                                    Expr 19 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var: Item 2
+                                    Expr 19 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var:
+                                        res: Item 2
+                                        generics:
+                                            Adj
                                     Expr 20 [138-147] [Type (Qubit => Unit is Adj)]: Closure([], 4)
                         adj: <none>
                         ctl: <none>

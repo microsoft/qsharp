@@ -186,7 +186,7 @@ fn callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     }?;
 
     let name = ident(s)?;
-    let ty_params = if token(s, TokenKind::Lt).is_ok() {
+    let generics = if token(s, TokenKind::Lt).is_ok() {
         let params = seq(s, ty::param)?.0;
         token(s, TokenKind::Gt)?;
         params
@@ -209,7 +209,7 @@ fn callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         span: s.span(lo),
         kind,
         name,
-        ty_params: ty_params.into_boxed_slice(),
+        generics: generics.into_boxed_slice(),
         input,
         output: Box::new(output),
         functors,

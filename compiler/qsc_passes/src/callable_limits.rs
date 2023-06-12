@@ -7,9 +7,8 @@ mod tests;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{
-        CallableDecl, CallableKind, Expr, ExprKind, FunctorSetValue, Package, Stmt, StmtKind, Ty,
-    },
+    hir::{CallableDecl, CallableKind, Expr, ExprKind, Package, Stmt, StmtKind},
+    ty::{FunctorSetValue, Ty},
     visit::{self, Visitor},
 };
 use thiserror::Error;
@@ -47,7 +46,7 @@ impl Visitor<'_> for CallableLimits {
 
     fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         if decl.kind == CallableKind::Function {
-            if decl.adj.is_some() || decl.ctl.is_some() || decl.ctladj.is_some() {
+            if decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some() {
                 self.errors.push(Error::Spec(decl.span));
             }
             if decl.functors != FunctorSetValue::Empty {

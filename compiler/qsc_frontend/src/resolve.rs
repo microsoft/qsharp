@@ -13,7 +13,8 @@ use qsc_data_structures::{index_map::IndexMap, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     global,
-    hir::{self, ItemId, LocalItemId, PackageId, PrimTy},
+    hir::{self, ItemId, LocalItemId, PackageId},
+    ty::Prim,
 };
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -39,7 +40,7 @@ pub(super) enum Res {
     /// A local variable.
     Local(NodeId),
     /// A primitive type.
-    PrimTy(PrimTy),
+    PrimTy(Prim),
     /// The unit type.
     UnitTy,
 }
@@ -389,15 +390,15 @@ impl GlobalTable {
         let tys = HashMap::from([(
             "Microsoft.Quantum.Core".into(),
             HashMap::from([
-                ("BigInt".into(), Res::PrimTy(PrimTy::BigInt)),
-                ("Bool".into(), Res::PrimTy(PrimTy::Bool)),
-                ("Double".into(), Res::PrimTy(PrimTy::Double)),
-                ("Int".into(), Res::PrimTy(PrimTy::Int)),
-                ("Pauli".into(), Res::PrimTy(PrimTy::Pauli)),
-                ("Qubit".into(), Res::PrimTy(PrimTy::Qubit)),
-                ("Range".into(), Res::PrimTy(PrimTy::Range)),
-                ("Result".into(), Res::PrimTy(PrimTy::Result)),
-                ("String".into(), Res::PrimTy(PrimTy::String)),
+                ("BigInt".into(), Res::PrimTy(Prim::BigInt)),
+                ("Bool".into(), Res::PrimTy(Prim::Bool)),
+                ("Double".into(), Res::PrimTy(Prim::Double)),
+                ("Int".into(), Res::PrimTy(Prim::Int)),
+                ("Pauli".into(), Res::PrimTy(Prim::Pauli)),
+                ("Qubit".into(), Res::PrimTy(Prim::Qubit)),
+                ("Range".into(), Res::PrimTy(Prim::Range)),
+                ("Result".into(), Res::PrimTy(Prim::Result)),
+                ("String".into(), Res::PrimTy(Prim::String)),
                 ("Unit".into(), Res::UnitTy),
             ]),
         )]);

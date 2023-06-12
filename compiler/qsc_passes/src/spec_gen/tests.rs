@@ -1072,7 +1072,10 @@ fn generate_adj_invert_with_array_loop() {
                                         Expr _id_ [0-0] [Type Range]: Range:
                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                 Expr _id_ [0-0] [Type Int]: Call:
-                                                    Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                                    Expr _id_ [0-0] [Type ((Int)[] -> Int)]: Var:
+                                                        res: Item 1 (Package 0)
+                                                        generics:
+                                                            Int
                                                     Expr _id_ [0-0] [Type (Int)[]]: Var: Local 30
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                             Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
@@ -1184,7 +1187,10 @@ fn generate_adj_invert_with_nested_loops() {
                                         Expr _id_ [0-0] [Type Range]: Range:
                                             Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                 Expr _id_ [0-0] [Type Int]: Call:
-                                                    Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                                    Expr _id_ [0-0] [Type ((Int)[] -> Int)]: Var:
+                                                        res: Item 1 (Package 0)
+                                                        generics:
+                                                            Int
                                                     Expr _id_ [0-0] [Type (Int)[]]: Var: Local 53
                                                 Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                             Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
@@ -1214,7 +1220,10 @@ fn generate_adj_invert_with_nested_loops() {
                                                     Expr _id_ [0-0] [Type Range]: Range:
                                                         Expr _id_ [0-0] [Type Int]: BinOp (Sub):
                                                             Expr _id_ [0-0] [Type Int]: Call:
-                                                                Expr _id_ [0-0] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                                                Expr _id_ [0-0] [Type ((Bool)[] -> Int)]: Var:
+                                                                    res: Item 1 (Package 0)
+                                                                    generics:
+                                                                        Bool
                                                                 Expr _id_ [0-0] [Type (Bool)[]]: Var: Local 51
                                                             Expr _id_ [0-0] [Type Int]: Lit: Int(1)
                                                         Expr _id_ [0-0] [Type Int]: Lit: Int(-1)
@@ -1645,7 +1654,9 @@ fn lambda_adj_calls_adj() {
                     Parent: 0
                     Callable 6 [60-106] (operation):
                         name: Ident 7 [70-73] "Foo"
-                        input: Pat 8 [74-97] [Type (Qubit => Unit is Adj)]: Bind: Ident 9 [74-76] "op"
+                        generics:
+                            0: functor (Adj)
+                        input: Pat 8 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 9 [74-76] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 10 [60-106]: Impl:
@@ -1663,7 +1674,10 @@ fn lambda_adj_calls_adj() {
                         body: SpecDecl 15 [111-151]: Impl:
                             Block 16 [132-151] [Type Unit]:
                                 Stmt 17 [134-149]: Semi: Expr 18 [134-148] [Type Unit]: Call:
-                                    Expr 19 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var: Item 2
+                                    Expr 19 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var:
+                                        res: Item 2
+                                        generics:
+                                            Adj
                                     Expr 20 [138-147] [Type (Qubit => Unit is Adj)]: Closure([], 4)
                         adj: <none>
                         ctl: <none>

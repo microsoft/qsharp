@@ -5,8 +5,9 @@ use crate::logic_sep;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
-    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, Ty, UnOp},
+    hir::{CallableKind, Expr, ExprKind, Functor, NodeId, UnOp},
     mut_visit::{walk_expr, MutVisitor},
+    ty::Ty,
 };
 use thiserror::Error;
 

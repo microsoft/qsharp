@@ -48,7 +48,7 @@ pub fn extract_entry(package: &Package) -> Result<Expr, Vec<super::Error>> {
             1
         };
         if arg_count == 0 {
-            if ep.adj.is_some() || ep.ctl.is_some() || ep.ctladj.is_some() {
+            if ep.adj.is_some() || ep.ctl.is_some() || ep.ctl_adj.is_some() {
                 Err(vec![PassErr::EntryPoint(Error::EntryPointBody(ep.span))])
             } else {
                 match &ep.body.body {
