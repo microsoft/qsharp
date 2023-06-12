@@ -5,7 +5,43 @@ namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
 
+    operation VerifyMultiQubitUnitary(unitary : (Qubit[] => Unit is Adj + Ctl), reference : (Qubit[] => Unit is Adj + Ctl))
+    : Bool {
+        mutable isCorrect = false;
+        {
+            use targetRegister = Qubit[2];
+            unitary(targetRegister);
+            Adjoint reference(targetRegister);
+            set isCorrect = CheckAllZero(targetRegister);
+            ResetAll(targetRegister);
+        }
 
+        if isCorrect {
+            use targetRegister = Qubit[2];
+            unitary(targetRegister);
+            Message("Qubits state after applying the unitary operation:");
+            DumpMachine();
+            ResetAll(targetRegister);
+        } else {
+            {
+                use expected = Qubit[2];
+                reference(expected);
+                Message("Expected qubits state:");
+                DumpMachine();
+                ResetAll(expected);
+            }
+
+            {
+                use actual = Qubit[2];
+                unitary(actual);
+                Message("Actual qubits state:");
+                DumpMachine();
+                ResetAll(actual);
+            }
+        }
+
+        isCorrect
+    }
 
     operation VerifySingleQubitUnitary(unitary : (Qubit => Unit is Adj + Ctl), reference : (Qubit => Unit is Adj + Ctl))
     : Bool {
