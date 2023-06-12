@@ -67,27 +67,32 @@ impl SourceMap {
     }
 
     #[must_use]
-    pub fn find_offset(&self, offset: u32) -> &Source {
+    pub fn find_by_offset(&self, offset: u32) -> Option<&Source> {
         self.sources
             .iter()
             .chain(&self.entry)
             .rev()
             .find(|source| offset >= source.offset)
-            .expect("offset should match at least one source")
     }
 
-    pub fn find_diagnostic(&self, diagnostic: &impl Diagnostic) -> Option<&Source> {
+    #[must_use]
+    pub fn find_by_diagnostic(&self, diagnostic: &impl Diagnostic) -> Option<&Source> {
         diagnostic
             .labels()
             .and_then(|mut labels| labels.next())
-            .map(|label| {
-                self.find_offset(
+            .and_then(|label| {
+                self.find_by_offset(
                     label
                         .offset()
                         .try_into()
                         .expect("offset should fit into u32"),
                 )
             })
+    }
+
+    #[must_use]
+    pub fn find_by_name(&self, name: &str) -> Option<&Source> {
+        self.sources.iter().find(|s| s.name.as_ref() == name)
     }
 }
 
@@ -443,7 +448,7 @@ fn next_offset(sources: &[Source]) -> u32 {
 fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
     if !errors.is_empty() {
         for error in errors.drain(..) {
-            if let Some(source) = sources.find_diagnostic(&error) {
+            if let Some(source) = sources.find_by_diagnostic(&error) {
                 eprintln!("{:?}", Report::new(error).with_source_code(source.clone()));
             } else {
                 eprintln!("{:?}", Report::new(error));

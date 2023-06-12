@@ -961,6 +961,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsls"
+version = "0.0.0"
+dependencies = [
+ "enum-iterator",
+ "indoc 2.0.0",
+ "log",
+ "miette",
+ "qsc",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
