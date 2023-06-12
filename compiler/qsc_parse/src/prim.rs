@@ -186,6 +186,10 @@ pub(super) fn seq<T>(s: &mut Scanner, mut p: impl Parser<T>) -> Result<(Vec<T>, 
     Ok((xs, final_sep))
 }
 
+pub(super) fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
+    &s[from_start..s.len() - from_end]
+}
+
 fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
     let mut string = String::new();
     if let Some(s) = strings.next() {

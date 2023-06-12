@@ -47,6 +47,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::WSlash => Some("w/".to_string()),
         TokenKind::WSlashEq => Some("w/=".to_string()),
         TokenKind::BigInt(_)
+        | TokenKind::DocComment
         | TokenKind::Eof
         | TokenKind::Float
         | TokenKind::Ident

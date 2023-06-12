@@ -88,6 +88,8 @@ pub(crate) enum TokenKind {
     ColonColon,
     /// `,`
     Comma,
+    /// A doc comment.
+    DocComment,
     /// `.`
     Dot,
     /// `..`
@@ -154,6 +156,7 @@ impl Display for TokenKind {
             TokenKind::Colon => f.write_str("`:`"),
             TokenKind::ColonColon => f.write_str("`::`"),
             TokenKind::Comma => f.write_str("`,`"),
+            TokenKind::DocComment => f.write_str("doc comment"),
             TokenKind::Dot => f.write_str("`.`"),
             TokenKind::DotDot => f.write_str("`..`"),
             TokenKind::DotDotDot => f.write_str("`...`"),
@@ -300,7 +303,10 @@ impl<'a> Lexer<'a> {
 
     fn cook(&mut self, token: &raw::Token) -> Result<Option<Token>, Error> {
         let kind = match token.kind {
-            raw::TokenKind::Comment | raw::TokenKind::Whitespace => Ok(None),
+            raw::TokenKind::Comment(raw::CommentKind::Normal) | raw::TokenKind::Whitespace => {
+                Ok(None)
+            }
+            raw::TokenKind::Comment(raw::CommentKind::Doc) => Ok(Some(TokenKind::DocComment)),
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 Ok(Some(self.ident(ident)))

@@ -99,7 +99,9 @@ fn comment() {
         &expect![[r#"
             [
                 Token {
-                    kind: Comment,
+                    kind: Comment(
+                        Normal,
+                    ),
                     offset: 0,
                 },
                 Token {

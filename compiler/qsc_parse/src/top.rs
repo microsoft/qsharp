@@ -15,6 +15,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
+    prim::shorten,
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -50,6 +51,7 @@ fn fragment(s: &mut Scanner) -> Result<Fragment> {
 
 fn namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
+    let docs = many(s, doc)?;
     keyword(s, Keyword::Namespace)?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -58,6 +60,7 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
+        doc: docs.join("\n").into(),
         name,
         items: items.into_boxed_slice(),
     })
@@ -65,6 +68,7 @@ fn namespace(s: &mut Scanner) -> Result<Namespace> {
 
 pub(super) fn item(s: &mut Scanner) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
+    let docs = many(s, doc)?;
     let attrs = many(s, attr)?;
     let visibility = opt(s, visibility)?;
     let kind = if let Some(open) = opt(s, item_open)? {
@@ -80,10 +84,25 @@ pub(super) fn item(s: &mut Scanner) -> Result<Box<Item>> {
     Ok(Box::new(Item {
         id: NodeId::default(),
         span: s.span(lo),
+        doc: docs.join("\n").into(),
         attrs: attrs.into_boxed_slice(),
         visibility,
         kind,
     }))
+}
+
+fn doc(s: &mut Scanner) -> Result<String> {
+    if s.peek().kind == TokenKind::DocComment {
+        let content = shorten(3, 0, s.read());
+        s.advance();
+        Ok(content.to_string())
+    } else {
+        Err(Error(ErrorKind::Token(
+            TokenKind::DocComment,
+            s.peek().kind,
+            s.peek().span,
+        )))
+    }
 }
 
 fn attr(s: &mut Scanner) -> Result<Box<Attr>> {
