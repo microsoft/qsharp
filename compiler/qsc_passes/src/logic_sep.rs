@@ -99,8 +99,8 @@ impl<'a> Visitor<'a> for SepCheck {
                         self.op_call_allowed = prior;
                         self.handle_block(loop_block)
                     }
-                    ExprKind::If(cond, then_block, else_expr) => {
-                        self.handle_if_expr(prior, cond, then_block, else_expr)
+                    ExprKind::If(cond, then_expr, else_expr) => {
+                        self.handle_if_expr(prior, cond, then_expr, else_expr)
                     }
 
                     ExprKind::Array(_)
@@ -161,14 +161,17 @@ impl SepCheck {
         &mut self,
         prior: bool,
         cond: &Expr,
-        then_block: &Block,
+        then_expr: &Expr,
         else_expr: &Option<Box<Expr>>,
     ) -> bool {
         self.op_call_allowed = false;
         self.visit_expr(cond);
         self.op_call_allowed = prior;
 
-        let then_has_op = self.handle_block(then_block);
+        let then_has_op = match &then_expr.kind {
+            ExprKind::Block(then_block) => self.handle_block(then_block),
+            _ => panic!("if body expr should be block-expr, got: {then_expr}"),
+        };
         let else_has_op = if let Some(else_expr) = else_expr {
             match &else_expr.kind {
                 ExprKind::Block(else_block) => self.handle_block(else_block),

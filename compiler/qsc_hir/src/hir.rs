@@ -556,7 +556,7 @@ pub enum ExprKind {
     /// Note that, as a special case, `elif ...` is effectively parsed as `else if ...`, without a
     /// block wrapping the `if`. This distinguishes `elif ...` from `else { if ... }`, which does
     /// have a block.
-    If(Box<Expr>, Block, Option<Box<Expr>>),
+    If(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
     /// An index accessor: `a[b]`.
     Index(Box<Expr>, Box<Expr>),
     /// A literal.
@@ -772,7 +772,7 @@ fn display_for(
 fn display_if(
     mut indent: Indented<Formatter>,
     cond: &Expr,
-    body: &Block,
+    body: &Expr,
     els: &Option<Box<Expr>>,
 ) -> fmt::Result {
     write!(indent, "If:")?;

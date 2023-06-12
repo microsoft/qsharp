@@ -439,7 +439,12 @@ impl With<'_> {
             ast::ExprKind::Hole => hir::ExprKind::Hole,
             ast::ExprKind::If(cond, if_true, if_false) => hir::ExprKind::If(
                 Box::new(self.lower_expr(cond)),
-                self.lower_block(if_true),
+                Box::new(hir::Expr {
+                    id: self.assigner.next_node(),
+                    span: if_true.span,
+                    ty: self.tys.terms.get(if_true.id).map_or(Ty::Err, Clone::clone),
+                    kind: hir::ExprKind::Block(self.lower_block(if_true)),
+                }),
                 if_false.as_ref().map(|e| Box::new(self.lower_expr(e))),
             ),
             ast::ExprKind::Index(container, index) => hir::ExprKind::Index(

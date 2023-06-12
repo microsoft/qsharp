@@ -139,7 +139,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         }
         ExprKind::If(cond, body, otherwise) => {
             vis.visit_expr(cond);
-            vis.visit_block(body);
+            vis.visit_expr(body);
             otherwise.iter().for_each(|e| vis.visit_expr(e));
         }
         ExprKind::Index(array, index) => {

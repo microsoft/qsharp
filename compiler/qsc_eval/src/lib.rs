@@ -267,7 +267,7 @@ enum Action<'a> {
     Consume,
     Fail(Span),
     Field(&'a Field),
-    If(&'a Block, Option<&'a Expr>),
+    If(&'a Expr, Option<&'a Expr>),
     Index(Span),
     Range(bool, bool, bool),
     Return,
@@ -432,8 +432,8 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             ExprKind::Field(expr, field) => self.cont_field(expr, field),
             ExprKind::For(..) => panic!("for-loop should be eliminated by passes"),
             ExprKind::Hole => panic!("hole expr should be disallowed by passes"),
-            ExprKind::If(cond_expr, then_block, else_expr) => {
-                self.cont_if(cond_expr, then_block, else_expr.as_ref().map(AsRef::as_ref));
+            ExprKind::If(cond_expr, then_expr, else_expr) => {
+                self.cont_if(cond_expr, then_expr, else_expr.as_ref().map(AsRef::as_ref));
             }
             ExprKind::Index(arr, index) => self.cont_index(arr, index),
             ExprKind::Lit(lit) => self.push_val(lit_to_val(lit)),
@@ -481,8 +481,8 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_expr(expr);
     }
 
-    fn cont_if(&mut self, cond_expr: &'a Expr, then_block: &'a Block, else_expr: Option<&'a Expr>) {
-        self.push_action(Action::If(then_block, else_expr));
+    fn cont_if(&mut self, cond_expr: &'a Expr, then_expr: &'a Expr, else_expr: Option<&'a Expr>) {
+        self.push_action(Action::If(then_expr, else_expr));
         self.push_expr(cond_expr);
     }
 
@@ -666,7 +666,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 ));
             }
             Action::Field(field) => self.eval_field(field),
-            Action::If(then_block, else_expr) => self.eval_if(then_block, else_expr),
+            Action::If(then_expr, else_expr) => self.eval_if(then_expr, else_expr),
             Action::Index(span) => self.eval_index(span)?,
             Action::Range(has_start, has_step, has_end) => {
                 self.eval_range(has_start, has_step, has_end);
@@ -835,9 +835,9 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(val);
     }
 
-    fn eval_if(&mut self, then_block: &'a Block, else_expr: Option<&'a Expr>) {
+    fn eval_if(&mut self, then_expr: &'a Expr, else_expr: Option<&'a Expr>) {
         if self.pop_val().unwrap_bool() {
-            self.push_block(then_block);
+            self.push_expr(then_expr);
         } else if let Some(else_expr) = else_expr {
             self.push_expr(else_expr);
         } else {

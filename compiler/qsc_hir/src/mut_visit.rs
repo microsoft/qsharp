@@ -158,7 +158,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         }
         ExprKind::If(cond, body, otherwise) => {
             vis.visit_expr(cond);
-            vis.visit_block(body);
+            vis.visit_expr(body);
             otherwise.iter_mut().for_each(|e| vis.visit_expr(e));
         }
         ExprKind::Index(array, index) => {
