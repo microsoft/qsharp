@@ -38,7 +38,7 @@ name = "qsi"
 bench = false
 
 [[bench]]
-name = "nqueens"
+name = "large"
 harness = false
 
 [[bench]]
