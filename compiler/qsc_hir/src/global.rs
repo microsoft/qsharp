@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::hir::{self, Item, ItemId, ItemKind, Package, PackageId, Visibility};
+use crate::{
+    hir::{Item, ItemId, ItemKind, Package, PackageId, Visibility},
+    ty::Scheme,
+};
 use qsc_data_structures::index_map;
 use std::{collections::HashMap, rc::Rc};
 
@@ -24,7 +27,7 @@ pub struct Ty {
 
 pub struct Term {
     pub id: ItemId,
-    pub ty: hir::Ty,
+    pub scheme: Scheme,
 }
 
 #[derive(Default)]
@@ -97,7 +100,10 @@ impl PackageIter<'_> {
                 namespace: Rc::clone(&namespace.name),
                 name: Rc::clone(&decl.name.name),
                 visibility: item.visibility,
-                kind: Kind::Term(Term { id, ty: decl.ty() }),
+                kind: Kind::Term(Term {
+                    id,
+                    scheme: decl.scheme(),
+                }),
             }),
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
@@ -106,7 +112,7 @@ impl PackageIter<'_> {
                     visibility: item.visibility,
                     kind: Kind::Term(Term {
                         id,
-                        ty: def.cons_ty(id),
+                        scheme: def.cons_scheme(id),
                     }),
                 });
 
