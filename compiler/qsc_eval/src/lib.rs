@@ -273,7 +273,7 @@ enum Action<'a> {
     Return,
     StringConcat(usize),
     StringLit(&'a Rc<str>),
-    UpdateIndex(&'a Expr, &'a Expr),
+    UpdateIndex(&'a Expr),
     Tuple(usize),
     UnOp(UnOp),
     UpdateField(&'a Field),
@@ -605,7 +605,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
     }
 
     fn update_index(&mut self, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
-        self.push_action(Action::UpdateIndex(mid, rhs));
+        self.push_action(Action::UpdateIndex(mid));
         self.push_expr(lhs);
         self.push_expr(rhs);
         self.push_expr(mid);
@@ -666,7 +666,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Action::Return => self.eval_ret(),
             Action::StringConcat(len) => self.eval_string_concat(len),
             Action::StringLit(str) => self.push_val(Value::String(Rc::clone(str))),
-            Action::UpdateIndex(mid, rhs) => self.eval_update_index(mid, rhs)?,
+            Action::UpdateIndex(mid) => self.eval_update_index(mid)?,
             Action::Tuple(len) => self.eval_tup(len),
             Action::UnOp(op) => self.eval_unop(op),
             Action::UpdateField(field) => self.eval_update_field(field),
@@ -890,7 +890,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(Value::String(string.into()));
     }
 
-    fn eval_update_index(&mut self, mid: &'a Expr, rhs: &'a Expr) -> Result<(), Error> {
+    fn eval_update_index(&mut self, mid: &'a Expr) -> Result<(), Error> {
         let values = self.pop_val().unwrap_array();
         let update = self.pop_val();
         let index = self.pop_val().unwrap_int();
