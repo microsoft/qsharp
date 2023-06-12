@@ -8,6 +8,7 @@ use qsc_frontend::compile::SourceMap;
 
 const TELEPORT: &str = include_str!("../../../samples/Teleportation.qs");
 const DEUTSCHJOZSA: &str = include_str!("../../../samples/DeutschJozsa.qs");
+const LARGE: &str = include_str!("./large.qs");
 
 pub fn teleport(c: &mut Criterion) {
     c.bench_function("Teleport evaluation", |b| {
@@ -33,5 +34,17 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, teleport, deutsch_jozsa);
+pub fn large_file(c: &mut Criterion) {
+    c.bench_function("Large file parity evaluation", |b| {
+        let sources = SourceMap::new([("large.qs".into(), LARGE.into())], None);
+        let evaluator = stateless::Context::new(true, sources).expect("code should compile");
+        b.iter(move || {
+            let mut out = Vec::new();
+            let mut rec = GenericReceiver::new(&mut out);
+            assert!(evaluator.eval(&mut rec).is_ok());
+        })
+    });
+}
+
+criterion_group!(benches, teleport, deutsch_jozsa, large_file);
 criterion_main!(benches);
