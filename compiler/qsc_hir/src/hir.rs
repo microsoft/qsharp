@@ -215,6 +215,8 @@ pub struct Item {
     pub span: Span,
     /// The parent item.
     pub parent: Option<LocalItemId>,
+    /// The documentation.
+    pub doc: Rc<str>,
     /// The attributes.
     pub attrs: Vec<Attr>,
     /// The visibility.
@@ -231,13 +233,23 @@ impl Display for Item {
             "Item {} {} ({:?}):",
             self.id, self.span, self.visibility
         )?;
+
         indent = set_indentation(indent, 1);
         if let Some(parent) = self.parent {
             write!(indent, "\nParent: {parent}")?;
         }
+
+        if !self.doc.is_empty() {
+            write!(indent, "\nDoc:")?;
+            indent = set_indentation(indent, 2);
+            write!(indent, "\n{}", self.doc)?;
+            indent = set_indentation(indent, 1);
+        }
+
         for attr in &self.attrs {
             write!(indent, "\n{attr:?}")?;
         }
+
         write!(indent, "\n{}", self.kind)?;
         Ok(())
     }

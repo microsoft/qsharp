@@ -7,18 +7,15 @@
 #[cfg(test)]
 mod tests;
 
-use super::{
-    keyword::Keyword,
-    prim::{ident, opt, pat, path, seq, token},
-    scan::Scanner,
-    stmt, Error, Result,
-};
 use crate::{
+    keyword::Keyword,
     lex::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    ErrorKind,
+    prim::{ident, opt, pat, path, seq, shorten, token},
+    scan::Scanner,
+    stmt, Error, ErrorKind, Result,
 };
 use num_bigint::BigInt;
 use num_traits::Num;
@@ -678,10 +675,6 @@ fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
         span: expr.span,
         kind,
     }))
-}
-
-fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
-    &s[from_start..s.len() - from_end]
 }
 
 fn unescape(s: &str) -> result::Result<String, usize> {

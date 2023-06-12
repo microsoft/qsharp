@@ -206,6 +206,10 @@ pub(super) fn barrier<'a, T>(
     result
 }
 
+pub(super) fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
+    &s[from_start..s.len() - from_end]
+}
+
 fn advanced(s: &Scanner, from: u32) -> bool {
     s.peek().span.lo > from
 }

@@ -1525,3 +1525,61 @@ fn invalid_spec_pat() {
         "#]],
     );
 }
+
+#[test]
+fn item_docs() {
+    check_hir(
+        "/// This is a namespace.
+        namespace A {
+            /// This is a newtype.
+            newtype Foo = ();
+
+            /// This is a function.
+            function Bar() : () {}
+
+            /// This is an operation.
+            operation Baz() : () {}
+        }",
+        &expect![[r#"
+            Package:
+                Item 0 [0-268] (Public):
+                    Doc:
+                        This is a namespace.
+                    Namespace (Ident 11 [43-44] "A"): Item 1, Item 2, Item 3
+                Item 1 [59-111] (Public):
+                    Parent: 0
+                    Doc:
+                        This is a newtype.
+                    Type (Ident 0 [102-105] "Foo"): Udt:
+                        base: Unit
+                        fields:
+                Item 2 [125-183] (Public):
+                    Parent: 0
+                    Doc:
+                        This is a function.
+                    Callable 1 [161-183] (function):
+                        name: Ident 2 [170-173] "Bar"
+                        input: Pat 3 [173-175] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [161-183]: Impl:
+                            Block 5 [181-183]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 3 [197-258] (Public):
+                    Parent: 0
+                    Doc:
+                        This is an operation.
+                    Callable 6 [235-258] (operation):
+                        name: Ident 7 [245-248] "Baz"
+                        input: Pat 8 [248-250] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 9 [235-258]: Impl:
+                            Block 10 [256-258]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
