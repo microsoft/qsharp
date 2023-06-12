@@ -49,7 +49,7 @@ struct DefinitionFinder<'a> {
 impl<'a> Visitor<'_> for DefinitionFinder<'a> {
     fn visit_expr(&mut self, expr: &Expr) {
         if span_contains(expr.span, self.offset) {
-            if let ExprKind::Var(res) = expr.kind {
+            if let ExprKind::Var(res, _) = expr.kind {
                 let item = match res {
                     Res::Err => None,
                     // Just one package plus std for now, so let's live with this hack

@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
-use qsc::hir::{visit::Visitor, CallableDecl, CallableKind, Ty};
+use qsc::hir::{ty::Ty, visit::Visitor, CallableDecl, CallableKind};
 
 #[derive(Debug, PartialEq)]
 pub struct Hover {
