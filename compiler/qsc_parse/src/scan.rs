@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use super::Error;
-use crate::lex::{Lexer, Token, TokenKind};
+use crate::{
+    lex::{Lexer, Token, TokenKind},
+    ErrorKind,
+};
 use qsc_data_structures::span::Span;
 
 pub(super) struct Scanner<'a> {
@@ -20,7 +23,10 @@ impl<'a> Scanner<'a> {
         Self {
             input,
             tokens,
-            errors: errors.into_iter().map(Error::Lex).collect(),
+            errors: errors
+                .into_iter()
+                .map(|e| Error(ErrorKind::Lex(e)))
+                .collect(),
             peek: peek.unwrap_or_else(|| eof(input.len())),
             offset: 0,
         }
@@ -38,7 +44,8 @@ impl<'a> Scanner<'a> {
         if self.peek.kind != TokenKind::Eof {
             self.offset = self.peek.span.hi;
             let (peek, errors) = next_ok(&mut self.tokens);
-            self.errors.extend(errors.into_iter().map(Error::Lex));
+            self.errors
+                .extend(errors.into_iter().map(|e| Error(ErrorKind::Lex(e))));
             self.peek = peek.unwrap_or_else(|| eof(self.input.len()));
         }
     }

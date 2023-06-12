@@ -1,6 +1,6 @@
 namespace Microsoft.Quantum.Samples.BernsteinVazirani {
     open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Arrays; // ApplyToEach, ForEach
     open Microsoft.Quantum.Convert; // ResultArrayAsInt
     open Microsoft.Quantum.Diagnostics;
 
@@ -64,9 +64,8 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
             Uf(queryRegister, target);
         }
 
-        // The following for-loop measures all qubits and resets them to
-        // zero so that they can be safely returned at the end of the
-        // using-block.
+        // Measure all qubits and reset them to zero so that they
+        // can be safely returned at the end of the block.
         let resultArray = ForEach(MResetZ, queryRegister);
 
         // The result is already contained in resultArray so no further
@@ -158,13 +157,4 @@ namespace Microsoft.Quantum.Samples.BernsteinVazirani {
         }
     }
 
-    // TODO: Remove this when library function is implemented.
-    operation ForEach<'T, 'U> (action : ('T => 'U), array : 'T[]) : 'U[] {
-        mutable retval = [];
-        for idx in 0..Length(array) - 1 {
-            set retval += [action(array[idx])];
-        }
-        return retval;
-    }
-  
 }

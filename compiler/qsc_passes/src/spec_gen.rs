@@ -76,8 +76,8 @@ impl MutVisitor for SpecPlacePass {
             return;
         }
 
-        let is_adj = decl.functors.contains(&Functor::Adj) == Some(true);
-        let is_ctl = decl.functors.contains(&Functor::Ctl) == Some(true);
+        let is_adj = decl.functors.contains(&Functor::Adj);
+        let is_ctl = decl.functors.contains(&Functor::Ctl);
         if !is_adj && !is_ctl {
             return;
         }

@@ -16,7 +16,7 @@ use qsc_hir::{
     hir::{self, ItemId, LocalItemId, PackageId, PrimTy},
 };
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
     rc::Rc,
     vec,
 };
@@ -46,9 +46,6 @@ pub(super) enum Res {
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
-    #[error("`{0}` not found")]
-    NotFound(String, #[label] Span),
-
     #[error("`{name}` could refer to the item in `{first_open}` or `{second_open}`")]
     Ambiguous {
         name: String,
@@ -61,6 +58,12 @@ pub(super) enum Error {
         #[label("and also in this namespace")]
         second_open_span: Span,
     },
+
+    #[error("duplicate declaration of `{0}` in namespace `{1}`")]
+    Duplicate(String, String, #[label] Span),
+
+    #[error("`{0}` not found")]
+    NotFound(String, #[label] Span),
 }
 
 struct Scope {
@@ -263,13 +266,16 @@ impl AstVisitor<'_> for With<'_> {
                 .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
-                bind_global_item(
+                match bind_global_item(
                     &mut self.resolver.names,
                     &mut self.resolver.globals,
                     &namespace.name.name,
                     || intrapackage(self.assigner.next_item()),
                     item,
-                );
+                ) {
+                    Ok(()) => {}
+                    Err(error) => self.resolver.errors.push(error),
+                }
             }
         }
 
@@ -406,7 +412,12 @@ impl GlobalTable {
         }
     }
 
-    pub(super) fn add_local_package(&mut self, assigner: &mut Assigner, package: &ast::Package) {
+    pub(super) fn add_local_package(
+        &mut self,
+        assigner: &mut Assigner,
+        package: &ast::Package,
+    ) -> Vec<Error> {
+        let mut errors = Vec::new();
         for namespace in package.namespaces.iter() {
             self.names.insert(
                 namespace.name.id,
@@ -417,15 +428,19 @@ impl GlobalTable {
                 .insert(Rc::clone(&namespace.name.name));
 
             for item in namespace.items.iter() {
-                bind_global_item(
+                match bind_global_item(
                     &mut self.names,
                     &mut self.scope,
                     &namespace.name.name,
                     || intrapackage(assigner.next_item()),
                     item,
-                );
+                ) {
+                    Ok(()) => {}
+                    Err(error) => errors.push(error),
+                }
             }
         }
+        errors
     }
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
@@ -488,32 +503,56 @@ fn bind_global_item(
     namespace: &Rc<str>,
     next_id: impl FnOnce() -> ItemId,
     item: &ast::Item,
-) {
+) -> Result<(), Error> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
             let res = Res::Item(next_id());
             names.insert(decl.name.id, res);
-            scope
+            match scope
                 .terms
                 .entry(Rc::clone(namespace))
                 .or_default()
-                .insert(Rc::clone(&decl.name.name), res);
+                .entry(Rc::clone(&decl.name.name))
+            {
+                Entry::Occupied(_) => Err(Error::Duplicate(
+                    decl.name.name.to_string(),
+                    namespace.to_string(),
+                    decl.name.span,
+                )),
+                Entry::Vacant(entry) => {
+                    entry.insert(res);
+                    Ok(())
+                }
+            }
         }
         ast::ItemKind::Ty(name, _) => {
             let res = Res::Item(next_id());
             names.insert(name.id, res);
-            scope
-                .tys
-                .entry(Rc::clone(namespace))
-                .or_default()
-                .insert(Rc::clone(&name.name), res);
-            scope
-                .terms
-                .entry(Rc::clone(namespace))
-                .or_default()
-                .insert(Rc::clone(&name.name), res);
+            match (
+                scope
+                    .terms
+                    .entry(Rc::clone(namespace))
+                    .or_default()
+                    .entry(Rc::clone(&name.name)),
+                scope
+                    .tys
+                    .entry(Rc::clone(namespace))
+                    .or_default()
+                    .entry(Rc::clone(&name.name)),
+            ) {
+                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(Error::Duplicate(
+                    name.name.to_string(),
+                    namespace.to_string(),
+                    name.span,
+                )),
+                (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
+                    term_entry.insert(res);
+                    ty_entry.insert(res);
+                    Ok(())
+                }
+            }
         }
-        ast::ItemKind::Err | ast::ItemKind::Open(..) => {}
+        ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
     }
 }
 

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::{block, stmt};
-use crate::parse::tests::check;
+use crate::tests::check;
 use expect_test::expect;
 
 #[test]
@@ -136,13 +136,15 @@ fn use_invalid_init() {
         "use q = Qutrit();",
         &expect![[r#"
             Err(
-                Convert(
-                    "qubit initializer",
-                    "identifier",
-                    Span {
-                        lo: 8,
-                        hi: 14,
-                    },
+                Error(
+                    Convert(
+                        "qubit initializer",
+                        "identifier",
+                        Span {
+                            lo: 8,
+                            hi: 14,
+                        },
+                    ),
                 ),
             )
         "#]],
@@ -210,13 +212,15 @@ fn stmt_missing_semi() {
         "let x = 2",
         &expect![[r#"
             Err(
-                Token(
-                    Semi,
-                    Eof,
-                    Span {
-                        lo: 9,
-                        hi: 9,
-                    },
+                Error(
+                    Token(
+                        Semi,
+                        Eof,
+                        Span {
+                            lo: 9,
+                            hi: 9,
+                        },
+                    ),
                 ),
             )
         "#]],
@@ -447,11 +451,13 @@ fn call_no_semi_call() {
         "{ f(x) g(y) }",
         &expect![[r#"
             Err(
-                MissingSemi(
-                    Span {
-                        lo: 6,
-                        hi: 6,
-                    },
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 6,
+                            hi: 6,
+                        },
+                    ),
                 ),
             )
         "#]],
@@ -486,11 +492,13 @@ fn expr_plus_if_no_semi() {
         "{ 1 + if true { 2 } else { 3 } f(x) }",
         &expect![[r#"
             Err(
-                MissingSemi(
-                    Span {
-                        lo: 30,
-                        hi: 30,
-                    },
+                Error(
+                    MissingSemi(
+                        Span {
+                            lo: 30,
+                            hi: 30,
+                        },
+                    ),
                 ),
             )
         "#]],

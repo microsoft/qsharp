@@ -8,7 +8,7 @@ use std::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
-pub(crate) enum Keyword {
+pub(super) enum Keyword {
     Adj,
     Adjoint,
     AdjointUpper,

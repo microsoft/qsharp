@@ -47,7 +47,7 @@ fn conjugate_invert() {
                     Namespace (Ident 33 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
-                    Callable 0 [21-58] (Operation):
+                    Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
@@ -60,7 +60,7 @@ fn conjugate_invert() {
                         ctl-adj: <none>
                 Item 2 [63-216] (Public):
                     Parent: 0
-                    Callable 7 [63-216] (Operation):
+                    Callable 7 [63-216] (operation):
                         name: Ident 8 [73-74] "A"
                         input: Pat 9 [74-76] [Type Unit]: Unit
                         output: Unit
@@ -127,7 +127,7 @@ fn conjugate_invert_with_output() {
                     Namespace (Ident 39 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
-                    Callable 0 [21-58] (Operation):
+                    Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
@@ -140,7 +140,7 @@ fn conjugate_invert_with_output() {
                         ctl-adj: <none>
                 Item 2 [63-252] (Public):
                     Parent: 0
-                    Callable 7 [63-252] (Operation):
+                    Callable 7 [63-252] (operation):
                         name: Ident 8 [73-74] "A"
                         input: Pat 9 [74-76] [Type Unit]: Unit
                         output: Int
@@ -216,7 +216,7 @@ fn nested_conjugate_invert() {
                     Namespace (Ident 49 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
-                    Callable 0 [21-58] (Operation):
+                    Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
@@ -229,7 +229,7 @@ fn nested_conjugate_invert() {
                         ctl-adj: <none>
                 Item 2 [63-355] (Public):
                     Parent: 0
-                    Callable 7 [63-355] (Operation):
+                    Callable 7 [63-355] (operation):
                         name: Ident 8 [73-74] "A"
                         input: Pat 9 [74-76] [Type Unit]: Unit
                         output: Unit
@@ -486,7 +486,7 @@ fn conjugate_mutable_correct_use_succeeds() {
                     Namespace (Ident 49 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
-                    Callable 0 [21-58] (Operation):
+                    Callable 0 [21-58] (operation):
                         name: Ident 1 [31-32] "B"
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
@@ -499,7 +499,7 @@ fn conjugate_mutable_correct_use_succeeds() {
                         ctl-adj: <none>
                 Item 2 [63-312] (Public):
                     Parent: 0
-                    Callable 7 [63-312] (Operation):
+                    Callable 7 [63-312] (operation):
                         name: Ident 8 [73-74] "A"
                         input: Pat 9 [74-76] [Type Unit]: Unit
                         output: Unit
