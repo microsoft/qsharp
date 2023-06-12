@@ -32,7 +32,7 @@ pub enum Fragment {
 
 pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
-    let docs = many(s, parse_doc)?;
+    let doc = parse_doc(s);
     let attrs = many(s, parse_attr)?;
     let visibility = opt(s, parse_visibility)?;
     let kind = if let Some(open) = opt(s, parse_open)? {
@@ -48,7 +48,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
     Ok(Box::new(Item {
         id: NodeId::default(),
         span: s.span(lo),
-        doc: docs.join("\n").into(),
+        doc: doc.into(),
         attrs: attrs.into_boxed_slice(),
         visibility,
         kind,
@@ -106,7 +106,7 @@ fn parse_fragment(s: &mut Scanner) -> Result<Fragment> {
 
 fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     let lo = s.peek().span.lo;
-    let docs = many(s, parse_doc)?;
+    let doc = parse_doc(s);
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -115,25 +115,26 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
-        doc: docs.join("\n").into(),
+        doc: doc.into(),
         name,
         items: items.into_boxed_slice(),
     })
 }
 
-fn parse_doc(s: &mut Scanner) -> Result<String> {
-    if s.peek().kind == TokenKind::DocComment {
-        let prefix_len = if s.read().starts_with("/// ") { 4 } else { 3 };
-        let content = shorten(prefix_len, 0, s.read());
+fn parse_doc(s: &mut Scanner) -> String {
+    let mut content = String::new();
+    while s.peek().kind == TokenKind::DocComment {
+        if !content.is_empty() {
+            content += "\n";
+        }
+
+        let lexeme = s.read();
+        let prefix_len = if lexeme.starts_with("/// ") { 4 } else { 3 };
+        content += shorten(prefix_len, 0, lexeme);
         s.advance();
-        Ok(content.to_string())
-    } else {
-        Err(Error(ErrorKind::Token(
-            TokenKind::DocComment,
-            s.peek().kind,
-            s.peek().span,
-        )))
     }
+
+    content
 }
 
 fn parse_attr(s: &mut Scanner) -> Result<Box<Attr>> {
