@@ -20,13 +20,13 @@ use qir_backend::__quantum__rt__initialize;
 use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
-    NodeId, PackageId, Pat, PatKind, PrimField, Res, Spec, SpecBody, SpecGen, Stmt, StmtKind,
+    NodeId, PackageId, Pat, PatKind, PrimField, Res, SpecBody, SpecGen, Stmt, StmtKind,
     StringComponent, TernOp, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
     convert::AsRef,
-    fmt::Write,
+    fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
     ptr::null_mut,
@@ -56,7 +56,7 @@ pub enum Error {
     IntTooLarge(i64, #[label("this value is too large")] Span),
 
     #[error("missing specialization: {0}")]
-    MissingSpec(Spec, #[label("callable has no {0} specialization")] Span),
+    MissingSpec(String, #[label("callable has no {0} specialization")] Span),
 
     #[error("index out of range: {0}")]
     OutOfRange(i64, #[label("out of range")] Span),
@@ -84,6 +84,29 @@ pub enum Error {
 
     #[error("program failed: {0}")]
     UserFail(String, #[label("explicit fail")] Span),
+}
+
+/// A specialization that may be implemented for an operation.
+enum Spec {
+    /// The default specialization.
+    Body,
+    /// The adjoint specialization.
+    Adj,
+    /// The controlled specialization.
+    Ctl,
+    /// The controlled adjoint specialization.
+    CtlAdj,
+}
+
+impl Display for Spec {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Spec::Body => f.write_str("body"),
+            Spec::Adj => f.write_str("adjoint"),
+            Spec::Ctl => f.write_str("controlled"),
+            Spec::CtlAdj => f.write_str("controlled adjoint"),
+        }
+    }
 }
 
 /// Evaluates the given statement with the given context.
@@ -780,7 +803,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Spec::Ctl => callee.ctl.as_ref(),
             Spec::CtlAdj => callee.ctl_adj.as_ref(),
         }
-        .ok_or(Error::MissingSpec(spec, callee_span))?
+        .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?
         .body;
         match block_body {
             SpecBody::Impl(input, body_block) => {
@@ -794,7 +817,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
                 self.push_val(val);
                 Ok(())
             }
-            SpecBody::Gen(_) => Err(Error::MissingSpec(spec, callee_span)),
+            SpecBody::Gen(_) => Err(Error::MissingSpec(spec.to_string(), callee_span)),
         }
     }
 
@@ -990,7 +1013,6 @@ fn bind_value(env: &mut Env, pat: &Pat, val: Value, mutability: Mutability) {
             };
         }
         PatKind::Discard => {}
-        PatKind::Elided => panic!("elision used in binding"),
         PatKind::Tuple(tup) => {
             let val_tup = val.unwrap_tuple();
             for (pat, val) in tup.iter().zip(val_tup.iter()) {
@@ -1038,17 +1060,12 @@ fn update_binding(env: &mut Env, lhs: &Expr, rhs: Value) -> Result<(), Error> {
 fn bind_args_for_spec(
     env: &mut Env,
     decl_pat: &Pat,
-    spec_pat: &Pat,
+    spec_pat: &Option<Pat>,
     args_val: Value,
     ctl_count: u8,
 ) {
-    match &spec_pat.kind {
-        PatKind::Bind(_) | PatKind::Discard => {
-            panic!("spec pattern should be elided or elided tuple, found bind/discard")
-        }
-        PatKind::Elided => bind_value(env, decl_pat, args_val, Mutability::Immutable),
-        PatKind::Tuple(pats) => {
-            assert_eq!(pats.len(), 2, "spec pattern tuple should have 2 elements");
+    match spec_pat {
+        Some(spec_pat) => {
             assert!(
                 ctl_count > 0,
                 "spec pattern tuple used without controlled functor"
@@ -1058,20 +1075,21 @@ fn bind_args_for_spec(
             let mut ctls = vec![];
             for _ in 0..ctl_count {
                 let [c, rest] = &*tup.unwrap_tuple() else {
-                    panic!("tuple should be arity 2");
-                };
+                        panic!("tuple should be arity 2");
+                    };
                 ctls.extend_from_slice(&c.clone().unwrap_array());
                 tup = rest.clone();
             }
 
             bind_value(
                 env,
-                &pats[0],
+                spec_pat,
                 Value::Array(ctls.into()),
                 Mutability::Immutable,
             );
             bind_value(env, decl_pat, tup, Mutability::Immutable);
         }
+        None => bind_value(env, decl_pat, args_val, Mutability::Immutable),
     }
 }
 

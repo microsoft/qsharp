@@ -6,7 +6,7 @@ use qsc_hir::{
     assigner::Assigner,
     hir::{
         Block, CallableDecl, CallableKind, Expr, ExprKind, Ident, Mutability, NodeId, Pat, PatKind,
-        Res, Spec, SpecBody, SpecDecl, Stmt, StmtKind,
+        Res, SpecBody, SpecDecl, Stmt, StmtKind,
     },
     mut_visit::{self, MutVisitor},
     ty::{Arrow, FunctorSetValue, Ty},
@@ -122,8 +122,6 @@ pub(super) fn lift(
     let mut input = closure_input(substituted_vars, lambda.input, span);
     assigner.visit_pat(&mut input);
 
-    let input_ty = input.ty.clone();
-
     let callable = CallableDecl {
         id: assigner.next_node(),
         span,
@@ -140,14 +138,8 @@ pub(super) fn lift(
         body: SpecDecl {
             id: assigner.next_node(),
             span: lambda.body.span,
-            spec: Spec::Body,
             body: SpecBody::Impl(
-                Pat {
-                    id: assigner.next_node(),
-                    span,
-                    ty: input_ty,
-                    kind: PatKind::Elided,
-                },
+                None,
                 Block {
                     id: assigner.next_node(),
                     span: lambda.body.span,

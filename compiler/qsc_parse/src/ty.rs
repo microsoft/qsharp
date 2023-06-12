@@ -6,7 +6,7 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{ident, keyword, opt, path, seq, token},
+    prim::{ident, opt, path, seq, token},
     scan::Scanner,
     Error, Parser, Result,
 };
@@ -30,7 +30,7 @@ pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
             }
         } else if let Some(kind) = opt(s, arrow)? {
             let output = ty(s)?;
-            let functors = if keyword(s, Keyword::Is).is_ok() {
+            let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
                 Some(Box::new(functor_expr(s)?))
             } else {
                 None
@@ -79,7 +79,7 @@ fn arrow(s: &mut Scanner) -> Result<CallableKind> {
 
 fn base(s: &mut Scanner) -> Result<Ty> {
     let lo = s.peek().span.lo;
-    let kind = if keyword(s, Keyword::Underscore).is_ok() {
+    let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
         Ok(TyKind::Hole)
     } else if let Some(name) = opt(s, param)? {
         Ok(TyKind::Param(name))
@@ -113,9 +113,9 @@ fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
         let e = functor_expr(s)?;
         token(s, TokenKind::Close(Delim::Paren))?;
         Ok(FunctorExprKind::Paren(Box::new(e)))
-    } else if keyword(s, Keyword::Adj).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Adj)).is_ok() {
         Ok(FunctorExprKind::Lit(Functor::Adj))
-    } else if keyword(s, Keyword::Ctl).is_ok() {
+    } else if token(s, TokenKind::Keyword(Keyword::Ctl)).is_ok() {
         Ok(FunctorExprKind::Lit(Functor::Ctl))
     } else {
         Err(Error(ErrorKind::Rule(
