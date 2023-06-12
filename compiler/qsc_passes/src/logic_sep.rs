@@ -86,57 +86,7 @@ impl<'a> Visitor<'a> for SepCheck {
                     self.handle_block(qubit_block)
                 }
 
-                StmtKind::Expr(expr) | StmtKind::Semi(expr) => match &expr.kind {
-                    ExprKind::Block(block) => self.handle_block(block),
-                    ExprKind::Call(callee, args) => self.handle_call(expr, callee, args, prior),
-                    ExprKind::Conjugate(within, apply) => {
-                        let within_has_op = self.handle_block(within);
-                        self.handle_block(apply) || within_has_op
-                    }
-                    ExprKind::For(_, iter, loop_block) => {
-                        self.op_call_allowed = false;
-                        self.visit_expr(iter);
-                        self.op_call_allowed = prior;
-                        self.handle_block(loop_block)
-                    }
-                    ExprKind::If(cond, then_expr, else_expr) => {
-                        self.handle_if_expr(prior, cond, then_expr, else_expr)
-                    }
-
-                    ExprKind::Array(_)
-                    | ExprKind::ArrayRepeat(..)
-                    | ExprKind::BinOp(..)
-                    | ExprKind::Closure(..)
-                    | ExprKind::Err
-                    | ExprKind::Fail(..)
-                    | ExprKind::Field(..)
-                    | ExprKind::Hole
-                    | ExprKind::Index(..)
-                    | ExprKind::Lit(..)
-                    | ExprKind::Range(..)
-                    | ExprKind::String(..)
-                    | ExprKind::TernOp(..)
-                    | ExprKind::Tuple(..)
-                    | ExprKind::UnOp(..)
-                    | ExprKind::UpdateField(..)
-                    | ExprKind::Var(..) => {
-                        self.op_call_allowed = false;
-                        self.visit_expr(expr);
-                        self.op_call_allowed = prior;
-                        false
-                    }
-
-                    ExprKind::Assign(..)
-                    | ExprKind::AssignOp(..)
-                    | ExprKind::AssignField(..)
-                    | ExprKind::AssignIndex(..)
-                    | ExprKind::Repeat(..)
-                    | ExprKind::Return(..)
-                    | ExprKind::While(..) => {
-                        self.errors.push(Error::ExprForbidden(expr.span));
-                        false
-                    }
-                },
+                StmtKind::Expr(expr) | StmtKind::Semi(expr) => self.handle_expr(expr, prior),
             };
             if has_op_call {
                 self.op_call_present.insert(stmt.id);
@@ -168,18 +118,9 @@ impl SepCheck {
         self.visit_expr(cond);
         self.op_call_allowed = prior;
 
-        let then_has_op = match &then_expr.kind {
-            ExprKind::Block(then_block) => self.handle_block(then_block),
-            _ => panic!("if body expr should be block-expr, got: {then_expr}"),
-        };
+        let then_has_op = self.handle_expr(then_expr, prior);
         let else_has_op = if let Some(else_expr) = else_expr {
-            match &else_expr.kind {
-                ExprKind::Block(else_block) => self.handle_block(else_block),
-                ExprKind::If(inner_cond, inner_then, inner_else) => {
-                    self.handle_if_expr(prior, inner_cond, inner_then, inner_else)
-                }
-                _ => panic!("else expr should be if-expr or block-expr, got: {else_expr}"),
-            }
+            self.handle_expr(else_expr, prior)
         } else {
             false
         };
@@ -211,5 +152,59 @@ impl SepCheck {
             }
         }
         has_inner_op_call
+    }
+
+    fn handle_expr(&mut self, expr: &Expr, prior: bool) -> bool {
+        match &expr.kind {
+            ExprKind::Block(block) => self.handle_block(block),
+            ExprKind::Call(callee, args) => self.handle_call(expr, callee, args, prior),
+            ExprKind::Conjugate(within, apply) => {
+                let within_has_op = self.handle_block(within);
+                self.handle_block(apply) || within_has_op
+            }
+            ExprKind::For(_, iter, loop_block) => {
+                self.op_call_allowed = false;
+                self.visit_expr(iter);
+                self.op_call_allowed = prior;
+                self.handle_block(loop_block)
+            }
+            ExprKind::If(cond, then_expr, else_expr) => {
+                self.handle_if_expr(prior, cond, then_expr, else_expr)
+            }
+
+            ExprKind::Array(_)
+            | ExprKind::ArrayRepeat(..)
+            | ExprKind::BinOp(..)
+            | ExprKind::Closure(..)
+            | ExprKind::Err
+            | ExprKind::Fail(..)
+            | ExprKind::Field(..)
+            | ExprKind::Hole
+            | ExprKind::Index(..)
+            | ExprKind::Lit(..)
+            | ExprKind::Range(..)
+            | ExprKind::String(..)
+            | ExprKind::UpdateIndex(..)
+            | ExprKind::Tuple(..)
+            | ExprKind::UnOp(..)
+            | ExprKind::UpdateField(..)
+            | ExprKind::Var(..) => {
+                self.op_call_allowed = false;
+                self.visit_expr(expr);
+                self.op_call_allowed = prior;
+                false
+            }
+
+            ExprKind::Assign(..)
+            | ExprKind::AssignOp(..)
+            | ExprKind::AssignField(..)
+            | ExprKind::AssignIndex(..)
+            | ExprKind::Repeat(..)
+            | ExprKind::Return(..)
+            | ExprKind::While(..) => {
+                self.errors.push(Error::ExprForbidden(expr.span));
+                false
+            }
+        }
     }
 }

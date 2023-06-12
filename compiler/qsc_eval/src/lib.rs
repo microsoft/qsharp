@@ -21,7 +21,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::hir::{
     self, BinOp, Block, CallableDecl, Expr, ExprKind, Field, Functor, Lit, LocalItemId, Mutability,
     NodeId, PackageId, Pat, PatKind, PrimField, Res, SpecBody, SpecGen, Stmt, StmtKind,
-    StringComponent, TernOp, UnOp,
+    StringComponent, UnOp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -273,7 +273,7 @@ enum Action<'a> {
     Return,
     StringConcat(usize),
     StringLit(&'a Rc<str>),
-    TernOp(TernOp, &'a Expr, &'a Expr),
+    UpdateIndex(&'a Expr, &'a Expr),
     Tuple(usize),
     UnOp(UnOp),
     UpdateField(&'a Field),
@@ -441,7 +441,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             ExprKind::Repeat(..) => panic!("repeat-loop should be eliminated by passes"),
             ExprKind::Return(expr) => self.cont_ret(expr),
             ExprKind::String(components) => self.cont_string(components),
-            ExprKind::TernOp(op, lhs, mid, rhs) => self.cont_ternop(*op, lhs, mid, rhs),
+            ExprKind::UpdateIndex(lhs, mid, rhs) => self.update_index(lhs, mid, rhs),
             ExprKind::Tuple(tup) => self.cont_tup(tup),
             ExprKind::UnOp(op, expr) => self.cont_unop(*op, expr),
             ExprKind::UpdateField(record, field, replace) => {
@@ -511,7 +511,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
 
     fn cont_assign_index(&mut self, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
         self.push_action(Action::Assign(lhs));
-        self.cont_ternop(TernOp::UpdateIndex, lhs, mid, rhs);
+        self.update_index(lhs, mid, rhs);
         self.push_val(Value::unit());
     }
 
@@ -604,19 +604,11 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         }
     }
 
-    fn cont_ternop(&mut self, op: TernOp, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
-        match op {
-            TernOp::Cond => {
-                self.push_action(Action::TernOp(op, mid, rhs));
-                self.push_expr(lhs);
-            }
-            TernOp::UpdateIndex => {
-                self.push_action(Action::TernOp(op, mid, rhs));
-                self.push_expr(lhs);
-                self.push_expr(rhs);
-                self.push_expr(mid);
-            }
-        }
+    fn update_index(&mut self, lhs: &'a Expr, mid: &'a Expr, rhs: &'a Expr) {
+        self.push_action(Action::UpdateIndex(mid, rhs));
+        self.push_expr(lhs);
+        self.push_expr(rhs);
+        self.push_expr(mid);
     }
 
     fn cont_unop(&mut self, op: UnOp, expr: &'a Expr) {
@@ -674,7 +666,7 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
             Action::Return => self.eval_ret(),
             Action::StringConcat(len) => self.eval_string_concat(len),
             Action::StringLit(str) => self.push_val(Value::String(Rc::clone(str))),
-            Action::TernOp(op, mid, rhs) => self.eval_ternop(op, mid, rhs)?,
+            Action::UpdateIndex(mid, rhs) => self.eval_update_index(mid, rhs)?,
             Action::Tuple(len) => self.eval_tup(len),
             Action::UnOp(op) => self.eval_unop(op),
             Action::UpdateField(field) => self.eval_update_field(field),
@@ -898,33 +890,22 @@ impl<'a, G: GlobalLookup<'a>> State<'a, G> {
         self.push_val(Value::String(string.into()));
     }
 
-    fn eval_ternop(&mut self, op: TernOp, mid: &'a Expr, rhs: &'a Expr) -> Result<(), Error> {
-        match op {
-            TernOp::Cond => {
-                if self.pop_val().unwrap_bool() {
-                    self.push_expr(mid);
-                } else {
-                    self.push_expr(rhs);
-                }
-            }
-            TernOp::UpdateIndex => {
-                let values = self.pop_val().unwrap_array();
-                let update = self.pop_val();
-                let index = self.pop_val().unwrap_int();
-                if index < 0 {
-                    return Err(Error::Negative(index, mid.span));
-                }
-                let i = index.as_index(mid.span)?;
-                let mut values = values.iter().cloned().collect::<Vec<_>>();
-                match values.get_mut(i) {
-                    Some(value) => {
-                        *value = update;
-                    }
-                    None => return Err(Error::OutOfRange(index, mid.span)),
-                }
-                self.push_val(Value::Array(values.into()));
-            }
+    fn eval_update_index(&mut self, mid: &'a Expr, rhs: &'a Expr) -> Result<(), Error> {
+        let values = self.pop_val().unwrap_array();
+        let update = self.pop_val();
+        let index = self.pop_val().unwrap_int();
+        if index < 0 {
+            return Err(Error::Negative(index, mid.span));
         }
+        let i = index.as_index(mid.span)?;
+        let mut values = values.iter().cloned().collect::<Vec<_>>();
+        match values.get_mut(i) {
+            Some(value) => {
+                *value = update;
+            }
+            None => return Err(Error::OutOfRange(index, mid.span)),
+        }
+        self.push_val(Value::Array(values.into()));
         Ok(())
     }
 

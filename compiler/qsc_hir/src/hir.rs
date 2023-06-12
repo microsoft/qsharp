@@ -569,8 +569,8 @@ pub enum ExprKind {
     Return(Box<Expr>),
     /// A string.
     String(Vec<StringComponent>),
-    /// A ternary operator.
-    TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
+    /// Update array index: `a w/ b <- c`.
+    UpdateIndex(Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
     Tuple(Vec<Expr>),
     /// A unary operator.
@@ -617,8 +617,8 @@ impl Display for ExprKind {
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
             ExprKind::String(components) => display_string(indent, components)?,
-            ExprKind::TernOp(op, expr1, expr2, expr3) => {
-                display_tern_op(indent, *op, expr1, expr2, expr3)?;
+            ExprKind::UpdateIndex(expr1, expr2, expr3) => {
+                display_update_index(indent, expr1, expr2, expr3)?;
             }
             ExprKind::Tuple(exprs) => display_tuple(indent, exprs)?,
             ExprKind::UnOp(op, expr) => display_un_op(indent, *op, expr)?,
@@ -846,14 +846,13 @@ fn display_string(mut indent: Indented<Formatter>, components: &[StringComponent
     Ok(())
 }
 
-fn display_tern_op(
+fn display_update_index(
     mut indent: Indented<Formatter>,
-    op: TernOp,
     expr1: &Expr,
     expr2: &Expr,
     expr3: &Expr,
 ) -> fmt::Result {
-    write!(indent, "TernOp ({op:?}):")?;
+    write!(indent, "UpdateIndex:")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr1}")?;
     write!(indent, "\n{expr2}")?;
@@ -1323,13 +1322,4 @@ pub enum BinOp {
     Sub,
     /// Bitwise XOR: `^^^`.
     XorB,
-}
-
-/// A ternary operator.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum TernOp {
-    /// Conditional: `a ? b | c`.
-    Cond,
-    /// Update array index: `a w/ b <- c`.
-    UpdateIndex,
 }

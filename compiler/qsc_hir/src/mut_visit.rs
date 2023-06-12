@@ -186,7 +186,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
                 }
             }
         }
-        ExprKind::TernOp(_, e1, e2, e3) => {
+        ExprKind::UpdateIndex(e1, e2, e3) => {
             vis.visit_expr(e1);
             vis.visit_expr(e2);
             vis.visit_expr(e3);
