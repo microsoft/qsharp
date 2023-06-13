@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
-use qsc::hir::{ty::Ty, visit::Visitor, CallableDecl, CallableKind};
+use qsc::hir::{ty::Ty, visit::Visitor, CallableKind, Item, ItemKind};
 
 #[derive(Debug, PartialEq)]
 pub struct Hover {
@@ -53,54 +53,43 @@ struct CallableFinder {
 }
 
 impl Visitor<'_> for CallableFinder {
-    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
-        if span_contains(decl.name.span, self.offset) {
-            let kind = match decl.kind {
-                CallableKind::Function => "function",
-                CallableKind::Operation => "operation",
-            };
+    fn visit_item(&mut self, item: &Item) {
+        if let ItemKind::Callable(decl) = &item.kind {
+            if span_contains(decl.name.span, self.offset) {
+                let kind = match decl.kind {
+                    CallableKind::Function => "function",
+                    CallableKind::Operation => "operation",
+                };
 
-            let chars = &['/', ' '];
-
-            let docs = decl
-                .doc_comments
-                .iter()
-                .map(|c| c.trim_start_matches(chars))
-                .collect::<Vec<_>>();
-            let mut doc_paragraph = String::new();
-            for line in docs {
-                doc_paragraph.push_str(line);
-                doc_paragraph.push('\n');
-            }
-
-            let header = format!(
-                "```qsharp
+                let header = format!(
+                    "```qsharp
 {} {}{} : {}
 ```
 
 {}
 
 ",
-                kind,
-                decl.name.name,
-                match &decl.input.ty {
-                    Ty::Tuple(items) => {
-                        // I'm just doing this so I can format Unit as ()
-                        if items.is_empty() {
-                            "()".to_string()
-                        } else {
-                            format!("{}", &decl.input.ty)
+                    kind,
+                    decl.name.name,
+                    match &decl.input.ty {
+                        Ty::Tuple(items) => {
+                            // I'm just doing this so I can format Unit as ()
+                            if items.is_empty() {
+                                "()".to_string()
+                            } else {
+                                format!("{}", &decl.input.ty)
+                            }
                         }
-                    }
-                    x => x.to_string(),
-                },
-                decl.output,
-                doc_paragraph
-            );
+                        x => x.to_string(),
+                    },
+                    decl.output,
+                    item.doc
+                );
 
-            self.header = Some(header);
-            self.start = decl.name.span.lo;
-            self.end = decl.name.span.hi;
+                self.header = Some(header);
+                self.start = decl.name.span.lo;
+                self.end = decl.name.span.hi;
+            }
         }
     }
 }

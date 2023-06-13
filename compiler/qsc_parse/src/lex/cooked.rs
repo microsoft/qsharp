@@ -18,6 +18,7 @@ use super::{
     raw::{self, Number, Single},
     Delim, InterpolatedEnding, InterpolatedStart, Radix,
 };
+use crate::keyword::Keyword;
 use enum_iterator::Sequence;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
@@ -88,8 +89,8 @@ pub(crate) enum TokenKind {
     ColonColon,
     /// `,`
     Comma,
-    /// A comment.
-    Comment,
+    /// A doc comment.
+    DocComment,
     /// `.`
     Dot,
     /// `..`
@@ -114,6 +115,8 @@ pub(crate) enum TokenKind {
     Ident,
     /// An integer literal.
     Int(Radix),
+    /// A keyword.
+    Keyword(Keyword),
     /// `<-`
     LArrow,
     /// `<`
@@ -156,7 +159,7 @@ impl Display for TokenKind {
             TokenKind::Colon => f.write_str("`:`"),
             TokenKind::ColonColon => f.write_str("`::`"),
             TokenKind::Comma => f.write_str("`,`"),
-            TokenKind::Comment => f.write_str("comment"),
+            TokenKind::DocComment => f.write_str("doc comment"),
             TokenKind::Dot => f.write_str("`.`"),
             TokenKind::DotDot => f.write_str("`..`"),
             TokenKind::DotDotDot => f.write_str("`...`"),
@@ -169,6 +172,7 @@ impl Display for TokenKind {
             TokenKind::Gte => f.write_str("`>=`"),
             TokenKind::Ident => f.write_str("identifier"),
             TokenKind::Int(_) => f.write_str("integer"),
+            TokenKind::Keyword(keyword) => write!(f, "keyword `{keyword}`"),
             TokenKind::LArrow => f.write_str("`<-`"),
             TokenKind::Lt => f.write_str("`<`"),
             TokenKind::Lte => f.write_str("`<=`"),
@@ -303,8 +307,10 @@ impl<'a> Lexer<'a> {
 
     fn cook(&mut self, token: &raw::Token) -> Result<Option<Token>, Error> {
         let kind = match token.kind {
-            raw::TokenKind::Whitespace => Ok(None),
-            raw::TokenKind::Comment => Ok(Some(TokenKind::Comment)),
+            raw::TokenKind::Comment(raw::CommentKind::Normal) | raw::TokenKind::Whitespace => {
+                Ok(None)
+            }
+            raw::TokenKind::Comment(raw::CommentKind::Doc) => Ok(Some(TokenKind::DocComment)),
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 Ok(Some(self.ident(ident)))
@@ -477,7 +483,10 @@ impl<'a> Lexer<'a> {
                     TokenKind::WSlash
                 }
             }
-            _ => TokenKind::Ident,
+            ident => ident
+                .parse()
+                .map(TokenKind::Keyword)
+                .unwrap_or(TokenKind::Ident),
         }
     }
 }

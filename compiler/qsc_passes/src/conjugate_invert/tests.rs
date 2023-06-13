@@ -44,7 +44,7 @@ fn conjugate_invert() {
         &expect![[r#"
             Package:
                 Item 0 [0-218] (Public):
-                    Namespace (Ident 33 [10-14] "Test"): Item 1, Item 2
+                    Namespace (Ident 31 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
                     Callable 0 [21-58] (operation):
@@ -52,49 +52,47 @@ fn conjugate_invert() {
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
                         functors: Adj
-                        body: SpecDecl 4 [21-58] (Body): Impl:
-                            Pat 5 [21-58] [Type Int]: Elided
-                            Block 6 [56-58]: <empty>
+                        body: SpecDecl 4 [21-58]: Impl:
+                            Block 5 [56-58]: <empty>
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
                 Item 2 [63-216] (Public):
                     Parent: 0
-                    Callable 7 [63-216] (operation):
-                        name: Ident 8 [73-74] "A"
-                        input: Pat 9 [74-76] [Type Unit]: Unit
+                    Callable 6 [63-216] (operation):
+                        name: Ident 7 [73-74] "A"
+                        input: Pat 8 [74-76] [Type Unit]: Unit
                         output: Unit
                         functors: empty set
-                        body: SpecDecl 10 [63-216] (Body): Impl:
-                            Pat 11 [63-216] [Type Unit]: Elided
-                            Block 12 [84-216] [Type Unit]:
-                                Stmt 13 [94-210]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 15 [101-148] [Type Unit]:
-                                        Stmt 16 [115-120]: Semi: Expr 17 [115-119] [Type Unit]: Call:
-                                            Expr 18 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 19 [117-118] [Type Int]: Lit: Int(1)
-                                        Stmt 20 [133-138]: Semi: Expr 21 [133-137] [Type Unit]: Call:
-                                            Expr 22 [133-134] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 23 [135-136] [Type Int]: Lit: Int(2)
-                                    Stmt 35 [0-0]: Local (Immutable):
-                                        Pat 36 [0-0] [Type Unit]: Bind: Ident 34 [0-0] "apply_res"
-                                        Expr _id_ [0-0] [Type Unit]: Expr Block: Block 24 [163-210] [Type Unit]:
-                                            Stmt 25 [177-182]: Semi: Expr 26 [177-181] [Type Unit]: Call:
-                                                Expr 27 [177-178] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 28 [179-180] [Type Int]: Lit: Int(3)
-                                            Stmt 29 [195-200]: Semi: Expr 30 [195-199] [Type Unit]: Call:
-                                                Expr 31 [195-196] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 32 [197-198] [Type Int]: Lit: Int(4)
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 15 [101-148] [Type Unit]:
-                                        Stmt 20 [133-138]: Semi: Expr 21 [133-137] [Type Unit]: Call:
+                        body: SpecDecl 9 [63-216]: Impl:
+                            Block 10 [84-216] [Type Unit]:
+                                Stmt 11 [94-210]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 13 [101-148] [Type Unit]:
+                                        Stmt 14 [115-120]: Semi: Expr 15 [115-119] [Type Unit]: Call:
+                                            Expr 16 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 17 [117-118] [Type Int]: Lit: Int(1)
+                                        Stmt 18 [133-138]: Semi: Expr 19 [133-137] [Type Unit]: Call:
+                                            Expr 20 [133-134] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 21 [135-136] [Type Int]: Lit: Int(2)
+                                    Stmt 33 [0-0]: Local (Immutable):
+                                        Pat 34 [0-0] [Type Unit]: Bind: Ident 32 [0-0] "apply_res"
+                                        Expr _id_ [0-0] [Type Unit]: Expr Block: Block 22 [163-210] [Type Unit]:
+                                            Stmt 23 [177-182]: Semi: Expr 24 [177-181] [Type Unit]: Call:
+                                                Expr 25 [177-178] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 26 [179-180] [Type Int]: Lit: Int(3)
+                                            Stmt 27 [195-200]: Semi: Expr 28 [195-199] [Type Unit]: Call:
+                                                Expr 29 [195-196] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 30 [197-198] [Type Int]: Lit: Int(4)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 13 [101-148] [Type Unit]:
+                                        Stmt 18 [133-138]: Semi: Expr 19 [133-137] [Type Unit]: Call:
                                             Expr _id_ [133-134] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                Expr 22 [133-134] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 23 [135-136] [Type Int]: Lit: Int(2)
-                                        Stmt 16 [115-120]: Semi: Expr 17 [115-119] [Type Unit]: Call:
+                                                Expr 20 [133-134] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 21 [135-136] [Type Int]: Lit: Int(2)
+                                        Stmt 14 [115-120]: Semi: Expr 15 [115-119] [Type Unit]: Call:
                                             Expr _id_ [115-116] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                Expr 18 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 19 [117-118] [Type Int]: Lit: Int(1)
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 34
+                                                Expr 16 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 17 [117-118] [Type Int]: Lit: Int(1)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 32
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -124,7 +122,7 @@ fn conjugate_invert_with_output() {
         &expect![[r#"
             Package:
                 Item 0 [0-254] (Public):
-                    Namespace (Ident 39 [10-14] "Test"): Item 1, Item 2
+                    Namespace (Ident 37 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
                     Callable 0 [21-58] (operation):
@@ -132,53 +130,51 @@ fn conjugate_invert_with_output() {
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
                         functors: Adj
-                        body: SpecDecl 4 [21-58] (Body): Impl:
-                            Pat 5 [21-58] [Type Int]: Elided
-                            Block 6 [56-58]: <empty>
+                        body: SpecDecl 4 [21-58]: Impl:
+                            Block 5 [56-58]: <empty>
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
                 Item 2 [63-252] (Public):
                     Parent: 0
-                    Callable 7 [63-252] (operation):
-                        name: Ident 8 [73-74] "A"
-                        input: Pat 9 [74-76] [Type Unit]: Unit
+                    Callable 6 [63-252] (operation):
+                        name: Ident 7 [73-74] "A"
+                        input: Pat 8 [74-76] [Type Unit]: Unit
                         output: Int
                         functors: empty set
-                        body: SpecDecl 10 [63-252] (Body): Impl:
-                            Pat 11 [63-252] [Type Unit]: Elided
-                            Block 12 [83-252] [Type Int]:
-                                Stmt 13 [93-234]: Local (Immutable):
-                                    Pat 14 [97-100] [Type Int]: Bind: Ident 15 [97-100] "val"
+                        body: SpecDecl 9 [63-252]: Impl:
+                            Block 10 [83-252] [Type Int]:
+                                Stmt 11 [93-234]: Local (Immutable):
+                                    Pat 12 [97-100] [Type Int]: Bind: Ident 13 [97-100] "val"
                                     Expr _id_ [0-0] [Type Int]: Expr Block: Block _id_ [0-0] [Type Int]:
-                                        Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 17 [110-157] [Type Unit]:
-                                            Stmt 18 [124-129]: Semi: Expr 19 [124-128] [Type Unit]: Call:
-                                                Expr 20 [124-125] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 21 [126-127] [Type Int]: Lit: Int(1)
-                                            Stmt 22 [142-147]: Semi: Expr 23 [142-146] [Type Unit]: Call:
-                                                Expr 24 [142-143] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 25 [144-145] [Type Int]: Lit: Int(2)
-                                        Stmt 41 [0-0]: Local (Immutable):
-                                            Pat 42 [0-0] [Type Int]: Bind: Ident 40 [0-0] "apply_res"
-                                            Expr _id_ [0-0] [Type Int]: Expr Block: Block 26 [172-233] [Type Int]:
-                                                Stmt 27 [186-191]: Semi: Expr 28 [186-190] [Type Unit]: Call:
-                                                    Expr 29 [186-187] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 30 [188-189] [Type Int]: Lit: Int(3)
-                                                Stmt 31 [204-209]: Semi: Expr 32 [204-208] [Type Unit]: Call:
-                                                    Expr 33 [204-205] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 34 [206-207] [Type Int]: Lit: Int(4)
-                                                Stmt 35 [222-223]: Expr: Expr 36 [222-223] [Type Int]: Lit: Int(7)
-                                        Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 17 [110-157] [Type Unit]:
-                                            Stmt 22 [142-147]: Semi: Expr 23 [142-146] [Type Unit]: Call:
+                                        Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 15 [110-157] [Type Unit]:
+                                            Stmt 16 [124-129]: Semi: Expr 17 [124-128] [Type Unit]: Call:
+                                                Expr 18 [124-125] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 19 [126-127] [Type Int]: Lit: Int(1)
+                                            Stmt 20 [142-147]: Semi: Expr 21 [142-146] [Type Unit]: Call:
+                                                Expr 22 [142-143] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 23 [144-145] [Type Int]: Lit: Int(2)
+                                        Stmt 39 [0-0]: Local (Immutable):
+                                            Pat 40 [0-0] [Type Int]: Bind: Ident 38 [0-0] "apply_res"
+                                            Expr _id_ [0-0] [Type Int]: Expr Block: Block 24 [172-233] [Type Int]:
+                                                Stmt 25 [186-191]: Semi: Expr 26 [186-190] [Type Unit]: Call:
+                                                    Expr 27 [186-187] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 28 [188-189] [Type Int]: Lit: Int(3)
+                                                Stmt 29 [204-209]: Semi: Expr 30 [204-208] [Type Unit]: Call:
+                                                    Expr 31 [204-205] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 32 [206-207] [Type Int]: Lit: Int(4)
+                                                Stmt 33 [222-223]: Expr: Expr 34 [222-223] [Type Int]: Lit: Int(7)
+                                        Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 15 [110-157] [Type Unit]:
+                                            Stmt 20 [142-147]: Semi: Expr 21 [142-146] [Type Unit]: Call:
                                                 Expr _id_ [142-143] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                    Expr 24 [142-143] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 25 [144-145] [Type Int]: Lit: Int(2)
-                                            Stmt 18 [124-129]: Semi: Expr 19 [124-128] [Type Unit]: Call:
+                                                    Expr 22 [142-143] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 23 [144-145] [Type Int]: Lit: Int(2)
+                                            Stmt 16 [124-129]: Semi: Expr 17 [124-128] [Type Unit]: Call:
                                                 Expr _id_ [124-125] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                    Expr 20 [124-125] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 21 [126-127] [Type Int]: Lit: Int(1)
-                                        Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Int]: Var: Local 40
-                                Stmt 37 [243-246]: Expr: Expr 38 [243-246] [Type Int]: Var: Local 15
+                                                    Expr 18 [124-125] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 19 [126-127] [Type Int]: Lit: Int(1)
+                                        Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Int]: Var: Local 38
+                                Stmt 35 [243-246]: Expr: Expr 36 [243-246] [Type Int]: Var: Local 13
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -213,7 +209,7 @@ fn nested_conjugate_invert() {
         &expect![[r#"
             Package:
                 Item 0 [0-357] (Public):
-                    Namespace (Ident 49 [10-14] "Test"): Item 1, Item 2
+                    Namespace (Ident 47 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
                     Callable 0 [21-58] (operation):
@@ -221,98 +217,96 @@ fn nested_conjugate_invert() {
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
                         functors: Adj
-                        body: SpecDecl 4 [21-58] (Body): Impl:
-                            Pat 5 [21-58] [Type Int]: Elided
-                            Block 6 [56-58]: <empty>
+                        body: SpecDecl 4 [21-58]: Impl:
+                            Block 5 [56-58]: <empty>
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
                 Item 2 [63-355] (Public):
                     Parent: 0
-                    Callable 7 [63-355] (operation):
-                        name: Ident 8 [73-74] "A"
-                        input: Pat 9 [74-76] [Type Unit]: Unit
+                    Callable 6 [63-355] (operation):
+                        name: Ident 7 [73-74] "A"
+                        input: Pat 8 [74-76] [Type Unit]: Unit
                         output: Unit
                         functors: empty set
-                        body: SpecDecl 10 [63-355] (Body): Impl:
-                            Pat 11 [63-355] [Type Unit]: Elided
-                            Block 12 [84-355] [Type Unit]:
-                                Stmt 13 [94-349]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 15 [101-287] [Type Unit]:
-                                        Stmt 16 [115-120]: Semi: Expr 17 [115-119] [Type Unit]: Call:
-                                            Expr 18 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 19 [117-118] [Type Int]: Lit: Int(0)
-                                        Stmt 20 [133-277]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
-                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 22 [140-199] [Type Unit]:
-                                                Stmt 23 [158-163]: Semi: Expr 24 [158-162] [Type Unit]: Call:
-                                                    Expr 25 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 26 [160-161] [Type Int]: Lit: Int(1)
-                                                Stmt 27 [180-185]: Semi: Expr 28 [180-184] [Type Unit]: Call:
-                                                    Expr 29 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 30 [182-183] [Type Int]: Lit: Int(2)
-                                            Stmt 54 [0-0]: Local (Immutable):
-                                                Pat 55 [0-0] [Type Unit]: Bind: Ident 53 [0-0] "apply_res"
-                                                Expr _id_ [0-0] [Type Unit]: Expr Block: Block 31 [218-277] [Type Unit]:
-                                                    Stmt 32 [236-241]: Semi: Expr 33 [236-240] [Type Unit]: Call:
-                                                        Expr 34 [236-237] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                        Expr 35 [238-239] [Type Int]: Lit: Int(3)
-                                                    Stmt 36 [258-263]: Semi: Expr 37 [258-262] [Type Unit]: Call:
-                                                        Expr 38 [258-259] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                        Expr 39 [260-261] [Type Int]: Lit: Int(4)
-                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 22 [140-199] [Type Unit]:
-                                                Stmt 27 [180-185]: Semi: Expr 28 [180-184] [Type Unit]: Call:
+                        body: SpecDecl 9 [63-355]: Impl:
+                            Block 10 [84-355] [Type Unit]:
+                                Stmt 11 [94-349]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 13 [101-287] [Type Unit]:
+                                        Stmt 14 [115-120]: Semi: Expr 15 [115-119] [Type Unit]: Call:
+                                            Expr 16 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 17 [117-118] [Type Int]: Lit: Int(0)
+                                        Stmt 18 [133-277]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
+                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 20 [140-199] [Type Unit]:
+                                                Stmt 21 [158-163]: Semi: Expr 22 [158-162] [Type Unit]: Call:
+                                                    Expr 23 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 24 [160-161] [Type Int]: Lit: Int(1)
+                                                Stmt 25 [180-185]: Semi: Expr 26 [180-184] [Type Unit]: Call:
+                                                    Expr 27 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 28 [182-183] [Type Int]: Lit: Int(2)
+                                            Stmt 52 [0-0]: Local (Immutable):
+                                                Pat 53 [0-0] [Type Unit]: Bind: Ident 51 [0-0] "apply_res"
+                                                Expr _id_ [0-0] [Type Unit]: Expr Block: Block 29 [218-277] [Type Unit]:
+                                                    Stmt 30 [236-241]: Semi: Expr 31 [236-240] [Type Unit]: Call:
+                                                        Expr 32 [236-237] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                        Expr 33 [238-239] [Type Int]: Lit: Int(3)
+                                                    Stmt 34 [258-263]: Semi: Expr 35 [258-262] [Type Unit]: Call:
+                                                        Expr 36 [258-259] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                        Expr 37 [260-261] [Type Int]: Lit: Int(4)
+                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 20 [140-199] [Type Unit]:
+                                                Stmt 25 [180-185]: Semi: Expr 26 [180-184] [Type Unit]: Call:
                                                     Expr _id_ [180-181] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                        Expr 29 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 30 [182-183] [Type Int]: Lit: Int(2)
-                                                Stmt 23 [158-163]: Semi: Expr 24 [158-162] [Type Unit]: Call:
+                                                        Expr 27 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 28 [182-183] [Type Int]: Lit: Int(2)
+                                                Stmt 21 [158-163]: Semi: Expr 22 [158-162] [Type Unit]: Call:
                                                     Expr _id_ [158-159] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                        Expr 25 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 26 [160-161] [Type Int]: Lit: Int(1)
-                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 53
-                                    Stmt 51 [0-0]: Local (Immutable):
-                                        Pat 52 [0-0] [Type Unit]: Bind: Ident 50 [0-0] "apply_res"
-                                        Expr _id_ [0-0] [Type Unit]: Expr Block: Block 40 [302-349] [Type Unit]:
-                                            Stmt 41 [316-321]: Semi: Expr 42 [316-320] [Type Unit]: Call:
-                                                Expr 43 [316-317] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 44 [318-319] [Type Int]: Lit: Int(5)
-                                            Stmt 45 [334-339]: Semi: Expr 46 [334-338] [Type Unit]: Call:
-                                                Expr 47 [334-335] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 48 [336-337] [Type Int]: Lit: Int(6)
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 15 [101-287] [Type Unit]:
-                                        Stmt 20 [133-277]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
-                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 22 [140-199] [Type Unit]:
-                                                Stmt 23 [158-163]: Semi: Expr 24 [158-162] [Type Unit]: Call:
-                                                    Expr 25 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 26 [160-161] [Type Int]: Lit: Int(1)
-                                                Stmt 27 [180-185]: Semi: Expr 28 [180-184] [Type Unit]: Call:
-                                                    Expr 29 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 30 [182-183] [Type Int]: Lit: Int(2)
-                                            Stmt 57 [0-0]: Local (Immutable):
-                                                Pat 58 [0-0] [Type Unit]: Bind: Ident 56 [0-0] "apply_res"
-                                                Expr _id_ [0-0] [Type Unit]: Expr Block: Block 31 [218-277] [Type Unit]:
-                                                    Stmt 36 [258-263]: Semi: Expr 37 [258-262] [Type Unit]: Call:
+                                                        Expr 23 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 24 [160-161] [Type Int]: Lit: Int(1)
+                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 51
+                                    Stmt 49 [0-0]: Local (Immutable):
+                                        Pat 50 [0-0] [Type Unit]: Bind: Ident 48 [0-0] "apply_res"
+                                        Expr _id_ [0-0] [Type Unit]: Expr Block: Block 38 [302-349] [Type Unit]:
+                                            Stmt 39 [316-321]: Semi: Expr 40 [316-320] [Type Unit]: Call:
+                                                Expr 41 [316-317] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 42 [318-319] [Type Int]: Lit: Int(5)
+                                            Stmt 43 [334-339]: Semi: Expr 44 [334-338] [Type Unit]: Call:
+                                                Expr 45 [334-335] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 46 [336-337] [Type Int]: Lit: Int(6)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 13 [101-287] [Type Unit]:
+                                        Stmt 18 [133-277]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
+                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 20 [140-199] [Type Unit]:
+                                                Stmt 21 [158-163]: Semi: Expr 22 [158-162] [Type Unit]: Call:
+                                                    Expr 23 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 24 [160-161] [Type Int]: Lit: Int(1)
+                                                Stmt 25 [180-185]: Semi: Expr 26 [180-184] [Type Unit]: Call:
+                                                    Expr 27 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 28 [182-183] [Type Int]: Lit: Int(2)
+                                            Stmt 55 [0-0]: Local (Immutable):
+                                                Pat 56 [0-0] [Type Unit]: Bind: Ident 54 [0-0] "apply_res"
+                                                Expr _id_ [0-0] [Type Unit]: Expr Block: Block 29 [218-277] [Type Unit]:
+                                                    Stmt 34 [258-263]: Semi: Expr 35 [258-262] [Type Unit]: Call:
                                                         Expr _id_ [258-259] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                            Expr 38 [258-259] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                        Expr 39 [260-261] [Type Int]: Lit: Int(4)
-                                                    Stmt 32 [236-241]: Semi: Expr 33 [236-240] [Type Unit]: Call:
+                                                            Expr 36 [258-259] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                        Expr 37 [260-261] [Type Int]: Lit: Int(4)
+                                                    Stmt 30 [236-241]: Semi: Expr 31 [236-240] [Type Unit]: Call:
                                                         Expr _id_ [236-237] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                            Expr 34 [236-237] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                        Expr 35 [238-239] [Type Int]: Lit: Int(3)
-                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 22 [140-199] [Type Unit]:
-                                                Stmt 27 [180-185]: Semi: Expr 28 [180-184] [Type Unit]: Call:
+                                                            Expr 32 [236-237] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                        Expr 33 [238-239] [Type Int]: Lit: Int(3)
+                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 20 [140-199] [Type Unit]:
+                                                Stmt 25 [180-185]: Semi: Expr 26 [180-184] [Type Unit]: Call:
                                                     Expr _id_ [180-181] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                        Expr 29 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 30 [182-183] [Type Int]: Lit: Int(2)
-                                                Stmt 23 [158-163]: Semi: Expr 24 [158-162] [Type Unit]: Call:
+                                                        Expr 27 [180-181] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 28 [182-183] [Type Int]: Lit: Int(2)
+                                                Stmt 21 [158-163]: Semi: Expr 22 [158-162] [Type Unit]: Call:
                                                     Expr _id_ [158-159] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                        Expr 25 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                    Expr 26 [160-161] [Type Int]: Lit: Int(1)
-                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 56
-                                        Stmt 16 [115-120]: Semi: Expr 17 [115-119] [Type Unit]: Call:
+                                                        Expr 23 [158-159] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                    Expr 24 [160-161] [Type Int]: Lit: Int(1)
+                                            Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 54
+                                        Stmt 14 [115-120]: Semi: Expr 15 [115-119] [Type Unit]: Call:
                                             Expr _id_ [115-116] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                Expr 18 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 19 [117-118] [Type Int]: Lit: Int(0)
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 50
+                                                Expr 16 [115-116] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 17 [117-118] [Type Int]: Lit: Int(0)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 48
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],
@@ -483,7 +477,7 @@ fn conjugate_mutable_correct_use_succeeds() {
         &expect![[r#"
             Package:
                 Item 0 [0-314] (Public):
-                    Namespace (Ident 49 [10-14] "Test"): Item 1, Item 2
+                    Namespace (Ident 47 [10-14] "Test"): Item 1, Item 2
                 Item 1 [21-58] (Public):
                     Parent: 0
                     Callable 0 [21-58] (operation):
@@ -491,64 +485,62 @@ fn conjugate_mutable_correct_use_succeeds() {
                         input: Pat 2 [33-40] [Type Int]: Bind: Ident 3 [33-34] "i"
                         output: Unit
                         functors: Adj
-                        body: SpecDecl 4 [21-58] (Body): Impl:
-                            Pat 5 [21-58] [Type Int]: Elided
-                            Block 6 [56-58]: <empty>
+                        body: SpecDecl 4 [21-58]: Impl:
+                            Block 5 [56-58]: <empty>
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>
                 Item 2 [63-312] (Public):
                     Parent: 0
-                    Callable 7 [63-312] (operation):
-                        name: Ident 8 [73-74] "A"
-                        input: Pat 9 [74-76] [Type Unit]: Unit
+                    Callable 6 [63-312] (operation):
+                        name: Ident 7 [73-74] "A"
+                        input: Pat 8 [74-76] [Type Unit]: Unit
                         output: Unit
                         functors: empty set
-                        body: SpecDecl 10 [63-312] (Body): Impl:
-                            Pat 11 [63-312] [Type Unit]: Elided
-                            Block 12 [84-312] [Type Unit]:
-                                Stmt 13 [94-108]: Local (Mutable):
-                                    Pat 14 [102-103] [Type Int]: Bind: Ident 15 [102-103] "a"
-                                    Expr 16 [106-107] [Type Int]: Lit: Int(1)
-                                Stmt 17 [117-306]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 19 [124-194] [Type Unit]:
-                                        Stmt 20 [138-148]: Local (Immutable):
-                                            Pat 21 [142-143] [Type Int]: Bind: Ident 22 [142-143] "x"
-                                            Expr 23 [146-147] [Type Int]: Var: Local 15
-                                        Stmt 24 [161-166]: Semi: Expr 25 [161-165] [Type Unit]: Call:
-                                            Expr 26 [161-162] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 27 [163-164] [Type Int]: Lit: Int(1)
-                                        Stmt 28 [179-184]: Semi: Expr 29 [179-183] [Type Unit]: Call:
-                                            Expr 30 [179-180] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 31 [181-182] [Type Int]: Lit: Int(2)
-                                    Stmt 51 [0-0]: Local (Immutable):
-                                        Pat 52 [0-0] [Type Unit]: Bind: Ident 50 [0-0] "apply_res"
-                                        Expr _id_ [0-0] [Type Unit]: Expr Block: Block 32 [209-306] [Type Unit]:
-                                            Stmt 33 [223-237]: Local (Mutable):
-                                                Pat 34 [231-232] [Type Int]: Bind: Ident 35 [231-232] "b"
-                                                Expr 36 [235-236] [Type Int]: Var: Local 15
-                                            Stmt 37 [250-260]: Semi: Expr 38 [250-259] [Type Unit]: Assign:
-                                                Expr 39 [254-255] [Type Int]: Var: Local 35
-                                                Expr 40 [258-259] [Type Int]: Lit: Int(0)
-                                            Stmt 41 [273-278]: Semi: Expr 42 [273-277] [Type Unit]: Call:
-                                                Expr 43 [273-274] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 44 [275-276] [Type Int]: Lit: Int(3)
-                                            Stmt 45 [291-296]: Semi: Expr 46 [291-295] [Type Unit]: Call:
-                                                Expr 47 [291-292] [Type (Int => Unit is Adj)]: Var: Item 1
-                                                Expr 48 [293-294] [Type Int]: Lit: Int(4)
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 19 [124-194] [Type Unit]:
-                                        Stmt 20 [138-148]: Local (Immutable):
-                                            Pat 21 [142-143] [Type Int]: Bind: Ident 22 [142-143] "x"
-                                            Expr 23 [146-147] [Type Int]: Var: Local 15
-                                        Stmt 28 [179-184]: Semi: Expr 29 [179-183] [Type Unit]: Call:
+                        body: SpecDecl 9 [63-312]: Impl:
+                            Block 10 [84-312] [Type Unit]:
+                                Stmt 11 [94-108]: Local (Mutable):
+                                    Pat 12 [102-103] [Type Int]: Bind: Ident 13 [102-103] "a"
+                                    Expr 14 [106-107] [Type Int]: Lit: Int(1)
+                                Stmt 15 [117-306]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block _id_ [0-0] [Type Unit]:
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 17 [124-194] [Type Unit]:
+                                        Stmt 18 [138-148]: Local (Immutable):
+                                            Pat 19 [142-143] [Type Int]: Bind: Ident 20 [142-143] "x"
+                                            Expr 21 [146-147] [Type Int]: Var: Local 13
+                                        Stmt 22 [161-166]: Semi: Expr 23 [161-165] [Type Unit]: Call:
+                                            Expr 24 [161-162] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 25 [163-164] [Type Int]: Lit: Int(1)
+                                        Stmt 26 [179-184]: Semi: Expr 27 [179-183] [Type Unit]: Call:
+                                            Expr 28 [179-180] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 29 [181-182] [Type Int]: Lit: Int(2)
+                                    Stmt 49 [0-0]: Local (Immutable):
+                                        Pat 50 [0-0] [Type Unit]: Bind: Ident 48 [0-0] "apply_res"
+                                        Expr _id_ [0-0] [Type Unit]: Expr Block: Block 30 [209-306] [Type Unit]:
+                                            Stmt 31 [223-237]: Local (Mutable):
+                                                Pat 32 [231-232] [Type Int]: Bind: Ident 33 [231-232] "b"
+                                                Expr 34 [235-236] [Type Int]: Var: Local 13
+                                            Stmt 35 [250-260]: Semi: Expr 36 [250-259] [Type Unit]: Assign:
+                                                Expr 37 [254-255] [Type Int]: Var: Local 33
+                                                Expr 38 [258-259] [Type Int]: Lit: Int(0)
+                                            Stmt 39 [273-278]: Semi: Expr 40 [273-277] [Type Unit]: Call:
+                                                Expr 41 [273-274] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 42 [275-276] [Type Int]: Lit: Int(3)
+                                            Stmt 43 [291-296]: Semi: Expr 44 [291-295] [Type Unit]: Call:
+                                                Expr 45 [291-292] [Type (Int => Unit is Adj)]: Var: Item 1
+                                                Expr 46 [293-294] [Type Int]: Lit: Int(4)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Expr Block: Block 17 [124-194] [Type Unit]:
+                                        Stmt 18 [138-148]: Local (Immutable):
+                                            Pat 19 [142-143] [Type Int]: Bind: Ident 20 [142-143] "x"
+                                            Expr 21 [146-147] [Type Int]: Var: Local 13
+                                        Stmt 26 [179-184]: Semi: Expr 27 [179-183] [Type Unit]: Call:
                                             Expr _id_ [179-180] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                Expr 30 [179-180] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 31 [181-182] [Type Int]: Lit: Int(2)
-                                        Stmt 24 [161-166]: Semi: Expr 25 [161-165] [Type Unit]: Call:
+                                                Expr 28 [179-180] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 29 [181-182] [Type Int]: Lit: Int(2)
+                                        Stmt 22 [161-166]: Semi: Expr 23 [161-165] [Type Unit]: Call:
                                             Expr _id_ [161-162] [Type (Int => Unit is Adj)]: UnOp (Functor Adj):
-                                                Expr 26 [161-162] [Type (Int => Unit is Adj)]: Var: Item 1
-                                            Expr 27 [163-164] [Type Int]: Lit: Int(1)
-                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 50
+                                                Expr 24 [161-162] [Type (Int => Unit is Adj)]: Var: Item 1
+                                            Expr 25 [163-164] [Type Int]: Lit: Int(1)
+                                    Stmt _id_ [0-0]: Expr: Expr _id_ [0-0] [Type Unit]: Var: Local 48
                         adj: <none>
                         ctl: <none>
                         ctl-adj: <none>"#]],

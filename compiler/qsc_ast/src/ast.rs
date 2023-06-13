@@ -103,6 +103,8 @@ pub struct Namespace {
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The documentation.
+    pub doc: Rc<str>,
     /// The namespace name.
     pub name: Box<Ident>,
     /// The items in the namespace.
@@ -118,20 +120,31 @@ impl Display for Namespace {
             self.id, self.span, self.name
         )?;
         indent = set_indentation(indent, 1);
+
+        if !self.doc.is_empty() {
+            write!(indent, "\ndoc:")?;
+            indent = set_indentation(indent, 2);
+            write!(indent, "\n{}", self.doc)?;
+            indent = set_indentation(indent, 1);
+        }
+
         for i in self.items.iter() {
             write!(indent, "\n{i}")?;
         }
+
         Ok(())
     }
 }
 
 /// An item.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Item {
     /// The ID.
     pub id: NodeId,
     /// The span.
     pub span: Span,
+    /// The documentation.
+    pub doc: Rc<str>,
     /// The attributes.
     pub attrs: Box<[Box<Attr>]>,
     /// The visibility.
@@ -140,17 +153,40 @@ pub struct Item {
     pub kind: Box<ItemKind>,
 }
 
+impl Default for Item {
+    fn default() -> Self {
+        Self {
+            id: NodeId::default(),
+            span: Span::default(),
+            doc: "".into(),
+            attrs: Box::default(),
+            visibility: None,
+            kind: Box::default(),
+        }
+    }
+}
+
 impl Display for Item {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Item {} {}:", self.id, self.span)?;
         indent = set_indentation(indent, 1);
+
+        if !self.doc.is_empty() {
+            write!(indent, "\ndoc:")?;
+            indent = set_indentation(indent, 2);
+            write!(indent, "\n{}", self.doc)?;
+            indent = set_indentation(indent, 1);
+        }
+
         for attr in self.attrs.iter() {
             write!(indent, "\n{attr}")?;
         }
+
         if let Some(visibility) = &self.visibility {
             write!(indent, "\n{visibility}")?;
         }
+
         write!(indent, "\n{}", self.kind)?;
         Ok(())
     }
@@ -295,8 +331,6 @@ pub struct CallableDecl {
     pub span: Span,
     /// The callable kind.
     pub kind: CallableKind,
-    /// The doc comments for the callable.
-    pub doc_comments: Vec<String>,
     /// The name of the callable.
     pub name: Box<Ident>,
     /// The generic parameters to the callable.
@@ -571,7 +605,6 @@ impl Display for Stmt {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum StmtKind {
     /// An empty statement.
-    #[default]
     Empty,
     /// An expression without a trailing semicolon.
     Expr(Box<Expr>),
@@ -583,6 +616,9 @@ pub enum StmtKind {
     Qubit(QubitSource, Box<Pat>, Box<QubitInit>, Option<Box<Block>>),
     /// An expression with a trailing semicolon.
     Semi(Box<Expr>),
+    /// An invalid statement.
+    #[default]
+    Err,
 }
 
 impl Display for StmtKind {
@@ -608,6 +644,7 @@ impl Display for StmtKind {
                 }
             }
             StmtKind::Semi(e) => write!(indent, "Semi: {e}")?,
+            StmtKind::Err => indent.write_str("Err")?,
         }
         Ok(())
     }

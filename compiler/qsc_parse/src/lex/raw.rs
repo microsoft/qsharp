@@ -34,7 +34,7 @@ pub(super) struct Token {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub(crate) enum TokenKind {
-    Comment,
+    Comment(CommentKind),
     Ident,
     Number(Number),
     Single(Single),
@@ -46,7 +46,8 @@ pub(crate) enum TokenKind {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            TokenKind::Comment => f.write_str("comment"),
+            TokenKind::Comment(CommentKind::Normal) => f.write_str("comment"),
+            TokenKind::Comment(CommentKind::Doc) => f.write_str("doc comment"),
             TokenKind::Ident => f.write_str("identifier"),
             TokenKind::Number(Number::BigInt(_)) => f.write_str("big integer"),
             TokenKind::Number(Number::Float) => f.write_str("float"),
@@ -160,6 +161,12 @@ enum StringKind {
     Interpolated,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub(crate) enum CommentKind {
+    Normal,
+    Doc,
+}
+
 #[derive(Clone)]
 pub(super) struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
@@ -205,12 +212,19 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn comment(&mut self, c: char) -> bool {
+    fn comment(&mut self, c: char) -> Option<CommentKind> {
         if c == '/' && self.next_if_eq('/') {
+            let kind = if self.first() == Some('/') && self.second() != Some('/') {
+                self.chars.next();
+                CommentKind::Doc
+            } else {
+                CommentKind::Normal
+            };
+
             self.eat_while(|c| c != '\n');
-            true
+            Some(kind)
         } else {
-            false
+            None
         }
     }
 
@@ -361,8 +375,8 @@ impl Iterator for Lexer<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let (offset, c) = self.chars.next()?;
-        let kind = if self.comment(c) {
-            TokenKind::Comment
+        let kind = if let Some(kind) = self.comment(c) {
+            TokenKind::Comment(kind)
         } else if self.whitespace(c) {
             TokenKind::Whitespace
         } else if self.ident(c) {

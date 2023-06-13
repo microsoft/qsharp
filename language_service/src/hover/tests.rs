@@ -22,7 +22,6 @@ fn hover_callable() {
 
         Doc comment!
 
-
         "#
         )),
     );

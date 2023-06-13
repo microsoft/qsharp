@@ -42,7 +42,7 @@ impl Checker {
             PatKind::Bind(ident) => {
                 self.mutable.insert(ident.id);
             }
-            PatKind::Discard | PatKind::Elided => {}
+            PatKind::Discard => {}
             PatKind::Tuple(tup) => {
                 for pat in tup {
                     self.track_pat(pat);

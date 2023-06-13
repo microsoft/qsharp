@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{attr, item, namespaces, spec_decl};
+use super::{parse, parse_attr, parse_namespaces, parse_spec_decl};
 use crate::tests::{check, check_vec};
 use expect_test::expect;
 
 #[test]
 fn body_intrinsic() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "body intrinsic;",
         &expect!["SpecDecl _id_ [0-15] (Body): Gen: Intrinsic"],
     );
@@ -17,7 +17,7 @@ fn body_intrinsic() {
 #[test]
 fn adjoint_self() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "adjoint self;",
         &expect!["SpecDecl _id_ [0-13] (Adj): Gen: Slf"],
     );
@@ -26,7 +26,7 @@ fn adjoint_self() {
 #[test]
 fn adjoint_invert() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "adjoint invert;",
         &expect!["SpecDecl _id_ [0-15] (Adj): Gen: Invert"],
     );
@@ -35,7 +35,7 @@ fn adjoint_invert() {
 #[test]
 fn controlled_distribute() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "controlled distribute;",
         &expect!["SpecDecl _id_ [0-22] (Ctl): Gen: Distribute"],
     );
@@ -44,7 +44,7 @@ fn controlled_distribute() {
 #[test]
 fn controlled_adjoint_auto() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "controlled adjoint auto;",
         &expect!["SpecDecl _id_ [0-24] (CtlAdj): Gen: Auto"],
     );
@@ -53,19 +53,17 @@ fn controlled_adjoint_auto() {
 #[test]
 fn spec_gen_missing_semi() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "body intrinsic",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Semi,
-                        Eof,
-                        Span {
-                            lo: 14,
-                            hi: 14,
-                        },
-                    ),
+            Error(
+                Token(
+                    Semi,
+                    Eof,
+                    Span {
+                        lo: 14,
+                        hi: 14,
+                    },
                 ),
             )
         "#]],
@@ -75,21 +73,19 @@ fn spec_gen_missing_semi() {
 #[test]
 fn spec_invalid_gen() {
     check(
-        spec_decl,
+        parse_spec_decl,
         "adjoint foo;",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Open(
-                            Brace,
-                        ),
-                        Semi,
-                        Span {
-                            lo: 11,
-                            hi: 12,
-                        },
+            Error(
+                Token(
+                    Open(
+                        Brace,
                     ),
+                    Semi,
+                    Span {
+                        lo: 11,
+                        hi: 12,
+                    },
                 ),
             )
         "#]],
@@ -99,7 +95,7 @@ fn spec_invalid_gen() {
 #[test]
 fn open_no_alias() {
     check(
-        item,
+        parse,
         "open Foo.Bar.Baz;",
         &expect![[r#"
             Item _id_ [0-17]:
@@ -110,7 +106,7 @@ fn open_no_alias() {
 #[test]
 fn open_alias() {
     check(
-        item,
+        parse,
         "open Foo.Bar.Baz as Baz;",
         &expect![[r#"
             Item _id_ [0-24]:
@@ -121,7 +117,7 @@ fn open_alias() {
 #[test]
 fn open_alias_dot() {
     check(
-        item,
+        parse,
         "open Foo.Bar.Baz as Bar.Baz;",
         &expect![[r#"
             Item _id_ [0-28]:
@@ -132,7 +128,7 @@ fn open_alias_dot() {
 #[test]
 fn ty_decl() {
     check(
-        item,
+        parse,
         "newtype Foo = Unit;",
         &expect![[r#"
             Item _id_ [0-19]:
@@ -144,7 +140,7 @@ fn ty_decl() {
 #[test]
 fn ty_decl_field_name() {
     check(
-        item,
+        parse,
         "newtype Foo = Bar : Int;",
         &expect![[r#"
             Item _id_ [0-24]:
@@ -155,21 +151,36 @@ fn ty_decl_field_name() {
 }
 
 #[test]
+fn ty_decl_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        newtype Foo = Int;",
+        &expect![[r#"
+            Item _id_ [0-65]:
+                doc:
+                    This is a
+                    doc comment.
+                New Type (Ident _id_ [55-58] "Foo"): TyDef _id_ [61-64]: Field:
+                    Type _id_ [61-64]: Path: Path _id_ [61-64] (Ident _id_ [61-64] "Int")"#]],
+    );
+}
+
+#[test]
 fn ty_def_invalid_field_name() {
     check(
-        item,
+        parse,
         "newtype Foo = Bar.Baz : Int[];",
         &expect![[r#"
-            Err(
-                Error(
-                    Convert(
-                        "identifier",
-                        "type",
-                        Span {
-                            lo: 14,
-                            hi: 21,
-                        },
-                    ),
+            Error(
+                Convert(
+                    "identifier",
+                    "type",
+                    Span {
+                        lo: 14,
+                        hi: 21,
+                    },
                 ),
             )
         "#]],
@@ -179,7 +190,7 @@ fn ty_def_invalid_field_name() {
 #[test]
 fn ty_def_tuple() {
     check(
-        item,
+        parse,
         "newtype Foo = (Int, Int);",
         &expect![[r#"
             Item _id_ [0-25]:
@@ -194,7 +205,7 @@ fn ty_def_tuple() {
 #[test]
 fn ty_def_tuple_one_named() {
     check(
-        item,
+        parse,
         "newtype Foo = (X : Int, Int);",
         &expect![[r#"
             Item _id_ [0-29]:
@@ -210,7 +221,7 @@ fn ty_def_tuple_one_named() {
 #[test]
 fn ty_def_tuple_both_named() {
     check(
-        item,
+        parse,
         "newtype Foo = (X : Int, Y : Int);",
         &expect![[r#"
             Item _id_ [0-33]:
@@ -227,7 +238,7 @@ fn ty_def_tuple_both_named() {
 #[test]
 fn ty_def_nested_tuple() {
     check(
-        item,
+        parse,
         "newtype Foo = ((X : Int, Y : Int), Z : Int);",
         &expect![[r#"
             Item _id_ [0-44]:
@@ -248,7 +259,7 @@ fn ty_def_nested_tuple() {
 #[test]
 fn ty_def_tuple_with_name() {
     check(
-        item,
+        parse,
         "newtype Foo = Pair : (Int, Int);",
         &expect![[r#"
             Item _id_ [0-32]:
@@ -263,7 +274,7 @@ fn ty_def_tuple_with_name() {
 #[test]
 fn function_decl() {
     check(
-        item,
+        parse,
         "function Foo() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-41]:
@@ -277,9 +288,29 @@ fn function_decl() {
 }
 
 #[test]
+fn function_decl_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        function Foo() : () {}",
+        &expect![[r#"
+            Item _id_ [0-69]:
+                doc:
+                    This is a
+                    doc comment.
+                Callable _id_ [47-69] (Function):
+                    name: Ident _id_ [56-59] "Foo"
+                    input: Pat _id_ [59-61]: Unit
+                    output: Type _id_ [64-66]: Unit
+                    body: Block: Block _id_ [67-69]: <empty>"#]],
+    );
+}
+
+#[test]
 fn operation_decl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-42]:
@@ -293,9 +324,29 @@ fn operation_decl() {
 }
 
 #[test]
+fn operation_decl_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        operation Foo() : () {}",
+        &expect![[r#"
+            Item _id_ [0-70]:
+                doc:
+                    This is a
+                    doc comment.
+                Callable _id_ [47-70] (Operation):
+                    name: Ident _id_ [57-60] "Foo"
+                    input: Pat _id_ [60-62]: Unit
+                    output: Type _id_ [65-67]: Unit
+                    body: Block: Block _id_ [68-70]: <empty>"#]],
+    );
+}
+
+#[test]
 fn function_one_param() {
     check(
-        item,
+        parse,
         "function Foo(x : Int) : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-48]:
@@ -314,7 +365,7 @@ fn function_one_param() {
 #[test]
 fn function_two_params() {
     check(
-        item,
+        parse,
         "function Foo(x : Int, y : Int) : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-57]:
@@ -336,7 +387,7 @@ fn function_two_params() {
 #[test]
 fn function_one_ty_param() {
     check(
-        item,
+        parse,
         "function Foo<'T>() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-45]:
@@ -354,7 +405,7 @@ fn function_one_ty_param() {
 #[test]
 fn function_two_ty_params() {
     check(
-        item,
+        parse,
         "function Foo<'T, 'U>() : Unit { body intrinsic; }",
         &expect![[r#"
             Item _id_ [0-49]:
@@ -373,7 +424,7 @@ fn function_two_ty_params() {
 #[test]
 fn function_single_impl() {
     check(
-        item,
+        parse,
         "function Foo(x : Int) : Int { let y = x; y }",
         &expect![[r#"
             Item _id_ [0-44]:
@@ -396,7 +447,7 @@ fn function_single_impl() {
 #[test]
 fn operation_body_impl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body (...) { x } }",
         &expect![[r#"
             Item _id_ [0-43]:
@@ -416,7 +467,7 @@ fn operation_body_impl() {
 #[test]
 fn operation_body_ctl_impl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body (...) { x } controlled (cs, ...) { y } }",
         &expect![[r#"
             Item _id_ [0-70]:
@@ -443,7 +494,7 @@ fn operation_body_ctl_impl() {
 #[test]
 fn operation_impl_and_gen() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit { body (...) { x } adjoint self; }",
         &expect![[r#"
             Item _id_ [0-57]:
@@ -464,7 +515,7 @@ fn operation_impl_and_gen() {
 #[test]
 fn operation_is_adj() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit is Adj {}",
         &expect![[r#"
             Item _id_ [0-32]:
@@ -480,7 +531,7 @@ fn operation_is_adj() {
 #[test]
 fn operation_is_adj_ctl() {
     check(
-        item,
+        parse,
         "operation Foo() : Unit is Adj + Ctl {}",
         &expect![[r#"
             Item _id_ [0-38]:
@@ -496,21 +547,19 @@ fn operation_is_adj_ctl() {
 #[test]
 fn function_missing_output_ty() {
     check(
-        item,
+        parse,
         "function Foo() { body intrinsic; }",
         &expect![[r#"
-            Err(
-                Error(
-                    Token(
-                        Colon,
-                        Open(
-                            Brace,
-                        ),
-                        Span {
-                            lo: 15,
-                            hi: 16,
-                        },
+            Error(
+                Token(
+                    Colon,
+                    Open(
+                        Brace,
                     ),
+                    Span {
+                        lo: 15,
+                        hi: 16,
+                    },
                 ),
             )
         "#]],
@@ -520,7 +569,7 @@ fn function_missing_output_ty() {
 #[test]
 fn internal_ty() {
     check(
-        item,
+        parse,
         "internal newtype Foo = Unit;",
         &expect![[r#"
             Item _id_ [0-28]:
@@ -533,7 +582,7 @@ fn internal_ty() {
 #[test]
 fn internal_function() {
     check(
-        item,
+        parse,
         "internal function Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-33]:
@@ -547,9 +596,30 @@ fn internal_function() {
 }
 
 #[test]
+fn internal_function_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        internal function Foo() : () {}",
+        &expect![[r#"
+            Item _id_ [0-78]:
+                doc:
+                    This is a
+                    doc comment.
+                Visibility _id_ [47-55] (Internal)
+                Callable _id_ [56-78] (Function):
+                    name: Ident _id_ [65-68] "Foo"
+                    input: Pat _id_ [68-70]: Unit
+                    output: Type _id_ [73-75]: Unit
+                    body: Block: Block _id_ [76-78]: <empty>"#]],
+    );
+}
+
+#[test]
 fn internal_operation() {
     check(
-        item,
+        parse,
         "internal operation Foo() : Unit {}",
         &expect![[r#"
             Item _id_ [0-34]:
@@ -565,7 +635,7 @@ fn internal_operation() {
 #[test]
 fn attr_no_args() {
     check(
-        attr,
+        parse_attr,
         "@Foo()",
         &expect![[r#"
             Attr _id_ [0-6] (Ident _id_ [1-4] "Foo"):
@@ -576,7 +646,7 @@ fn attr_no_args() {
 #[test]
 fn attr_single_arg() {
     check(
-        attr,
+        parse_attr,
         "@Foo(123)",
         &expect![[r#"
             Attr _id_ [0-9] (Ident _id_ [1-4] "Foo"):
@@ -587,7 +657,7 @@ fn attr_single_arg() {
 #[test]
 fn attr_two_args() {
     check(
-        attr,
+        parse_attr,
         "@Foo(123, \"bar\")",
         &expect![[r#"
             Attr _id_ [0-16] (Ident _id_ [1-4] "Foo"):
@@ -600,7 +670,7 @@ fn attr_two_args() {
 #[test]
 fn open_attr() {
     check(
-        item,
+        parse,
         "@Foo() open Bar;",
         &expect![[r#"
             Item _id_ [0-16]:
@@ -613,7 +683,7 @@ fn open_attr() {
 #[test]
 fn newtype_attr() {
     check(
-        item,
+        parse,
         "@Foo() newtype Bar = Unit;",
         &expect![[r#"
             Item _id_ [0-26]:
@@ -627,7 +697,7 @@ fn newtype_attr() {
 #[test]
 fn operation_one_attr() {
     check(
-        item,
+        parse,
         "@Foo() operation Bar() : Unit {}",
         &expect![[r#"
             Item _id_ [0-32]:
@@ -644,7 +714,7 @@ fn operation_one_attr() {
 #[test]
 fn operation_two_attrs() {
     check(
-        item,
+        parse,
         "@Foo() @Bar() operation Baz() : Unit {}",
         &expect![[r#"
             Item _id_ [0-39]:
@@ -661,9 +731,32 @@ fn operation_two_attrs() {
 }
 
 #[test]
+fn operation_attr_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        @Foo()
+        operation Bar() : () {}",
+        &expect![[r#"
+            Item _id_ [0-85]:
+                doc:
+                    This is a
+                    doc comment.
+                Attr _id_ [47-53] (Ident _id_ [48-51] "Foo"):
+                    Expr _id_ [51-53]: Unit
+                Callable _id_ [62-85] (Operation):
+                    name: Ident _id_ [72-75] "Bar"
+                    input: Pat _id_ [75-77]: Unit
+                    output: Type _id_ [80-82]: Unit
+                    body: Block: Block _id_ [83-85]: <empty>"#]],
+    );
+}
+
+#[test]
 fn namespace_function() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { function Foo() : Unit { body intrinsic; } }",
         &expect![[r#"
             Namespace _id_ [0-57] (Ident _id_ [10-11] "A"):
@@ -678,9 +771,32 @@ fn namespace_function() {
 }
 
 #[test]
+fn namespace_doc() {
+    check_vec(
+        parse_namespaces,
+        "/// This is a
+        /// doc comment.
+        namespace A {
+            function Foo() : () {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-105] (Ident _id_ [57-58] "A"):
+                doc:
+                    This is a
+                    doc comment.
+                Item _id_ [73-95]:
+                    Callable _id_ [73-95] (Function):
+                        name: Ident _id_ [82-85] "Foo"
+                        input: Pat _id_ [85-87]: Unit
+                        output: Type _id_ [90-92]: Unit
+                        body: Block: Block _id_ [93-95]: <empty>"#]],
+    );
+}
+
+#[test]
 fn two_namespaces() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A {} namespace B {}",
         &expect![[r#"
             Namespace _id_ [0-14] (Ident _id_ [10-11] "A"):,
@@ -689,9 +805,27 @@ fn two_namespaces() {
 }
 
 #[test]
+fn two_namespaces_docs() {
+    check_vec(
+        parse_namespaces,
+        "/// This is the first namespace.
+        namespace A {}
+        /// This is the second namespace.
+        namespace B {}",
+        &expect![[r#"
+            Namespace _id_ [0-55] (Ident _id_ [51-52] "A"):
+                doc:
+                    This is the first namespace.,
+            Namespace _id_ [64-120] (Ident _id_ [116-117] "B"):
+                doc:
+                    This is the second namespace."#]],
+    );
+}
+
+#[test]
 fn two_open_items() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { open B; open C; }",
         &expect![[r#"
             Namespace _id_ [0-31] (Ident _id_ [10-11] "A"):
@@ -705,7 +839,7 @@ fn two_open_items() {
 #[test]
 fn two_ty_items() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { newtype B = Unit; newtype C = Unit; }",
         &expect![[r#"
             Namespace _id_ [0-51] (Ident _id_ [10-11] "A"):
@@ -721,7 +855,7 @@ fn two_ty_items() {
 #[test]
 fn two_callable_items() {
     check_vec(
-        namespaces,
+        parse_namespaces,
         "namespace A { operation B() : Unit {} function C() : Unit {} }",
         &expect![[r#"
             Namespace _id_ [0-62] (Ident _id_ [10-11] "A"):
@@ -737,5 +871,199 @@ fn two_callable_items() {
                         input: Pat _id_ [48-50]: Unit
                         output: Type _id_ [53-57]: Path: Path _id_ [53-57] (Ident _id_ [53-57] "Unit")
                         body: Block: Block _id_ [58-60]: <empty>"#]],
+    );
+}
+
+#[test]
+fn two_callable_items_docs() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            /// This is the first callable.
+            function Foo() : () {}
+            /// This is the second callable.
+            operation Foo() : () {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-183] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-92]:
+                    doc:
+                        This is the first callable.
+                    Callable _id_ [70-92] (Function):
+                        name: Ident _id_ [79-82] "Foo"
+                        input: Pat _id_ [82-84]: Unit
+                        output: Type _id_ [87-89]: Unit
+                        body: Block: Block _id_ [90-92]: <empty>
+                Item _id_ [105-173]:
+                    doc:
+                        This is the second callable.
+                    Callable _id_ [150-173] (Operation):
+                        name: Ident _id_ [160-163] "Foo"
+                        input: Pat _id_ [163-165]: Unit
+                        output: Type _id_ [168-170]: Unit
+                        body: Block: Block _id_ [171-173]: <empty>"#]],
+    );
+}
+
+#[test]
+fn doc_without_item() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            /// This is a doc comment.
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-62] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-62]:
+                    Err
+
+            [
+                Error(
+                    Rule(
+                        "item",
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 61,
+                            hi: 62,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 62,
+                            hi: 62,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn recover_callable_item() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            function Foo() : Int { 5 }
+            function Bar() { 10 }
+            operation Baz() : Double { 2.0 }
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-141] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-52]:
+                    Callable _id_ [26-52] (Function):
+                        name: Ident _id_ [35-38] "Foo"
+                        input: Pat _id_ [38-40]: Unit
+                        output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
+                        body: Block: Block _id_ [47-52]:
+                            Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(5)
+                Item _id_ [65-86]:
+                    Err
+                Item _id_ [99-131]:
+                    Callable _id_ [99-131] (Operation):
+                        name: Ident _id_ [109-112] "Baz"
+                        input: Pat _id_ [112-114]: Unit
+                        output: Type _id_ [117-123]: Path: Path _id_ [117-123] (Ident _id_ [117-123] "Double")
+                        body: Block: Block _id_ [124-131]:
+                            Stmt _id_ [126-129]: Expr: Expr _id_ [126-129]: Lit: Double(2)
+
+            [
+                Error(
+                    Token(
+                        Colon,
+                        Open(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 80,
+                            hi: 81,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn recover_unclosed_callable_item() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            function Foo() : Int {",
+        &expect![[r#"
+            Namespace _id_ [0-48] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-48]:
+                    Callable _id_ [26-48] (Function):
+                        name: Ident _id_ [35-38] "Foo"
+                        input: Pat _id_ [38-40]: Unit
+                        output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
+                        body: Block: Block _id_ [47-48]: <empty>
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 48,
+                            hi: 48,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 48,
+                            hi: 48,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn recover_unclosed_namespace() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            function Foo() : Int { 2 }",
+        &expect![[r#"
+            Namespace _id_ [0-52] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-52]:
+                    Callable _id_ [26-52] (Function):
+                        name: Ident _id_ [35-38] "Foo"
+                        input: Pat _id_ [38-40]: Unit
+                        output: Type _id_ [43-46]: Path: Path _id_ [43-46] (Ident _id_ [43-46] "Int")
+                        body: Block: Block _id_ [47-52]:
+                            Stmt _id_ [49-50]: Expr: Expr _id_ [49-50]: Lit: Int(2)
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 52,
+                            hi: 52,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
