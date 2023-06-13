@@ -16,6 +16,7 @@ use super::{
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, recovering, recovering_token, shorten},
+    stmt::check_semis,
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -275,6 +276,7 @@ fn parse_callable_body(s: &mut Scanner) -> Result<CallableBody> {
         let specs = many(s, parse_spec_decl)?;
         if specs.is_empty() {
             let stmts = stmt::parse_many(s)?;
+            check_semis(&stmts)?;
             recovering_token(s, TokenKind::Close(Delim::Brace))?;
             Ok(CallableBody::Block(Box::new(Block {
                 id: NodeId::default(),
