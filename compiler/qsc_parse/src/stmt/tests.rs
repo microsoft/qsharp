@@ -498,6 +498,102 @@ fn expr_plus_if_no_semi() {
 }
 
 #[test]
+fn block_function() {
+    check(
+        parse_block,
+        "{
+            function Foo() : () {}
+        }",
+        &expect![[r#"
+            Block _id_ [0-46]:
+                Stmt _id_ [14-36]: Item: Item _id_ [14-36]:
+                    Callable _id_ [14-36] (Function):
+                        name: Ident _id_ [23-26] "Foo"
+                        input: Pat _id_ [26-28]: Unit
+                        output: Type _id_ [31-33]: Unit
+                        body: Block: Block _id_ [34-36]: <empty>"#]],
+    );
+}
+
+#[test]
+fn block_function_doc() {
+    check(
+        parse_block,
+        "{
+            /// This is a doc comment
+            function Foo() : () {}
+        }",
+        &expect![[r#"
+            Block _id_ [0-84]:
+                Stmt _id_ [14-74]: Item: Item _id_ [14-74]:
+                    doc:
+                        This is a doc comment
+                    Callable _id_ [52-74] (Function):
+                        name: Ident _id_ [61-64] "Foo"
+                        input: Pat _id_ [64-66]: Unit
+                        output: Type _id_ [69-71]: Unit
+                        body: Block: Block _id_ [72-74]: <empty>"#]],
+    );
+}
+
+#[test]
+fn doc_at_end_of_block() {
+    check(
+        parse_block,
+        "{
+            /// This is a doc comment.
+        }",
+        &expect![[r#"
+            Block _id_ [0-50]:
+                Stmt _id_ [14-40]: Err
+
+            [
+                Error(
+                    Rule(
+                        "item",
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 49,
+                            hi: 50,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn doc_followed_by_non_item() {
+    check(
+        parse_block,
+        "{
+            /// This is a doc comment
+            let x = 2;
+        }",
+        &expect![[r#"
+            Block _id_ [0-72]:
+                Stmt _id_ [14-62]: Err
+
+            [
+                Error(
+                    Rule(
+                        "item",
+                        Keyword(
+                            Let,
+                        ),
+                        Span {
+                            lo: 52,
+                            hi: 55,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
 fn recover_in_block() {
     check(
         parse_block,
