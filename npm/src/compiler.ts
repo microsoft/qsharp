@@ -38,7 +38,7 @@ export type ICompilerWorker = ICompiler & { terminate: () => void };
 function errToDiagnostic(err: any): VSDiagnostic {
   if (
     err &&
-    typeof err.severity === "number" &&
+    typeof err.severity === "string" &&
     typeof err.message === "string"
   ) {
     err.start_pos = err.start_pos || 0;
@@ -46,7 +46,7 @@ function errToDiagnostic(err: any): VSDiagnostic {
     return err;
   } else {
     return {
-      severity: 0,
+      severity: "error",
       message: err.toString(),
       start_pos: 0,
       end_pos: 0,

@@ -6,15 +6,15 @@ This VS Code extension contains:
   and basic syntactic features (brace matching, etc.).
 - Q# cell support in Jupyter Notebooks. The extension will detect `%%qsharp` magic cells
   and automatically update the cell language to Q#.
+- Error checking in Q# source files.
 
 To install locally:
 
-- Build the extension by running `build.py` or `build.py --vscode` from the repo root.
+- Build the extension by running `build.py` or `build.py --wasm --npm --vscode` from the repo root.
 - In VS Code, run command "Developer: Install Extension from Location..."
 - Select the `vscode` directory.
 
-This will enable the extension for all instances of VS Code, applying syntax highlighting to
-any .qs files that are opened.
+This will enable the extension for all instances of VS Code.
 
 To scope the extension to only a specific workspace (for example, the `qsharp` repo):
 

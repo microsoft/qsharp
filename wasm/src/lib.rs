@@ -178,7 +178,7 @@ export interface IDiagnostic {
     start_pos: number;
     end_pos: number;
     message: string;
-    severity: number; // [0, 1, 2] = [error, warning, info]
+    severity: "error" | "warning" | "info"
     code?: {
         value: number;  // Can also be a string, but number would be preferable
         target: string; // URI for more info - could be a custom URI for pretty errors
@@ -191,7 +191,7 @@ pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
     pub message: String,
-    pub severity: i32,
+    pub severity: String,
 }
 
 impl std::fmt::Display for VSDiagnostic {
@@ -217,7 +217,12 @@ where
         let label = err.labels().and_then(|mut ls| ls.next());
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         let len = label.as_ref().map_or(1, |lbl| lbl.len().max(1));
-        let severity = err.severity().unwrap_or(Severity::Error);
+        let severity = (match err.severity().unwrap_or(Severity::Error) {
+            Severity::Error => "error",
+            Severity::Warning => "warning",
+            Severity::Advice => "info",
+        })
+        .to_string();
 
         let mut pre_message = err.to_string();
         for source in iter::successors(err.source(), |e| e.source()) {
@@ -234,7 +239,7 @@ where
         VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
-            severity: severity as i32,
+            severity,
             message,
         }
     }
