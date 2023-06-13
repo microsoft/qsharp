@@ -9,10 +9,10 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        BinOp, Block, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PrimField, PrimTy, Stmt,
-        StmtKind, Ty, UnOp,
+        BinOp, Block, Expr, ExprKind, Lit, Mutability, NodeId, Pat, PrimField, Stmt, StmtKind, UnOp,
     },
     mut_visit::{walk_expr, MutVisitor},
+    ty::{GenericArg, Prim, Ty},
 };
 
 use crate::common::{create_gen_core_ref, IdentTemplate};
@@ -35,13 +35,13 @@ impl LoopUni<'_> {
     ) -> Expr {
         let cond_span = cond.span;
 
-        let continue_cond_id = self.gen_ident("continue_cond", Ty::Prim(PrimTy::Bool), cond_span);
+        let continue_cond_id = self.gen_ident("continue_cond", Ty::Prim(Prim::Bool), cond_span);
         let continue_cond_init = continue_cond_id.gen_id_init(
             Mutability::Mutable,
             Expr {
                 id: NodeId::default(),
                 span: cond_span,
-                ty: Ty::Prim(PrimTy::Bool),
+                ty: Ty::Prim(Prim::Bool),
                 kind: ExprKind::Lit(Lit::Bool(true)),
             },
         );
@@ -58,7 +58,7 @@ impl LoopUni<'_> {
                     Box::new(Expr {
                         id: NodeId::default(),
                         span: cond_span,
-                        ty: Ty::Prim(PrimTy::Bool),
+                        ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::UnOp(UnOp::NotL, cond),
                     }),
                 ),
@@ -119,9 +119,15 @@ impl LoopUni<'_> {
         let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
         let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable);
 
-        let len_callee =
-            create_gen_core_ref(self.core, "Microsoft.Quantum.Core", "Length", array_id.span);
-        let len_id = self.gen_ident("len_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let Ty::Array(item_ty) = &array_id.ty else { panic!("iterator should have array type"); };
+        let len_callee = create_gen_core_ref(
+            self.core,
+            "Microsoft.Quantum.Core",
+            "Length",
+            vec![GenericArg::Ty((**item_ty).clone())],
+            array_id.span,
+        );
+        let len_id = self.gen_ident("len_id", Ty::Prim(Prim::Int), iterable_span);
         let len_capture = len_id.gen_id_init(
             Mutability::Immutable,
             Expr {
@@ -132,13 +138,13 @@ impl LoopUni<'_> {
             },
         );
 
-        let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
         let index_init = index_id.gen_id_init(
             Mutability::Mutable,
             Expr {
                 id: NodeId::default(),
                 span: iterable_span,
-                ty: Ty::Prim(PrimTy::Int),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Lit(Lit::Int(0)),
             },
         );
@@ -167,7 +173,7 @@ impl LoopUni<'_> {
             Expr {
                 id: NodeId::default(),
                 span: iterable_span,
-                ty: Ty::Prim(PrimTy::Int),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Lit(Lit::Int(1)),
             },
         );
@@ -178,7 +184,7 @@ impl LoopUni<'_> {
         let cond = Expr {
             id: NodeId::default(),
             span: iterable_span,
-            ty: Ty::Prim(PrimTy::Bool),
+            ty: Ty::Prim(Prim::Bool),
             kind: ExprKind::BinOp(
                 BinOp::Lt,
                 Box::new(index_id.gen_local_ref()),
@@ -219,22 +225,22 @@ impl LoopUni<'_> {
     ) -> Expr {
         let iterable_span = iterable.span;
 
-        let range_id = self.gen_ident("range_id", Ty::Prim(PrimTy::Range), iterable_span);
+        let range_id = self.gen_ident("range_id", Ty::Prim(Prim::Range), iterable_span);
         let range_capture = range_id.gen_id_init(Mutability::Immutable, *iterable);
 
-        let index_id = self.gen_ident("index_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
         let index_init = index_id.gen_id_init(
             Mutability::Mutable,
             range_id.gen_field_access(PrimField::Start),
         );
 
-        let step_id = self.gen_ident("step_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let step_id = self.gen_ident("step_id", Ty::Prim(Prim::Int), iterable_span);
         let step_init = step_id.gen_id_init(
             Mutability::Immutable,
             range_id.gen_field_access(PrimField::Step),
         );
 
-        let end_id = self.gen_ident("end_id", Ty::Prim(PrimTy::Int), iterable_span);
+        let end_id = self.gen_ident("end_id", Ty::Prim(Prim::Int), iterable_span);
         let end_init = end_id.gen_id_init(
             Mutability::Immutable,
             range_id.gen_field_access(PrimField::End),
@@ -298,7 +304,7 @@ impl MutVisitor for LoopUni<'_> {
             ExprKind::For(iter, iterable, block) => {
                 match iterable.ty {
                     Ty::Array(_) => *expr = self.visit_for_array(iter, iterable, block, expr.span),
-                    Ty::Prim(PrimTy::Range) => {
+                    Ty::Prim(Prim::Range) => {
                         *expr = self.visit_for_range(iter, iterable, block, expr.span);
                     }
                     _ => {
@@ -321,26 +327,26 @@ fn gen_range_cond(
     Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Prim(PrimTy::Bool),
+        ty: Ty::Prim(Prim::Bool),
         kind: ExprKind::BinOp(
             BinOp::OrL,
             Box::new(Expr {
                 id: NodeId::default(),
                 span,
-                ty: Ty::Prim(PrimTy::Bool),
+                ty: Ty::Prim(Prim::Bool),
                 kind: ExprKind::BinOp(
                     BinOp::AndL,
                     Box::new(Expr {
                         id: NodeId::default(),
                         span,
-                        ty: Ty::Prim(PrimTy::Bool),
+                        ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Gt,
                             Box::new(step.gen_local_ref()),
                             Box::new(Expr {
                                 id: NodeId::default(),
                                 span,
-                                ty: Ty::Prim(PrimTy::Int),
+                                ty: Ty::Prim(Prim::Int),
                                 kind: ExprKind::Lit(Lit::Int(0)),
                             }),
                         ),
@@ -348,7 +354,7 @@ fn gen_range_cond(
                     Box::new(Expr {
                         id: NodeId::default(),
                         span,
-                        ty: Ty::Prim(PrimTy::Bool),
+                        ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Lte,
                             Box::new(index.gen_local_ref()),
@@ -360,20 +366,20 @@ fn gen_range_cond(
             Box::new(Expr {
                 id: NodeId::default(),
                 span,
-                ty: Ty::Prim(PrimTy::Bool),
+                ty: Ty::Prim(Prim::Bool),
                 kind: ExprKind::BinOp(
                     BinOp::AndL,
                     Box::new(Expr {
                         id: NodeId::default(),
                         span,
-                        ty: Ty::Prim(PrimTy::Bool),
+                        ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Lt,
                             Box::new(step.gen_local_ref()),
                             Box::new(Expr {
                                 id: NodeId::default(),
                                 span,
-                                ty: Ty::Prim(PrimTy::Int),
+                                ty: Ty::Prim(Prim::Int),
                                 kind: ExprKind::Lit(Lit::Int(0)),
                             }),
                         ),
@@ -381,7 +387,7 @@ fn gen_range_cond(
                     Box::new(Expr {
                         id: NodeId::default(),
                         span,
-                        ty: Ty::Prim(PrimTy::Bool),
+                        ty: Ty::Prim(Prim::Bool),
                         kind: ExprKind::BinOp(
                             BinOp::Gte,
                             Box::new(index.gen_local_ref()),

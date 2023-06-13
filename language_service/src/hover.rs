@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
-use qsc::hir::{visit::Visitor, CallableKind, Ty};
+use qsc::hir::{ty::Ty, visit::Visitor, CallableDecl, CallableKind};
 
 #[derive(Debug, PartialEq)]
 pub struct Hover {
@@ -24,10 +24,9 @@ pub(crate) fn get_hover(
     source_name: &str,
     offset: u32,
 ) -> Option<Hover> {
-    let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compile_unit.sources, source_name, offset);
-    let package = &compile_unit.package;
+    let offset = map_offset(&compilation.source_map, source_name, offset);
+    let package = &compilation.package;
 
     let mut callable_finder = CallableFinder {
         offset,
@@ -54,7 +53,7 @@ struct CallableFinder {
 }
 
 impl Visitor<'_> for CallableFinder {
-    fn visit_callable_decl(&mut self, decl: &qsc_hir::hir::CallableDecl) {
+    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         if span_contains(decl.name.span, self.offset) {
             let kind = match decl.kind {
                 CallableKind::Function => "function",

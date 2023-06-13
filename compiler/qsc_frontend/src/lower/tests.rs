@@ -684,11 +684,13 @@ fn lambda_operation_empty_closure() {
                     Parent: 0
                     Callable 0 [18-101] (operation):
                         name: Ident 1 [28-31] "Foo"
-                        input: Pat 2 [32-48] [Type (Qubit => Unit)]: Bind: Ident 3 [32-34] "op"
+                        generics:
+                            0: functor (empty set)
+                        input: Pat 2 [32-48] [Type (Qubit => Unit is 0)]: Bind: Ident 3 [32-34] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 4 [18-101] (Body): Impl:
-                            Pat 5 [18-101] [Type (Qubit => Unit)]: Elided
+                            Pat 5 [18-101] [Type (Qubit => Unit is 0)]: Elided
                             Block 6 [55-101] [Type Unit]:
                                 Stmt 7 [65-81]: Qubit (Fresh)
                                     Pat 8 [69-70] [Type Qubit]: Bind: Ident 9 [69-70] "q"
@@ -710,7 +712,10 @@ fn lambda_operation_empty_closure() {
                             Pat 19 [106-147] [Type Unit]: Elided
                             Block 20 [131-147] [Type Unit]:
                                 Stmt 21 [133-145]: Expr: Expr 22 [133-145] [Type Unit]: Call:
-                                    Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var: Item 1
+                                    Expr 23 [133-136] [Type ((Qubit => Unit) => Unit)]: Var:
+                                        res: Item 1
+                                        generics:
+                                            empty set
                                     Expr 24 [137-144] [Type (Qubit => Unit)]: Closure([], 3)
                         adj: <none>
                         ctl: <none>
@@ -765,11 +770,13 @@ fn lambda_operation_closure() {
                     Parent: 0
                     Callable 5 [80-130] (operation):
                         name: Ident 6 [90-93] "Foo"
-                        input: Pat 7 [94-111] [Type (Unit => Result)]: Bind: Ident 8 [94-96] "op"
+                        generics:
+                            0: functor (empty set)
+                        input: Pat 7 [94-111] [Type (Unit => Result is 0)]: Bind: Ident 8 [94-96] "op"
                         output: Result
                         functors: empty set
                         body: SpecDecl 9 [80-130] (Body): Impl:
-                            Pat 10 [80-130] [Type (Unit => Result)]: Elided
+                            Pat 10 [80-130] [Type (Unit => Result is 0)]: Elided
                             Block 11 [122-130] [Type Result]:
                                 Stmt 12 [124-128]: Expr: Expr 13 [124-128] [Type Result]: Call:
                                     Expr 14 [124-126] [Type (Unit => Result)]: Var: Local 8
@@ -791,7 +798,10 @@ fn lambda_operation_closure() {
                                     Pat 23 [174-175] [Type Qubit]: Bind: Ident 24 [174-175] "q"
                                     QubitInit 25 [178-185] [Type Qubit]: Single
                                 Stmt 26 [195-216]: Expr: Expr 27 [195-216] [Type Result]: Call:
-                                    Expr 28 [195-198] [Type ((Unit => Result) => Result)]: Var: Item 2
+                                    Expr 28 [195-198] [Type ((Unit => Result) => Result)]: Var:
+                                        res: Item 2
+                                        generics:
+                                            empty set
                                     Expr 29 [199-215] [Type (Unit => Result)]: Closure([24], 4)
                         adj: <none>
                         ctl: <none>
@@ -848,11 +858,13 @@ fn lambda_adj() {
                     Parent: 0
                     Callable 7 [60-106] (operation):
                         name: Ident 8 [70-73] "Foo"
-                        input: Pat 9 [74-97] [Type (Qubit => Unit is Adj)]: Bind: Ident 10 [74-76] "op"
+                        generics:
+                            0: functor (Adj)
+                        input: Pat 9 [74-97] [Type (Qubit => Unit is 0)]: Bind: Ident 10 [74-76] "op"
                         output: Unit
                         functors: empty set
                         body: SpecDecl 11 [60-106] (Body): Impl:
-                            Pat 12 [60-106] [Type (Qubit => Unit is Adj)]: Elided
+                            Pat 12 [60-106] [Type (Qubit => Unit is 0)]: Elided
                             Block 13 [104-106]: <empty>
                         adj: <none>
                         ctl: <none>
@@ -868,7 +880,10 @@ fn lambda_adj() {
                             Pat 18 [111-151] [Type Unit]: Elided
                             Block 19 [132-151] [Type Unit]:
                                 Stmt 20 [134-149]: Semi: Expr 21 [134-148] [Type Unit]: Call:
-                                    Expr 22 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var: Item 2
+                                    Expr 22 [134-137] [Type ((Qubit => Unit is Adj) => Unit)]: Var:
+                                        res: Item 2
+                                        generics:
+                                            Adj
                                     Expr 23 [138-147] [Type (Qubit => Unit is Adj)]: Closure([], 4)
                         adj: <none>
                         ctl: <none>

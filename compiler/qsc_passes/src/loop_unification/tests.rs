@@ -56,7 +56,10 @@ fn convert_for_array() {
                                     Stmt _id_ [75-78]: Local (Immutable):
                                         Pat _id_ [75-78] [Type Int]: Bind: Ident 19 [75-78] "len_id_19"
                                         Expr _id_ [75-78] [Type (Int)[]]: Call:
-                                            Expr _id_ [75-78] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                            Expr _id_ [75-78] [Type ((Int)[] -> Int)]: Var:
+                                                res: Item 1 (Package 0)
+                                                generics:
+                                                    Int
                                             Expr _id_ [75-78] [Type (Int)[]]: Var: Local 18
                                     Stmt _id_ [75-78]: Local (Mutable):
                                         Pat _id_ [75-78] [Type Int]: Bind: Ident 20 [75-78] "index_id_20"
@@ -117,7 +120,10 @@ fn convert_for_array_deconstruct() {
                                     Stmt _id_ [90-93]: Local (Immutable):
                                         Pat _id_ [90-93] [Type Int]: Bind: Ident 22 [90-93] "len_id_22"
                                         Expr _id_ [90-93] [Type ((Int, Double))[]]: Call:
-                                            Expr _id_ [90-93] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                            Expr _id_ [90-93] [Type (((Int, Double))[] -> Int)]: Var:
+                                                res: Item 1 (Package 0)
+                                                generics:
+                                                    (Int, Double)
                                             Expr _id_ [90-93] [Type ((Int, Double))[]]: Var: Local 21
                                     Stmt _id_ [90-93]: Local (Mutable):
                                         Pat _id_ [90-93] [Type Int]: Bind: Ident 23 [90-93] "index_id_23"
@@ -186,7 +192,10 @@ fn convert_for_slice() {
                                     Stmt _id_ [75-88]: Local (Immutable):
                                         Pat _id_ [75-88] [Type Int]: Bind: Ident 25 [75-88] "len_id_25"
                                         Expr _id_ [75-88] [Type (Int)[]]: Call:
-                                            Expr _id_ [75-88] [Type (('T)[] -> Int)]: Var: Item 1 (Package 0)
+                                            Expr _id_ [75-88] [Type ((Int)[] -> Int)]: Var:
+                                                res: Item 1 (Package 0)
+                                                generics:
+                                                    Int
                                             Expr _id_ [75-88] [Type (Int)[]]: Var: Local 24
                                     Stmt _id_ [75-88]: Local (Mutable):
                                         Pat _id_ [75-88] [Type Int]: Bind: Ident 26 [75-88] "index_id_26"

@@ -6,7 +6,7 @@ mod tests;
 
 use crate::qsc_utils::{map_offset, span_contains, Compilation};
 use qsc::hir::{
-    visit::Visitor,
+    visit::{walk_item, Visitor},
     ItemKind, {Block, Item, Package},
 };
 use std::collections::HashSet;
@@ -41,10 +41,9 @@ pub(crate) fn get_completions(
     source_name: &str,
     offset: u32,
 ) -> CompletionList {
-    let compile_unit = &compilation.compile_unit;
     // Map the file offset into a SourceMap offset
-    let offset = map_offset(&compile_unit.sources, source_name, offset);
-    let package = &compile_unit.package;
+    let offset = map_offset(&compilation.source_map, source_name, offset);
+    let package = &compilation.package;
     let std_package = &compilation
         .package_store
         .get(compilation.std_package_id)
@@ -71,7 +70,7 @@ pub(crate) fn get_completions(
     // Determine context for the offset
     let mut context_builder = ContextFinder {
         offset,
-        context: if compile_unit.package.items.values().next().is_none() {
+        context: if compilation.package.items.values().next().is_none() {
             Context::NoCompilation
         } else {
             Context::TopLevel
@@ -115,7 +114,7 @@ impl Visitor<'_> for NamespaceCollector {
             // Collect namespaces
             self.namespaces.insert(ident.name.to_string());
         }
-        qsc_hir::visit::walk_item(self, item);
+        walk_item(self, item);
     }
 }
 
@@ -142,7 +141,7 @@ impl Visitor<'_> for ContextFinder {
             }
         }
 
-        qsc_hir::visit::walk_item(self, item);
+        walk_item(self, item);
     }
 
     fn visit_block(&mut self, block: &Block) {

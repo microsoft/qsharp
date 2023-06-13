@@ -9,10 +9,11 @@ use qsc_hir::{
     assigner::Assigner,
     global::Table,
     hir::{
-        Block, Expr, ExprKind, Mutability, NodeId, Pat, PatKind, PrimTy, QubitInit, QubitInitKind,
-        Stmt, StmtKind, Ty,
+        Block, Expr, ExprKind, Mutability, NodeId, Pat, PatKind, QubitInit, QubitInitKind, Stmt,
+        StmtKind,
     },
     mut_visit::{walk_expr, walk_stmt, MutVisitor},
+    ty::{Prim, Ty},
 };
 use std::{mem::take, rc::Rc};
 
@@ -152,13 +153,12 @@ impl<'a> ReplaceQubitAllocation<'a> {
     ) -> (Expr, Vec<(IdentTemplate, Option<Expr>)>) {
         match init.kind {
             QubitInitKind::Array(size) => {
-                let gen_id =
-                    self.gen_ident(Ty::Array(Box::new(Ty::Prim(PrimTy::Qubit))), init.span);
+                let gen_id = self.gen_ident(Ty::Array(Box::new(Ty::Prim(Prim::Qubit))), init.span);
                 let expr = gen_id.gen_local_ref();
                 (expr, vec![(gen_id, Some(*size))])
             }
             QubitInitKind::Single => {
-                let gen_id = self.gen_ident(Ty::Prim(PrimTy::Qubit), init.span);
+                let gen_id = self.gen_ident(Ty::Prim(Prim::Qubit), init.span);
                 let expr = gen_id.gen_local_ref();
                 (expr, vec![(gen_id, None)])
             }
@@ -235,6 +235,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
                 self.core,
                 "QIR.Runtime",
                 "__quantum__rt__qubit_allocate",
+                Vec::new(),
                 ident.span,
             ),
             None,
@@ -244,7 +245,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
     fn create_array_alloc_stmt(&self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
         create_general_alloc_stmt(
             ident,
-            create_gen_core_ref(self.core, "QIR.Runtime", "AllocateQubitArray", ident.span),
+            create_gen_core_ref(
+                self.core,
+                "QIR.Runtime",
+                "AllocateQubitArray",
+                Vec::new(),
+                ident.span,
+            ),
             Some(array_size),
         )
     }
@@ -255,6 +262,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
                 self.core,
                 "QIR.Runtime",
                 "__quantum__rt__qubit_release",
+                Vec::new(),
                 ident.span,
             ),
             ident,
@@ -263,7 +271,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
 
     fn create_array_dealloc_stmt(&self, ident: &IdentTemplate) -> Stmt {
         create_general_dealloc_stmt(
-            create_gen_core_ref(self.core, "QIR.Runtime", "ReleaseQubitArray", ident.span),
+            create_gen_core_ref(
+                self.core,
+                "QIR.Runtime",
+                "ReleaseQubitArray",
+                Vec::new(),
+                ident.span,
+            ),
             ident,
         )
     }
@@ -383,7 +397,13 @@ fn create_qubit_global_alloc(core: &Table, pat: Pat, qubit_init: QubitInit) -> S
         match qubit_init.kind {
             QubitInitKind::Array(mut expr) => create_qubit_alloc_call_expr(
                 qubit_init.span,
-                create_gen_core_ref(core, "QIR.Runtime", "AllocateQubitArray", qubit_init.span),
+                create_gen_core_ref(
+                    core,
+                    "QIR.Runtime",
+                    "AllocateQubitArray",
+                    Vec::new(),
+                    qubit_init.span,
+                ),
                 Some(take(&mut expr)),
             ),
             QubitInitKind::Single => create_qubit_alloc_call_expr(
@@ -392,6 +412,7 @@ fn create_qubit_global_alloc(core: &Table, pat: Pat, qubit_init: QubitInit) -> S
                     core,
                     "QIR.Runtime",
                     "__quantum__rt__qubit_allocate",
+                    Vec::new(),
                     qubit_init.span,
                 ),
                 None,
@@ -431,7 +452,7 @@ fn create_qubit_alloc_call_expr(span: Span, call_expr: Expr, array_size: Option<
     Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Prim(PrimTy::Qubit),
+        ty: Ty::Prim(Prim::Qubit),
         kind: ExprKind::Call(
             Box::new(call_expr),
             Box::new(array_size.unwrap_or(Expr {

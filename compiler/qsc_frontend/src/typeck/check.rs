@@ -14,12 +14,15 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 use qsc_data_structures::index_map::IndexMap;
-use qsc_hir::hir::{self, FunctorSetValue, ItemId, PackageId, Ty, Udt};
+use qsc_hir::{
+    hir::{self, ItemId, PackageId},
+    ty::{FunctorSetValue, Scheme, Ty, Udt},
+};
 use std::{collections::HashMap, vec};
 
 pub(crate) struct GlobalTable {
     udts: HashMap<ItemId, Udt>,
-    terms: HashMap<ItemId, Ty>,
+    terms: HashMap<ItemId, Scheme>,
     errors: Vec<Error>,
 }
 
@@ -40,11 +43,11 @@ impl GlobalTable {
             };
 
             match &item.kind {
-                hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.ty()),
+                hir::ItemKind::Callable(decl) => self.terms.insert(item_id, decl.scheme()),
                 hir::ItemKind::Namespace(..) => None,
                 hir::ItemKind::Ty(_, udt) => {
                     self.udts.insert(item_id, udt.clone());
-                    self.terms.insert(item_id, udt.cons_ty(item_id))
+                    self.terms.insert(item_id, udt.cons_scheme(item_id))
                 }
             };
         }
@@ -52,8 +55,8 @@ impl GlobalTable {
 }
 
 pub(crate) struct Checker {
-    globals: HashMap<ItemId, Ty>,
-    tys: Table,
+    globals: HashMap<ItemId, Scheme>,
+    table: Table,
     errors: Vec<Error>,
 }
 
@@ -61,20 +64,21 @@ impl Checker {
     pub(crate) fn new(globals: GlobalTable) -> Self {
         Checker {
             globals: globals.terms,
-            tys: Table {
+            table: Table {
                 udts: globals.udts,
                 terms: IndexMap::new(),
+                generics: IndexMap::new(),
             },
             errors: globals.errors,
         }
     }
 
-    pub(crate) fn tys(&self) -> &Table {
-        &self.tys
+    pub(crate) fn table(&self) -> &Table {
+        &self.table
     }
 
-    pub(crate) fn into_tys(self) -> (Table, Vec<Error>) {
-        (self.tys, self.errors)
+    pub(crate) fn into_table(self) -> (Table, Vec<Error>) {
+        (self.table, self.errors)
     }
 
     pub(crate) fn drain_errors(&mut self) -> vec::Drain<Error> {
@@ -88,9 +92,8 @@ impl Checker {
         if let Some(entry) = &package.entry {
             self.errors.append(&mut rules::expr(
                 names,
-                &self.tys.udts,
                 &self.globals,
-                &mut self.tys.terms,
+                &mut self.table,
                 entry,
             ));
         }
@@ -102,11 +105,7 @@ impl Checker {
     }
 
     fn check_callable_decl(&mut self, names: &Names, decl: &ast::CallableDecl) {
-        self.tys
-            .terms
-            .insert(decl.name.id, convert::ast_callable_ty(names, decl).0);
         self.check_callable_signature(names, decl);
-
         let output = convert::ty_from_ast(names, &decl.output).0;
         match &*decl.body {
             ast::CallableBody::Block(block) => self.check_spec(
@@ -155,9 +154,8 @@ impl Checker {
     fn check_spec(&mut self, names: &Names, spec: SpecImpl) {
         self.errors.append(&mut rules::spec(
             names,
-            &self.tys.udts,
             &self.globals,
-            &mut self.tys.terms,
+            &mut self.table,
             spec,
         ));
     }
@@ -174,9 +172,8 @@ impl Checker {
         // https://github.com/microsoft/qsharp/issues/205
         self.errors.append(&mut rules::stmt(
             names,
-            &self.tys.udts,
             &self.globals,
-            &mut self.tys.terms,
+            &mut self.table,
             stmt,
         ));
     }
@@ -201,14 +198,14 @@ impl Visitor<'_> for ItemCollector<'_> {
                     panic!("callable should have item ID");
                 };
 
-                let (ty, errors) = convert::ast_callable_ty(self.names, decl);
+                let (scheme, errors) = convert::ast_callable_scheme(self.names, decl);
                 for MissingTyError(span) in errors {
                     self.checker
                         .errors
                         .push(Error(ErrorKind::MissingItemTy(span)));
                 }
 
-                self.checker.globals.insert(item, ty);
+                self.checker.globals.insert(item, scheme);
             }
             ast::ItemKind::Ty(name, def) => {
                 let Some(&Res::Item(item)) = self.names.get(name.id) else {
@@ -225,7 +222,7 @@ impl Visitor<'_> for ItemCollector<'_> {
                 );
 
                 let fields = convert::ast_ty_def_fields(def);
-                self.checker.tys.udts.insert(item, Udt { base, fields });
+                self.checker.table.udts.insert(item, Udt { base, fields });
                 self.checker.globals.insert(item, cons);
             }
             _ => {}

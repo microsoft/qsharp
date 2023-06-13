@@ -974,12 +974,7 @@ dependencies = [
  "indoc 2.0.0",
  "log",
  "miette",
- "num-bigint",
- "num-complex",
  "qsc",
- "qsc_data_structures",
- "qsc_frontend",
- "qsc_hir",
 ]
 
 [[package]]
