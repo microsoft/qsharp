@@ -151,6 +151,23 @@ fn ty_decl_field_name() {
 }
 
 #[test]
+fn ty_decl_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        newtype Foo = Int;",
+        &expect![[r#"
+            Item _id_ [0-65]:
+                doc:
+                    This is a
+                    doc comment.
+                New Type (Ident _id_ [55-58] "Foo"): TyDef _id_ [61-64]: Field:
+                    Type _id_ [61-64]: Path: Path _id_ [61-64] (Ident _id_ [61-64] "Int")"#]],
+    );
+}
+
+#[test]
 fn ty_def_invalid_field_name() {
     check(
         parse,
@@ -271,6 +288,26 @@ fn function_decl() {
 }
 
 #[test]
+fn function_decl_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        function Foo() : () {}",
+        &expect![[r#"
+            Item _id_ [0-69]:
+                doc:
+                    This is a
+                    doc comment.
+                Callable _id_ [47-69] (Function):
+                    name: Ident _id_ [56-59] "Foo"
+                    input: Pat _id_ [59-61]: Unit
+                    output: Type _id_ [64-66]: Unit
+                    body: Block: Block _id_ [67-69]: <empty>"#]],
+    );
+}
+
+#[test]
 fn operation_decl() {
     check(
         parse,
@@ -283,6 +320,26 @@ fn operation_decl() {
                     output: Type _id_ [18-22]: Path: Path _id_ [18-22] (Ident _id_ [18-22] "Unit")
                     body: Specializations:
                         SpecDecl _id_ [25-40] (Body): Gen: Intrinsic"#]],
+    );
+}
+
+#[test]
+fn operation_decl_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        operation Foo() : () {}",
+        &expect![[r#"
+            Item _id_ [0-70]:
+                doc:
+                    This is a
+                    doc comment.
+                Callable _id_ [47-70] (Operation):
+                    name: Ident _id_ [57-60] "Foo"
+                    input: Pat _id_ [60-62]: Unit
+                    output: Type _id_ [65-67]: Unit
+                    body: Block: Block _id_ [68-70]: <empty>"#]],
     );
 }
 
@@ -539,6 +596,27 @@ fn internal_function() {
 }
 
 #[test]
+fn internal_function_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        internal function Foo() : () {}",
+        &expect![[r#"
+            Item _id_ [0-78]:
+                doc:
+                    This is a
+                    doc comment.
+                Visibility _id_ [47-55] (Internal)
+                Callable _id_ [56-78] (Function):
+                    name: Ident _id_ [65-68] "Foo"
+                    input: Pat _id_ [68-70]: Unit
+                    output: Type _id_ [73-75]: Unit
+                    body: Block: Block _id_ [76-78]: <empty>"#]],
+    );
+}
+
+#[test]
 fn internal_operation() {
     check(
         parse,
@@ -653,6 +731,29 @@ fn operation_two_attrs() {
 }
 
 #[test]
+fn operation_attr_doc() {
+    check(
+        parse,
+        "/// This is a
+        /// doc comment.
+        @Foo()
+        operation Bar() : () {}",
+        &expect![[r#"
+            Item _id_ [0-85]:
+                doc:
+                    This is a
+                    doc comment.
+                Attr _id_ [47-53] (Ident _id_ [48-51] "Foo"):
+                    Expr _id_ [51-53]: Unit
+                Callable _id_ [62-85] (Operation):
+                    name: Ident _id_ [72-75] "Bar"
+                    input: Pat _id_ [75-77]: Unit
+                    output: Type _id_ [80-82]: Unit
+                    body: Block: Block _id_ [83-85]: <empty>"#]],
+    );
+}
+
+#[test]
 fn namespace_function() {
     check_vec(
         parse_namespaces,
@@ -670,6 +771,29 @@ fn namespace_function() {
 }
 
 #[test]
+fn namespace_doc() {
+    check_vec(
+        parse_namespaces,
+        "/// This is a
+        /// doc comment.
+        namespace A {
+            function Foo() : () {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-105] (Ident _id_ [57-58] "A"):
+                doc:
+                    This is a
+                    doc comment.
+                Item _id_ [73-95]:
+                    Callable _id_ [73-95] (Function):
+                        name: Ident _id_ [82-85] "Foo"
+                        input: Pat _id_ [85-87]: Unit
+                        output: Type _id_ [90-92]: Unit
+                        body: Block: Block _id_ [93-95]: <empty>"#]],
+    );
+}
+
+#[test]
 fn two_namespaces() {
     check_vec(
         parse_namespaces,
@@ -677,6 +801,24 @@ fn two_namespaces() {
         &expect![[r#"
             Namespace _id_ [0-14] (Ident _id_ [10-11] "A"):,
             Namespace _id_ [15-29] (Ident _id_ [25-26] "B"):"#]],
+    );
+}
+
+#[test]
+fn two_namespaces_docs() {
+    check_vec(
+        parse_namespaces,
+        "/// This is the first namespace.
+        namespace A {}
+        /// This is the second namespace.
+        namespace B {}",
+        &expect![[r#"
+            Namespace _id_ [0-55] (Ident _id_ [51-52] "A"):
+                doc:
+                    This is the first namespace.,
+            Namespace _id_ [64-120] (Ident _id_ [116-117] "B"):
+                doc:
+                    This is the second namespace."#]],
     );
 }
 
@@ -729,6 +871,78 @@ fn two_callable_items() {
                         input: Pat _id_ [48-50]: Unit
                         output: Type _id_ [53-57]: Path: Path _id_ [53-57] (Ident _id_ [53-57] "Unit")
                         body: Block: Block _id_ [58-60]: <empty>"#]],
+    );
+}
+
+#[test]
+fn two_callable_items_docs() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            /// This is the first callable.
+            function Foo() : () {}
+            /// This is the second callable.
+            operation Foo() : () {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-183] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-92]:
+                    doc:
+                        This is the first callable.
+                    Callable _id_ [70-92] (Function):
+                        name: Ident _id_ [79-82] "Foo"
+                        input: Pat _id_ [82-84]: Unit
+                        output: Type _id_ [87-89]: Unit
+                        body: Block: Block _id_ [90-92]: <empty>
+                Item _id_ [105-173]:
+                    doc:
+                        This is the second callable.
+                    Callable _id_ [150-173] (Operation):
+                        name: Ident _id_ [160-163] "Foo"
+                        input: Pat _id_ [163-165]: Unit
+                        output: Type _id_ [168-170]: Unit
+                        body: Block: Block _id_ [171-173]: <empty>"#]],
+    );
+}
+
+#[test]
+fn doc_without_item() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            /// This is a doc comment.
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-62] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-62]:
+                    Err
+
+            [
+                Error(
+                    Rule(
+                        "item",
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 61,
+                            hi: 62,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Eof,
+                        Span {
+                            lo: 62,
+                            hi: 62,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
