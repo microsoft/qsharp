@@ -199,13 +199,13 @@ impl std::fmt::Display for VSDiagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            r#"{{
-    "message": "{}",
-    "severity": {},
-    "start_pos": {},
-    "end_pos": {}
-}}"#,
-            self.message, self.severity, self.start_pos, self.end_pos
+            "{}",
+            json!({
+                "message": self.message,
+                "severity": self.severity,
+                "start_pos": self.start_pos,
+                "end_pos": self.end_pos
+            })
         )
     }
 }
@@ -357,7 +357,7 @@ where
             }
         };
 
-        let msg_string = format!(r#"{{"type": "Result", "success": {success}, "result": {msg}}}"#);
+        let msg_string = json!({"type": "Result", "success": success, "result": msg}).to_string();
         (out.event_cb)(&msg_string);
     }
     Ok(())
