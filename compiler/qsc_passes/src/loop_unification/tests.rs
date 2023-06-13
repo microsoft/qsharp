@@ -472,7 +472,7 @@ fn convert_repeat_fixup() {
                                                     Expr 12 [115-119] [Type Bool]: Lit: Bool(true)
                                             Stmt _id_ [134-174]: Expr: Expr _id_ [134-174] [Type Unit]: If:
                                                 Expr _id_ [115-119] [Type Bool]: Var: Local 19
-                                                Block 13 [134-174] [Type Unit]:
+                                                Expr _id_ [134-174] [Type Unit]: Expr Block: Block 13 [134-174] [Type Unit]:
                                                     Stmt 14 [148-164]: Local (Immutable):
                                                         Pat 15 [152-153] [Type String]: Bind: Ident 16 [152-153] "y"
                                                         Expr 17 [156-163] [Type String]: String:
@@ -554,7 +554,7 @@ fn convert_repeat_nested() {
                                                                 Expr 27 [205-206] [Type Bool]: Var: Local 7
                                                         Stmt _id_ [225-274]: Expr: Expr _id_ [225-274] [Type Unit]: If:
                                                             Expr _id_ [205-206] [Type Bool]: Var: Local 44
-                                                            Block 28 [225-274] [Type Unit]:
+                                                            Expr _id_ [225-274] [Type Unit]: Expr Block: Block 28 [225-274] [Type Unit]:
                                                                 Stmt 29 [243-260]: Local (Immutable):
                                                                     Pat 30 [247-248] [Type String]: Bind: Ident 31 [247-248] "y"
                                                                     Expr 32 [251-259] [Type String]: String:
@@ -565,7 +565,7 @@ fn convert_repeat_nested() {
                                                     Expr 33 [291-292] [Type Bool]: Var: Local 11
                                             Stmt _id_ [307-395]: Expr: Expr _id_ [307-395] [Type Unit]: If:
                                                 Expr _id_ [291-292] [Type Bool]: Var: Local 46
-                                                Block 34 [307-395] [Type Unit]:
+                                                Expr _id_ [307-395] [Type Unit]: Expr Block: Block 34 [307-395] [Type Unit]:
                                                     Stmt 35 [321-385]: Semi: Expr _id_ [321-384] [Type Unit]: Expr Block: Block _id_ [321-384] [Type Unit]:
                                                         Stmt _id_ [383-384]: Local (Mutable):
                                                             Pat _id_ [383-384] [Type Bool]: Bind: Ident 45 [383-384] "continue_cond_45"
