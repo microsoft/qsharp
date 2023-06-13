@@ -188,11 +188,19 @@ export interface IDiagnostic {
 "#;
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct VSDiagnosticCode {
+    value: String,
+    target: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
     pub message: String,
     pub severity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<VSDiagnosticCode>,
 }
 
 impl VSDiagnostic {
@@ -233,11 +241,17 @@ where
         // TODO: Maybe some other chars too: https://stackoverflow.com/a/5191059
         let message = pre_message.replace('\n', "\\\\n");
 
+        let code = err.code().map(|code| VSDiagnosticCode {
+            value: code.to_string(),
+            target: "".to_string(),
+        });
+
         VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
             severity,
             message,
+            code,
         }
     }
 }
