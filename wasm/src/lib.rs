@@ -14,6 +14,7 @@ use qsc::{
     PackageStore, SourceMap,
 };
 use qsc_hir::hir::PackageId;
+use serde_json::json;
 use std::fmt::Write;
 use wasm_bindgen::prelude::*;
 
@@ -30,28 +31,13 @@ export interface IDiagnostic {
     start_pos: number;
     end_pos: number;
     message: string;
-    severity: number; // [0, 1, 2] = [error, warning, info]
+    severity: "error" | "warning" | "info"
     code?: {
         value: number;  // Can also be a string, but number would be preferable
         target: string; // URI for more info - could be a custom URI for pretty errors
     }
 }
 "#;
-
-impl std::fmt::Display for VSDiagnostic {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            r#"{{
-    "message": "{}",
-    "severity": {},
-    "start_pos": {},
-    "end_pos": {}
-}}"#,
-            self.message, self.severity, self.start_pos, self.end_pos
-        )
-    }
-}
 
 struct CallbackReceiver<F>
 where
@@ -98,10 +84,8 @@ where
     }
 
     fn message(&mut self, msg: &str) -> Result<(), output::Error> {
-        let mut msg_str = String::new();
-        write!(msg_str, r#"{{"type": "Message", "message": "{}"}}"#, msg)
-            .expect("Writing to a string should succeed");
-        (self.event_cb)(&msg_str);
+        let msg_json = json!({"type": "Message", "message": msg});
+        (self.event_cb)(&msg_json.to_string());
         Ok(())
     }
 }
@@ -118,28 +102,26 @@ where
         // https://github.com/microsoft/qsharp/issues/149
         let e = err[0].clone();
         let diag: VSDiagnostic = (&e).into();
-        let msg = format!(
-            r#"{{"type": "Result", "success": false, "result": {}}}"#,
-            diag
-        );
-        (out.event_cb)(&msg);
+        let msg = json!(
+            {"type": "Result", "success": false, "result": diag});
+        (out.event_cb)(&msg.to_string());
         return Err(e);
     }
     let context = context.expect("context should be valid");
     for _ in 0..shots {
         let result = context.eval(&mut out);
         let mut success = true;
-        let msg = match result {
-            Ok(value) => format!(r#""{value}""#),
+        let msg: serde_json::Value = match result {
+            Ok(value) => serde_json::Value::String(value.to_string()),
             Err(errors) => {
                 // TODO: handle multiple errors
                 // https://github.com/microsoft/qsharp/issues/149
                 success = false;
-                VSDiagnostic::from(&errors[0]).to_string()
+                VSDiagnostic::from(&errors[0]).json()
             }
         };
 
-        let msg_string = format!(r#"{{"type": "Result", "success": {success}, "result": {msg}}}"#);
+        let msg_string = json!({"type": "Result", "success": success, "result": msg}).to_string();
         (out.event_cb)(&msg_string);
     }
     Ok(())
@@ -330,7 +312,55 @@ mod test {
         );
         assert!(result.is_ok());
     }
+    #[test]
+    fn message_with_escape_sequences() {
+        let code = r#"namespace Sample {
+            open Microsoft.Quantum.Diagnostics;
 
+            operation main() : Unit {
+                Message("\ta\n\t");
+
+                return ();
+            }
+        }"#;
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(_msg_.contains(r#"\ta\n\t"#) || _msg_.contains("result"));
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
+    #[test]
+    fn message_with_backslashes() {
+        let code = r#"namespace Sample {
+            open Microsoft.Quantum.Diagnostics;
+
+            operation main() : Unit {
+                Message("hi \\World");
+                Message("hello { \\World [");
+
+                return ();
+            }
+        }"#;
+        let expr = "Sample.main()";
+        let result = crate::run_internal(
+            code,
+            expr,
+            |_msg_| {
+                assert!(
+                    _msg_.contains("hello { \\\\World [")
+                        || _msg_.contains("hi \\\\World")
+                        || _msg_.contains("result")
+                );
+            },
+            1,
+        );
+        assert!(result.is_ok());
+    }
     #[test]
     fn test_entrypoint() {
         let code = r#"namespace Sample {
@@ -366,9 +396,9 @@ mod test {
             code,
             expr,
             |msg| {
-                assert!(msg.contains(r#""success": false"#));
-                assert!(msg.contains(r#""message": "entry point not found"#));
-                assert!(msg.contains(r#""start_pos": 0"#));
+                assert!(msg.contains(r#""success":false"#));
+                assert!(msg.contains(r#""message":"entry point not found"#));
+                assert!(msg.contains(r#""start_pos":0"#));
             },
             1,
         );

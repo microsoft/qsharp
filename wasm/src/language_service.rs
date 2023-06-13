@@ -5,6 +5,7 @@ use log::{error, LevelFilter, Log};
 use miette::{Diagnostic, Severity};
 use qsc::compile;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::{fmt::Write, iter, panic, sync::OnceLock};
 use wasm_bindgen::prelude::*;
 
@@ -183,7 +184,18 @@ pub struct VSDiagnostic {
     pub start_pos: usize,
     pub end_pos: usize,
     pub message: String,
-    pub severity: i32,
+    pub severity: String,
+}
+
+impl VSDiagnostic {
+    pub fn json(&self) -> serde_json::Value {
+        json!({
+            "message": self.message,
+            "severity": self.severity,
+            "start_pos": self.start_pos,
+            "end_pos": self.end_pos
+        })
+    }
 }
 
 impl<T> From<&T> for VSDiagnostic
@@ -195,11 +207,12 @@ where
         let offset = label.as_ref().map_or(0, |lbl| lbl.offset());
         // Monaco handles 0-length diagnostics just fine...?
         let len = label.as_ref().map_or(1, |lbl| lbl.len());
-        let severity = match err.severity().unwrap_or(Severity::Error) {
-            Severity::Error => 0,
-            Severity::Warning => 1,
-            Severity::Advice => 2,
-        };
+        let severity = (match err.severity().unwrap_or(Severity::Error) {
+            Severity::Error => "error",
+            Severity::Warning => "warning",
+            Severity::Advice => "info",
+        })
+        .to_string();
 
         let mut pre_message = err.to_string();
         for source in iter::successors(err.source(), |e| e.source()) {

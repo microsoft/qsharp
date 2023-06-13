@@ -1,9 +1,13 @@
-import * as vscode from "vscode";
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import { QscEventTarget, getCompiler, loadWasmModule } from "qsharp";
+import * as vscode from "vscode";
 import { createCompletionItemProvider } from "./completion.js";
-import { createHoverProvider } from "./hover.js";
-import { registerQSharpNotebookHandlers } from "./notebooks.js";
 import { createDefinitionProvider } from "./definition.js";
+import { startCheckingQSharp } from "./diagnostics.js";
+import { createHoverProvider } from "./hover.js";
+import { registerQSharpNotebookHandlers } from "./notebook.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("Q#");
@@ -36,90 +40,67 @@ export async function activate(context: vscode.ExtensionContext) {
     );
   };
 
-  // load the compiler
-  const wasmUri = vscode.Uri.joinPath(
-    context.extensionUri,
-    "./wasm/qsc_wasm_bg.wasm"
-  );
-  const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
-  await loadWasmModule(wasmBytes);
-  const evtTarget = new QscEventTarget(false);
-  const compiler = await getCompiler(evtTarget);
+  const { compiler, evtTarget } = await loadCompiler(context.extensionUri);
 
-  registerDocumentUpdateHandlers(output, compiler);
+  context.subscriptions.push(...registerDocumentUpdateHandlers(compiler));
+
+  context.subscriptions.push(...registerQSharpNotebookHandlers());
+
+  context.subscriptions.push(startCheckingQSharp(evtTarget));
 
   // completions
-  vscode.languages.registerCompletionItemProvider(
-    "qsharp",
-    createCompletionItemProvider(compiler),
-    "."
+  context.subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      "qsharp",
+      createCompletionItemProvider(compiler),
+      "."
+    )
   );
 
   // hover
-  vscode.languages.registerHoverProvider(
-    "qsharp",
-    createHoverProvider(compiler)
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider(
+      "qsharp",
+      createHoverProvider(compiler)
+    )
   );
 
   // go to def
-  vscode.languages.registerDefinitionProvider(
-    "qsharp",
-    createDefinitionProvider(compiler)
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      "qsharp",
+      createDefinitionProvider(compiler)
+    )
   );
-
-  const diagCollection = vscode.languages.createDiagnosticCollection("qsharp");
-  evtTarget.addEventListener("diagnostics", (evt) => {
-    const diagnostics = evt.detail;
-
-    const getPosition = (offset: number) => {
-      // We need the document here to be able to map offsets to line/column positions.
-      // The document may not be available if this event is to clear diagnostics
-      // for an already-closed document from the problems list.
-      // Note: This mapping will break down if we ever send diagnostics for closed files.
-      const document = vscode.workspace.textDocuments.filter(
-        (doc) => doc.uri.toString() === diagnostics.uri
-      )[0];
-      return document.positionAt(offset);
-    };
-
-    diagCollection.set(
-      vscode.Uri.parse(evt.detail.uri),
-      diagnostics.diagnostics.map(
-        (d) =>
-          new vscode.Diagnostic(
-            new vscode.Range(getPosition(d.start_pos), getPosition(d.end_pos)),
-            d.message,
-            d.severity
-          )
-      )
-    );
-  });
-
-  // notebooks
-  registerQSharpNotebookHandlers(context);
 }
 
 function registerDocumentUpdateHandlers(
-  output: vscode.OutputChannel,
   compiler: Awaited<ReturnType<typeof getCompiler>>
 ) {
   vscode.workspace.textDocuments.forEach((document) => {
     updateIfQsharpDocument(document);
   });
 
-  vscode.workspace.onDidOpenTextDocument((document) => {
-    updateIfQsharpDocument(document);
-  });
+  const subscriptions = [];
+  subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      updateIfQsharpDocument(document);
+    })
+  );
 
-  vscode.workspace.onDidChangeTextDocument((evt) => {
-    updateIfQsharpDocument(evt.document);
-  });
+  subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((evt) => {
+      updateIfQsharpDocument(evt.document);
+    })
+  );
 
-  vscode.workspace.onDidCloseTextDocument((document) => {
-    if (vscode.languages.match("qsharp", document)) {
-      compiler.closeDocument(document.uri.toString());
-    }
-  });
+  subscriptions.push(
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      if (vscode.languages.match("qsharp", document)) {
+        compiler.closeDocument(document.uri.toString());
+      }
+    })
+  );
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (vscode.languages.match("qsharp", document)) {
@@ -130,4 +111,17 @@ function registerDocumentUpdateHandlers(
       );
     }
   }
+
+  return subscriptions;
+}
+
+/**
+ * Loads the Q# compiler including the WASM module
+ */
+async function loadCompiler(baseUri: vscode.Uri) {
+  const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
+  const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
+  await loadWasmModule(wasmBytes);
+  const evtTarget = new QscEventTarget(false);
+  return { compiler: await getCompiler(evtTarget), evtTarget };
 }

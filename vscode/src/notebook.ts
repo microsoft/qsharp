@@ -1,16 +1,18 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import * as vscode from "vscode";
+import { qsharpLanguageId } from "./common.js";
 
 /**
  * Sets up handlers to detect Q# code cells in Jupyter notebooks and set the language to Q#.
  */
-export function registerQSharpNotebookHandlers(
-  context: vscode.ExtensionContext
-) {
-  const qsharpLanguageId = "qsharp";
+export function registerQSharpNotebookHandlers() {
   const qsharpCellMagic = "%%qsharp";
   const jupyterNotebookType = "jupyter-notebook";
 
-  context.subscriptions.push(
+  const subscriptions = [];
+  subscriptions.push(
     vscode.workspace.onDidOpenNotebookDocument((notebookDocument) => {
       if (notebookDocument.notebookType === jupyterNotebookType) {
         updateQSharpCellLanguages(notebookDocument.getCells());
@@ -18,7 +20,7 @@ export function registerQSharpNotebookHandlers(
     })
   );
 
-  context.subscriptions.push(
+  subscriptions.push(
     vscode.workspace.onDidChangeNotebookDocument((event) => {
       if (event.notebook.notebookType === jupyterNotebookType) {
         // change.document will be undefined if the cell contents did not change -- filter those out.
@@ -50,4 +52,6 @@ export function registerQSharpNotebookHandlers(
       }
     }
   }
+
+  return subscriptions;
 }
