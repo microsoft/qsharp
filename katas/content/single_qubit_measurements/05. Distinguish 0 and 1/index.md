@@ -1,0 +1,7 @@
+Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states, and discuss the general case of arbitrary basis measurements later in the tutorial.
+
+## <span style="color:blue">Exercise 2</span>: Distinguish $|0\rangle$ and $|1\rangle$
+
+**Input:** A qubit which is guaranteed to be in either the $|0\rangle$ or the $|1\rangle$ state.
+
+**Output:**  `true` if the qubit was in the $|0\rangle$ state, or `false` if it was in the $|1\rangle$ state. The state of the qubit at the end of the operation does not matter.

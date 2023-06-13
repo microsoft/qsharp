@@ -1,0 +1,3 @@
+operation IsQubitMinus (q : Qubit) : Bool {
+    // ...
+}

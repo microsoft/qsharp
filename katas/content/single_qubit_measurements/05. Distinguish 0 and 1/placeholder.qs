@@ -1,0 +1,16 @@
+namespace Kata {
+
+    operation IsQubitZero (q : Qubit) : Bool {
+        // The operation M will measure a qubit in the computational basis (|0⟩ and |1⟩ basis)
+        // and return Zero if the observed state was |0⟩ or One if the state was |1⟩.
+        // Measuring a basis state will yield the result matching that state deterministically.
+        // To answer the question, you need to perform the measurement and check whether the result
+        // equals One - either directly or using library function IsResultOne.
+        //
+        // Type the following: return M(q) == Zero;
+        // Then run the cell using Ctrl+Enter (⌘+Enter on macOS).
+
+        // ...
+    }
+
+}
