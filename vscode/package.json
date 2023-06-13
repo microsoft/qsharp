@@ -40,9 +40,7 @@
     ]
   },
   "scripts": {
-    "copyWasm": "mkdir -p wasm && cp ../npm/lib/web/qsc_wasm_bg.wasm wasm/qsc_wasm_bg.wasm",
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
-    "esbuild": "esbuild ./src/extension.ts --bundle --outfile=out/extension.cjs --external:vscode --format=cjs --platform=browser --target=es2020 --define:import.meta.url=undefined",
-    "build": "npm run copyWasm && npm run tsc:check && npm run -S esbuild -- --sourcemap"
+    "build": "npm run tsc:check && node build.js"
   }
 }
