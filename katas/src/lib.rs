@@ -27,7 +27,7 @@ pub fn run_kata(
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
     let mut all_sources = sources;
-    all_sources.add([(
+    all_sources.extend([(
         "katas.qs".into(),
         include_str!("../library/katas.qs").into(),
     )]);
