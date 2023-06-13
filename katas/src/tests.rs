@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{EXAMPLE_ENTRY, EXERCISE_ENTRY};
+use crate::EXAMPLE_ENTRY;
 use qsc::{
     interpret::{output::CursorReceiver, stateless},
     SourceMap,
@@ -51,18 +51,16 @@ fn extract_exercise_sources_paths(
     ))
 }
 
-fn run_kata(kata: &str, verifier: &str) -> Result<bool, Vec<stateless::Error>> {
-    let sources = SourceMap::new(
-        [
-            ("kata".into(), kata.into()),
-            ("verifier".into(), verifier.into()),
-        ],
-        Some(EXERCISE_ENTRY.into()),
-    );
-
+fn verify_exercise(exercise: &str, verifier: &str) -> Result<bool, Vec<stateless::Error>> {
     let mut cursor = Cursor::new(Vec::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
-    let result = crate::run_kata(sources, &mut receiver);
+    let result = crate::verify_exercise(
+        vec![
+            ("exercise".into(), exercise.into()),
+            ("verifier".into(), verifier.into()),
+        ],
+        &mut receiver,
+    );
     println!("{}", receiver.dump());
     result
 }
@@ -74,11 +72,11 @@ fn validate_exercise(
 ) {
     let verify = fs::read_to_string(verify_source).expect("file should be readable");
     let reference = fs::read_to_string(reference_source).expect("file should be readable");
-    let result = run_kata(&reference, &verify).expect("reference should succeed");
+    let result = verify_exercise(&reference, &verify).expect("reference should succeed");
     assert!(result, "reference should return true");
 
     let placeholder = fs::read_to_string(placeholder_source).expect("file should be readable");
-    let result = run_kata(&placeholder, &verify).expect("placeholder should succeed");
+    let result = verify_exercise(&placeholder, &verify).expect("placeholder should succeed");
     assert!(!result, "placeholder should return false");
 }
 

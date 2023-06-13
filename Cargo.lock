@@ -472,6 +472,7 @@ version = "0.0.0"
 dependencies = [
  "indoc 2.0.0",
  "qsc",
+ "qsc_frontend",
 ]
 
 [[package]]

@@ -66,15 +66,6 @@ impl SourceMap {
         }
     }
 
-    pub fn add(&mut self, name: SourceName, contents: SourceContents) {
-        let offset = next_offset(&self.sources);
-        self.sources.push(Source {
-            name,
-            contents,
-            offset,
-        });
-    }
-
     #[must_use]
     pub fn find_by_offset(&self, offset: u32) -> Option<&Source> {
         self.sources
