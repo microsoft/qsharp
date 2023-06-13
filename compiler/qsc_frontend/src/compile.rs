@@ -66,6 +66,15 @@ impl SourceMap {
         }
     }
 
+    pub fn add(&mut self, name: SourceName, contents: SourceContents) {
+        let offset = next_offset(&self.sources);
+        self.sources.push(Source {
+            name,
+            contents,
+            offset,
+        });
+    }
+
     #[must_use]
     pub fn find_by_offset(&self, offset: u32) -> Option<&Source> {
         self.sources
@@ -93,19 +102,6 @@ impl SourceMap {
     #[must_use]
     pub fn find_by_name(&self, name: &str) -> Option<&Source> {
         self.sources.iter().find(|s| s.name.as_ref() == name)
-    }
-}
-
-impl Extend<(SourceName, SourceContents)> for SourceMap {
-    fn extend<T: IntoIterator<Item = (SourceName, SourceContents)>>(&mut self, iter: T) {
-        for (name, contents) in iter {
-            let offset = next_offset(&self.sources);
-            self.sources.push(Source {
-                name,
-                contents,
-                offset,
-            });
-        }
     }
 }
 

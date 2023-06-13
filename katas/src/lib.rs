@@ -23,15 +23,11 @@ pub const EXERCISE_ENTRY: &str = "Kata.VerifyExercise()";
 ///
 /// Will panic if evaluation does not return a boolean as result.
 pub fn run_kata(
-    sources: SourceMap,
+    mut sources: SourceMap,
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
-    let mut all_sources = sources;
-    all_sources.extend([(
-        "katas.qs".into(),
-        include_str!("../library/katas.qs").into(),
-    )]);
-    let context = stateless::Context::new(true, all_sources)?;
+    sources.add("katas.qs".into(), include_str!("../library/katas.qs").into());
+    let context = stateless::Context::new(true, sources)?;
     context.eval(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success
