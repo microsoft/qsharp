@@ -445,6 +445,24 @@ fn function_single_impl() {
 }
 
 #[test]
+fn function_body_missing_semi_between_stmts() {
+    check(
+        parse,
+        "function Foo() : () { f(x) g(y) }",
+        &expect![[r#"
+            Error(
+                MissingSemi(
+                    Span {
+                        lo: 26,
+                        hi: 26,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn operation_body_impl() {
     check(
         parse,
