@@ -205,12 +205,7 @@ pub struct VSDiagnostic {
 
 impl VSDiagnostic {
     pub fn json(&self) -> serde_json::Value {
-        json!({
-            "message": self.message,
-            "severity": self.severity,
-            "start_pos": self.start_pos,
-            "end_pos": self.end_pos
-        })
+        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
     }
 }
 
