@@ -35,7 +35,9 @@ function copyWasm() {
 function buildBundle() {
   console.log("Running esbuild");
 
-  build(buildOptions).then(() => console.log(`Built bundle to ${join(thisDir, "out")}`));
+  build(buildOptions).then(() =>
+    console.log(`Built bundle to ${join(thisDir, "out")}`)
+  );
 }
 
 copyWasm();
