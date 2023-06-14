@@ -14,3 +14,4 @@ pub mod hir {
 }
 
 pub use qsc_data_structures::span::Span;
+pub use qsc_data_structures::telemetry;

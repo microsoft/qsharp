@@ -32,7 +32,9 @@ export function messageHandler(e: MessageEvent) {
     case "init":
       log.setLogLevel(data.qscLogLevel);
       wasm.initSync(data.wasmModule);
-      compiler = new Compiler(wasm);
+      compiler = new Compiler(wasm, (telemetry: string) =>
+        self.postMessage({ type: "telemetry-event", event: telemetry })
+      );
       break;
     default:
       if (!compiler) {

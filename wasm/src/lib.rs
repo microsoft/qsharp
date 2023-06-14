@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use js_sys::Function;
 use katas::{run_kata, KATA_ENTRY};
 use miette::{Diagnostic, Severity};
 use num_bigint::BigUint;
@@ -12,11 +13,11 @@ use qsc::{
         output::{self, Receiver},
         stateless,
     },
-    PackageStore, SourceMap,
+    telemetry, PackageStore, SourceMap,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{fmt::Write, iter};
+use std::{cell::OnceCell, fmt::Write, iter, sync::Once};
 use wasm_bindgen::prelude::*;
 
 // These definitions match the values expected by VS Code and Monaco.
@@ -36,9 +37,50 @@ pub struct CompletionList {
     pub items: Vec<CompletionItem>,
 }
 
+// Holds a reference to the JavaScript function to call (which must be thread specific)
+thread_local! {
+    static TELEM_FN: OnceCell<Function> = OnceCell::new();
+}
+
+// The global logger that delegates to the thread local JS function (if present and enabled)
+struct WasmTelemetryLogger;
+impl telemetry::Log for WasmTelemetryLogger {
+    fn log(&self, msg: &str) {
+        if telemetry::is_telemetry_enabled() {
+            TELEM_FN.with(|f| {
+                if let Some(jsfn) = f.get() {
+                    let _ = jsfn.call1(&JsValue::NULL, &JsValue::from_str(msg));
+                }
+            });
+        }
+    }
+}
+static WASM_TELEMETRY_LOGGER: WasmTelemetryLogger = WasmTelemetryLogger;
+
+#[wasm_bindgen(js_name=initTelemetry)]
+pub fn init_telemetry(callback: JsValue) -> Result<(), JsValue> {
+    // Ensure a function was passed, and set it in the thread local storage
+    if !callback.is_function() {
+        return Err(JsError::new("Invalid callback").into());
+    }
+
+    let thefn: Function = callback.dyn_into().unwrap();
+    TELEM_FN.with(|f| f.set(thefn))?;
+
+    // Ensure that the global logger is set (at most once).
+    static INIT_ONCE: Once = Once::new();
+    INIT_ONCE.call_once(|| {
+        telemetry::set_telemetry_logger(&WASM_TELEMETRY_LOGGER);
+    });
+
+    Ok(())
+}
+
 #[wasm_bindgen]
 pub fn git_hash() -> JsValue {
-    JsValue::from_str(env!("QSHARP_GIT_HASH"))
+    let git_hash = env!("QSHARP_GIT_HASH");
+    telemetry::log(format!("git_hash: \"{}\"", git_hash).as_str());
+    JsValue::from_str(git_hash)
 }
 
 // There is no easy way to serialize the result with serde_wasm_bindgen and get

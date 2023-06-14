@@ -5,3 +5,4 @@
 
 pub mod index_map;
 pub mod span;
+pub mod telemetry;

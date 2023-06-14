@@ -42,7 +42,8 @@ type RequestState = {
 export function createWorkerProxy(
   postMessage: (msg: CompilerReqMsg) => void,
   setMsgHandler: (handler: (e: ResponseMsgType) => void) => void,
-  terminator: () => void
+  terminator: () => void,
+  ontelemetry?: (msg: string) => void
 ): ICompilerWorker {
   const queue: RequestState[] = [];
   let curr: RequestState | undefined;
@@ -125,6 +126,12 @@ export function createWorkerProxy(
   }
 
   function onMsgFromWorker(msg: CompilerRespMsg | CompilerEventMsg) {
+    // If a telemetry event, and there is a listener, call it.
+    if (msg.type === "telemetry-event") {
+      proxy.ontelemetry?.(msg.event);
+      return;
+    }
+
     if (!curr) {
       log.error("No active request when message received: %o", msg);
       return;
@@ -205,6 +212,7 @@ export function createWorkerProxy(
       return queueRequest("runKata", [user_code, verify_code], evtHandler);
     },
     onstatechange: null,
+    ontelemetry: ontelemetry || null,
     // Kill the worker without a chance to shutdown. May be needed if it is not responding.
     terminate: () => {
       log.info("Terminating the worker");
@@ -350,6 +358,7 @@ type CompilerEventMsg =
   | { type: "message-event"; event: MessageMsg }
   | { type: "dumpMachine-event"; event: DumpMsg }
   | { type: "success-event"; event: string }
-  | { type: "failure-event"; event: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  | { type: "failure-event"; event: any } // eslint-disable-line @typescript-eslint/no-explicit-any
+  | { type: "telemetry-event"; event: string };
 
 export type ResponseMsgType = CompilerRespMsg | CompilerEventMsg;

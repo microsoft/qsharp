@@ -38,11 +38,15 @@ declare global {
   const MathJax: { typeset: () => void };
 }
 
+function telemetryHandler(msg: string) {
+  console.log("Received telemetry event: ", msg);
+}
+
 const wasmPromise = loadWasmModule(modulePath); // Start loading but don't wait on it
 
 function createCompiler(onStateChange: (val: CompilerState) => void) {
   log.info("In createCompiler");
-  const compiler = getCompilerWorker(workerPath);
+  const compiler = getCompilerWorker(workerPath, telemetryHandler);
   compiler.onstatechange = onStateChange;
   return compiler;
 }

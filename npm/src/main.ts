@@ -19,12 +19,14 @@ type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
 let wasm: Wasm | null = null;
 const require = createRequire(import.meta.url);
 
-export function getCompiler(): ICompiler {
+export function getCompiler(ontelemetry?: (msg: string) => void): ICompiler {
   if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-  return new Compiler(wasm);
+  return new Compiler(wasm, ontelemetry);
 }
 
-export function getCompilerWorker(): ICompilerWorker {
+export function getCompilerWorker(
+  ontelemetry?: (msg: string) => void
+): ICompilerWorker {
   const thisDir = dirname(fileURLToPath(import.meta.url));
   const worker = new Worker(join(thisDir, "worker-node.js"), {
     workerData: { qscLogLevel: log.getLogLevel() },
@@ -36,5 +38,10 @@ export function getCompilerWorker(): ICompilerWorker {
     worker.addListener("message", handler);
   const onTerminate = () => worker.terminate();
 
-  return createWorkerProxy(postMessage, setMsgHandler, onTerminate);
+  return createWorkerProxy(
+    postMessage,
+    setMsgHandler,
+    onTerminate,
+    ontelemetry
+  );
 }
