@@ -3,6 +3,7 @@
   "displayName": "Q# (new)",
   "description": "Q# Language Support",
   "version": "0.0.1",
+  "type": "module",
   "engines": {
     "vscode": "^1.77.0"
   },
@@ -10,7 +11,9 @@
     "Programming Languages",
     "Notebooks"
   ],
-  "main": "./out/extension.js",
+  "browser": "./out/extension.cjs",
+  "main": "./out/extension.cjs",
+  "virtualWorkspaces": true,
   "activationEvents": [
     "onNotebook:jupyter"
   ],
@@ -37,6 +40,7 @@
     ]
   },
   "scripts": {
-    "build": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json"
+    "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
+    "build": "npm run tsc:check && node build.js"
   }
 }
