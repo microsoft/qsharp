@@ -181,8 +181,8 @@ export interface IDiagnostic {
     message: string;
     severity: "error" | "warning" | "info"
     code?: {
-        value: number;  // Can also be a string, but number would be preferable
-        target: string; // URI for more info - could be a custom URI for pretty errors
+        value: string;
+        target: string;
     }
 }
 "#;
