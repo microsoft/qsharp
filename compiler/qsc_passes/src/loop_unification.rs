@@ -74,7 +74,16 @@ impl LoopUni<'_> {
                     id: NodeId::default(),
                     span: fix_body.span,
                     ty: Ty::UNIT,
-                    kind: ExprKind::If(Box::new(continue_cond_id.gen_local_ref()), fix_body, None),
+                    kind: ExprKind::If(
+                        Box::new(continue_cond_id.gen_local_ref()),
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span: fix_body.span,
+                            ty: Ty::UNIT,
+                            kind: ExprKind::Block(fix_body),
+                        }),
+                        None,
+                    ),
                 }),
             };
             block.stmts.push(fix_if);
