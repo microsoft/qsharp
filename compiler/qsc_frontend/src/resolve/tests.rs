@@ -1721,3 +1721,43 @@ fn bind_items_in_qubit_use_block() {
         "#]],
     );
 }
+
+#[test]
+fn use_unbound_generic() {
+    check(
+        indoc! {"
+            namespace A {
+                function B<'T>(x: 'U) : 'U {
+                    x
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1<'localtype0>(local9: 'U) : 'U {
+                    local9
+                }
+            }
+            // NotFound("'U", Span { lo: TODO, hi: TODO })
+        "#]],
+    );
+}
+#[test]
+fn resolve_local_generic() {
+    check(
+        indoc! {"
+            namespace A {
+                function B<'T>(x: 'T) : 'T {
+                    x
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1<'localtype0>(local9: 'localtype0) : 'localtype0 {
+                    local9
+                }
+            }
+        "#]],
+    );
+}
