@@ -38,67 +38,67 @@ use val::GlobalId;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("array too large")]
-    #[diagnostic(code("Eval.ArrayTooLarge"))]
+    #[diagnostic(code("Qsc.Eval.ArrayTooLarge"))]
     ArrayTooLarge(#[label("this array has too many items")] Span),
 
     #[error("invalid array length: {0}")]
-    #[diagnostic(code("Eval.InvalidArrayLength"))]
+    #[diagnostic(code("Qsc.Eval.InvalidArrayLength"))]
     InvalidArrayLength(i64, #[label("cannot be used as a length")] Span),
 
     #[error("division by zero")]
-    #[diagnostic(code("Eval.DivZero"))]
+    #[diagnostic(code("Qsc.Eval.DivZero"))]
     DivZero(#[label("cannot divide by zero")] Span),
 
     #[error("empty range")]
-    #[diagnostic(code("Eval.EmptyRange"))]
+    #[diagnostic(code("Qsc.Eval.EmptyRange"))]
     EmptyRange(#[label("the range cannot be empty")] Span),
 
     #[error("value cannot be used as an index: {0}")]
-    #[diagnostic(code("Eval.InvalidIndex"))]
+    #[diagnostic(code("Qsc.Eval.InvalidIndex"))]
     InvalidIndex(i64, #[label("invalid index")] Span),
 
     #[error("integer too large for operation")]
-    #[diagnostic(code("Eval.IntTooLarge"))]
+    #[diagnostic(code("Qsc.Eval.IntTooLarge"))]
     IntTooLarge(i64, #[label("this value is too large")] Span),
 
     #[error("missing specialization: {0}")]
-    #[diagnostic(code("Eval.MissingSpec"))]
+    #[diagnostic(code("Qsc.Eval.MissingSpec"))]
     MissingSpec(String, #[label("callable has no {0} specialization")] Span),
 
     #[error("index out of range: {0}")]
-    #[diagnostic(code("Eval.IndexOutOfRange"))]
+    #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
     IndexOutOfRange(i64, #[label("out of range")] Span),
 
     #[error("negative integers cannot be used here: {0}")]
-    #[diagnostic(code("Eval.InvalidNegativeInt"))]
+    #[diagnostic(code("Qsc.Eval.InvalidNegativeInt"))]
     InvalidNegativeInt(i64, #[label("invalid negative integer")] Span),
 
     #[error("output failure")]
-    #[diagnostic(code("Eval.OutputFail"))]
+    #[diagnostic(code("Qsc.Eval.OutputFail"))]
     OutputFail(#[label("failed to generate output")] Span),
 
     #[error("qubits in gate invocation are not unique")]
-    #[diagnostic(code("Eval.QubitUniqueness"))]
+    #[diagnostic(code("Qsc.Eval.QubitUniqueness"))]
     QubitUniqueness(#[label] Span),
 
     #[error("range with step size of zero")]
-    #[diagnostic(code("Eval.RangeStepZero"))]
+    #[diagnostic(code("Qsc.Eval.RangeStepZero"))]
     RangeStepZero(#[label("invalid range")] Span),
 
     #[error("Qubit{0} released while not in |0⟩ state")]
-    #[diagnostic(code("Eval.ReleasedQubitNotZero"))]
+    #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize),
 
     #[error("symbol is not bound")]
-    #[diagnostic(code("Eval.UnboundSymbol"))]
+    #[diagnostic(code("Qsc.Eval.UnboundSymbol"))]
     UnboundSymbol(#[label] Span),
 
     #[error("unknown intrinsic `{0}`")]
-    #[diagnostic(code("Eval.UnknownIntrinsic"))]
+    #[diagnostic(code("Qsc.Eval.UnknownIntrinsic"))]
     UnknownIntrinsic(String, #[label("callable has no implementation")] Span),
 
     #[error("program failed: {0}")]
-    #[diagnostic(code("Eval.UserFail"))]
+    #[diagnostic(code("Qsc.Eval.UserFail"))]
     UserFail(String, #[label("explicit fail")] Span),
 }
 
