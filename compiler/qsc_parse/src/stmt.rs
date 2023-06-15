@@ -163,7 +163,7 @@ fn parse_qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
     }))
 }
 
-fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
+pub(super) fn check_semis(stmts: &[Box<Stmt>]) -> Result<()> {
     let leading_stmts = stmts.split_last().map_or([].as_slice(), |s| s.1);
     for stmt in leading_stmts {
         if matches!(&*stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {
