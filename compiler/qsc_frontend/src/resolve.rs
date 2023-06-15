@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{self, NodeId},
+    ast::{self, CallableDecl, NodeId},
     visit::{self as ast_visit, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -221,9 +221,6 @@ impl Resolver {
                 self.names.insert(decl.name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
-                decl.generics.iter().for_each(|(ident, ty)| {
-                    scope.ty_vars.insert(Rc::clone(&ident.name), ty.id);
-                });
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
@@ -234,6 +231,13 @@ impl Resolver {
             }
             ast::ItemKind::Err => {}
         }
+    }
+
+    fn bind_type_arguments(&mut self, decl: &CallableDecl) {
+        decl.generics.iter().for_each(|(ident, ty)| {
+            let scope = self.scopes.last_mut().expect("type args should have scope");
+            scope.ty_vars.insert(Rc::clone(&ident.name), ty.id);
+        });
     }
 }
 
@@ -300,7 +304,9 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
-        self.with_pat(ScopeKind::Callable, &decl.input, |visitor| {
+        self.with_scope(ScopeKind::Callable, |visitor| {
+            visitor.resolver.bind_type_arguments(decl);
+            visitor.resolver.bind_pat(&*decl.input);
             ast_visit::walk_callable_decl(visitor, decl);
         });
     }
@@ -316,7 +322,6 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
-        dbg!(&ty);
         match &*ty.kind {
             ast::TyKind::Path(path) => {
                 self.resolver.resolve(NameKind::Ty, path);
@@ -589,7 +594,6 @@ fn resolve(
     let mut candidates = HashMap::new();
     let mut vars = true;
 
-    dbg!(&locals);
     for scope in locals.iter().rev() {
         if namespace.is_empty() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name) {
