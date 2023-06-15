@@ -121,7 +121,7 @@ enum ScopeKind {
     Block,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum NameKind {
     Ty,
     Term,
@@ -579,6 +579,7 @@ fn resolve(
     let mut vars = true;
 
     dbg!(&locals);
+    dbg!(&name);
     for scope in locals.iter().rev() {
         if namespace.is_empty() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name) {
@@ -640,9 +641,19 @@ fn resolve_scope_locals(
     vars: bool,
     name: &str,
 ) -> Option<Res> {
+    dbg!(&kind);
     if vars {
-        if let Some(&id) = scope.vars.get(name) {
-            return Some(Res::Local(id));
+        match kind {
+            NameKind::Term => {
+                if let Some(&id) = scope.vars.get(name) {
+                    return Some(Res::Local(id));
+                }
+            }
+            NameKind::Ty => {
+                if let Some(&id) = scope.ty_vars.get(dbg!(name)) {
+                    return Some(Res::Local(id));
+                }
+            }
         }
     }
 
