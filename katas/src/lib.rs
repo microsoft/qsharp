@@ -8,12 +8,12 @@ mod tests;
 
 use qsc::{
     interpret::{output::Receiver, stateless, Value},
-    SourceMap,
+    SourceContents, SourceMap, SourceName,
 };
 
-pub const EXAMPLE_ENTRY: &str = "Kata.Main()";
+pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
 
-pub const KATA_ENTRY: &str = "Kata.Verify()";
+pub const EXERCISE_ENTRY: &str = "Kata.VerifyExercise()";
 
 /// # Errors
 ///
@@ -22,16 +22,22 @@ pub const KATA_ENTRY: &str = "Kata.Verify()";
 /// # Panics
 ///
 /// Will panic if evaluation does not return a boolean as result.
-pub fn run_kata(
-    sources: SourceMap,
+pub fn verify_exercise(
+    exercise_sources: Vec<(SourceName, SourceContents)>,
     receiver: &mut impl Receiver,
 ) -> Result<bool, Vec<stateless::Error>> {
-    let context = stateless::Context::new(true, sources)?;
+    let mut all_sources = vec![(
+        "kataslib.qs".into(),
+        include_str!("../library/katas.qs").into(),
+    )];
+    all_sources.extend(exercise_sources);
+    let source_map = SourceMap::new(all_sources, Some(EXERCISE_ENTRY.into()));
+    let context = stateless::Context::new(true, source_map)?;
     context.eval(receiver).map(|value| {
         if let Value::Bool(success) = value {
             success
         } else {
-            panic!("kata did not return a boolean")
+            panic!("exercise verification did not return a boolean")
         }
     })
 }

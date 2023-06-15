@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::language_service::VSDiagnostic;
-use katas::{run_kata, KATA_ENTRY};
+use katas::verify_exercise;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::{
@@ -177,27 +177,25 @@ pub fn run(
 
 fn run_kata_exercise_internal(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: impl Fn(&str),
 ) -> Result<bool, Vec<stateless::Error>> {
-    let sources = SourceMap::new(
-        [
-            ("kata".into(), kata_implementation.into()),
+    verify_exercise(
+        vec![
+            ("exercise".into(), exercise_implementation.into()),
             ("verifier".into(), verification_source.into()),
         ],
-        Some(KATA_ENTRY.into()),
-    );
-
-    run_kata(sources, &mut CallbackReceiver { event_cb })
+        &mut CallbackReceiver { event_cb },
+    )
 }
 
 #[wasm_bindgen]
 pub fn run_kata_exercise(
     verification_source: &str,
-    kata_implementation: &str,
+    exercise_implementation: &str,
     event_cb: &js_sys::Function,
 ) -> Result<JsValue, JsValue> {
-    match run_kata_exercise_internal(verification_source, kata_implementation, |msg: &str| {
+    match run_kata_exercise_internal(verification_source, exercise_implementation, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     }) {
         Ok(v) => Ok(JsValue::from_bool(v)),
