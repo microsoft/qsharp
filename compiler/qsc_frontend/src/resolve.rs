@@ -67,12 +67,14 @@ pub(super) enum Error {
     NotFound(String, #[label] Span),
 }
 
+#[derive(Debug)]
 struct Scope {
     kind: ScopeKind,
     opens: HashMap<Rc<str>, Vec<Open>>,
     tys: HashMap<Rc<str>, ItemId>,
     terms: HashMap<Rc<str>, ItemId>,
     vars: HashMap<Rc<str>, NodeId>,
+    ty_vars: HashMap<Rc<str>, NodeId>,
 }
 
 impl Scope {
@@ -83,6 +85,7 @@ impl Scope {
             tys: HashMap::new(),
             terms: HashMap::new(),
             vars: HashMap::new(),
+            ty_vars: HashMap::new(),
         }
     }
 
@@ -111,7 +114,7 @@ impl GlobalScope {
     }
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 enum ScopeKind {
     Namespace(Rc<str>),
     Callable,
@@ -124,6 +127,7 @@ enum NameKind {
     Term,
 }
 
+#[derive(Debug)]
 struct Open {
     namespace: Rc<str>,
     span: Span,
@@ -217,6 +221,9 @@ impl Resolver {
                 self.names.insert(decl.name.id, Res::Item(id));
                 let scope = self.scopes.last_mut().expect("binding should have scope");
                 scope.terms.insert(Rc::clone(&decl.name.name), id);
+                decl.generics.iter().for_each(|ident| {
+                    scope.ty_vars.insert(Rc::clone(&ident.name), ident.id);
+                });
             }
             ast::ItemKind::Ty(name, _) => {
                 let id = intrapackage(assigner.next_item());
@@ -571,6 +578,7 @@ fn resolve(
     let mut candidates = HashMap::new();
     let mut vars = true;
 
+    dbg!(&locals);
     for scope in locals.iter().rev() {
         if namespace.is_empty() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name) {

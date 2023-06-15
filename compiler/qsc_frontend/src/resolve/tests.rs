@@ -1734,7 +1734,7 @@ fn use_unbound_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'localtype0>(local9: 'U) : 'U {
+                function item1<'local>(local9: 'U) : 'U {
                     local9
                 }
             }
@@ -1754,7 +1754,7 @@ fn resolve_local_generic() {
         "},
         &expect![[r#"
             namespace item0 {
-                function item1<'localtype0>(local9: 'localtype0) : 'localtype0 {
+                function item1<'local0>(local9: 'local0) : 'local0{
                     local9
                 }
             }
