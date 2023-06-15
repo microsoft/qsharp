@@ -10,8 +10,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { log } from "./log.js";
-import { Compiler, ICompiler, ICompilerWorker } from "./compiler.js";
-import { ResponseMsgType, createWorkerProxy } from "./worker-common.js";
+import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
+import {
+  ResponseMsgType,
+  createWorkerProxy,
+} from "./compiler/worker-common.js";
 
 // Only load the Wasm module when first needed, as it may only be used in a Worker,
 // and not in the main thread.

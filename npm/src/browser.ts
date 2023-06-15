@@ -6,8 +6,11 @@
 
 import initWasm, * as wasm from "../lib/web/qsc_wasm.js";
 import { LogLevel, log } from "./log.js";
-import { Compiler, ICompiler, ICompilerWorker } from "./compiler.js";
-import { ResponseMsgType, createWorkerProxy } from "./worker-common.js";
+import { Compiler, ICompiler, ICompilerWorker } from "./compiler/compiler.js";
+import {
+  ResponseMsgType,
+  createWorkerProxy,
+} from "./compiler/worker-common.js";
 
 // Create once. A module is stateless and can be efficiently passed to WebWorkers.
 let wasmModule: WebAssembly.Module | null = null;
@@ -61,7 +64,7 @@ export function getCompilerWorker(workerArg: string | Worker): ICompilerWorker {
 export type { ICompilerWorker };
 export { log, type LogLevel };
 export { type Dump, type ShotResult, type VSDiagnostic } from "./common.js";
-export { type CompilerState } from "./compiler.js";
+export { type CompilerState } from "./compiler/compiler.js";
 export {
   getAllKatas,
   getKata,
