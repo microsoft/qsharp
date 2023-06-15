@@ -181,11 +181,17 @@ export interface IDiagnostic {
     message: string;
     severity: "error" | "warning" | "info"
     code?: {
-        value: number;  // Can also be a string, but number would be preferable
-        target: string; // URI for more info - could be a custom URI for pretty errors
+        value: string;
+        target: string;
     }
 }
 "#;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VSDiagnosticCode {
+    value: String,
+    target: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VSDiagnostic {
@@ -193,16 +199,13 @@ pub struct VSDiagnostic {
     pub end_pos: usize,
     pub message: String,
     pub severity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<VSDiagnosticCode>,
 }
 
 impl VSDiagnostic {
     pub fn json(&self) -> serde_json::Value {
-        json!({
-            "message": self.message,
-            "severity": self.severity,
-            "start_pos": self.start_pos,
-            "end_pos": self.end_pos
-        })
+        serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
     }
 }
 
@@ -233,11 +236,17 @@ where
         // TODO: Maybe some other chars too: https://stackoverflow.com/a/5191059
         let message = pre_message.replace('\n', "\\\\n");
 
+        let code = err.code().map(|code| VSDiagnosticCode {
+            value: code.to_string(),
+            target: "".to_string(),
+        });
+
         VSDiagnostic {
             start_pos: offset,
             end_pos: offset + len,
             severity,
             message,
+            code,
         }
     }
 }
