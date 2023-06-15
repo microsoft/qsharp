@@ -98,6 +98,10 @@ function buildItemContent(item, kataDir) {
   throw new Error(`Unknown module type ${item.type}`);
 }
 
+function getItemType(itemDir) {
+  
+}
+
 function buildItemContentNew(itemDir) {
   const itemId = `${basename(dirname(itemDir))}__${basename(itemDir)}`;
   console.log(itemId);
