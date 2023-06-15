@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use super::{
     keyword::Keyword,
-    prim::{ident, opt, path, seq, token},
+    prim::{opt, path, seq, token},
     scan::Scanner,
     Error, Parser, Result,
 };

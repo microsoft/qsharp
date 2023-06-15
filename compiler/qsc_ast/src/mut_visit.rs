@@ -187,7 +187,10 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         }
         TyKind::Hole => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
-        TyKind::Param { ty, .. } => vis.visit_ty(ty),
+        TyKind::Param { ty, name } => {
+            vis.visit_ident(name);
+            vis.visit_ty(ty);
+        }
         TyKind::Path(path) => vis.visit_path(path),
         TyKind::Tuple(tys) => tys.iter_mut().for_each(|t| vis.visit_ty(t)),
     }

@@ -50,7 +50,7 @@ pub(crate) fn ty_from_ast(names: &Names, ty: &ast::Ty) -> (Ty, Vec<MissingTyErro
             };
             (ty, Vec::new())
         }
-        TyKind::Param { name, ty } => (Ty::Param((*name.name).into()), Vec::new()),
+        TyKind::Param { name, .. } => (Ty::Param((*name.name).into()), Vec::new()),
         TyKind::Tuple(items) => {
             let mut tys = Vec::new();
             let mut errors = Vec::new();
@@ -145,7 +145,7 @@ pub(super) fn ast_callable_scheme(
 }
 
 pub(crate) fn synthesize_callable_generics(
-    generics: &Box<[(Ident, qsc_ast::ast::Ty)]>,
+    generics: &[(Ident, qsc_ast::ast::Ty)],
     input: &mut hir::Pat,
 ) -> Vec<GenericParam> {
     let mut params = ast_callable_generics(generics);
@@ -198,7 +198,7 @@ fn synthesize_functor_params_in_pat(
     }
 }
 
-fn ast_callable_generics(generics: &Box<[(Ident, qsc_ast::ast::Ty)]>) -> Vec<GenericParam> {
+fn ast_callable_generics(generics: &[(Ident, qsc_ast::ast::Ty)]) -> Vec<GenericParam> {
     generics
         .iter()
         .map(|param| GenericParam {

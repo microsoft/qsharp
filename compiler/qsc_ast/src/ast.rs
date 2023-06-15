@@ -516,7 +516,13 @@ pub enum TyKind {
     /// A named type.
     Path(Box<Path>),
     /// A type parameter.
-    Param { name: Ident, ty: Ty },
+    Param {
+        /// The name given to the type parameter.
+        /// e.g., function foo<'U> -> `U` is the name.
+        name: Ident,
+        /// The actual type info for the type parameter.
+        ty: Ty,
+    },
     /// A tuple type.
     Tuple(Box<[Ty]>),
 }

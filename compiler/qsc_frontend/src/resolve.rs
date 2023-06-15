@@ -306,7 +306,7 @@ impl AstVisitor<'_> for With<'_> {
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         self.with_scope(ScopeKind::Callable, |visitor| {
             visitor.resolver.bind_type_arguments(decl);
-            visitor.resolver.bind_pat(&*decl.input);
+            visitor.resolver.bind_pat(&decl.input);
             ast_visit::walk_callable_decl(visitor, decl);
         });
     }
@@ -326,11 +326,11 @@ impl AstVisitor<'_> for With<'_> {
             ast::TyKind::Path(path) => {
                 self.resolver.resolve(NameKind::Ty, path);
             }
-            ast::TyKind::Param { name, ty } => {
+            ast::TyKind::Param { name, .. } => {
                 let path = ast::Path {
                     id: name.id,
                     span: name.span,
-                    namespace: Default::default(),
+                    namespace: Option::default(),
                     name: Box::new(name.clone()),
                 };
                 self.resolver.resolve(NameKind::Ty, &path);
